@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <NodeData.h>
-#include <VoxelPacket.h>
+#include <VoxelPacketData.h>
 #include <VoxelQuery.h>
 
 #include <CoverageMap.h>
@@ -39,36 +39,40 @@ public:
     bool shouldSuppressDuplicatePacket();
 
     int getAvailable() const { return _voxelPacketAvailableBytes; }
-    int getMaxSearchLevel() const { return _maxSearchLevel; };
-    void resetMaxSearchLevel() { _maxSearchLevel = 1; };
-    void incrementMaxSearchLevel() { _maxSearchLevel++; };
+    int getMaxSearchLevel() const { return _maxSearchLevel; }
+    void resetMaxSearchLevel() { _maxSearchLevel = 1; }
+    void incrementMaxSearchLevel() { _maxSearchLevel++; }
 
-    int getMaxLevelReached() const { return _maxLevelReachedInLastSearch; };
+    int getMaxLevelReached() const { return _maxLevelReachedInLastSearch; }
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     VoxelNodeBag nodeBag;
     CoverageMap map;
 
-    ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; };
-    ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; };
+    ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
+    ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; }
     
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
     bool updateCurrentViewFrustum();
     void updateLastKnownViewFrustum();
 
-    bool getViewSent() const { return _viewSent; };
+    bool getViewSent() const { return _viewSent; }
     void setViewSent(bool viewSent);
 
-    bool getViewFrustumChanging() const { return _viewFrustumChanging;            };
-    bool getViewFrustumJustStoppedChanging() const { return _viewFrustumJustStoppedChanging; };
+    bool getViewFrustumChanging() const { return _viewFrustumChanging; }
+    bool getViewFrustumJustStoppedChanging() const { return _viewFrustumJustStoppedChanging; }
 
     bool moveShouldDump() const;
 
-    uint64_t getLastTimeBagEmpty() const { return _lastTimeBagEmpty; };
-    void setLastTimeBagEmpty(uint64_t lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; };
+    uint64_t getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
+    void setLastTimeBagEmpty(uint64_t lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; }
 
-    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; };
+    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
+    bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
+    bool getCurrentPacketFormatMatches() {
+        return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
+    }
 
     bool hasLodChanged() const { return _lodChanged; };
     
@@ -102,6 +106,7 @@ private:
     bool _viewFrustumChanging;
     bool _viewFrustumJustStoppedChanging;
     bool _currentPacketIsColor;
+    bool _currentPacketIsCompressed;
 
     VoxelSendThread* _voxelSendThread;
 
@@ -110,6 +115,8 @@ private:
     float _lastClientVoxelSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
+    
+    VOXEL_PACKET_SEQUENCE _sequenceNumber;
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

@@ -23,6 +23,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true),
+    _currentPacketIsCompressed(false),
     _voxelSendThread(NULL),
     _lastClientBoundaryLevelAdjust(0),
     _lastClientVoxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
@@ -34,6 +35,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lastVoxelPacket = new unsigned char[_voxelPacketAvailableBytes];
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
+    _sequenceNumber = 0;
     
     resetVoxelPacket();
 }
@@ -96,12 +98,37 @@ void VoxelNodeData::resetVoxelPacket() {
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
-    _currentPacketIsColor = (LOW_RES_MONO && getWantLowResMoving() && _viewFrustumChanging) ? false : getWantColor();
-    PACKET_TYPE voxelPacketType = _currentPacketIsColor ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
+    _currentPacketIsColor = getWantColor();
+    _currentPacketIsCompressed = getWantCompression();
+    VOXEL_PACKET_FLAGS flags = 0;
+    if (_currentPacketIsColor) {
+        setAtBit(flags,PACKET_IS_COLOR_BIT);
+    }
+    if (_currentPacketIsCompressed) {
+        setAtBit(flags,PACKET_IS_COMPRESSED_BIT);
+    }
 
-    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
+    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, PACKET_TYPE_VOXEL_DATA);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
+
+    // pack in flags
+    VOXEL_PACKET_FLAGS* flagsAt = (VOXEL_PACKET_FLAGS*)_voxelPacketAt;
+    *flagsAt = flags;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_FLAGS);
+
+    // pack in sequence number
+    VOXEL_PACKET_SEQUENCE* sequenceAt = (VOXEL_PACKET_SEQUENCE*)_voxelPacketAt;
+    *sequenceAt = _sequenceNumber;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    _sequenceNumber++;
+
+    // pack in timestamp
+    VOXEL_PACKET_SENT_TIME now = usecTimestampNow();
+    VOXEL_PACKET_SENT_TIME* timeAt = (VOXEL_PACKET_SENT_TIME*)_voxelPacketAt;
+    *timeAt = now;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_SENT_TIME);
+
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_DATA_SIZE;
     _voxelPacketWaiting = false;
 }
 
@@ -180,7 +207,6 @@ void VoxelNodeData::setViewSent(bool viewSent) {
         _lodChanged = false;
     }
 }
-
 
 void VoxelNodeData::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);

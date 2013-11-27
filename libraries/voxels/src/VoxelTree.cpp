@@ -1022,7 +1022,7 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
 }
 
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, 
-                        VoxelPacket* packet, VoxelNodeBag& bag,
+                        VoxelPacketData* packetData, VoxelNodeBag& bag,
                         EncodeBitstreamParams& params) {
 
     // How many bytes have we written so far at this level;
@@ -1049,7 +1049,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     int codeLength;
     if (params.chopLevels) {
         unsigned char* newCode = chopOctalCode(node->getOctalCode(), params.chopLevels);
-        roomForOctalCode = packet->startSubTree(newCode);
+        roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
             delete newCode;            
@@ -1057,7 +1057,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
             codeLength = 1;
         }
     } else {
-        roomForOctalCode = packet->startSubTree(node->getOctalCode());
+        roomForOctalCode = packetData->startSubTree(node->getOctalCode());
         codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
     }
 
@@ -1079,7 +1079,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
         params.stats->traversed(node);
     }
     
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, packet, bag, params, currentEncodeLevel);
+    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params, currentEncodeLevel);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -1101,9 +1101,9 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     }
     
     if (bytesWritten == 0) {
-        packet->discardSubTree();
+        packetData->discardSubTree();
     } else {
-        packet->endSubTree();
+        packetData->endSubTree();
     }
     
     doneEncoding(node);
@@ -1112,7 +1112,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
 }
 
 int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, 
-                                            VoxelPacket* packet, VoxelNodeBag& bag,
+                                            VoxelPacketData* packetData, VoxelNodeBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel) const {
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
@@ -1261,7 +1261,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     const int BYTES_PER_COLOR = 3;
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
-    LevelDetails thisLevelKey = packet->startLevel();
+    LevelDetails thisLevelKey = packetData->startLevel();
 
     int inViewCount = 0;
     int inViewNotLeafCount = 0;
@@ -1440,7 +1440,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     }
     
     bool continueThisLevel = true;    
-    continueThisLevel = packet->appendBitMask(childrenColoredBits);
+    continueThisLevel = packetData->appendBitMask(childrenColoredBits);
     
     if (continueThisLevel) {
         bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
@@ -1454,7 +1454,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
-                continueThisLevel = packet->appendColor(childNode->getColor());
+                continueThisLevel = packetData->appendColor(childNode->getColor());
                 
                 if (!continueThisLevel) {
                     break; // no point in continuing
@@ -1474,7 +1474,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
     if (continueThisLevel && params.includeExistsBits) {
-        continueThisLevel = packet->appendBitMask(childrenExistInTreeBits);
+        continueThisLevel = packetData->appendBitMask(childrenExistInTreeBits);
         if (continueThisLevel) {
             bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
             if (params.stats) {
@@ -1485,7 +1485,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
     // write the child exist bits
     if (continueThisLevel) {
-        continueThisLevel = packet->appendBitMask(childrenExistInPacketBits);
+        continueThisLevel = packetData->appendBitMask(childrenExistInPacketBits);
         if (continueThisLevel) {
             bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
             if (params.stats) {
@@ -1508,7 +1508,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         // write something, we keep them in the bits, if they don't, we take them out.
         //
         // we know the last thing we wrote to the packet was our childrenExistInPacketBits. Let's remember where that was!
-        int childExistsPlaceHolder = packet->getUncompressedByteOffset(sizeof(childrenExistInPacketBits));
+        int childExistsPlaceHolder = packetData->getUncompressedByteOffset(sizeof(childrenExistInPacketBits));
 
         // we are also going to recurse these child trees in "distance" sorted order, but we need to pack them in the
         // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
@@ -1516,7 +1516,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
         int recursiveSliceSizes[NUMBER_OF_CHILDREN];
         const unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
-        int firstRecursiveSliceOffset = packet->getUncompressedByteOffset();
+        int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
         int allSlicesSize = 0;
 
         // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
@@ -1529,7 +1529,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
                 int thisLevel = currentEncodeLevel;
                 // remember this for reshuffling
-                recursiveSliceStarts[originalIndex] = packet->getUncompressedData() + packet->getUncompressedSize();
+                recursiveSliceStarts[originalIndex] = packetData->getUncompressedData() + packetData->getUncompressedSize();
 
                 int childTreeBytesOut = 0;
 
@@ -1542,8 +1542,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                 //
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
-                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
-                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packet, bag, params, thisLevel);
+                if (true || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, thisLevel);
                 }
 
                 // remember this for reshuffling
@@ -1586,7 +1586,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                     childrenExistInPacketBits -= (1 << (7 - originalIndex));
 
                     // repair the child exists mask
-                    continueThisLevel = packet->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
+                    continueThisLevel = packetData->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
                     
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
@@ -1622,7 +1622,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             }
 
             // now that all slices are back in the correct order, copy them to the correct output buffer
-            continueThisLevel = packet->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
+            continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
         }
     } // end keepDiggingDeeper
 
@@ -1640,9 +1640,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
     if (continueThisLevel) {
-        continueThisLevel = packet->endLevel(thisLevelKey);
+        continueThisLevel = packetData->endLevel(thisLevelKey);
     } else {
-        packet->discardLevel(thisLevelKey);
+        packetData->discardLevel(thisLevelKey);
     }
     
     if (!continueThisLevel) {
@@ -1861,7 +1861,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             nodeBag.insert(rootNode);
         }
 
-        static VoxelPacket packet;
+        static VoxelPacketData packetData;
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
@@ -1870,17 +1870,17 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            bytesWritten = encodeTreeBitstream(subTree, &packet, nodeBag, params);
+            bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
 
             // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
             // and reinsert the node in our bag and try again...
             if (bytesWritten == 0) {
-                if (packet.hasContent()) {
-                    file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
+                if (packetData.hasContent()) {
+                    file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
                     lastPacketWritten = true;
                 }
-                packet.reset(); // is there a better way to do this? could we fit more?
+                packetData.reset(); // is there a better way to do this? could we fit more?
                 nodeBag.insert(subTree);
             } else {
                 lastPacketWritten = false;
@@ -1888,7 +1888,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         }
 
         if (!lastPacketWritten) {
-            file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
+            file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
         }
 
     }
@@ -1914,18 +1914,18 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
         chopLevels = numberOfThreeBitSectionsInCode(startNode->getOctalCode());
     }
 
-    static VoxelPacket packet;
+    static VoxelPacketData packetData;
     int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
-        packet.reset(); // reset the packet between usage
+        packetData.reset(); // reset the packet between usage
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-        bytesWritten = encodeTreeBitstream(subTree, &packet, nodeBag, params);
+        bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-        destinationTree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
+        destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
 
     VoxelNode* destinationStartNode;
@@ -1942,22 +1942,22 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
     // If we were given a specific node, start from there, otherwise start from root
     nodeBag.insert(sourceTree->rootNode);
 
-    static VoxelPacket packet;
+    static VoxelPacketData packetData;
     int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
         
-        packet.reset(); // reset between usage
+        packetData.reset(); // reset between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        bytesWritten = sourceTree->encodeTreeBitstream(subTree, &packet, nodeBag, params);
+        bytesWritten = sourceTree->encodeTreeBitstream(subTree, &packetData, nodeBag, params);
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
-        readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
+        readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
 }
 

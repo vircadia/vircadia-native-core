@@ -43,6 +43,9 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
         case PACKET_TYPE_ERASE_VOXEL:
             return 1;
+
+        case PACKET_TYPE_VOXEL_DATA:
+            return 1;
         
         default:
             return 0;

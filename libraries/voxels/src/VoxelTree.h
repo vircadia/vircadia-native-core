@@ -17,7 +17,7 @@
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
-#include "VoxelPacket.h"
+#include "VoxelPacketData.h"
 #include "VoxelSceneStats.h"
 #include "VoxelEditPacketSender.h"
 
@@ -198,7 +198,7 @@ public:
     void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
                                                 const glm::vec3& point, void* extraData=NULL);
 
-    int encodeTreeBitstream(VoxelNode* node, VoxelPacket* packet, VoxelNodeBag& bag, 
+    int encodeTreeBitstream(VoxelNode* node, VoxelPacketData* packetData, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -257,7 +257,7 @@ private:
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
 
     int encodeTreeBitstreamRecursion(VoxelNode* node, 
-                                     VoxelPacket* packet, VoxelNodeBag& bag, 
+                                     VoxelPacketData* packetData, VoxelNodeBag& bag, 
                                      EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);

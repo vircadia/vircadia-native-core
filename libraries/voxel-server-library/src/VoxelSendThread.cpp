@@ -29,7 +29,7 @@ uint64_t endSceneSleepTime = 0;
 VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
     _nodeUUID(nodeUUID),
     _myServer(myServer),
-    _tempPacket(VOXEL_PACKET_COMPRESSION_DEFAULT),
+    _packetData(),
     _encodedSomething(false)
 {
 }
@@ -228,32 +228,37 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     // If we're starting a fresh packet, then... 
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     //     the clients requested color state.
-    bool wantColor = LOW_RES_MONO && nodeData->getWantLowResMoving() && viewFrustumChanged ? false : nodeData->getWantColor();
+    bool wantColor = nodeData->getWantColor();
+    bool wantCompression = nodeData->getWantCompression();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.    
-    if (wantColor != nodeData->getCurrentPacketIsColor()) {
-    
+    if (!nodeData->getCurrentPacketFormatMatches()) {
         if (nodeData->isPacketWaiting()) {
             if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-                printf("wantColor=%s --- SENDING PARTIAL PACKET! nodeData->getCurrentPacketIsColor()=%s\n", 
-                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+                printf("wantColor=%s wantCompression=%s SENDING PARTIAL PACKET! currentPacketIsColor=%s currentPacketIsCompressed=%s\n", 
+                        debug::valueOf(wantColor), debug::valueOf(wantCompression),
+                        debug::valueOf(nodeData->getCurrentPacketIsColor()), 
+                        debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
             }
-
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         } else {
             if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-                printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
-                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+                printf("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s\n", 
+                        debug::valueOf(wantColor), debug::valueOf(wantCompression),
+                        debug::valueOf(nodeData->getCurrentPacketIsColor()), 
+                        debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
             }
             nodeData->resetVoxelPacket();
         }
+        _packetData.changeSettings(wantCompression);
     }
     
-    if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-        printf("wantColor=%s getCurrentPacketIsColor()=%s, viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
-               debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()),
-               debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
+    if (true || (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug())) {
+        printf("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
+                debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()), 
+                debug::valueOf(wantCompression), debug::valueOf(nodeData->getCurrentPacketIsCompressed()),
+                debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
     }
 
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
@@ -308,8 +313,16 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             unsigned long elapsedTime = nodeData->stats.getElapsedTime();
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-            qDebug("Scene completed at %llu. encodeTime: %lu sleepTime: %lu elapsed: %lu Packets:[%llu]: Total Bytes:[%llu] Wasted bytes:[%llu]\n",
-                usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
+            bool debug = false;
+            if (debug) {
+                qDebug() << "Scene completed at " << usecTimestampNow() <<
+                            " encodeTime: "<< encodeTime <<
+                            " sleepTime: " << sleepTime << 
+                            " elapsed: "<< elapsedTime << 
+                            " Packets:["<< _totalPackets <<"]"<<
+                            " Total Bytes:["<< _totalBytes <<"]"<<
+                            " Wasted bytes:["<< _totalWastedBytes << "]\n";
+            }
             
         }
         
@@ -326,9 +339,13 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             nodeData->nodeBag.deleteAll();
         }
 
-        qDebug("Scene started at %llu. Packets:[%llu]: Total Bytes:[%llu] Wasted bytes:[%llu]\n",
-            usecTimestampNow(), _totalPackets, _totalBytes, _totalWastedBytes);
-
+        bool debug = false;
+        if (debug) {
+            qDebug() << "Scene started at " << usecTimestampNow() <<
+                        " Packets:["<< _totalPackets <<"]"<<
+                        " Total Bytes:["<< _totalBytes <<"]"<<
+                        " Wasted bytes:["<< _totalWastedBytes << "]\n";
+        }
 
         ::startSceneSleepTime = _usleepTime;
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
@@ -348,8 +365,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
         uint64_t start = usecTimestampNow();
-        uint64_t startCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
-        uint64_t startCompressCalls = VoxelPacket::_checkCompressCalls;
+        uint64_t startCompressTimeMsecs = VoxelPacketData::_checkCompressTime / 1000;
+        uint64_t startCompressCalls = VoxelPacketData::_checkCompressCalls;
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
 
@@ -394,9 +411,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
 
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
-                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_tempPacket, nodeData->nodeBag, params);
+                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 
-                if (_tempPacket.hasContent() && bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                if (_packetData.hasContent() && bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
                     lastNodeDidntFit = true;
                 }
 
@@ -411,18 +428,18 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 somethingToSend = false; // this will cause us to drop out of the loop...
             }
             
-            // We only consider sending anything if there is something in the _tempPacket to send... But
+            // We only consider sending anything if there is something in the _packetData to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
             bool sendNow = lastNodeDidntFit;
-            if (_tempPacket.hasContent() && sendNow) {
+            if (_packetData.hasContent() && sendNow) {
                 if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
                     printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",
-                            _tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
+                            _packetData.getFinalizedSize(), _packetData.getUncompressedSize());
                 }
-                nodeData->writeToPacket(_tempPacket.getFinalizedData(), _tempPacket.getFinalizedSize());
+                nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
                 packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                _tempPacket.reset();
+                _packetData.reset();
             }
         }
         
@@ -445,10 +462,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         uint64_t end = usecTimestampNow();
         int elapsedmsec = (end - start)/1000;
 
-        uint64_t endCompressCalls = VoxelPacket::_checkCompressCalls;
+        uint64_t endCompressCalls = VoxelPacketData::_checkCompressCalls;
         int elapsedCompressCalls = endCompressCalls - startCompressCalls;
     
-        uint64_t endCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
+        uint64_t endCompressTimeMsecs = VoxelPacketData::_checkCompressTime / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
 

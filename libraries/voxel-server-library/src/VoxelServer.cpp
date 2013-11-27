@@ -268,9 +268,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         uint64_t totalOutboundPackets = VoxelSendThread::_totalPackets;
         uint64_t totalOutboundBytes = VoxelSendThread::_totalBytes;
         uint64_t totalWastedBytes = VoxelSendThread::_totalWastedBytes;
-        uint64_t totalBytesOfOctalCodes = VoxelPacket::_totalBytesOfOctalCodes;
-        uint64_t totalBytesOfBitMasks = VoxelPacket::_totalBytesOfBitMasks;
-        uint64_t totalBytesOfColor = VoxelPacket::_totalBytesOfColor;
+        uint64_t totalBytesOfOctalCodes = VoxelPacketData::_totalBytesOfOctalCodes;
+        uint64_t totalBytesOfBitMasks = VoxelPacketData::_totalBytesOfBitMasks;
+        uint64_t totalBytesOfColor = VoxelPacketData::_totalBytesOfColor;
 
         const int COLUMN_WIDTH = 10;
         mg_printf(connection, "           Total Outbound Packets: %s packets\r\n",
@@ -703,8 +703,10 @@ void VoxelServer::run() {
             int numBytesPacketHeader = numBytesForPacketHeader(packetData);
 
             if (packetData[0] == PACKET_TYPE_VOXEL_QUERY) {
-
-                qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+                bool debug = false;
+                if (debug) {
+                    qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+                }
             
                 // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
@@ -732,8 +734,7 @@ void VoxelServer::run() {
             } else if (_voxelServerPacketProcessor &&
                        (packetData[0] == PACKET_TYPE_SET_VOXEL
                         || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                        || packetData[0] == PACKET_TYPE_ERASE_VOXEL
-                        || packetData[0] == PACKET_TYPE_Z_COMMAND)) {
+                        || packetData[0] == PACKET_TYPE_ERASE_VOXEL)) {
 
 
                 const char* messageName;
@@ -748,20 +749,6 @@ void VoxelServer::run() {
                         messageName = "PACKET_TYPE_ERASE_VOXEL"; 
                         break;
                 }
-                int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-
-                if (packetData[0] != PACKET_TYPE_Z_COMMAND) {
-                    unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
-                    uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
-                    uint64_t arrivedAt = usecTimestampNow();
-                    uint64_t transitTime = arrivedAt - sentAt;
-                    if (wantShowAnimationDebug() || wantsDebugVoxelReceiving()) {
-                        printf("RECEIVE THREAD: got %s - command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                            messageName,
-                            packetLength, sequence, transitTime);
-                    }
-                }
-    
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
             } else {
                 // let processNodeData handle it.

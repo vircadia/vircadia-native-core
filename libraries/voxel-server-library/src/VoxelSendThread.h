@@ -42,7 +42,7 @@ private:
     int deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
     
     unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE]; // used by environment sending code
-    VoxelPacket _tempPacket;
+    VoxelPacketData _packetData;
     bool _encodedSomething;
     
 };

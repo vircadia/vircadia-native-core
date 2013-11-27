@@ -1,5 +1,5 @@
 //
-//  VoxelPacket.h
+//  VoxelPacketData.h
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 11/19/2013
@@ -16,19 +16,26 @@
 //       to be recalculated
 //
 
-#ifndef __hifi__VoxelPacket__
-#define __hifi__VoxelPacket__
+#ifndef __hifi__VoxelPacketData__
+#define __hifi__VoxelPacketData__
 
 #include <SharedUtil.h>
 #include "VoxelConstants.h"
 #include "VoxelNode.h"
 
-const int MAX_VOXEL_PACKET_SIZE = MAX_PACKET_SIZE - (sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION));
-const int MAX_VOXEL_UNCOMRESSED_PACKET_SIZE = 4500;
-const int VOXEL_PACKET_ALWAYS_TEST_COMPRESSED_THRESHOLD = 1400;
-const int VOXEL_PACKET_TEST_UNCOMPRESSED_THRESHOLD = 4000;
-const int VOXEL_PACKET_TEST_UNCOMPRESSED_CHANGE_THRESHOLD = 20;
-const int VOXEL_PACKET_COMPRESSION_DEFAULT = false;
+typedef unsigned char VOXEL_PACKET_FLAGS;
+typedef uint16_t VOXEL_PACKET_SEQUENCE;
+typedef uint64_t VOXEL_PACKET_SENT_TIME;
+const int MAX_VOXEL_PACKET_SIZE = MAX_PACKET_SIZE;
+const int VOXEL_PACKET_HEADER_SIZE = (sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(VOXEL_PACKET_FLAGS) 
+                + sizeof(VOXEL_PACKET_SEQUENCE) + sizeof(VOXEL_PACKET_SENT_TIME));
+
+const int MAX_VOXEL_PACKET_DATA_SIZE = MAX_PACKET_SIZE - VOXEL_PACKET_HEADER_SIZE;
+            
+const int MAX_VOXEL_UNCOMRESSED_PACKET_SIZE = MAX_VOXEL_PACKET_DATA_SIZE;
+
+const int PACKET_IS_COLOR_BIT = 0;
+const int PACKET_IS_COMPRESSED_BIT = 1;
 
 class LevelDetails {
     LevelDetails(int startIndex, int bytesOfOctalCodes, int bytesOfBitmasks, int bytesOfColor) :
@@ -38,7 +45,7 @@ class LevelDetails {
         _bytesOfColor(bytesOfColor) {
     }
     
-    friend class VoxelPacket;
+    friend class VoxelPacketData;
 
 private:
     int _startIndex;
@@ -47,10 +54,13 @@ private:
     int _bytesOfColor;
 };
 
-class VoxelPacket {
+class VoxelPacketData {
 public:
-    VoxelPacket(bool enableCompression = false, int maxFinalizedSize = MAX_VOXEL_PACKET_SIZE);
-    ~VoxelPacket();
+    VoxelPacketData(bool enableCompression = false, int maxFinalizedSize = MAX_VOXEL_PACKET_DATA_SIZE);
+    ~VoxelPacketData();
+
+    /// change compression and target size settings
+    void changeSettings(bool enableCompression = false, int targetSize = MAX_VOXEL_PACKET_DATA_SIZE);
 
     /// reset completely, all data is discarded
     void reset();
@@ -108,6 +118,8 @@ public:
 
     /// load finalized content to allow access to decoded content for parsing
     void loadFinalizedContent(const unsigned char* data, int length);
+    
+    bool isCompressed() const { return _enableCompression; }
 
     void debugContent();
 
@@ -125,9 +137,9 @@ private:
     /// append a single byte, might fail if byte would cause packet to be too large
     bool append(unsigned char byte);
 
+    int _targetSize;
     bool _enableCompression;
-    int _maxFinalizedSize;
-
+    
     unsigned char _uncompressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _bytesInUse;
     int _bytesAvailable;
@@ -150,4 +162,4 @@ private:
     
 };
 
-#endif /* defined(__hifi__VoxelPacket__) */
+#endif /* defined(__hifi__VoxelPacketData__) */

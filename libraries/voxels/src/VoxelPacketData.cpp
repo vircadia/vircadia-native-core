@@ -1,5 +1,5 @@
 //
-//  VoxelPacket.cpp
+//  VoxelPacketData.cpp
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 11/19/2013.
@@ -7,27 +7,31 @@
 //
 
 #include <PerfStat.h>
-#include "VoxelPacket.h"
+#include "VoxelPacketData.h"
 
-bool VoxelPacket::_debug = false;
-uint64_t VoxelPacket::_totalBytesOfOctalCodes = 0;
-uint64_t VoxelPacket::_totalBytesOfBitMasks = 0;
-uint64_t VoxelPacket::_totalBytesOfColor = 0;
+bool VoxelPacketData::_debug = false;
+uint64_t VoxelPacketData::_totalBytesOfOctalCodes = 0;
+uint64_t VoxelPacketData::_totalBytesOfBitMasks = 0;
+uint64_t VoxelPacketData::_totalBytesOfColor = 0;
 
 
 
-VoxelPacket::VoxelPacket(bool enableCompression, int maxFinalizedSize) {
+VoxelPacketData::VoxelPacketData(bool enableCompression, int targetSize) {
+    changeSettings(enableCompression, targetSize); // does reset...
+}
+
+void VoxelPacketData::changeSettings(bool enableCompression, int targetSize) {
     _enableCompression = enableCompression;
-    _maxFinalizedSize = maxFinalizedSize;
+    _targetSize = std::min(MAX_VOXEL_UNCOMRESSED_PACKET_SIZE, targetSize);
     reset();
 }
 
-void VoxelPacket::reset() {
+void VoxelPacketData::reset() {
     _bytesInUse = 0;
     if (_enableCompression) {
         _bytesAvailable = MAX_VOXEL_UNCOMRESSED_PACKET_SIZE;
     } else {
-        _bytesAvailable = _maxFinalizedSize;
+        _bytesAvailable = _targetSize;
     }
     _subTreeAt = 0;
     _compressedBytes = 0;
@@ -40,10 +44,10 @@ void VoxelPacket::reset() {
     _bytesOfOctalCodesCurrentSubTree = 0;
 }
 
-VoxelPacket::~VoxelPacket() {
+VoxelPacketData::~VoxelPacketData() {
 }
 
-bool VoxelPacket::append(const unsigned char* data, int length) {
+bool VoxelPacketData::append(const unsigned char* data, int length) {
     bool success = false;
 
     if (length <= _bytesAvailable) {
@@ -56,7 +60,7 @@ bool VoxelPacket::append(const unsigned char* data, int length) {
     return success;
 }
 
-bool VoxelPacket::append(unsigned char byte) {
+bool VoxelPacketData::append(unsigned char byte) {
     bool success = false;
     if (_bytesAvailable > 0) {
         _uncompressed[_bytesInUse] = byte;
@@ -68,7 +72,7 @@ bool VoxelPacket::append(unsigned char byte) {
     return success;
 }
 
-bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
+bool VoxelPacketData::updatePriorBitMask(int offset, unsigned char bitmask) {
     bool success = false;
     if (offset >= 0 && offset < _bytesInUse) {
         _uncompressed[offset] = bitmask;
@@ -78,7 +82,7 @@ bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
     return success;
 }
 
-bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementBytes, int length) {
+bool VoxelPacketData::updatePriorBytes(int offset, const unsigned char* replacementBytes, int length) {
     bool success = false;
     if (length >= 0 && offset >= 0 && ((offset + length) <= _bytesInUse)) {
         memcpy(&_uncompressed[offset], replacementBytes, length); // copy new content
@@ -88,7 +92,7 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
     return success;
 }
 
-bool VoxelPacket::startSubTree(const unsigned char* octcode) {
+bool VoxelPacketData::startSubTree(const unsigned char* octcode) {
     _bytesOfOctalCodesCurrentSubTree = _bytesOfOctalCodes;
     bool success = false;
     int possibleStartAt = _bytesInUse;
@@ -112,10 +116,11 @@ bool VoxelPacket::startSubTree(const unsigned char* octcode) {
     return success;
 }
 
-const unsigned char* VoxelPacket::getFinalizedData() {
+const unsigned char* VoxelPacketData::getFinalizedData() {
     if (!_enableCompression) {
         return &_uncompressed[0]; 
     }
+
     
     if (_dirty) {
         if (_debug) {
@@ -124,10 +129,12 @@ const unsigned char* VoxelPacket::getFinalizedData() {
         checkCompress(); 
     }
 
+printf("VoxelPacketData::getFinalizedData()... _bytesInUse=%d compressed version..._compressedBytes=%d\n",_bytesInUse, _compressedBytes);
+
     return &_compressed[0]; 
 }
 
-int VoxelPacket::getFinalizedSize() { 
+int VoxelPacketData::getFinalizedSize() {
     if (!_enableCompression) {
         return _bytesInUse; 
     }
@@ -143,11 +150,11 @@ int VoxelPacket::getFinalizedSize() {
 }
 
 
-void VoxelPacket::endSubTree() {
+void VoxelPacketData::endSubTree() {
     _subTreeAt = _bytesInUse;
 }
 
-void VoxelPacket::discardSubTree() {
+void VoxelPacketData::discardSubTree() {
     int bytesInSubTree = _bytesInUse - _subTreeAt;
     _bytesInUse -= bytesInSubTree;
     _bytesAvailable += bytesInSubTree; 
@@ -160,12 +167,12 @@ void VoxelPacket::discardSubTree() {
     _totalBytesOfOctalCodes -= reduceBytesOfOctalCodes;
 }
 
-LevelDetails VoxelPacket::startLevel() {
+LevelDetails VoxelPacketData::startLevel() {
     LevelDetails key(_bytesInUse, _bytesOfOctalCodes, _bytesOfBitMasks, _bytesOfColor);
     return key;
 }
 
-void VoxelPacket::discardLevel(LevelDetails key) {
+void VoxelPacketData::discardLevel(LevelDetails key) {
     int bytesInLevel = _bytesInUse - key._startIndex;
     
     // reset statistics...
@@ -196,33 +203,12 @@ void VoxelPacket::discardLevel(LevelDetails key) {
     }
 }
 
-bool VoxelPacket::endLevel(LevelDetails key) {
+bool VoxelPacketData::endLevel(LevelDetails key) {
     bool success = true;
-
-    // if we are dirty (something has changed) then try a compression test in the following cases...
-    //    1) If we've previously compressed and our _compressedBytes are "close enough to our limit" that we want to keep
-    //       testing to make sure we don't overflow... VOXEL_PACKET_ALWAYS_TEST_COMPRESSION_THRESHOLD
-    //    2) If we've passed the uncompressed size where we believe we might pass the compressed threshold, and we've added
-    //       a sufficient number of uncompressed bytes
-    if (_dirty && (
-            (_compressedBytes > VOXEL_PACKET_ALWAYS_TEST_COMPRESSED_THRESHOLD) || 
-            (   (_bytesInUse > VOXEL_PACKET_TEST_UNCOMPRESSED_THRESHOLD) && 
-                (_bytesInUse - _bytesInUseLastCheck > VOXEL_PACKET_TEST_UNCOMPRESSED_CHANGE_THRESHOLD)
-            )
-        )) {
-        if (_debug) {
-            printf("endLevel() _dirty=%s _compressedBytes=%d _bytesInUse=%d\n",
-                debug::valueOf(_dirty), _compressedBytes, _bytesInUse);
-        }
-        success = checkCompress();
-    }
-    if (!success) {
-        discardLevel(key);
-    }
     return success;
 }
 
-bool VoxelPacket::appendBitMask(unsigned char bitmask) {
+bool VoxelPacketData::appendBitMask(unsigned char bitmask) {
     bool success = append(bitmask); // handles checking compression
     if (success) {
         _bytesOfBitMasks++;
@@ -231,7 +217,7 @@ bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     return success;
 }
 
-bool VoxelPacket::appendColor(const nodeColor& color) {
+bool VoxelPacketData::appendColor(const nodeColor& color) {
     // eventually we can make this use a dictionary...
     bool success = false;
     const int BYTES_PER_COLOR = 3;
@@ -252,11 +238,11 @@ bool VoxelPacket::appendColor(const nodeColor& color) {
     return success;
 }
 
-uint64_t VoxelPacket::_checkCompressTime = 0;
-uint64_t VoxelPacket::_checkCompressCalls = 0;
+uint64_t VoxelPacketData::_checkCompressTime = 0;
+uint64_t VoxelPacketData::_checkCompressCalls = 0;
 
-bool VoxelPacket::checkCompress() { 
-    PerformanceWarning warn(false,"VoxelPacket::checkCompress()",false,&_checkCompressTime,&_checkCompressCalls);
+bool VoxelPacketData::checkCompress() { 
+    PerformanceWarning warn(false,"VoxelPacketData::checkCompress()",false,&_checkCompressTime,&_checkCompressCalls);
     
     // without compression, we always pass...
     if (!_enableCompression) {
@@ -266,11 +252,15 @@ bool VoxelPacket::checkCompress() {
     _bytesInUseLastCheck = _bytesInUse;
 
     bool success = false;
-    const int MAX_COMPRESSION = 2;
+    const int MAX_COMPRESSION = 9;
 
     // we only want to compress the data payload, not the message header
-    QByteArray compressedData = qCompress(_uncompressed, _bytesInUse, MAX_COMPRESSION);
-    if (compressedData.size() < MAX_VOXEL_PACKET_SIZE) {
+    const uchar* uncompressedData = &_uncompressed[0];
+    int uncompressedSize = _bytesInUse;
+
+    QByteArray compressedData = qCompress(uncompressedData, uncompressedSize, MAX_COMPRESSION);
+
+    if (compressedData.size() < MAX_VOXEL_PACKET_DATA_SIZE) {
         _compressedBytes = compressedData.size();
         for (int i = 0; i < _compressedBytes; i++) {
             _compressed[i] = compressedData[i];
@@ -278,26 +268,34 @@ bool VoxelPacket::checkCompress() {
         _dirty = false;
         success = true;
     }
+    
+//printf("checkCompress() returning %s _compressedBytes=%d\n",debug::valueOf(success), _compressedBytes);
     return success;
 }
 
 
-void VoxelPacket::loadFinalizedContent(const unsigned char* data, int length) {
-    reset(); // by definition we reset upon loading compressed content
-    
-    if (length > 0) {
+void VoxelPacketData::loadFinalizedContent(const unsigned char* data, int length) {
+    reset();
+
+    if (data && length > 0) {
+
         if (_enableCompression) {
             QByteArray compressedData;
+
+            printf("VoxelPacketData::loadCompressedContent()... copying %d bytes into compressedData \n", length);
 
             for (int i = 0; i < length; i++) {
                 compressedData[i] = data[i];
                 _compressed[i] = compressedData[i];
             }
             _compressedBytes = length;
-    
+
+            printf("VoxelPacketData::loadCompressedContent()... compressedData.size()=%d\n", compressedData.size());
             QByteArray uncompressedData = qUncompress(compressedData);
+            printf("VoxelPacketData::loadCompressedContent()... uncompressedData.size()=%d\n", uncompressedData.size());
 
             if (uncompressedData.size() <= _bytesAvailable) {
+                printf("VoxelPacketData::loadCompressedContent()... copying %d bytes into _uncompressed[] \n", uncompressedData.size());
                 _bytesInUse = uncompressedData.size();
                 _bytesAvailable -= uncompressedData.size();
 
@@ -312,13 +310,13 @@ void VoxelPacket::loadFinalizedContent(const unsigned char* data, int length) {
             _bytesInUse = _compressedBytes = length;
         }
     } else {
-        if (_debug) printf("VoxelPacket::loadCompressedContent()... length = 0, nothing to do...\n");
+        if (_debug) printf("VoxelPacketData::loadCompressedContent()... length = 0, nothing to do...\n");
     }
 }
 
-void VoxelPacket::debugContent() {
+void VoxelPacketData::debugContent() {
 
-    printf("VoxelPacket::debugContent()... COMPRESSED DATA.... size=%d\n",_compressedBytes);
+    printf("VoxelPacketData::debugContent()... COMPRESSED DATA.... size=%d\n",_compressedBytes);
     int perline=0;
     for (int i = 0; i < _compressedBytes; i++) {
         printf("%.2x ",_compressed[i]);
@@ -330,7 +328,7 @@ void VoxelPacket::debugContent() {
     }
     printf("\n");
     
-    printf("VoxelPacket::debugContent()... UNCOMPRESSED DATA.... size=%d\n",_bytesInUse);
+    printf("VoxelPacketData::debugContent()... UNCOMPRESSED DATA.... size=%d\n",_bytesInUse);
     perline=0;
     for (int i = 0; i < _bytesInUse; i++) {
         printf("%.2x ",_uncompressed[i]);
