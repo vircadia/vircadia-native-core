@@ -37,7 +37,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
         
         case PACKET_TYPE_VOXEL_QUERY:
-            return 1;
+            return 2;
 
         case PACKET_TYPE_SET_VOXEL:
         case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
