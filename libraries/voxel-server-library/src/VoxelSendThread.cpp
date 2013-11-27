@@ -329,7 +329,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         unsigned long elapsedTime = nodeData->stats.getElapsedTime();
         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-        if (true || _myServer->wantsDebugVoxelSending()) {
+        if (_myServer->wantsDebugVoxelSending()) {
             qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
                     usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
         }
