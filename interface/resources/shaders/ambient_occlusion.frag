@@ -30,6 +30,12 @@ uniform vec2 leftBottom;
 // the right and top edges of the view window
 uniform vec2 rightTop;
 
+// an offset value to apply to the texture coordinates
+uniform vec2 texCoordOffset;
+
+// a scale value to apply to the texture coordinates
+uniform vec2 texCoordScale;
+
 // the radius of the effect
 uniform float radius;
 
@@ -38,7 +44,7 @@ uniform vec2 noiseScale;
 
 // given a texture coordinate, returns the 3D view space z coordinate
 float texCoordToViewSpaceZ(vec2 texCoord) {
-    return (far * near) / (texture2D(depthTexture, texCoord).r * (far - near) - far);
+    return (far * near) / (texture2D(depthTexture, texCoord * texCoordScale + texCoordOffset).r * (far - near) - far);
 }
 
 // given a texture coordinate, returns the 3D view space coordinate
