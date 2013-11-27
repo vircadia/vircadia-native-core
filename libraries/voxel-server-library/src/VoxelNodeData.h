@@ -32,7 +32,7 @@ public:
     void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
 
     const unsigned char* getPacket() const { return _voxelPacket; }
-    int getPacketLength() const { return (MAX_VOXEL_PACKET_SIZE - _voxelPacketAvailableBytes); }
+    int getPacketLength() const { return (MAX_PACKET_SIZE - _voxelPacketAvailableBytes); }
     bool isPacketWaiting() const { return _voxelPacketWaiting; }
 
     bool packetIsDuplicate() const;

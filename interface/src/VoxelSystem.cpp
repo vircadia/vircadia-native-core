@@ -619,26 +619,41 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
             int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
             
-            if (packetIsCompressed && dataBytes > sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE)) {
-                sectionLength = (*(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
-                dataAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
-            } else {
-                sectionLength = dataBytes;
+            int subsection = 1;
+            while (dataBytes > 0) {
+                if (packetIsCompressed) {
+                    if (dataBytes > sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE)) {
+                        sectionLength = (*(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
+                        dataAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                        dataBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                    } else {
+                        sectionLength = 0;
+                        dataBytes = 0; // stop looping something is wrong
+                    }
+                } else {
+                    sectionLength = dataBytes;
+                }
+                
+                if (sectionLength) {
+                    // ask the VoxelTree to read the bitstream into the tree
+                    ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
+                    lockTree();
+                    VoxelPacketData packetData(packetIsCompressed);
+                    packetData.loadFinalizedContent(dataAt, sectionLength);
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                        qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                               " subsection:%d sectionLength:%d uncompressed:%d\n",
+                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
+                            sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
+                    }
+                    _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+                    unlockTree();
+                
+                    dataBytes -= sectionLength;
+                    dataAt += sectionLength;
+                }
             }
-            unsigned char* voxelData = dataAt;
-
-            // ask the VoxelTree to read the bitstream into the tree
-            ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            lockTree();
-            VoxelPacketData packetData(packetIsCompressed);
-            packetData.loadFinalizedContent(voxelData, sectionLength);
-            if (true || Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
-                qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d sectionLength:%d uncompressed:%d\n",
-                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
-                    sequence, flightTime, numBytes, dataBytes, sectionLength, packetData.getUncompressedSize());
-            }
-            _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-            unlockTree();
+            subsection++;
         }
         break;
     }

@@ -28,11 +28,7 @@ void VoxelPacketData::changeSettings(bool enableCompression, int targetSize) {
 
 void VoxelPacketData::reset() {
     _bytesInUse = 0;
-    if (_enableCompression) {
-        _bytesAvailable = MAX_VOXEL_UNCOMRESSED_PACKET_SIZE;
-    } else {
-        _bytesAvailable = _targetSize;
-    }
+    _bytesAvailable = _targetSize;
     _subTreeAt = 0;
     _compressedBytes = 0;
     _bytesInUseLastCheck = 0;

@@ -35,6 +35,10 @@ const int MAX_VOXEL_PACKET_DATA_SIZE = MAX_PACKET_SIZE - VOXEL_PACKET_HEADER_SIZ
             
 const int MAX_VOXEL_UNCOMRESSED_PACKET_SIZE = MAX_VOXEL_PACKET_DATA_SIZE;
 
+const int MINIMUM_ATTEMPT_MORE_PACKING = sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE) + 40;
+const int COMPRESS_PADDING = 15;
+const int REASONABLE_NUMBER_OF_PACKING_ATTEMPTS = 5;
+
 const int PACKET_IS_COLOR_BIT = 0;
 const int PACKET_IS_COMPRESSED_BIT = 1;
 
@@ -121,6 +125,7 @@ public:
     void loadFinalizedContent(const unsigned char* data, int length);
     
     bool isCompressed() const { return _enableCompression; }
+    int getTargetSize() const { return _targetSize; }
 
     void debugContent();
 

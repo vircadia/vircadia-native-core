@@ -251,9 +251,14 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             }
             nodeData->resetVoxelPacket();
         }
-        int uncompressedSize = !wantCompression ? MAX_VOXEL_PACKET_DATA_SIZE
-                                                : MAX_VOXEL_PACKET_DATA_SIZE - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
-        _packetData.changeSettings(wantCompression, uncompressedSize);
+        int targetSize = MAX_VOXEL_PACKET_DATA_SIZE;
+        if (wantCompression) {
+            targetSize = nodeData->getAvailable() - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+        }
+        printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+            debug::valueOf(wantCompression), targetSize);
+            
+        _packetData.changeSettings(wantCompression, targetSize);
     }
     
     if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
@@ -315,7 +320,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             unsigned long elapsedTime = nodeData->stats.getElapsedTime();
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-            if (true || _myServer->wantsDebugVoxelSending()) {
+            if (_myServer->wantsDebugVoxelSending()) {
                 qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
                         usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
             }
@@ -373,6 +378,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
         }
         
+        int extraPackingAttempts = 0;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
             if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
                 printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
@@ -407,8 +413,20 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 nodeData->stats.encodeStarted();
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
                 
-                if (_packetData.hasContent() && bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                    lastNodeDidntFit = true;
+                // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
+                if (_packetData.getTargetSize() == MAX_VOXEL_PACKET_DATA_SIZE) {
+                    if (_packetData.hasContent() && bytesWritten == 0 && 
+                            params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                        lastNodeDidntFit = true;
+                    }
+                } else {
+                    // in compressed mode and we are trying to pack more... and we don't care if the _packetData has
+                    // content or not... because in this case even if we were unable to pack any data, we want to drop
+                    // below to our sendNow logic, but we do want to track that we attempted to pack extra
+                    extraPackingAttempts++;
+                    if (bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                        lastNodeDidntFit = true;
+                    }
                 }
 
                 if (bytesWritten > 0) {
@@ -422,18 +440,68 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 somethingToSend = false; // this will cause us to drop out of the loop...
             }
             
+            // If the last node didn't fit, but we're in compressed mode, then we actually want to see if we can fit a
+            // little bit more in this packet. To do this we 
+            
             // We only consider sending anything if there is something in the _packetData to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
-            bool sendNow = lastNodeDidntFit;
-            if (_packetData.hasContent() && sendNow) {
-                if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-                    printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",
-                            _packetData.getFinalizedSize(), _packetData.getUncompressedSize());
+            if (lastNodeDidntFit) {
+                if (_packetData.hasContent()) {
+                    // if for some reason the finalized size is greater than our available size, then probably the "compressed"
+                    // form actually inflated beyond our padding, and in this case we will send the current packet, then
+                    // write to out new packet...
+                    int writtenSize = _packetData.getFinalizedSize() 
+                            + (nodeData->getCurrentPacketIsCompressed() ? sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE) : 0);
+                    
+                    
+                    if (writtenSize > nodeData->getAvailable()) {
+                        if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
+                            printf("writtenSize[%d] > available[%d] too big, sending packet as is.\n",
+                                writtenSize, nodeData->getAvailable());
+                        }
+                        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    }
+
+                    if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
+                        printf("calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d\n",
+                                nodeData->getAvailable(), _packetData.getFinalizedSize(), 
+                                _packetData.getUncompressedSize(), _packetData.getTargetSize());
+                    }
+                    nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
+                    extraPackingAttempts = 0;
                 }
-                nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
-                packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                _packetData.reset();
+                
+                // If we're not running compressed, the we know we can just send now. Or if we're running compressed, but
+                // the packet doesn't have enough space to bother attempting to pack more...
+                bool sendNow = true;
+                
+                if (nodeData->getCurrentPacketIsCompressed() && 
+                    nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
+                    extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS) {
+                    sendNow = false; // try to pack more
+                }
+                
+                int targetSize = MAX_VOXEL_PACKET_DATA_SIZE;
+                if (sendNow) {
+                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    if (wantCompression) {
+                        targetSize = nodeData->getAvailable() - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                    }
+                } else {
+                    // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
+                    // but we've finalized the _packetData, so we want to start a new section, we will do that by
+                    // resetting the packet settings with the max uncompressed size of our current available space
+                    // in the wire packet. We also include room for our section header, and a little bit of padding
+                    // to account for the fact that whenc compressing small amounts of data, we sometimes end up with
+                    // a larger compressed size then uncompressed size
+                    targetSize = nodeData->getAvailable() - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
+                }
+                if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
+                    printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+                        debug::valueOf(nodeData->getWantCompression()), targetSize);
+                }
+                _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
             }
         }
         

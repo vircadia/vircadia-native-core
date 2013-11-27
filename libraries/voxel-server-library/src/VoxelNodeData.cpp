@@ -16,7 +16,7 @@
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
-    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
+    _voxelPacketAvailableBytes(MAX_PACKET_SIZE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -30,9 +30,9 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacket = new unsigned char[_voxelPacketAvailableBytes];
+    _voxelPacket = new unsigned char[MAX_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
-    _lastVoxelPacket = new unsigned char[_voxelPacketAvailableBytes];
+    _lastVoxelPacket = new unsigned char[MAX_PACKET_SIZE];
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
     _sequenceNumber = 0;
@@ -108,18 +108,22 @@ void VoxelNodeData::resetVoxelPacket() {
         setAtBit(flags,PACKET_IS_COMPRESSED_BIT);
     }
 
+    _voxelPacketAvailableBytes = MAX_PACKET_SIZE;
     int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, PACKET_TYPE_VOXEL_DATA);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
+    _voxelPacketAvailableBytes -= numBytesPacketHeader;
 
     // pack in flags
     VOXEL_PACKET_FLAGS* flagsAt = (VOXEL_PACKET_FLAGS*)_voxelPacketAt;
     *flagsAt = flags;
     _voxelPacketAt += sizeof(VOXEL_PACKET_FLAGS);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_FLAGS);
 
     // pack in sequence number
     VOXEL_PACKET_SEQUENCE* sequenceAt = (VOXEL_PACKET_SEQUENCE*)_voxelPacketAt;
     *sequenceAt = _sequenceNumber;
     _voxelPacketAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SEQUENCE);
     _sequenceNumber++;
 
     // pack in timestamp
@@ -127,8 +131,8 @@ void VoxelNodeData::resetVoxelPacket() {
     VOXEL_PACKET_SENT_TIME* timeAt = (VOXEL_PACKET_SENT_TIME*)_voxelPacketAt;
     *timeAt = now;
     _voxelPacketAt += sizeof(VOXEL_PACKET_SENT_TIME);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SENT_TIME);
 
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_DATA_SIZE;
     _voxelPacketWaiting = false;
 }
 
@@ -144,6 +148,8 @@ void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;
     _voxelPacketWaiting = true;
+    
+    assert(_voxelPacketAvailableBytes >= 0);
 }
 
 VoxelNodeData::~VoxelNodeData() {
