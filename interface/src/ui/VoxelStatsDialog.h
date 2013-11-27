@@ -38,7 +38,7 @@ protected:
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
-    int AddStatItem(const char* caption, unsigned colorRGBA);
+    int AddStatItem(const char* caption, unsigned colorRGBA = 0);
     void RemoveStatItem(int item);
     void showAllVoxelServers();
 

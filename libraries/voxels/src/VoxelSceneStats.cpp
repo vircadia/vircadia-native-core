@@ -26,6 +26,8 @@ VoxelSceneStats::VoxelSceneStats() :
     reset();
     _isReadyToSend = false;
     _isStarted = false;
+    _lastFullTotalEncodeTime = 0;
+    _lastFullElapsed = 0;
 }
 
 // copy constructor
@@ -42,6 +44,9 @@ VoxelSceneStats& VoxelSceneStats::operator=(const VoxelSceneStats& other) {
 
 void VoxelSceneStats::copyFromOther(const VoxelSceneStats& other) {
     _totalEncodeTime = other._totalEncodeTime;
+    _elapsed = other._elapsed;
+    _lastFullTotalEncodeTime = other._lastFullTotalEncodeTime;
+    _lastFullElapsed = other._lastFullElapsed;
     _encodeStart = other._encodeStart;
 
     _packets = other._packets;
@@ -174,6 +179,11 @@ void VoxelSceneStats::sceneCompleted() {
         _end = usecTimestampNow();
         _elapsed = _end - _start;
         _elapsedAverage.updateAverage((float)_elapsed);
+        
+        if (_isFullScene) {
+            _lastFullElapsed = _elapsed;
+            _lastFullTotalEncodeTime = _totalEncodeTime;
+        }
 
         _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
         _isReadyToSend = true;
@@ -465,8 +475,15 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_elapsed);
     memcpy(&_totalEncodeTime, sourceBuffer, sizeof(_totalEncodeTime));
     sourceBuffer += sizeof(_totalEncodeTime);
+
     memcpy(&_isFullScene, sourceBuffer, sizeof(_isFullScene));
     sourceBuffer += sizeof(_isFullScene);
+
+    if (_isFullScene) {
+        _lastFullElapsed = _elapsed;
+        _lastFullTotalEncodeTime = _totalEncodeTime;
+    }
+
     memcpy(&_isMoving, sourceBuffer, sizeof(_isMoving));
     sourceBuffer += sizeof(_isMoving);
     memcpy(&_packets, sourceBuffer, sizeof(_packets));

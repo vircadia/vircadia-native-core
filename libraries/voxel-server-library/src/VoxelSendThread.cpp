@@ -29,8 +29,7 @@ uint64_t endSceneSleepTime = 0;
 VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
     _nodeUUID(nodeUUID),
     _myServer(myServer),
-    _packetData(),
-    _encodedSomething(false)
+    _packetData()
 {
 }
 
@@ -312,21 +311,19 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
         }
-        if (_encodedSomething) {
-            nodeData->stats.sceneCompleted();
-            
-            ::endSceneSleepTime = _usleepTime;
-            unsigned long sleepTime = ::endSceneSleepTime - ::startSceneSleepTime;
-            
-            unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
-            unsigned long elapsedTime = nodeData->stats.getElapsedTime();
-            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-            if (_myServer->wantsDebugVoxelSending()) {
-                qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
-                        usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
-            }
-            
+        // track completed scenes and send out the stats packet accordingly
+        nodeData->stats.sceneCompleted();
+        ::endSceneSleepTime = _usleepTime;
+        unsigned long sleepTime = ::endSceneSleepTime - ::startSceneSleepTime;
+        
+        unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
+        unsigned long elapsedTime = nodeData->stats.getElapsedTime();
+        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+
+        if (true || _myServer->wantsDebugVoxelSending()) {
+            qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
+                    usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
         }
         
         if (_myServer->wantDisplayVoxelStats()) {
@@ -431,9 +428,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                     }
                 }
 
-                if (bytesWritten > 0) {
-                    _encodedSomething = true;
-                }
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
             } else {

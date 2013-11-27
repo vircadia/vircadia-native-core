@@ -40,20 +40,11 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     this->QDialog::setLayout(_form);
 
     // Setup stat items
-    _serverVoxels = AddStatItem("Voxels on Servers", GREENISH);
-    _localVoxels = AddStatItem("Local Voxels", YELLOWISH);
-    _localVoxelsMemory = AddStatItem("Voxels Memory", GREYISH);
-    _voxelsRendered = AddStatItem("Voxels Rendered", GREENISH);
-    _sendingMode = AddStatItem("Sending Mode", YELLOWISH);
-
-    /** NOT YET READY
-     VoxelSceneStats temp;
-     for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
-         VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
-         VoxelSceneStats::ItemInfo& itemInfo = temp.getItemInfo(item);
-         AddStatItem(itemInfo.caption, itemInfo.colorRGBA);
-     }
-     **/
+    _serverVoxels = AddStatItem("Voxels on Servers");
+    _localVoxels = AddStatItem("Local Voxels");
+    _localVoxelsMemory = AddStatItem("Voxels Memory");
+    _voxelsRendered = AddStatItem("Voxels Rendered");
+    _sendingMode = AddStatItem("Sending Mode");
 }
 
 void VoxelStatsDialog::RemoveStatItem(int item) {
@@ -71,6 +62,11 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     const int STATS_LABEL_WIDTH = 900;
     
     _statCount++; // increment our current stat count
+    
+    if (colorRGBA == 0) {
+        static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
+        colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
+    }
 
     QLabel* label = _labels[_statCount] = new QLabel();  
 
@@ -222,7 +218,7 @@ void VoxelStatsDialog::showAllVoxelServers() {
             if (serverCount > _voxelServerLabelsCount) {
                 char label[128] = { 0 };
                 sprintf(label, "Voxel Server %d",serverCount);
-                _voxelServerLables[serverCount-1] = AddStatItem(label, GREENISH);
+                _voxelServerLables[serverCount-1] = AddStatItem(label);
                 _voxelServerLabelsCount++;
             }
             
@@ -277,10 +273,30 @@ void VoxelStatsDialog::showAllVoxelServers() {
                 QString internalString = locale.toString((uint)stats.getTotalInternal());
                 QString leavesString = locale.toString((uint)stats.getTotalLeaves());
 
-                serverDetails << "\n" << "Nodes:" <<
+                serverDetails << "\n" << "Voxels: " <<
                     totalString.toLocal8Bit().constData() << " total " << 
                     internalString.toLocal8Bit().constData() << " internal " <<
                     leavesString.toLocal8Bit().constData() << " leaves ";
+                    
+                const unsigned long USECS_PER_MSEC = 1000;
+                float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
+                float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
+
+                QString lastFullEncodeString = locale.toString(lastFullEncode);
+                QString lastFullSendString = locale.toString(lastFullSend);
+
+                serverDetails << "\n" << "Last Full Scene... " << 
+                    "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " << 
+                    "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
+
+                bool details = false; // for now, we'd like to add an expand/contract feature to each voxel server
+                if (details) {
+                    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
+                        VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
+                        VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
+                        serverDetails << "\n" << itemInfo.caption << " " << stats.getItemValue(item);
+                    }
+                }
             }
             Application::getInstance()->unlockVoxelSceneStats();
             

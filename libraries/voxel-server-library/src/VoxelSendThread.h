@@ -43,8 +43,6 @@ private:
     
     unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE]; // used by environment sending code
     VoxelPacketData _packetData;
-    bool _encodedSomething;
-    
 };
 
 #endif // __voxel_server__VoxelSendThread__

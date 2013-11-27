@@ -148,6 +148,9 @@ public:
     unsigned long getTotalLeaves() const { return _totalLeaves; }
     unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
     unsigned long getElapsedTime() const { return _elapsed; }
+
+    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
+    unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
     
 private:
 
@@ -162,11 +165,13 @@ private:
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;
+    uint64_t _lastFullElapsed;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerVoxelAverage;
 
     uint64_t _totalEncodeTime;
+    uint64_t _lastFullTotalEncodeTime;
     uint64_t _encodeStart;
     
     // scene voxel related data
