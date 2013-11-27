@@ -208,6 +208,8 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 }
 
 void VoxelStatsDialog::showAllVoxelServers() {
+    QLocale locale(QLocale::English);
+
     int serverNumber = 0;
     int serverCount = 0;
     NodeList* nodeList = NodeList::getInstance();
@@ -265,7 +267,25 @@ void VoxelStatsDialog::showAllVoxelServers() {
                 } // root code
             } // jurisdiction
             
+            // now lookup stats details for this server...
+            Application::getInstance()->lockVoxelSceneStats();
+            NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
+            if (sceneStats->find(nodeUUID) != sceneStats->end()) {
+                VoxelSceneStats& stats = sceneStats->at(nodeUUID);
+
+                QString totalString = locale.toString((uint)stats.getTotalVoxels());
+                QString internalString = locale.toString((uint)stats.getTotalInternal());
+                QString leavesString = locale.toString((uint)stats.getTotalLeaves());
+
+                serverDetails << "\n" << "Nodes:" <<
+                    totalString.toLocal8Bit().constData() << " total " << 
+                    internalString.toLocal8Bit().constData() << " internal " <<
+                    leavesString.toLocal8Bit().constData() << " leaves ";
+            }
+            Application::getInstance()->unlockVoxelSceneStats();
+            
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
+            
             
         } // is VOXEL_SERVER
     } // Node Loop
