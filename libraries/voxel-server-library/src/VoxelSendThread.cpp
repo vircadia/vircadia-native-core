@@ -255,8 +255,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         if (wantCompression) {
             targetSize = nodeData->getAvailable() - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
         }
-        printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
-            debug::valueOf(wantCompression), targetSize);
+        if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
+            printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+                debug::valueOf(wantCompression), targetSize);
+        }
             
         _packetData.changeSettings(wantCompression, targetSize);
     }
