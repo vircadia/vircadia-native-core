@@ -23,6 +23,8 @@ Profile::Profile(const QString &username) :
     if (!_username.isEmpty()) {
         // we've been given a new username, ask the data-server for profile
         DataServerClient::getClientValueForKey(DataServerKey::UUID);
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
         
         // send our current domain server to the data-server
         updateDomain(NodeList::getInstance()->getDomainHostname());

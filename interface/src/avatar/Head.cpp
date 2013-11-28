@@ -250,7 +250,9 @@ void Head::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     // the blend face may have custom eye meshes
-    _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls)) {
+        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
+    }
 }
 
 void Head::calculateGeometry() {
@@ -295,10 +297,11 @@ void Head::calculateGeometry() {
                            + up    * _scale * NOSE_UPTURN;  
 }
 
-void Head::render(float alpha, bool isMine) {
+void Head::render(float alpha, bool renderAvatarBalls) {
     _renderAlpha = alpha;
 
-    if (!(_videoFace.render(alpha) || _faceModel.render(alpha))) {
+    bool lookatVectorsVisible = _renderLookatVectors;
+    if (renderAvatarBalls) {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
         
@@ -309,9 +312,12 @@ void Head::render(float alpha, bool isMine) {
         renderMouth();
         renderNose();
         renderEyeBrows();
+    
+    } else if (!_videoFace.render(alpha)) {
+        lookatVectorsVisible &= _faceModel.render(alpha);
     }
-        
-    if (_renderLookatVectors) {
+    
+    if (lookatVectorsVisible) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }

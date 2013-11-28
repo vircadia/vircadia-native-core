@@ -30,6 +30,7 @@
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
+const int IS_CHAT_CIRCLING_ENABLED = 5;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
@@ -93,6 +94,8 @@ public:
     const std::string& setChatMessage() const { return _chatMessage; }
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
+    bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
+
     const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
@@ -123,6 +126,8 @@ protected:
     
     // chat message
     std::string _chatMessage;
+    
+    bool _isChatCirclingEnabled;
     
     std::vector<JointData> _joints;
     

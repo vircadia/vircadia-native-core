@@ -20,7 +20,7 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(bool turnWithHead);
-    void render(bool forceRenderHead, bool renderAvatarBalls);
+    void render(bool forceRenderHead);
     void renderScreenTint(ScreenTintLayer layer);
 
     // setters
@@ -82,7 +82,7 @@ private:
 
 	// private methods
     float getBallRenderAlpha(int ball, bool forceRenderHead) const;
-    void renderBody(bool forceRenderHead, bool renderAvatarBalls);
+    void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
     void updateAvatarCollisions(float deltaTime);

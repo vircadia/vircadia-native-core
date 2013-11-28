@@ -3704,7 +3704,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 if (!avatar->isInitialized()) {
                     avatar->init();
                 }
-                avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+                avatar->render(false);
                 avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
             }
         
@@ -3714,12 +3714,12 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         // render avatar fades
         Glower glower;
         for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
-            (*fade)->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+            (*fade)->render(false);
         }
     }
     
     // Render my own Avatar
-    _myAvatar.render(forceRenderHead, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+    _myAvatar.render(forceRenderHead);
     _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {

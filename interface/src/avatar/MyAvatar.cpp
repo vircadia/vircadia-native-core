@@ -325,7 +325,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls) || !_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _bodyBall[BODY_BALL_HEAD_BASE].position;
     }
     _head.setPosition(headPosition);
@@ -497,7 +497,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void MyAvatar::render(bool forceRenderHead, bool renderAvatarBalls) {
+void MyAvatar::render(bool forceRenderHead) {
     
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -507,7 +507,7 @@ void MyAvatar::render(bool forceRenderHead, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     // render body
-    renderBody(forceRenderHead, renderAvatarBalls);
+    renderBody(forceRenderHead);
 
     // if this is my avatar, then render my interactions with the other avatar
     _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
@@ -648,7 +648,7 @@ float MyAvatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
 }
 
-void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
+void MyAvatar::renderBody(bool forceRenderHead) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
@@ -656,7 +656,7 @@ void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
-    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _skeletonModel.isActive())) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls)) {
         //  Render the body as balls and cones
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
@@ -688,10 +688,6 @@ void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
                         skinColor.g - _bodyBall[b].touchForce * 0.2f,
                         skinColor.b - _bodyBall[b].touchForce * 0.1f,
                         alpha);
-                }
-                
-                if (b == BODY_BALL_NECK_BASE && _head.getFaceModel().isActive()) {
-                    continue; // don't render the neck if we have a face model
                 }
                 
                 if ((b != BODY_BALL_HEAD_TOP  )
@@ -729,7 +725,7 @@ void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
         }
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
-            _head.render(alpha, true);
+            _head.render(alpha, false);
         }
     }
     _hand.render();
@@ -1161,17 +1157,20 @@ bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
 }
 
 void MyAvatar::updateChatCircle(float deltaTime) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling)) {
+    if (!(_isChatCirclingEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling))) {
         return;
     }
 
-    // find all members and sort by distance
+    // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             SortedAvatar sortedAvatar; 
             sortedAvatar.avatar = (Avatar*)node->getLinkedData();
+            if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
+                continue;
+            }
             sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
             sortedAvatars.append(sortedAvatar);
         }
