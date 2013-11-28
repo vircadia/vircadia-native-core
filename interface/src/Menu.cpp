@@ -36,11 +36,18 @@
 Menu* Menu::_instance = NULL;
 
 Menu* Menu::getInstance() {
+    static QMutex menuInstanceMutex;
+    
+    // lock the menu instance mutex to make sure we don't race and create two menus and crash
+    menuInstanceMutex.lock();
+    
     if (!_instance) {
         qDebug("First call to Menu::getInstance() - initing menu.\n");
         
         _instance = new Menu();
     }
+    
+    menuInstanceMutex.unlock();
         
     return _instance;
 }
@@ -484,8 +491,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
                                            
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
-    
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
+
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::SendVoxelColors);
