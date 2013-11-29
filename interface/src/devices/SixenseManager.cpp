@@ -25,7 +25,7 @@ SixenseManager::~SixenseManager() {
 #endif
 }
     
-void SixenseManager::update() {
+void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     if (sixenseGetNumActiveControllers() == 0) {
         return;
@@ -62,6 +62,9 @@ void SixenseManager::update() {
         PalmData palm(&hand);
         palm.setActive(true);
         glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
+        
+        //  Compute current velocity from position change
+        palm.setVelocity((position - palm.getPosition()) / deltaTime);
         
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)

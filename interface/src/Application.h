@@ -247,7 +247,7 @@ private:
         glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
-    void updateSixense();
+    void updateSixense(float deltaTime);
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);

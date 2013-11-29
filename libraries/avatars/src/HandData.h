@@ -144,6 +144,8 @@ public:
     void setLeapID(int id)                     { _leapID = id; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
+    void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
+    const glm::vec3& getVelocity()  const { return _velocity; }
 
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
@@ -153,6 +155,7 @@ private:
     std::vector<FingerData> _fingers;
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
+    glm::vec3 _velocity;
     bool      _isActive;            // This has current valid data
     int       _leapID;              // the Leap's serial id for this tracked object
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
