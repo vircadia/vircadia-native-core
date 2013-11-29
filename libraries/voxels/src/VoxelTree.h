@@ -17,6 +17,7 @@
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
+#include "VoxelPacketData.h"
 #include "VoxelSceneStats.h"
 #include "VoxelEditPacketSender.h"
 
@@ -65,6 +66,21 @@ public:
     CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
     
+    // output hints from the encode process
+    typedef enum {
+        UNKNOWN, 
+        DIDNT_FIT, 
+        NULL_NODE, 
+        TOO_DEEP,
+        OUT_OF_JURISDICTION,
+        LOD_SKIP,
+        OUT_OF_VIEW,
+        WAS_IN_VIEW,
+        NO_CHANGE,
+        OCCLUDED
+    } reason;
+    reason stopReason;
+    
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX, 
         const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
@@ -96,8 +112,27 @@ public:
             forceSendScene(forceSendScene),
             stats(stats),
             map(map),
-            jurisdictionMap(jurisdictionMap)
+            jurisdictionMap(jurisdictionMap),
+            stopReason(UNKNOWN)
     {}
+    
+    void displayStopReason() {
+        printf("StopReason: ");
+        switch (stopReason) {
+            default:
+            case UNKNOWN: printf("UNKNOWN\n"); break;
+            
+            case DIDNT_FIT: printf("DIDNT_FIT\n"); break;
+            case NULL_NODE: printf("NULL_NODE\n"); break;
+            case TOO_DEEP: printf("TOO_DEEP\n"); break;
+            case OUT_OF_JURISDICTION: printf("OUT_OF_JURISDICTION\n"); break;
+            case LOD_SKIP: printf("LOD_SKIP\n"); break;
+            case OUT_OF_VIEW: printf("OUT_OF_VIEW\n"); break;
+            case WAS_IN_VIEW: printf("WAS_IN_VIEW\n"); break;
+            case NO_CHANGE: printf("NO_CHANGE\n"); break;
+            case OCCLUDED: printf("OCCLUDED\n"); break;
+        }
+    }
 };
 
 class ReadBitstreamToTreeParams {
@@ -143,10 +178,10 @@ public:
 
     void eraseAllVoxels();
 
-    void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
-    void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
+    void processRemoveVoxelBitstream(const unsigned char* bitstream, int bufferSizeBytes);
+    void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
+    void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
+    void deleteVoxelCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
     void reaverageVoxelColors(VoxelNode* startNode);
 
@@ -163,7 +198,7 @@ public:
     void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
                                                 const glm::vec3& point, void* extraData=NULL);
 
-    int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
+    int encodeTreeBitstream(VoxelNode* node, VoxelPacketData* packetData, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -221,14 +256,16 @@ private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
 
-    int encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
+    int encodeTreeBitstreamRecursion(VoxelNode* node, 
+                                     VoxelPacketData* packetData, VoxelNodeBag& bag, 
                                      EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, const unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
-    VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
+    VoxelNode* createMissingNode(VoxelNode* lastParentNode, const unsigned char* codeToReach);
+    int readNodeData(VoxelNode *destinationNode, const unsigned char* nodeData, 
+                int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
@@ -246,26 +283,26 @@ private:
     /// Called to indicate that a VoxelNode is done being encoded.
     void doneEncoding(VoxelNode* node);
     /// Is the Octal Code currently being deleted?
-    bool isEncoding(unsigned char* codeBuffer);
+    bool isEncoding(const unsigned char* codeBuffer);
 
     /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and 
     /// descendants of them can not be encoded.
-    std::set<unsigned char*>  _codesBeingDeleted;
+    std::set<const unsigned char*> _codesBeingDeleted;
     /// mutex lock to protect the deleting set
     pthread_mutex_t _deleteSetLock;
 
     /// Called to indicate that an octal code is in the process of being deleted.
-    void startDeleting(unsigned char* code);
+    void startDeleting(const unsigned char* code);
     /// Called to indicate that an octal code is done being deleted.
-    void doneDeleting(unsigned char* code);
+    void doneDeleting(const unsigned char* code);
     /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
     /// instead queued for later delete
-    std::set<unsigned char*>  _codesPendingDelete;
+    std::set<const unsigned char*> _codesPendingDelete;
     /// mutex lock to protect the deleting set
     pthread_mutex_t _deletePendingSetLock;
 
     /// Adds an Octal Code to the set of codes that needs to be deleted
-    void queueForLaterDelete(unsigned char* codeBuffer);
+    void queueForLaterDelete(const unsigned char* codeBuffer);
     /// flushes out any Octal Codes that had to be queued
     void emptyDeleteQueue();
 

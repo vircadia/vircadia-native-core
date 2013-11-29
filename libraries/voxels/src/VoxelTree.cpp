@@ -170,7 +170,7 @@ VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
 }
 
 // returns the node created!
-VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char* codeToReach) {
+VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, const unsigned char* codeToReach) {
     int indexOfNewChild = branchIndexWithDescendant(lastParentNode->getOctalCode(), codeToReach);
     // If this parent node is a leaf, then you know the child path doesn't exist, so deal with
     // breaking up the leaf first, which will also create a child path
@@ -193,7 +193,7 @@ VoxelNode* VoxelTree::createMissingNode(VoxelNode* lastParentNode, unsigned char
     }
 }
 
-int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData, int bytesLeftToRead,
+int VoxelTree::readNodeData(VoxelNode* destinationNode, const unsigned char* nodeData, int bytesLeftToRead,
                             ReadBitstreamToTreeParams& args) {
     // give this destination node the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
@@ -294,10 +294,10 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
     return bytesRead;
 }
 
-void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int bufferSizeBytes, 
+void VoxelTree::readBitstreamToTree(const unsigned char * bitstream, unsigned long int bufferSizeBytes,
                                     ReadBitstreamToTreeParams& args) {
     int bytesRead = 0;
-    unsigned char* bitstreamAt = bitstream;
+    const unsigned char* bitstreamAt = bitstream;
 
     // If destination node is not included, set it to root
     if (!args.destinationNode) {
@@ -328,6 +328,7 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
         int octalCodeBytes = bytesRequiredForCodeLength(*bitstreamAt);
         int theseBytesRead = 0;
         theseBytesRead += octalCodeBytes;
+        
         theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes, 
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
 
@@ -352,16 +353,16 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
 
 class DeleteVoxelCodeFromTreeArgs {
 public:
-    bool            collapseEmptyTrees;
-    unsigned char*  codeBuffer;
-    int             lengthOfCode;
-    bool            deleteLastChild;
-    bool            pathChanged;
+    bool collapseEmptyTrees;
+    const unsigned char* codeBuffer;
+    int lengthOfCode;
+    bool deleteLastChild;
+    bool pathChanged;
 };
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
-void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees) {
+void VoxelTree::deleteVoxelCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees) {
     // recurse the tree while decoding the codeBuffer, once you find the node in question, recurse
     // back and implement color reaveraging, and marking of lastChanged
     DeleteVoxelCodeFromTreeArgs args;
@@ -490,13 +491,13 @@ void VoxelTree::eraseAllVoxels() {
 
 class ReadCodeColorBufferToTreeArgs {
 public:
-    unsigned char*  codeColorBuffer;
-    int             lengthOfCode;
-    bool            destructive;
-    bool            pathChanged;
+    const unsigned char* codeColorBuffer;
+    int lengthOfCode;
+    bool destructive;
+    bool pathChanged;
 };
 
-void VoxelTree::readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive) {
+void VoxelTree::readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive) {
     ReadCodeColorBufferToTreeArgs args;
     args.codeColorBuffer = codeColorBuffer;
     args.lengthOfCode    = numberOfThreeBitSectionsInCode(codeColorBuffer);
@@ -576,7 +577,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
     }
 }
 
-void VoxelTree::processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes) {
+void VoxelTree::processRemoveVoxelBitstream(const unsigned char* bitstream, int bufferSizeBytes) {
     //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
 
     int numBytesPacketHeader = numBytesForPacketHeader(bitstream);
@@ -1020,8 +1021,9 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
     return args.found;
 }
 
-int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
-                                   EncodeBitstreamParams& params) {
+int VoxelTree::encodeTreeBitstream(VoxelNode* node, 
+                        VoxelPacketData* packetData, VoxelNodeBag& bag,
+                        EncodeBitstreamParams& params) {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
@@ -1029,6 +1031,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     // you can't call this without a valid node
     if (!node) {
         qDebug("WARNING! encodeTreeBitstream() called with node=NULL\n");
+        params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesWritten;
     }
 
@@ -1037,30 +1040,37 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
         doneEncoding(node);
+        params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
-    
+
     // write the octal code
+    bool roomForOctalCode = false; // assume the worst
     int codeLength;
     if (params.chopLevels) {
         unsigned char* newCode = chopOctalCode(node->getOctalCode(), params.chopLevels);
+        roomForOctalCode = packetData->startSubTree(newCode);
+
         if (newCode) {
-            codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(newCode));
-            memcpy(outputBuffer, newCode, codeLength);
-            delete newCode;
+            delete newCode;            
         } else {
-            codeLength = 1; // chopped to root!
-            *outputBuffer = 0; // root
+            codeLength = 1;
         }
     } else {
+        roomForOctalCode = packetData->startSubTree(node->getOctalCode());
         codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
-        memcpy(outputBuffer, node->getOctalCode(), codeLength);
     }
 
-    outputBuffer += codeLength; // move the pointer
+    // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
+    if (!roomForOctalCode) {
+        doneEncoding(node);
+        bag.insert(node); // add the node back to the bag so it will eventually get included
+        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+        return bytesWritten;
+    }
+    
     bytesWritten += codeLength; // keep track of byte count
-    availableBytes -= codeLength; // keep track or remaining space
-
+    
     int currentEncodeLevel = 0;
     
     // record some stats, this is the one node that we won't record below in the recursion function, so we need to 
@@ -1069,7 +1079,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
         params.stats->traversed(node);
     }
     
-    int childBytesWritten = encodeTreeBitstreamRecursion(node, outputBuffer, availableBytes, bag, params, currentEncodeLevel);
+    int childBytesWritten = encodeTreeBitstreamRecursion(node, packetData, bag, params, currentEncodeLevel);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -1078,6 +1088,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     // couldn't be written... so reset them here... This isn't true for the non-color included case
     if (params.includeColor && childBytesWritten == 2) {
         childBytesWritten = 0;
+        //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
     }
 
     // if we wrote child bytes, then return our result of all bytes written
@@ -1086,21 +1097,30 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     } else {
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
         bytesWritten = 0;
+        //params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+    }
+    
+    if (bytesWritten == 0) {
+        packetData->discardSubTree();
+    } else {
+        packetData->endSubTree();
     }
     
     doneEncoding(node);
+    
     return bytesWritten;
 }
 
-int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
+int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, 
+                                            VoxelPacketData* packetData, VoxelNodeBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel) const {
-
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
     // you can't call this without a valid node
     if (!node) {
         qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL\n");
+        params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesAtThisLevel;
     }
 
@@ -1111,6 +1131,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
+        params.stopReason = EncodeBitstreamParams::TOO_DEEP;
         return bytesAtThisLevel;
     }
 
@@ -1119,6 +1140,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
         // but once we're in our own jurisdiction, then we need to make sure we're not below it.
         if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), CHECK_NODE_ONLY)) {
+            params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
             return bytesAtThisLevel;
         }
     }
@@ -1134,6 +1156,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (params.stats) {
                 params.stats->skippedDistance(node);
             }
+            params.stopReason = EncodeBitstreamParams::LOD_SKIP;
             return bytesAtThisLevel;
         }
 
@@ -1144,6 +1167,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (params.stats) {
                 params.stats->skippedOutOfView(node);
             }
+            params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
             return bytesAtThisLevel;
         }
         
@@ -1183,6 +1207,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (params.stats) {
                 params.stats->skippedWasInView(node);
             }
+            params.stopReason = EncodeBitstreamParams::WAS_IN_VIEW;
             return bytesAtThisLevel;
         }
 
@@ -1193,13 +1218,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (params.stats) {
                 params.stats->skippedNoChange(node);
             }
+            params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
         if (params.wantOcclusionCulling && !node->isLeaf()) {
-            //node->printDebugDetails("upper section, params.wantOcclusionCulling...  node=");
             AABox voxelBox = node->getAABox();
             voxelBox.scale(TREE_SCALE);
             VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(params.viewFrustum->getProjectedPolygon(voxelBox));
@@ -1207,14 +1232,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
             // culling and proceed as normal
             if (voxelPolygon->getAllInView()) {
-                //node->printDebugDetails("upper section, voxelPolygon->getAllInView() node=");
-
                 CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
                 delete voxelPolygon; // cleanup
                 if (result == OCCLUDED) {
                     if (params.stats) {
                         params.stats->skippedOccluded(node);
                     }
+                    params.stopReason = EncodeBitstreamParams::OCCLUDED;
                     return bytesAtThisLevel;
                 }
             } else {
@@ -1234,15 +1258,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     unsigned char childrenExistInTreeBits = 0;
     unsigned char childrenExistInPacketBits = 0;
     unsigned char childrenColoredBits = 0;
-
-    const int CHILD_COLOR_MASK_BYTES = sizeof(childrenColoredBits);
     const int BYTES_PER_COLOR = 3;
-    const int CHILD_TREE_EXISTS_BYTES = sizeof(childrenExistInTreeBits) + sizeof(childrenExistInPacketBits);
-    const int MAX_LEVEL_BYTES = CHILD_COLOR_MASK_BYTES + NUMBER_OF_CHILDREN * BYTES_PER_COLOR + CHILD_TREE_EXISTS_BYTES;
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
-    unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
-    unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
+    LevelDetails thisLevelKey = packetData->startLevel();
 
     int inViewCount = 0;
     int inViewNotLeafCount = 0;
@@ -1272,11 +1291,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
         if (params.wantOcclusionCulling) {
             if (childNode) {
-                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
-                //float distanceSquared = childNode->distanceSquareToPoint(point);
-                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
-                //childNode->printDebugDetails("");
-
                 float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
 
                 currentCount = insertIntoSortedArrays((void*)childNode, distance, i,
@@ -1405,6 +1419,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     if (!childWasInView || 
                         (params.deltaViewFrustum && 
                          childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
+                         
                         childrenColoredBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;
                     } else {
@@ -1423,20 +1438,28 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             }
         }
     }
-    *writeToThisLevelBuffer = childrenColoredBits;
-    writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
-    bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
-    if (params.stats) {
-        params.stats->colorBitsWritten();
+    
+    bool continueThisLevel = true;    
+    continueThisLevel = packetData->appendBitMask(childrenColoredBits);
+    
+    if (continueThisLevel) {
+        bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
+        if (params.stats) {
+            params.stats->colorBitsWritten();
+        }
     }
 
     // write the color data...
-    if (params.includeColor) {
+    if (continueThisLevel && params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
-                memcpy(writeToThisLevelBuffer, &childNode->getColor(), BYTES_PER_COLOR);
-                writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
+                continueThisLevel = packetData->appendColor(childNode->getColor());
+                
+                if (!continueThisLevel) {
+                    break; // no point in continuing
+                }
+                
                 bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
 
                 // don't need to check childNode here, because we can't get here with no childNode
@@ -1450,43 +1473,31 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
-    if (params.includeExistsBits) {
-        *writeToThisLevelBuffer = childrenExistInTreeBits;
-        writeToThisLevelBuffer += sizeof(childrenExistInTreeBits); // move the pointer
-        bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
-        if (params.stats) {
-            params.stats->existsBitsWritten();
+    if (continueThisLevel && params.includeExistsBits) {
+        continueThisLevel = packetData->appendBitMask(childrenExistInTreeBits);
+        if (continueThisLevel) {
+            bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
+            if (params.stats) {
+                params.stats->existsBitsWritten();
+            }
         }
     }
 
     // write the child exist bits
-    *writeToThisLevelBuffer = childrenExistInPacketBits;
-    bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
-    if (params.stats) {
-        params.stats->existsInPacketBitsWritten();
+    if (continueThisLevel) {
+        continueThisLevel = packetData->appendBitMask(childrenExistInPacketBits);
+        if (continueThisLevel) {
+            bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
+            if (params.stats) {
+                params.stats->existsInPacketBitsWritten();
+            }
+        }
     }
-
+    
     // We only need to keep digging, if there is at least one child that is inView, and not a leaf.
     keepDiggingDeeper = (inViewNotLeafCount > 0);
 
-    // If we have enough room to copy our local results into the buffer, then do so...
-    if (availableBytes >= bytesAtThisLevel) {
-        memcpy(outputBuffer, &thisLevelBuffer[0], bytesAtThisLevel);
-
-        outputBuffer   += bytesAtThisLevel;
-        availableBytes -= bytesAtThisLevel;
-    } else {
-        bag.insert(node);
-
-        // don't need to check node here, because we can't get here with no node
-        if (params.stats) {
-            params.stats->didntFit(node);
-        }
-
-        return 0;
-    }
-
-    if (keepDiggingDeeper) {
+    if (continueThisLevel && keepDiggingDeeper) {
         // at this point, we need to iterate the children who are in view, even if not colored
         // and we need to determine if there's a deeper tree below them that we care about.
         //
@@ -1496,16 +1507,16 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // write our childExistsBits as a place holder. Then let each potential tree have a go at it. If they
         // write something, we keep them in the bits, if they don't, we take them out.
         //
-        // we know the last thing we wrote to the outputBuffer was our childrenExistInPacketBits. Let's remember where that was!
-        unsigned char* childExistsPlaceHolder = outputBuffer-sizeof(childrenExistInPacketBits);
+        // we know the last thing we wrote to the packet was our childrenExistInPacketBits. Let's remember where that was!
+        int childExistsPlaceHolder = packetData->getUncompressedByteOffset(sizeof(childrenExistInPacketBits));
 
         // we are also going to recurse these child trees in "distance" sorted order, but we need to pack them in the
         // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
         // and then later reshuffle these sections of our output buffer back into normal order. This allows us to make
         // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
         int recursiveSliceSizes[NUMBER_OF_CHILDREN];
-        unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
-        unsigned char* firstRecursiveSlice = outputBuffer;
+        const unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
+        int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
         int allSlicesSize = 0;
 
         // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
@@ -1518,10 +1529,22 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                 int thisLevel = currentEncodeLevel;
                 // remember this for reshuffling
-                recursiveSliceStarts[originalIndex] = outputBuffer;
+                recursiveSliceStarts[originalIndex] = packetData->getUncompressedData() + packetData->getUncompressedSize();
 
-                int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, outputBuffer, availableBytes, bag,
-                                                                     params, thisLevel);
+                int childTreeBytesOut = 0;
+
+                // XXXBHG - Note, this seems like the correct logic here, if we included the color in this packet, then
+                // the LOD logic determined that the child nodes would not be visible... and if so, we shouldn't recurse
+                // them further. But... for some time now the code has included and recursed into these child nodes, which
+                // would likely still send the child content, even though the client wouldn't render it. This change is 
+                // a major savings (~30%) and it seems to work correctly. But I want us to discuss as a group when we do
+                // a voxel protocol review.
+                //
+                // This only applies in the view frustum case, in other cases, like file save and copy/past where
+                // no viewFrustum was requested, we still want to recurse the child tree.
+                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, thisLevel);
+                }
 
                 // remember this for reshuffling
                 recursiveSliceSizes[originalIndex] = childTreeBytesOut;
@@ -1555,20 +1578,23 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 //}
 
                 bytesAtThisLevel += childTreeBytesOut;
-                availableBytes -= childTreeBytesOut;
-                outputBuffer += childTreeBytesOut;
 
                 // If we had previously started writing, and if the child DIDN'T write any bytes,
                 // then we want to remove their bit from the childExistsPlaceHolder bitmask
                 if (childTreeBytesOut == 0) {
                     // remove this child's bit...
                     childrenExistInPacketBits -= (1 << (7 - originalIndex));
-                    // repair the child exists mask
-                    *childExistsPlaceHolder = childrenExistInPacketBits;
 
+                    // repair the child exists mask
+                    continueThisLevel = packetData->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
+                    
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
                         params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
+                    }
+
+                    if (!continueThisLevel) {
+                        break; // can't continue...
                     }
                     
                     // Note: no need to move the pointer, cause we already stored this
@@ -1577,8 +1603,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         } // end for
 
         // reshuffle here...
-        if (params.wantOcclusionCulling) {
-            unsigned char tempReshuffleBuffer[MAX_VOXEL_PACKET_SIZE];
+        if (continueThisLevel && params.wantOcclusionCulling) {
+            unsigned char tempReshuffleBuffer[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
 
             unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
 
@@ -1588,7 +1614,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             for (int originalIndex = 0; originalIndex < NUMBER_OF_CHILDREN; originalIndex++) {
                 if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
                     int thisSliceSize = recursiveSliceSizes[originalIndex];
-                    unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
+                    const unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
 
                     memcpy(tempBufferTo, thisSliceStarts, thisSliceSize);
                     tempBufferTo += thisSliceSize;
@@ -1596,11 +1622,40 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             }
 
             // now that all slices are back in the correct order, copy them to the correct output buffer
-            memcpy(firstRecursiveSlice, &tempReshuffleBuffer[0], allSlicesSize);
+            continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
+        }
+    } // end keepDiggingDeeper
+
+    // At this point all our BitMasks are complete... so let's output them to see how they compare...
+    /**
+    printf("This Level's BitMasks: childInTree:");
+    outputBits(childrenExistInTreeBits, false, true);
+    printf(" childInPacket:");
+    outputBits(childrenExistInPacketBits, false, true);
+    printf(" childrenColored:");
+    outputBits(childrenColoredBits, false, true);
+    printf("\n");
+    **/
+
+    // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
+    // sending later...
+    if (continueThisLevel) {
+        continueThisLevel = packetData->endLevel(thisLevelKey);
+    } else {
+        packetData->discardLevel(thisLevelKey);
+    }
+    
+    if (!continueThisLevel) {
+        bag.insert(node);
+
+        // don't need to check node here, because we can't get here with no node
+        if (params.stats) {
+            params.stats->didntFit(node);
         }
 
-
-    } // end keepDiggingDeeper
+        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+        bytesAtThisLevel = 0; // didn't fit
+    }
 
     return bytesAtThisLevel;
 }
@@ -1806,18 +1861,36 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             nodeBag.insert(rootNode);
         }
 
-        static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+        static VoxelPacketData packetData;
         int bytesWritten = 0;
+        bool lastPacketWritten = false;
 
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
-
+            
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
+            bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
-            file.write((const char*)&outputBuffer[0], bytesWritten);
+
+            // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
+            // and reinsert the node in our bag and try again...
+            if (bytesWritten == 0) {
+                if (packetData.hasContent()) {
+                    file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
+                    lastPacketWritten = true;
+                }
+                packetData.reset(); // is there a better way to do this? could we fit more?
+                nodeBag.insert(subTree);
+            } else {
+                lastPacketWritten = false;
+            }
         }
+
+        if (!lastPacketWritten) {
+            file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
+        }
+
     }
     file.close();
 }
@@ -1841,19 +1914,18 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
         chopLevels = numberOfThreeBitSectionsInCode(startNode->getOctalCode());
     }
 
-    static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+    static VoxelPacketData packetData;
     int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
-
+        packetData.reset(); // reset the packet between usage
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
-        bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
-
+        bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-        destinationTree->readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
+        destinationTree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
 
     VoxelNode* destinationStartNode;
@@ -1870,20 +1942,22 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
     // If we were given a specific node, start from there, otherwise start from root
     nodeBag.insert(sourceTree->rootNode);
 
-    static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
+    static VoxelPacketData packetData;
     int bytesWritten = 0;
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
+        
+        packetData.reset(); // reset between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-        bytesWritten = sourceTree->encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
+        bytesWritten = sourceTree->encodeTreeBitstream(subTree, &packetData, nodeBag, params);
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
-        readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
+        readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
 }
 
@@ -1911,26 +1985,26 @@ void VoxelTree::doneEncoding(VoxelNode* node) {
     emptyDeleteQueue();
 }
 
-void VoxelTree::startDeleting(unsigned char* code) {
+void VoxelTree::startDeleting(const unsigned char* code) {
     pthread_mutex_lock(&_deleteSetLock);
     _codesBeingDeleted.insert(code);
     pthread_mutex_unlock(&_deleteSetLock);
 }
 
-void VoxelTree::doneDeleting(unsigned char* code) {
+void VoxelTree::doneDeleting(const unsigned char* code) {
     pthread_mutex_lock(&_deleteSetLock);
     _codesBeingDeleted.erase(code);
     pthread_mutex_unlock(&_deleteSetLock);
 }
 
-bool VoxelTree::isEncoding(unsigned char* codeBuffer) {
+bool VoxelTree::isEncoding(const unsigned char* codeBuffer) {
     pthread_mutex_lock(&_encodeSetLock);
     bool isEncoding = (_codesBeingEncoded.find(codeBuffer) != _codesBeingEncoded.end());
     pthread_mutex_unlock(&_encodeSetLock);
     return isEncoding;
 }
 
-void VoxelTree::queueForLaterDelete(unsigned char* codeBuffer) {
+void VoxelTree::queueForLaterDelete(const unsigned char* codeBuffer) {
     pthread_mutex_lock(&_deletePendingSetLock);
     _codesPendingDelete.insert(codeBuffer);
     pthread_mutex_unlock(&_deletePendingSetLock);
@@ -1938,8 +2012,8 @@ void VoxelTree::queueForLaterDelete(unsigned char* codeBuffer) {
 
 void VoxelTree::emptyDeleteQueue() {
     pthread_mutex_lock(&_deletePendingSetLock);
-    for (std::set<unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
-        unsigned char* codeToDelete = *i;
+    for (std::set<const unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
+        const unsigned char* codeToDelete = *i;
         _codesBeingDeleted.erase(codeToDelete);
         deleteVoxelCodeFromTree(codeToDelete, COLLAPSE_EMPTY_TREE);
     }

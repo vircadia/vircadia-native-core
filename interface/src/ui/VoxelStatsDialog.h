@@ -17,6 +17,7 @@
 
 #define MAX_STATS 100
 #define MAX_VOXEL_SERVERS 50
+#define DEFAULT_COLOR 0
 
 class VoxelStatsDialog : public QDialog {
     Q_OBJECT
@@ -30,6 +31,7 @@ signals:
 
 public slots:
     void reject();
+    void moreless(const QString& link);
 
 protected:
     // State <- data model held by BandwidthMeter
@@ -38,11 +40,14 @@ protected:
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
-    int AddStatItem(const char* caption, unsigned colorRGBA);
+    int AddStatItem(const char* caption, unsigned colorRGBA = DEFAULT_COLOR);
     void RemoveStatItem(int item);
     void showAllVoxelServers();
 
 private:
+
+    typedef enum { LESS, MORE, MOST } details;
+
     QFormLayout* _form;
     QLabel* _labels[MAX_STATS];
     NodeToVoxelSceneStats* _model;
@@ -55,6 +60,7 @@ private:
     int _voxelsRendered;
     int _voxelServerLables[MAX_VOXEL_SERVERS];
     int _voxelServerLabelsCount;
+    details _extraServerDetails[MAX_VOXEL_SERVERS];
 };
 
 #endif /* defined(__interface__VoxelStatsDialog__) */

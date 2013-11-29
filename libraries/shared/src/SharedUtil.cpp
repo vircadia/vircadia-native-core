@@ -60,7 +60,7 @@ bool shouldDo(float desiredInterval, float deltaTime) {
     return randFloat() < deltaTime / desiredInterval;
 }
 
-void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
+void outputBufferBits(const unsigned char* buffer, int length, bool withNewLine) {
     for (int i = 0; i < length; i++) {
         outputBits(buffer[i], false);
     }
@@ -69,20 +69,20 @@ void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
     }
 }
 
-void outputBits(unsigned char byte, bool withNewLine) {
+void outputBits(unsigned char byte, bool withNewLine, bool usePrintf) {
     if (isalnum(byte)) {
-        qDebug("[ %d (%c): ", byte, byte);
+        usePrintf ? (void)printf("[ %d (%c): ", byte, byte) : qDebug("[ %d (%c): ", byte, byte);
     } else {
-        qDebug("[ %d (0x%x): ", byte, byte);
+        usePrintf ? (void)printf("[ %d (0x%x): ", byte, byte) : qDebug("[ %d (0x%x): ", byte, byte);
     }
     
     for (int i = 0; i < 8; i++) {
-        qDebug("%d", byte >> (7 - i) & 1);
+        usePrintf ? (void)printf("%d", byte >> (7 - i) & 1) : qDebug("%d", byte >> (7 - i) & 1);
     }
-    qDebug(" ] ");
+    usePrintf ? (void)printf(" ] ") : qDebug(" ] ");
     
     if (withNewLine) {
-        qDebug("\n");
+        usePrintf ? (void)printf("\n") : qDebug("\n");
     }
 }
 

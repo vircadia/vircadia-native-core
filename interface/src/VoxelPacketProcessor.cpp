@@ -25,6 +25,8 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
     ssize_t messageLength = packetLength;
 
     Application* app = Application::getInstance();
+    bool wasStatsPacket = false;
+    
     
     // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
     if (app->_wantToKillLocalVoxels) {
@@ -32,12 +34,13 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
         app->_wantToKillLocalVoxels = false;
     }
     
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
     // then process any remaining bytes as if it was another packet
     if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
     
         int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderAddress);
+        wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             packetData += statsMessageLength;
             messageLength -= statsMessageLength;
@@ -45,11 +48,15 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
                 return; // bail since piggyback data doesn't match our versioning
             }
         } else {
+            // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
             return; // bail since no piggyback data
         }
     } // fall through to piggyback message
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+    
+        app->trackIncomingVoxelPacket(packetData, messageLength, senderAddress, wasStatsPacket);
+        
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {

@@ -174,35 +174,6 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         if (node) {
             node->setLastHeardMicrostamp(usecTimestampNow());
         }
-    } else if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
-
-        // the Z command is a special command that allows the sender to send the voxel server high level semantic
-        // requests, like erase all, or add sphere scene
-        
-        char* command = (char*) &packetData[numBytesPacketHeader]; // start of the command
-        int commandLength = strlen(command); // commands are null terminated strings
-        int totalLength = numBytesPacketHeader + commandLength + 1; // 1 for null termination
-        printf("got Z message len(%ld)= %s\n", packetLength, command);
-        bool rebroadcast = true; // by default rebroadcast
-
-        while (totalLength <= packetLength) {
-            if (strcmp(command, TEST_COMMAND) == 0) {
-                printf("got Z message == a message, nothing to do, just report\n");
-            }
-            totalLength += commandLength + 1; // 1 for null termination
-        }
-
-        if (rebroadcast) {
-            // Now send this to the connected nodes so they can also process these messages
-            printf("rebroadcasting Z message to connected nodes... nodeList.broadcastToNodes()\n");
-            NodeList::getInstance()->broadcastToNodes(packetData, packetLength, &NODE_TYPE_AGENT, 1);
-        }
-
-        // Make sure our Node and NodeList knows we've heard from this node.
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (node) {
-            node->setLastHeardMicrostamp(usecTimestampNow());
-        }
     } else {
         printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
     }

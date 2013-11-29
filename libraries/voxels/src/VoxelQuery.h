@@ -28,7 +28,8 @@
 const int WANT_LOW_RES_MOVING_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
-const int WANT_OCCLUSION_CULLING_BIT = 3; // 4th bit
+const int WANT_OCCLUSION_CULLING_BIT = 3;
+const int WANT_COMPRESSION = 4; // 5th bit
 
 class VoxelQuery : public NodeData {
     Q_OBJECT
@@ -68,6 +69,7 @@ public:
     bool getWantDelta() const { return _wantDelta; }
     bool getWantLowResMoving() const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
+    bool getWantCompression() const { return _wantCompression; }
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPPS; }
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
@@ -77,6 +79,7 @@ public slots:
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
+    void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
     void setMaxVoxelPacketsPerSecond(int maxVoxelPPS) { _maxVoxelPPS = maxVoxelPPS; }
     void setVoxelSizeScale(float voxelSizeScale) { _voxelSizeScale = voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
@@ -98,6 +101,7 @@ protected:
     bool _wantDelta;
     bool _wantLowResMoving;
     bool _wantOcclusionCulling;
+    bool _wantCompression;
     int _maxVoxelPPS;
     float _voxelSizeScale; /// used for LOD calculations
     int _boundaryLevelAdjust; /// used for LOD calculations
