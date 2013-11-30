@@ -168,8 +168,8 @@ private:
     glm::vec3 _velocity;
     int _controllerButtons;
     
-    bool      _isActive;            // This has current valid data
-    int       _leapID;              // the Leap's serial id for this tracked object
+    bool      _isActive;             // This has current valid data
+    int       _leapID;               // the Leap's serial id for this tracked object
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
 };

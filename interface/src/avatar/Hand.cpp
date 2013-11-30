@@ -161,7 +161,25 @@ void Hand::render() {
     if (getPalms().size() > 0) {
         for (size_t i = 0; i < getPalms().size(); ++i) {
             PalmData& palm = getPalms()[i];
-            //printf("buttons = %i\n", palm.getControllerButtons());
+            //  If FWD button(s) are pressed, render laser beam forward
+            const float POINTER_BEAM_LENGTH = 10.f;
+            if (palm.getControllerButtons() & BUTTON_FWD) {
+                FingerData& finger = palm.getFingers()[0];
+                if (finger.isActive()) {
+                    glm::vec3 palmPosition = palm.getPosition();
+                    glm::vec3 pointerPosition = palmPosition + glm::normalize(finger.getTipPosition() - palmPosition) * POINTER_BEAM_LENGTH;
+                    glColor4f(1, 0, 0, 0.5);
+                    glPushMatrix();
+                    glTranslatef(pointerPosition.x, pointerPosition.y, pointerPosition.z);
+                    glutSolidSphere(0.05, 10, 10);
+                    glPopMatrix();
+                    glLineWidth(2.0);
+                    glBegin(GL_LINES);
+                    glVertex3f(palmPosition.x, palmPosition.y, palmPosition.z);
+                    glVertex3f(pointerPosition.x, pointerPosition.y, pointerPosition.z);
+                    glEnd();
+                }
+            }
         }
     }
     
