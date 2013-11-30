@@ -849,21 +849,20 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         }
     }
     //  Add thrust from hand controllers
-    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD * 10.f;
+    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD * 100.f;
     for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
         PalmData& palm = getHand().getPalms()[i];
         if (palm.isActive()) {
-            if (palm.getControllerButtons() & BUTTON_FWD) {
+            if (palm.getTrigger() > 0.f) {
                 FingerData& finger = palm.getFingers()[0];
                 if (finger.isActive()) {
                 }
                 glm::vec3 thrustDirection = glm::normalize(finger.getTipPosition() - palm.getPosition());
-                _thrust += thrustDirection * _scale * THRUST_MAG_HAND_JETS * _thrustMultiplier * deltaTime;
+                _thrust += thrustDirection * _scale * THRUST_MAG_HAND_JETS * palm.getTrigger() * _thrustMultiplier * deltaTime;
             }
         }
     }
 
-    
     //  Update speed brake status
     const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
     if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {

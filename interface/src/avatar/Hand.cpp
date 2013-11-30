@@ -157,17 +157,20 @@ void Hand::render() {
         }
     }
     
-    //  If hand controller buttons pressed, render stuff
+    //  If hand controller buttons pressed, render stuff as needed
     if (getPalms().size() > 0) {
         for (size_t i = 0; i < getPalms().size(); ++i) {
             PalmData& palm = getPalms()[i];
-            //  If FWD button(s) are pressed, render laser beam forward
-            const float POINTER_BEAM_LENGTH = 10.f;
-            if (palm.getControllerButtons() & BUTTON_FWD) {
+            //  If trigger pulled, thrust in that direction and draw beam
+            const float MAX_THRUSTER_BEAM_LENGTH = 5.f;
+            if (palm.getTrigger() > 0.f) {
                 FingerData& finger = palm.getFingers()[0];
-                if (finger.isActive()) {
+                if (finger.isActive() && (palm.getTrigger() > 0.f)) {
+                    printf("trigger = %.2f\n", palm.getTrigger());
                     glm::vec3 palmPosition = palm.getPosition();
-                    glm::vec3 pointerPosition = palmPosition + glm::normalize(finger.getTipPosition() - palmPosition) * POINTER_BEAM_LENGTH;
+                    glm::vec3 pointerPosition = palmPosition +
+                                                glm::normalize(finger.getTipPosition() - palmPosition) *
+                                                (0.01f + palm.getTrigger()) * MAX_THRUSTER_BEAM_LENGTH;
                     glColor4f(1, 0, 0, 0.5);
                     glPushMatrix();
                     glTranslatef(pointerPosition.x, pointerPosition.y, pointerPosition.z);

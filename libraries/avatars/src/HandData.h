@@ -161,12 +161,16 @@ public:
     void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
     int getControllerButtons() { return _controllerButtons; }
 
+    void setTrigger(float trigger) { _trigger = trigger; }
+    float getTrigger() { return _trigger; }
+
 private:
     std::vector<FingerData> _fingers;
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
     glm::vec3 _velocity;
     int _controllerButtons;
+    float _trigger; 
     
     bool      _isActive;             // This has current valid data
     int       _leapID;               // the Leap's serial id for this tracked object
