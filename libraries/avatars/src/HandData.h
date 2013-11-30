@@ -41,6 +41,12 @@ enum RaveGloveEffectsMode
 	NUM_RAVE_GLOVE_EFFECTS_MODES
 };
 
+const int BUTTON_1 = 32;
+const int BUTTON_2 = 64;
+const int BUTTON_3 = 8;
+const int BUTTON_4 = 16;
+const int BUTTON_FWD = 128;
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
@@ -150,12 +156,18 @@ public:
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
     int  getFramesWithoutData()          const { return _numFramesWithoutData; }
+    
+    // Controller buttons
+    void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
+    int getControllerButtons() { return _controllerButtons; }
 
 private:
     std::vector<FingerData> _fingers;
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
     glm::vec3 _velocity;
+    int _controllerButtons;
+    
     bool      _isActive;            // This has current valid data
     int       _leapID;              // the Leap's serial id for this tracked object
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.

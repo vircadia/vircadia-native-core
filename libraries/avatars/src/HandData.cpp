@@ -37,6 +37,8 @@ PalmData& HandData::addNewPalm()  {
 PalmData::PalmData(HandData* owningHandData) :
 _rawPosition(0, 0, 0),
 _rawNormal(0, 1, 0),
+_velocity(0, 0, 0),
+_controllerButtons(0),
 _isActive(false),
 _leapID(LEAPID_INVALID),
 _numFramesWithoutData(0),

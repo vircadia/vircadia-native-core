@@ -30,6 +30,7 @@ enum RaveLightsSetting {
     RAVE_LIGHTS_PARTICLES
 };
 
+
 class Avatar;
 class ProgramObject;
 
@@ -46,7 +47,7 @@ public:
         bool             isCollidable;   // whether or not the ball responds to collisions
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
-
+    
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
@@ -62,7 +63,7 @@ public:
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
-
+    
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -72,6 +73,8 @@ private:
     float          _raveGloveClock;
     bool           _raveGloveInitialized;
     int            _raveGloveEmitter[NUM_FINGERS];
+    
+    int _controllerButtons;             ///  Button states read from hand-held controllers
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;

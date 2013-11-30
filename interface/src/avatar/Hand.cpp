@@ -157,6 +157,15 @@ void Hand::render() {
         }
     }
     
+    //  If hand controller buttons pressed, render stuff
+    if (getPalms().size() > 0) {
+        for (size_t i = 0; i < getPalms().size(); ++i) {
+            PalmData& palm = getPalms()[i];
+            //printf("buttons = %i\n", palm.getControllerButtons());
+        }
+    }
+    
+    
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
