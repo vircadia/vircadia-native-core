@@ -16,7 +16,7 @@ public:
     SixenseManager();
     ~SixenseManager();
     
-    void update();
+    void update(float deltaTime);
 };
 
 #endif /* defined(__interface__SixenseManager__) */

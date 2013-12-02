@@ -57,6 +57,8 @@ void AmbientOcclusionEffect::init() {
     _leftBottomLocation = _occlusionProgram->uniformLocation("leftBottom");
     _rightTopLocation = _occlusionProgram->uniformLocation("rightTop");
     _noiseScaleLocation = _occlusionProgram->uniformLocation("noiseScale");
+    _texCoordOffsetLocation = _occlusionProgram->uniformLocation("texCoordOffset");
+    _texCoordScaleLocation = _occlusionProgram->uniformLocation("texCoordScale");
     
     // generate the random rotation texture
     glGenTextures(1, &_rotationTextureID);
@@ -106,22 +108,25 @@ void AmbientOcclusionEffect::render() {
     Application::getInstance()->computeOffAxisFrustum(
         left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    QSize widgetSize = Application::getInstance()->getGLWidget()->size();
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)widgetSize.width();
+    
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue(_nearLocation, nearVal);
     _occlusionProgram->setUniformValue(_farLocation, farVal);
     _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
     _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
-    QSize widgetSize = Application::getInstance()->getGLWidget()->size();
-    _occlusionProgram->setUniformValue(_noiseScaleLocation, widgetSize.width() / (float)ROTATION_WIDTH,
+    _occlusionProgram->setUniformValue(_noiseScaleLocation, viewport[VIEWPORT_WIDTH_INDEX] / (float)ROTATION_WIDTH,
         widgetSize.height() / (float)ROTATION_HEIGHT);
+    _occlusionProgram->setUniformValue(_texCoordOffsetLocation, sMin, 0.0f);
+    _occlusionProgram->setUniformValue(_texCoordScaleLocation, sWidth, 1.0f);
     
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
-    float sMax = (viewport[VIEWPORT_X_INDEX] + viewport[VIEWPORT_WIDTH_INDEX]) / (float)widgetSize.width(); 
-    renderFullscreenQuad(sMin, sMax);
+    renderFullscreenQuad();
     
     _occlusionProgram->release();
     
@@ -141,7 +146,7 @@ void AmbientOcclusionEffect::render() {
     _blurProgram->bind();
     _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / widgetSize.width(), 1.0f / widgetSize.height());
     
-    renderFullscreenQuad(sMin, sMax);
+    renderFullscreenQuad(sMin, sMin + sWidth);
     
     _blurProgram->release();
     

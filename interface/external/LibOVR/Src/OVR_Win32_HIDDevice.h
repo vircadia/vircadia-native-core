@@ -140,9 +140,12 @@ public:
     virtual bool Enumerate(HIDEnumerateVisitor* enumVisitor);
     virtual OVR::HIDDevice* Open(const String& path);
 
-    GUID GetHIDGuid()
-    { return HidGuid; }
+    // Fills HIDDeviceDesc by using the path.
+    // Returns 'true' if successful, 'false' otherwise.
+    bool GetHIDDeviceDesc(const String& path, HIDDeviceDesc* pdevDesc) const;
 
+    GUID GetHIDGuid() { return HidGuid; }
+    
     static HIDDeviceManager* CreateInternal(DeviceManager* manager);
 
 private:
@@ -171,7 +174,7 @@ func = (PFn_##func)::GetProcAddress(hHidLib, #func)
     OVR_DECLARE_HIDFUNC(HidD_FreePreparsedData,     BOOLEAN, (HIDP_PREPARSED_DATA *preparsedData));
     OVR_DECLARE_HIDFUNC(HidP_GetCaps,               NTSTATUS,(HIDP_PREPARSED_DATA *preparsedData, HIDP_CAPS* caps));
 
-    HANDLE CreateHIDFile(const char* path, bool exclusiveAccess = true)
+    HANDLE CreateHIDFile(const char* path, bool exclusiveAccess = true) const
     {
         return ::CreateFileA(path, GENERIC_WRITE|GENERIC_READ,
             (!exclusiveAccess) ? (FILE_SHARE_READ|FILE_SHARE_WRITE) : 0x0, 
@@ -179,11 +182,11 @@ func = (PFn_##func)::GetProcAddress(hHidLib, #func)
     }
 
     // Helper functions to fill in HIDDeviceDesc from open device handle.
-    bool initVendorProductVersion(HANDLE hidDev, HIDDeviceDesc* desc);
-    bool initUsage(HANDLE hidDev, HIDDeviceDesc* desc);
-    void initStrings(HANDLE hidDev, HIDDeviceDesc* desc);
+    bool initVendorProductVersion(HANDLE hidDev, HIDDeviceDesc* desc) const;
+    bool initUsage(HANDLE hidDev, HIDDeviceDesc* desc) const;
+    void initStrings(HANDLE hidDev, HIDDeviceDesc* desc) const;
 
-    bool getFullDesc(HANDLE hidDev, HIDDeviceDesc* desc);
+    bool getFullDesc(HANDLE hidDev, HIDDeviceDesc* desc) const;
 };
 
 }} // namespace OVR::Win32

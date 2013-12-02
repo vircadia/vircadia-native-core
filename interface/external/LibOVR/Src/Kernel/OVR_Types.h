@@ -291,7 +291,7 @@ namespace BaseTypes
 #if defined(OVR_CC_MSVC)
 #  define OVR_FORCE_INLINE  __forceinline
 #elif defined(OVR_CC_GNU)
-#  define OVR_FORCE_INLINE  __attribute__((always_inline))
+#  define OVR_FORCE_INLINE  __attribute__((always_inline)) inline
 #else
 #  define OVR_FORCE_INLINE  inline
 #endif  // OVR_CC_MSVC

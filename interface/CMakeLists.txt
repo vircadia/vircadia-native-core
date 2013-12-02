@@ -117,6 +117,14 @@ if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
+# and with LibOVR for Oculus Rift
+if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
+    add_definitions(-DHAVE_LIBOVR)
+    include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
+endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
+
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
@@ -131,7 +139,6 @@ include_directories(
   SYSTEM
   ${FACESHIFT_INCLUDE_DIRS} 
   ${GLM_INCLUDE_DIRS} 
-  ${LIBOVR_INCLUDE_DIRS}
   ${LIBVPX_INCLUDE_DIRS}
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
@@ -180,7 +187,6 @@ if (APPLE)
         ${QTKit}
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
-        ${LIBOVR_LIBRARIES}
     )
     
     if (LEAP_FOUND)
