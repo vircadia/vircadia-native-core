@@ -117,6 +117,15 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
+    void makeVoxel(glm::vec3 position,
+                   float scale,
+                   unsigned char red,
+                   unsigned char green,
+                   unsigned char blue,
+                   bool isDestructive);
+    
+    void removeVoxel(glm::vec3 position, float scale);
+        
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
     QGLWidget* getGLWidget() { return _glWidget; }
@@ -249,7 +258,7 @@ private:
         glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
-    void updateSixense();
+    void updateSixense(float deltaTime);
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);

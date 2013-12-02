@@ -848,7 +848,25 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
             up;
         }
     }
-    
+    //  Add thrust and rotation from hand controllers
+    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD;
+    const float JOYSTICK_YAW_MAG = YAW_MAG;
+    for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+        PalmData& palm = getHand().getPalms()[i];
+        if (palm.isActive()) {
+            if (palm.getJoystickY() != 0.f) {
+                FingerData& finger = palm.getFingers()[0];
+                if (finger.isActive()) {
+                }
+                glm::vec3 thrustDirection = glm::normalize(finger.getTipPosition() - palm.getPosition());
+                _thrust += thrustDirection * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
+            }
+            if (palm.getJoystickX() != 0.f) {
+                _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
+            }
+        }
+    }
+
     //  Update speed brake status
     const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
     if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {

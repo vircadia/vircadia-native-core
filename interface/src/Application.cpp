@@ -1480,6 +1480,54 @@ void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
 
+void Application::removeVoxel(glm::vec3 position,
+                              float scale) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxel);
+    
+    // delete it locally to see the effect immediately (and in case no voxel server is present)
+    _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+}
+
+void Application::makeVoxel(glm::vec3 position,
+                            float scale,
+                            unsigned char red,
+                            unsigned char green,
+                            unsigned char blue,
+                            bool isDestructive) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    voxel.red = red;
+    voxel.green = green;
+    voxel.blue = blue;
+    PACKET_TYPE message = isDestructive ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL;
+    _voxelEditSender.sendVoxelEditMessage(message, voxel);
+    
+    // create the voxel locally so it appears immediately
+    
+    _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
+                        voxel.red, voxel.green, voxel.blue,
+                        isDestructive);
+    
+    // Implement voxel fade effect
+    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
+    const float VOXEL_BOUNDS_ADJUST = 0.01f;
+    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
+    fade.voxelDetails.x = voxel.x - slightlyBigger;
+    fade.voxelDetails.y = voxel.y - slightlyBigger;
+    fade.voxelDetails.z = voxel.z - slightlyBigger;
+    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
+    _voxelFades.push_back(fade);
+    
+}
+
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -2214,11 +2262,11 @@ void Application::updateLeap(float deltaTime) {
     LeapManager::nextFrame();
 }
 
-void Application::updateSixense() {
+void Application::updateSixense(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateSixense()");
     
-    _sixenseManager.update();
+    _sixenseManager.update(deltaTime);
 }
 
 void Application::updateSerialDevices(float deltaTime) {
@@ -2428,7 +2476,7 @@ void Application::update(float deltaTime) {
     updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
-    updateSixense(); // Razer Hydra controllers
+    updateSixense(deltaTime); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -3945,29 +3993,18 @@ bool Application::maybeEditVoxelUnderCursor() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
         || Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode)) {
         if (_mouseVoxel.s != 0) {
-            PACKET_TYPE message = Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel)
-                ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                : PACKET_TYPE_SET_VOXEL;
-            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
-            
-            // create the voxel locally so it appears immediately
-            _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                                _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue,
-                                Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
-
-            // Implement voxel fade effect
-            VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-            const float VOXEL_BOUNDS_ADJUST = 0.01f;
-            float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
-            fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
-            fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
-            fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
-            fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
-            _voxelFades.push_back(fade);
-            
+            makeVoxel(glm::vec3(_mouseVoxel.x * TREE_SCALE,
+                      _mouseVoxel.y * TREE_SCALE,
+                      _mouseVoxel.z * TREE_SCALE),
+                      _mouseVoxel.s * TREE_SCALE,
+                      _mouseVoxel.red,
+                      _mouseVoxel.green,
+                      _mouseVoxel.blue,
+                      Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
+ 
             // inject a sound effect
             injectVoxelAddedSoundEffect();
-            
+           
             // remember the position for drag detection
             _justEditedVoxel = true;
             

@@ -25,7 +25,7 @@ SixenseManager::~SixenseManager() {
 #endif
 }
     
-void SixenseManager::update() {
+void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     if (sixenseGetNumActiveControllers() == 0) {
         return;
@@ -42,26 +42,18 @@ void SixenseManager::update() {
         sixenseControllerData data;
         sixenseGetNewestData(i, &data);
         
-        // drive avatar with joystick and triggers
-        if (data.controller_index) {
-            avatar->setDriveKeys(ROT_LEFT, qMax(0.0f, -data.joystick_x));
-            avatar->setDriveKeys(ROT_RIGHT, qMax(0.0f, data.joystick_x));
-            avatar->setDriveKeys(ROT_UP, qMax(0.0f, data.joystick_y));
-            avatar->setDriveKeys(ROT_DOWN, qMax(0.0f, -data.joystick_y));
-            avatar->setDriveKeys(UP, data.trigger);
-            
-        } else {
-            avatar->setDriveKeys(FWD, qMax(0.0f, data.joystick_y));
-            avatar->setDriveKeys(BACK, qMax(0.0f, -data.joystick_y));
-            avatar->setDriveKeys(LEFT, qMax(0.0f, -data.joystick_x));
-            avatar->setDriveKeys(RIGHT, qMax(0.0f, data.joystick_x));
-            avatar->setDriveKeys(DOWN, data.trigger);
-        }
-        
         //  Set palm position and normal based on Hydra position/orientation
         PalmData palm(&hand);
         palm.setActive(true);
         glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
+        
+        //  Compute current velocity from position change
+        palm.setVelocity((position - palm.getPosition()) / deltaTime);
+        
+        //  Read controller buttons and joystick into the hand
+        palm.setControllerButtons(data.buttons);
+        palm.setTrigger(data.trigger);
+        palm.setJoystick(data.joystick_x, data.joystick_y);
         
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)
