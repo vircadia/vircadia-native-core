@@ -63,6 +63,9 @@ int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsi
     int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
     
     int branchStartBit = parentSections * 3;
+    // Note: this does not appear to be "multi-byte length code" safe. When octal codes are larger than 255 bytes
+    // long, the length code is stored in two bytes. The "1" below appears to assume that the length is always one
+    // byte long.
     return sectionValue(descendantOctalCode + 1 + (branchStartBit / 8), branchStartBit % 8);
 }
 
