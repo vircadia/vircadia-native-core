@@ -20,7 +20,7 @@
 InfoView::InfoView(bool forced) :
     _forced(forced) {
     
-    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint);
+    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
         
     switchToResourcesParentIfRequired();
     QString absPath = QFileInfo("resources/html/interface-welcome-allsvg.html").absoluteFilePath();
