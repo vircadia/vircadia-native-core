@@ -16,25 +16,27 @@
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
-    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
+    _voxelPacketAvailableBytes(MAX_PACKET_SIZE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true),
+    _currentPacketIsCompressed(false),
     _voxelSendThread(NULL),
     _lastClientBoundaryLevelAdjust(0),
     _lastClientVoxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _voxelPacket = new unsigned char[MAX_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
-    _lastVoxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _lastVoxelPacket = new unsigned char[MAX_PACKET_SIZE];
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
-    resetVoxelPacket();
+    _sequenceNumber = 0;
+    resetVoxelPacket(true); // don't bump sequence
 }
 
 void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
@@ -45,8 +47,11 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
 }
 
 bool VoxelNodeData::packetIsDuplicate() const {
+    // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
+    // of the entire packet, we need to compare only the packet content...
     if (_lastVoxelPacketLength == getPacketLength()) {
-        return memcmp(_lastVoxelPacket, _voxelPacket, getPacketLength()) == 0;
+        return memcmp(_lastVoxelPacket + VOXEL_PACKET_HEADER_SIZE, 
+                _voxelPacket+VOXEL_PACKET_HEADER_SIZE , getPacketLength() - VOXEL_PACKET_HEADER_SIZE) == 0;
     }
     return false;
 }
@@ -71,7 +76,7 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
 
         if (sinceFirstSuppressedPacket < MAX_TIME_BETWEEN_DUPLICATE_PACKETS) {
             // Finally, if we know we've sent at least one duplicate out, then suppress the rest...
-            if (_duplicatePacketCount > 1) {
+            if (_duplicatePacketCount >= 1) {
                 shouldSuppress = true;
             }
         } else {
@@ -85,7 +90,7 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
     return shouldSuppress;
 }
 
-void VoxelNodeData::resetVoxelPacket() {
+void VoxelNodeData::resetVoxelPacket(bool lastWasSurpressed) {
     // Whenever we call this, we will keep a copy of the last packet, so we can determine if the last packet has
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
@@ -95,20 +100,60 @@ void VoxelNodeData::resetVoxelPacket() {
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
-    _currentPacketIsColor = (LOW_RES_MONO && getWantLowResMoving() && _viewFrustumChanging) ? false : getWantColor();
-    PACKET_TYPE voxelPacketType = _currentPacketIsColor ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
+    _currentPacketIsColor = getWantColor();
+    _currentPacketIsCompressed = getWantCompression();
+    VOXEL_PACKET_FLAGS flags = 0;
+    if (_currentPacketIsColor) {
+        setAtBit(flags,PACKET_IS_COLOR_BIT);
+    }
+    if (_currentPacketIsCompressed) {
+        setAtBit(flags,PACKET_IS_COMPRESSED_BIT);
+    }
 
-    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
+    _voxelPacketAvailableBytes = MAX_PACKET_SIZE;
+    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, PACKET_TYPE_VOXEL_DATA);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
+    _voxelPacketAvailableBytes -= numBytesPacketHeader;
+
+    // pack in flags
+    VOXEL_PACKET_FLAGS* flagsAt = (VOXEL_PACKET_FLAGS*)_voxelPacketAt;
+    *flagsAt = flags;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_FLAGS);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_FLAGS);
+
+    // pack in sequence number
+    VOXEL_PACKET_SEQUENCE* sequenceAt = (VOXEL_PACKET_SEQUENCE*)_voxelPacketAt;
+    *sequenceAt = _sequenceNumber;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SEQUENCE);
+    if (!(lastWasSurpressed || _lastVoxelPacketLength == VOXEL_PACKET_HEADER_SIZE)) {
+        _sequenceNumber++;
+    }
+
+    // pack in timestamp
+    VOXEL_PACKET_SENT_TIME now = usecTimestampNow();
+    VOXEL_PACKET_SENT_TIME* timeAt = (VOXEL_PACKET_SENT_TIME*)_voxelPacketAt;
+    *timeAt = now;
+    _voxelPacketAt += sizeof(VOXEL_PACKET_SENT_TIME);
+    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SENT_TIME);
+
     _voxelPacketWaiting = false;
 }
 
-void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
-    memcpy(_voxelPacketAt, buffer, bytes);
-    _voxelPacketAvailableBytes -= bytes;
-    _voxelPacketAt += bytes;
-    _voxelPacketWaiting = true;
+void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
+    // compressed packets include lead bytes which contain compressed size, this allows packing of
+    // multiple compressed portions together
+    if (_currentPacketIsCompressed) {
+        *(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)_voxelPacketAt = bytes;
+        _voxelPacketAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+        _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+    }
+    if (bytes <= _voxelPacketAvailableBytes) {
+        memcpy(_voxelPacketAt, buffer, bytes);
+        _voxelPacketAvailableBytes -= bytes;
+        _voxelPacketAt += bytes;
+        _voxelPacketWaiting = true;
+    }    
 }
 
 VoxelNodeData::~VoxelNodeData() {
@@ -179,7 +224,6 @@ void VoxelNodeData::setViewSent(bool viewSent) {
         _lodChanged = false;
     }
 }
-
 
 void VoxelNodeData::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);

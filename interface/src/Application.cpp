@@ -680,9 +680,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::OcclusionCulling);
-                } else if (_nudgeStarted) {
+                if (_nudgeStarted) {
                     _nudgeGuidePosition.y -= _mouseVoxel.s;
                 } else {
                     _myAvatar.setDriveKeys(DOWN, 1);
@@ -1519,7 +1517,6 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
         const unsigned char* nodeOctalCode = node->getOctalCode();
-        
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
         int bytesInCode = 0;
@@ -1540,10 +1537,9 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         }
 
         // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
+        codeColorBuffer[bytesInCode + RED_INDEX] = node->getColor()[RED_INDEX];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
-
+        codeColorBuffer[bytesInCode + BLUE_INDEX] = node->getColor()[BLUE_INDEX];
         getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
                 codeColorBuffer, codeAndColorLength);
         
@@ -1607,7 +1603,6 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
     args.newBaseOctCode = octalCodeDestination;
-
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
@@ -1766,7 +1761,7 @@ void Application::init() {
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
-    _voxels.setDisableFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::DisableFastVoxelPipeline));
+    _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
 
@@ -2573,10 +2568,11 @@ void Application::queryVoxels() {
     bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
-    _voxelQuery.setWantColor(Menu::getInstance()->isOptionChecked(MenuOption::SendVoxelColors));
-    _voxelQuery.setWantDelta(Menu::getInstance()->isOptionChecked(MenuOption::DeltaSending));
-    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::OcclusionCulling));
+    _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
+    _voxelQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
+    _voxelQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
+    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
+    _voxelQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
     
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
@@ -2638,15 +2634,16 @@ void Application::queryVoxels() {
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
+    int totalPPS = Menu::getInstance()->getMaxVoxelPacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
         // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
         // for each unknown jurisdiction server
-        perServerPPS = (DEFAULT_MAX_VOXEL_PPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
+        perServerPPS = (totalPPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
     } else {
         if (unknownJurisdictionServers > 0) {
-            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS / unknownJurisdictionServers);
+            perUnknownServer = (totalPPS / unknownJurisdictionServers);
         }
     }
     
@@ -3465,7 +3462,7 @@ void Application::displayStats() {
     // Voxel Rendering
     voxelStats.str("");
     voxelStats.precision(4);
-    voxelStats << "Voxel Rendering Slots" << 
+    voxelStats << "Voxel Rendering Slots " << 
         "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
         "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
@@ -4171,6 +4168,24 @@ void Application::nodeKilled(Node* node) {
     }
 }
 
+void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
+                        sockaddr senderAddress, bool wasStatsPacket) {
+                        
+    // Attempt to identify the sender from it's address.
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    if (voxelServer) {
+        QUuid nodeUUID = voxelServer->getUUID();
+        
+        // now that we know the node ID, let's add these stats to the stats for that node...
+        _voxelSceneStatsLock.lockForWrite();
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            VoxelSceneStats& stats = _voxelServerSceneStats[nodeUUID];
+            stats.trackIncomingVoxelPacket(messageData, messageLength, wasStatsPacket);
+        }
+        _voxelSceneStatsLock.unlock();
+    }
+}
+
 int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
@@ -4249,13 +4264,26 @@ void* Application::networkReceive(void* args) {
                         app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
-                    case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
-                    case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
+                            
+                        bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+                        if (wantExtraDebugging && app->_incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
+                            int numBytesPacketHeader = numBytesForPacketHeader(app->_incomingPacket);
+                            unsigned char* dataAt = app->_incomingPacket + numBytesPacketHeader;
+                            dataAt += sizeof(VOXEL_PACKET_FLAGS);
+                            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+                            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+                            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+                            int flightTime = arrivedAt - sentAt;
+                            
+                            printf("got PACKET_TYPE_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
+                        }   
                     
                         // add this packet to our list of voxel packets and process them on the voxel processing
                         app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);

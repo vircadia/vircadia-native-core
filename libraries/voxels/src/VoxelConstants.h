@@ -15,6 +15,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <OctalCode.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
 #include <glm/glm.hpp>
 
 // this is where the coordinate system is represented
@@ -32,9 +34,9 @@ const float DEFAULT_VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f;
 const float MAX_LOD_SIZE_MULTIPLIER = 2000.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
-const int MAX_VOXEL_PACKET_SIZE = 1492;
+
 const int MAX_TREE_SLICE_BYTES = 26;
-const int DEFAULT_MAX_VOXELS_PER_SYSTEM = 200000;
+const int DEFAULT_MAX_VOXELS_PER_SYSTEM = 500000;
 const int VERTICES_PER_VOXEL = 24; // 6 sides * 4 corners per side
 const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL; // xyz for each VERTICE_PER_VOXEL
 const int INDICES_PER_VOXEL = 3 * 12; // 6 sides * 2 triangles per size * 3 vertices per triangle
@@ -62,4 +64,5 @@ const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs
 
 const int DEFAULT_MAX_VOXEL_PPS = 600; // the default maximum PPS we think a voxel server should send to a client
 
+const bool VOXEL_PACKETS_COMPRESSED = false;
 #endif

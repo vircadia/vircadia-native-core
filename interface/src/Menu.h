@@ -68,6 +68,9 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
+    // User Tweakable PPS from Voxel Server
+    int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    
 public slots:
     void bandwidthDetails();
     void voxelStatsDetails();
@@ -93,8 +96,6 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    void setOldVoxelCullingMode(bool oldMode);
-    void setNewVoxelCullingMode(bool newMode);
     
 private:
     static Menu* _instance;
@@ -124,7 +125,6 @@ private:
                                                     const char* member = NULL);
     
     void updateFrustumRenderModeAction();
-    void setVoxelCullingMode(bool oldMode);
     
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -140,6 +140,7 @@ private:
     float _voxelSizeScale;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
+    int _maxVoxelPacketsPerSecond;
 };
 
 namespace MenuOption {
@@ -161,13 +162,15 @@ namespace MenuOption {
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
-    const QString DeltaSending = "Delta Sending";
-    const QString DisableConstantCulling = "Disable Constant Culling";
-    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
+    const QString DisableColorVoxels = "Disable Colored Voxels";
+    const QString DisableDeltaSending = "Disable Delta Sending";
+    const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
+    const QString EnableOcclusionCulling = "Enable Occlusion Culling";
+    const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString ExportVoxels = "Export Voxels";
@@ -191,7 +194,6 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString DisableHideOutOfView = "Disable Hide Out of View Voxels";
     const QString GoToUser = "Go To User...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
@@ -207,12 +209,10 @@ namespace MenuOption {
     const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
-    const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NudgeVoxels = "Nudge";
-    const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
@@ -224,11 +224,9 @@ namespace MenuOption {
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
-    const QString RemoveOutOfView = "Instead of Hide Remove Out of View Voxels";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
-    const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
@@ -245,7 +243,6 @@ namespace MenuOption {
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
-    const QString UseFullFrustumInHide = "Use Full View Frustums when Culling";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";

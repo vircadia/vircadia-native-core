@@ -454,6 +454,8 @@ private:
     PieMenu _pieMenu;
     
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
+                    sockaddr senderAddress, bool wasStatsPacket);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;

@@ -22,6 +22,14 @@
 class VoxelSendThread : public virtual GenericThread {
 public:
     VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer);
+
+    static uint64_t _totalBytes;
+    static uint64_t _totalWastedBytes;
+    static uint64_t _totalPackets;
+
+    static uint64_t _usleepTime;
+    static uint64_t _usleepCalls;
+
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
@@ -33,7 +41,8 @@ private:
     int handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);
     int deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
     
-    unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE];
+    unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE]; // used by environment sending code
+    VoxelPacketData _packetData;
 };
 
 #endif // __voxel_server__VoxelSendThread__

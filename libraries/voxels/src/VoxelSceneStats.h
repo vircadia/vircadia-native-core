@@ -32,6 +32,7 @@ public:
     
     /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
+    bool getIsSceneStarted() const { return _isStarted; }
 
     /// Call when the computation of a scene is completed. Finalizes internal structures
     void sceneCompleted();
@@ -145,7 +146,22 @@ public:
     unsigned long getTotalVoxels() const { return _totalVoxels; }
     unsigned long getTotalInternal() const { return _totalInternal; }
     unsigned long getTotalLeaves() const { return _totalLeaves; }
-    
+    unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
+    unsigned long getElapsedTime() const { return _elapsed; }
+
+    unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
+    unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
+
+    // Used in client implementations to track individual voxel packets
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket);
+
+    unsigned int getIncomingPackets() const { return _incomingPacket; }
+    unsigned long getIncomingBytes() const { return _incomingBytes; } 
+    unsigned long getIncomingWastedBytes() const { return _incomingWastedBytes; }
+    unsigned int getIncomingOutOfOrder() const { return _incomingOutOfOrder; }
+    unsigned int getIncomingLikelyLost() const { return _incomingLikelyLost; }
+    float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
+
 private:
 
     void copyFromOther(const VoxelSceneStats& other);
@@ -155,15 +171,17 @@ private:
     int _statsMessageLength;
 
     // scene timing data in usecs
-    bool     _isStarted;
+    bool _isStarted;
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;
+    uint64_t _lastFullElapsed;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerVoxelAverage;
 
     uint64_t _totalEncodeTime;
+    uint64_t _lastFullTotalEncodeTime;
     uint64_t _encodeStart;
     
     // scene voxel related data
@@ -227,6 +245,15 @@ private:
     unsigned int  _packets;
     unsigned long _bytes;
     unsigned int  _passes;
+    
+    // incoming packets stats
+    unsigned int _incomingPacket;
+    unsigned long _incomingBytes;
+    unsigned long _incomingWastedBytes;
+    unsigned int _incomingLastSequence;
+    unsigned int _incomingOutOfOrder;
+    unsigned int _incomingLikelyLost;
+    SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items
     bool _isMoving;
