@@ -14,9 +14,6 @@
 #include "InterfaceConfig.h"
 #include "OculusManager.h"
 
-using namespace OVR;
-using namespace OVR::Util::Render;
-
 ProgramObject OculusManager::_program;
 int OculusManager::_textureLocation;
 int OculusManager::_lensCenterLocation;
@@ -28,6 +25,9 @@ bool OculusManager::_isConnected = false;
 float OculusManager::_yawOffset = 0;
 
 #ifdef HAVE_LIBOVR
+using namespace OVR;
+using namespace OVR::Util::Render;
+
 Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
