@@ -50,9 +50,10 @@ void SixenseManager::update(float deltaTime) {
         //  Compute current velocity from position change
         palm.setVelocity((position - palm.getPosition()) / deltaTime);
         
-        //  Read controller buttons into the hand 
+        //  Read controller buttons and joystick into the hand
         palm.setControllerButtons(data.buttons);
         palm.setTrigger(data.trigger);
+        palm.setJoystick(data.joystick_x, data.joystick_y);
         
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)

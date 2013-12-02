@@ -1487,6 +1487,19 @@ void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
 
+void Application::removeVoxel(glm::vec3 position,
+                              float scale) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxel);
+    
+    // delete it locally to see the effect immediately (and in case no voxel server is present)
+    _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+}
+
 void Application::makeVoxel(glm::vec3 position,
                             float scale,
                             unsigned char red,

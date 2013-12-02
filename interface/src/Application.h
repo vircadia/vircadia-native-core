@@ -123,6 +123,9 @@ public:
                    unsigned char green,
                    unsigned char blue,
                    bool isDestructive);
+    
+    void removeVoxel(glm::vec3 position, float scale);
+        
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
     QGLWidget* getGLWidget() { return _glWidget; }

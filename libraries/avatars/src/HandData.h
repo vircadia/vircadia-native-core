@@ -163,6 +163,9 @@ public:
 
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() { return _trigger; }
+    void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
+    float getJoystickX() { return _joystickX; }
+    float getJoystickY() { return _joystickY; }
 
 private:
     std::vector<FingerData> _fingers;
@@ -170,7 +173,8 @@ private:
     glm::vec3 _rawNormal;
     glm::vec3 _velocity;
     int _controllerButtons;
-    float _trigger; 
+    float _trigger;
+    float _joystickX, _joystickY;
     
     bool      _isActive;             // This has current valid data
     int       _leapID;               // the Leap's serial id for this tracked object
