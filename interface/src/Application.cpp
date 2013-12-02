@@ -1487,6 +1487,44 @@ void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
 
+void Application::createVoxel(glm::vec3 position,
+                              float scale,
+                              glm::vec3 color,
+                              bool isDestructive) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    voxel.red = color.x;
+    voxel.green = color.y;
+    voxel.blue = color.z;
+    PACKET_TYPE message = isDestructive ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL;
+    _voxelEditSender.sendVoxelEditMessage(message, voxel);
+    
+    // create the voxel locally so it appears immediately
+    
+    _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
+                        voxel.red, voxel.green, voxel.blue,
+                        isDestructive);
+    
+    // Implement voxel fade effect
+    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
+    const float VOXEL_BOUNDS_ADJUST = 0.01f;
+    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
+    fade.voxelDetails.x = voxel.x - slightlyBigger;
+    fade.voxelDetails.y = voxel.y - slightlyBigger;
+    fade.voxelDetails.z = voxel.z - slightlyBigger;
+    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
+    _voxelFades.push_back(fade);
+    
+    // inject a sound effect
+    injectVoxelAddedSoundEffect();
+    
+    // remember the position for drag detection
+    _justEditedVoxel = true;
+}
+
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -4097,6 +4135,8 @@ bool Application::maybeEditVoxelUnderCursor() {
             _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
+            printf("create voxel from mouse %.4f, %.4f, %.4f, scale %.6f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
                                 _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue,
                                 Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));

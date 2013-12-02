@@ -82,6 +82,8 @@ private:
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
+    glm::vec3 _lastFingerVoxel;
+    
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);

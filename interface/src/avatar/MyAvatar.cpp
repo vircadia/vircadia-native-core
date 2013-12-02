@@ -849,7 +849,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         }
     }
     //  Add thrust from hand controllers
-    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD * 100.f;
+    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD / 5.f;
     for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
         PalmData& palm = getHand().getPalms()[i];
         if (palm.isActive()) {
@@ -858,7 +858,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
                 if (finger.isActive()) {
                 }
                 glm::vec3 thrustDirection = glm::normalize(finger.getTipPosition() - palm.getPosition());
-                _thrust += thrustDirection * _scale * THRUST_MAG_HAND_JETS * palm.getTrigger() * _thrustMultiplier * deltaTime;
+                _thrust += thrustDirection * _scale * THRUST_MAG_HAND_JETS * powf(palm.getTrigger() * 10.f, 2.f) * _thrustMultiplier * deltaTime;
             }
         }
     }

@@ -61,6 +61,24 @@ void Hand::simulate(float deltaTime, bool isMine) {
         
         updateRaveGloveParticles(deltaTime);
     }
+    
+    //  Create a voxel at fingertip if controller button is pressed
+    const float FINGERTIP_VOXEL_SIZE = 0.0125;
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        if (palm.isActive()) {
+            if (palm.getControllerButtons() & BUTTON_1) {
+                FingerData& finger = palm.getFingers()[0];
+                glm::vec3 newVoxelPosition = finger.getTipPosition();
+                if (glm::length(newVoxelPosition - _lastFingerVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
+                    QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+                    glm::vec3 newVoxelColor(paintColor.red(), paintColor.green(), paintColor.blue());
+                    Application::getInstance()->createVoxel(newVoxelPosition, FINGERTIP_VOXEL_SIZE, newVoxelColor, true);
+                    _lastFingerVoxel = newVoxelPosition;
+                }
+            }
+        }
+    }
 }
 
 void Hand::calculateGeometry() {
@@ -166,7 +184,6 @@ void Hand::render() {
             if (palm.getTrigger() > 0.f) {
                 FingerData& finger = palm.getFingers()[0];
                 if (finger.isActive() && (palm.getTrigger() > 0.f)) {
-                    printf("trigger = %.2f\n", palm.getTrigger());
                     glm::vec3 palmPosition = palm.getPosition();
                     glm::vec3 pointerPosition = palmPosition +
                                                 glm::normalize(finger.getTipPosition() - palmPosition) *
@@ -257,7 +274,7 @@ void Hand::renderLeapHands() {
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     glPushMatrix();
     // Draw the leap balls
