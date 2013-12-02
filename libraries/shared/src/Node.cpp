@@ -19,30 +19,25 @@
 #include "Node.h"
 #include "NodeTypes.h"
 #include "SharedUtil.h"
-#include "UDPSocket.h"
 
 #include <QtCore/QDebug>
 
-Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket) :
+Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
     _type(type),
     _uuid(uuid),
     _wakeMicrostamp(usecTimestampNow()),
     _lastHeardMicrostamp(usecTimestampNow()),
+    _publicSocket(publicSocket),
+    _localSocket(localSocket),
     _activeSocket(NULL),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true)
 {
-    setPublicSocket(publicSocket);
-    setLocalSocket(localSocket);
-    
     pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
-    delete _publicSocket;
-    delete _localSocket;
-    
     if (_linkedData) {
         _linkedData->deleteOrDeleteLater();
     }
@@ -86,47 +81,32 @@ const char* Node::getTypeName() const {
 	}
 }
 
-void Node::setPublicSocket(sockaddr* publicSocket) {
-    if (_activeSocket == _publicSocket) {
+void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
+    if (_activeSocket == &_publicSocket) {
         // if the active socket was the public socket then reset it to NULL
         _activeSocket = NULL;
     }
     
-    if (publicSocket) {
-        _publicSocket = new sockaddr(*publicSocket);
-    } else {
-        _publicSocket = NULL;
-    }
+    _publicSocket = publicSocket;
 }
 
-void Node::setLocalSocket(sockaddr* localSocket) {
-    if (_activeSocket == _localSocket) {
+void Node::setLocalSocket(const HifiSockAddr& localSocket) {
+    if (_activeSocket == &_localSocket) {
         // if the active socket was the local socket then reset it to NULL
         _activeSocket = NULL;
     }
     
-    if (localSocket) {
-        _localSocket = new sockaddr(*localSocket);
-    } else {
-        _localSocket = NULL;
-    }
+    _localSocket = localSocket;
 }
 
 void Node::activateLocalSocket() {
     qDebug() << "Activating local socket for node" << *this << "\n";
-    _activeSocket = _localSocket;
+    _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
     qDebug() << "Activating public socket for node" << *this << "\n";
-    _activeSocket = _publicSocket;
-}
-
-bool Node::matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType) {
-    // checks if two node objects are the same node (same type + local + public address)
-    return _type == otherNodeType
-        && socketMatch(_publicSocket, otherPublicSocket)
-        && socketMatch(_localSocket, otherLocalSocket);
+    _activeSocket = &_publicSocket;
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
@@ -154,15 +134,8 @@ float Node::getAverageKilobitsPerSecond() {
 }
 
 QDebug operator<<(QDebug debug, const Node &node) {
-    char publicAddressBuffer[16] = {'\0'};
-    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node.getPublicSocket());
-    
-    char localAddressBuffer[16] = {'\0'};
-    unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.getLocalSocket());
-    
     debug.nospace() << node.getTypeName() << " (" << node.getType() << ")";
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
-    debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
-    debug.nospace() << " / " << localAddressBuffer << ":" << localAddressPort;
+    debug.nospace() << node.getLocalSocket() << "/" << node.getPublicSocket();
     return debug.nospace();
 }

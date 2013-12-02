@@ -841,7 +841,7 @@ int main(int argc, const char * argv[])
     pthread_t animateVoxelThread;
     pthread_create(&animateVoxelThread, NULL, animateVoxels, NULL);
 
-    sockaddr nodePublicAddress;
+    HifiSockAddr nodeSockAddr;
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
@@ -858,15 +858,17 @@ int main(int argc, const char * argv[])
         }
         
         // Nodes sending messages to us...
-        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
+        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                                    nodeSockAddr.getAddressPointer(),
+                                                                    nodeSockAddr.getPortPointer())) &&
             packetVersionMatch(packetData)) {
             
             if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
                 if (::jurisdictionListener) {
-                    ::jurisdictionListener->queueReceivedPacket(nodePublicAddress, packetData, receivedBytes);
+                    ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);
                 }
             }
-            NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
+            NodeList::getInstance()->processNodeData(nodeSockAddr, packetData, receivedBytes);
         }
     }
     

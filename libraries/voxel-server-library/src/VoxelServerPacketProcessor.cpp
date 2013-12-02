@@ -39,7 +39,8 @@ void VoxelServerPacketProcessor::resetStats() {
 }
 
 
-void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+void VoxelServerPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr,
+                                               unsigned char* packetData, ssize_t packetLength) {
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
     
@@ -135,7 +136,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* senderNode = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         QUuid& nodeUUID = DEFAULT_NODE_ID_REF;
         if (senderNode) {
             senderNode->setLastHeardMicrostamp(usecTimestampNow());
@@ -170,7 +171,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         _myServer->getServerTree().unlock();
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        Node* node = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (node) {
             node->setLastHeardMicrostamp(usecTimestampNow());
         }
@@ -199,7 +200,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        Node* node = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (node) {
             node->setLastHeardMicrostamp(usecTimestampNow());
         }

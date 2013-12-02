@@ -618,7 +618,7 @@ void VoxelServer::run() {
         qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
     }
 
-    sockaddr senderAddress;
+    HifiSockAddr senderSockAddr;
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t packetLength;
@@ -668,7 +668,9 @@ void VoxelServer::run() {
         // ping our inactive nodes to punch holes with them
         nodeList->possiblyPingInactiveNodes();
         
-        if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
+        if ((packetLength = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                                   senderSockAddr.getAddressPointer(),
+                                                                   senderSockAddr.getPortPointer())) &&
             packetVersionMatch(packetData)) {
 
             int numBytesPacketHeader = numBytesForPacketHeader(packetData);
@@ -682,7 +684,7 @@ void VoxelServer::run() {
                 Node* node = nodeList->nodeWithUUID(nodeUUID);
                 
                 if (node) {
-                    nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
+                    nodeList->updateNodeWithData(node, senderSockAddr, packetData, packetLength);
                     if (!node->getActiveSocket()) {
                         // we don't have an active socket for this node, but they're talking to us
                         // this means they've heard from us and can reply, let's assume public is active
@@ -695,7 +697,7 @@ void VoxelServer::run() {
                 }
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (_jurisdictionSender) {
-                    _jurisdictionSender->queueReceivedPacket(senderAddress, packetData, packetLength);
+                    _jurisdictionSender->queueReceivedPacket(senderSockAddr, packetData, packetLength);
                 }
             } else if (_voxelServerPacketProcessor &&
                        (packetData[0] == PACKET_TYPE_SET_VOXEL
@@ -730,10 +732,10 @@ void VoxelServer::run() {
                     }
                 }
     
-                _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
+                _voxelServerPacketProcessor->queueReceivedPacket(senderSockAddr, packetData, packetLength);
             } else {
                 // let processNodeData handle it.
-                NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
+                NodeList::getInstance()->processNodeData(senderSockAddr, packetData, packetLength);
             }
         }
     }

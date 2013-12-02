@@ -20,11 +20,13 @@ const char STAT_TYPE_TIMER = 't';
 const char STAT_TYPE_COUNTER = 'c';
 const char STAT_TYPE_GAUGE = 'g';
 
+class HifiSockAddr;
+
 /// Handles custom message handling and sending of stats/logs to Logstash instance
 class Logging {
 public:
     /// \return the socket used to send stats to logstash
-    static sockaddr* socket();
+    static const HifiSockAddr& socket();
     
     /// checks if this target should send stats to logstash, given its current environment
     /// \return true if the caller should send stats to logstash
@@ -44,7 +46,7 @@ public:
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 private:
-    static sockaddr_in logstashSocket;
+    static HifiSockAddr logstashSocket;
     static char* targetName;
 };
 

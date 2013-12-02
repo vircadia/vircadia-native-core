@@ -46,7 +46,7 @@ void attachAvatarDataToNode(Node* newNode) {
 //    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
-void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, sockaddr* receiverAddress) {
+void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, const HifiSockAddr& receiverSockAddr) {
     static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
     static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
     unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
@@ -68,7 +68,8 @@ void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, sockaddr
             } else {
                 packetsSent++;
                 //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-                nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, currentBufferPosition - broadcastPacket,
+                                                        receiverSockAddr.getAddress(), receiverSockAddr.getPort());
                 
                 // reset the packet
                 currentBufferPosition = broadcastPacket + numHeaderBytes;
@@ -83,7 +84,8 @@ void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, sockaddr
     }
     packetsSent++;
     //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-    nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+    nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, currentBufferPosition - broadcastPacket,
+                                            receiverSockAddr.getAddress(), receiverSockAddr.getPort());
 }
 
 AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
@@ -103,7 +105,7 @@ void AvatarMixer::run() {
     
     nodeList->startSilentNodeRemovalThread();
     
-    sockaddr nodeAddress = {};
+    HifiSockAddr nodeSockAddr;
     ssize_t receivedBytes = 0;
     
     unsigned char packetData[MAX_PACKET_SIZE];
@@ -127,7 +129,8 @@ void AvatarMixer::run() {
         
         nodeList->possiblyPingInactiveNodes();
         
-        if (nodeList->getNodeSocket()->receive(&nodeAddress, packetData, &receivedBytes) &&
+        if (nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                   nodeSockAddr.getAddressPointer(), nodeSockAddr.getPortPointer()) &&
             packetVersionMatch(packetData)) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
@@ -139,12 +142,12 @@ void AvatarMixer::run() {
                     
                     if (avatarNode) {
                         // parse positional data from an node
-                        nodeList->updateNodeWithData(avatarNode, &nodeAddress, packetData, receivedBytes);
+                        nodeList->updateNodeWithData(avatarNode, nodeSockAddr, packetData, receivedBytes);
                     } else {
                         break;
                     }
                 case PACKET_TYPE_INJECT_AUDIO:
-                    broadcastAvatarData(nodeList, nodeUUID, &nodeAddress);
+                    broadcastAvatarData(nodeList, nodeUUID, nodeSockAddr);
                     break;
                 case PACKET_TYPE_KILL_NODE:
                 case PACKET_TYPE_AVATAR_URLS:
@@ -154,14 +157,16 @@ void AvatarMixer::run() {
                     // let everyone else know about the update
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                         if (node->getActiveSocket() && node->getUUID() != nodeUUID) {
-                            nodeList->getNodeSocket()->send(node->getActiveSocket(), packetData, receivedBytes);
+                            nodeList->getNodeSocket().writeDatagram((char*) packetData, receivedBytes,
+                                                                    node->getActiveSocket()->getAddress(),
+                                                                    node->getActiveSocket()->getPort());
                         }
                     }
                     // let node kills fall through to default behavior
                     
                 default:
                     // hand this off to the NodeList
-                    nodeList->processNodeData(&nodeAddress, packetData, receivedBytes);
+                    nodeList->processNodeData(nodeSockAddr, packetData, receivedBytes);
                     break;
             }
         }

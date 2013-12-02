@@ -44,7 +44,7 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
 }
 
 
-void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+void PacketSender::queuePacketForSending(const HifiSockAddr& address, unsigned char* packetData, ssize_t packetLength) {
     NetworkPacket packet(address, packetData, packetLength);
     lock();
     _packets.push_back(packet);
@@ -334,9 +334,9 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
-
-        nodeSocket->send(&temporary.getAddress(), temporary.getData(), temporary.getLength());
+        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) temporary.getData(), temporary.getLength(),
+                                                               temporary.getSockAddr().getAddress(),
+                                                               temporary.getSockAddr().getPort());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;

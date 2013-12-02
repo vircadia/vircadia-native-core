@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "VoxelPacketProcessor.h"
 
-void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "VoxelPacketProcessor::processPacket()");
                             
@@ -50,10 +50,10 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
     } // fall through to piggyback message
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
+        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderAddress);
+        if (voxelServer && *voxelServer->getActiveSocket() == senderAddress) {
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                app->_environment.parseData(&senderAddress, packetData, messageLength);
+                app->_environment.parseData(senderAddress, packetData, messageLength);
             } else {
                 app->_voxels.setDataSourceUUID(voxelServer->getUUID());
                 app->_voxels.parseData(packetData, messageLength);

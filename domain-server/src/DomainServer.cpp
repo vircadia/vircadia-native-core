@@ -30,14 +30,11 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
     domainServerInstance = domainServer;
 }
 
-QJsonObject jsonForSocket(sockaddr* socket) {
+QJsonObject jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
     
-    if (socket->sa_family == AF_INET) {
-        sockaddr_in* socketIPv4 = (sockaddr_in*) socket;
-        socketJSON["ip"] = QString(inet_ntoa(socketIPv4->sin_addr));
-        socketJSON["port"] = (int) ntohs(socketIPv4->sin_port);
-    }
+    socketJSON["ip"] = socket.getAddress().toString();
+    socketJSON["port"] = ntohs(socket.getPort());
     
     return socketJSON;
 }
@@ -288,8 +285,8 @@ unsigned char* DomainServer::addNodeToBroadcastPacket(unsigned char* currentPosi
     memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
     currentPosition += rfcUUID.size();
     
-    currentPosition += packSocket(currentPosition, nodeToAdd->getPublicSocket());
-    currentPosition += packSocket(currentPosition, nodeToAdd->getLocalSocket());
+    currentPosition += HifiSockAddr::packSockAddr(currentPosition, nodeToAdd->getPublicSocket());
+    currentPosition += HifiSockAddr::packSockAddr(currentPosition, nodeToAdd->getLocalSocket());
     
     // return the new unsigned char * for broadcast packet
     return currentPosition;
@@ -506,15 +503,15 @@ void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
     _assignmentQueueMutex.unlock();
 }
 
-bool DomainServer::checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket,
-                                                      sockaddr* nodeLocalSocket,
+bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
+                                                      const HifiSockAddr& nodeLocalSocket,
                                                       const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData()
-            && socketMatch(node->getPublicSocket(), nodePublicSocket)
-            && socketMatch(node->getLocalSocket(), nodeLocalSocket)
+            && nodePublicSocket == node->getPublicSocket()
+            && nodeLocalSocket == node->getLocalSocket()
             && node->getUUID() == checkInUUID) {
             // this is a matching existing node if the public socket, local socket, and UUID match
             return true;
@@ -588,9 +585,11 @@ int DomainServer::run() {
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
     
-    sockaddr_in senderAddress, nodePublicAddress, nodeLocalAddress;
-    nodePublicAddress.sin_family = AF_INET;
-    nodeLocalAddress.sin_family = AF_INET;
+    QHostAddress senderAddress;
+    quint16 senderPort;
+    HifiSockAddr nodePublicAddress, nodeLocalAddress;
+    
+
     
     nodeList->startSilentNodeRemovalThread();
     
@@ -614,7 +613,7 @@ int DomainServer::run() {
     gettimeofday(&startTime, NULL);
     
     while (true) {
-        while (nodeList->getNodeSocket()->receive((sockaddr *)&senderAddress, packetData, &receivedBytes) &&
+        while (nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE, &senderAddress, &senderPort) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
                 // this is an RFD or domain list request packet, and there is a version match
@@ -627,23 +626,23 @@ int DomainServer::run() {
                 QUuid nodeUUID = QUuid::fromRfc4122(QByteArray(((char*) packetData + packetIndex), NUM_BYTES_RFC4122_UUID));
                 packetIndex += NUM_BYTES_RFC4122_UUID;
                 
-                int numBytesPrivateSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodePublicAddress);
+                int numBytesPrivateSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodePublicAddress);
                 packetIndex += numBytesPrivateSocket;
                 
-                if (nodePublicAddress.sin_addr.s_addr == 0) {
+                if (nodePublicAddress.getAddress().isNull() == 0) {
                     // this node wants to use us its STUN server
                     // so set the node public address to whatever we perceive the public address to be
                     
-                    nodePublicAddress = senderAddress;
+                    nodePublicAddress.setAddress(senderAddress);
                     
                     // if the sender is on our box then leave its public address to 0 so that
                     // other users attempt to reach it on the same address they have for the domain-server
-                    if (senderAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                        nodePublicAddress.sin_addr.s_addr = 0;
+                    if (senderAddress.isLoopback()) {
+                        nodePublicAddress.setAddress(QHostAddress());
                     }
                 }
                 
-                int numBytesPublicSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodeLocalAddress);
+                int numBytesPublicSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodeLocalAddress);
                 packetIndex += numBytesPublicSocket;
                 
                 const char STATICALLY_ASSIGNED_NODES[3] = {
@@ -656,14 +655,14 @@ int DomainServer::run() {
                 
                 if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL
                     || ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
-                        || checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
-                                                              (sockaddr*) &nodeLocalAddress,
+                        || checkInWithUUIDMatchesExistingNode(nodePublicAddress,
+                                                              nodeLocalAddress,
                                                               nodeUUID)))
                 {
                     Node* checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                   nodeType,
-                                                                  (sockaddr*) &nodePublicAddress,
-                                                                  (sockaddr*) &nodeLocalAddress);
+                                                                  nodePublicAddress,
+                                                                  nodeLocalAddress);
                     
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
@@ -691,7 +690,7 @@ int DomainServer::run() {
                     if (numInterestTypes > 0) {
                         // if the node has sent no types of interest, assume they want nothing but their own ID back
                         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                            if (!node->matches((sockaddr*) &nodePublicAddress, (sockaddr*) &nodeLocalAddress, nodeType) &&
+                            if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
                                 
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
@@ -708,9 +707,9 @@ int DomainServer::run() {
                     checkInNode->setLastHeardMicrostamp(timeNow);
                     
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send((sockaddr*)&senderAddress,
-                                                    broadcastPacket,
-                                                    (currentBufferPos - startPointer) + numHeaderBytes);
+                    nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket,
+                                                            (currentBufferPos - startPointer) + numHeaderBytes,
+                                                            senderAddress, senderPort);
                 }
             } else if (packetData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
                 
@@ -732,9 +731,8 @@ int DomainServer::run() {
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);
         
-                        nodeList->getNodeSocket()->send((sockaddr*) &senderAddress,
-                                                        broadcastPacket,
-                                                        numHeaderBytes + numAssignmentBytes);
+                        nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, numHeaderBytes + numAssignmentBytes,
+                                                                senderAddress, senderPort);
                         
                         if (assignmentToDeploy->getNumberOfInstances() == 0) {
                             // there are no more instances of this script to send out, delete it
@@ -742,43 +740,6 @@ int DomainServer::run() {
                         }
                     }
                     
-                }
-            } else if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
-                // this is a create assignment likely recieved from a server needed more clients to help with load
-                
-                // unpack it
-                Assignment* createAssignment = new Assignment(packetData, receivedBytes);
-                
-                qDebug() << "Received a create assignment -" << *createAssignment << "\n";
-                
-                // make sure we have a matching node with the UUID packed with the assignment
-                // if the node has sent no types of interest, assume they want nothing but their own ID back
-                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                    if (node->getLinkedData()
-                        && socketMatch((sockaddr*) &senderAddress, node->getPublicSocket())
-                        && ((Assignment*) node->getLinkedData())->getUUID() == createAssignment->getUUID()) {
-                        
-                        // give the create assignment a new UUID
-                        createAssignment->resetUUID();
-                        
-                        // add the assignment at the back of the queue
-                        _assignmentQueueMutex.lock();
-                        _assignmentQueue.push_back(createAssignment);
-                        _assignmentQueueMutex.unlock();
-                        
-                        // find the first available spot in the static assignments and put this assignment there
-                        for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-                            if (_staticAssignments[i].getUUID().isNull()) {
-                                _staticAssignments[i] = *createAssignment;
-                                
-                                // we've stuck the assignment in, break out
-                                break;
-                            }
-                        }
-                        
-                        // we found the matching node that asked for create assignment, break out
-                        break;
-                    }
                 }
             }
         }

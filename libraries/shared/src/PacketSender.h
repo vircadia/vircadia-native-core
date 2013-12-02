@@ -38,11 +38,11 @@ public:
     PacketSender(PacketSenderNotify* notify = NULL, int packetsPerSecond = DEFAULT_PACKETS_PER_SECOND);
 
     /// Add packet to outbound queue.
-    /// \param sockaddr& address the destination address
+    /// \param HifiSockAddr& address the destination address
     /// \param packetData pointer to data
     /// \param ssize_t packetLength size of data
     /// \thread any thread, typically the application thread
-    void queuePacketForSending(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+    void queuePacketForSending(const HifiSockAddr& address, unsigned char*  packetData, ssize_t packetLength);
     
     void setPacketsPerSecond(int packetsPerSecond) 
         { _packetsPerSecond = std::max(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond); }

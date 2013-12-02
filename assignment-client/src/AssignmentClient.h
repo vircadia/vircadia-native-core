@@ -16,7 +16,7 @@ class AssignmentClient : public QCoreApplication {
 public:
     AssignmentClient(int &argc, char **argv,
                      Assignment::Type requestAssignmentType = Assignment::AllTypes,
-                     const sockaddr_in& customAssignmentServerSocket = sockaddr_in(),
+                     const HifiSockAddr& customAssignmentServerSocket = HifiSockAddr(),
                      const char* requestAssignmentPool = NULL);
 private slots:
     void sendAssignmentRequest();

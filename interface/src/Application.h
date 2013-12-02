@@ -284,7 +284,6 @@ private:
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -464,7 +463,7 @@ private:
 
     PieMenu _pieMenu;
     
-    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;

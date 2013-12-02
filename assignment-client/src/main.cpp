@@ -28,7 +28,7 @@
 const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
 
 pid_t* childForks = NULL;
-sockaddr_in customAssignmentSocket = {};
+HifiSockAddr customAssignmentSocket;
 int numForks = 0;
 Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
 const char* assignmentPool = NULL;
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
             customAssignmentServerHostname = LOCAL_ASSIGNMENT_SERVER_HOSTNAME;
         }
         
-        ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
+        ::customAssignmentSocket = HifiSockAddr(customAssignmentServerHostname, assignmentServerPort);
     }
     
     const char ASSIGNMENT_TYPE_OVVERIDE_OPTION[] = "-t";

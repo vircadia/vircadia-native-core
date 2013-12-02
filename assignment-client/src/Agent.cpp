@@ -51,8 +51,6 @@ void Agent::run() {
     const char AGENT_NODE_TYPES_OF_INTEREST[1] = { NODE_TYPE_VOXEL_SERVER };
     
     nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
-
-    nodeList->getNodeSocket()->setBlocking(false);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
@@ -90,11 +88,6 @@ void Agent::run() {
     // let the VoxelPacketSender know how frequently we plan to call it
     voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     
-    // hook in a constructor for audio injectorss
-    AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-    QScriptValue audioInjectorValue = engine.newQObject(&scriptedAudioInjector);
-    engine.globalObject().setProperty("AudioInjector", audioInjectorValue);
-    
     qDebug() << "Downloaded script:" << scriptContents << "\n";
     QScriptValue result = engine.evaluate(scriptContents);
     qDebug() << "Evaluated script.\n";
@@ -109,7 +102,8 @@ void Agent::run() {
     
     timeval lastDomainServerCheckIn = {};
     
-    sockaddr_in senderAddress;
+    
+    HifiSockAddr senderSockAddr;
     unsigned char receivedData[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
     
@@ -153,14 +147,17 @@ void Agent::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
         
-        while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
-               && packetVersionMatch(receivedData)) {
+        while ((receivedBytes = NodeList::getInstance()->getNodeSocket().readDatagram((char*) receivedBytes,
+                                                                                      MAX_PACKET_SIZE,
+                                                                                      senderSockAddr.getAddressPointer(),
+                                                                                      senderSockAddr.getPortPointer()))
+                && packetVersionMatch(receivedData)) {
             if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
-                voxelScripter.getJurisdictionListener()->queueReceivedPacket((sockaddr&) senderAddress,
+                voxelScripter.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                              receivedData,
                                                                              receivedBytes);
             } else {
-                NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedData, receivedBytes);
             }
         }
     }

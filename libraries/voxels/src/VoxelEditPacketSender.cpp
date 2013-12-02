@@ -123,7 +123,7 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
         if (node->getType() == NODE_TYPE_VOXEL_SERVER &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
-                sockaddr* nodeAddress = node->getActiveSocket();
+                const HifiSockAddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
                 
                 // debugging output...

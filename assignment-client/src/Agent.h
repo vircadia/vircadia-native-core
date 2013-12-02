@@ -15,7 +15,6 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <AudioInjector.h>
 #include <Assignment.h>
 
 class Agent : public Assignment {
@@ -33,7 +32,6 @@ private:
     static QScriptValue AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine);
     
     bool volatile _shouldStop;
-    std::vector<AudioInjector*> _audioInjectors;
 };
 
 #endif /* defined(__hifi__Agent__) */

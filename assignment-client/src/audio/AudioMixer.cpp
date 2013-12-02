@@ -235,10 +235,7 @@ void AudioMixer::run() {
     
     unsigned char packetData[MAX_PACKET_SIZE] = {};
     
-    sockaddr* nodeAddress = new sockaddr;
-    
-    // make sure our node socket is non-blocking
-    nodeList->getNodeSocket()->setBlocking(false);
+    HifiSockAddr nodeSockAddr;
     
     int nextFrame = 0;
     timeval startTime;
@@ -301,7 +298,9 @@ void AudioMixer::run() {
                 prepareMixForListeningNode(&(*node));
                 
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-                nodeList->getNodeSocket()->send(node->getActiveSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
+                                                        node->getActiveSocket()->getAddress(),
+                                                        node->getActiveSocket()->getPort());
             }
         }
         
@@ -313,7 +312,8 @@ void AudioMixer::run() {
         }
         
         // pull any new audio data from nodes off of the network stack
-        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
+        while ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                      nodeSockAddr.getAddressPointer(), nodeSockAddr.getPortPointer())) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
                 || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
@@ -325,7 +325,7 @@ void AudioMixer::run() {
                 Node* matchingNode = nodeList->nodeWithUUID(nodeUUID);
                 
                 if (matchingNode) {
-                    nodeList->updateNodeWithData(matchingNode, nodeAddress, packetData, receivedBytes);
+                    nodeList->updateNodeWithData(matchingNode, nodeSockAddr, packetData, receivedBytes);
                     
                     if (!matchingNode->getActiveSocket()) {
                         // we don't have an active socket for this node, but they're talking to us
@@ -335,7 +335,7 @@ void AudioMixer::run() {
                 }
             } else {
                 // let processNodeData handle it.
-                nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
+                nodeList->processNodeData(nodeSockAddr, packetData, receivedBytes);
             }
         }
         

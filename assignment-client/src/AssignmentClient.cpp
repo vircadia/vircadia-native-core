@@ -23,7 +23,7 @@ const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
 AssignmentClient::AssignmentClient(int &argc, char **argv,
                                    Assignment::Type requestAssignmentType,
-                                   const sockaddr_in& customAssignmentServerSocket,
+                                   const HifiSockAddr& customAssignmentServerSocket,
                                    const char* requestAssignmentPool) :
     QCoreApplication(argc, argv),
     _requestAssignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool)
@@ -35,8 +35,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv,
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
     
     // set the custom assignment socket if we have it
-    if (customAssignmentServerSocket.sin_addr.s_addr != 0) {
-        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentServerSocket);
+    if (!customAssignmentServerSocket.isNull()) {
+        nodeList->setAssignmentServerSocket(customAssignmentServerSocket);
     }
     
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required

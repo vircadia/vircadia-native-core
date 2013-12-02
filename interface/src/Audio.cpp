@@ -19,7 +19,6 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
-#include <UDPSocket.h>
 #include <QSvgRenderer>
 
 #include "Application.h"
@@ -143,9 +142,9 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
                 memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
                 
-                nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
-                                                dataPacket,
-                                                BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+                nodeList->getNodeSocket().writeDatagram((char*) dataPacket, BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
+                                                        audioMixer->getActiveSocket()->getAddress(),
+                                                        audioMixer->getActiveSocket()->getPort());
                 
                 interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
                                                                                                 + leadingBytes);

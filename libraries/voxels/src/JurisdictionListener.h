@@ -45,7 +45,7 @@ protected:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread "this" individual processing thread
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
 private:
     NodeToJurisdictionMap _jurisdictions;

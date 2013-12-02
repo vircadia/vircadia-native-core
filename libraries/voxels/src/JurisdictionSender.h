@@ -32,7 +32,7 @@ public:
     virtual bool process();
 
 protected:
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { pthread_mutex_lock(&_requestingNodeMutex); }

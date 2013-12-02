@@ -103,22 +103,28 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             statsMessageLength += nodeData->getPacketLength();
 
             // actually send it
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
         } else {
             // not enough room in the packet, send two packets
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             trueBytesSent += statsMessageLength;
             truePacketsSent++;
             packetsSent++;
 
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                            nodeData->getPacket(), nodeData->getPacketLength());
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
         }
         nodeData->stats.markAsSent();
     } else {
         // just send the voxel packet
-        NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                                       nodeData->getPacket(), nodeData->getPacketLength());
+        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                               node->getActiveSocket()->getAddress(),
+                                                               node->getActiveSocket()->getPort());
     }
     // remember to track our stats
     nodeData->stats.packetSent(nodeData->getPacketLength());
@@ -335,7 +341,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 envPacketLength += _myServer->getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
             }
             
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), _tempOutputBuffer, envPacketLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) _tempOutputBuffer, envPacketLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             trueBytesSent += envPacketLength;
             truePacketsSent++;
             packetsSentThisInterval++;

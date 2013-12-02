@@ -48,7 +48,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (nodeList->getNodeActiveSocketOrPing(&(*node)) && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            sockaddr* nodeAddress = node->getActiveSocket();
+            const HifiSockAddr* nodeAddress = node->getActiveSocket();
             PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
             nodeCount++;
         }
@@ -64,9 +64,9 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     return isStillRunning();
 }
 
-void JurisdictionListener::processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
+void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
             JurisdictionMap map;
