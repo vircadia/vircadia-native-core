@@ -1487,18 +1487,20 @@ void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
 
-void Application::createVoxel(glm::vec3 position,
-                              float scale,
-                              glm::vec3 color,
-                              bool isDestructive) {
+void Application::makeVoxel(glm::vec3 position,
+                            float scale,
+                            unsigned char red,
+                            unsigned char green,
+                            unsigned char blue,
+                            bool isDestructive) {
     VoxelDetail voxel;
     voxel.x = position.x / TREE_SCALE;
     voxel.y = position.y / TREE_SCALE;
     voxel.z = position.z / TREE_SCALE;
     voxel.s = scale / TREE_SCALE;
-    voxel.red = color.x;
-    voxel.green = color.y;
-    voxel.blue = color.z;
+    voxel.red = red;
+    voxel.green = green;
+    voxel.blue = blue;
     PACKET_TYPE message = isDestructive ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL;
     _voxelEditSender.sendVoxelEditMessage(message, voxel);
     
@@ -1518,11 +1520,6 @@ void Application::createVoxel(glm::vec3 position,
     fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
     _voxelFades.push_back(fade);
     
-    // inject a sound effect
-    injectVoxelAddedSoundEffect();
-    
-    // remember the position for drag detection
-    _justEditedVoxel = true;
 }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
@@ -4129,31 +4126,18 @@ bool Application::maybeEditVoxelUnderCursor() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
         || Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode)) {
         if (_mouseVoxel.s != 0) {
-            PACKET_TYPE message = Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel)
-                ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                : PACKET_TYPE_SET_VOXEL;
-            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
-            
-            // create the voxel locally so it appears immediately
-            printf("create voxel from mouse %.4f, %.4f, %.4f, scale %.6f \n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
-            _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                                _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue,
-                                Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
-
-            // Implement voxel fade effect
-            VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-            const float VOXEL_BOUNDS_ADJUST = 0.01f;
-            float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
-            fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
-            fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
-            fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
-            fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
-            _voxelFades.push_back(fade);
-            
+            makeVoxel(glm::vec3(_mouseVoxel.x * TREE_SCALE,
+                      _mouseVoxel.y * TREE_SCALE,
+                      _mouseVoxel.z * TREE_SCALE),
+                      _mouseVoxel.s * TREE_SCALE,
+                      _mouseVoxel.red,
+                      _mouseVoxel.green,
+                      _mouseVoxel.blue,
+                      Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
+ 
             // inject a sound effect
             injectVoxelAddedSoundEffect();
-            
+           
             // remember the position for drag detection
             _justEditedVoxel = true;
             

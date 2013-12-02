@@ -117,7 +117,12 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     
-    void createVoxel(glm::vec3 position, float scale, glm::vec3 color, bool isDestructive);
+    void makeVoxel(glm::vec3 position,
+                   float scale,
+                   unsigned char red,
+                   unsigned char green,
+                   unsigned char blue,
+                   bool isDestructive);
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
     QGLWidget* getGLWidget() { return _glWidget; }

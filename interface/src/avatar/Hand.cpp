@@ -72,8 +72,12 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 glm::vec3 newVoxelPosition = finger.getTipPosition();
                 if (glm::length(newVoxelPosition - _lastFingerVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
                     QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
-                    glm::vec3 newVoxelColor(paintColor.red(), paintColor.green(), paintColor.blue());
-                    Application::getInstance()->createVoxel(newVoxelPosition, FINGERTIP_VOXEL_SIZE, newVoxelColor, true);
+                    Application::getInstance()->makeVoxel(newVoxelPosition,
+                                                          FINGERTIP_VOXEL_SIZE,
+                                                          paintColor.red(),
+                                                          paintColor.green(),
+                                                          paintColor.blue(),
+                                                          true);
                     _lastFingerVoxel = newVoxelPosition;
                 }
             }
