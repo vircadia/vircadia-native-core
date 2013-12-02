@@ -611,8 +611,6 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const HifiSockAddr DEFAULT_LOCAL_ASSIGNMENT_SOCKET = HifiSockAddr(QHostAddress(LOCAL_ASSIGNMENT_SERVER_HOSTNAME),
-                                                                  DEFAULT_DOMAIN_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
@@ -623,8 +621,10 @@ void NodeList::sendAssignment(Assignment& assignment) {
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
     int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
     
+    static HifiSockAddr DEFAULT_ASSIGNMENT_SOCKET(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, DEFAULT_DOMAIN_SERVER_PORT);
+    
     const HifiSockAddr* assignmentServerSocket = _assignmentServerSocket.isNull()
-        ? &DEFAULT_LOCAL_ASSIGNMENT_SOCKET
+        ? &DEFAULT_ASSIGNMENT_SOCKET
         : &_assignmentServerSocket;
     
     _nodeSocket.writeDatagram((char*) assignmentPacket, numHeaderBytes + numAssignmentBytes,

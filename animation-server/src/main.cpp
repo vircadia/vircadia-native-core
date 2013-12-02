@@ -858,9 +858,10 @@ int main(int argc, const char * argv[])
         }
         
         // Nodes sending messages to us...
-        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
-                                                                    nodeSockAddr.getAddressPointer(),
-                                                                    nodeSockAddr.getPortPointer())) &&
+        if (nodeList->getNodeSocket().hasPendingDatagrams()
+            && (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                                       nodeSockAddr.getAddressPointer(),
+                                                                       nodeSockAddr.getPortPointer())) &&
             packetVersionMatch(packetData)) {
             
             if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {

@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
         
         // set the custom hostname or default if it wasn't passed
         if (!customAssignmentServerHostname) {
-            customAssignmentServerHostname = LOCAL_ASSIGNMENT_SERVER_HOSTNAME;
+            customAssignmentServerHostname = DEFAULT_ASSIGNMENT_SERVER_HOSTNAME;
         }
         
         ::customAssignmentSocket = HifiSockAddr(customAssignmentServerHostname, assignmentServerPort);

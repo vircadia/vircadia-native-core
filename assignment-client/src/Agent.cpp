@@ -147,10 +147,11 @@ void Agent::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
         
-        while ((receivedBytes = NodeList::getInstance()->getNodeSocket().readDatagram((char*) receivedBytes,
-                                                                                      MAX_PACKET_SIZE,
-                                                                                      senderSockAddr.getAddressPointer(),
-                                                                                      senderSockAddr.getPortPointer()))
+        while (nodeList->getNodeSocket().hasPendingDatagrams() &&
+               (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) receivedBytes,
+                                                                       MAX_PACKET_SIZE,
+                                                                       senderSockAddr.getAddressPointer(),
+                                                                       senderSockAddr.getPortPointer()))
                 && packetVersionMatch(receivedData)) {
             if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
                 voxelScripter.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,

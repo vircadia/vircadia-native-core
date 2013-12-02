@@ -4305,10 +4305,11 @@ void* Application::networkReceive(void* args) {
     
     Application* app = Application::getInstance();
     while (!app->_stopNetworkReceiveThread) {
-        if ((bytesReceived = NodeList::getInstance()->getNodeSocket().readDatagram((char*) app->_incomingPacket,
-                                                                                   MAX_PACKET_SIZE,
-                                                                                   senderSockAddr.getAddressPointer(),
-                                                                                   senderSockAddr.getPortPointer()))) {
+        if (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams() &&
+            (bytesReceived = NodeList::getInstance()->getNodeSocket().readDatagram((char*) app->_incomingPacket,
+                                                                                    MAX_PACKET_SIZE,
+                                                                                    senderSockAddr.getAddressPointer(),
+                                                                                    senderSockAddr.getPortPointer()))) {
         
             app->_packetCount++;
             app->_bytesCount += bytesReceived;

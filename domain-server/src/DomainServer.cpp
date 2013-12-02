@@ -589,8 +589,6 @@ int DomainServer::run() {
     quint16 senderPort;
     HifiSockAddr nodePublicAddress, nodeLocalAddress;
     
-
-    
     nodeList->startSilentNodeRemovalThread();
     
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
@@ -613,7 +611,8 @@ int DomainServer::run() {
     gettimeofday(&startTime, NULL);
     
     while (true) {
-        while (nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE, &senderAddress, &senderPort) &&
+        while (nodeList->getNodeSocket().hasPendingDatagrams()
+               && nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE, &senderAddress, &senderPort) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
                 // this is an RFD or domain list request packet, and there is a version match

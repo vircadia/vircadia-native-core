@@ -312,8 +312,10 @@ void AudioMixer::run() {
         }
         
         // pull any new audio data from nodes off of the network stack
-        while ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
-                                                      nodeSockAddr.getAddressPointer(), nodeSockAddr.getPortPointer())) &&
+        while (nodeList->getNodeSocket().hasPendingDatagrams() &&
+               (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                                       nodeSockAddr.getAddressPointer(),
+                                                                       nodeSockAddr.getPortPointer())) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
                 || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO

@@ -129,7 +129,8 @@ void AvatarMixer::run() {
         
         nodeList->possiblyPingInactiveNodes();
         
-        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+        if (nodeList->getNodeSocket().hasPendingDatagrams() &&
+            (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
                                                                     nodeSockAddr.getAddressPointer(),
                                                                     nodeSockAddr.getPortPointer())) &&
             packetVersionMatch(packetData)) {

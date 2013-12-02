@@ -33,10 +33,12 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) {
 HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) {
     // lookup the IP by the hostname
     QHostInfo hostInfo = QHostInfo::fromName(hostname);
-    if (!hostInfo.addresses().isEmpty()) {
-        // use the first IP address
-        _address = hostInfo.addresses().first();
-        _port = hostOrderPort;    }
+    foreach(const QHostAddress& address, hostInfo.addresses()) {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+            _address = address;
+            _port = hostOrderPort;
+        }
+    }
 }
 
 HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {

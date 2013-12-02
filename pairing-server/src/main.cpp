@@ -62,8 +62,9 @@ int main(int argc, const char* argv[]) {
     char senderData[MAX_PACKET_SIZE_BYTES] = {};
     
     while (true) {
-        if (::serverSocket.readDatagram(senderData, MAX_PACKET_SIZE_BYTES,
-                                        senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer())) {
+        if (::serverSocket.hasPendingDatagrams()
+            && ::serverSocket.readDatagram(senderData, MAX_PACKET_SIZE_BYTES,
+                                           senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer())) {
             if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
                 
