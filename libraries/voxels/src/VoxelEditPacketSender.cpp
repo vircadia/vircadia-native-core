@@ -313,6 +313,7 @@ void VoxelEditPacketSender::releaseQueuedMessages() {
 
 void VoxelEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PACKET_TYPE_UNKNOWN) {
+        qDebug() << "queueing packet to node\n";
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
     }
     packetBuffer._currentSize = 0;

@@ -127,9 +127,7 @@ void Agent::run() {
         
         QCoreApplication::processEvents();
         
-        if (_voxelScriptingInterface.getVoxelPacketSender()->voxelServersExist()) {
-            timeval thisSend = {};
-            gettimeofday(&thisSend, NULL);
+        if (_voxelScriptingInterface.getVoxelPacketSender()->voxelServersExist()) {            
             // allow the scripter's call back to setup visual data
             emit willSendVisualDataCallback();
             

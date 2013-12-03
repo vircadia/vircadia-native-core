@@ -523,13 +523,12 @@ void VoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
            uint64_t sentAt = (*((uint64_t*)(dataByteArray.data() + numBytesPacketHeader + sizeof(sequence))));
            uint64_t arrivedAt = usecTimestampNow();
            uint64_t transitTime = arrivedAt - sentAt;
-           if (wantShowAnimationDebug() || wantsDebugVoxelReceiving()) {
+           if (true) {
                printf("RECEIVE THREAD: got %s - command from client receivedBytes=%d sequence=%d transitTime=%llu usecs\n",
                       messageName,
                       dataByteArray.size(), sequence, transitTime);
            }
        }
-       
        _voxelServerPacketProcessor->queueReceivedPacket(senderSockAddr,
                                                         (unsigned char*) dataByteArray.data(), dataByteArray.size());
    } else {

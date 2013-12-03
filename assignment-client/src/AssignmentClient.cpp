@@ -74,7 +74,12 @@ void AssignmentClient::readPendingDatagrams() {
                                                                     senderSockAddr.getPortPointer()))
             && packetVersionMatch(packetData)) {
             
-            if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+            if (_currentAssignment) {
+                // have the threaded current assignment handle this datagram
+                QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
+                                          Q_ARG(const QByteArray&, QByteArray((char*) packetData, receivedBytes)),
+                                          Q_ARG(const HifiSockAddr&, senderSockAddr));
+            } else if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
                 
                 if (_currentAssignment) {
                     qDebug() << "Dropping received assignment since we are currently running one.\n";
@@ -110,11 +115,6 @@ void AssignmentClient::readPendingDatagrams() {
                         qDebug("Received a bad destination socket for assignment.\n");
                     }
                 }
-            } else if (_currentAssignment) {
-                // have the threaded current assignment handle this datagram
-                QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
-                                          Q_ARG(const QByteArray&, QByteArray((char*) packetData, receivedBytes)),
-                                          Q_ARG(const HifiSockAddr&, senderSockAddr));
             } else {
                 // have the NodeList attempt to handle it
                 nodeList->processNodeData(senderSockAddr, packetData, receivedBytes);

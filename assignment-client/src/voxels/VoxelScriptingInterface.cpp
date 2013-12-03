@@ -27,13 +27,11 @@ void VoxelScriptingInterface::queueVoxelAdd(float x, float y, float z, float sca
 
 void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z, float scale,
                                                         uchar red, uchar green, uchar blue) {
-//    // setup a VoxelDetail struct with the data
-//    VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
-//    
-//    // queue the destructive add
-//    queueVoxelAdd(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, addVoxelDetail);
+    // setup a VoxelDetail struct with the data
+    VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
     
-    _voxelTree.createVoxel(x, y, z, scale, red, green, blue);
+    // queue the destructive add
+    queueVoxelAdd(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, addVoxelDetail);
 }
 
 void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float scale) {
