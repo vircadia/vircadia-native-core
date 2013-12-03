@@ -31,7 +31,8 @@ const int NODES_PER_BUCKET = 100;
 const int MAX_PACKET_SIZE = 1500;
 
 const uint64_t NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
-const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const uint64_t DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
@@ -141,10 +142,10 @@ public:
     void addDomainListener(DomainChangeListener* listener);
     void removeDomainListener(DomainChangeListener* listener);
     
-    void possiblyPingInactiveNodes();
     const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
 public slots:
     void sendDomainServerCheckIn();
+    void pingInactiveNodes();
     void removeSilentNodes();
 private:
     static NodeList* _sharedInstance;

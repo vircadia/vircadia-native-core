@@ -724,20 +724,12 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     return n;
 }
 
-const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
-
-void NodeList::possiblyPingInactiveNodes() {
-    static timeval lastPing = {};
-    
-    // make sure PING_INACTIVE_NODE_INTERVAL_USECS has elapsed since last ping
-    if (usecTimestampNow() - usecTimestamp(&lastPing) >= PING_INACTIVE_NODE_INTERVAL_USECS) {
-        gettimeofday(&lastPing, NULL);
-        
-        for(NodeList::iterator node = begin(); node != end(); node++) {
-            if (!node->getActiveSocket()) {
-                // we don't have an active link to this node, ping it to set that up
-                pingPublicAndLocalSocketsForInactiveNode(&(*node));
-            }
+void NodeList::pingInactiveNodes() {
+    qDebug() << "Pinging inactive nodes\n";
+    for(NodeList::iterator node = begin(); node != end(); node++) {
+        if (!node->getActiveSocket()) {
+            // we don't have an active link to this node, ping it to set that up
+            pingPublicAndLocalSocketsForInactiveNode(&(*node));
         }
     }
 }

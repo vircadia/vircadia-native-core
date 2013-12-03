@@ -666,7 +666,7 @@ void VoxelServer::run() {
         }
         
         // ping our inactive nodes to punch holes with them
-        nodeList->possiblyPingInactiveNodes();
+        nodeList->pingInactiveNodes();
         
         if (nodeList->getNodeSocket().hasPendingDatagrams()
             && (packetLength = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,

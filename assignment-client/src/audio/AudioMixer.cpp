@@ -272,6 +272,10 @@ void AudioMixer::run() {
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
+    QTimer* pingNodesTimer = new QTimer(this);
+    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
+    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
+    
     int nextFrame = 0;
     timeval startTime;
     
@@ -313,9 +317,6 @@ void AudioMixer::run() {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
         }
-        
-        // get the NodeList to ping any inactive nodes, for hole punching
-        nodeList->possiblyPingInactiveNodes();
         
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
