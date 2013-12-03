@@ -33,6 +33,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _leaderUUID(),
     _handState(0),
     _keyState(NO_KEY_DOWN),
+    _isChatCirclingEnabled(false),
     _headData(NULL),
     _handData(NULL)
 {
@@ -120,6 +121,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     // faceshift state
     if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
+    if (_isChatCirclingEnabled) {
+        setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
+    }
     *destinationBuffer++ = bitItems;
 
     // If it is connected, pack up the data
@@ -247,6 +251,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
     _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+
+    _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
 
     // If it is connected, pack up the data
     if (_headData->_isFaceshiftConnected) {

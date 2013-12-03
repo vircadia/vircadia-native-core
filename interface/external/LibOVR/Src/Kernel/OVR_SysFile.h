@@ -88,6 +88,6 @@ public:
     virtual bool  Close();    
 };
 
-} // Scaleform
+} // Namespace OVR
 
 #endif

@@ -59,14 +59,29 @@ public:
 	// operator bool() returns true if Handle/Enumerator points to a valid device.
 	operator bool () const   { return GetType() != Device_None; }
 
+    // Returns existing device, or NULL if !IsCreated. The returned ptr is 
+    // addref-ed.
+    DeviceBase* GetDevice_AddRef() const;
 	DeviceType  GetType() const;
 	bool        GetDeviceInfo(DeviceInfo* info) const;
 	bool        IsAvailable() const;
 	bool        IsCreated() const;
+    // Returns true, if the handle contains the same device ptr
+    // as specified in the parameter.
+    bool        IsDevice(DeviceBase*) const;
 
 	// Creates a device, or returns AddRefed pointer if one is already created.
 	// New devices start out with RefCount of 1.
 	DeviceBase* CreateDevice();
+
+    // Creates a device, or returns AddRefed pointer if one is already created.
+    // New devices start out with RefCount of 1. DeviceT is used to cast the
+    // DeviceBase* to a concreete type.
+    template <class DeviceT>
+    DeviceT* CreateDeviceTyped() const
+    {
+        return static_cast<DeviceT*>(DeviceHandle(*this).CreateDevice());
+    }
 
 	// Resets the device handle to uninitialized state.
 	void        Clear();

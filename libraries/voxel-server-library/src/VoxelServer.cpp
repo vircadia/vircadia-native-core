@@ -265,6 +265,36 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "\r\n");
 
+
+        // display outbound packet stats
+        mg_printf(connection, "%s", "<b>Voxel Packet Statistics...</b>\r\n");
+        uint64_t totalOutboundPackets = VoxelSendThread::_totalPackets;
+        uint64_t totalOutboundBytes = VoxelSendThread::_totalBytes;
+        uint64_t totalWastedBytes = VoxelSendThread::_totalWastedBytes;
+        uint64_t totalBytesOfOctalCodes = VoxelPacketData::getTotalBytesOfOctalCodes();
+        uint64_t totalBytesOfBitMasks = VoxelPacketData::getTotalBytesOfBitMasks();
+        uint64_t totalBytesOfColor = VoxelPacketData::getTotalBytesOfColor();
+
+        const int COLUMN_WIDTH = 10;
+        mg_printf(connection, "           Total Outbound Packets: %s packets\r\n",
+            locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "             Total Outbound Bytes: %s bytes\r\n",
+            locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "               Total Wasted Bytes: %s bytes\r\n",
+            locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",
+            locale.toString((uint)totalBytesOfOctalCodes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
+            ((float)totalBytesOfOctalCodes / (float)totalOutboundBytes) * AS_PERCENT);
+        mg_printf(connection, "             Total BitMasks Bytes: %s bytes (%5.2f%%)\r\n",
+            locale.toString((uint)totalBytesOfBitMasks).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
+            ((float)totalBytesOfBitMasks / (float)totalOutboundBytes) * AS_PERCENT);
+        mg_printf(connection, "                Total Color Bytes: %s bytes (%5.2f%%)\r\n",
+            locale.toString((uint)totalBytesOfColor).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
+            ((float)totalBytesOfColor / (float)totalOutboundBytes) * AS_PERCENT);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
+
         // display inbound packet stats
         mg_printf(connection, "%s", "<b>Voxel Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n");
         uint64_t averageTransitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageTransitTimePerPacket();
@@ -277,7 +307,6 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         float averageVoxelsPerPacket = totalPacketsProcessed == 0 ? 0 : totalVoxelsProcessed / totalPacketsProcessed;
 
-        const int COLUMN_WIDTH = 10;
         mg_printf(connection, "           Total Inbound Packets: %s packets\r\n",
             locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
         mg_printf(connection, "            Total Inbound Voxels: %s voxels\r\n",

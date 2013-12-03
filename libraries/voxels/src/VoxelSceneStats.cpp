@@ -13,6 +13,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include "VoxelPacketData.h"
 #include "VoxelNode.h"
 #include "VoxelSceneStats.h"
 
@@ -21,11 +22,21 @@ const int samples = 100;
 VoxelSceneStats::VoxelSceneStats() : 
     _elapsedAverage(samples), 
     _bitsPerVoxelAverage(samples),
+    _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
     reset();
     _isReadyToSend = false;
     _isStarted = false;
+    _lastFullTotalEncodeTime = 0;
+    _lastFullElapsed = 0;
+    _incomingPacket = 0;
+    _incomingBytes = 0;
+    _incomingWastedBytes = 0;
+    _incomingLastSequence = 0;
+    _incomingOutOfOrder = 0;
+    _incomingLikelyLost = 0;
+    
 }
 
 // copy constructor
@@ -42,6 +53,9 @@ VoxelSceneStats& VoxelSceneStats::operator=(const VoxelSceneStats& other) {
 
 void VoxelSceneStats::copyFromOther(const VoxelSceneStats& other) {
     _totalEncodeTime = other._totalEncodeTime;
+    _elapsed = other._elapsed;
+    _lastFullTotalEncodeTime = other._lastFullTotalEncodeTime;
+    _lastFullElapsed = other._lastFullElapsed;
     _encodeStart = other._encodeStart;
 
     _packets = other._packets;
@@ -116,6 +130,13 @@ void VoxelSceneStats::copyFromOther(const VoxelSceneStats& other) {
             _jurisdictionEndNodes.push_back(endNodeCodeCopy);
         }
     }
+
+    _incomingPacket = other._incomingPacket;
+    _incomingBytes = other._incomingBytes;
+    _incomingWastedBytes = other._incomingWastedBytes;
+    _incomingLastSequence = other._incomingLastSequence;
+    _incomingOutOfOrder = other._incomingOutOfOrder;
+    _incomingLikelyLost = other._incomingLikelyLost;
 }
 
 
@@ -174,6 +195,11 @@ void VoxelSceneStats::sceneCompleted() {
         _end = usecTimestampNow();
         _elapsed = _end - _start;
         _elapsedAverage.updateAverage((float)_elapsed);
+        
+        if (_isFullScene) {
+            _lastFullElapsed = _elapsed;
+            _lastFullTotalEncodeTime = _totalEncodeTime;
+        }
 
         _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
         _isReadyToSend = true;
@@ -465,8 +491,15 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_elapsed);
     memcpy(&_totalEncodeTime, sourceBuffer, sizeof(_totalEncodeTime));
     sourceBuffer += sizeof(_totalEncodeTime);
+
     memcpy(&_isFullScene, sourceBuffer, sizeof(_isFullScene));
     sourceBuffer += sizeof(_isFullScene);
+
+    if (_isFullScene) {
+        _lastFullElapsed = _elapsed;
+        _lastFullTotalEncodeTime = _totalEncodeTime;
+    }
+
     memcpy(&_isMoving, sourceBuffer, sizeof(_isMoving));
     sourceBuffer += sizeof(_isMoving);
     memcpy(&_packets, sourceBuffer, sizeof(_packets));
@@ -765,4 +798,45 @@ const char* VoxelSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
+void VoxelSceneStats::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket) {
+    _incomingPacket++;
+    _incomingBytes += messageLength;
+    if (!wasStatsPacket) {
+        _incomingWastedBytes += (MAX_PACKET_SIZE - messageLength);
+    }
+
+    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
+    unsigned char* dataAt = messageData + numBytesPacketHeader;
+
+    //VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
+    dataAt += sizeof(VOXEL_PACKET_FLAGS);
+    VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+    dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    
+    VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+    dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+    
+    //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
+    //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
+    
+    VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+    int flightTime = arrivedAt - sentAt;
+    const int USECS_PER_MSEC = 1000;
+    float flightTimeMsecs = flightTime / USECS_PER_MSEC;
+    _incomingFlightTimeAverage.updateAverage(flightTimeMsecs);
+    
+    
+    // detect out of order packets
+    if (sequence < _incomingLastSequence) {
+        _incomingOutOfOrder++;
+    }
+
+    // detect likely lost packets
+    VOXEL_PACKET_SEQUENCE expected = _incomingLastSequence+1;
+    if (sequence > expected) {
+        _incomingLikelyLost++;
+    }
+
+    _incomingLastSequence = sequence;
+}
 

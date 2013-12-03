@@ -123,8 +123,8 @@ public:
 
         enum HIDDeviceMessageType
         {
-            HIDDeviceMessage_DeviceAdded     = 0,
-            HIDDeviceMessage_DeviceRemoved   = 1,
+            HIDDeviceMessage_DeviceAdded    = 0,
+            HIDDeviceMessage_DeviceRemoved  = 1
         };
 
         virtual void OnDeviceMessage(HIDDeviceMessageType messageType) 

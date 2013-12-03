@@ -95,6 +95,6 @@ private:
 };
 
 
-} // Scaleform::Timer
+} // Namespace OVR
 
 #endif

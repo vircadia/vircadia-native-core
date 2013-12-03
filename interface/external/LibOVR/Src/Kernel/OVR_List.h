@@ -115,7 +115,7 @@ struct ListNode
 //    }
 //
 
-// List<> represents a doubly-linked list if T, where each T must derive
+// List<> represents a doubly-linked list of T, where each T must derive
 // from ListNode<B>. B specifies the base class that was directly
 // derived from ListNode, and is only necessary if there is an intermediate
 // inheritance chain.

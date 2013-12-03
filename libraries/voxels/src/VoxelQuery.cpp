@@ -34,7 +34,8 @@ VoxelQuery::VoxelQuery(Node* owningNode) :
     _wantColor(true),
     _wantDelta(true),
     _wantLowResMoving(true),
-    _wantOcclusionCulling(true),
+    _wantOcclusionCulling(false), // disabled by default
+    _wantCompression(false), // disabled by default
     _maxVoxelPPS(DEFAULT_MAX_VOXEL_PPS),
     _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE)
 {
@@ -74,6 +75,7 @@ int VoxelQuery::getBroadcastData(unsigned char* destinationBuffer) {
     if (_wantColor)            { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
     if (_wantDelta)            { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
     if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
+    if (_wantCompression)      { setAtBit(bitItems, WANT_COMPRESSION); }
 
     *destinationBuffer++ = bitItems;
 
@@ -122,10 +124,11 @@ int VoxelQuery::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantLowResMoving     = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
-    _wantColor            = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
-    _wantDelta            = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
+    _wantLowResMoving = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+    _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
+    _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
     _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
+    _wantCompression = oneAtBit(bitItems, WANT_COMPRESSION);
 
     // desired Max Voxel PPS
     memcpy(&_maxVoxelPPS, sourceBuffer, sizeof(_maxVoxelPPS));

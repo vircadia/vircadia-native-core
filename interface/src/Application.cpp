@@ -132,8 +132,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-        _oculusProgram(0),
-        _oculusDistortionScale(1.25),
 #ifndef _WIN32
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
@@ -248,7 +246,6 @@ Application::~Application() {
     VoxelNode::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
     
-    delete _oculusProgram;
     delete _settings;
     delete _followMode;
     delete _glWidget;
@@ -425,7 +422,7 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        displayOculus(whichCamera);
+        OculusManager::display(whichCamera);
         
     } else {
         _glowEffect.prepare(); 
@@ -516,14 +513,11 @@ void Application::paintGL() {
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
-    float aspectRatio = ((float)width/(float)height); // based on screen resize
-    
     if (OculusManager::isConnected()) {
-        // more magic numbers; see Oculus SDK docs, p. 32
-        camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
+        OculusManager::configureCamera(camera, width, height);
+        
     } else {
-        camera.setAspectRatio(aspectRatio);
+        camera.setAspectRatio((float)width / height);
         camera.setFieldOfView(Menu::getInstance()->getFieldOfView());
     }
 }
@@ -682,9 +676,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::OcclusionCulling);
-                } else if (_nudgeStarted) {
+                if (_nudgeStarted) {
                     _nudgeGuidePosition.y -= _mouseVoxel.s;
                 } else {
                     _myAvatar.setDriveKeys(DOWN, 1);
@@ -1472,7 +1464,6 @@ void Application::checkBandwidthMeterClick() {
 void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
-    updateCursor();
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -1484,6 +1475,54 @@ void Application::setRenderVoxels(bool voxelRender) {
 
 void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
+}
+
+void Application::removeVoxel(glm::vec3 position,
+                              float scale) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxel);
+    
+    // delete it locally to see the effect immediately (and in case no voxel server is present)
+    _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+}
+
+void Application::makeVoxel(glm::vec3 position,
+                            float scale,
+                            unsigned char red,
+                            unsigned char green,
+                            unsigned char blue,
+                            bool isDestructive) {
+    VoxelDetail voxel;
+    voxel.x = position.x / TREE_SCALE;
+    voxel.y = position.y / TREE_SCALE;
+    voxel.z = position.z / TREE_SCALE;
+    voxel.s = scale / TREE_SCALE;
+    voxel.red = red;
+    voxel.green = green;
+    voxel.blue = blue;
+    PACKET_TYPE message = isDestructive ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL;
+    _voxelEditSender.sendVoxelEditMessage(message, voxel);
+    
+    // create the voxel locally so it appears immediately
+    
+    _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
+                        voxel.red, voxel.green, voxel.blue,
+                        isDestructive);
+    
+    // Implement voxel fade effect
+    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
+    const float VOXEL_BOUNDS_ADJUST = 0.01f;
+    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
+    fade.voxelDetails.x = voxel.x - slightlyBigger;
+    fade.voxelDetails.y = voxel.y - slightlyBigger;
+    fade.voxelDetails.z = voxel.z - slightlyBigger;
+    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
+    _voxelFades.push_back(fade);
+    
 }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
@@ -1523,7 +1562,6 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
         const unsigned char* nodeOctalCode = node->getOctalCode();
-        
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
         int bytesInCode = 0;
@@ -1544,10 +1582,9 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         }
 
         // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
+        codeColorBuffer[bytesInCode + RED_INDEX] = node->getColor()[RED_INDEX];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
-
+        codeColorBuffer[bytesInCode + BLUE_INDEX] = node->getColor()[BLUE_INDEX];
         getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
                 codeColorBuffer, codeAndColorLength);
         
@@ -1611,7 +1648,6 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
     args.newBaseOctCode = octalCodeDestination;
-
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
@@ -1770,7 +1806,7 @@ void Application::init() {
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
-    _voxels.setDisableFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::DisableFastVoxelPipeline));
+    _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
 
@@ -2223,11 +2259,11 @@ void Application::updateLeap(float deltaTime) {
     LeapManager::nextFrame();
 }
 
-void Application::updateSixense() {
+void Application::updateSixense(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateSixense()");
     
-    _sixenseManager.update();
+    _sixenseManager.update(deltaTime);
 }
 
 void Application::updateSerialDevices(float deltaTime) {
@@ -2437,7 +2473,7 @@ void Application::update(float deltaTime) {
     updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
-    updateSixense(); // Razer Hydra controllers
+    updateSixense(deltaTime); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -2577,10 +2613,11 @@ void Application::queryVoxels() {
     bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
-    _voxelQuery.setWantColor(Menu::getInstance()->isOptionChecked(MenuOption::SendVoxelColors));
-    _voxelQuery.setWantDelta(Menu::getInstance()->isOptionChecked(MenuOption::DeltaSending));
-    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::OcclusionCulling));
+    _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
+    _voxelQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
+    _voxelQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
+    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
+    _voxelQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
     
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
@@ -2642,15 +2679,16 @@ void Application::queryVoxels() {
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
+    int totalPPS = Menu::getInstance()->getMaxVoxelPacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
         // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
         // for each unknown jurisdiction server
-        perServerPPS = (DEFAULT_MAX_VOXEL_PPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
+        perServerPPS = (totalPPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
     } else {
         if (unknownJurisdictionServers > 0) {
-            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS / unknownJurisdictionServers);
+            perUnknownServer = (totalPPS / unknownJurisdictionServers);
         }
     }
     
@@ -2857,146 +2895,7 @@ void Application::updateShadowMap() {
     
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
 }
-
-// this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
-// code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
-// (http://www.apache.org/licenses/LICENSE-2.0)
-static const char* DISTORTION_FRAGMENT_SHADER =
-    "#version 120\n"
-    "uniform sampler2D texture;"
-    "uniform vec2 lensCenter;"
-    "uniform vec2 screenCenter;"
-    "uniform vec2 scale;"
-    "uniform vec2 scaleIn;"
-    "uniform vec4 hmdWarpParam;"
-    "vec2 hmdWarp(vec2 in01) {"
-    "   vec2 theta = (in01 - lensCenter) * scaleIn;"
-    "   float rSq = theta.x * theta.x + theta.y * theta.y;"
-    "   vec2 theta1 = theta * (hmdWarpParam.x + hmdWarpParam.y * rSq + "
-    "                 hmdWarpParam.z * rSq * rSq + hmdWarpParam.w * rSq * rSq * rSq);"
-    "   return lensCenter + scale * theta1;"
-    "}"
-    "void main(void) {"
-    "   vec2 tc = hmdWarp(gl_TexCoord[0].st);"
-    "   vec2 below = step(screenCenter.st + vec2(-0.25, -0.5), tc.st);"
-    "   vec2 above = vec2(1.0, 1.0) - step(screenCenter.st + vec2(0.25, 0.5), tc.st);"
-    "   gl_FragColor = mix(vec4(0.0, 0.0, 0.0, 1.0), texture2D(texture, tc), "
-    "       above.s * above.t * below.s * below.t);"
-    "}";
     
-void Application::displayOculus(Camera& whichCamera) {
-    _glowEffect.prepare();
-
-    // magic numbers ahoy! in order to avoid pulling in the Oculus utility library that calculates
-    // the rendering parameters from the hardware stats, i just folded their calculations into
-    // constants using the stats for the current-model hardware as contained in the SDK file
-    // LibOVR/Src/Util/Util_Render_Stereo.cpp
-
-    // eye 
-
-    // render the left eye view to the left side of the screen
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
-    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
-        whichCamera.getNearClip(), whichCamera.getFarClip());
-    
-    glViewport(0, 0, _glWidget->width() / 2, _glWidget->height());
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glTranslatef(0.032, 0, 0); // dip/2, see p. 27
-    
-    displaySide(whichCamera);
-
-    // and the right eye to the right side
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glTranslatef(-0.151976, 0, 0); // -h
-    gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
-        whichCamera.getNearClip(), whichCamera.getFarClip());
-    
-    glViewport(_glWidget->width() / 2, 0, _glWidget->width() / 2, _glWidget->height());
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(-0.032, 0, 0);
-    
-    displaySide(whichCamera);
-
-    glPopMatrix();
-    
-    // restore our normal viewport
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
-
-    QOpenGLFramebufferObject* fbo = _glowEffect.render(true);
-    glBindTexture(GL_TEXTURE_2D, fbo->texture());
-
-    if (_oculusProgram == 0) {
-        _oculusProgram = new ProgramObject();
-        _oculusProgram->addShaderFromSourceCode(QGLShader::Fragment, DISTORTION_FRAGMENT_SHADER);
-        _oculusProgram->link();
-        
-        _textureLocation = _oculusProgram->uniformLocation("texture");
-        _lensCenterLocation = _oculusProgram->uniformLocation("lensCenter");
-        _screenCenterLocation = _oculusProgram->uniformLocation("screenCenter");
-        _scaleLocation = _oculusProgram->uniformLocation("scale");
-        _scaleInLocation = _oculusProgram->uniformLocation("scaleIn");
-        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");        
-    }
-    
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, _glWidget->width(), 0, _glWidget->height());
-    glDisable(GL_DEPTH_TEST);
-    
-    // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
-    
-    float scaleFactor = 1.0 / _oculusDistortionScale;
-    float aspectRatio = (_glWidget->width() * 0.5) / _glWidget->height();
-    
-    glDisable(GL_BLEND);
-    _oculusProgram->bind();
-    _oculusProgram->setUniformValue(_textureLocation, 0);
-    _oculusProgram->setUniformValue(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
-    _oculusProgram->setUniformValue(_screenCenterLocation, 0.25, 0.5);
-    _oculusProgram->setUniformValue(_scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
-    _oculusProgram->setUniformValue(_scaleInLocation, 4, 2 / aspectRatio);
-    _oculusProgram->setUniformValue(_hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
-
-    glColor3f(1, 0, 1);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0);
-    glVertex2f(0, 0);
-    glTexCoord2f(0.5, 0);
-    glVertex2f(_glWidget->width()/2, 0);
-    glTexCoord2f(0.5, 1);
-    glVertex2f(_glWidget->width() / 2, _glWidget->height());
-    glTexCoord2f(0, 1);
-    glVertex2f(0, _glWidget->height());
-    glEnd();
-    
-    _oculusProgram->setUniformValue(_lensCenterLocation, 0.787994, 0.5);
-    _oculusProgram->setUniformValue(_screenCenterLocation, 0.75, 0.5);
-    
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.5, 0);
-    glVertex2f(_glWidget->width() / 2, 0);
-    glTexCoord2f(1, 0);
-    glVertex2f(_glWidget->width(), 0);
-    glTexCoord2f(1, 1);
-    glVertex2f(_glWidget->width(), _glWidget->height());
-    glTexCoord2f(0.5, 1);
-    glVertex2f(_glWidget->width() / 2, _glWidget->height());
-    glEnd();
-    
-    glEnable(GL_BLEND);           
-    glBindTexture(GL_TEXTURE_2D, 0);
-    _oculusProgram->release();
-    
-    glPopMatrix();
-}
-
 const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -3017,18 +2916,6 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);    
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
-}
-
-void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
-    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
-        translation.z + _viewMatrixTranslation.z);
-}
-
-void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
-    float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
-    
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
 }
 
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
@@ -3272,6 +3159,18 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             glPopMatrix();
         }
     }
+}
+
+void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
+    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
+    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
+        translation.z + _viewMatrixTranslation.z);
+}
+
+void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
+    float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+    
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
 }
 
 void Application::displayOverlay() {
@@ -3608,7 +3507,7 @@ void Application::displayStats() {
     // Voxel Rendering
     voxelStats.str("");
     voxelStats.precision(4);
-    voxelStats << "Voxel Rendering Slots" << 
+    voxelStats << "Voxel Rendering Slots " << 
         "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
         "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
@@ -3847,7 +3746,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 if (!avatar->isInitialized()) {
                     avatar->init();
                 }
-                avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+                avatar->render(false);
                 avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
             }
         
@@ -3857,12 +3756,12 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         // render avatar fades
         Glower glower;
         for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
-            (*fade)->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+            (*fade)->render(false);
         }
     }
     
     // Render my own Avatar
-    _myAvatar.render(forceRenderHead, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+    _myAvatar.render(forceRenderHead);
     _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
@@ -4129,6 +4028,7 @@ void Application::resetSensors() {
     _webcam.reset();
     _faceshift.reset();
     LeapManager::reset();
+    OculusManager::reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
@@ -4155,11 +4055,6 @@ static void setShortcutsEnabled(QWidget* widget, bool enabled) {
 
 void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
-}
-
-void Application::updateCursor() {
-    _glWidget->setCursor(OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
-        Qt::BlankCursor : Qt::ArrowCursor);
 }
 
 void Application::attachNewHeadToNode(Node* newNode) {
@@ -4326,13 +4221,26 @@ void* Application::networkReceive(void* args) {
                         app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
-                    case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
-                    case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
+                            
+                        bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+                        if (wantExtraDebugging && app->_incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
+                            int numBytesPacketHeader = numBytesForPacketHeader(app->_incomingPacket);
+                            unsigned char* dataAt = app->_incomingPacket + numBytesPacketHeader;
+                            dataAt += sizeof(VOXEL_PACKET_FLAGS);
+                            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+                            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+                            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+                            int flightTime = arrivedAt - sentAt;
+                            
+                            printf("got PACKET_TYPE_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
+                        }   
                     
                         // add this packet to our list of voxel packets and process them on the voxel processing
                         app->_voxelProcessor.queueReceivedPacket(senderSockAddr, app->_incomingPacket, bytesReceived);

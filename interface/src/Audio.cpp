@@ -26,11 +26,7 @@
 #include "Menu.h"
 #include "Util.h"
 
-//  Uncomment the following definition to test audio device latency by copying output to input
-//#define TEST_AUDIO_LOOPBACK
 //#define SHOW_AUDIO_DEBUG
-
-#define VISUALIZE_ECHO_CANCELLATION
 
 static const int PHASE_DELAY_AT_90 = 20;
 static const float AMPLITUDE_RATIO_AT_90 = 0.5;
@@ -83,11 +79,17 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
 
-    //  If Mute button is pressed, clear the input buffer 
+    //  If Mute button is pressed, clear the input buffer
     if (_muted) {
         memset(inputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     }
     
+    //  If local loopback enabled, copy input to output
+   if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+        memcpy(outputLeft, inputLeft, PACKET_LENGTH_BYTES_PER_CHANNEL);
+        memcpy(outputRight, inputLeft, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    }
+
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
@@ -119,7 +121,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
                 unsigned char dataPacket[MAX_PACKET_SIZE];
                 
-                PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
+                PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
                     ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                     : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
                 
@@ -359,7 +361,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _muted(false)
+    _muted(false),
+    _localEcho(false)
 {
     outputPortAudioError(Pa_Initialize());
     

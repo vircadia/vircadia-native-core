@@ -61,6 +61,33 @@ void Hand::simulate(float deltaTime, bool isMine) {
         
         updateRaveGloveParticles(deltaTime);
     }
+    
+    //  Create a voxel at fingertip if controller button is pressed
+    const float FINGERTIP_VOXEL_SIZE = 0.0125;
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        if (palm.isActive()) {
+            FingerData& finger = palm.getFingers()[0];
+            glm::vec3 newVoxelPosition = finger.getTipPosition();
+            if (palm.getControllerButtons() & BUTTON_1) {
+                if (glm::length(newVoxelPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
+                    QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+                    Application::getInstance()->makeVoxel(newVoxelPosition,
+                                                          FINGERTIP_VOXEL_SIZE,
+                                                          paintColor.red(),
+                                                          paintColor.green(),
+                                                          paintColor.blue(),
+                                                          true);
+                    _lastFingerAddVoxel = newVoxelPosition;
+                }
+            } else if (palm.getControllerButtons() & BUTTON_2) {
+                if (glm::length(newVoxelPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
+                    Application::getInstance()->removeVoxel(newVoxelPosition, FINGERTIP_VOXEL_SIZE);
+                    _lastFingerDeleteVoxel = newVoxelPosition;
+                }
+            }
+        }
+    }
 }
 
 void Hand::calculateGeometry() {
@@ -157,6 +184,45 @@ void Hand::render() {
         }
     }
     
+    //  If hand controller buttons pressed, render stuff as needed
+    if (getPalms().size() > 0) {
+        for (size_t i = 0; i < getPalms().size(); ++i) {
+            PalmData& palm = getPalms()[i];
+            //  If trigger pulled, thrust in that direction and draw beam
+            const float MAX_THRUSTER_BEAM_LENGTH = 5.f;
+            const float THRUSTER_MARKER_SIZE = 0.0125f;
+            if (palm.getJoystickY() != 0.f) {
+                FingerData& finger = palm.getFingers()[0];
+                if (finger.isActive()) {
+                    if (palm.getJoystickY() > 0.f) {
+                        glColor3f(0, 1, 0);
+                    } else {
+                        glColor3f(1, 0, 0);
+                    }
+                    glm::vec3 palmPosition = palm.getPosition();
+                    glm::vec3 pointerPosition = palmPosition +
+                                                glm::normalize(finger.getTipPosition() - palmPosition) *
+                                                MAX_THRUSTER_BEAM_LENGTH;
+                    glPushMatrix();
+                    glm::vec3 markerPosition =  palmPosition +
+                                                glm::normalize(finger.getTipPosition() - palmPosition) *
+                                                MAX_THRUSTER_BEAM_LENGTH *
+                                                (0.5f + palm.getJoystickY() / 2.f);
+
+                    glTranslatef(markerPosition.x, markerPosition.y, markerPosition.z);
+                    glutSolidSphere(THRUSTER_MARKER_SIZE, 10, 10);
+                    glPopMatrix();
+                    glLineWidth(2.0);
+                    glBegin(GL_LINES);
+                    glVertex3f(palmPosition.x, palmPosition.y, palmPosition.z);
+                    glVertex3f(pointerPosition.x, pointerPosition.y, pointerPosition.z);
+                    glEnd();
+                }
+            }
+        }
+    }
+    
+    
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
@@ -227,8 +293,8 @@ void Hand::renderLeapHands() {
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glPushMatrix();
     // Draw the leap balls
     for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {

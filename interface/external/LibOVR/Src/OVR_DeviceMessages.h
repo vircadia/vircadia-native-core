@@ -93,7 +93,8 @@ public:
     float    TimeDelta;      // Time passed since last Body Frame, in seconds.
 };
 
-// Sent when we receive a device status changes.
+// Sent when we receive a device status changes (e.g.:
+// Message_DeviceAdded, Message_DeviceRemoved).
 class MessageDeviceStatus : public Message
 {
 public:

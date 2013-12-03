@@ -25,7 +25,7 @@ SixenseManager::~SixenseManager() {
 #endif
 }
     
-void SixenseManager::update() {
+void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     if (sixenseGetNumActiveControllers() == 0) {
         return;
@@ -42,28 +42,28 @@ void SixenseManager::update() {
         sixenseControllerData data;
         sixenseGetNewestData(i, &data);
         
-        // drive avatar with joystick and triggers
-        if (data.controller_index) {
-            avatar->setDriveKeys(ROT_LEFT, qMax(0.0f, -data.joystick_x));
-            avatar->setDriveKeys(ROT_RIGHT, qMax(0.0f, data.joystick_x));
-            avatar->setDriveKeys(ROT_UP, qMax(0.0f, data.joystick_y));
-            avatar->setDriveKeys(ROT_DOWN, qMax(0.0f, -data.joystick_y));
-            avatar->setDriveKeys(UP, data.trigger);
-            
-        } else {
-            avatar->setDriveKeys(FWD, qMax(0.0f, data.joystick_y));
-            avatar->setDriveKeys(BACK, qMax(0.0f, -data.joystick_y));
-            avatar->setDriveKeys(LEFT, qMax(0.0f, -data.joystick_x));
-            avatar->setDriveKeys(RIGHT, qMax(0.0f, data.joystick_x));
-            avatar->setDriveKeys(DOWN, data.trigger);
-        }
-        
-        // set palm position and normal based on Hydra position/orientation
+        //  Set palm position and normal based on Hydra position/orientation
         PalmData palm(&hand);
         palm.setActive(true);
-        glm::vec3 position(-data.pos[0], data.pos[1], -data.pos[2]);
+        glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
+        
+        //  Compute current velocity from position change
+        palm.setVelocity((position - palm.getPosition()) / deltaTime);
+        
+        //  Read controller buttons and joystick into the hand
+        palm.setControllerButtons(data.buttons);
+        palm.setTrigger(data.trigger);
+        palm.setJoystick(data.joystick_x, data.joystick_y);
+        
+        //  Adjust for distance between acquisition 'orb' and the user's torso
+        //  (distance to the right of body center, distance below torso, distance behind torso)
+        const glm::vec3 SPHERE_TO_TORSO(-250.f, -300.f, -300.f);
+        position = SPHERE_TO_TORSO + position;
         palm.setRawPosition(position);
         glm::quat rotation(data.rot_quat[3], -data.rot_quat[0], data.rot_quat[1], -data.rot_quat[2]);
+        
+        //  Rotate about controller
+        rotation = glm::angleAxis(180.0f, 0.f, 1.f, 0.f) * rotation;
         const glm::vec3 PALM_VECTOR(0.0f, -1.0f, 0.0f);
         palm.setRawNormal(rotation * PALM_VECTOR);
         

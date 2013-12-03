@@ -21,6 +21,7 @@
 #include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
+#include "Menu.h"
 #include "Physics.h"
 #include "world.h"
 #include "devices/OculusManager.h"
@@ -394,7 +395,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls) || !_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _bodyBall[BODY_BALL_HEAD_BASE].position;
     }
     _head.setPosition(headPosition);
@@ -439,7 +440,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void Avatar::render(bool forceRenderHead, bool renderAvatarBalls) {
+void Avatar::render(bool forceRenderHead) {
 
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -455,7 +456,7 @@ void Avatar::render(bool forceRenderHead, bool renderAvatarBalls) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        renderBody(forceRenderHead, renderAvatarBalls);
+        renderBody(forceRenderHead);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
@@ -666,7 +667,8 @@ void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJ
     float distance = glm::length(armVector);
     
     // don't let right hand get dragged beyond maximum arm length...
-    float armLength = _skeletonModel.isActive() ? _skeletonModel.getRightArmLength() : _skeleton.getArmLength();
+    float armLength = (_skeletonModel.isActive() && !Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls)) ?
+        _skeletonModel.getRightArmLength() : _skeleton.getArmLength();
     const float ARM_RETRACTION = 0.75f;
     float retractedArmLength = armLength * ARM_RETRACTION;
     if (distance > retractedArmLength) {
@@ -713,7 +715,7 @@ float Avatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
     return 1.0f;
 }
 
-void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
+void Avatar::renderBody(bool forceRenderHead) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
@@ -721,7 +723,7 @@ void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
-    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _skeletonModel.isActive())) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls)) {
         //  Render the body as balls and cones
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
@@ -738,17 +740,13 @@ void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(alpha, false);
+                    _head.render(alpha, true);
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
                 glColor3f(skinColor.r + _bodyBall[b].touchForce * 0.3f,
                     skinColor.g - _bodyBall[b].touchForce * 0.2f,
                     skinColor.b - _bodyBall[b].touchForce * 0.1f);
-                
-                if (b == BODY_BALL_NECK_BASE && _head.getFaceModel().isActive()) {
-                    continue; // don't render the neck if we have a face model
-                }
                 
                 if ((b != BODY_BALL_HEAD_TOP  )
                     &&  (b != BODY_BALL_HEAD_BASE )) {
@@ -793,7 +791,7 @@ void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
 void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {
     lighter = glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
     darker = glm::vec3(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
-    if (_head.getFaceModel().isActive()) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls) && _head.getFaceModel().isActive()) {
         lighter = glm::vec3(_head.getFaceModel().computeAverageColor());
         const float SKIN_DARKENING = 0.9f;
         darker = lighter * SKIN_DARKENING;

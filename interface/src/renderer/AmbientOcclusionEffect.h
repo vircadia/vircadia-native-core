@@ -30,6 +30,8 @@ private:
     int _leftBottomLocation;
     int _rightTopLocation;
     int _noiseScaleLocation;
+    int _texCoordOffsetLocation;
+    int _texCoordScaleLocation;
     
     ProgramObject* _blurProgram;
     int _blurScaleLocation;

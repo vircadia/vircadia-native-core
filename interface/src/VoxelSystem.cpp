@@ -595,50 +595,66 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    unsigned char* voxelData = sourceBuffer + numBytesPacketHeader;
-
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
-            // ask the VoxelTree to read the bitstream into the tree
-            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            lockTree();
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
-            unlockTree();
-        }
-            break;
-        case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                    "readBitstreamToTree()");
-            // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            lockTree();
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
-            unlockTree();
-        }
-            break;
-        case PACKET_TYPE_Z_COMMAND:
 
-            // the Z command is a special command that allows the sender to send high level semantic
-            // requests, like erase all, or add sphere scene, different receivers may handle these
-            // messages differently
-            char* packetData = (char *)sourceBuffer;
-            char* command = &packetData[numBytesPacketHeader]; // start of the command
-            int commandLength = strlen(command); // commands are null terminated strings
-            int totalLength = 1+commandLength+1;
+            unsigned char* dataAt = sourceBuffer + numBytesPacketHeader;
 
-            qDebug("got Z message len(%d)= %s\n", numBytes, command);
-
-            while (totalLength <= numBytes) {
-                if (0==strcmp(command,(char*)"erase all")) {
-                    qDebug("got Z message == erase all - NOT SUPPORTED ON INTERFACE\n");
+            VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
+            dataAt += sizeof(VOXEL_PACKET_FLAGS);
+            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+            
+            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+            
+            bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
+            bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
+            
+            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+            int flightTime = arrivedAt - sentAt;
+            
+            VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
+            int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
+            
+            int subsection = 1;
+            while (dataBytes > 0) {
+                if (packetIsCompressed) {
+                    if (dataBytes > sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE)) {
+                        sectionLength = (*(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
+                        dataAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                        dataBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                    } else {
+                        sectionLength = 0;
+                        dataBytes = 0; // stop looping something is wrong
+                    }
+                } else {
+                    sectionLength = dataBytes;
                 }
-                if (0==strcmp(command,(char*)"add scene")) {
-                    qDebug("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
+                
+                if (sectionLength) {
+                    // ask the VoxelTree to read the bitstream into the tree
+                    ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
+                    lockTree();
+                    VoxelPacketData packetData(packetIsCompressed);
+                    packetData.loadFinalizedContent(dataAt, sectionLength);
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                        qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                               " subsection:%d sectionLength:%d uncompressed:%d\n",
+                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
+                            sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
+                    }
+                    _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+                    unlockTree();
+                
+                    dataBytes -= sectionLength;
+                    dataAt += sectionLength;
                 }
-                totalLength += commandLength+1;
             }
+            subsection++;
+        }
         break;
     }
 
@@ -762,7 +778,10 @@ void VoxelSystem::checkForCulling() {
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     
-    bool constantCulling = !Menu::getInstance()->isOptionChecked(MenuOption::DisableConstantCulling);
+    // These items used to be menu options, we are not defaulting to and only supporting these modes.
+    bool constantCulling = true;
+    bool performHideOutOfViewLogic = true;
+    bool performRemoveOutOfViewLogic = false;
     
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if (constantCulling || (
@@ -773,7 +792,7 @@ void VoxelSystem::checkForCulling() {
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
+        if (performHideOutOfViewLogic) {
 
             // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
             // it's been a long time since we last moved, then go ahead and do a full frustum cull.
@@ -807,7 +826,7 @@ void VoxelSystem::checkForCulling() {
                 _lastViewCullingElapsed = (endViewCulling - start) / 1000;
             }
 
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
+        } else if (performRemoveOutOfViewLogic) {
             _lastViewCulling = start;
             removeOutOfView();
             uint64_t endViewCulling = usecTimestampNow();
@@ -1931,7 +1950,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     // Both these problems are solved by intermittently calling this with forceFullFrustum set
     // to true. This will essentially clean up the improperly hidden or shown voxels.
     //
-    bool wantDeltaFrustums = !forceFullFrustum && !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
+    bool wantDeltaFrustums = !forceFullFrustum;
     hideOutOfViewArgs args(this, this->_tree, _culledOnce, widenFrustum, wantDeltaFrustums);
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging
