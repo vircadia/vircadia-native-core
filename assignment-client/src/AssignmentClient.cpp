@@ -85,7 +85,7 @@ void AssignmentClient::readPendingDatagrams() {
                     qDebug() << "Dropping received assignment since we are currently running one.\n";
                 } else {
                     // construct the deployed assignment from the packet data
-                    _currentAssignment = (ThreadedAssignment*) AssignmentFactory::unpackAssignment(packetData, receivedBytes);
+                    _currentAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
                     
                     qDebug() << "Received an assignment -" << *_currentAssignment << "\n";
                     

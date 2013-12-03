@@ -692,9 +692,6 @@ void VoxelServer::run() {
     }
 
     HifiSockAddr senderSockAddr;
-    
-    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
-    ssize_t packetLength;
 
     // set up our jurisdiction broadcaster...
     _jurisdictionSender = new JurisdictionSender(_jurisdiction);
