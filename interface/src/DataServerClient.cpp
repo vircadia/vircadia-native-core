@@ -24,7 +24,12 @@ const char MULTI_KEY_VALUE_SEPARATOR = '|';
 
 const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
-const HifiSockAddr DATA_SERVER_SOCKET = HifiSockAddr(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
+
+
+const HifiSockAddr& DataServerClient::dataServerSockAddr() {
+    static HifiSockAddr dsSockAddr = HifiSockAddr(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
+    return dsSockAddr;
+}
 
 void DataServerClient::putValueForKey(const QString& key, const char* value) {
     QString clientString = Application::getInstance()->getProfile()->getUserString();
@@ -58,7 +63,8 @@ void DataServerClient::putValueForKey(const QString& key, const char* value) {
         
         // send this put request to the data server
         NodeList::getInstance()->getNodeSocket().writeDatagram((char*) putPacket, numPacketBytes,
-                                                               DATA_SERVER_SOCKET.getAddress(), DATA_SERVER_SOCKET.getPort());
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }
 
@@ -98,7 +104,8 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
         
         // send the get to the data server
         NodeList::getInstance()->getNodeSocket().writeDatagram((char*) getPacket, numPacketBytes,
-                                                               DATA_SERVER_SOCKET.getAddress(), DATA_SERVER_SOCKET.getPort());
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }
 
@@ -239,6 +246,7 @@ void DataServerClient::resendUnmatchedPackets() {
           ++mapIterator) {
         // send the unmatched packet to the data server
         NodeList::getInstance()->getNodeSocket().writeDatagram((char*) mapIterator->first, mapIterator->second,
-                                                               DATA_SERVER_SOCKET.getAddress(), DATA_SERVER_SOCKET.getPort());
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }
