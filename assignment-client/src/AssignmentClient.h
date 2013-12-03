@@ -11,6 +11,8 @@
 
 #include <QtCore/QCoreApplication>
 
+#include "ThreadedAssignment.h"
+
 class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
@@ -24,7 +26,7 @@ private slots:
     void assignmentCompleted();
 private:
     Assignment _requestAssignment;
-    Assignment* _currentAssignment;
+    ThreadedAssignment* _currentAssignment;
 };
 
 #endif /* defined(__hifi__AssignmentClient__) */

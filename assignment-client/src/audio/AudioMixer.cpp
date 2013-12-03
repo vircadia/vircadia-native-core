@@ -68,8 +68,7 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) :
-    Assignment(dataBuffer, numBytes),
-    _isFinished(false)
+    ThreadedAssignment(dataBuffer, numBytes)
 {
     
 }
@@ -251,21 +250,13 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
     }
 }
 
-void AudioMixer::checkInWithDomainServerOrExit() {
-    if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-        _isFinished = true;
-        emit finished();
-    } else {
-        NodeList::getInstance()->sendDomainServerCheckIn();
-    }
-}
-
-
-void AudioMixer::setup() {
+void AudioMixer::run() {
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
     // change the logging target name while this is running
     Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
     
-    NodeList *nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);
     
     const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
@@ -280,13 +271,6 @@ void AudioMixer::setup() {
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
-    run();
-}
-
-void AudioMixer::run() {
-    
-    NodeList* nodeList = NodeList::getInstance();
     
     int nextFrame = 0;
     timeval startTime;

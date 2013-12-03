@@ -90,9 +90,6 @@ public:
     // implement parseData to return 0 so we can be a subclass of NodeData
     int parseData(unsigned char* sourceBuffer, int numBytes) { return 0; }
     
-    /// threaded run of assignment
-    virtual void run();
-    
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
     friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);

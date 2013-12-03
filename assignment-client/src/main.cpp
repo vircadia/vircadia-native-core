@@ -21,7 +21,6 @@
 #include "Agent.h"
 #include "Assignment.h"
 #include "AssignmentClient.h"
-#include "AssignmentFactory.h"
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 
