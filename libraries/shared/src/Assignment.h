@@ -11,7 +11,6 @@
 
 #include <sys/time.h>
 
-#include <QTCore/QThread>
 #include <QtCore/QUuid>
 
 #include "NodeList.h"
