@@ -148,11 +148,27 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
                                                                    node->getActiveSocket()->getAddress(),
                                                                    node->getActiveSocket()->getPort());
+            packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
                                                                    node->getActiveSocket()->getAddress(),
                                                                    node->getActiveSocket()->getPort());
+
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
+            // there was nothing else to send.
+            int thisWastedBytes = 0;
+            _totalWastedBytes += thisWastedBytes;
+            _totalBytes += statsMessageLength;
+            _totalPackets++;
+            if (debug) {
+                qDebug("Sending separate stats packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
+                    _totalPackets,
+                    statsMessageLength, _totalBytes,
+                    thisWastedBytes, _totalWastedBytes);
+            }
+
             trueBytesSent += statsMessageLength;
             truePacketsSent++;
             packetsSent++;
@@ -160,13 +176,43 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
                                                                    node->getActiveSocket()->getAddress(),
                                                                    node->getActiveSocket()->getPort());
+
+            packetSent = true;
+
+            thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            _totalWastedBytes += thisWastedBytes;
+            _totalBytes += nodeData->getPacketLength();
+            _totalPackets++;
+            if (debug) {
+                qDebug("Sending packet at %llu [%llu]: sequence: %d size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
+                    _totalPackets,
+                    sequence, nodeData->getPacketLength(), _totalBytes,
+                    thisWastedBytes, _totalWastedBytes);
+            }
         }
         nodeData->stats.markAsSent();
     } else {
-        // just send the voxel packet
-        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                               node->getActiveSocket()->getAddress(),
-                                                               node->getActiveSocket()->getPort());
+        // If there's actually a packet waiting, then send it.
+        if (nodeData->isPacketWaiting()) {
+            // just send the voxel packet
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
+            packetSent = true;
+
+            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            _totalWastedBytes += thisWastedBytes;
+            _totalBytes += nodeData->getPacketLength();
+            _totalPackets++;
+            if (debug) {
+                qDebug("Sending packet at %llu [%llu]: sequence:%d size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
+                    _totalPackets,
+                    sequence, nodeData->getPacketLength(), _totalBytes,
+                    thisWastedBytes, _totalWastedBytes);
+            }
+        }
     }
     // remember to track our stats
     if (packetSent) {

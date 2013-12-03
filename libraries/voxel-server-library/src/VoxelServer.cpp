@@ -501,18 +501,24 @@ void VoxelServer::parsePayload() {
 void VoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
     
-    int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*)dataByteArray.data());
-    
-    if (dataByteArray.data()[0] == PACKET_TYPE_VOXEL_QUERY) {
+    if (dataByteArray[0] == PACKET_TYPE_VOXEL_QUERY) {
+        bool debug = false;
+        if (debug) {
+            qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+        }
+        
+        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
+        
         // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
         // need to make sure we have it in our nodeList.
-        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
+        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
                                                               NUM_BYTES_RFC4122_UUID));
         
         Node* node = nodeList->nodeWithUUID(nodeUUID);
         
         if (node) {
-            nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char *) dataByteArray.data(),
+                                         dataByteArray.size());
             if (!node->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
                 // this means they've heard from us and can reply, let's assume public is active
@@ -523,49 +529,36 @@ void VoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                 nodeData->initializeVoxelSendThread(this);
             }
         }
-    } else if (dataByteArray.data()[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+    } else if (dataByteArray[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
         if (_jurisdictionSender) {
-            _jurisdictionSender->queueReceivedPacket(senderSockAddr,
-                                                     (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                     dataByteArray.size());
         }
     } else if (_voxelServerPacketProcessor &&
-               (dataByteArray.data()[0] == PACKET_TYPE_SET_VOXEL
-                || dataByteArray.data()[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                || dataByteArray.data()[0] == PACKET_TYPE_ERASE_VOXEL
-                || dataByteArray.data()[0] == PACKET_TYPE_Z_COMMAND)) {
+               (dataByteArray[0] == PACKET_TYPE_SET_VOXEL
+                || dataByteArray[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
+                || dataByteArray[0] == PACKET_TYPE_ERASE_VOXEL)) {
                    
-       const char* messageName;
-       switch (dataByteArray.data()[0]) {
-           case PACKET_TYPE_SET_VOXEL:
-               messageName = "PACKET_TYPE_SET_VOXEL";
-               break;
-           case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
-               messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE";
-               break;
-           case PACKET_TYPE_ERASE_VOXEL:
-               messageName = "PACKET_TYPE_ERASE_VOXEL";
-               break;
-       }
-       
-       if (dataByteArray.data()[0] != PACKET_TYPE_Z_COMMAND) {
-           unsigned short int sequence = (*((unsigned short int*)(dataByteArray.data() + numBytesPacketHeader)));
-           uint64_t sentAt = (*((uint64_t*)(dataByteArray.data() + numBytesPacketHeader + sizeof(sequence))));
-           uint64_t arrivedAt = usecTimestampNow();
-           uint64_t transitTime = arrivedAt - sentAt;
-           if (true) {
-               printf("RECEIVE THREAD: got %s - command from client receivedBytes=%d sequence=%d transitTime=%llu usecs\n",
-                      messageName,
-                      dataByteArray.size(), sequence, transitTime);
-           }
-       }
-       _voxelServerPacketProcessor->queueReceivedPacket(senderSockAddr,
-                                                        (unsigned char*) dataByteArray.data(), dataByteArray.size());
-   } else {
-       // let processNodeData handle it.
-       NodeList::getInstance()->processNodeData(senderSockAddr,
-                                                (unsigned char*) dataByteArray.data(),
-                                                dataByteArray.size());
-   }
+                   
+                   const char* messageName;
+                   switch (dataByteArray[0]) {
+                       case PACKET_TYPE_SET_VOXEL:
+                           messageName = "PACKET_TYPE_SET_VOXEL";
+                           break;
+                       case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
+                           messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE";
+                           break;
+                       case PACKET_TYPE_ERASE_VOXEL:
+                           messageName = "PACKET_TYPE_ERASE_VOXEL";
+                           break;
+                   }
+                   _voxelServerPacketProcessor->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                                    dataByteArray.size());
+               } else {
+                   // let processNodeData handle it.
+                   NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                            dataByteArray.size());
+               }
 }
 
 //int main(int argc, const char * argv[]) {

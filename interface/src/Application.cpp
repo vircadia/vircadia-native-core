@@ -3934,26 +3934,15 @@ bool Application::maybeEditVoxelUnderCursor() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
         || Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode)) {
         if (_mouseVoxel.s != 0) {
-            PACKET_TYPE message = Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel)
-                ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                : PACKET_TYPE_SET_VOXEL;
-            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
-            
-            // create the voxel locally so it appears immediately
-            _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
-                                _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue,
-                                Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
-
-            // Implement voxel fade effect
-            VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-            const float VOXEL_BOUNDS_ADJUST = 0.01f;
-            float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
-            fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
-            fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
-            fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
-            fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
-            _voxelFades.push_back(fade);
-            
+            makeVoxel(glm::vec3(_mouseVoxel.x * TREE_SCALE,
+                      _mouseVoxel.y * TREE_SCALE,
+                      _mouseVoxel.z * TREE_SCALE),
+                      _mouseVoxel.s * TREE_SCALE,
+                      _mouseVoxel.red,
+                      _mouseVoxel.green,
+                      _mouseVoxel.blue,
+                      Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
+           
             // remember the position for drag detection
             _justEditedVoxel = true;
             
@@ -4136,6 +4125,24 @@ void Application::nodeKilled(Node* node) {
         node->setLinkedData(NULL);
         
         _avatarFades.push_back(avatar);
+    }
+}
+
+void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
+                        const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
+                        
+    // Attempt to identify the sender from it's address.
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+    if (voxelServer) {
+        QUuid nodeUUID = voxelServer->getUUID();
+        
+        // now that we know the node ID, let's add these stats to the stats for that node...
+        _voxelSceneStatsLock.lockForWrite();
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            VoxelSceneStats& stats = _voxelServerSceneStats[nodeUUID];
+            stats.trackIncomingVoxelPacket(messageData, messageLength, wasStatsPacket);
+        }
+        _voxelSceneStatsLock.unlock();
     }
 }
 

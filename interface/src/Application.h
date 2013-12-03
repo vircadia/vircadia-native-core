@@ -462,6 +462,8 @@ private:
     PieMenu _pieMenu;
     
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
+                                  const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;
