@@ -6,7 +6,9 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
+#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -17,17 +19,10 @@
 #include <VoxelConstants.h>
 
 #include "Agent.h"
-#include "voxels/VoxelScriptingInterface.h"
 
 Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
-    Assignment(dataBuffer, numBytes),
-    _shouldStop(false)
+    ThreadedAssignment(dataBuffer, numBytes)
 {
-}
-
-
-void Agent::stop() {
-    _shouldStop = true;
 }
 
 QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
@@ -42,6 +37,16 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.x = object.property("x").toVariant().toFloat();
     vec3.y = object.property("y").toVariant().toFloat();
     vec3.z = object.property("z").toVariant().toFloat();
+}
+
+void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+    if (dataByteArray.data()[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+        _voxelScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                                                                                (unsigned char*) dataByteArray.data(),
+                                                                                dataByteArray.size());
+    } else {
+        NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+    }
 }
 
 void Agent::run() {
@@ -76,8 +81,7 @@ void Agent::run() {
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
     
-    VoxelScriptingInterface voxelScripter;
-    QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
+    QScriptValue voxelScripterValue =  engine.newQObject(&_voxelScriptingInterface);
     engine.globalObject().setProperty("Voxels", voxelScripterValue);
     
     QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
@@ -86,7 +90,7 @@ void Agent::run() {
     const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
     
     // let the VoxelPacketSender know how frequently we plan to call it
-    voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     
     qDebug() << "Downloaded script:" << scriptContents << "\n";
     QScriptValue result = engine.evaluate(scriptContents);
@@ -100,46 +104,40 @@ void Agent::run() {
     timeval startTime;
     gettimeofday(&startTime, NULL);
     
-    timeval lastDomainServerCheckIn = {};
-    
-    
-    HifiSockAddr senderSockAddr;
-    unsigned char receivedData[MAX_PACKET_SIZE];
-    ssize_t receivedBytes;
-    
     int thisFrame = 0;
     
-    NodeList::getInstance()->startSilentNodeRemovalThread();
+    QTimer* domainServerTimer = new QTimer(this);
+    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
     
-    while (!_shouldStop) {
-        
-        // if we're not hearing from the domain-server we should stop running
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            break;
-        }
-        
-        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
-        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
-            gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
-        }
+    QTimer* silentNodeTimer = new QTimer(this);
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    QTimer* pingNodesTimer = new QTimer(this);
+    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
+    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
+    
+    while (!_isFinished) {
         
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }
         
-        if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
+        QCoreApplication::processEvents();
+        
+        if (_voxelScriptingInterface.getVoxelPacketSender()->voxelServersExist()) {
             timeval thisSend = {};
             gettimeofday(&thisSend, NULL);
             // allow the scripter's call back to setup visual data
             emit willSendVisualDataCallback();
             
             // release the queue of edit voxel messages.
-            voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
+            _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
             
             // since we're in non-threaded mode, call process so that the packets are sent
-            voxelScripter.getVoxelPacketSender()->process();
+            _voxelScriptingInterface.getVoxelPacketSender()->process();
         }
         
         if (engine.hasUncaughtException()) {
@@ -147,21 +145,6 @@ void Agent::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
         
-        while (nodeList->getNodeSocket().hasPendingDatagrams() &&
-               (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) receivedBytes,
-                                                                       MAX_PACKET_SIZE,
-                                                                       senderSockAddr.getAddressPointer(),
-                                                                       senderSockAddr.getPortPointer()))
-                && packetVersionMatch(receivedData)) {
-            if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
-                voxelScripter.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                             receivedData,
-                                                                             receivedBytes);
-            } else {
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedData, receivedBytes);
-            }
-        }
+        
     }
-    
-    NodeList::getInstance()->stopSilentNodeRemovalThread();
 }

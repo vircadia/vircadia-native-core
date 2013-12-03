@@ -15,23 +15,24 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <Assignment.h>
+#include <ThreadedAssignment.h>
 
-class Agent : public Assignment {
+#include "voxels/VoxelScriptingInterface.h"
+
+class Agent : public ThreadedAssignment {
     Q_OBJECT
 public:
     Agent(const unsigned char* dataBuffer, int numBytes);
     
-    void run();
 public slots:
-    void stop();
+    void run();
+    
+    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
 private:
-    static QScriptValue AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine);
-    
-    bool volatile _shouldStop;
+    VoxelScriptingInterface _voxelScriptingInterface;
 };
 
 #endif /* defined(__hifi__Agent__) */
