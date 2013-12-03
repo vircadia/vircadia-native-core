@@ -32,6 +32,7 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -53,7 +54,7 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const unsigned int BUFFER_SEND_INTERVAL_MSECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000);
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000 * 1000);
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -66,7 +67,10 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
-AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) :
+    Assignment(dataBuffer, numBytes),
+    _isFinished(false)
+{
     
 }
 
@@ -247,48 +251,17 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
     }
 }
 
+timeval lastCall = {};
 
 void AudioMixer::checkInWithDomainServerOrExit() {
+    qDebug() << (usecTimestampNow() - usecTimestamp(&lastCall)) << "\n";
+    gettimeofday(&lastCall, NULL);
+    
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        _isFinished = true;
         emit finished();
     } else {
         NodeList::getInstance()->sendDomainServerCheckIn();
-    }
-}
-
-void AudioMixer::sendClientMixes() {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    // get the NodeList to ping any inactive nodes, for hole punching
-    nodeList->possiblyPingInactiveNodes();
-
-    int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
-    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
-    populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
-    
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData()) {
-            ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
-        }
-    }
-    
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
-            && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
-            prepareMixForListeningNode(&(*node));
-            
-            memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-            nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
-                                                    node->getActiveSocket()->getAddress(),
-                                                    node->getActiveSocket()->getPort());
-        }
-    }
-    
-    // push forward the next output pointers for any audio buffers we used
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData()) {
-            ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
-        }
     }
 }
 
@@ -313,7 +286,65 @@ void AudioMixer::setup() {
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
-    QTimer* mixSendTimer = new QTimer(this);
-    connect(mixSendTimer, SIGNAL(timeout()), this, SLOT(sendClientMixes()));
-    mixSendTimer->start(BUFFER_SEND_INTERVAL_MSECS);
+    run();
+}
+
+void AudioMixer::run() {
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    int nextFrame = 0;
+    timeval startTime;
+    
+    gettimeofday(&startTime, NULL);
+    
+    int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
+    populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
+    
+    while (!_isFinished) {
+        
+        // get the NodeList to ping any inactive nodes, for hole punching
+        nodeList->possiblyPingInactiveNodes();
+        
+        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+        unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
+        populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData()) {
+                ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
+            }
+        }
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
+                && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
+                prepareMixForListeningNode(&(*node));
+                
+                memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
+                nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
+                                                        node->getActiveSocket()->getAddress(),
+                                                        node->getActiveSocket()->getPort());
+            }
+        }
+        
+        // push forward the next output pointers for any audio buffers we used
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData()) {
+                ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
+            }
+        }
+        
+        QCoreApplication::processEvents();
+        
+        int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        } else {
+            qDebug("Took too much time, not sleeping!\n");
+        }
+        
+    }
 }

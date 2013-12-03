@@ -25,6 +25,9 @@ public slots:
     /// performs setup for the audio mixer
     void setup();
     
+    /// performs run of audio mixer
+    void run();
+    
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 signals:
     void finished();
@@ -38,9 +41,9 @@ private:
     
     
     int16_t _clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2];
+    bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();
-    void sendClientMixes();
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

@@ -93,13 +93,13 @@ void AssignmentClient::readPendingDatagrams() {
                                nodeList->getDomainIP().toString().toStdString().c_str());
                         
                         // start the deployed assignment
-                        QThread *workerThread = new QThread(this);
+                        QThread* workerThread = new QThread(this);
                         
                         connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(setup()));
                         
                         connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
                         connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                        connect(workerThread, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
+                        connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
                         connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
                         
                         _currentAssignment->moveToThread(workerThread);
@@ -129,7 +129,6 @@ void AssignmentClient::assignmentCompleted() {
     
     qDebug("Assignment finished or never started - waiting for new assignment\n");
     
-    // the _currentAssignment is being deleted, set our pointer to NULL
     _currentAssignment = NULL;
     
     NodeList* nodeList = NodeList::getInstance();
