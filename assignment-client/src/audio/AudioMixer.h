@@ -11,7 +11,7 @@
 
 #include <AudioRingBuffer.h>
 
-#include "../ThreadedAssignment.h"
+#include <ThreadedAssignment.h>
 
 class PositionalAudioRingBuffer;
 class AvatarAudioRingBuffer;

@@ -9,7 +9,7 @@
 #ifndef __hifi__ThreadedAssignment__
 #define __hifi__ThreadedAssignment__
 
-#include <Assignment.h>
+#include "Assignment.h"
 
 class ThreadedAssignment : public Assignment {
     Q_OBJECT

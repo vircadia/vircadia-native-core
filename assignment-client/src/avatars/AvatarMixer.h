@@ -9,7 +9,7 @@
 #ifndef __hifi__AvatarMixer__
 #define __hifi__AvatarMixer__
 
-#include "../ThreadedAssignment.h"
+#include <ThreadedAssignment.h>
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {

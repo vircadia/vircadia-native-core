@@ -725,7 +725,6 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
 }
 
 void NodeList::pingInactiveNodes() {
-    qDebug() << "Pinging inactive nodes\n";
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
