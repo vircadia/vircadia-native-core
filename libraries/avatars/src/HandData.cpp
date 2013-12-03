@@ -56,7 +56,10 @@ _isActive(false),
 _leapID(LEAPID_INVALID),
 _numFramesWithoutData(0),
 _owningPalmData(owningPalmData),
-_owningHandData(owningHandData)
+_owningHandData(owningHandData),
+_isTouchingVoxel(false),
+_fingerVoxelPosition(),
+_fingerVoxelScale(0)
 {
     const int standardTrailLength = 10;
     setTrailLength(standardTrailLength);

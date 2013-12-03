@@ -47,7 +47,6 @@
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
-#include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
 #include "devices/SixenseManager.h"
@@ -188,6 +187,10 @@ public:
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
+    
+    /// set a voxel which is to be rendered with a highlight
+    void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
+    void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -231,6 +234,7 @@ private slots:
     void shrinkMirrorView();
     void resetSensors();
 
+
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
@@ -272,9 +276,11 @@ private:
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
-                                
+    
     void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderFollowIndicator();
+    void renderHighlightVoxel(VoxelDetail voxel);
+    
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void queryVoxels();
@@ -371,8 +377,6 @@ private:
     
     int _headMouseX, _headMouseY;
     
-    HandControl _handControl;
-    
     int _mouseX;
     int _mouseY;
     int _mouseDragStartedX;
@@ -405,6 +409,9 @@ private:
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
+    VoxelDetail _highlightVoxel;
+    bool _isHighlightVoxel;
+    
     VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
     bool _nudgeStarted;
     bool _lookingAlongX;

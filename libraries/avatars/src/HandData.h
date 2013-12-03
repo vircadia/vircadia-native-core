@@ -119,6 +119,13 @@ public:
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
     int  getFramesWithoutData()          const { return _numFramesWithoutData; }
+    
+    void setIsTouchingVoxel(bool isTouchingVoxel) { _isTouchingVoxel = isTouchingVoxel; }
+    bool getIsTouchingVoxel() { return _isTouchingVoxel; }
+    void setFingerVoxelPosition(const glm::vec3& fingerVoxelPosition) { _fingerVoxelPosition = fingerVoxelPosition; }
+    const glm::vec3& getFingerVoxelPosition() const { return _fingerVoxelPosition; }
+    void setFingerVoxelScale(float fingerVoxelScale) { _fingerVoxelScale = fingerVoxelScale; }
+    float getFingerVoxelScale() { return _fingerVoxelScale; }
 
 private:
     glm::vec3 _tipRawPosition;
@@ -131,6 +138,10 @@ private:
     int                    _tipTrailCurrentValidLength;
     PalmData* _owningPalmData;
     HandData* _owningHandData;
+    
+    bool _isTouchingVoxel;
+    glm::vec3 _fingerVoxelPosition;
+    float _fingerVoxelScale;
 };
 
 class PalmData {
