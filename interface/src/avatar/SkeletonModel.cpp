@@ -141,25 +141,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
-    
-    // start by rotating the elbow into place
-    int parentIndex = geometry.joints[jointIndex].parentIndex;
-    if (parentIndex != -1) {
-        glm::vec3 boneVector = extractTranslation(_jointStates[jointIndex].transform) -
-            extractTranslation(_jointStates[parentIndex].transform);
-        float boneLength = glm::length(boneVector);
-        if (boneLength > EPSILON) {
-            boneVector /= boneLength;
-            applyRotationDelta(parentIndex, rotationBetween(
-                glm::cross(boneVector, glm::cross(palmRotation * geometry.palmDirection, boneVector)),
-                glm::cross(boneVector, glm::cross(palm.getNormal(), boneVector))), false);
-            updateJointState(jointIndex);
-            getJointRotation(jointIndex, palmRotation, true);
-        }
-    }
-    
-    // continue with the wrist
-    applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()));
+    applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), false);
     getJointRotation(jointIndex, palmRotation, true);
     
     // sort the finger indices by raw x, get the average direction
@@ -181,7 +163,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float directionLength = glm::length(direction);
     const int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction));
+        applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
         getJointRotation(jointIndex, palmRotation, true);
     }
     
