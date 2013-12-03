@@ -45,4 +45,6 @@ private:
 
 quint32 getLocalAddress();
 
+Q_DECLARE_METATYPE(HifiSockAddr)
+
 #endif /* defined(__hifi__HifiSockAddr__) */

@@ -75,7 +75,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
-    _nodeSocket.bind(QHostAddress::LocalHost, newSocketListenPort);
+    _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
 }
 
 NodeList::~NodeList() {
@@ -339,22 +339,14 @@ void NodeList::sendSTUNRequest() {
     memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
     
     // lookup the IP for the STUN server
-    static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+    static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
     
-    for (int i = 0; i < stunInfo.addresses().size(); i++) {
-        if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-            QString stunIPAddress = stunInfo.addresses()[i].toString();
-            
-            if (!_hasCompletedInitialSTUNFailure) {
-                qDebug("Sending intial stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
-            }
-            
-            _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
-                                      QHostAddress(stunIPAddress), STUN_SERVER_PORT);
-            
-            break;
-        }
+    if (!_hasCompletedInitialSTUNFailure) {
+        qDebug("Sending intial stun request to %s\n", stunSockAddr.getAddress().toString().toLocal8Bit().constData());
     }
+    
+    _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
+                              stunSockAddr.getAddress(), stunSockAddr.getPort());
     
     _stunRequestsSinceSuccess++;
     
@@ -800,7 +792,22 @@ void NodeList::killNode(Node* node, bool mustLockNode) {
     }
 }
 
-void* removeSilentNodes(void *args) {
+void NodeList::removeSilentNodes() {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
+        node->lock();
+        
+        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+            // kill this node, don't lock - we already did it
+            nodeList->killNode(&(*node), false);
+        }
+        
+        node->unlock();
+    }
+}
+
+void* removeSilentNodesAndSleep(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUsecs = 0;
     int sleepTime = 0;
@@ -809,16 +816,7 @@ void* removeSilentNodes(void *args) {
         
         checkTimeUsecs = usecTimestampNow();
         
-        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-            node->lock();
-            
-            if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-                // kill this node, don't lock - we already did it
-                nodeList->killNode(&(*node), false);
-            }
-            
-            node->unlock();
-        }
+        nodeList->removeSilentNodes();
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
         
@@ -841,7 +839,7 @@ void* removeSilentNodes(void *args) {
 
 void NodeList::startSilentNodeRemovalThread() {
     if (!::silentNodeThreadStopFlag) {
-        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodesAndSleep, (void*) this);
     } else {
         qDebug("Refusing to start silent node removal thread from previously failed join.\n");
     }

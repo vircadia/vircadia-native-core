@@ -20,8 +20,11 @@ public:
                      const char* requestAssignmentPool = NULL);
 private slots:
     void sendAssignmentRequest();
+    void readPendingDatagrams();
+    void assignmentCompleted();
 private:
     Assignment _requestAssignment;
+    Assignment* _currentAssignment;
 };
 
 #endif /* defined(__hifi__AssignmentClient__) */

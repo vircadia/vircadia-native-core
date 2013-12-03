@@ -60,7 +60,8 @@ public:
     virtual void domainChanged(QString domain) = 0;
 };
 
-class NodeList {
+class NodeList : public QObject {
+    Q_OBJECT
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
@@ -78,6 +79,8 @@ public:
     
     const QHostAddress& getDomainIP() const { return _domainSockAddr.getAddress(); }
     void setDomainIPToLocalhost() { _domainSockAddr.setAddress(QHostAddress(INADDR_LOOPBACK)); }
+    
+    void setDomainSockAddr(const HifiSockAddr& domainSockAddr) { _domainSockAddr = domainSockAddr; }
     
     unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
     
@@ -98,7 +101,6 @@ public:
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
@@ -141,6 +143,9 @@ public:
     
     void possiblyPingInactiveNodes();
     const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
+public slots:
+    void sendDomainServerCheckIn();
+    void removeSilentNodes();
 private:
     static NodeList* _sharedInstance;
     

@@ -11,6 +11,7 @@
 
 #include <sys/time.h>
 
+#include <QTCore/QThread>
 #include <QtCore/QUuid>
 
 #include "NodeList.h"
@@ -89,7 +90,7 @@ public:
     // implement parseData to return 0 so we can be a subclass of NodeData
     int parseData(unsigned char* sourceBuffer, int numBytes) { return 0; }
     
-    /// blocking run of the assignment
+    /// threaded run of assignment
     virtual void run();
     
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);

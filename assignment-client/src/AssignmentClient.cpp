@@ -26,7 +26,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv,
                                    const HifiSockAddr& customAssignmentServerSocket,
                                    const char* requestAssignmentPool) :
     QCoreApplication(argc, argv),
-    _requestAssignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool)
+    _requestAssignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool),
+    _currentAssignment(NULL)
 {
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -45,8 +46,92 @@ AssignmentClient::AssignmentClient(int &argc, char **argv,
     QTimer* timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
     timer->start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
+    
+    // connect our readPendingDatagrams method to the readyRead() signal of the socket
+    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
 }
 
 void AssignmentClient::sendAssignmentRequest() {
-    NodeList::getInstance()->sendAssignment(_requestAssignment);
+    if (!_currentAssignment) {
+        NodeList::getInstance()->sendAssignment(_requestAssignment);
+    }
+}
+
+void AssignmentClient::readPendingDatagrams() {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    static unsigned char packetData[1500];
+    static qint64 receivedBytes = 0;
+    static HifiSockAddr senderSockAddr;
+    
+    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
+        
+        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
+                                                                    senderSockAddr.getAddressPointer(),
+                                                                    senderSockAddr.getPortPointer()))
+            && packetVersionMatch(packetData)) {
+            
+            if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                
+                if (_currentAssignment) {
+                    qDebug() << "Dropping received assignment since we are currently running one.\n";
+                } else {
+                    // construct the deployed assignment from the packet data
+                    _currentAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
+                    
+                    qDebug() << "Received an assignment -" << *_currentAssignment << "\n";
+                    
+                    // switch our nodelist domain IP and port to whoever sent us the assignment
+                    if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                        nodeList->setDomainSockAddr(senderSockAddr);
+                        nodeList->setOwnerUUID(_currentAssignment->getUUID());
+                        
+                        qDebug("Destination IP for assignment is %s\n",
+                               nodeList->getDomainIP().toString().toStdString().c_str());
+                        
+                        // start the deployed assignment
+                        QThread *workerThread = new QThread(this);
+                        
+                        connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
+                        connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
+                        connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
+                        connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                        _currentAssignment->moveToThread(workerThread);
+                        
+                        // Starts an event loop, and emits workerThread->started()
+                        workerThread->start();
+                    } else {
+                        qDebug("Received a bad destination socket for assignment.\n");
+                    }
+                }
+            } else if (_currentAssignment) {
+                
+                qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
+                
+                // have the threaded current assignment handle this datagram
+                QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
+                                          Q_ARG(const QByteArray&, QByteArray((char*) packetData, receivedBytes)),
+                                          Q_ARG(const HifiSockAddr&, senderSockAddr));
+            } else {
+                // have the NodeList attempt to handle it
+                nodeList->processNodeData(senderSockAddr, packetData, receivedBytes);
+            }
+        }
+    }
+}
+
+void AssignmentClient::assignmentCompleted() {
+    qDebug("Assignment finished or never started - waiting for new assignment\n");
+    
+    // the _currentAssignment is being deleted, set our pointer to NULL
+    _currentAssignment = NULL;
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    // reset our NodeList by switching back to unassigned and clearing the list
+    nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
+    nodeList->reset();
+    
+    // reset the logging target to the the CHILD_TARGET_NAME
+    Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 }
