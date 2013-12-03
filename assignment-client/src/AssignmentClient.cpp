@@ -29,6 +29,9 @@ AssignmentClient::AssignmentClient(int &argc, char **argv,
     _requestAssignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool),
     _currentAssignment(NULL)
 {
+    // register meta type is required for queued invoke method on Assignment subclasses
+    qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
+    
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
     
@@ -93,9 +96,12 @@ void AssignmentClient::readPendingDatagrams() {
                         QThread *workerThread = new QThread(this);
                         
                         connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
+                        
+                        connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
                         connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                        connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
-                        connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                        connect(workerThread, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
+                        connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                        
                         _currentAssignment->moveToThread(workerThread);
                         
                         // Starts an event loop, and emits workerThread->started()
@@ -105,9 +111,6 @@ void AssignmentClient::readPendingDatagrams() {
                     }
                 }
             } else if (_currentAssignment) {
-                
-                qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
-                
                 // have the threaded current assignment handle this datagram
                 QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
                                           Q_ARG(const QByteArray&, QByteArray((char*) packetData, receivedBytes)),
@@ -121,6 +124,9 @@ void AssignmentClient::readPendingDatagrams() {
 }
 
 void AssignmentClient::assignmentCompleted() {
+    // reset the logging target to the the CHILD_TARGET_NAME
+    Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
+    
     qDebug("Assignment finished or never started - waiting for new assignment\n");
     
     // the _currentAssignment is being deleted, set our pointer to NULL
@@ -131,7 +137,4 @@ void AssignmentClient::assignmentCompleted() {
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
     nodeList->reset();
-    
-    // reset the logging target to the the CHILD_TARGET_NAME
-    Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 }
