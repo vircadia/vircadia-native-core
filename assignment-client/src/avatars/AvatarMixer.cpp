@@ -115,7 +115,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
     
     NodeList* nodeList = NodeList::getInstance();
     
-    switch (dataByteArray.data()[0]) {
+    switch (dataByteArray[0]) {
         case PACKET_TYPE_HEAD_DATA: {
             QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
                                                                   NUM_BYTES_RFC4122_UUID));

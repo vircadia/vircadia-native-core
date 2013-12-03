@@ -225,9 +225,9 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
 void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     // pull any new audio data from nodes off of the network stack
-    if (dataByteArray.data()[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
-        || dataByteArray.data()[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-        || dataByteArray.data()[0] == PACKET_TYPE_INJECT_AUDIO) {
+    if (dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
+        || dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+        || dataByteArray[0] == PACKET_TYPE_INJECT_AUDIO) {
         QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
                                                               NUM_BYTES_RFC4122_UUID));
         
