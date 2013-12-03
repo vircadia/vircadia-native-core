@@ -141,6 +141,24 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
+    
+    // start by rotating the elbow into place
+    int parentIndex = geometry.joints[jointIndex].parentIndex;
+    if (parentIndex != -1) {
+        glm::vec3 boneVector = extractTranslation(_jointStates[jointIndex].transform) -
+            extractTranslation(_jointStates[parentIndex].transform);
+        float boneLength = glm::length(boneVector);
+        if (boneLength > EPSILON) {
+            boneVector /= boneLength;
+            applyRotationDelta(parentIndex, rotationBetween(
+                glm::cross(boneVector, glm::cross(palmRotation * geometry.palmDirection, boneVector)),
+                glm::cross(boneVector, glm::cross(palm.getNormal(), boneVector))), false);
+            updateJointState(jointIndex);
+            getJointRotation(jointIndex, palmRotation, true);
+        }
+    }
+    
+    // continue with the wrist
     applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()));
     getJointRotation(jointIndex, palmRotation, true);
     

@@ -157,7 +157,7 @@ protected:
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
     
-    void applyRotationDelta(int jointIndex, const glm::quat& delta);
+    void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
 private:
     

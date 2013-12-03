@@ -680,10 +680,11 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-    if (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) && joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f)) {
+    if (!constrain || (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) &&
+            joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f))) {
         // no constraints
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
         state.combinedRotation = delta * state.combinedRotation;
