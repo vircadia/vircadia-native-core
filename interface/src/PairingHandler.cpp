@@ -37,7 +37,7 @@ void PairingHandler::sendPairRequest() {
     NodeList* nodeList = NodeList::getInstance();
     
     // use the getLocalAddress helper to get this client's listening address
-    quint32 localAddress = getLocalAddress();
+    quint32 localAddress = htonl(getHostOrderLocalAddress());
     
     char pairPacket[24] = {};
     sprintf(pairPacket, "Find %d.%d.%d.%d:%hu",

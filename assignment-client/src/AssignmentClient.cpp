@@ -95,7 +95,7 @@ void AssignmentClient::readPendingDatagrams() {
                         // start the deployed assignment
                         QThread *workerThread = new QThread(this);
                         
-                        connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
+                        connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(setup()));
                         
                         connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
                         connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));

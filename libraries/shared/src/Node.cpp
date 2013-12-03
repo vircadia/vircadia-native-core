@@ -136,6 +136,6 @@ float Node::getAverageKilobitsPerSecond() {
 QDebug operator<<(QDebug debug, const Node &node) {
     debug.nospace() << node.getTypeName() << " (" << node.getType() << ")";
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
-    debug.nospace() << node.getLocalSocket() << "/" << node.getPublicSocket();
+    debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
 }

@@ -22,8 +22,8 @@ class AudioMixer : public Assignment {
 public:
     AudioMixer(const unsigned char* dataBuffer, int numBytes);
 public slots:
-    /// runs the audio mixer
-    void run();
+    /// performs setup for the audio mixer
+    void setup();
     
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 signals:

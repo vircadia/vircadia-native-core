@@ -293,7 +293,7 @@ void AudioMixer::sendClientMixes() {
 }
 
 
-void AudioMixer::run() {
+void AudioMixer::setup() {
     // change the logging target name while this is running
     Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
     

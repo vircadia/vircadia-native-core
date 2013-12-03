@@ -12,7 +12,7 @@
 #include <QtNetwork/QNetworkInterface>
 
 HifiSockAddr::HifiSockAddr() :
-    _address(QHostAddress::Null),
+    _address(),
     _port(0)
 {
     
@@ -55,15 +55,16 @@ void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
 }
 
 int HifiSockAddr::packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr) {
-    unsigned int addressToPack = packSockAddr._address.toIPv4Address();
-    memcpy(packetData, &addressToPack, sizeof(packSockAddr._address.toIPv4Address()));
-    memcpy(packetData, &packSockAddr._port, sizeof(packSockAddr._port));
+    quint32 addressToPack = packSockAddr._address.isNull() ? 0 : packSockAddr._address.toIPv4Address();
+    memcpy(packetData, &addressToPack, sizeof(addressToPack));
+    memcpy(packetData + sizeof(addressToPack), &packSockAddr._port, sizeof(packSockAddr._port));
     
     return sizeof(addressToPack) + sizeof(packSockAddr._port);
 }
 
 int HifiSockAddr::unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr) {
-    unpackDestSockAddr._address = QHostAddress(*((quint32*) packetData));
+    quint32* address = (quint32*) packetData;
+    unpackDestSockAddr._address = *address == 0 ? QHostAddress() : QHostAddress(*address);
     unpackDestSockAddr._port = *((quint16*) (packetData + sizeof(quint32)));
     
     return sizeof(quint32) + sizeof(quint16);
@@ -74,11 +75,11 @@ bool HifiSockAddr::operator==(const HifiSockAddr &rhsSockAddr) const {
 }
 
 QDebug operator<<(QDebug debug, const HifiSockAddr &hifiSockAddr) {
-    debug.nospace() << hifiSockAddr._address.toString() << ":" << hifiSockAddr._port;
+    debug.nospace() << hifiSockAddr._address.toString().toLocal8Bit().constData() << ":" << hifiSockAddr._port;
     return debug;
 }
 
-quint32 getLocalAddress() {
+quint32 getHostOrderLocalAddress() {
     
     static int localAddress = 0;
     
@@ -95,7 +96,7 @@ quint32 getLocalAddress() {
                         qDebug("Node's local address is %s\n", entry.ip().toString().toLocal8Bit().constData());
                         
                         // set our localAddress and break out
-                        localAddress = htonl(entry.ip().toIPv4Address());
+                        localAddress = entry.ip().toIPv4Address();
                         break;
                     }
                 }

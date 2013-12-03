@@ -43,7 +43,7 @@ private:
     quint16 _port;
 };
 
-quint32 getLocalAddress();
+quint32 getHostOrderLocalAddress();
 
 Q_DECLARE_METATYPE(HifiSockAddr)
 

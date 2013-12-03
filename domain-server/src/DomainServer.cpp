@@ -628,16 +628,16 @@ int DomainServer::run() {
                 int numBytesPrivateSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodePublicAddress);
                 packetIndex += numBytesPrivateSocket;
                 
-                if (nodePublicAddress.getAddress().isNull() == 0) {
+                if (nodePublicAddress.getAddress().isNull()) {
                     // this node wants to use us its STUN server
                     // so set the node public address to whatever we perceive the public address to be
-                    
-                    nodePublicAddress.setAddress(senderAddress);
                     
                     // if the sender is on our box then leave its public address to 0 so that
                     // other users attempt to reach it on the same address they have for the domain-server
                     if (senderAddress.isLoopback()) {
                         nodePublicAddress.setAddress(QHostAddress());
+                    } else {
+                        nodePublicAddress.setAddress(senderAddress);
                     }
                 }
                 

@@ -76,6 +76,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _stunRequestsSinceSuccess(0)
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
+    qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort() << "\n";
 }
 
 NodeList::~NodeList() {
@@ -361,7 +362,8 @@ void NodeList::sendSTUNRequest() {
         }
         
         // reset the public address and port
-        _publicSockAddr = HifiSockAddr();
+        // use 0 so the DS knows to act as out STUN server
+        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
     }
 }
 
@@ -539,7 +541,8 @@ void NodeList::sendDomainServerCheckIn() {
         
         // pack our local address to send to domain-server
         packetPosition += HifiSockAddr::packSockAddr(checkInPacket + (packetPosition - checkInPacket),
-                                                     HifiSockAddr(_nodeSocket.localAddress(), _nodeSocket.localPort()));
+                                                     HifiSockAddr(QHostAddress(getHostOrderLocalAddress()),
+                                                                  _nodeSocket.localPort()));
         
         // add the number of bytes for node types of interest
         *(packetPosition++) = numBytesNodesOfInterest;
