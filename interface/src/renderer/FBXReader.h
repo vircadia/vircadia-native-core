@@ -47,6 +47,7 @@ public:
     QVector<int> freeLineage;
     int parentIndex;
     float distanceToParent;
+    float boneRadius;
     glm::mat4 preTransform;
     glm::quat preRotation;
     glm::quat rotation;

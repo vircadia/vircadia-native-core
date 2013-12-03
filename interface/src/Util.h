@@ -61,6 +61,10 @@ void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
 
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
 
+glm::vec3 extractScale(const glm::mat4& matrix);
+
+float extractUniformScale(const glm::mat4& matrix);
+
 double diffclock(timeval *clock1,timeval *clock2);
 
 void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);

@@ -20,6 +20,7 @@
 
 #include <OctalCode.h>
 
+#include <GeometryUtil.h>
 #include <VoxelTree.h>
 
 #include "FBXReader.h"
@@ -1142,6 +1143,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
                 extractTranslation(joint.transform));
         }
+        joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
@@ -1274,7 +1276,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // whether we're skinned depends on how many clusters are attached
-        int maxJointIndex = extracted.mesh.clusters.at(0).jointIndex;
+        const FBXCluster& firstFBXCluster = extracted.mesh.clusters.at(0);
+        int maxJointIndex = firstFBXCluster.jointIndex;
+        glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
             extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
@@ -1282,6 +1286,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
+                const FBXCluster& fbxCluster = extracted.mesh.clusters.at(i);
+                int jointIndex = fbxCluster.jointIndex;
+                FBXJoint& joint = geometry.joints[jointIndex];
+                glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
+                glm::vec3 boneDirection;
+                float boneLength;
+                if (joint.parentIndex != -1) {
+                    boneDirection = boneEnd - extractTranslation(inverseModelTransform *
+                        geometry.joints[joint.parentIndex].bindTransform);
+                    boneLength = glm::length(boneDirection);
+                    if (boneLength > EPSILON) {
+                        boneDirection /= boneLength;
+                    }
+                }
+                float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
@@ -1289,9 +1308,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
-                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
-                    
+                        // expand the bone radius
+                        if (weight > 0.25f) {
+                            const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
+                            float proj = glm::dot(boneDirection, vertex - boneEnd);
+                            if (proj < 0.0f && proj > -boneLength) {
+                                joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
+                                    vertex, boneEnd + boneDirection * proj));
+                        }   }
+                        
+                        
                         // look for an unused slot in the weights vector
+                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
                         for (int k = 0; k < 4; k++) {
                             if (weights[k] == 0.0f) {
                                 extracted.mesh.clusterIndices[it.value()][k] = i;
@@ -1303,8 +1331,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
                 if (totalWeight > maxWeight) {
                     maxWeight = totalWeight;
-                    maxJointIndex = extracted.mesh.clusters.at(i).jointIndex;
+                    maxJointIndex = jointIndex;
                 }
+            }
+        } else {
+            int jointIndex = maxJointIndex;
+            FBXJoint& joint = geometry.joints[jointIndex];
+            glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
+            glm::vec3 boneStart = boneEnd;
+            if (joint.parentIndex != -1) {
+                boneStart = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
+            }
+            float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
+            foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+                // expand the bone radius
+                joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::length(
+                    computeVectorFromPointToSegment(vertex, boneStart, boneEnd)));
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
