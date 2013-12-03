@@ -251,12 +251,7 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
     }
 }
 
-timeval lastCall = {};
-
 void AudioMixer::checkInWithDomainServerOrExit() {
-    qDebug() << (usecTimestampNow() - usecTimestamp(&lastCall)) << "\n";
-    gettimeofday(&lastCall, NULL);
-    
     if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         _isFinished = true;
         emit finished();
