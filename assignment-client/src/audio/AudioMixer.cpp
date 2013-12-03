@@ -304,13 +304,12 @@ void AudioMixer::run() {
     
     while (!_isFinished) {
         
-        // get the NodeList to ping any inactive nodes, for hole punching
-        nodeList->possiblyPingInactiveNodes();
+        QCoreApplication::processEvents();
         
-        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
-        unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
-        populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
-        
+        if (_isFinished) {
+            break;
+        }
+
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
@@ -336,7 +335,8 @@ void AudioMixer::run() {
             }
         }
         
-        QCoreApplication::processEvents();
+        // get the NodeList to ping any inactive nodes, for hole punching
+        nodeList->possiblyPingInactiveNodes();
         
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
