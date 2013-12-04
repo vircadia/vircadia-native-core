@@ -41,6 +41,7 @@
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
 #include "VoxelEditPacketSender.h"
+#include "VoxelHideShowThread.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
@@ -240,7 +241,7 @@ private:
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
-    static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
@@ -299,7 +300,6 @@ private:
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -447,8 +447,9 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    VoxelPacketProcessor     _voxelProcessor;
-    VoxelEditPacketSender   _voxelEditSender;
+    VoxelPacketProcessor _voxelProcessor;
+    VoxelHideShowThread _voxelHideShowThread;
+    VoxelEditPacketSender _voxelEditSender;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
@@ -469,9 +470,9 @@ private:
 
     PieMenu _pieMenu;
     
-    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
-    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
-                    sockaddr senderAddress, bool wasStatsPacket);
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
+                                  const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;

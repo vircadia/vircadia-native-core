@@ -45,7 +45,9 @@ private:
     Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     void removeAssignmentFromQueue(Assignment* removableAssignment);
-    bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const QUuid& checkInUUI);
+    bool checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
+                                            const HifiSockAddr& nodeLocalSocket,
+                                            const QUuid& checkInUUI);
     void possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* startTime);
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     

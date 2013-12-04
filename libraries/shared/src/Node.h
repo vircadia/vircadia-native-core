@@ -21,18 +21,17 @@
 #include <QtCore/QDebug>
 #include <QtCore/QUuid>
 
+#include "HifiSockAddr.h"
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
 class Node {
 public:
-    Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket);
+    Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     ~Node();
     
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
-    
-    bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType);
     
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
@@ -47,12 +46,12 @@ public:
     uint64_t getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
-    sockaddr* getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(sockaddr* publicSocket);
-    sockaddr* getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(sockaddr* localSocket);
+    const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
+    void setPublicSocket(const HifiSockAddr& publicSocket);
+    const HifiSockAddr& getLocalSocket() const { return _localSocket; }
+    void setLocalSocket(const HifiSockAddr& localSocket);
     
-    sockaddr* getActiveSocket() const { return _activeSocket; }
+    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
     
     void activatePublicSocket();
     void activateLocalSocket();
@@ -87,9 +86,9 @@ private:
     QUuid _uuid;
     uint64_t _wakeMicrostamp;
     uint64_t _lastHeardMicrostamp;
-    sockaddr* _publicSocket;
-    sockaddr* _localSocket;
-    sockaddr* _activeSocket;
+    HifiSockAddr _publicSocket;
+    HifiSockAddr _localSocket;
+    HifiSockAddr* _activeSocket;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     NodeData* _linkedData;
     bool _isAlive;

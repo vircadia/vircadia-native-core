@@ -211,10 +211,6 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     return numPackedBytes;
 }
 
-void Assignment::run() {
-    // run method ovveridden by subclasses
-}
-
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
     debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
         ", Type: " << assignment.getType();

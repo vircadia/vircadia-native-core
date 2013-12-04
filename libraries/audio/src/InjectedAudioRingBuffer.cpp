@@ -24,6 +24,8 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) 
     
 }
 
+const uchar MAX_INJECTOR_VOLUME = 255;
+
 int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer =  sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     

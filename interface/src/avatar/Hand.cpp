@@ -94,7 +94,8 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 }
             }
             //  Check if the finger is intersecting with a voxel in the client voxel tree
-            VoxelNode* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(glm::vec3(fingerTipPosition / (float)TREE_SCALE));
+            VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
+                                                                        glm::vec3(fingerTipPosition / (float)TREE_SCALE));
             if (fingerNode) {
                 if (!palm.getIsCollidingWithVoxel()) {
                     //  Collision has just started
@@ -124,7 +125,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelNode* voxel, float deltaTime) {
+void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
     //
     //  Collision between finger and a voxel plays sound
     //

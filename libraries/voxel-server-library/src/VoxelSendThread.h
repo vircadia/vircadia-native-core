@@ -14,7 +14,7 @@
 #include <GenericThread.h>
 #include <NetworkPacket.h>
 #include <VoxelTree.h>
-#include <VoxelNodeBag.h>
+#include <OctreeElementBag.h>
 #include "VoxelNodeData.h"
 #include "VoxelServer.h"
 
