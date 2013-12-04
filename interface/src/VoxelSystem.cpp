@@ -256,14 +256,14 @@ void VoxelSystem::clearFreeBufferIndexes() {
 }
 
 VoxelSystem::~VoxelSystem() {
+    VoxelTreeElement::removeDeleteHook(this);
+    VoxelTreeElement::removeUpdateHook(this);
+
     cleanupVoxelMemory();
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
     pthread_mutex_destroy(&_freeIndexLock);
-
-    VoxelTreeElement::removeDeleteHook(this);
-    VoxelTreeElement::removeUpdateHook(this);
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
