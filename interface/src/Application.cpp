@@ -133,9 +133,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-#ifndef _WIN32
-        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
-#endif
+        _audio(STARTUP_JITTER_SAMPLES),
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
         _voxelEditSender(this),
@@ -161,6 +159,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     }
     
     NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
+    
+    // put the audio processing on a separate thread
+    QThread* audioThread = new QThread(this);
+    
+    _audio.moveToThread(audioThread);
+    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    audioThread->start();
     
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
@@ -244,8 +250,6 @@ Application::~Application() {
     NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    _audio.shutdown();
 
     VoxelNode::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
@@ -647,9 +651,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Comma:
             case Qt::Key_Period:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
-                break;
-            case Qt::Key_Semicolon:
-                _audio.ping();
                 break;
             case Qt::Key_Apostrophe:
                 _audioScope.inputPaused = !_audioScope.inputPaused;
@@ -2425,7 +2426,6 @@ void Application::updateAudio(float deltaTime) {
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
-    _audio.eventuallyAnalyzePing();
     #endif
 }
 
