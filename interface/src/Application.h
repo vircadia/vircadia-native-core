@@ -241,7 +241,7 @@ private:
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
-    static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();

@@ -114,7 +114,7 @@ BoundingBox CoverageMapV2::getChildBoundingBox(int childIndex) {
 }
 
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
-CoverageMapV2StorageResult CoverageMapV2::checkMap(const VoxelProjectedPolygon* polygon, bool storeIt) {
+CoverageMapV2StorageResult CoverageMapV2::checkMap(const OctreeProjectedPolygon* polygon, bool storeIt) {
     assert(_isRoot); // you can only call this on the root map!!!
     _checkMapRootCalls++;
 
@@ -152,7 +152,7 @@ CoverageMapV2StorageResult CoverageMapV2::checkMap(const VoxelProjectedPolygon* 
     return V2_NOT_STORED; // unless we weren't asked to store it, then we didn't
 }
 
-void CoverageMapV2::recurseMap(const VoxelProjectedPolygon* polygon, bool storeIt, 
+void CoverageMapV2::recurseMap(const OctreeProjectedPolygon* polygon, bool storeIt, 
                 bool& seenOccludedMapNodes, bool& allOccludedMapNodesCovered) {
 
     // if we are really small, then we act like we don't intersect, this allows us to stop

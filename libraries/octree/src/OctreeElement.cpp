@@ -1,5 +1,5 @@
 //
-//  VoxelNode.cpp
+//  OctreeElement.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 3/13/13.
@@ -14,36 +14,36 @@
 
 #include <NodeList.h>
 #include <PerfStat.h>
+#include <assert.h>
 
 #include "AABox.h"
 #include "OctalCode.h"
 #include "SharedUtil.h"
-#include "VoxelConstants.h"
-#include "VoxelNode.h"
-#include "VoxelTree.h"
+#include "OctreeConstants.h"
+#include "OctreeElement.h"
+#include "Octree.h"
 
-uint64_t VoxelNode::_voxelMemoryUsage = 0;
-uint64_t VoxelNode::_octcodeMemoryUsage = 0;
-uint64_t VoxelNode::_externalChildrenMemoryUsage = 0;
-uint64_t VoxelNode::_voxelNodeCount = 0;
-uint64_t VoxelNode::_voxelNodeLeafCount = 0;
+uint64_t OctreeElement::_voxelMemoryUsage = 0;
+uint64_t OctreeElement::_octcodeMemoryUsage = 0;
+uint64_t OctreeElement::_externalChildrenMemoryUsage = 0;
+uint64_t OctreeElement::_voxelNodeCount = 0;
+uint64_t OctreeElement::_voxelNodeLeafCount = 0;
 
-VoxelNode::VoxelNode() {
-    unsigned char* rootCode = new unsigned char[1];
-    *rootCode = 0;
-    init(rootCode);
-
-    _voxelNodeCount++;
-    _voxelNodeLeafCount++; // all nodes start as leaf nodes
+OctreeElement::OctreeElement() {
+    // Note: you must call init() from your subclass, otherwise the OctreeElement will not be properly
+    // initialized. You will see DEADBEEF in your memory debugger if you have not properly called init()
+    debug::setDeadBeef(this, sizeof(*this));
 }
 
-VoxelNode::VoxelNode(unsigned char * octalCode) {
-    init(octalCode);
+void OctreeElement::init(unsigned char * octalCode) {
+    if (!octalCode) {
+        octalCode = new unsigned char[1];
+        *octalCode = 0;
+    }
     _voxelNodeCount++;
     _voxelNodeLeafCount++; // all nodes start as leaf nodes
-}
 
-void VoxelNode::init(unsigned char * octalCode) {
+
     int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
     if (octalCodeLength > sizeof(_octalCode)) {
         _octalCode.pointer = octalCode;
@@ -55,13 +55,6 @@ void VoxelNode::init(unsigned char * octalCode) {
         delete[] octalCode;
     }
     
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
-    _falseColored = false; // assume true color
-    _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
-#endif
-    _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
-    _density = 0.0f;
-
     // set up the _children union
     _childBitmask = 0;
     _childrenExternal = false;
@@ -89,24 +82,15 @@ void VoxelNode::init(unsigned char * octalCode) {
     _children.single = NULL;
 #endif
     
-    _unknownBufferIndex = true;
-    setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
-
-    setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
     _sourceUUIDKey = 0;
     calculateAABox();
     markWithChangedTime();
-
-    _voxelMemoryUsage += sizeof(VoxelNode);
 }
 
-VoxelNode::~VoxelNode() {
+OctreeElement::~OctreeElement() {
     notifyDeleteHooks();
-
-    _voxelMemoryUsage -= sizeof(VoxelNode);
-
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;
@@ -121,65 +105,32 @@ VoxelNode::~VoxelNode() {
     deleteAllChildren();
 }
 
-void VoxelNode::markWithChangedTime() { 
+void OctreeElement::markWithChangedTime() { 
     _lastChanged = usecTimestampNow(); 
     notifyUpdateHooks(); // if the node has changed, notify our hooks
 }
 
-// This method is called by VoxelTree when the subtree below this node
+// This method is called by Octree when the subtree below this node
 // is known to have changed. It's intended to be used as a place to do
 // bookkeeping that a node may need to do when the subtree below it has
 // changed. However, you should hopefully make your bookkeeping relatively
 // localized, because this method will get called for every node in an
 // recursive unwinding case like delete or add voxel
-void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
+void OctreeElement::handleSubtreeChanged(Octree* myTree) {
     // here's a good place to do color re-averaging...
     if (myTree->getShouldReaverage()) {
-        setColorFromAverageOfChildren();
+        calculateAverageFromChildren();
     }
     
     markWithChangedTime();
 }
 
-const uint8_t INDEX_FOR_NULL = 0;
-uint8_t VoxelNode::_nextIndex = INDEX_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
-std::map<VoxelSystem*, uint8_t> VoxelNode::_mapVoxelSystemPointersToIndex;
-std::map<uint8_t, VoxelSystem*> VoxelNode::_mapIndexToVoxelSystemPointers;
-
-VoxelSystem* VoxelNode::getVoxelSystem() const { 
-    if (_voxelSystemIndex > INDEX_FOR_NULL) {
-        if (_mapIndexToVoxelSystemPointers.end() != _mapIndexToVoxelSystemPointers.find(_voxelSystemIndex)) {
-
-            VoxelSystem* voxelSystem = _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
-            return voxelSystem;
-        }
-    }
-    return NULL;
-}
-
-void VoxelNode::setVoxelSystem(VoxelSystem* voxelSystem) {
-    if (voxelSystem == NULL) {
-        _voxelSystemIndex = INDEX_FOR_NULL;
-    } else {
-        uint8_t index;
-        if (_mapVoxelSystemPointersToIndex.end() != _mapVoxelSystemPointersToIndex.find(voxelSystem)) {
-            index = _mapVoxelSystemPointersToIndex[voxelSystem];
-        } else {
-            index = _nextIndex;
-            _nextIndex++;
-            _mapVoxelSystemPointersToIndex[voxelSystem] = index;
-            _mapIndexToVoxelSystemPointers[index] = voxelSystem;
-        }
-        _voxelSystemIndex = index;
-    }
-}
-
 const uint16_t KEY_FOR_NULL = 0;
-uint16_t VoxelNode::_nextUUIDKey = KEY_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
-std::map<QString, uint16_t> VoxelNode::_mapSourceUUIDsToKeys;
-std::map<uint16_t, QString> VoxelNode::_mapKeysToSourceUUIDs;
+uint16_t OctreeElement::_nextUUIDKey = KEY_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
+std::map<QString, uint16_t> OctreeElement::_mapSourceUUIDsToKeys;
+std::map<uint16_t, QString> OctreeElement::_mapKeysToSourceUUIDs;
 
-void VoxelNode::setSourceUUID(const QUuid& sourceUUID) {
+void OctreeElement::setSourceUUID(const QUuid& sourceUUID) {
     uint16_t key;
     QString sourceUUIDString = sourceUUID.toString();
     if (_mapSourceUUIDsToKeys.end() != _mapSourceUUIDsToKeys.find(sourceUUIDString)) {
@@ -193,7 +144,7 @@ void VoxelNode::setSourceUUID(const QUuid& sourceUUID) {
     _sourceUUIDKey = key;
 }
 
-QUuid VoxelNode::getSourceUUID() const {
+QUuid OctreeElement::getSourceUUID() const {
     if (_sourceUUIDKey > KEY_FOR_NULL) {
         if (_mapKeysToSourceUUIDs.end() != _mapKeysToSourceUUIDs.find(_sourceUUIDKey)) {
             return QUuid(_mapKeysToSourceUUIDs[_sourceUUIDKey]);
@@ -202,7 +153,7 @@ QUuid VoxelNode::getSourceUUID() const {
     return QUuid();
 }
 
-bool VoxelNode::matchesSourceUUID(const QUuid& sourceUUID) const {
+bool OctreeElement::matchesSourceUUID(const QUuid& sourceUUID) const {
     if (_sourceUUIDKey > KEY_FOR_NULL) {
         if (_mapKeysToSourceUUIDs.end() != _mapKeysToSourceUUIDs.find(_sourceUUIDKey)) {
             return QUuid(_mapKeysToSourceUUIDs[_sourceUUIDKey]) == sourceUUID;
@@ -211,7 +162,7 @@ bool VoxelNode::matchesSourceUUID(const QUuid& sourceUUID) const {
     return sourceUUID.isNull();
 }
 
-uint16_t VoxelNode::getSourceNodeUUIDKey(const QUuid& sourceUUID) {
+uint16_t OctreeElement::getSourceNodeUUIDKey(const QUuid& sourceUUID) {
     uint16_t key = KEY_FOR_NULL;
     QString sourceUUIDString = sourceUUID.toString();
     if (_mapSourceUUIDsToKeys.end() != _mapSourceUUIDsToKeys.find(sourceUUIDString)) {
@@ -222,7 +173,7 @@ uint16_t VoxelNode::getSourceNodeUUIDKey(const QUuid& sourceUUID) {
 
 
 
-void VoxelNode::setShouldRender(bool shouldRender) {
+void OctreeElement::setShouldRender(bool shouldRender) {
     // if shouldRender is changing, then consider ourselves dirty
     if (shouldRender != _shouldRender) {
         _shouldRender = shouldRender;
@@ -231,7 +182,7 @@ void VoxelNode::setShouldRender(bool shouldRender) {
     }
 }
 
-void VoxelNode::calculateAABox() {
+void OctreeElement::calculateAABox() {
     glm::vec3 corner;
     
     // copy corner into box
@@ -242,8 +193,8 @@ void VoxelNode::calculateAABox() {
     _box.setBox(corner,voxelScale);
 }
 
-void VoxelNode::deleteChildAtIndex(int childIndex) {
-    VoxelNode* childAt = getChildAtIndex(childIndex);
+void OctreeElement::deleteChildAtIndex(int childIndex) {
+    OctreeElement* childAt = getChildAtIndex(childIndex);
     if (childAt) {
         delete childAt;
         setChildAtIndex(childIndex, NULL);
@@ -261,8 +212,8 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
 }
 
 // does not delete the node!
-VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
-    VoxelNode* returnedChild = getChildAtIndex(childIndex);
+OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
+    OctreeElement* returnedChild = getChildAtIndex(childIndex);
     if (returnedChild) {
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
@@ -281,11 +232,11 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
 }
 
 #ifdef HAS_AUDIT_CHILDREN
-void VoxelNode::auditChildren(const char* label) const {
+void OctreeElement::auditChildren(const char* label) const {
     bool auditFailed = false;
     for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
-        VoxelNode* testChildNew = getChildAtIndex(childIndex);
-        VoxelNode* testChildOld = _childrenArray[childIndex];
+        OctreeElement* testChildNew = getChildAtIndex(childIndex);
+        OctreeElement* testChildOld = _childrenArray[childIndex];
         
         if (testChildNew != testChildOld) {
             auditFailed = true;
@@ -302,8 +253,8 @@ void VoxelNode::auditChildren(const char* label) const {
 
 
         for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
-            VoxelNode* testChildNew = getChildAtIndex(childIndex);
-            VoxelNode* testChildOld = _childrenArray[childIndex];
+            OctreeElement* testChildNew = getChildAtIndex(childIndex);
+            OctreeElement* testChildOld = _childrenArray[childIndex];
 
             qDebug("child at index %d... testChildOld=%p testChildNew=%p %s \n",
                     childIndex, testChildOld, testChildNew ,
@@ -316,25 +267,25 @@ void VoxelNode::auditChildren(const char* label) const {
 #endif // def HAS_AUDIT_CHILDREN
 
 
-uint64_t VoxelNode::_getChildAtIndexTime = 0;
-uint64_t VoxelNode::_getChildAtIndexCalls = 0;
-uint64_t VoxelNode::_setChildAtIndexTime = 0;
-uint64_t VoxelNode::_setChildAtIndexCalls = 0;
+uint64_t OctreeElement::_getChildAtIndexTime = 0;
+uint64_t OctreeElement::_getChildAtIndexCalls = 0;
+uint64_t OctreeElement::_setChildAtIndexTime = 0;
+uint64_t OctreeElement::_setChildAtIndexCalls = 0;
 
 #ifdef BLENDED_UNION_CHILDREN
-uint64_t VoxelNode::_singleChildrenCount = 0;
-uint64_t VoxelNode::_twoChildrenOffsetCount = 0;
-uint64_t VoxelNode::_twoChildrenExternalCount = 0;
-uint64_t VoxelNode::_threeChildrenOffsetCount = 0;
-uint64_t VoxelNode::_threeChildrenExternalCount = 0;
-uint64_t VoxelNode::_couldStoreFourChildrenInternally = 0;
-uint64_t VoxelNode::_couldNotStoreFourChildrenInternally = 0;
+uint64_t OctreeElement::_singleChildrenCount = 0;
+uint64_t OctreeElement::_twoChildrenOffsetCount = 0;
+uint64_t OctreeElement::_twoChildrenExternalCount = 0;
+uint64_t OctreeElement::_threeChildrenOffsetCount = 0;
+uint64_t OctreeElement::_threeChildrenExternalCount = 0;
+uint64_t OctreeElement::_couldStoreFourChildrenInternally = 0;
+uint64_t OctreeElement::_couldNotStoreFourChildrenInternally = 0;
 #endif
 
-uint64_t VoxelNode::_externalChildrenCount = 0;
-uint64_t VoxelNode::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint64_t OctreeElement::_externalChildrenCount = 0;
+uint64_t OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
+OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
     return _simpleChildArray[childIndex];
 #endif // SIMPLE_CHILD_ARRAY
@@ -366,7 +317,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
 
 #ifdef BLENDED_UNION_CHILDREN
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
-    VoxelNode* result = NULL;
+    OctreeElement* result = NULL;
     int childCount = getChildCount();
     
 #ifdef HAS_AUDIT_CHILDREN
@@ -405,10 +356,10 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             } else {
                 if (indexOne == childIndex) {
                     int32_t offset = _children.offsetsTwoChildren[0];
-                    result = (VoxelNode*)((uint8_t*)this + offset);
+                    result = (OctreeElement*)((uint8_t*)this + offset);
                 } else if (indexTwo == childIndex) {
                     int32_t offset = _children.offsetsTwoChildren[1];
-                    result = (VoxelNode*)((uint8_t*)this + offset);
+                    result = (OctreeElement*)((uint8_t*)this + offset);
                 }
             }
         } break;
@@ -435,11 +386,11 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
                 decodeThreeOffsets(offsetOne, offsetTwo, offsetThree);
 
                 if (indexOne == childIndex) {
-                    result = (VoxelNode*)((uint8_t*)this + offsetOne);
+                    result = (OctreeElement*)((uint8_t*)this + offsetOne);
                 } else if (indexTwo == childIndex) {
-                    result = (VoxelNode*)((uint8_t*)this + offsetTwo);
+                    result = (OctreeElement*)((uint8_t*)this + offsetTwo);
                 } else if (indexThree == childIndex) {
-                    result = (VoxelNode*)((uint8_t*)this + offsetThree);
+                    result = (OctreeElement*)((uint8_t*)this + offsetThree);
                 }
             }
         } break;
@@ -477,7 +428,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
 }
 
 #ifdef BLENDED_UNION_CHILDREN
-void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
+void OctreeElement::storeTwoChildren(OctreeElement* childOne, OctreeElement* childTwo) {
     int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
 
@@ -490,7 +441,7 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
         if (_childrenExternal) {
             //assert(_children.external);
             const int previousChildCount = 2;
-            _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+            _externalChildrenMemoryUsage -= previousChildCount * sizeof(OctreeElement*);
             delete[] _children.external;
             _children.external = NULL; // probably not needed!
             _childrenExternal = false;
@@ -508,9 +459,9 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
         if (!_childrenExternal) {
             _childrenExternal = true;
             const int newChildCount = 2;
-            _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
-            _children.external = new VoxelNode*[newChildCount];
-            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
+            _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
+            _children.external = new OctreeElement*[newChildCount];
+            memset(_children.external, 0, sizeof(OctreeElement*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -518,7 +469,7 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
     }
 }
 
-void VoxelNode::retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo) {
+void OctreeElement::retrieveTwoChildren(OctreeElement*& childOne, OctreeElement*& childTwo) {
     // If we previously had an external array, then get the
     if (_childrenExternal) {
         childOne = _children.external[0];
@@ -528,17 +479,17 @@ void VoxelNode::retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo) 
         _childrenExternal = false;
         _twoChildrenExternalCount--;
         const int newChildCount = 2;
-        _externalChildrenMemoryUsage -= newChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= newChildCount * sizeof(OctreeElement*);
     } else {
         int64_t offsetOne = _children.offsetsTwoChildren[0];
         int64_t offsetTwo = _children.offsetsTwoChildren[1];
-        childOne = (VoxelNode*)((uint8_t*)this + offsetOne);
-        childTwo = (VoxelNode*)((uint8_t*)this + offsetTwo);
+        childOne = (OctreeElement*)((uint8_t*)this + offsetOne);
+        childTwo = (OctreeElement*)((uint8_t*)this + offsetTwo);
         _twoChildrenOffsetCount--;
     }
 }
 
-void VoxelNode::decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const {
+void OctreeElement::decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const {
     const uint64_t ENCODE_BITS = 21;
     const uint64_t ENCODE_MASK = 0xFFFFF;
     const uint64_t ENCODE_MASK_SIGN = 0x100000;
@@ -560,7 +511,7 @@ void VoxelNode::decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64
     offsetThree = threeNegative ? -offsetEncodedThree : offsetEncodedThree;
 }
 
-void VoxelNode::encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree) {
+void OctreeElement::encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree) {
     const uint64_t ENCODE_BITS = 21;
     const uint64_t ENCODE_MASK = 0xFFFFF;
     const uint64_t ENCODE_MASK_SIGN = 0x100000;
@@ -588,7 +539,7 @@ void VoxelNode::encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t
     _children.offsetsThreeChildrenEncoded = offsetEncodedOne | offsetEncodedTwo | offsetEncodedThree;
 }
 
-void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree) {
+void OctreeElement::storeThreeChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree) {
     int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
     int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
@@ -607,7 +558,7 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
             _children.external = NULL; // probably not needed!
             _childrenExternal = false;
             const int previousChildCount = 3;
-            _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+            _externalChildrenMemoryUsage -= previousChildCount * sizeof(OctreeElement*);
         }
         // encode in union
         encodeThreeOffsets(offsetOne, offsetTwo, offsetThree);
@@ -619,9 +570,9 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
         if (!_childrenExternal) {
             _childrenExternal = true;
             const int newChildCount = 3;
-            _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
-            _children.external = new VoxelNode*[newChildCount];
-            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
+            _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
+            _children.external = new OctreeElement*[newChildCount];
+            memset(_children.external, 0, sizeof(OctreeElement*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -630,7 +581,7 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
     }
 }
 
-void VoxelNode::retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree) {
+void OctreeElement::retrieveThreeChildren(OctreeElement*& childOne, OctreeElement*& childTwo, OctreeElement*& childThree) {
     // If we previously had an external array, then get the
     if (_childrenExternal) {
         childOne = _children.external[0];
@@ -640,19 +591,19 @@ void VoxelNode::retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo
         _children.external = NULL; // probably not needed!
         _childrenExternal = false;
         _threeChildrenExternalCount--;
-        _externalChildrenMemoryUsage -= 3 * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= 3 * sizeof(OctreeElement*);
     } else {
         int64_t offsetOne, offsetTwo, offsetThree;
         decodeThreeOffsets(offsetOne, offsetTwo, offsetThree);
 
-        childOne = (VoxelNode*)((uint8_t*)this + offsetOne);
-        childTwo = (VoxelNode*)((uint8_t*)this + offsetTwo);
-        childThree = (VoxelNode*)((uint8_t*)this + offsetThree);
+        childOne = (OctreeElement*)((uint8_t*)this + offsetOne);
+        childTwo = (OctreeElement*)((uint8_t*)this + offsetTwo);
+        childThree = (OctreeElement*)((uint8_t*)this + offsetThree);
         _threeChildrenOffsetCount--;
     }
 }
 
-void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour) {
+void OctreeElement::checkStoreFourChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree, OctreeElement* childFour) {
     int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
     int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
@@ -675,10 +626,10 @@ void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo,
 }
 #endif
 
-void VoxelNode::deleteAllChildren() {
-    // first delete all the VoxelNode objects...
+void OctreeElement::deleteAllChildren() {
+    // first delete all the OctreeElement objects...
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childAt = getChildAtIndex(i);
+        OctreeElement* childAt = getChildAtIndex(i);
         if (childAt) {
             delete childAt;
         }
@@ -731,7 +682,7 @@ void VoxelNode::deleteAllChildren() {
 #endif // BLENDED_UNION_CHILDREN
 }
 
-void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
+void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
 #ifdef SIMPLE_CHILD_ARRAY
     int previousChildCount = getChildCount();
     if (child) {
@@ -775,20 +726,20 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
     } else if (previousChildCount == 0 && newChildCount == 1) {
         _children.single = child;
     } else if (previousChildCount == 1 && newChildCount == 2) {
-        VoxelNode* previousChild = _children.single;
-        _children.external = new VoxelNode*[NUMBER_OF_CHILDREN];
-        memset(_children.external, 0, sizeof(VoxelNode*) * NUMBER_OF_CHILDREN);
+        OctreeElement* previousChild = _children.single;
+        _children.external = new OctreeElement*[NUMBER_OF_CHILDREN];
+        memset(_children.external, 0, sizeof(OctreeElement*) * NUMBER_OF_CHILDREN);
         _children.external[firstIndex] = previousChild;
         _children.external[childIndex] = child;
 
-        _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
         
     } else if (previousChildCount == 2 && newChildCount == 1) {
         assert(child == NULL); // we are removing a child, so this must be true!
-        VoxelNode* previousFirstChild = _children.external[firstIndex];
-        VoxelNode* previousSecondChild = _children.external[secondIndex];
+        OctreeElement* previousFirstChild = _children.external[firstIndex];
+        OctreeElement* previousSecondChild = _children.external[secondIndex];
         delete[] _children.external;
-        _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
         if (childIndex == firstIndex) {
             _children.single = previousSecondChild;
         } else {
@@ -839,8 +790,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // If we had 1 child, and we're adding a second child, then we need to determine
         // if we can use offsets to store them
 
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
 
         if (getNthBit(previousChildMask, 1) < childIndex) {
             childOne = _children.single;
@@ -859,8 +810,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         int indexTwo = getNthBit(previousChildMask, 2);
         bool keepChildOne = indexTwo == childIndex;
 
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
 
         retrieveTwoChildren(childOne, childTwo);        
 
@@ -878,8 +829,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         bool replaceChildOne = indexOne == childIndex;
 
         // Get the existing two children out of their encoding...        
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
         retrieveTwoChildren(childOne, childTwo);        
 
         if (replaceChildOne) {
@@ -894,9 +845,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // If we had 2 children, and now have 3, then we know we are going to an external case...
 
         // First, decode the children...
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
-        VoxelNode* childThree;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
+        OctreeElement* childThree;
 
         // Get the existing two children out of their encoding...        
         retrieveTwoChildren(childOne, childTwo);        
@@ -926,9 +877,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         bool removeChildOne = indexOne == childIndex;
         bool removeChildTwo = indexTwo == childIndex;
 
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
-        VoxelNode* childThree;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
+        OctreeElement* childThree;
 
         // Get the existing two children out of their encoding...        
         retrieveThreeChildren(childOne, childTwo, childThree);        
@@ -953,9 +904,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         bool replaceChildOne = indexOne == childIndex;
         bool replaceChildTwo = indexTwo == childIndex;
 
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
-        VoxelNode* childThree;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
+        OctreeElement* childThree;
 
         // Get the existing two children out of their encoding...        
         retrieveThreeChildren(childOne, childTwo, childThree);        
@@ -973,10 +924,10 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // If we had 3 children, and now have 4, then we know we are going to an external case...
 
         // First, decode the children...
-        VoxelNode* childOne;
-        VoxelNode* childTwo;
-        VoxelNode* childThree;
-        VoxelNode* childFour;
+        OctreeElement* childOne;
+        OctreeElement* childTwo;
+        OctreeElement* childThree;
+        OctreeElement* childFour;
 
         // Get the existing two children out of their encoding...        
         retrieveThreeChildren(childOne, childTwo, childThree);        
@@ -1005,10 +956,10 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // now, allocate the external...
         _childrenExternal = true;
         const int newChildCount = 4;
-        _children.external = new VoxelNode*[newChildCount];
-        memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
+        _children.external = new OctreeElement*[newChildCount];
+        memset(_children.external, 0, sizeof(OctreeElement*) * newChildCount);
         
-        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
         
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -1028,10 +979,10 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         bool removeChildTwo = indexTwo == childIndex;
         bool removeChildThree = indexThree == childIndex;
 
-        VoxelNode* childOne = _children.external[0];
-        VoxelNode* childTwo = _children.external[1];
-        VoxelNode* childThree = _children.external[2];
-        VoxelNode* childFour = _children.external[3];
+        OctreeElement* childOne = _children.external[0];
+        OctreeElement* childTwo = _children.external[1];
+        OctreeElement* childThree = _children.external[2];
+        OctreeElement* childFour = _children.external[3];
 
         if (removeChildOne) {
             childOne = childTwo;
@@ -1051,7 +1002,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         delete[] _children.external;
         _children.external = NULL;
         _externalChildrenCount--;
-        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(OctreeElement*);
         storeThreeChildren(childOne, childTwo, childThree);
     } else if (previousChildCount == newChildCount) {
         //assert(_children.external && _childrenExternal && previousChildCount >= 4);
@@ -1075,8 +1026,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         
         // 4 or more children, one item being added, we know we're stored externally, we just figure out where to insert
         // this child pointer into our external list
-        VoxelNode** newExternalList = new VoxelNode*[newChildCount];
-        memset(newExternalList, 0, sizeof(VoxelNode*) * newChildCount);
+        OctreeElement** newExternalList = new OctreeElement*[newChildCount];
+        memset(newExternalList, 0, sizeof(OctreeElement*) * newChildCount);
         
         int copiedCount = 0;
         for (int ordinal = 1; ordinal <= newChildCount; ordinal++) {
@@ -1101,8 +1052,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         }
         delete[] _children.external;
         _children.external = newExternalList;
-        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
-        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(OctreeElement*);
+        _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
 
     } else if (previousChildCount > newChildCount) {
         //assert(_children.external && _childrenExternal && previousChildCount >= 4);
@@ -1110,7 +1061,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
 
         // 4 or more children, one item being removed, we know we're stored externally, we just figure out which 
         // item to remove from our external list
-        VoxelNode** newExternalList = new VoxelNode*[newChildCount];
+        OctreeElement** newExternalList = new OctreeElement*[newChildCount];
         
         for (int ordinal = 1; ordinal <= previousChildCount; ordinal++) {
             int index = getNthBit(previousChildMask, ordinal);
@@ -1127,8 +1078,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         }
         delete[] _children.external;
         _children.external = newExternalList;
-        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
-        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(OctreeElement*);
+        _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
     } else {
         //assert(false);
         qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
@@ -1149,16 +1100,16 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
 }
 
 
-VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
-    VoxelNode* childAt = getChildAtIndex(childIndex);
+OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
+    OctreeElement* childAt = getChildAtIndex(childIndex);
     if (!childAt) {
         // before adding a child, see if we're currently a leaf 
         if (isLeaf()) {
             _voxelNodeLeafCount--;
         }
     
-        childAt = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
-        childAt->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
+        unsigned char* newChildCode = childOctalCode(getOctalCode(), childIndex);
+        childAt = createNewElement(newChildCode);
         setChildAtIndex(childIndex, childAt);
 
         _isDirty = true;
@@ -1168,12 +1119,12 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
 }
 
 // handles staging or deletion of all deep children
-void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
+void OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "VoxelNode::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
         return;
     }
-    VoxelNode* childToDelete = getChildAtIndex(childIndex);
+    OctreeElement* childToDelete = getChildAtIndex(childIndex);
     if (childToDelete) {
         // If the child is not a leaf, then call ourselves recursively on all the children
         if (!childToDelete->isLeaf()) {
@@ -1188,180 +1139,37 @@ void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
     }
 }
 
-// will average the child colors...
-void VoxelNode::setColorFromAverageOfChildren() {
-    int colorArray[4] = {0,0,0,0};
-    float density = 0.0f;
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childAt = getChildAtIndex(i);
-        if (childAt && childAt->isColored()) {
-            for (int j = 0; j < 3; j++) {
-                colorArray[j] += childAt->getTrueColor()[j]; // color averaging should always be based on true colors
-            }
-            colorArray[3]++;
-        }
-        if (childAt) {
-            density += childAt->getDensity();
-        }
-    }
-    density /= (float) NUMBER_OF_CHILDREN;    
-    //
-    //  The VISIBLE_ABOVE_DENSITY sets the density of matter above which an averaged color voxel will
-    //  be set.  It is an important physical constant in our universe.  A number below 0.5 will cause
-    //  things to get 'fatter' at a distance, because upward averaging will make larger voxels out of
-    //  less data, which is (probably) going to be preferable because it gives a sense that there is
-    //  something out there to go investigate.   A number above 0.5 would cause the world to become
-    //  more 'empty' at a distance.  Exactly 0.5 would match the physical world, at least for materials
-    //  that are not shiny and have equivalent ambient reflectance.  
-    //
-    const float VISIBLE_ABOVE_DENSITY = 0.10f;        
-    nodeColor newColor = { 0, 0, 0, 0};
-    if (density > VISIBLE_ABOVE_DENSITY) {
-        // The density of material in the space of the voxel sets whether it is actually colored
-        for (int c = 0; c < 3; c++) {
-            // set the average color value
-            newColor[c] = colorArray[c] / colorArray[3];
-        }
-        // set the alpha to 1 to indicate that this isn't transparent
-        newColor[3] = 1;
-    }
-    //  Set the color from the average of the child colors, and update the density 
-    setColor(newColor);
-    setDensity(density);
-}
 
-// Note: !NO_FALSE_COLOR implementations of setFalseColor(), setFalseColored(), and setColor() here.
-//       the actual NO_FALSE_COLOR version are inline in the VoxelNode.h
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
-void VoxelNode::setFalseColor(colorPart red, colorPart green, colorPart blue) {
-    if (_falseColored != true || _currentColor[0] != red || _currentColor[1] != green || _currentColor[2] != blue) {
-        _falseColored=true;
-        _currentColor[0] = red;
-        _currentColor[1] = green;
-        _currentColor[2] = blue;
-        _currentColor[3] = 1; // XXXBHG - False colors are always considered set
-        _isDirty = true;
-        markWithChangedTime();
-    }
-}
-
-void VoxelNode::setFalseColored(bool isFalseColored) {
-    if (_falseColored != isFalseColored) {
-        // if we were false colored, and are no longer false colored, then swap back
-        if (_falseColored && !isFalseColored) {
-            memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
-        }
-        _falseColored = isFalseColored; 
-        _isDirty = true;
-        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
-        markWithChangedTime();
-    }
-};
-
-
-void VoxelNode::setColor(const nodeColor& color) {
-    if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
-        memcpy(&_trueColor,&color,sizeof(nodeColor));
-        if (!_falseColored) {
-            memcpy(&_currentColor,&color,sizeof(nodeColor));
-        }
-        _isDirty = true;
-        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
-        markWithChangedTime();
-    }
-}
-#endif
-
-
-
-
-// will detect if children are leaves AND the same color
-// and in that case will delete the children and make this node
-// a leaf, returns TRUE if all the leaves are collapsed into a 
-// single node
-bool VoxelNode::collapseIdenticalLeaves() {
-    // scan children, verify that they are ALL present and accounted for
-    bool allChildrenMatch = true; // assume the best (ottimista)
-    int red,green,blue;
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childAt = getChildAtIndex(i);
-        // if no child, child isn't a leaf, or child doesn't have a color
-        if (!childAt || !childAt->isLeaf() || !childAt->isColored()) {
-            allChildrenMatch=false;
-            //qDebug("SADNESS child missing or not colored! i=%d\n",i);
-            break;
-        } else {
-            if (i==0) {
-                red   = childAt->getColor()[0];
-                green = childAt->getColor()[1];
-                blue  = childAt->getColor()[2];
-            } else if (red != childAt->getColor()[0] || 
-                    green != childAt->getColor()[1] || blue != childAt->getColor()[2]) {
-                allChildrenMatch=false;
-                break;
-            }
-        }
-    }
-    
-    
-    if (allChildrenMatch) {
-        //qDebug("allChildrenMatch: pruning tree\n");
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            VoxelNode* childAt = getChildAtIndex(i);
-            delete childAt; // delete all the child nodes
-            setChildAtIndex(i, NULL); // set it to NULL
-        }
-        nodeColor collapsedColor;
-        collapsedColor[0]=red;        
-        collapsedColor[1]=green;        
-        collapsedColor[2]=blue;        
-        collapsedColor[3]=1;    // color is set
-        setColor(collapsedColor);
-    }
-    return allChildrenMatch;
-}
-
-void VoxelNode::setRandomColor(int minimumBrightness) {
-    nodeColor newColor;
-    for (int c = 0; c < 3; c++) {
-        newColor[c] = randomColorValue(minimumBrightness);
-    }
-    
-    newColor[3] = 1;
-    setColor(newColor);
-}
-
-void VoxelNode::printDebugDetails(const char* label) const {
+void OctreeElement::printDebugDetails(const char* label) const {
     unsigned char childBits = 0;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childAt = getChildAtIndex(i);
+        OctreeElement* childAt = getChildAtIndex(i);
         if (childAt) {
             setAtBit(childBits,i);            
         }
     }
 
-    qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s (%d,%d,%d,%d) isDirty=%s shouldRender=%s\n children=", label,
+    qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
-        debug::valueOf(isLeaf()), debug::valueOf(isColored()), getColor()[0], getColor()[1], getColor()[2], getColor()[3],
-        debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
+        debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
         
     outputBits(childBits, false);
     qDebug("\n octalCode=");
     printOctalCode(getOctalCode());
 }
 
-float VoxelNode::getEnclosingRadius() const {
+float OctreeElement::getEnclosingRadius() const {
     return getScale() * sqrtf(3.0f) / 2.0f;
 }
 
-bool VoxelNode::isInView(const ViewFrustum& viewFrustum) const {
+bool OctreeElement::isInView(const ViewFrustum& viewFrustum) const {
     AABox box = _box; // use temporary box so we can scale it
     box.scale(TREE_SCALE);
     bool inView = (ViewFrustum::OUTSIDE != viewFrustum.boxInFrustum(box));
     return inView;
 }
 
-ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const {
+ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
     AABox box = _box; // use temporary box so we can scale it
     box.scale(TREE_SCALE);
     return viewFrustum.boxInFrustum(box);
@@ -1376,9 +1184,9 @@ ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const
 //    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest" 
 //    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
-bool VoxelNode::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
+bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
-    if (isColored()) {
+    if (hasContent()) {
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
         float boundary         = boundaryDistanceForRenderLevel(getLevel() + boundaryLevelAdjust, voxelScaleSize);
         float childBoundary    = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
@@ -1390,7 +1198,7 @@ bool VoxelNode::calculateShouldRender(const ViewFrustum* viewFrustum, float voxe
 }
 
 // Calculates the distance to the furthest point of the voxel to the camera
-float VoxelNode::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
+float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
     AABox box = getAABox();
     box.scale(TREE_SCALE);
     glm::vec3 furthestPoint = viewFrustum.getFurthestPointFromCamera(box);
@@ -1399,35 +1207,35 @@ float VoxelNode::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const 
     return distanceToVoxelCenter;
 }
 
-float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
+float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 center = _box.calcCenter() * (float)TREE_SCALE;
     glm::vec3 temp = viewFrustum.getPosition() - center;
     float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
 }
 
-float VoxelNode::distanceSquareToPoint(const glm::vec3& point) const {
+float OctreeElement::distanceSquareToPoint(const glm::vec3& point) const {
     glm::vec3 temp = point - _box.calcCenter();
     float distanceSquare = glm::dot(temp, temp);
     return distanceSquare;
 }
 
-float VoxelNode::distanceToPoint(const glm::vec3& point) const {
+float OctreeElement::distanceToPoint(const glm::vec3& point) const {
     glm::vec3 temp = point - _box.calcCenter();
     float distance = sqrtf(glm::dot(temp, temp));
     return distance;
 }
 
-QReadWriteLock VoxelNode::_deleteHooksLock;
-std::vector<VoxelNodeDeleteHook*> VoxelNode::_deleteHooks;
+QReadWriteLock OctreeElement::_deleteHooksLock;
+std::vector<OctreeElementDeleteHook*> OctreeElement::_deleteHooks;
 
-void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
+void OctreeElement::addDeleteHook(OctreeElementDeleteHook* hook) {
     _deleteHooksLock.lockForWrite();
     _deleteHooks.push_back(hook);
     _deleteHooksLock.unlock();
 }
 
-void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
+void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
     _deleteHooksLock.lockForWrite();
     for (int i = 0; i < _deleteHooks.size(); i++) {
         if (_deleteHooks[i] == hook) {
@@ -1438,21 +1246,21 @@ void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
     _deleteHooksLock.unlock();
 }
 
-void VoxelNode::notifyDeleteHooks() {
+void OctreeElement::notifyDeleteHooks() {
     _deleteHooksLock.lockForRead();
     for (int i = 0; i < _deleteHooks.size(); i++) {
-        _deleteHooks[i]->voxelDeleted(this);
+        _deleteHooks[i]->elementDeleted(this);
     }
     _deleteHooksLock.unlock();
 }
 
-std::vector<VoxelNodeUpdateHook*> VoxelNode::_updateHooks;
+std::vector<OctreeElementUpdateHook*> OctreeElement::_updateHooks;
 
-void VoxelNode::addUpdateHook(VoxelNodeUpdateHook* hook) {
+void OctreeElement::addUpdateHook(OctreeElementUpdateHook* hook) {
     _updateHooks.push_back(hook);
 }
 
-void VoxelNode::removeUpdateHook(VoxelNodeUpdateHook* hook) {
+void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
     for (int i = 0; i < _updateHooks.size(); i++) {
         if (_updateHooks[i] == hook) {
             _updateHooks.erase(_updateHooks.begin() + i);
@@ -1461,8 +1269,8 @@ void VoxelNode::removeUpdateHook(VoxelNodeUpdateHook* hook) {
     }
 }
 
-void VoxelNode::notifyUpdateHooks() {
+void OctreeElement::notifyUpdateHooks() {
     for (int i = 0; i < _updateHooks.size(); i++) {
-        _updateHooks[i]->voxelUpdated(this);
+        _updateHooks[i]->elementUpdated(this);
     }
 }

@@ -67,7 +67,7 @@ Menu::Menu() :
     _voxelStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
-    _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
 {
@@ -518,7 +518,7 @@ void Menu::loadSettings(QSettings* settings) {
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
-    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
+    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     
     settings->beginGroup("View Frustum Offset Camera");

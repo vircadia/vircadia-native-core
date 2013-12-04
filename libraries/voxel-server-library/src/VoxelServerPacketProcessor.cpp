@@ -167,7 +167,7 @@ void VoxelServerPacketProcessor::processPacket(const HifiSockAddr& senderSockAdd
 
         // Send these bits off to the VoxelTree class to process them
         _myServer->getServerTree().lockForWrite();
-        _myServer->getServerTree().processRemoveVoxelBitstream((unsigned char*)packetData, packetLength);
+        _myServer->getServerTree().processRemoveOctreeElementsBitstream((unsigned char*)packetData, packetLength);
         _myServer->getServerTree().unlock();
 
         // Make sure our Node and NodeList knows we've heard from this node.

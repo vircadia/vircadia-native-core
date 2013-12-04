@@ -103,7 +103,7 @@ QString LodToolsDialog::getFeedbackText() {
 
     // distance feedback    
     float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
-    float relativeToDefault = voxelSizeScale / DEFAULT_VOXEL_SIZE_SCALE;
+    float relativeToDefault = voxelSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
     QString result;
     if (relativeToDefault > 1.01) {
         result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
@@ -134,7 +134,7 @@ void LodToolsDialog::boundaryLevelValueChanged(int value) {
 }
 
 void LodToolsDialog::resetClicked(bool checked) {
-    int sliderValue = DEFAULT_VOXEL_SIZE_SCALE / TREE_SCALE;
+    int sliderValue = DEFAULT_OCTREE_SIZE_SCALE / TREE_SCALE;
     //sizeScaleValueChanged(sliderValue);
     _lodSize->setValue(sliderValue);
     _boundaryLevelAdjust->setValue(0);

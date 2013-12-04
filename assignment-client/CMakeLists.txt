@@ -24,6 +24,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})
 

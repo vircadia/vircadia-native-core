@@ -51,7 +51,7 @@ VoxelImporter::~VoxelImporter() {
 }
 
 void VoxelImporter::reset() {
-    _voxelTree.eraseAllVoxels();
+    _voxelTree.eraseAllOctreeElements();
     _importDialog.reset();
     _filename = "";
 
@@ -78,7 +78,7 @@ int VoxelImporter::exec() {
         if (_importDialog.getImportIntoClipboard()) {
             VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
 
-            voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->rootNode,
+            voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->getRoot(),
                                                 Application::getInstance()->getClipboard(),
                                                 true);
             voxelSystem->changeTree(Application::getInstance()->getClipboard());
@@ -184,5 +184,5 @@ void ImportTask::run() {
         qDebug("[ERROR] Invalid file extension.\n");
     }
 
-    voxelSystem->getTree()->reaverageVoxelColors(voxelSystem->getTree()->rootNode);
+    voxelSystem->getTree()->reaverageOctreeElements();
 }

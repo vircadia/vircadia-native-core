@@ -247,9 +247,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
 
         // display scene stats
-        unsigned long nodeCount = VoxelNode::getNodeCount();
-        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
-        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
+        unsigned long nodeCount = OctreeElement::getNodeCount();
+        unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
+        unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
         
         QLocale locale(QLocale::English);
         const float AS_PERCENT = 100.0;
@@ -368,14 +368,14 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         // display memory usage stats
         mg_printf(connection, "%s", "<b>Current Memory Usage Statistics</b>\r\n");
-        mg_printf(connection, "\r\nVoxelNode size... %ld bytes\r\n", sizeof(VoxelNode));
+        mg_printf(connection, "\r\nVoxelTreeElement size... %ld bytes\r\n", sizeof(VoxelTreeElement));
         mg_printf(connection, "%s", "\r\n");
 
         const char* memoryScaleLabel;
         const float MEGABYTES = 1000000.f;
         const float GIGABYTES = 1000000000.f;
         float memoryScale;
-        if (VoxelNode::getTotalMemoryUsage() / MEGABYTES < 1000.0f) {
+        if (OctreeElement::getTotalMemoryUsage() / MEGABYTES < 1000.0f) {
             memoryScaleLabel = "MB";
             memoryScale = MEGABYTES;
         } else {
@@ -384,23 +384,23 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         }
 
         mg_printf(connection, "Voxel Node Memory Usage:         %8.2f %s\r\n", 
-            VoxelNode::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
+            OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
         mg_printf(connection, "Octcode Memory Usage:            %8.2f %s\r\n", 
-            VoxelNode::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
+            OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
         mg_printf(connection, "External Children Memory Usage:  %8.2f %s\r\n", 
-            VoxelNode::getExternalChildrenMemoryUsage() / memoryScale, memoryScaleLabel);
+            OctreeElement::getExternalChildrenMemoryUsage() / memoryScale, memoryScaleLabel);
         mg_printf(connection, "%s", "                                 -----------\r\n");
         mg_printf(connection, "                         Total:  %8.2f %s\r\n", 
-            VoxelNode::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
+            OctreeElement::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
 
         mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
+        mg_printf(connection, "%s", "OctreeElement Children Population Statistics...\r\n");
         checkSum = 0;
         for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
-            checkSum += VoxelNode::getChildrenCount(i);
+            checkSum += OctreeElement::getChildrenCount(i);
             mg_printf(connection, "    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i, 
-                locale.toString((uint)VoxelNode::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
-                ((float)VoxelNode::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
+                locale.toString((uint)OctreeElement::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
+                ((float)OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
         }
         mg_printf(connection, "%s", "                                ----------------------\r\n");
         mg_printf(connection, "                    Total:      %s nodes\r\n", 
@@ -408,30 +408,30 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
 #ifdef BLENDED_UNION_CHILDREN
         mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
+        mg_printf(connection, "%s", "OctreeElement Children Encoding Statistics...\r\n");
         
         mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getSingleChildrenCount(), ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::getTwoChildrenOffsetCount(), 
-            ((float)VoxelNode::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getTwoChildrenOffsetCount(), 
+            ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::getTwoChildrenExternalCount(), 
-            ((float)VoxelNode::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getTwoChildrenExternalCount(), 
+            ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::getThreeChildrenOffsetCount(), 
-            ((float)VoxelNode::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getThreeChildrenOffsetCount(), 
+            ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::getThreeChildrenExternalCount(), 
-            ((float)VoxelNode::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getThreeChildrenExternalCount(), 
+            ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-            VoxelNode::getExternalChildrenCount(), 
-            ((float)VoxelNode::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
+            OctreeElement::getExternalChildrenCount(), 
+            ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
 
-        checkSum = VoxelNode::getSingleChildrenCount() +
-                            VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
-                            VoxelNode::getThreeChildrenOffsetCount() + VoxelNode::getThreeChildrenExternalCount() + 
-                            VoxelNode::getExternalChildrenCount();
+        checkSum = OctreeElement::getSingleChildrenCount() +
+                            OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() + 
+                            OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() + 
+                            OctreeElement::getExternalChildrenCount();
 
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
@@ -440,9 +440,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "In other news....\r\n");
         mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
-            VoxelNode::getCouldStoreFourChildrenInternally());
+            OctreeElement::getCouldStoreFourChildrenInternally());
         mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
-            VoxelNode::getCouldNotStoreFourChildrenInternally());
+            OctreeElement::getCouldNotStoreFourChildrenInternally());
 #endif
 
         mg_printf(connection, "%s", "\r\n");

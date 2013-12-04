@@ -1,5 +1,5 @@
 //
-//  VoxelProjectedPolygon.h - The projected shadow (on the 2D view plane) for a voxel
+//  OctreeProjectedPolygon.h - The projected shadow (on the 2D view plane) for a voxel
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -57,18 +57,18 @@ const int PROJECTION_NEAR    = 16;
 const int PROJECTION_FAR     = 32;
 const int PROJECTION_CLIPPED = 64;
 
-class VoxelProjectedPolygon {
+class OctreeProjectedPolygon {
 
 public:
-    VoxelProjectedPolygon(const BoundingBox& box);
+    OctreeProjectedPolygon(const BoundingBox& box);
 
-    VoxelProjectedPolygon(int vertexCount = 0) : 
+    OctreeProjectedPolygon(int vertexCount = 0) : 
         _vertexCount(vertexCount), 
         _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
         _distance(0)
         { }
         
-    ~VoxelProjectedPolygon() { }
+    ~OctreeProjectedPolygon() { }
     const ProjectedVertices& getVertices() const { return _vertices; }
     const glm::vec2& getVertex(int i) const { return _vertices[i]; }
     void setVertex(int vertex, const glm::vec2& point);
@@ -86,16 +86,16 @@ public:
 
 
     bool pointInside(const glm::vec2& point, bool* matchesVertex = NULL) const;
-    bool occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView = false) const;
+    bool occludes(const OctreeProjectedPolygon& occludee, bool checkAllInView = false) const;
     bool occludes(const BoundingBox& occludee) const;
-    bool intersects(const VoxelProjectedPolygon& testee) const;
+    bool intersects(const OctreeProjectedPolygon& testee) const;
     bool intersects(const BoundingBox& box) const;
-    bool matches(const VoxelProjectedPolygon& testee) const;
+    bool matches(const OctreeProjectedPolygon& testee) const;
     bool matches(const BoundingBox& testee) const;
-    bool intersectsOnAxes(const VoxelProjectedPolygon& testee) const;
+    bool intersectsOnAxes(const OctreeProjectedPolygon& testee) const;
 
-    bool canMerge(const VoxelProjectedPolygon& that) const;
-    void merge(const VoxelProjectedPolygon& that); // replaces vertices of this with new merged version
+    bool canMerge(const OctreeProjectedPolygon& that) const;
+    void merge(const OctreeProjectedPolygon& that); // replaces vertices of this with new merged version
     
     float getMaxX() const { return _maxX; }
     float getMaxY() const { return _maxY; }

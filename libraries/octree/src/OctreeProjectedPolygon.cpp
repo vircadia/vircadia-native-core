@@ -1,5 +1,5 @@
 //
-//  VoxelProjectedPolygon.cpp - The projected shadow (on the 2D view plane) for a voxel
+//  OctreeProjectedPolygon.cpp - The projected shadow (on the 2D view plane) for a voxel
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -11,7 +11,7 @@
 
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
-#include "VoxelProjectedPolygon.h"
+#include "OctreeProjectedPolygon.h"
 
 
 glm::vec2 BoundingBox::getVertex(int vertexNumber) const {
@@ -100,12 +100,12 @@ void BoundingBox::printDebugDetails(const char* label) const {
 }
 
 
-long VoxelProjectedPolygon::pointInside_calls = 0;
-long VoxelProjectedPolygon::occludes_calls = 0;
-long VoxelProjectedPolygon::intersects_calls = 0;
+long OctreeProjectedPolygon::pointInside_calls = 0;
+long OctreeProjectedPolygon::occludes_calls = 0;
+long OctreeProjectedPolygon::intersects_calls = 0;
 
 
-VoxelProjectedPolygon::VoxelProjectedPolygon(const BoundingBox& box) :
+OctreeProjectedPolygon::OctreeProjectedPolygon(const BoundingBox& box) :
     _vertexCount(4), 
     _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
     _distance(0)
@@ -116,7 +116,7 @@ VoxelProjectedPolygon::VoxelProjectedPolygon(const BoundingBox& box) :
 }
 
 
-void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) { 
+void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) { 
     _vertices[vertex] = point;
     
     // keep track of our bounding box
@@ -136,9 +136,9 @@ void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
 };
 
 // can be optimized with new pointInside()
-bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView) const {
+bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bool checkAllInView) const {
 
-    VoxelProjectedPolygon::occludes_calls++;
+    OctreeProjectedPolygon::occludes_calls++;
     
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
@@ -195,12 +195,12 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool
     return false; // if we got this far, then we're not occluded
 }
 
-bool VoxelProjectedPolygon::occludes(const BoundingBox& boxOccludee) const {
-    VoxelProjectedPolygon testee(boxOccludee);
+bool OctreeProjectedPolygon::occludes(const BoundingBox& boxOccludee) const {
+    OctreeProjectedPolygon testee(boxOccludee);
     return occludes(testee);
 }
 
-bool VoxelProjectedPolygon::matches(const VoxelProjectedPolygon& testee) const {
+bool OctreeProjectedPolygon::matches(const OctreeProjectedPolygon& testee) const {
     if (testee.getVertexCount() != getVertexCount()) {
         return false;
     }
@@ -229,14 +229,14 @@ bool VoxelProjectedPolygon::matches(const VoxelProjectedPolygon& testee) const {
     return true; // all of our vertices match, therefore we're the same 
 }
 
-bool VoxelProjectedPolygon::matches(const BoundingBox& box) const {
-    VoxelProjectedPolygon testee(box);
+bool OctreeProjectedPolygon::matches(const BoundingBox& box) const {
+    OctreeProjectedPolygon testee(box);
     return matches(testee);
 }
 
-bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
+bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
 
-    VoxelProjectedPolygon::pointInside_calls++;
+    OctreeProjectedPolygon::pointInside_calls++;
 
     // first check the bounding boxes, the point must be fully within the boounding box of this polygon
     if ((point.x > getMaxX()) ||
@@ -262,8 +262,8 @@ bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVer
     return true;
 }
  
-void VoxelProjectedPolygon::printDebugDetails() const {
-    printf("VoxelProjectedPolygon...");
+void OctreeProjectedPolygon::printDebugDetails() const {
+    printf("OctreeProjectedPolygon...");
     printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
     printf("    vertex count=%d distance=%f\n", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
@@ -272,13 +272,13 @@ void VoxelProjectedPolygon::printDebugDetails() const {
     }
 }
 
-bool VoxelProjectedPolygon::intersects(const BoundingBox& box) const {
-    VoxelProjectedPolygon testee(box);
+bool OctreeProjectedPolygon::intersects(const BoundingBox& box) const {
+    OctreeProjectedPolygon testee(box);
     return intersects(testee);
 }
 
-bool VoxelProjectedPolygon::intersects(const VoxelProjectedPolygon& testee) const {
-    VoxelProjectedPolygon::intersects_calls++;
+bool OctreeProjectedPolygon::intersects(const OctreeProjectedPolygon& testee) const {
+    OctreeProjectedPolygon::intersects_calls++;
     return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
 }
 
@@ -292,7 +292,7 @@ bool VoxelProjectedPolygon::intersects(const VoxelProjectedPolygon& testee) cons
 // Note: this only works on convex polygons
 // 
 //
-bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee) const {
+bool OctreeProjectedPolygon::intersectsOnAxes(const OctreeProjectedPolygon& testee) const {
 
     // consider each edge of this polygon as a potential separating axis
     for (int i = 0; i < getVertexCount(); i++) {
@@ -322,7 +322,7 @@ bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee
     return true;
 }
 
-bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
+bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const {
 
     // RIGHT/NEAR
     // LEFT/NEAR
@@ -640,7 +640,7 @@ bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
 }
 
 
-void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
+void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
 
     // RIGHT/NEAR
     // LEFT/NEAR

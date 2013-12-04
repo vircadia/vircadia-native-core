@@ -46,18 +46,18 @@ bool VoxelPersistThread::process() {
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
         qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         
-        unsigned long nodeCount = VoxelNode::getNodeCount();
-        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
-        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
+        unsigned long nodeCount = OctreeElement::getNodeCount();
+        unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
+        unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
 
-        double usecPerGet = (double)VoxelNode::getGetChildAtIndexTime() / (double)VoxelNode::getGetChildAtIndexCalls();
+        double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() / (double)OctreeElement::getGetChildAtIndexCalls();
         qDebug("getChildAtIndexCalls=%llu getChildAtIndexTime=%llu perGet=%lf \n",
-            VoxelNode::getGetChildAtIndexTime(), VoxelNode::getGetChildAtIndexCalls(), usecPerGet);
+            OctreeElement::getGetChildAtIndexTime(), OctreeElement::getGetChildAtIndexCalls(), usecPerGet);
             
-        double usecPerSet = (double)VoxelNode::getSetChildAtIndexTime() / (double)VoxelNode::getSetChildAtIndexCalls();
+        double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() / (double)OctreeElement::getSetChildAtIndexCalls();
         qDebug("setChildAtIndexCalls=%llu setChildAtIndexTime=%llu perSet=%lf\n",
-            VoxelNode::getSetChildAtIndexTime(), VoxelNode::getSetChildAtIndexCalls(), usecPerSet);
+            OctreeElement::getSetChildAtIndexTime(), OctreeElement::getSetChildAtIndexCalls(), usecPerSet);
 
         _initialLoadComplete = true;
         _lastCheck = usecTimestampNow(); // we just loaded, no need to save again

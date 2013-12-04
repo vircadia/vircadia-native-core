@@ -9,8 +9,7 @@
 
 #include <QtCore/QDebug>
 
-#include <SharedUtil.h>
-
+#include "SharedUtil.h"
 #include "GeometryUtil.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {

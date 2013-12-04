@@ -36,7 +36,7 @@ struct VoxelShaderVBOData
 };
 
 
-class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public VoxelNodeUpdateHook, 
+class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook, 
                     public NodeListHook, public DomainChangeListener {
     Q_OBJECT
 
@@ -66,8 +66,7 @@ public:
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
-    void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
-    void writeToSVOFile(const char* filename, VoxelNode* node) const;
+    void writeToSVOFile(const char* filename, VoxelTreeElement* element) const;
     bool readFromSVOFile(const char* filename);
     bool readFromSquareARGB32Pixels(const char* filename);
     bool readFromSchematicFile(const char* filename);
@@ -78,12 +77,6 @@ public:
     unsigned long getVoxelMemoryUsageVBO() const { return _memoryUsageVBO; }
     bool hasVoxelMemoryUsageGPU() const { return _hasMemoryUsageGPU; }
     unsigned long getVoxelMemoryUsageGPU();
-    long int getVoxelsCreated();
-    long int getVoxelsColored();
-    long int getVoxelsBytesRead();
-    float getVoxelsCreatedPerSecondAverage();
-    float getVoxelsColoredPerSecondAverage();
-    float getVoxelsBytesReadPerSecondAverage();
 
     void killLocalVoxels();
     void redrawInViewVoxels();
@@ -100,31 +93,31 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
     void deleteVoxelAt(float x, float y, float z, float s);
-    VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
+    VoxelTreeElement* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, 
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
 
-    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
-    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
-    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
+    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
+    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);
 
-    void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
 
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
 
-    virtual void voxelDeleted(VoxelNode* node);
-    virtual void voxelUpdated(VoxelNode* node);
+    virtual void elementDeleted(OctreeElement* element);
+    virtual void elementUpdated(OctreeElement* element);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void domainChanged(QString domain);
     
     bool treeIsBusy() const { return _treeIsBusy; }
                         
-    VoxelNode* getVoxelEnclosing(const glm::vec3& point);
+    VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
     
 signals:
     void importSize(float x, float y, float z);
@@ -180,34 +173,34 @@ private:
     
     bool _initialized;
     int  _callsToTreesToArrays;
-    VoxelNodeBag _removedVoxels;
+    OctreeElementBag _removedVoxels;
 
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool randomColorOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeRandomOperation(VoxelNode* node, void* extraData);
-    static bool trueColorizeOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeInViewOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
-    static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
-    static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
-    static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
-    static bool falseColorizeBySourceOperation(VoxelNode* node, void* extraData);
-    static bool killSourceVoxelsOperation(VoxelNode* node, void* extraData);
-    static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
-    static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
-    static bool hideOutOfViewOperation(VoxelNode* node, void* extraData);
-    static bool hideAllSubTreeOperation(VoxelNode* node, void* extraData);
-    static bool showAllSubTreeOperation(VoxelNode* node, void* extraData);
-    static bool showAllLocalVoxelsOperation(VoxelNode* node, void* extraData);
-    static bool getVoxelEnclosingOperation(VoxelNode* node, void* extraData);
+    static bool randomColorOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeRandomOperation(OctreeElement* element, void* extraData);
+    static bool trueColorizeOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeInViewOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeDistanceFromViewOperation(OctreeElement* element, void* extraData);
+    static bool getDistanceFromViewRangeOperation(OctreeElement* element, void* extraData);
+    static bool removeOutOfViewOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeRandomEveryOtherOperation(OctreeElement* element, void* extraData);
+    static bool collectStatsForTreesAndVBOsOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeOccludedOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeSubTreeOperation(OctreeElement* element, void* extraData);
+    static bool falseColorizeOccludedV2Operation(OctreeElement* element, void* extraData);
+    static bool falseColorizeBySourceOperation(OctreeElement* element, void* extraData);
+    static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
+    static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
+    static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
+    static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
+    static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
+    static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
+    static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
+    static bool getVoxelEnclosingOperation(OctreeElement* element, void* extraData);
 
-    int updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw);
-    int forceRemoveNodeFromArrays(VoxelNode* node);
+    int updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, bool forceDraw);
+    int forceRemoveNodeFromArrays(VoxelTreeElement* node);
 
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();
@@ -276,7 +269,7 @@ private:
 
     void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
-    int newTreeToArrays(VoxelNode *currentNode);
+    int newTreeToArrays(VoxelTreeElement *currentNode);
     void cleanupRemovedVoxels();
 
     void copyWrittenDataToReadArrays(bool fullVBOs);
