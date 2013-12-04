@@ -14,7 +14,7 @@
 class Node;
 
 class NodeData : public QObject {
-  Q_OBJECT
+    Q_OBJECT
 public:
     NodeData(Node* owningNode = NULL);
     

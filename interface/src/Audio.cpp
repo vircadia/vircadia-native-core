@@ -22,7 +22,6 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
-#include <UDPSocket.h>
 #include <QSvgRenderer>
 
 #include "Application.h"

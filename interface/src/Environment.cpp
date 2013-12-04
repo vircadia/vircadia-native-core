@@ -18,24 +18,13 @@
 #include "renderer/ProgramObject.h"
 #include "world.h"
 
-uint qHash(const sockaddr& address) {
-    const sockaddr_in* inetAddress = reinterpret_cast<const sockaddr_in*>(&address);
-    if (inetAddress->sin_family != AF_INET) {
+uint qHash(const HifiSockAddr& sockAddr) {
+    if (sockAddr.getAddress().isNull()) {
         return 0; // shouldn't happen, but if it does, zero is a perfectly valid hash
     }
-    return inetAddress->sin_port + qHash(QByteArray::fromRawData(
-        reinterpret_cast<const char*>(&inetAddress->sin_addr), sizeof(in_addr)));
-}
-
-bool operator== (const sockaddr& addr1, const sockaddr& addr2) {
-    return socketMatch(&addr1, &addr2);
-}
-
-static sockaddr getZeroAddress() {
-    sockaddr addr;
-    memset(&addr, 0, sizeof(sockaddr));
-    addr.sa_family = AF_INET;
-    return addr;
+    quint32 address = sockAddr.getAddress().toIPv4Address();
+    return sockAddr.getPort() + qHash(QByteArray::fromRawData((char*) &address,
+                                                              sizeof(address)));
 }
 
 Environment::Environment()
@@ -60,14 +49,14 @@ void Environment::init() {
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
     // start off with a default-constructed environment data
-    _data[getZeroAddress()][0];
+    _data[HifiSockAddr()][0];
 
     _initialized = true;
 }
 
 void Environment::resetToDefault() {
     _data.clear();
-    _data[getZeroAddress()][0];
+    _data[HifiSockAddr()][0];
 }
 
 void Environment::renderAtmospheres(Camera& camera) {    
@@ -159,7 +148,7 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     return found;
 }
 
-int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes) {
+int Environment::parseData(const HifiSockAddr& senderAddress, unsigned char* sourceBuffer, int numBytes) {
     // push past the packet header
     unsigned char* start = sourceBuffer;
     
@@ -175,14 +164,14 @@ int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer,
         int dataLength = newData.parseData(sourceBuffer, numBytes);
         
         // update the mapping by address/ID
-        _data[*senderAddress][newData.getID()] = newData;    
+        _data[senderAddress][newData.getID()] = newData;
         
         sourceBuffer += dataLength;
         numBytes -= dataLength;    
     }
     
     // remove the default mapping, if any
-    _data.remove(getZeroAddress());
+    _data.remove(HifiSockAddr());
     
     return sourceBuffer - start;
 }

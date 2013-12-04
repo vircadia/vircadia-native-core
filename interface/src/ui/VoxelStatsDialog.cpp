@@ -136,7 +136,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_localVoxelsMemory];
     statsValue.str("");
     statsValue << 
-        "Nodes RAM: " << VoxelNode::getTotalMemoryUsage() / 1000000.f << "MB "
+        "Nodes RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
         "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (voxels->hasVoxelMemoryUsageGPU()) {
@@ -146,9 +146,9 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Local Voxels
     label = _labels[_localVoxels];
-    unsigned long localTotal = VoxelNode::getNodeCount();
-    unsigned long localInternal = VoxelNode::getInternalNodeCount();
-    unsigned long localLeaves = VoxelNode::getLeafNodeCount();
+    unsigned long localTotal = OctreeElement::getNodeCount();
+    unsigned long localInternal = OctreeElement::getInternalNodeCount();
+    unsigned long localLeaves = OctreeElement::getLeafNodeCount();
     QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
     QString localInternalString = locale.toString((uint)localInternal);
     QString localLeavesString = locale.toString((uint)localLeaves);
@@ -177,7 +177,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         serverCount++;
 
         // calculate server node totals
-        totalNodes += stats.getTotalVoxels();
+        totalNodes += stats.getTotalElements();
         totalInternal += stats.getTotalInternal();
         totalLeaves += stats.getTotalLeaves();
     
@@ -313,7 +313,7 @@ void VoxelStatsDialog::showAllVoxelServers() {
                             }
                         } // fall through... since MOST has all of MORE
                         case MORE: {
-                            QString totalString = locale.toString((uint)stats.getTotalVoxels());
+                            QString totalString = locale.toString((uint)stats.getTotalElements());
                             QString internalString = locale.toString((uint)stats.getTotalInternal());
                             QString leavesString = locale.toString((uint)stats.getTotalLeaves());
 

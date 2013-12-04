@@ -16,7 +16,7 @@
 
 #include <CoverageMap.h>
 #include <VoxelConstants.h>
-#include <VoxelNodeBag.h>
+#include <OctreeElementBag.h>
 #include <VoxelSceneStats.h>
 
 class VoxelSendThread;
@@ -46,7 +46,7 @@ public:
     int getMaxLevelReached() const { return _maxLevelReachedInLastSearch; }
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
-    VoxelNodeBag nodeBag;
+    OctreeElementBag nodeBag;
     CoverageMap map;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }

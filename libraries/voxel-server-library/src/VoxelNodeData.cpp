@@ -26,7 +26,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _currentPacketIsCompressed(false),
     _voxelSendThread(NULL),
     _lastClientBoundaryLevelAdjust(0),
-    _lastClientVoxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _lastClientVoxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false)
 {
@@ -196,13 +196,13 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
             _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
             _lodChanged = true;
         }
-        if (_lastClientVoxelSizeScale != getVoxelSizeScale()) {
-            _lastClientVoxelSizeScale = getVoxelSizeScale();
+        if (_lastClientVoxelSizeScale != getOctreeSizeScale()) {
+            _lastClientVoxelSizeScale = getOctreeSizeScale();
             _lodChanged = true;
         }
     } else {
         _lodInitialized = true;
-        _lastClientVoxelSizeScale = getVoxelSizeScale();
+        _lastClientVoxelSizeScale = getOctreeSizeScale();
         _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
         _lodChanged = false;
     }
@@ -254,9 +254,9 @@ bool VoxelNodeData::moveShouldDump() const {
 void VoxelNodeData::dumpOutOfView() {
     int stillInView = 0;
     int outOfView = 0;
-    VoxelNodeBag tempBag;
+    OctreeElementBag tempBag;
     while (!nodeBag.isEmpty()) {
-        VoxelNode* node = nodeBag.extract();
+        OctreeElement* node = nodeBag.extract();
         if (node->isInView(_currentViewFrustum)) {
             tempBag.insert(node);
             stillInView++;
@@ -266,7 +266,7 @@ void VoxelNodeData::dumpOutOfView() {
     }
     if (stillInView > 0) {
         while (!tempBag.isEmpty()) {
-            VoxelNode* node = tempBag.extract();
+            OctreeElement* node = tempBag.extract();
             if (node->isInView(_currentViewFrustum)) {
                 nodeBag.insert(node);
             }
