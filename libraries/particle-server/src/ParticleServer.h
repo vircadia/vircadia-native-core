@@ -24,7 +24,7 @@
 #include "ParticleServerPacketProcessor.h"
 
 /// Handles assignments of type ParticleServer - sending particles to various clients.
-class ParticleServer : public Assignment {
+class ParticleServer : public ThreadedAssignment {
 public:                
     ParticleServer(const unsigned char* dataBuffer, int numBytes);
     

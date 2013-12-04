@@ -7,8 +7,6 @@
 //
 
 #include <QtCore/QDebug>
-#include <NodeList.h>
-#include <PerfStat.h>
 
 #include "ParticleTree.h"
 #include "ParticleTreeElement.h"

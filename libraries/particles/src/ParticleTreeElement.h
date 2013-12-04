@@ -10,9 +10,7 @@
 #ifndef __hifi__ParticleTreeElement__
 #define __hifi__ParticleTreeElement__
 
-#include <QReadWriteLock>
 #include <OctreeElement.h>
-#include <SharedUtil.h>
 
 class ParticleTree;
 class ParticleTreeElement;
