@@ -361,7 +361,10 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundNoise(0.0f),
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
-    _heartbeatMagnitude(0.0f),
+    _drumSoundVolume(0),
+    _drumSoundFrequency(0),
+    _drumSoundDuration(0),
+    _drumSoundSample(0),
     _muted(false),
     _localEcho(false)
 {
@@ -651,6 +654,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
             inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH ) * volume * (1.f + randFloat() * 0.25f) * speed);
         }
     }
+    //  Add a collision sound when voxels are run into
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
     const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
     const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
@@ -674,6 +678,30 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
         }
     }
     _proceduralEffectSample += numSamples;
+    
+    //  Add a drum sound
+    const float MAX_VOLUME = 32000.f;
+    const float MAX_DURATION = 2.f;
+    const float MIN_AUDIBLE_VOLUME = 0.001f;
+    const float NOISE_MAGNITUDE = 0.02f;
+    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * PI_TIMES_TWO;
+    if (_drumSoundVolume > 0.f) {
+        for (int i = 0; i < numSamples; i++) {
+            t = (float) _drumSoundSample + (float) i;
+            sample = sinf(t * frequency);
+            sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
+            sample *= _drumSoundVolume * MAX_VOLUME;
+            inputBuffer[i] += (int) sample;
+            outputLeft[i] += (int) sample;
+            outputRight[i] += (int) sample;
+            _drumSoundVolume *= (1.f - _drumSoundDecay);
+        }
+        _drumSoundSample += numSamples;
+        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AUDIO_CALLBACK_MSECS / 1000.f), 0.f, MAX_DURATION);
+        if (_drumSoundDuration == 0.f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
+            _drumSoundVolume = 0.f;
+        }
+    }
 }
 
 //
@@ -686,6 +714,18 @@ void Audio::startCollisionSound(float magnitude, float frequency, float noise, f
     _collisionSoundDuration = duration;
     _collisionFlashesScreen = flashScreen;
 }
+
+//
+//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
+//
+void Audio::startDrumSound(float volume, float frequency, float duration, float decay) {
+    _drumSoundVolume = volume;
+    _drumSoundFrequency = frequency;
+    _drumSoundDuration = duration;
+    _drumSoundDecay = decay;
+    _drumSoundSample = 0;
+}
+
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
 // -----------------------------------------------------------

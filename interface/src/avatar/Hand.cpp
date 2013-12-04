@@ -128,20 +128,15 @@ void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPositi
     //
     //  Collision between finger and a voxel plays sound
     //
-    float volume = glm::length(palm->getVelocity());
+    float volume = 0.1f + glm::clamp(glm::length(palm->getVelocity()), 0.f, 0.9f);
     float duration = volume;
     _collisionCenter = fingerTipPosition;
     _collisionAge = deltaTime;
     _collisionDuration = duration;
     int voxelBrightness = voxel->getColor()[0] + voxel->getColor()[1] + voxel->getColor()[2];
-    float frequency = 100.f + (voxelBrightness * 2.f);     //  Hz
+    float frequency = 100.f + (voxelBrightness * 3.f);     //  Hz
     //  Play a sound
-    Application::getInstance()->getAudio()->startCollisionSound(volume,
-                                                                frequency,
-                                                                0.25,
-                                                                0.995f,
-                                                                false);
-    
+    Application::getInstance()->getAudio()->startDrumSound(volume, frequency, 2.0f, 0.0005f);
 }
 
 void Hand::calculateGeometry() {
