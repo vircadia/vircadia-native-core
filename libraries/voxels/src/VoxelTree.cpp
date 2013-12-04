@@ -43,11 +43,12 @@ VoxelTreeElement* VoxelTree::getVoxelAt(float x, float y, float z, float s) cons
 
 void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
+                            
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
 
-    int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(voxelData)) + BYTES_PER_COLOR;
-    printf("createVoxel()...");
-    outputBufferBits(voxelData,length);
+    //int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(voxelData)) + BYTES_PER_COLOR;
+    //printf("createVoxel()...");
+    //outputBufferBits(voxelData,length);
 
     this->readCodeColorBufferToTree(voxelData, destructive);
     delete[] voxelData;
@@ -617,7 +618,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadC
     }
 
     // Ok, we know we haven't reached our target node yet, so keep looking
-    printOctalCode(args.codeColorBuffer);
+    //printOctalCode(args.codeColorBuffer);
     int childIndex = branchIndexWithDescendant(node->getOctalCode(), args.codeColorBuffer);
     VoxelTreeElement* childNode = node->getChildAtIndex(childIndex);
 

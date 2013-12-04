@@ -46,6 +46,8 @@ class OctreeElement {
 protected:
     // can only be constructed by derived implementation
     OctreeElement(unsigned char * octalCode = NULL);
+
+    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
     
 public:
     virtual ~OctreeElement();
@@ -160,7 +162,7 @@ protected:
     void checkStoreFourChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree, OctreeElement* childFour);
 #endif
     void calculateAABox();
-    virtual void init(unsigned char * octalCode);
+    void init(unsigned char * octalCode);
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 

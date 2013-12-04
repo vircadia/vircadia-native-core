@@ -362,11 +362,12 @@ int main(int argc, const char * argv[])
 }
 
 void unitTest(VoxelTree * tree) {
+    VoxelTreeElement* node = NULL;
     printf("unit tests...\n");
     unsigned long nodeCount;
 
     // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
-    float voxelSize = 0.5f;
+    float voxelSize = 0.5f / TREE_SCALE;
 
     // Here's an example of how to create a voxel.
     printf("creating corner points...\n");
@@ -375,7 +376,7 @@ void unitTest(VoxelTree * tree) {
 
     
     // Here's an example of how to test if a voxel exists
-    VoxelTreeElement* node = tree->getVoxelAt(0, 0, 0, voxelSize);
+    node = tree->getVoxelAt(0, 0, 0, voxelSize);
     if (node) {
         // and how to access it's color
         printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
@@ -391,7 +392,7 @@ void unitTest(VoxelTree * tree) {
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
     // Test to see that the delete worked... it should be FALSE...
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+    if ((node = tree->getVoxelAt(0, 0, 0, voxelSize))) {
         printf("FAIL corner point 0,0,0 exists...\n");
     } else {
         printf("CORRECT corner point 0,0,0 does not exists...\n");
@@ -400,7 +401,7 @@ void unitTest(VoxelTree * tree) {
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
     tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
-    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+    if ((node = tree->getVoxelAt(0, 0, 0, voxelSize))) {
         printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
@@ -410,7 +411,7 @@ void unitTest(VoxelTree * tree) {
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
     tree->createVoxel(voxelSize, 0, 0, voxelSize, 255, 255 ,0);
-    if (tree->getVoxelAt(voxelSize, 0, 0, voxelSize)) {
+    if ((node = tree->getVoxelAt(voxelSize, 0, 0, voxelSize))) {
         printf("CORRECT - corner point voxelSize,0,0 exists... color is (%d,%d,%d) \n", 
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
@@ -420,7 +421,7 @@ void unitTest(VoxelTree * tree) {
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
     tree->createVoxel(0, 0, voxelSize, voxelSize, 255, 0 ,0);
-    if (tree->getVoxelAt(0, 0, voxelSize, voxelSize)) {
+    if ((node = tree->getVoxelAt(0, 0, voxelSize, voxelSize))) {
         printf("CORRECT - corner point 0, 0, voxelSize exists... color is (%d,%d,%d) \n", 
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
@@ -430,7 +431,7 @@ void unitTest(VoxelTree * tree) {
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
     tree->createVoxel(voxelSize, 0, voxelSize, voxelSize, 0, 0 ,255);
-    if (tree->getVoxelAt(voxelSize, 0, voxelSize, voxelSize)) {
+    if ((node = tree->getVoxelAt(voxelSize, 0, voxelSize, voxelSize))) {
         printf("CORRECT - corner point voxelSize, 0, voxelSize exists... color is (%d,%d,%d) \n", 
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {

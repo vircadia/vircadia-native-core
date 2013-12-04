@@ -339,6 +339,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     if (s >= 1.0) {
         unsigned char* voxelOut = new unsigned char;
         *voxelOut = 0;
+        return voxelOut;
     }
 
     float xTest, yTest, zTest, sTest; 

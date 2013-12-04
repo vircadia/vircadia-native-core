@@ -1108,8 +1108,8 @@ OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
             _voxelNodeLeafCount--;
         }
     
-        childAt = new OctreeElement(childOctalCode(getOctalCode(), childIndex));
-        //childAt->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
+        unsigned char* newChildCode = childOctalCode(getOctalCode(), childIndex);
+        childAt = createNewElement(newChildCode);
         setChildAtIndex(childIndex, childAt);
 
         _isDirty = true;

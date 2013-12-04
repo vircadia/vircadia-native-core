@@ -537,16 +537,6 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
     return node;
 }
 
-void Octree::createOctreeElement(float x, float y, float z, float s,
-                            unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
-                            
-    // XXXBHG Octree cleanup
-    
-    //unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-    //this->readCodeColorBufferToTree(voxelData, destructive);
-    //delete[] voxelData;
-}
-
 // combines the ray cast arguments into a single object
 class RayArgs {
 public:

@@ -30,9 +30,11 @@ class VoxelTreeElement : public OctreeElement {
     friend class VoxelTree; // to allow createElement to new us...
     
     VoxelTreeElement(unsigned char* octalCode = NULL);
+
+    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
     
 public:
-    virtual void init(unsigned char* octalCode);
+    void init();
 
     virtual bool hasContent() const { return isColored(); }
     virtual void splitChildren();
