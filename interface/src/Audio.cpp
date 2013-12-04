@@ -288,6 +288,29 @@ void Audio::handleAudioInput() {
             }
         }
     }
+
+    eventuallySendRecvPing(inputLeft, outputLeft, outputRight);
+
+
+    // add output (@speakers) data just written to the scope
+    _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    
+    gettimeofday(&_lastCallbackTime, NULL);
+}
+
+// inputBuffer  A pointer to an internal portaudio data buffer containing data read by portaudio.
+// outputBuffer A pointer to an internal portaudio data buffer to be read by the configured output device.
+// frames       Number of frames that portaudio requests to be read/written.
+// timeInfo     Portaudio time info. Currently unused.
+// statusFlags  Portaudio status flags. Currently unused.
+// userData     Pointer to supplied user data (in this case, a pointer to the parent Audio object
+int Audio::audioCallback (const void* inputBuffer,
+                          void* outputBuffer,
+                          unsigned long frames,
+                          const PaStreamCallbackTimeInfo *timeInfo,
+                          PaStreamCallbackFlags statusFlags,
+                          void* userData) {
     
     // copy the audio data to the output device
     _outputDevice->write((char*) stereoOutputBuffer, sizeof(stereoOutputBuffer));

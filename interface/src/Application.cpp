@@ -248,7 +248,7 @@ Application::~Application() {
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
-    VoxelNode::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
+    VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
     
     delete _settings;
