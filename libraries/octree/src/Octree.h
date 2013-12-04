@@ -250,7 +250,6 @@ public slots:
 
 protected:
     void deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData);
-    void readCodeColorBufferToTreeRecursion(OctreeElement* node, void* extraData);
 
     int encodeTreeBitstreamRecursion(OctreeElement* node, 
                                      OctreePacketData* packetData, OctreeElementBag& bag,
