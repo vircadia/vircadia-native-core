@@ -125,6 +125,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _mouseVoxelScaleInitialized(false),
         _justEditedVoxel(false),
+        _isHighlightVoxel(false),
         _nudgeStarted(false),
         _lookingAlongX(false),
         _lookingAwayFromOrigin(true),
@@ -1765,8 +1766,6 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
     
-    _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
-
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     QCursor::setPos(_headMouseX, _headMouseY);
@@ -1989,6 +1988,20 @@ void Application::renderFollowIndicator() {
         glEnd();
         _glowEffect.end();
     }
+}
+
+void Application::renderHighlightVoxel(VoxelDetail voxel) {
+    glDisable(GL_LIGHTING);
+    glPushMatrix();
+    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+    const float EDGE_EXPAND = 1.02f;
+    glColor3ub(voxel.red + 128, voxel.green + 128, voxel.blue + 128);
+    glTranslatef(voxel.x + voxel.s * 0.5f,
+                 voxel.y + voxel.s * 0.5f,
+                 voxel.z + voxel.s * 0.5f);
+    glLineWidth(2.0f);
+    glutWireCube(voxel.s * EDGE_EXPAND);
+    glPopMatrix();
 }
 
 void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
@@ -2235,11 +2248,6 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 void Application::updateHandAndTouch(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
-
-    // walking triggers the handControl to stop
-    if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
-        _handControl.stop();
-    }
 
     //  Update from Touch
     if (_isTouchPressed) {
@@ -3022,10 +3030,14 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
     
-    
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
+        //  Render the highlighted voxel
+        if (_isHighlightVoxel) {
+            renderHighlightVoxel(_highlightVoxel);
+        }
+
         // indicate what we'll be adding/removing in mouse mode, if anything
         if (_mouseVoxel.s != 0 && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
@@ -3049,7 +3061,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             } else {
                 renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
             }
-
+            
             if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
                 // use a contrasting color so that we can see what we're doing
                 glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);

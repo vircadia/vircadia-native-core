@@ -288,7 +288,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     // add output (@speakers) data just written to the scope
     _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
+    
     gettimeofday(&_lastCallbackTime, NULL);
 }
 

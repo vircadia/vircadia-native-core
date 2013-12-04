@@ -45,6 +45,7 @@ public:
         glm::vec3        velocity;       // the velocity of the ball
         float            radius;         // the radius of the ball
         bool             isCollidable;   // whether or not the ball responds to collisions
+        bool             isColliding;    // ball is currently colliding
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
     
@@ -83,6 +84,12 @@ private:
     std::vector<HandBall> _leapFingerRootBalls;
     
     glm::vec3 _lastFingerAddVoxel, _lastFingerDeleteVoxel;
+    bool _isCollidingWithVoxel;
+    VoxelDetail _collidingVoxel;
+    
+    glm::vec3 _collisionCenter;
+    float _collisionAge;
+    float _collisionDuration;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
@@ -93,6 +100,8 @@ private:
     void renderLeapHands();
     void renderLeapFingerTrails();
     void calculateGeometry();
+    
+    void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelNode* voxel, float deltaTime);
 };
 
 #endif
