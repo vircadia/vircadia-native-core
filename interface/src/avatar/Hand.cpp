@@ -159,7 +159,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.005f;
+                    const float standardBallRadius = 0.010f;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
