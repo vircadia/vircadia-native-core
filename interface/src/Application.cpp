@@ -137,6 +137,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 #endif
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
+        _voxelHideShowThread(&_voxels),
         _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
@@ -322,6 +323,7 @@ void Application::initializeGL() {
     // create thread for parsing of voxel data independent of the main network and rendering threads
     _voxelProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
+    _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.\n");
     }
@@ -1391,6 +1393,7 @@ void Application::terminate() {
     }
 
     _voxelProcessor.terminate();
+    _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
 }
 
@@ -2287,6 +2290,7 @@ void Application::updateThreads(float deltaTime) {
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
         _voxelProcessor.threadRoutine();
+        _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
     }
 }

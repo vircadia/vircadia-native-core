@@ -39,6 +39,9 @@ struct VoxelShaderVBOData
 class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public VoxelNodeUpdateHook, 
                     public NodeListHook, public DomainChangeListener {
     Q_OBJECT
+
+    friend class VoxelHideShowThread;
+
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();

@@ -41,6 +41,7 @@
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
 #include "VoxelEditPacketSender.h"
+#include "VoxelHideShowThread.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
@@ -439,8 +440,9 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    VoxelPacketProcessor     _voxelProcessor;
-    VoxelEditPacketSender   _voxelEditSender;
+    VoxelPacketProcessor _voxelProcessor;
+    VoxelHideShowThread _voxelHideShowThread;
+    VoxelEditPacketSender _voxelEditSender;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
