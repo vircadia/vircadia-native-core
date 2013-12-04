@@ -1994,17 +1994,13 @@ void Application::renderHighlightVoxel(VoxelDetail voxel) {
     glDisable(GL_LIGHTING);
     glPushMatrix();
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    //printf("Render: %.6f,%.6f,%.6f %.8f\n", voxel.x, voxel.y, voxel.z,
-    //       voxel.s);
-    const float EDGE_EXPAND = 1.01f;
-    //glColor3ub(voxel.red + 128, voxel.green + 128, voxel.blue + 128);
-    glColor3ub(255, 0, 0);
-
+    const float EDGE_EXPAND = 1.02f;
+    glColor3ub(voxel.red + 128, voxel.green + 128, voxel.blue + 128);
     glTranslatef(voxel.x + voxel.s * 0.5f,
                  voxel.y + voxel.s * 0.5f,
                  voxel.z + voxel.s * 0.5f);
-    glLineWidth(4.0f);
-    glutWireCube(_mouseVoxel.s * EDGE_EXPAND);
+    glLineWidth(2.0f);
+    glutWireCube(voxel.s * EDGE_EXPAND);
     glPopMatrix();
 }
 
@@ -3032,7 +3028,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
             }
         }
-    
     
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);

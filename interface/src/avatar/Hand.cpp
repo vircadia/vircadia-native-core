@@ -100,11 +100,24 @@ void Hand::simulate(float deltaTime, bool isMine) {
                     //  Collision has just started
                     palm.setIsCollidingWithVoxel(true);
                     handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
+                    //  Set highlight voxel
+                    VoxelDetail voxel;
+                    glm::vec3 pos = fingerNode->getCorner();
+                    voxel.x = pos.x;
+                    voxel.y = pos.y;
+                    voxel.z = pos.z;
+                    voxel.s = fingerNode->getScale();
+                    voxel.red = fingerNode->getColor()[0];
+                    voxel.green = fingerNode->getColor()[1];
+                    voxel.blue = fingerNode->getColor()[2];
+                    Application::getInstance()->setHighlightVoxel(voxel);
+                    Application::getInstance()->setIsHighlightVoxel(true);
                 }
             } else {
                 if (palm.getIsCollidingWithVoxel()) {
                     //  Collision has just ended
                     palm.setIsCollidingWithVoxel(false);
+                    Application::getInstance()->setIsHighlightVoxel(false);
                 }
             }
         }
