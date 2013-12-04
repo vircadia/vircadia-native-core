@@ -17,6 +17,6 @@
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class VoxelPacketProcessor : public ReceivedPacketProcessor {
 protected:
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(const HifiSockAddr& senderSockAddr, unsigned char*  packetData, ssize_t packetLength);
 };
 #endif // __shared__VoxelPacketProcessor__

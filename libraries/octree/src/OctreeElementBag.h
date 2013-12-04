@@ -31,9 +31,6 @@ public:
     int count() const { return _elementsInUse; }
 
     void deleteAll();
-
-    //static void voxelNodeDeleteHook(OctreeElement* element, void* extraData);
-
     virtual void elementDeleted(OctreeElement* element);
 
 private:

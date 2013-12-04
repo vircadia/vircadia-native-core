@@ -11,8 +11,11 @@
 #include <cstdio>
 #include <cstring>
 
-#include <UDPSocket.h>
 #include <arpa/inet.h>
+
+#include <QtNetwork/QUdpSocket>
+
+#include <HifiSockAddr.h>
 
 const int PAIRING_SERVER_LISTEN_PORT = 7247;
 const int MAX_PACKET_SIZE_BYTES = 1400;
@@ -20,8 +23,8 @@ const int MAX_PACKET_SIZE_BYTES = 1400;
 struct PairableDevice {
     char identifier[64];
     char name[64];
-    sockaddr_in sendingSocket;
-    sockaddr_in localSocket;
+    HifiSockAddr sendingSocket;
+    HifiSockAddr localSocket;
 };
 
 struct RequestingClient {
@@ -29,7 +32,7 @@ struct RequestingClient {
     int port;
 };
 
-UDPSocket serverSocket(PAIRING_SERVER_LISTEN_PORT);
+QUdpSocket serverSocket;
 PairableDevice* lastDevice = NULL;
 RequestingClient* lastClient = NULL;
 
@@ -47,17 +50,21 @@ void sendLastClientToLastDevice() {
     char pairData[INET_ADDRSTRLEN + 6] = {};
     int bytesWritten = sprintf(pairData, "%s:%d", ::lastClient->address, ::lastClient->port);
     
-    ::serverSocket.send((sockaddr*) &::lastDevice->sendingSocket, pairData, bytesWritten);
+    ::serverSocket.writeDatagram(pairData, bytesWritten,
+                                 ::lastDevice->sendingSocket.getAddress(), ::lastDevice->sendingSocket.getPort());
 }
 
 int main(int argc, const char* argv[]) {
     
-    sockaddr_in senderSocket;
+    serverSocket.bind(QHostAddress::LocalHost, PAIRING_SERVER_LISTEN_PORT);
+    
+    HifiSockAddr senderSockAddr;
     char senderData[MAX_PACKET_SIZE_BYTES] = {};
-    ssize_t receivedBytes = 0;
     
     while (true) {
-        if (::serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
+        if (::serverSocket.hasPendingDatagrams()
+            && ::serverSocket.readDatagram(senderData, MAX_PACKET_SIZE_BYTES,
+                                           senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer())) {
             if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
                 
@@ -76,12 +83,11 @@ int main(int argc, const char* argv[]) {
                     // if we have fewer than 3 matches the packet wasn't properly formatted
                     
                     // setup the localSocket for the pairing device
-                    tempDevice.localSocket.sin_family = AF_INET;
-                    inet_pton(AF_INET, deviceAddress, &::lastDevice);
-                    tempDevice.localSocket.sin_port = socketPort;
+                    tempDevice.localSocket.setAddress(QHostAddress(deviceAddress));
+                    tempDevice.localSocket.setPort(socketPort);
                     
                     // store this device's sending socket so we can talk back to it
-                    tempDevice.sendingSocket = senderSocket;
+                    tempDevice.sendingSocket = senderSockAddr;
                     
                     // push this new device into the vector
                     printf("New last device is %s (%s) at %s:%d\n",

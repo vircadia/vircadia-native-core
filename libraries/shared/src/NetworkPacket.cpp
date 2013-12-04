@@ -22,10 +22,10 @@ NetworkPacket::~NetworkPacket() {
     // nothing to do
 }
 
-void NetworkPacket::copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength) {
+void NetworkPacket::copyContents(const HifiSockAddr& sockAddr, const unsigned char*  packetData, ssize_t packetLength) {
     _packetLength = 0;
     if (packetLength >=0 && packetLength <= MAX_PACKET_SIZE) {
-        memcpy(&_address, &address, sizeof(_address));
+        _sockAddr = sockAddr;
         _packetLength = packetLength;
         memcpy(&_packetData[0], packetData, packetLength);
     } else {
@@ -34,16 +34,16 @@ void NetworkPacket::copyContents(const sockaddr& address, const unsigned char*  
 }
 
 NetworkPacket::NetworkPacket(const NetworkPacket& packet) {
-    copyContents(packet.getAddress(), packet.getData(), packet.getLength());
+    copyContents(packet.getSockAddr(), packet.getData(), packet.getLength());
 }
 
-NetworkPacket::NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength) {
-    copyContents(address, packetData, packetLength);
+NetworkPacket::NetworkPacket(const HifiSockAddr& sockAddr, unsigned char*  packetData, ssize_t packetLength) {
+    copyContents(sockAddr, packetData, packetLength);
 };
 
 // copy assignment 
 NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
-    copyContents(other.getAddress(), other.getData(), other.getLength());
+    copyContents(other.getSockAddr(), other.getData(), other.getLength());
     return *this;
 }
 

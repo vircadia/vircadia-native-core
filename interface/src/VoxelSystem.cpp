@@ -563,13 +563,15 @@ bool VoxelSystem::readFromSchematicFile(const char* filename) {
 }
 
 int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
+    bool showTimingDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData()",showTimingDetails);
+
     unsigned char command = *sourceBuffer;
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                    "readBitstreamToTree()");
-
+            PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() PACKET_TYPE_VOXEL_DATA part...",showTimingDetails);
+        
             unsigned char* dataAt = sourceBuffer + numBytesPacketHeader;
 
             VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
@@ -611,7 +613,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                     VoxelPacketData packetData(packetIsCompressed);
                     packetData.loadFinalizedContent(dataAt, sectionLength);
                     if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
-                        qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                        qDebug("VoxelSystem::parseData() ... Got Packet Section"
+                               " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
                                " subsection:%d sectionLength:%d uncompressed:%d\n",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
                             sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
@@ -627,12 +630,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         }
         break;
     }
-
-
     if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
         setupNewVoxelsForDrawing();
     } else {
-        checkForCulling();
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
@@ -661,8 +661,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     _inSetupNewVoxelsForDrawing = true;
 
-    checkForCulling(); // check for out of view and deleted voxels...
-    
     bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
@@ -747,68 +745,44 @@ void VoxelSystem::checkForCulling() {
 
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
     uint64_t start = usecTimestampNow();
-    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     
-    // These items used to be menu options, we are not defaulting to and only supporting these modes.
-    bool constantCulling = true;
-    bool performHideOutOfViewLogic = true;
-    bool performRemoveOutOfViewLogic = false;
     
-    // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
-    if (constantCulling || (
-            (sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
-            && !isViewChanging()
-        )
-    ) {
-        // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
-        // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
-        // can be expensive).
-        if (performHideOutOfViewLogic) {
-
-            // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
-            // it's been a long time since we last moved, then go ahead and do a full frustum cull.
-            if (isViewChanging()) {
-                _lastViewIsChanging = start;
-            }
-            uint64_t sinceLastMoving = (start - _lastViewIsChanging) / 1000;
-
-            bool enoughTime = (sinceLastMoving >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS));
-
-            // These has changed events will occur before we stop. So we need to remember this for when we finally have stopped
-            // moving long enough to be enoughTime            
-            if (hasViewChanged()) {
-                _hasRecentlyChanged = true;
-            }
-        
-            // If we have recently changed, but it's been enough time since we last moved, then we will do a full frustum
-            // hide/show culling pass
-            bool forceFullFrustum = enoughTime && _hasRecentlyChanged;
-
-            // in hide mode, we only track the full frustum culls, because we don't care about the partials.
-            if (forceFullFrustum) {          
-                _lastViewCulling = start;
-                _hasRecentlyChanged = false;
-            }
-            
-            hideOutOfView(forceFullFrustum);
-
-            if (forceFullFrustum) {          
-                uint64_t endViewCulling = usecTimestampNow();
-                _lastViewCullingElapsed = (endViewCulling - start) / 1000;
-            }
-
-        } else if (performRemoveOutOfViewLogic) {
-            _lastViewCulling = start;
-            removeOutOfView();
-            uint64_t endViewCulling = usecTimestampNow();
-            _lastViewCullingElapsed = (endViewCulling - start) / 1000;
-        }
-        
-        // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
-        // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
-        // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
-        cleanupRemovedVoxels();
+    // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
+    // it's been a long time since we last moved, then go ahead and do a full frustum cull.
+    if (isViewChanging()) {
+        _lastViewIsChanging = start;
     }
+    uint64_t sinceLastMoving = (start - _lastViewIsChanging) / 1000;
+
+    bool enoughTime = (sinceLastMoving >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS));
+
+    // These has changed events will occur before we stop. So we need to remember this for when we finally have stopped
+    // moving long enough to be enoughTime            
+    if (hasViewChanged()) {
+        _hasRecentlyChanged = true;
+    }
+
+    // If we have recently changed, but it's been enough time since we last moved, then we will do a full frustum
+    // hide/show culling pass
+    bool forceFullFrustum = enoughTime && _hasRecentlyChanged;
+
+    // in hide mode, we only track the full frustum culls, because we don't care about the partials.
+    if (forceFullFrustum) {          
+        _lastViewCulling = start;
+        _hasRecentlyChanged = false;
+    }
+    
+    hideOutOfView(forceFullFrustum);
+
+    if (forceFullFrustum) {          
+        uint64_t endViewCulling = usecTimestampNow();
+        _lastViewCullingElapsed = (endViewCulling - start) / 1000;
+    }
+    
+    // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
+    // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
+    // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
+    cleanupRemovedVoxels();
 
     uint64_t sinceLastAudit = (start - _lastAudit) / 1000;
     
@@ -1456,9 +1430,9 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     }
 }
 
-bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* node, void* extraData) {
+bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {
     _nodeCount++;
-    node->setDirtyBit();
+    element->setDirtyBit();
     return true;
 }
 
@@ -1541,6 +1515,39 @@ void VoxelSystem::falseColorizeInView() {
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
+
+class VoxelAndPoint {
+public:
+    VoxelTreeElement* voxel;
+    glm::vec3 point;
+};
+
+// Find the smallest colored voxel enclosing a point (if there is one)
+bool VoxelSystem::getVoxelEnclosingOperation(OctreeElement* element, void* extraData) {
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+    VoxelAndPoint* args = (VoxelAndPoint*) extraData;
+    AABox voxelBox = voxel->getAABox();
+    if (voxelBox.contains(args->point)) {
+        if (voxel->isColored() && voxel->isLeaf()) {
+            // we've reached a solid leaf containing the point, return the node.
+            args->voxel = voxel;
+            return false;
+        }
+    } else {
+        //  The point is not inside this voxel, so stop recursing.
+        return false;
+    }
+    return true; // keep looking
+}
+
+VoxelTreeElement* VoxelSystem::getVoxelEnclosing(const glm::vec3& point) {
+    VoxelAndPoint voxelAndPoint;
+    voxelAndPoint.point = point;
+    voxelAndPoint.voxel = NULL;
+    _tree->recurseTreeWithOperation(getVoxelEnclosingOperation, (void*) &voxelAndPoint);
+    return voxelAndPoint.voxel;
+}
+
 
 // helper classes and args for falseColorizeBySource
 class groupColor {

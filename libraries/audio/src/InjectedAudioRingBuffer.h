@@ -11,8 +11,6 @@
 
 #include <QtCore/QUuid>
 
-#include "AudioInjector.h"
-
 #include "PositionalAudioRingBuffer.h"
 
 class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
