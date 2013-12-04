@@ -222,8 +222,15 @@ void Audio::handleAudioInput() {
             if (!_muted) {
                 // we aren't muted, average each set of four samples together to set up the mono input buffers
                 for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO; i += 4) {
-                    int16_t averagedSample =  (stereoInputBuffer[i - 2] / 4) + (stereoInputBuffer[i] / 2)
-                                               + (stereoInputBuffer[i + 2] / 4);
+                    
+                    int16_t averagedSample = 0;
+                    if (i + 2 == BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO) {
+                        averagedSample = (stereoInputBuffer[i - 2] / 2) + (stereoInputBuffer[i] / 2);
+                    } else {
+                        averagedSample = (stereoInputBuffer[i - 2] / 4) + (stereoInputBuffer[i] / 2)
+                            + (stereoInputBuffer[i + 2] / 4);
+                    }
+                    
                     // copy the averaged sample to our array
                     memcpy(currentPacketPtr + (((i - 2) / 4) * sizeof(int16_t)), &averagedSample, sizeof(int16_t));
                 }
@@ -234,7 +241,6 @@ void Audio::handleAudioInput() {
             
             // Add procedural effects to input samples
             addProceduralSounds((int16_t*) currentPacketPtr, stereoOutputBuffer, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-            
             
             nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
                                             monoAudioDataPacket,
@@ -353,7 +359,7 @@ bool Audio::mousePressEvent(int x, int y) {
 }
 
 void Audio::render(int screenWidth, int screenHeight) {
-    if (false) {
+    if (true) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
