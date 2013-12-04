@@ -45,11 +45,12 @@ class OctreeElement {
 
 protected:
     // can only be constructed by derived implementation
-    OctreeElement(unsigned char * octalCode = NULL);
+    OctreeElement();
 
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
     
 public:
+    virtual void init(unsigned char * octalCode); /// Your subclass must call init on construction.
     virtual ~OctreeElement();
     
     const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
@@ -102,6 +103,10 @@ public:
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
+    
+    /// we assume that if you should be rendered, then your subclass is rendering, but this allows subclasses to
+    /// implement alternate rendering strategies
+    virtual bool isRendered() const { return getShouldRender(); }
     
     void setSourceUUID(const QUuid& sourceID);
     QUuid getSourceUUID() const;
@@ -162,7 +167,6 @@ protected:
     void checkStoreFourChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree, OctreeElement* childFour);
 #endif
     void calculateAABox();
-    void init(unsigned char * octalCode);
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 

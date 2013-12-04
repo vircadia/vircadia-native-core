@@ -34,7 +34,8 @@ class VoxelTreeElement : public OctreeElement {
     virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
     
 public:
-    void init();
+    virtual ~VoxelTreeElement();
+    virtual void init(unsigned char * octalCode);
 
     virtual bool hasContent() const { return isColored(); }
     virtual void splitChildren();
@@ -50,6 +51,8 @@ public:
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
     VoxelSystem* getVoxelSystem() const;
     void setVoxelSystem(VoxelSystem* voxelSystem);
+
+    virtual bool isRendered() const { return isKnownBufferIndex(); }
 
     bool isColored() const { return _trueColor[3] == 1; }
 

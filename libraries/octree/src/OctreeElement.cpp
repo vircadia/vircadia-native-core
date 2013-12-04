@@ -28,17 +28,18 @@ uint64_t OctreeElement::_externalChildrenMemoryUsage = 0;
 uint64_t OctreeElement::_voxelNodeCount = 0;
 uint64_t OctreeElement::_voxelNodeLeafCount = 0;
 
-OctreeElement::OctreeElement(unsigned char * octalCode) {
+OctreeElement::OctreeElement() {
+}
+
+void OctreeElement::init(unsigned char * octalCode) {
     if (!octalCode) {
         octalCode = new unsigned char[1];
         *octalCode = 0;
     }
-    init(octalCode);
     _voxelNodeCount++;
     _voxelNodeLeafCount++; // all nodes start as leaf nodes
-}
 
-void OctreeElement::init(unsigned char * octalCode) {
+
     int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
     if (octalCodeLength > sizeof(_octalCode)) {
         _octalCode.pointer = octalCode;
@@ -82,15 +83,10 @@ void OctreeElement::init(unsigned char * octalCode) {
     _sourceUUIDKey = 0;
     calculateAABox();
     markWithChangedTime();
-
-    _voxelMemoryUsage += sizeof(OctreeElement);
 }
 
 OctreeElement::~OctreeElement() {
     notifyDeleteHooks();
-
-    _voxelMemoryUsage -= sizeof(OctreeElement);
-
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;

@@ -14,20 +14,33 @@
 #include "VoxelTreeElement.h"
 #include "VoxelTree.h"
 
-VoxelTreeElement::VoxelTreeElement(unsigned char* octalCode) : OctreeElement(octalCode) { 
-    // probably need to do all the color init here....
-    init();
+VoxelTreeElement::VoxelTreeElement(unsigned char* octalCode) : OctreeElement() { 
+    init(octalCode);
 };
 
-OctreeElement* VoxelTreeElement::createNewElement(unsigned char* octalCode) const {
-    return new VoxelTreeElement(octalCode);
+VoxelTreeElement::~VoxelTreeElement() {
+    _voxelMemoryUsage -= sizeof(VoxelTreeElement);
 }
 
-void VoxelTreeElement::init() {
+// This will be called primarily on addChildAt(), which means we're adding a child of our
+// own type to our own tree. This means we should initialize that child with any tree and type 
+// specific settings that our children must have. One example is out VoxelSystem, which
+// we know must match ours.
+OctreeElement* VoxelTreeElement::createNewElement(unsigned char* octalCode) const {
+    VoxelTreeElement* newChild = new VoxelTreeElement(octalCode);
+    newChild->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
+    return newChild;
+}
+
+void VoxelTreeElement::init(unsigned char* octalCode) {
+     setVoxelSystem(NULL);
+     setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
     _falseColored = false; // assume true color
     _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
     _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
     _density = 0.0f;
+    OctreeElement::init(octalCode);
+    _voxelMemoryUsage += sizeof(VoxelTreeElement);
 }
 
 bool VoxelTreeElement::requiresSplit() const {

@@ -128,8 +128,6 @@ void VoxelSystem::elementDeleted(OctreeElement* element) {
 
 void VoxelSystem::setDisableFastVoxelPipeline(bool disableFastVoxelPipeline) {
     _useFastVoxelPipeline = !disableFastVoxelPipeline;
-    printf("setDisableFastVoxelPipeline() disableFastVoxelPipeline=%s _useFastVoxelPipeline=%s\n", 
-        debug::valueOf(disableFastVoxelPipeline), debug::valueOf(_useFastVoxelPipeline));
     setupNewVoxelsForDrawing();
 }
 
@@ -565,7 +563,6 @@ bool VoxelSystem::readFromSchematicFile(const char* filename) {
 }
 
 int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
-
     unsigned char command = *sourceBuffer;
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
     switch(command) {
@@ -645,6 +642,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
+
+
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "setupNewVoxelsForDrawing()");
 
@@ -709,7 +708,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
-
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "setupNewVoxelsForDrawingSingleNode() xxxxx");
 
@@ -849,7 +847,6 @@ void VoxelSystem::cleanupRemovedVoxels() {
 
 void VoxelSystem::copyWrittenDataToReadArraysFullVBOs() {
     copyWrittenDataSegmentToReadArrays(0, _voxelsInWriteArrays - 1);
-
     _voxelsInReadArrays = _voxelsInWriteArrays;
     
     // clear our dirty flags
@@ -1945,7 +1942,6 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     }
     
     if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.isVerySimilar(args.thisViewFrustum)) {
-        //printf("view frustum hasn't changed BAIL!!!\n");
         _inhideOutOfView = false;
         return;
     }

@@ -214,13 +214,9 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
                 bytesRead += childNodeAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
                 childNodeAt->setSourceUUID(args.sourceUUID);
                 
-                // if we had a local version of the node already, it's possible that we have it in the VBO but
+                // if we had a local version of the node already, it's possible that we have it already but
                 // with the same color data, so this won't count as a change. To address this we check the following
-                
-                // XXXBHG - Do something here...
-                if (!childNodeAt->isDirty()
-                    /**&& !childNodeAt->isKnownBufferIndex() && childNodeAt->getShouldRender()  **/
-                    ) {
+                if (!childNodeAt->isDirty() && childNodeAt->getShouldRender() && !childNodeAt->isRendered()) {
                     childNodeAt->setDirtyBit(); // force dirty!
                 }
                 
@@ -447,7 +443,6 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraDa
 }
 
 void Octree::eraseAllOctreeElements() {
-    // XXXBHG Hack attack - is there a better way to erase the voxel tree?
     delete _rootNode; // this will recurse and delete all children
     _rootNode = createNewElement();
     _isDirty = true;
@@ -560,9 +555,7 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
         return true; // recurse on children
     }
     distance *= TREE_SCALE;
-    // XXXBHG - we used to test node->isColored(), but that no longer exists in the octree
-    // instead I switched this to isLeaf() which seems more correct.
-    if (node->isLeaf() && (!args->found || distance < args->distance)) {
+    if (node->hasContent() && (!args->found || distance < args->distance)) {
         args->node = node;
         args->distance = distance;
         args->face = face;
@@ -597,8 +590,7 @@ bool findSpherePenetrationOp(OctreeElement* node, void* extraData) {
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
-    // XXXBHG - used to be isColored()
-    if (node->isLeaf()) {
+    if (node->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findSpherePenetration(args->center, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
@@ -635,8 +627,7 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     if (!node->isLeaf()) {
         return true; // recurse on children
     }
-    // XXXBHG - used to be isColored(), may be an issue.
-    if (node->isLeaf()) {
+    if (node->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
@@ -1403,6 +1394,12 @@ void Octree::copySubTreeIntoNewTree(OctreeElement* startNode, Octree* destinatio
     }
 
     // XXXBHG - what is this trying to do?
+    //      This code appears to be trying to set the color of the destination root
+    //      of a copy operation. But that shouldn't be necessary. I think this code might
+    //      have been a hack that Mark added when he was trying to solve the copy of a single
+    //      voxel bug. But this won't solve that problem, and doesn't appear to be needed for
+    //      a normal copy operation. I'm leaving this in for a little bit until we see if anything
+    //      about copy/paste is broken.
     //
     //OctreeElement* destinationStartNode;
     //if (rebaseToRoot) {
