@@ -118,6 +118,11 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
 class debug {
 public:                           
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
+    static void setDeadBeef(void* memoryVoid, int size);
+    static void checkDeadBeef(void* memoryVoid, int size);
+private:
+    static char DEADBEEF[];
+    static int DEADBEEF_SIZE;
 };
 
 bool isBetween(int64_t value, int64_t max, int64_t min);

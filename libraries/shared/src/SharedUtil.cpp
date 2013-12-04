@@ -688,3 +688,21 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
     return sizeof(holder);
 }
 
+char debug::DEADBEEF[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+int debug::DEADBEEF_SIZE = sizeof(DEADBEEF);
+void debug::setDeadBeef(void* memoryVoid, int size) {
+    unsigned char* memoryAt = (unsigned char*)memoryVoid;
+    int deadBeefSet = 0;
+    int chunks = size / DEADBEEF_SIZE;
+    for (int i = 0; i < chunks; i++) {
+        memcpy(memoryAt + (i * DEADBEEF_SIZE), DEADBEEF, DEADBEEF_SIZE);
+        deadBeefSet += DEADBEEF_SIZE;
+    }
+    memcpy(memoryAt + deadBeefSet, DEADBEEF, size - deadBeefSet);
+}
+
+void debug::checkDeadBeef(void* memoryVoid, int size) {
+    unsigned char* memoryAt = (unsigned char*)memoryVoid;
+    assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+}
+

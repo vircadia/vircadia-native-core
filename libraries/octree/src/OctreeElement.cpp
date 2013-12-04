@@ -14,6 +14,7 @@
 
 #include <NodeList.h>
 #include <PerfStat.h>
+#include <assert.h>
 
 #include "AABox.h"
 #include "OctalCode.h"
@@ -29,6 +30,9 @@ uint64_t OctreeElement::_voxelNodeCount = 0;
 uint64_t OctreeElement::_voxelNodeLeafCount = 0;
 
 OctreeElement::OctreeElement() {
+    // Note: you must call init() from your subclass, otherwise the OctreeElement will not be properly
+    // initialized. You will see DEADBEEF in your memory debugger if you have not properly called init()
+    debug::setDeadBeef(this, sizeof(*this));
 }
 
 void OctreeElement::init(unsigned char * octalCode) {
