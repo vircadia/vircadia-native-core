@@ -15,7 +15,7 @@
 
 #include "AssignmentFactory.h"
 
-Assignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
+ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
     int headerBytes = numBytesForPacketHeader(dataBuffer);
     
     Assignment::Type assignmentType = Assignment::AllTypes;
@@ -31,6 +31,6 @@ Assignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer,
         case Assignment::VoxelServerType:
             return new VoxelServer(dataBuffer, numBytes);
         default:
-            return new Assignment(dataBuffer, numBytes);
+            return NULL;
     }
 }

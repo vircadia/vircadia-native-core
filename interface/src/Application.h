@@ -293,7 +293,6 @@ private:
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -462,9 +461,9 @@ private:
 
     PieMenu _pieMenu;
     
-    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
-    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
-                    sockaddr senderAddress, bool wasStatsPacket);
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
+                                  const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;

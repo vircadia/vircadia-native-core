@@ -14,7 +14,7 @@
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
 
-#include <Assignment.h>
+#include <ThreadedAssignment.h>
 #include <EnvironmentData.h>
 
 #include "civetweb.h"
@@ -26,14 +26,13 @@
 #include "VoxelServerPacketProcessor.h"
 
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
-class VoxelServer : public Assignment {
+class VoxelServer : public ThreadedAssignment {
 public:                
     VoxelServer(const unsigned char* dataBuffer, int numBytes);
     
     ~VoxelServer();
     
-    /// runs the voxel server assignment
-    void run();
+   
     
     /// allows setting of run arguments
     void setArguments(int argc, char** argv);
@@ -59,7 +58,11 @@ public:
     bool isInitialLoadComplete() const { return (_voxelPersistThread) ? _voxelPersistThread->isInitialLoadComplete() : true; }
     time_t* getLoadCompleted() { return (_voxelPersistThread) ? _voxelPersistThread->getLoadCompleted() : NULL; }
     uint64_t getLoadElapsedTime() const { return (_voxelPersistThread) ? _voxelPersistThread->getLoadElapsedTime() : 0; }
+public slots:
+    /// runs the voxel server assignment
+    void run();
     
+    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 private:
     int _argc;
     const char** _argv;

@@ -13,7 +13,6 @@
 #include <glm/glm.hpp>
 
 #include <SharedUtil.h>
-#include <UDPSocket.h>
 
 #include <CoverageMapV2.h>
 #include <NodeData.h>

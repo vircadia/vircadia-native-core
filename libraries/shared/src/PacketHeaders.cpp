@@ -34,7 +34,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_DOMAIN:
         case PACKET_TYPE_DOMAIN_LIST_REQUEST:
         case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
-            return 1;
+            return 2;
         
         case PACKET_TYPE_VOXEL_QUERY:
             return 2;

@@ -29,9 +29,9 @@ JurisdictionSender::~JurisdictionSender() {
 }
 
 
-void JurisdictionSender::processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
+void JurisdictionSender::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
             lockRequestingNodes();
@@ -66,7 +66,7 @@ bool JurisdictionSender::process() {
             Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
             if (node->getActiveSocket() != NULL) {
-                sockaddr* nodeAddress = node->getActiveSocket();
+                const HifiSockAddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
                 nodeCount++;
             }

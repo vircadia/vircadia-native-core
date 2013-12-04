@@ -11,35 +11,35 @@
 #include <iostream>
 #include <netdb.h>
 
+#include <QtNetwork/QHostInfo>
+
+#include "HifiSockAddr.h"
 #include "SharedUtil.h"
 #include "NodeList.h"
 
 #include "Logging.h"
 
-sockaddr_in Logging::logstashSocket = {};
+HifiSockAddr Logging::logstashSocket = HifiSockAddr();
 char* Logging::targetName = NULL;
 
-sockaddr* Logging::socket() {
+const HifiSockAddr& Logging::socket() {
     
-    if (logstashSocket.sin_addr.s_addr == 0) {
+    if (logstashSocket.getAddress().isNull()) {
         // we need to construct the socket object
-        
-        // assume IPv4
-        logstashSocket.sin_family = AF_INET;
-        
         // use the constant port
-        logstashSocket.sin_port = htons(LOGSTASH_UDP_PORT);
+        logstashSocket.setPort(htons(LOGSTASH_UDP_PORT));
         
         // lookup the IP address for the constant hostname
-        struct hostent* logstashHostInfo;
-        if ((logstashHostInfo = gethostbyname(LOGSTASH_HOSTNAME))) {
-            memcpy(&logstashSocket.sin_addr, logstashHostInfo->h_addr_list[0], logstashHostInfo->h_length);
+        QHostInfo hostInfo = QHostInfo::fromName(LOGSTASH_HOSTNAME);
+        if (!hostInfo.addresses().isEmpty()) {
+            // use the first IP address
+            logstashSocket.setAddress(hostInfo.addresses().first());
         } else {
             printf("Failed to lookup logstash IP - will try again on next log attempt.\n");
         }
     }
     
-    return (sockaddr*) &logstashSocket;
+    return logstashSocket;
 }
 
 bool Logging::shouldSendStats() {
@@ -57,7 +57,8 @@ void Logging::stashValue(char statType, const char* key, float value) {
     NodeList *nodeList = NodeList::getInstance();
     
     if (nodeList) {
-        nodeList->getNodeSocket()->send(socket(), logstashPacket, numPacketBytes);
+        nodeList->getNodeSocket().writeDatagram(logstashPacket, numPacketBytes,
+                                                logstashSocket.getAddress(), logstashSocket.getPort());
     }
 }
 

@@ -14,6 +14,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QString>
+#include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
 #include <Logging.h>
@@ -53,8 +54,10 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 
 VoxelServer* VoxelServer::_theInstance = NULL;
 
-VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
-    _serverTree(true) {
+VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) :
+    ThreadedAssignment(dataBuffer, numBytes),
+    _serverTree(true)
+{
     _argc = 0;
     _argv = NULL;
 
@@ -495,6 +498,69 @@ void VoxelServer::parsePayload() {
     }
 }
 
+void VoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (dataByteArray[0] == PACKET_TYPE_VOXEL_QUERY) {
+        bool debug = false;
+        if (debug) {
+            qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+        }
+        
+        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
+        
+        // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
+        // need to make sure we have it in our nodeList.
+        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
+                                                              NUM_BYTES_RFC4122_UUID));
+        
+        Node* node = nodeList->nodeWithUUID(nodeUUID);
+        
+        if (node) {
+            nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char *) dataByteArray.data(),
+                                         dataByteArray.size());
+            if (!node->getActiveSocket()) {
+                // we don't have an active socket for this node, but they're talking to us
+                // this means they've heard from us and can reply, let's assume public is active
+                node->activatePublicSocket();
+            }
+            VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
+            if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
+                nodeData->initializeVoxelSendThread(this);
+            }
+        }
+    } else if (dataByteArray[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+        if (_jurisdictionSender) {
+            _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                     dataByteArray.size());
+        }
+    } else if (_voxelServerPacketProcessor &&
+               (dataByteArray[0] == PACKET_TYPE_SET_VOXEL
+                || dataByteArray[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
+                || dataByteArray[0] == PACKET_TYPE_ERASE_VOXEL)) {
+                   
+                   
+                   const char* messageName;
+                   switch (dataByteArray[0]) {
+                       case PACKET_TYPE_SET_VOXEL:
+                           messageName = "PACKET_TYPE_SET_VOXEL";
+                           break;
+                       case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
+                           messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE";
+                           break;
+                       case PACKET_TYPE_ERASE_VOXEL:
+                           messageName = "PACKET_TYPE_ERASE_VOXEL";
+                           break;
+                   }
+                   _voxelServerPacketProcessor->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                                    dataByteArray.size());
+               } else {
+                   // let processNodeData handle it.
+                   NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(),
+                                                            dataByteArray.size());
+               }
+}
+
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
     
@@ -647,12 +713,7 @@ void VoxelServer::run() {
         qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
     }
 
-    sockaddr senderAddress;
-    
-    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
-    ssize_t packetLength;
-    
-    timeval lastDomainServerCheckIn = {};
+    HifiSockAddr senderSockAddr;
 
     // set up our jurisdiction broadcaster...
     _jurisdictionSender = new JurisdictionSender(_jurisdiction);
@@ -679,82 +740,21 @@ void VoxelServer::run() {
     }
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer << "\n";
     
+    QTimer* domainServerTimer = new QTimer(this);
+    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
+    
+    QTimer* silentNodeTimer = new QTimer(this);
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    QTimer* pingNodesTimer = new QTimer(this);
+    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
+    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     // loop to send to nodes requesting data
-    while (true) {
-        // check for >= in case one gets past the goalie
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
-            break;
-        }
-        
-        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
-        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
-            gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
-        }
-        
-        // ping our inactive nodes to punch holes with them
-        nodeList->possiblyPingInactiveNodes();
-        
-        if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
-            packetVersionMatch(packetData)) {
-
-            int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-
-            if (packetData[0] == PACKET_TYPE_VOXEL_QUERY) {
-                bool debug = false;
-                if (debug) {
-                    qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
-                }
-            
-                // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
-                // need to make sure we have it in our nodeList.
-                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
-                                                               NUM_BYTES_RFC4122_UUID));
-                
-                Node* node = nodeList->nodeWithUUID(nodeUUID);
-                
-                if (node) {
-                    nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
-                    if (!node->getActiveSocket()) {
-                        // we don't have an active socket for this node, but they're talking to us
-                        // this means they've heard from us and can reply, let's assume public is active
-                        node->activatePublicSocket();
-                    }
-                    VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
-                    if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
-                        nodeData->initializeVoxelSendThread(this);
-                    }
-                }
-            } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
-                if (_jurisdictionSender) {
-                    _jurisdictionSender->queueReceivedPacket(senderAddress, packetData, packetLength);
-                }
-            } else if (_voxelServerPacketProcessor &&
-                       (packetData[0] == PACKET_TYPE_SET_VOXEL
-                        || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
-                        || packetData[0] == PACKET_TYPE_ERASE_VOXEL)) {
-
-
-                const char* messageName;
-                switch (packetData[0]) {
-                    case PACKET_TYPE_SET_VOXEL: 
-                        messageName = "PACKET_TYPE_SET_VOXEL"; 
-                        break;
-                    case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
-                        messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
-                        break;
-                    case PACKET_TYPE_ERASE_VOXEL: 
-                        messageName = "PACKET_TYPE_ERASE_VOXEL"; 
-                        break;
-                }
-                _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
-            } else {
-                // let processNodeData handle it.
-                NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
-            }
-        }
+    while (!_isFinished) {
+        QCoreApplication::processEvents();
     }
 
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are

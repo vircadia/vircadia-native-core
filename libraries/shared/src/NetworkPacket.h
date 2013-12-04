@@ -15,6 +15,8 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
+#include "HifiSockAddr.h"
+
 #include "NodeList.h" // for MAX_PACKET_SIZE
 
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
@@ -30,19 +32,19 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+    NetworkPacket(const HifiSockAddr& sockAddr, unsigned char*  packetData, ssize_t packetLength);
 
-    sockaddr& getAddress() { return _address; }
+    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
     ssize_t getLength() const { return _packetLength; }
     unsigned char* getData() { return &_packetData[0]; }
 
-    const sockaddr& getAddress() const { return _address; }
+    const HifiSockAddr& getAddress() const { return _sockAddr; }
     const unsigned char* getData() const { return &_packetData[0]; }
 
 private:
-    void copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength);
+    void copyContents(const HifiSockAddr& sockAddr, const unsigned char*  packetData, ssize_t packetLength);
     
-    sockaddr _address;
+    HifiSockAddr _sockAddr;
     ssize_t _packetLength;
     unsigned char _packetData[MAX_PACKET_SIZE];
 };

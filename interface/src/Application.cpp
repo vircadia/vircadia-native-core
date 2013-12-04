@@ -19,6 +19,7 @@
 #include <ifaddrs.h>
 #endif
 
+#include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
@@ -47,8 +48,6 @@
 #include <QDesktopServices>
 
 #include <NodeTypes.h>
-#include <AudioInjectionManager.h>
-#include <AudioInjector.h>
 #include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
@@ -170,9 +169,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
-    if (!_enableNetworkThread) {
-        NodeList::getInstance()->getNodeSocket()->setBlocking(false);
-    }
     
     // setup QSettings    
 #ifdef Q_OS_MAC
@@ -1455,8 +1451,9 @@ void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
-        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY))) <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH &&
-        _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
+            <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
+            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -2699,7 +2696,6 @@ void Application::queryVoxels() {
         qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
     }
     
-    UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
@@ -2785,7 +2781,8 @@ void Application::queryVoxels() {
     
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
 
-            nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+            nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
+                                                    node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
 
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
@@ -3933,62 +3930,6 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     }
 }
 
-void Application::injectVoxelAddedSoundEffect() {
-    AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
-    
-    if (voxelInjector) {
-        voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
-        //voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
-        voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
-    
-        /* for (int i = 0; i
-         < 22050; i++) {
-         if (i % 4 == 0) {
-         voxelInjector->addSample(4000);
-         } else if (i % 4 == 1) {
-         voxelInjector->addSample(0);
-         } else if (i % 4 == 2) {
-         voxelInjector->addSample(-4000);
-         } else {
-         voxelInjector->addSample(0);
-         }
-         */
-    
-        const float BIG_VOXEL_MIN_SIZE = .01f;
-    
-        for (int i = 0; i < 11025; i++) {
-        
-            /*
-             A440 square wave
-             if (sin(i * 2 * PIE / 50)>=0) {
-             voxelInjector->addSample(4000);
-             } else {
-             voxelInjector->addSample(-4000);
-             }
-             */
-        
-            if (_mouseVoxel.s > BIG_VOXEL_MIN_SIZE) {
-                voxelInjector->addSample(20000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 200))));
-            } else {
-                voxelInjector->addSample(16000 * sin(i / (1.5 * log (_mouseVoxel.s / .0001) * ((i + 11025) / 5512.5)))); //808
-            }
-        }
-    
-        //voxelInjector->addSample(32500 * sin(i/(2 * 1 * ((i+5000)/5512.5)))); //80
-        //voxelInjector->addSample(20000 * sin(i/(6 * (_mouseVoxel.s/.001) *((i+5512.5)/5512.5)))); //808
-        //voxelInjector->addSample(20000 * sin(i/(6 * ((i+5512.5)/5512.5)))); //808
-        //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50)); //A440 sine wave
-        //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50) * sin (i/500)); //A440 sine wave with amplitude modulation
-    
-        //FM library
-        //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(500*sin((i+1)/200))));  //FM 1 dubstep
-        //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(300*sin((i+1)/5.0))));  //FM 2 flange sweep
-        //voxelInjector->addSample(10000 * sin((i * 2 * PIE) /(500*sin((i+1)/500.0))));  //FM 3 resonant pulse
-
-        AudioInjectionManager::threadInjector(voxelInjector);
-    }
-}
-
 bool Application::maybeEditVoxelUnderCursor() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
         || Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode)) {
@@ -4001,9 +3942,6 @@ bool Application::maybeEditVoxelUnderCursor() {
                       _mouseVoxel.green,
                       _mouseVoxel.blue,
                       Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
- 
-            // inject a sound effect
-            injectVoxelAddedSoundEffect();
            
             // remember the position for drag detection
             _justEditedVoxel = true;
@@ -4037,21 +3975,6 @@ void Application::deleteVoxelUnderCursor() {
         // delete it locally to see the effect immediately (and in case no voxel server is present)
         _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
 
-        AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
-        
-        if (voxelInjector) {
-            voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
-            //voxelInjector->setBearing(0); //straight down the z axis
-            voxelInjector->setVolume (255); //255 is max, and also default value
-            
-            
-            for (int i = 0; i < 5000; i++) {
-                voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
-                //voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
-            }
-            
-            AudioInjectionManager::threadInjector(voxelInjector);
-        }
     }
     // remember the position for drag detection
     _justEditedVoxel = true;
@@ -4206,10 +4129,10 @@ void Application::nodeKilled(Node* node) {
 }
 
 void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
-                        sockaddr senderAddress, bool wasStatsPacket) {
+                        const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
                         
     // Attempt to identify the sender from it's address.
-    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
     if (voxelServer) {
         QUuid nodeUUID = voxelServer->getUUID();
         
@@ -4223,10 +4146,10 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
     }
 }
 
-int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
+int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderSockAddr) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
     
     // parse the incoming stats datas stick it in a temporary object for now, while we 
     // determine which server it belongs to
@@ -4279,12 +4202,16 @@ void* Application::networkReceive(void* args) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
         "Application::networkReceive()");
 
-    sockaddr senderAddress;
+    HifiSockAddr senderSockAddr;
     ssize_t bytesReceived;
     
     Application* app = Application::getInstance();
     while (!app->_stopNetworkReceiveThread) {
-        if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
+        if (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams() &&
+            (bytesReceived = NodeList::getInstance()->getNodeSocket().readDatagram((char*) app->_incomingPacket,
+                                                                                    MAX_PACKET_SIZE,
+                                                                                    senderSockAddr.getAddressPointer(),
+                                                                                    senderSockAddr.getPortPointer()))) {
         
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
@@ -4323,11 +4250,11 @@ void* Application::networkReceive(void* args) {
                         }   
                     
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queueReceivedPacket(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
-                        NodeList::getInstance()->processBulkNodeData(&senderAddress,
+                        NodeList::getInstance()->processBulkNodeData(senderSockAddr,
                                                                      app->_incomingPacket,
                                                                      bytesReceived);
                         getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
@@ -4345,7 +4272,7 @@ void* Application::networkReceive(void* args) {
                         DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
                         break;
                     default:
-                        NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
+                        NodeList::getInstance()->processNodeData(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                 }
             }

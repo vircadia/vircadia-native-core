@@ -145,11 +145,15 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             }
             
             // actually send it
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -169,8 +173,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             truePacketsSent++;
             packetsSent++;
 
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                            nodeData->getPacket(), nodeData->getPacketLength());
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
 
             packetSent = true;
 
@@ -191,8 +196,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting()) {
             // just send the voxel packet
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                                           nodeData->getPacket(), nodeData->getPacketLength());
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -519,7 +525,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 envPacketLength += _myServer->getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
             }
             
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), _tempOutputBuffer, envPacketLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) _tempOutputBuffer, envPacketLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             trueBytesSent += envPacketLength;
             truePacketsSent++;
             packetsSentThisInterval++;
