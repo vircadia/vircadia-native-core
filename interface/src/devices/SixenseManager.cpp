@@ -32,7 +32,6 @@ void SixenseManager::update(float deltaTime) {
     }
     MyAvatar* avatar = Application::getInstance()->getAvatar();
     Hand& hand = avatar->getHand();
-    hand.getPalms().clear();
     
     int maxControllers = sixenseGetMaxControllers();
     for (int i = 0; i < maxControllers; i++) {
@@ -42,45 +41,63 @@ void SixenseManager::update(float deltaTime) {
         sixenseControllerData data;
         sixenseGetNewestData(i, &data);
         
-        //  Set palm position and normal based on Hydra position/orientation
-        PalmData palm(&hand);
-        palm.setActive(true);
-        glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
+        //printf("si: %i\n", data.controller_index);
         
-        //  Compute current velocity from position change
-        palm.setVelocity((position - palm.getPosition()) / deltaTime);
+        //  Set palm position and normal based on Hydra position/orientation
+        
+        // Either find a palm matching the sixense controller, or make a new one
+        PalmData* palm;
+        bool foundHand = false;
+        for (int j = 0; j < hand.getNumPalms(); j++) {
+            if (hand.getPalms()[j].getSixenseID() == data.controller_index) {
+                palm = &hand.getPalms()[j];
+                foundHand = true;
+            }
+        }
+        if (!foundHand) {
+            PalmData newPalm(&hand);
+            hand.getPalms().push_back(newPalm);
+            palm = &hand.getPalms()[hand.getNumPalms() - 1];
+            palm->setSixenseID(data.controller_index);
+            printf("Found new Sixense controller, ID %i\n", data.controller_index);
+        }
+        
+        palm->setActive(true);
         
         //  Read controller buttons and joystick into the hand
-        palm.setControllerButtons(data.buttons);
-        palm.setTrigger(data.trigger);
-        palm.setJoystick(data.joystick_x, data.joystick_y);
-        
+        palm->setControllerButtons(data.buttons);
+        palm->setTrigger(data.trigger);
+        palm->setJoystick(data.joystick_x, data.joystick_y);
+
+        glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)
         const glm::vec3 SPHERE_TO_TORSO(-250.f, -300.f, -300.f);
         position = SPHERE_TO_TORSO + position;
-        palm.setRawPosition(position);
-        glm::quat rotation(data.rot_quat[3], -data.rot_quat[0], data.rot_quat[1], -data.rot_quat[2]);
         
-        //  Rotate about controller
+        //  Compute current velocity from position change
+        palm->setVelocity((position - palm->getRawPosition()) / deltaTime / 1000.f);   //  meters/sec
+        palm->setRawPosition(position);
+        
+        //  Rotation of Palm
+        glm::quat rotation(data.rot_quat[3], -data.rot_quat[0], data.rot_quat[1], -data.rot_quat[2]);
         rotation = glm::angleAxis(180.0f, 0.f, 1.f, 0.f) * rotation;
         const glm::vec3 PALM_VECTOR(0.0f, -1.0f, 0.0f);
-        palm.setRawNormal(rotation * PALM_VECTOR);
+        palm->setRawNormal(rotation * PALM_VECTOR);
         
         // initialize the "finger" based on the direction
-        FingerData finger(&palm, &hand);
+        FingerData finger(palm, &hand);
         finger.setActive(true);
         finger.setRawRootPosition(position);
-        const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, 100.0f);
+        const float FINGER_LENGTH = 100.0f;   //  Millimeters
+        const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
         finger.setRawTipPosition(position + rotation * FINGER_VECTOR);
         
         // three fingers indicates to the skeleton that we have enough data to determine direction
-        palm.getFingers().clear();
-        palm.getFingers().push_back(finger);
-        palm.getFingers().push_back(finger);
-        palm.getFingers().push_back(finger);
-        
-        hand.getPalms().push_back(palm);
+        palm->getFingers().clear();
+        palm->getFingers().push_back(finger);
+        palm->getFingers().push_back(finger);
+        palm->getFingers().push_back(finger);
     }
 #endif
 }

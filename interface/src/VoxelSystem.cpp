@@ -1567,6 +1567,38 @@ void VoxelSystem::falseColorizeInView() {
     setupNewVoxelsForDrawing();
 }
 
+class NodeAndPoint {
+public:
+    VoxelNode* node;
+    glm::vec3 point;
+};
+
+// Find the smallest colored voxel enclosing a point (if there is one)
+bool VoxelSystem::getVoxelEnclosingOperation(VoxelNode* node, void* extraData) {
+    NodeAndPoint* nodeAndPoint = (NodeAndPoint*) extraData;
+    AABox voxelBox = node->getAABox();
+    if (voxelBox.contains(nodeAndPoint->point)) {
+        if (node->isColored() && node->isLeaf()) {
+            // we've reached a solid leaf containing the point, return the node.
+            nodeAndPoint->node = node;
+            return false;
+        }
+    } else {
+        //  The point is not inside this voxel, so stop recursing.
+        return false;
+    }
+    return true; // keep looking
+}
+
+VoxelNode* VoxelSystem::getVoxelEnclosing(const glm::vec3& point) {
+    NodeAndPoint nodeAndPoint;
+    nodeAndPoint.point = point;
+    nodeAndPoint.node = NULL;
+    _tree->recurseTreeWithOperation(getVoxelEnclosingOperation, (void*) &nodeAndPoint);
+    return nodeAndPoint.node;
+}
+
+
 // helper classes and args for falseColorizeBySource
 class groupColor {
 public:

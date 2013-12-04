@@ -84,6 +84,12 @@ private:
     std::vector<HandBall> _leapFingerRootBalls;
     
     glm::vec3 _lastFingerAddVoxel, _lastFingerDeleteVoxel;
+    bool _isCollidingWithVoxel;
+    VoxelDetail _collidingVoxel;
+    
+    glm::vec3 _collisionCenter;
+    float _collisionAge;
+    float _collisionDuration;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
@@ -94,6 +100,8 @@ private:
     void renderLeapHands();
     void renderLeapFingerTrails();
     void calculateGeometry();
+    
+    void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelNode* voxel, float deltaTime);
 };
 
 #endif

@@ -121,6 +121,8 @@ public:
     virtual void domainChanged(QString domain);
     
     bool treeIsBusy() const { return _treeIsBusy; }
+                        
+    VoxelNode* getVoxelEnclosing(const glm::vec3& point);
     
 signals:
     void importSize(float x, float y, float z);
@@ -200,6 +202,7 @@ private:
     static bool hideAllSubTreeOperation(VoxelNode* node, void* extraData);
     static bool showAllSubTreeOperation(VoxelNode* node, void* extraData);
     static bool showAllLocalVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool getVoxelEnclosingOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw);
     int forceRemoveNodeFromArrays(VoxelNode* node);
