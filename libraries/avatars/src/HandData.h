@@ -47,6 +47,8 @@ const int BUTTON_3 = 8;
 const int BUTTON_4 = 16;
 const int BUTTON_FWD = 128;
 
+const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
@@ -54,19 +56,24 @@ public:
     
     // These methods return the positions in Leap-relative space.
     // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
-    
+
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        const float unitScale = 0.001;            // convert mm to meters
-        return _basePosition + _baseOrientation * (leapPosition * unitScale);
+        return _basePosition + _baseOrientation * (leapPosition * LEAP_UNIT_SCALE);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
         return glm::normalize(_baseOrientation * leapDirection);
     }
+    glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
+    glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
 
     std::vector<PalmData>& getPalms()    { return _palms; }
     size_t                 getNumPalms() { return _palms.size(); }
     PalmData&              addNewPalm();
+
+    /// Finds the indices of the left and right palms according to their locations, or -1 if either or
+    /// both is not found.
+    void getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const;
 
     void setFingerTrailLength(unsigned int length);
     void updateFingerTrails();
@@ -152,6 +159,8 @@ public:
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
     const glm::vec3& getVelocity()  const { return _velocity; }
+
+    void addToPosition(const glm::vec3& delta);
 
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }

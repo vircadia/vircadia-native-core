@@ -29,24 +29,9 @@ void SkeletonModel::simulate(float deltaTime) {
     Model::simulate(deltaTime);
 
     // find the left and rightmost active Leap palms
-    HandData& hand = _owningAvatar->getHand();
-    int leftPalmIndex = -1;
-    float leftPalmX = FLT_MAX;
-    int rightPalmIndex = -1;    
-    float rightPalmX = -FLT_MAX;
-    for (int i = 0; i < hand.getNumPalms(); i++) {
-        if (hand.getPalms()[i].isActive()) {
-            float x = hand.getPalms()[i].getRawPosition().x;
-            if (x < leftPalmX) {
-                leftPalmIndex = i;
-                leftPalmX = x;
-            }
-            if (x > rightPalmX) {
-                rightPalmIndex = i;
-                rightPalmX = x;
-            }
-        }
-    }
+    int leftPalmIndex, rightPalmIndex;   
+    HandData& hand = _owningAvatar->getHand(); 
+    hand.getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     const float HAND_RESTORATION_RATE = 0.25f;
     

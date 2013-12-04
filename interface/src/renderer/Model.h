@@ -54,6 +54,12 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
+    /// Returns the index of the left hand joint, or -1 if not found.
+    int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
+    
+    /// Returns the index of the right hand joint, or -1 if not found.
+    int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
+    
     /// Returns the position of the head joint.
     /// \return whether or not the head was found
     bool getHeadPosition(glm::vec3& headPosition) const;
@@ -104,6 +110,9 @@ public:
     
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
+
+    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, int skipIndex = -1) const;
 
 protected:
 

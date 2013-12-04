@@ -97,6 +97,26 @@ void Hand::calculateGeometry() {
     _baseOrientation = _owningAvatar->getOrientation();
     _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
     
+    // use position to obtain the left and right palm indices
+    int leftPalmIndex, rightPalmIndex;   
+    getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
+    
+    // check for collisions
+    for (int i = 0; i < getNumPalms(); i++) {
+        PalmData& palm = getPalms()[i];
+        if (!palm.isActive()) {
+            continue;
+        }
+        const float PALM_RADIUS = 0.01f;
+        glm::vec3 penetration;
+        int skipIndex = (i == leftPalmIndex) ? _owningAvatar->getSkeletonModel().getLeftHandJointIndex() :
+            (i == rightPalmIndex) ? _owningAvatar->getSkeletonModel().getRightHandJointIndex() : -1;
+        if (_owningAvatar->getSkeletonModel().findSpherePenetration(palm.getPosition(),
+                PALM_RADIUS * _owningAvatar->getScale(), penetration, skipIndex)) {
+            palm.addToPosition(-penetration);
+        }
+    }
+    
     // generate finger tip balls....
     _leapFingerTipBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {

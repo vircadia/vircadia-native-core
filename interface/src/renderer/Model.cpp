@@ -8,6 +8,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <GeometryUtil.h>
+
 #include "Application.h"
 #include "Model.h"
 
@@ -474,35 +476,35 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
 }
 
 bool Model::setLeftHandPosition(const glm::vec3& position) {
-    return isActive() && setJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, position);
+    return setJointPosition(getLeftHandJointIndex(), position);
 }
 
 bool Model::restoreLeftHandPosition(float percent) {
-    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, percent);
+    return restoreJointPosition(getLeftHandJointIndex(), percent);
 }
 
 bool Model::setLeftHandRotation(const glm::quat& rotation) {
-    return isActive() && setJointRotation(_geometry->getFBXGeometry().leftHandJointIndex, rotation);
+    return setJointRotation(getLeftHandJointIndex(), rotation);
 }
 
 float Model::getLeftArmLength() const {
-    return isActive() ? getLimbLength(_geometry->getFBXGeometry().leftHandJointIndex) : 0.0f;
+    return getLimbLength(getLeftHandJointIndex());
 }
 
 bool Model::setRightHandPosition(const glm::vec3& position) {
-    return isActive() && setJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, position);
+    return setJointPosition(getRightHandJointIndex(), position);
 }
 
 bool Model::restoreRightHandPosition(float percent) {
-    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, percent);
+    return restoreJointPosition(getRightHandJointIndex(), percent);
 }
 
 bool Model::setRightHandRotation(const glm::quat& rotation) {
-    return isActive() && setJointRotation(_geometry->getFBXGeometry().rightHandJointIndex, rotation);
+    return setJointRotation(getRightHandJointIndex(), rotation);
 }
 
 float Model::getRightArmLength() const {
-    return isActive() ? getLimbLength(_geometry->getFBXGeometry().rightHandJointIndex) : 0.0f;
+    return getLimbLength(getRightHandJointIndex());
 }
 
 void Model::setURL(const QUrl& url) {
@@ -521,6 +523,48 @@ void Model::setURL(const QUrl& url) {
 
 glm::vec4 Model::computeAverageColor() const {
     return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, int skipIndex) const {
+    const glm::vec3 relativeCenter = penetratorCenter - _translation;
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    bool didPenetrate = false;
+    glm::vec3 totalPenetration;
+    float radiusScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointStates.size(); i++) {
+        const FBXJoint& joint = geometry.joints[i];
+        glm::vec3 end = extractTranslation(_jointStates[i].transform);
+        float endRadius = joint.boneRadius * radiusScale;
+        glm::vec3 start = end;
+        float startRadius = joint.boneRadius * radiusScale;
+        glm::vec3 bonePenetration;
+        if (joint.parentIndex != -1) {
+            if (skipIndex != -1) {
+                int ancestorIndex = joint.parentIndex;
+                do {
+                    if (ancestorIndex == skipIndex) {
+                        goto outerContinue;
+                    }
+                    ancestorIndex = geometry.joints[ancestorIndex].parentIndex;
+                    
+                } while (ancestorIndex != -1);
+            }
+            start = extractTranslation(_jointStates[joint.parentIndex].transform);
+            startRadius = geometry.joints[joint.parentIndex].boneRadius;
+        }
+        if (findSphereCapsulePenetration(relativeCenter, penetratorRadius, start, end,
+                (startRadius + endRadius) / 2.0f, bonePenetration)) {
+            totalPenetration = addPenetrations(totalPenetration, bonePenetration);
+            didPenetrate = true; 
+        }
+        outerContinue: ;
+    }
+    if (didPenetrate) {
+        penetration = totalPenetration;
+        return true;
+    }
+    return false;
 }
 
 void Model::updateJointState(int index) {

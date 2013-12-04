@@ -229,7 +229,10 @@ glm::vec3 extractScale(const glm::mat4& matrix) {
 }
 
 float extractUniformScale(const glm::mat4& matrix) {
-    glm::vec3 scale = extractScale(matrix);
+    return extractUniformScale(extractScale(matrix));
+}
+
+float extractUniformScale(const glm::vec3& scale) {
     return (scale.x + scale.y + scale.z) / 3.0f;
 }
 
