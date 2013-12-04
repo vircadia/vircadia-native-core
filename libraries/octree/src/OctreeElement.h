@@ -1,13 +1,13 @@
 //
-//  VoxelNode.h
+//  OctreeElement.h
 //  hifi
 //
 //  Created by Stephen Birarda on 3/13/13.
 //
 //
 
-#ifndef __hifi__VoxelNode__
-#define __hifi__VoxelNode__
+#ifndef __hifi__OctreeElement__
+#define __hifi__OctreeElement__
 
 //#define HAS_AUDIT_CHILDREN
 //#define SIMPLE_CHILD_ARRAY
@@ -18,45 +18,47 @@
 #include <SharedUtil.h>
 #include "AABox.h"
 #include "ViewFrustum.h"
-#include "VoxelConstants.h"
+#include "OctreeConstants.h"
+//#include "Octree.h"
 
-class VoxelTree; // forward declaration
-class VoxelNode; // forward declaration
-class VoxelSystem; // forward declaration
-
-typedef unsigned char colorPart;
-typedef unsigned char nodeColor[4];
-typedef unsigned char rgbColor[3];
+class Octree;
+class OctreeElement;
+class OctreeElementDeleteHook;
+class OctreePacketData;
+class VoxelSystem;
+class ReadBitstreamToTreeParams;
 
 // Callers who want delete hook callbacks should implement this class
-class VoxelNodeDeleteHook {
+class OctreeElementDeleteHook {
 public:
-    virtual void voxelDeleted(VoxelNode* node) = 0;
+    virtual void elementDeleted(OctreeElement* element) = 0;
 };
 
 // Callers who want update hook callbacks should implement this class
-class VoxelNodeUpdateHook {
+class OctreeElementUpdateHook {
 public:
-    virtual void voxelUpdated(VoxelNode* node) = 0;
+    virtual void elementUpdated(OctreeElement* element) = 0;
 };
 
 
-class VoxelNode {
+class OctreeElement {
+
+protected:
+    // can only be constructed by derived implementation
+    OctreeElement(unsigned char * octalCode = NULL);
+    
 public:
-    VoxelNode(); // root node constructor
-    VoxelNode(unsigned char * octalCode); // regular constructor
-    ~VoxelNode();
+    virtual ~OctreeElement();
     
     const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
-    VoxelNode* getChildAtIndex(int childIndex) const;
+    OctreeElement* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
-    VoxelNode* removeChildAtIndex(int childIndex);
-    VoxelNode* addChildAtIndex(int childIndex);
+    OctreeElement* removeChildAtIndex(int childIndex);
+    virtual OctreeElement* addChildAtIndex(int childIndex);
     void safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); // handles deletion of all descendents
 
-    void setColorFromAverageOfChildren();
-    void setRandomColor(int minimumBrightness);
-    bool collapseIdenticalLeaves();
+    virtual void calculateAverageFromChildren() { };
+    virtual bool collapseChildren() { return false; };
 
     const AABox& getAABox() const { return _box; }
     const glm::vec3& getCorner() const { return _box.getCorner(); }
@@ -64,15 +66,21 @@ public:
     int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
-    
-    bool isColored() const { return _trueColor[3] == 1; }
+
+    virtual bool hasContent() const { return isLeaf(); }
+    virtual void splitChildren() { }
+    virtual bool requiresSplit() const { return false; }
+    virtual bool appendElementData(OctreePacketData* packetData) const { return true; }
+    virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) 
+                    { return 0; }
+
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
 
     bool calculateShouldRender(const ViewFrustum* viewFrustum, 
-                float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
+                float voxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
     
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
@@ -87,27 +95,11 @@ public:
     bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
     void markWithChangedTime();
     uint64_t getLastChanged() const { return _lastChanged; }
-    void handleSubtreeChanged(VoxelTree* myTree);
+    void handleSubtreeChanged(Octree* myTree);
     
-    glBufferIndex getBufferIndex() const { return _glBufferIndex; }
-    bool isKnownBufferIndex() const { return !_unknownBufferIndex; }
-    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
-    VoxelSystem* getVoxelSystem() const;
-    void setVoxelSystem(VoxelSystem* voxelSystem);
-
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
-
-    void setFalseColor(colorPart red, colorPart green, colorPart blue);
-    void setFalseColored(bool isFalseColored);
-    bool getFalseColored() { return _falseColored; }
-    void setColor(const nodeColor& color);
-    const nodeColor& getTrueColor() const { return _trueColor; }
-    const nodeColor& getColor() const { return _currentColor; }
-
-    void setDensity(float density) { _density = density; }
-    float getDensity() const { return _density; }
     
     void setSourceUUID(const QUuid& sourceID);
     QUuid getSourceUUID() const;
@@ -115,11 +107,11 @@ public:
     bool matchesSourceUUID(const QUuid& sourceUUID) const;
     static uint16_t getSourceNodeUUIDKey(const QUuid& sourceUUID);
 
-    static void addDeleteHook(VoxelNodeDeleteHook* hook);
-    static void removeDeleteHook(VoxelNodeDeleteHook* hook);
+    static void addDeleteHook(OctreeElementDeleteHook* hook);
+    static void removeDeleteHook(OctreeElementDeleteHook* hook);
 
-    static void addUpdateHook(VoxelNodeUpdateHook* hook);
-    static void removeUpdateHook(VoxelNodeUpdateHook* hook);
+    static void addUpdateHook(OctreeElementUpdateHook* hook);
+    static void removeUpdateHook(OctreeElementUpdateHook* hook);
     
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
@@ -154,21 +146,21 @@ public:
 #endif // def HAS_AUDIT_CHILDREN
 #endif // def BLENDED_UNION_CHILDREN
 
-private:
+protected:
     void deleteAllChildren();
-    void setChildAtIndex(int childIndex, VoxelNode* child);
+    void setChildAtIndex(int childIndex, OctreeElement* child);
 
 #ifdef BLENDED_UNION_CHILDREN
-    void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
-    void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
-    void storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree);
-    void retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree);
+    void storeTwoChildren(OctreeElement* childOne, OctreeElement* childTwo);
+    void retrieveTwoChildren(OctreeElement*& childOne, OctreeElement*& childTwo);
+    void storeThreeChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree);
+    void retrieveThreeChildren(OctreeElement*& childOne, OctreeElement*& childTwo, OctreeElement*& childThree);
     void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
     void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
-    void checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour);
+    void checkStoreFourChildren(OctreeElement* childOne, OctreeElement* childTwo, OctreeElement* childThree, OctreeElement* childFour);
 #endif
     void calculateAABox();
-    void init(unsigned char * octalCode);
+    virtual void init(unsigned char * octalCode);
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 
@@ -184,44 +176,28 @@ private:
 
     /// Client and server, pointers to child nodes, various encodings
 #ifdef SIMPLE_CHILD_ARRAY
-    VoxelNode* _simpleChildArray[8]; /// Only used when SIMPLE_CHILD_ARRAY is enabled
+    OctreeElement* _simpleChildArray[8]; /// Only used when SIMPLE_CHILD_ARRAY is enabled
 #endif
 
 #ifdef SIMPLE_EXTERNAL_CHILDREN
     union children_t {
-      VoxelNode* single;
-      VoxelNode** external;
+      OctreeElement* single;
+      OctreeElement** external;
     } _children;
 #endif
     
 #ifdef BLENDED_UNION_CHILDREN
     union children_t {
-      VoxelNode* single;
+      OctreeElement* single;
       int32_t offsetsTwoChildren[2];
       uint64_t offsetsThreeChildrenEncoded;
-      VoxelNode** external;
+      OctreeElement** external;
     } _children;
 #ifdef HAS_AUDIT_CHILDREN
-    VoxelNode* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
+    OctreeElement* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
 #endif // def HAS_AUDIT_CHILDREN
 
 #endif //def BLENDED_UNION_CHILDREN
-
-    uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
-             _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
-
-    // Support for _voxelSystemIndex, we use these static member variables to track the VoxelSystems that are
-    // in use by various voxel nodes. We map the VoxelSystem pointers into an 1 byte key, this limits us to at
-    // most 255 voxel systems in use at a time within the client. Which is far more than we need.
-    static uint8_t _nextIndex;
-    static std::map<VoxelSystem*, uint8_t> _mapVoxelSystemPointersToIndex;
-    static std::map<uint8_t, VoxelSystem*> _mapIndexToVoxelSystemPointers;
-
-    float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
-
-    nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
-    nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
-
 
     uint16_t _sourceUUIDKey; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
 
@@ -242,10 +218,10 @@ private:
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
     static QReadWriteLock _deleteHooksLock;
-    static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
+    static std::vector<OctreeElementDeleteHook*> _deleteHooks;
 
     //static QReadWriteLock _updateHooksLock;
-    static std::vector<VoxelNodeUpdateHook*> _updateHooks;
+    static std::vector<OctreeElementUpdateHook*> _updateHooks;
 
     static uint64_t _voxelNodeCount;
     static uint64_t _voxelNodeLeafCount;
@@ -272,4 +248,4 @@ private:
     static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
-#endif /* defined(__hifi__VoxelNode__) */
+#endif /* defined(__hifi__OctreeElement__) */

@@ -1,5 +1,5 @@
 //
-//  CoverageMap.h - 2D CoverageMap Quad tree for storage of VoxelProjectedPolygons
+//  CoverageMap.h - 2D CoverageMap Quad tree for storage of OctreeProjectedPolygons
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -10,7 +10,7 @@
 #define _COVERAGE_MAP_
 
 #include <glm/glm.hpp>
-#include "VoxelProjectedPolygon.h"
+#include "OctreeProjectedPolygon.h"
 
 typedef enum {STORED, OCCLUDED, DOESNT_FIT, NOT_STORED} CoverageMapStorageResult;
 typedef enum {TOP_HALF, BOTTOM_HALF, LEFT_HALF, RIGHT_HALF, REMAINDER} RegionName;
@@ -22,8 +22,8 @@ public:
     CoverageRegion(BoundingBox boundingBox, bool isRoot, bool managePolygons = true, RegionName regionName = REMAINDER);
     ~CoverageRegion();
 
-    CoverageMapStorageResult checkRegion(VoxelProjectedPolygon* polygon, const BoundingBox& polygonBox, bool storeIt);
-    void storeInArray(VoxelProjectedPolygon* polygon);
+    CoverageMapStorageResult checkRegion(OctreeProjectedPolygon* polygon, const BoundingBox& polygonBox, bool storeIt);
+    void storeInArray(OctreeProjectedPolygon* polygon);
     
     bool contains(const BoundingBox& box) const { return _myBoundingBox.contains(box); };
     void erase(); // erase the coverage region
@@ -41,7 +41,7 @@ public:
     const char* getRegionName() const;
     
     int getPolygonCount() const { return _polygonCount; };
-    VoxelProjectedPolygon* getPolygon(int index) const { return _polygons[index]; };
+    OctreeProjectedPolygon* getPolygon(int index) const { return _polygons[index]; };
 
 private:
     void init();
@@ -53,7 +53,7 @@ private:
     RegionName              _regionName;
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
-    VoxelProjectedPolygon**  _polygons;
+    OctreeProjectedPolygon**  _polygons;
     
     // we will use one or the other of these depending on settings in the code.
     float*                  _polygonDistances;
@@ -61,7 +61,7 @@ private:
     void growPolygonArray();
     static const int DEFAULT_GROW_SIZE = 100;
     
-    bool mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray);
+    bool mergeItemsInArray(OctreeProjectedPolygon* seed, bool seedInArray);
     
 };
 
@@ -77,7 +77,7 @@ public:
     CoverageMap(BoundingBox boundingBox = ROOT_BOUNDING_BOX, bool isRoot = IS_ROOT, bool managePolygons = true);
     ~CoverageMap();
     
-    CoverageMapStorageResult checkMap(VoxelProjectedPolygon* polygon, bool storeIt = true);
+    CoverageMapStorageResult checkMap(OctreeProjectedPolygon* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
     
@@ -87,7 +87,7 @@ public:
     static bool wantDebugging;
 
     int getPolygonCount() const;
-    VoxelProjectedPolygon* getPolygon(int index) const;
+    OctreeProjectedPolygon* getPolygon(int index) const;
     CoverageMap* getChild(int childIndex) const { return _childMaps[childIndex]; };
     
 private:

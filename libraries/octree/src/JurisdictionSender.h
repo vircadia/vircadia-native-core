@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  Voxel Packet Sender
+//  Jurisdiction Sender
 //
 
 #ifndef __shared__JurisdictionSender__

@@ -1,5 +1,5 @@
 //
-//  CoverageMapV2.h - 2D CoverageMapV2 Quad tree for storage of VoxelProjectedPolygons
+//  CoverageMapV2.h - 2D CoverageMapV2 Quad tree for storage of OctreeProjectedPolygons
 //  hifi
 //
 //  Added by Brad Hefta-Gaub on 06/11/13.
@@ -11,7 +11,7 @@
 
 #include <glm/glm.hpp>
 
-#include "VoxelProjectedPolygon.h"
+#include "OctreeProjectedPolygon.h"
 
 typedef enum {
     V2_DOESNT_FIT, V2_STORED, V2_NOT_STORED, 
@@ -35,7 +35,7 @@ public:
                   bool isCovered = false, float coverageDistance = NOT_COVERED);
     ~CoverageMapV2();
     
-    CoverageMapV2StorageResult checkMap(const VoxelProjectedPolygon* polygon, bool storeIt = true);
+    CoverageMapV2StorageResult checkMap(const OctreeProjectedPolygon* polygon, bool storeIt = true);
     
     BoundingBox getChildBoundingBox(int childIndex);
     const BoundingBox& getBoundingBox() const { return _myBoundingBox; };
@@ -48,7 +48,7 @@ public:
     
 
 private:
-    void recurseMap(const VoxelProjectedPolygon* polygon, bool storeIt, 
+    void recurseMap(const OctreeProjectedPolygon* polygon, bool storeIt, 
                     bool& seenOccludedMapNodes, bool& allOccludedMapNodesCovered);
 
     void init();

@@ -24,9 +24,6 @@ qt5_use_modules(${TARGET_NAME} Widgets)
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
 
-include(${MACRO_DIR}/LinkHifiLibrary.cmake)
-link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
-
 # link ZLIB
 find_package(ZLIB)
 include_directories(${ZLIB_INCLUDE_DIRS})
@@ -35,6 +32,9 @@ target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
 # link in the shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+
+# link in the hifi octree library
+link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 
 # link in the hifi voxels library
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})

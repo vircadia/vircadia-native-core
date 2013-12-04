@@ -16,11 +16,11 @@
 
 #include <QtCore/QDebug>
 
-#include "CoverageMap.h"
+//#include "CoverageMap.h"
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"
-#include "VoxelConstants.h"
+#include "OctreeConstants.h"
 
 using namespace std;
 
@@ -630,7 +630,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
+OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
@@ -643,7 +643,7 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
     
-    VoxelProjectedPolygon projectedPolygon(vertexCount);
+    OctreeProjectedPolygon projectedPolygon(vertexCount);
     
     bool pointInView = true;
     bool allPointsInView = false; // assume the best, but wait till we know we have a vertex

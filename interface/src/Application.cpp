@@ -247,7 +247,7 @@ Application::~Application() {
 
     _audio.shutdown();
 
-    VoxelNode::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
+    VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
     
     delete _settings;
@@ -306,16 +306,6 @@ void Application::initializeGL() {
     
     init();
     qDebug( "Init() complete.\n" );
-    
-    // Check to see if the user passed in a command line option for randomizing colors
-    bool wantColorRandomizer = !arguments().contains("--NoColorRandomizer");
-    
-    // Check to see if the user passed in a command line option for loading a local
-    // Voxel File. If so, load it now.
-    if (!_voxelsFilename.isEmpty()) {
-        _voxels.loadVoxelsFile(_voxelsFilename.constData(), wantColorRandomizer);
-        qDebug("Local Voxel File loaded.\n");
-    }
     
     // create thread for receipt of data via UDP
     if (_enableNetworkThread) {
@@ -1561,10 +1551,11 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
-bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
+bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
-    if (node->isColored()) {
-        const unsigned char* nodeOctalCode = node->getOctalCode();
+    if (voxel->isColored()) {
+        const unsigned char* nodeOctalCode = voxel->getOctalCode();
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
         int bytesInCode = 0;
@@ -1585,9 +1576,9 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         }
 
         // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX] = node->getColor()[RED_INDEX];
-        codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX] = node->getColor()[BLUE_INDEX];
+        codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
+        codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
+        codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
         getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
                 codeColorBuffer, codeAndColorLength);
         
@@ -1604,7 +1595,7 @@ void Application::exportVoxels() {
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
         _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
@@ -1635,12 +1626,12 @@ void Application::copyVoxels() {
     // switch to and clear the clipboard first...
     _sharedVoxelSystem.killLocalVoxels();
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
-        _clipboard.eraseAllVoxels();
+        _clipboard.eraseAllOctreeElements();
         _sharedVoxelSystem.changeTree(&_clipboard);
     }
 
     // then copy onto it if there is something to copy
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
     }
@@ -1663,7 +1654,7 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
 
 void Application::pasteVoxels() {
     unsigned char* calculatedOctCode = NULL;
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1702,7 +1693,7 @@ void Application::findAxisAlignment() {
 }
 
 void Application::nudgeVoxels() {
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (!Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && selectedNode) {
         Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
     }
@@ -1716,7 +1707,7 @@ void Application::nudgeVoxels() {
         // calculate nudgeVec
         glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
 
-        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+        VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
 
         if (nodeToNudge) {
             _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
@@ -1749,7 +1740,7 @@ void Application::init() {
     _sharedVoxelSystemViewFrustum.calculate();
     _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
 
-    VoxelNode::removeUpdateHook(&_sharedVoxelSystem);
+    VoxelTreeElement::removeUpdateHook(&_sharedVoxelSystem);
 
     _sharedVoxelSystem.init();
     VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
@@ -2103,7 +2094,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
-        VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        VoxelTreeElement* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         if (hoveredNode) {
             float bright = _audio.getCollisionSoundMagnitude();
             nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
@@ -2629,7 +2620,7 @@ void Application::queryVoxels() {
     _voxelQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    _voxelQuery.setVoxelSizeScale(Menu::getInstance()->getVoxelSizeScale());
+    _voxelQuery.setOctreeSizeScale(Menu::getInstance()->getVoxelSizeScale());
     _voxelQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
 
     unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
@@ -2743,7 +2734,7 @@ void Application::queryVoxels() {
             }
             
             if (inView) {
-                _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
+                _voxelQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
@@ -2767,9 +2758,9 @@ void Application::queryVoxels() {
                         qDebug() << "Using regular camera position for node " << *node << "\n";
                     }
                 }
-                _voxelQuery.setMaxVoxelPacketsPerSecond(perUnknownServer);
+                _voxelQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
             } else {
-                _voxelQuery.setMaxVoxelPacketsPerSecond(0);
+                _voxelQuery.setMaxOctreePacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
@@ -3452,7 +3443,7 @@ void Application::displayStats() {
         }
 
         // calculate server node totals
-        totalNodes += stats.getTotalVoxels();
+        totalNodes += stats.getTotalElements();
         totalInternal += stats.getTotalInternal();
         totalLeaves += stats.getTotalLeaves();
     }
@@ -3479,9 +3470,9 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    unsigned long localTotal = VoxelNode::getNodeCount();
-    unsigned long localInternal = VoxelNode::getInternalNodeCount();
-    unsigned long localLeaves = VoxelNode::getLeafNodeCount();
+    unsigned long localTotal = VoxelTreeElement::getNodeCount();
+    unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
+    unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
     QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
     QString localInternalString = locale.toString((uint)localInternal);
     QString localLeavesString = locale.toString((uint)localLeaves);
@@ -3498,7 +3489,7 @@ void Application::displayStats() {
     // Local Voxel Memory Usage
     voxelStats.str("");
     voxelStats << 
-        "Voxels Memory Nodes: " << VoxelNode::getTotalMemoryUsage() / 1000000.f << "MB "
+        "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
         "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
@@ -3680,7 +3671,7 @@ void Application::renderCoverageMap() {
 void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     for (int i = 0; i < map->getPolygonCount(); i++) {
     
-        VoxelProjectedPolygon* polygon = map->getPolygon(i);
+        OctreeProjectedPolygon* polygon = map->getPolygon(i);
         
         if (polygon->getProjectionType()        == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) {
             glColor3f(.5,0,0); // dark red
@@ -4058,7 +4049,7 @@ void Application::deleteVoxelUnderCursor() {
 }
 
 void Application::eyedropperVoxelUnderCursor() {
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode && selectedNode->isColored()) {
         QColor selectedColor(selectedNode->getColor()[RED_INDEX], 
                              selectedNode->getColor()[GREEN_INDEX], 
@@ -4217,7 +4208,7 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
         _voxelSceneStatsLock.lockForWrite();
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
             VoxelSceneStats& stats = _voxelServerSceneStats[nodeUUID];
-            stats.trackIncomingVoxelPacket(messageData, messageLength, wasStatsPacket);
+            stats.trackIncomingOctreePacket(messageData, messageLength, wasStatsPacket);
         }
         _voxelSceneStatsLock.unlock();
     }

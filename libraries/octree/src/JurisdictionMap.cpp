@@ -12,9 +12,9 @@
 #include <QDebug>
 
 #include <PacketHeaders.h>
+#include <OctalCode.h>
 
 #include "JurisdictionMap.h"
-#include "VoxelNode.h"
 
 
 // standard assignment

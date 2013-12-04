@@ -323,22 +323,23 @@ bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelD
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// Function:    pointToVoxel()
-// Description: Given a universal point with location x,y,z this will return the voxel
-//              voxel code corresponding to the closest voxel which encloses a cube with
-//              lower corners at x,y,z, having side of length S.  
-//              The input values x,y,z range 0.0 <= v < 1.0
-// TO DO:       This code is not very DRY. It should be cleaned up to be DRYer.
-// IMPORTANT:   The voxel is returned to you a buffer which you MUST delete when you are
-//              done with it.
-// Usage:       
-//                  unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-//                  tree->readCodeColorBufferToTree(voxelData);
-//                  delete voxelData;
-//
-// Complaints:  Brad :)
+unsigned char* pointToOctalCode(float x, float y, float z, float s) { 
+    return pointToVoxel(x, y, z, s); 
+}
+
+/// Given a universal point with location x,y,z this will return the voxel
+/// voxel code corresponding to the closest voxel which encloses a cube with
+/// lower corners at x,y,z, having side of length S.  
+/// The input values x,y,z range 0.0 <= v < 1.0
+/// IMPORTANT: The voxel is returned to you a buffer which you MUST delete when you are
+/// done with it.
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r, unsigned char g, unsigned char b ) {
+
+    // special case for size 1, the root node
+    if (s >= 1.0) {
+        unsigned char* voxelOut = new unsigned char;
+        *voxelOut = 0;
+    }
 
     float xTest, yTest, zTest, sTest; 
     xTest = yTest = zTest = sTest = 0.5f;

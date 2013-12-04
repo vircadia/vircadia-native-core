@@ -151,7 +151,7 @@ int CoverageMap::getPolygonCount() const {
         _remainder.getPolygonCount());
 }
 
-VoxelProjectedPolygon* CoverageMap::getPolygon(int index) const {
+OctreeProjectedPolygon* CoverageMap::getPolygon(int index) const {
     int base = 0;
     if ((index - base) < _topHalf.getPolygonCount()) {
         return _topHalf.getPolygon((index - base));
@@ -182,7 +182,7 @@ VoxelProjectedPolygon* CoverageMap::getPolygon(int index) const {
 
 
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
-CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, bool storeIt) {
+CoverageMapStorageResult CoverageMap::checkMap(OctreeProjectedPolygon* polygon, bool storeIt) {
 
     if (_isRoot) {
         _checkMapRootCalls++;
@@ -371,13 +371,13 @@ void CoverageRegion::erase() {
 }
 
 void CoverageRegion::growPolygonArray() {
-    VoxelProjectedPolygon** newPolygons  = new VoxelProjectedPolygon*[_polygonArraySize + DEFAULT_GROW_SIZE];
+    OctreeProjectedPolygon** newPolygons  = new OctreeProjectedPolygon*[_polygonArraySize + DEFAULT_GROW_SIZE];
     float*                  newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
     float*                  newSizes     = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
 
 
     if (_polygons) {
-        memcpy(newPolygons, _polygons, sizeof(VoxelProjectedPolygon*) * _polygonCount);
+        memcpy(newPolygons, _polygons, sizeof(OctreeProjectedPolygon*) * _polygonCount);
         delete[] _polygons;
         memcpy(newDistances, _polygonDistances, sizeof(float) * _polygonCount);
         delete[] _polygonDistances;
@@ -418,9 +418,9 @@ int CoverageRegion::_outOfOrderPolygon = 0;
 int CoverageRegion::_clippedPolygons = 0;
 
 
-bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray) {
+bool CoverageRegion::mergeItemsInArray(OctreeProjectedPolygon* seed, bool seedInArray) {
     for (int i = 0; i < _polygonCount; i++) {
-        VoxelProjectedPolygon* otherPolygon = _polygons[i];
+        OctreeProjectedPolygon* otherPolygon = _polygons[i];
         if (otherPolygon->canMerge(*seed)) {
             otherPolygon->merge(*seed);
 
@@ -451,7 +451,7 @@ bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInA
 
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
-void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
+void CoverageRegion::storeInArray(OctreeProjectedPolygon* polygon) {
 
     _currentCoveredBounds.explandToInclude(polygon->getBoundingBox());
     
@@ -504,7 +504,7 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
 
 
 
-CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* polygon, const BoundingBox& polygonBox, bool storeIt) {
+CoverageMapStorageResult CoverageRegion::checkRegion(OctreeProjectedPolygon* polygon, const BoundingBox& polygonBox, bool storeIt) {
 
     CoverageMapStorageResult result = DOESNT_FIT;
 
@@ -517,7 +517,7 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
         } else {
             // check to make sure this polygon isn't occluded by something at this level
             for (int i = 0; i < _polygonCount; i++) {
-                VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
+                OctreeProjectedPolygon* polygonAtThisLevel = _polygons[i];
 
                 // Check to make sure that the polygon in question is "behind" the polygon in the list
                 // otherwise, we don't need to test it's occlusion (although, it means we've potentially
