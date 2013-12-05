@@ -213,7 +213,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
                 const int MAX_TIME_LENGTH = 128;
                 char buffer[MAX_TIME_LENGTH];
                 strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
-                mg_printf(connection, "%s file Loaded At: %s", theServer->getMyServerName(), buffer);
+                mg_printf(connection, "%s File Loaded At: %s", theServer->getMyServerName(), buffer);
 
                 // Convert now to tm struct for UTC
                 tm* voxelsLoadedAtUTM = gmtime(theServer->getLoadCompleted());
