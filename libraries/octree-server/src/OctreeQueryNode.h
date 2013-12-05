@@ -1,44 +1,46 @@
 //
-//  VoxelNodeData.h
+//  OctreeQueryNode.h
 //  hifi
 //
-//  Created by Stephen Birarda on 3/21/13.
+//  Created by Brad Hefta-Gaub on 12/4/13.
 //
 //
 
-#ifndef __hifi__VoxelNodeData__
-#define __hifi__VoxelNodeData__
+#ifndef __hifi__OctreeQueryNode__
+#define __hifi__OctreeQueryNode__
 
 #include <iostream>
 #include <NodeData.h>
-#include <VoxelPacketData.h>
-#include <VoxelQuery.h>
+#include <OctreePacketData.h>
+#include <OctreeQuery.h>
 
 #include <CoverageMap.h>
-#include <VoxelConstants.h>
+#include <OctreeConstants.h>
 #include <OctreeElementBag.h>
-#include <VoxelSceneStats.h>
+#include <OctreeSceneStats.h>
 
-class VoxelSendThread;
-class VoxelServer;
+class OctreeSendThread;
+class OctreeServer;
 
-class VoxelNodeData : public VoxelQuery {
+class OctreeQueryNode : public OctreeQuery {
 public:
-    VoxelNodeData(Node* owningNode);
-    virtual ~VoxelNodeData();
+    OctreeQueryNode(Node* owningNode);
+    virtual ~OctreeQueryNode();
+    
+    virtual PACKET_TYPE getMyPacketType() const = 0;
 
-    void resetVoxelPacket(bool lastWasSurpressed = false);  // resets voxel packet to after "V" header
+    void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
 
-    const unsigned char* getPacket() const { return _voxelPacket; }
-    int getPacketLength() const { return (MAX_PACKET_SIZE - _voxelPacketAvailableBytes); }
-    bool isPacketWaiting() const { return _voxelPacketWaiting; }
+    const unsigned char* getPacket() const { return _octreePacket; }
+    int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
+    bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
 
-    int getAvailable() const { return _voxelPacketAvailableBytes; }
+    int getAvailable() const { return _octreePacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }
@@ -76,25 +78,25 @@ public:
 
     bool hasLodChanged() const { return _lodChanged; };
     
-    VoxelSceneStats stats;
+    OctreeSceneStats stats;
     
-    void initializeVoxelSendThread(VoxelServer* voxelServer);
-    bool isVoxelSendThreadInitalized() { return _voxelSendThread; }
+    void initializeOctreeSendThread(OctreeServer* octreeServer);
+    bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();
     
 private:
-    VoxelNodeData(const VoxelNodeData &);
-    VoxelNodeData& operator= (const VoxelNodeData&);
+    OctreeQueryNode(const OctreeQueryNode &);
+    OctreeQueryNode& operator= (const OctreeQueryNode&);
     
     bool _viewSent;
-    unsigned char* _voxelPacket;
-    unsigned char* _voxelPacketAt;
-    int _voxelPacketAvailableBytes;
-    bool _voxelPacketWaiting;
+    unsigned char* _octreePacket;
+    unsigned char* _octreePacketAt;
+    int _octreePacketAvailableBytes;
+    bool _octreePacketWaiting;
 
-    unsigned char* _lastVoxelPacket;
-    int _lastVoxelPacketLength;
+    unsigned char* _lastOctreePacket;
+    int _lastOctreePacketLength;
     int _duplicatePacketCount;
     uint64_t _firstSuppressedPacket;
 
@@ -108,15 +110,15 @@ private:
     bool _currentPacketIsColor;
     bool _currentPacketIsCompressed;
 
-    VoxelSendThread* _voxelSendThread;
+    OctreeSendThread* _octreeSendThread;
 
     // watch for LOD changes
     int _lastClientBoundaryLevelAdjust;
-    float _lastClientVoxelSizeScale;
+    float _lastClientOctreeSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
     
-    VOXEL_PACKET_SEQUENCE _sequenceNumber;
+    OCTREE_PACKET_SEQUENCE _sequenceNumber;
 };
 
-#endif /* defined(__hifi__VoxelNodeData__) */
+#endif /* defined(__hifi__OctreeQueryNode__) */

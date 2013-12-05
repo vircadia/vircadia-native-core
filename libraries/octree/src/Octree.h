@@ -180,6 +180,10 @@ public:
     
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
 
+    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const { return false; }
+    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength) { return 0; }
+
     OctreeElement* getRoot() { return _rootNode; }
 
     void eraseAllOctreeElements();
@@ -250,7 +254,6 @@ public slots:
 
 protected:
     void deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData);
-    void readCodeColorBufferToTreeRecursion(OctreeElement* node, void* extraData);
 
     int encodeTreeBitstreamRecursion(OctreeElement* node, 
                                      OctreePacketData* packetData, OctreeElementBag& bag,

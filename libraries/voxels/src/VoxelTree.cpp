@@ -355,7 +355,7 @@ void VoxelTree::nudgeLeaf(VoxelTreeElement* element, void* extraData) {
     glm::vec3 nudge = args->nudgeVec;
 
     // delete the old element
-    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, voxelDetails);
 
     // nudge the old element
     voxelDetails.x += nudge.x;
@@ -363,7 +363,7 @@ void VoxelTree::nudgeLeaf(VoxelTreeElement* element, void* extraData) {
     voxelDetails.z += nudge.z;
 
     // create a new voxel in its stead
-    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, voxelDetails);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE, voxelDetails);
 }
 
 // Recurses voxel element with an operation function
@@ -638,3 +638,54 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadC
         node->handleSubtreeChanged(this);
     }
 }
+
+bool VoxelTree::handlesEditPacketType(PACKET_TYPE packetType) const {
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_VOXEL_SET:
+        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE:
+        case PACKET_TYPE_VOXEL_ERASE:
+            return true;
+    }
+    return false;
+}
+
+int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength) {
+
+    int processedBytes = 0;
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_VOXEL_SET:
+        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE: {
+            bool destructive = (packetType == PACKET_TYPE_VOXEL_SET_DESTRUCTIVE);
+            int octets = numberOfThreeBitSectionsInCode(editData, maxLength);
+            
+            if (octets == OVERFLOWED_OCTCODE_BUFFER) {
+                printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+                printf("bailing processing of packet!\n");
+                return processedBytes;
+            }
+
+            const int COLOR_SIZE_IN_BYTES = 3;
+            int voxelCodeSize = bytesRequiredForCodeLength(octets);
+            int voxelDataSize = voxelCodeSize + COLOR_SIZE_IN_BYTES;
+
+            if (voxelDataSize > maxLength) {
+                printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
+                printf("bailing processing of packet!\n");
+                return processedBytes;
+            }
+            
+            readCodeColorBufferToTree(editData, destructive);
+            
+            return voxelDataSize;
+        } break;
+            
+        case PACKET_TYPE_VOXEL_ERASE:
+            processRemoveOctreeElementsBitstream((unsigned char*)packetData, packetLength);
+            return maxLength;
+    }
+    return processedBytes;
+}
+
