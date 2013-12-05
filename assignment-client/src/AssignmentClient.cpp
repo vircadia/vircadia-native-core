@@ -78,8 +78,8 @@ void AssignmentClient::readPendingDatagrams() {
             if (_currentAssignment) {
                 // have the threaded current assignment handle this datagram
                 QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
-                                          Q_ARG(const QByteArray&, QByteArray((char*) packetData, receivedBytes)),
-                                          Q_ARG(const HifiSockAddr&, senderSockAddr));
+                                          Q_ARG(QByteArray, QByteArray((char*) packetData, receivedBytes)),
+                                          Q_ARG(HifiSockAddr, senderSockAddr));
             } else if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
                 
                 if (_currentAssignment) {

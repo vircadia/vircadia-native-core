@@ -133,7 +133,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-        _audio(STARTUP_JITTER_SAMPLES),
+        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),

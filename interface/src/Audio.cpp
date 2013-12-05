@@ -41,12 +41,16 @@ static const int ICON_SIZE = 24;
 static const int ICON_LEFT = 20;
 static const int BOTTOM_PADDING = 110;
 
-Audio::Audio(int16_t initialJitterBufferSamples, QObject* parent) :
+Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     QObject(parent),
+    _audioInput(NULL),
     _inputDevice(NULL),
+    _audioOutput(NULL),
+    _outputDevice(NULL),
     _isBufferSendCallback(false),
     _nextOutputSamples(NULL),
     _ringBuffer(true),
+    _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
@@ -124,6 +128,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 const int QT_SAMPLE_RATE = 44100;
 const int SAMPLE_RATE_RATIO = QT_SAMPLE_RATE / SAMPLE_RATE;
 const int CALLBACK_ACCELERATOR_RATIO = 2;
+const int CALLBACK_IO_BUFFER_SIZE = BUFFER_LENGTH_BYTES_STEREO * SAMPLE_RATE_RATIO / CALLBACK_ACCELERATOR_RATIO;
 
 void Audio::start() {
     
@@ -147,7 +152,7 @@ void Audio::start() {
     }
     
     _audioInput = new QAudioInput(inputAudioDevice, audioFormat, this);
-    _audioInput->setBufferSize(BUFFER_LENGTH_BYTES_STEREO * SAMPLE_RATE_RATIO / CALLBACK_ACCELERATOR_RATIO);
+    _audioInput->setBufferSize(CALLBACK_IO_BUFFER_SIZE);
     _inputDevice = _audioInput->start();
     
     connect(_inputDevice, SIGNAL(readyRead()), SLOT(handleAudioInput()));
@@ -164,15 +169,14 @@ void Audio::start() {
     }
     
     _audioOutput = new QAudioOutput(outputDeviceInfo, audioFormat, this);
-    _audioOutput->setBufferSize(BUFFER_LENGTH_BYTES_STEREO * SAMPLE_RATE_RATIO / CALLBACK_ACCELERATOR_RATIO);
+    _audioOutput->setBufferSize(CALLBACK_IO_BUFFER_SIZE);
     _outputDevice = _audioOutput->start();
     
     gettimeofday(&_lastReceiveTime, NULL);
 }
 
 void Audio::handleAudioInput() {
-    static int16_t stereoInputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO];
-    static int16_t stereoOutputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO / CALLBACK_ACCELERATOR_RATIO];
+    static int16_t stereoInputBuffer[CALLBACK_IO_BUFFER_SIZE * 2];
     static char monoAudioDataPacket[MAX_PACKET_SIZE];
     static int bufferSizeSamples = _audioInput->bufferSize() / sizeof(int16_t);
     
@@ -180,36 +184,45 @@ void Audio::handleAudioInput() {
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
+    QByteArray inputByteArray = _inputDevice->read(CALLBACK_IO_BUFFER_SIZE);
+    
     if (_isBufferSendCallback) {
         // this is the second half of a full buffer of data
         
         // zero out the monoAudioSamples array
         memset(monoAudioSamples, 0, BUFFER_LENGTH_BYTES_PER_CHANNEL);
         
-        // read out the current samples from the _inputDevice
-        _inputDevice->read((char*) (stereoInputBuffer + bufferSizeSamples), sizeof(stereoInputBuffer) / 2);
+        // copy samples from the inputByteArray to the stereoInputBuffer
+        memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());
+        
     } else {
         // take samples we have in this callback and store them in the first half of the static buffer
         // to send off in the next callback
-        _inputDevice->read((char*) stereoInputBuffer, sizeof(stereoInputBuffer) / 2);
+        memcpy((char*) stereoInputBuffer, inputByteArray.data(), inputByteArray.size());
     }
+    
+    // add input data just written to the scope
+    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
+    
+    QByteArray stereoOutputBuffer;
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
         //  if local loopback enabled, copy input to output
         if (_isBufferSendCallback) {
-            memcpy(stereoOutputBuffer, stereoInputBuffer + bufferSizeSamples, sizeof(stereoOutputBuffer));
+            stereoOutputBuffer.append((char*) (stereoInputBuffer + bufferSizeSamples), CALLBACK_IO_BUFFER_SIZE);
         } else {
-            memcpy(stereoOutputBuffer, stereoInputBuffer, sizeof(stereoOutputBuffer));
+            stereoOutputBuffer.append((char*) stereoInputBuffer, CALLBACK_IO_BUFFER_SIZE);
         }
     } else {
         // zero out the stereoOutputBuffer
-        memset(stereoOutputBuffer, 0, sizeof(stereoOutputBuffer));
+        stereoOutputBuffer = QByteArray(CALLBACK_IO_BUFFER_SIZE, 0);
     }
     
     // add procedural effects to the appropriate input samples
     addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
                                             ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
-                        stereoOutputBuffer,
+                        (int16_t*) stereoOutputBuffer.data(),
                         BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
     
     if (_isBufferSendCallback) {
@@ -300,16 +313,19 @@ void Audio::handleAudioInput() {
     }
     
     if (_nextOutputSamples) {
+        
+        int16_t* stereoOutputBufferSamples = (int16_t*) stereoOutputBuffer.data();
+        
         // play whatever we have in the audio buffer
         for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO; s++) {
             int16_t leftSample = _nextOutputSamples[s];
             int16_t rightSample = _nextOutputSamples[s + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
             
-            stereoOutputBuffer[(s * 4)] += leftSample;
-            stereoOutputBuffer[(s * 4) + 2] += leftSample;
+            stereoOutputBufferSamples[(s * 4)] += leftSample;
+            stereoOutputBufferSamples[(s * 4) + 2] += leftSample;
             
-            stereoOutputBuffer[(s * 4) + 1] += rightSample;
-            stereoOutputBuffer[(s * 4) + 3] += rightSample;
+            stereoOutputBufferSamples[(s * 4) + 1] += rightSample;
+            stereoOutputBufferSamples[(s * 4) + 3] += rightSample;
         }
         
         if (_isBufferSendCallback) {
@@ -325,11 +341,11 @@ void Audio::handleAudioInput() {
         }
     }
     
-    _outputDevice->write((char*) stereoOutputBuffer, sizeof(stereoOutputBuffer));
+    _outputDevice->write(stereoOutputBuffer);
 
     // add output (@speakers) data just written to the scope
-//    _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-//    _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
     
     _isBufferSendCallback = !_isBufferSendCallback;
     
