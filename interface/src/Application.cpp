@@ -4023,14 +4023,18 @@ void Application::resetSensors() {
     _webcam.reset();
     _faceshift.reset();
     LeapManager::reset();
-    OculusManager::reset();
+    
+    if (OculusManager::isConnected()) {
+        OculusManager::reset();
+    }
+    
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
     _myAvatar.setVelocity(glm::vec3(0,0,0));
     _myAvatar.setThrust(glm::vec3(0,0,0));
     
-    _audio.reset();
+    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {

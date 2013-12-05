@@ -39,8 +39,7 @@ class Audio : public QObject {
 public:
     // setup for audio I/O
     Audio(int16_t initialJitterBufferSamples, QObject* parent = 0);
-
-    void reset(); 
+    
     void render(int screenWidth, int screenHeight);
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
@@ -67,6 +66,7 @@ public:
 public slots:
     void start();
     void handleAudioInput();
+    void reset();
     
 private:
     QAudioInput* _audioInput;
