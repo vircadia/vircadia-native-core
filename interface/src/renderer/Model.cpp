@@ -557,8 +557,8 @@ bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penet
             start = extractTranslation(_jointStates[joint.parentIndex].transform);
             startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
-        if (findSphereCapsulePenetration(relativeCenter, penetratorRadius, start, end,
-                (startRadius + endRadius) / 2.0f, bonePenetration)) {
+        if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
+                startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
             didPenetrate = true; 
         }
