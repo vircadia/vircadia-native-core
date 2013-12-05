@@ -12,12 +12,7 @@ find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 
-# grab cJSON and civetweb sources to pass as OPTIONAL_SRCS 
-FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/*)
-
 setup_hifi_library(${TARGET_NAME} ${OPTIONAL_SRCS})
-
-include_directories(${ROOT_DIR}/externals/civetweb/include)
 
 qt5_use_modules(${TARGET_NAME} Widgets)
 

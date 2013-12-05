@@ -17,8 +17,6 @@
 #include <ThreadedAssignment.h>
 #include <EnvironmentData.h>
 
-#include "civetweb.h"
-
 #include "OctreePersistThread.h"
 #include "OctreeSendThread.h"
 #include "OctreeServerConsts.h"

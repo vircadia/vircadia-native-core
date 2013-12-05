@@ -6,44 +6,13 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-
-/***
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <time.h>
-
-#include <QtCore/QDebug>
-#include <QtCore/QString>
-
-#include <OctalCode.h>
-#include <NodeList.h>
-#include <NodeTypes.h>
-#include <VoxelTree.h>
-#include "VoxelNodeData.h"
-#include <SharedUtil.h>
-#include <PacketHeaders.h>
-#include <SceneUtils.h>
-#include <PerfStat.h>
-#include <JurisdictionSender.h>
-
-#ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#endif
-***/
-
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
 #include <Logging.h>
 #include <UUID.h>
 
+#include "civetweb.h"
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"

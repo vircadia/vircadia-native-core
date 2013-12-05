@@ -18,7 +18,6 @@
 #include <EnvironmentData.h>
 
 #include <OctreeServer.h>
-#include "civetweb.h"
 
 
 #include "VoxelServerConsts.h"
