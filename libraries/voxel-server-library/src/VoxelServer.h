@@ -21,10 +21,7 @@
 #include "civetweb.h"
 
 
-#include "VoxelPersistThread.h"
-#include "VoxelSendThread.h"
 #include "VoxelServerConsts.h"
-#include "VoxelServerPacketProcessor.h"
 
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
 class VoxelServer : public OctreeServer {
