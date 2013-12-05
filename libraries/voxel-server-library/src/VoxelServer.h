@@ -27,6 +27,7 @@
 
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
 class VoxelServer : public ThreadedAssignment {
+    Q_OBJECT
 public:                
     VoxelServer(const unsigned char* dataBuffer, int numBytes);
     

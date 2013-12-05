@@ -91,6 +91,29 @@ VoxelServer::~VoxelServer() {
         }
         delete[] _parsedArgV;
     }
+    
+    if (_jurisdictionSender) {
+        _jurisdictionSender->terminate();
+        delete _jurisdictionSender;
+    }
+    
+    if (_voxelServerPacketProcessor) {
+        _voxelServerPacketProcessor->terminate();
+        delete _voxelServerPacketProcessor;
+    }
+    
+    if (_voxelPersistThread) {
+        _voxelPersistThread->terminate();
+        delete _voxelPersistThread;
+    }
+    
+    // tell our NodeList we're done with notifications
+    NodeList::getInstance()->removeHook(&_nodeWatcher);
+    
+    delete _jurisdiction;
+    _jurisdiction = NULL;
+    
+    qDebug() << "VoxelServer::run()... DONE\n";
 }
 
 void VoxelServer::initMongoose(int port) {
@@ -751,38 +774,4 @@ void VoxelServer::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
-    // loop to send to nodes requesting data
-    while (!_isFinished) {
-        QCoreApplication::processEvents();
-    }
-
-    // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
-    // properly shutdown and cleaned up.
-    NodeList::getInstance()->clear();
-    
-    if (_jurisdictionSender) {
-        _jurisdictionSender->terminate();
-        delete _jurisdictionSender;
-    }
-
-    if (_voxelServerPacketProcessor) {
-        _voxelServerPacketProcessor->terminate();
-        delete _voxelServerPacketProcessor;
-    }
-
-    if (_voxelPersistThread) {
-        _voxelPersistThread->terminate();
-        delete _voxelPersistThread;
-    }
-    
-    // tell our NodeList we're done with notifications
-    nodeList->removeHook(&_nodeWatcher);
-
-    delete _jurisdiction;
-    _jurisdiction = NULL;
-
-    qDebug() << "VoxelServer::run()... DONE\n";
 }
-
-
