@@ -31,8 +31,7 @@
 #include "Util.h"
 
 static const float JITTER_BUFFER_LENGTH_MSECS = 12;
-static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
-NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
+static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
 static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -240,8 +239,7 @@ void Audio::handleAudioInput() {
                 // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
                 
                 PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-                : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                    ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
                 
                 char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
                                                                                       packetType);
@@ -374,9 +372,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
         const float NUM_STANDARD_DEVIATIONS = 3.f;
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
-            / 1000.f
-            * SAMPLE_RATE;
+            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.f * SAMPLE_RATE;
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
         }
     }
@@ -410,7 +406,7 @@ bool Audio::mousePressEvent(int x, int y) {
 }
 
 void Audio::render(int screenWidth, int screenHeight) {
-    if (true) {
+    if (_audioInput) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(1,1,1);
@@ -566,10 +562,13 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
             sample = sinf(t * frequency);
             sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
             sample *= _drumSoundVolume * MAX_VOLUME;
-            inputBuffer[i] += sample;
+            
+            int16_t collisionSample = (int16_t) sample;
+            
+            inputBuffer[i] += collisionSample;
             
             for (int j = (i * 4); j < (i * 4) + 4; j++) {
-                stereoOutput[j] += sample;
+                stereoOutput[j] += collisionSample;
             }
             
             _drumSoundVolume *= (1.f - _drumSoundDecay);
