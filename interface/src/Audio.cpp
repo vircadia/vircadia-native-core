@@ -194,6 +194,15 @@ void Audio::handleAudioInput() {
         // copy samples from the inputByteArray to the stereoInputBuffer
         memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());
         
+        //  Measure the loudness of the signal from the microphone and store in audio object
+        float loudness = 0;
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * SAMPLE_RATE_RATIO; i += 2) {
+            loudness += abs(stereoInputBuffer[i]);
+        }
+        
+        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL * SAMPLE_RATE_RATIO;
+        _lastInputLoudness = loudness;
+        
     } else {
         // take samples we have in this callback and store them in the first half of the static buffer
         // to send off in the next callback
