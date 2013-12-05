@@ -137,6 +137,8 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
+const float PALM_COLLISION_RADIUS = 0.01f;
+
 void Hand::updateCollisions() {
     // use position to obtain the left and right palm indices
     int leftPalmIndex, rightPalmIndex;   
@@ -147,9 +149,8 @@ void Hand::updateCollisions() {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
-        }
-        const float PALM_RADIUS = 0.01f;
-        float scaledPalmRadius = PALM_RADIUS * _owningAvatar->getScale();
+        }        
+        float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
         glm::vec3 totalPenetration;
         
         // check other avatars
@@ -170,8 +171,7 @@ void Hand::updateCollisions() {
         int skipIndex = skeletonModel.getParentJointIndex(
             (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
-        if (_owningAvatar->findSpherePenetration(palm.getPosition(),
-                PALM_RADIUS * _owningAvatar->getScale(), owningPenetration, skipIndex)) {
+        if (_owningAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, owningPenetration, skipIndex)) {
             totalPenetration = addPenetrations(totalPenetration, owningPenetration);
         }
         
@@ -268,6 +268,21 @@ void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
 void Hand::render() {
     
     _renderAlpha = 1.0;
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        for (int i = 0; i < getNumPalms(); i++) {
+            PalmData& palm = getPalms()[i];
+            if (!palm.isActive()) {
+                continue;
+            }
+            glm::vec3 position = palm.getPosition();
+            glPushMatrix();
+            glTranslatef(position.x, position.y, position.z);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
+            glPopMatrix();
+        }
+    }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {
