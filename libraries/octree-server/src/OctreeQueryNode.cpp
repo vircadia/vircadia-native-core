@@ -1,5 +1,5 @@
 //
-//  VoxelNodeData.cpp
+//  OctreeQueryNode.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 3/21/13.
@@ -8,15 +8,15 @@
 
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "VoxelNodeData.h"
+#include "OctreeQueryNode.h"
 #include <cstring>
 #include <cstdio>
-#include "VoxelSendThread.h"
+#include "OctreeSendThread.h"
 
-VoxelNodeData::VoxelNodeData(Node* owningNode) :
-    VoxelQuery(owningNode),
+OctreeQueryNode::OctreeQueryNode(Node* owningNode) :
+    OctreeQuery(owningNode),
     _viewSent(false),
-    _voxelPacketAvailableBytes(MAX_PACKET_SIZE),
+    _octreePacketAvailableBytes(MAX_PACKET_SIZE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -24,39 +24,38 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true),
     _currentPacketIsCompressed(false),
-    _voxelSendThread(NULL),
+    _octreeSendThread(NULL),
     _lastClientBoundaryLevelAdjust(0),
-    _lastClientVoxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+    _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacket = new unsigned char[MAX_PACKET_SIZE];
-    _voxelPacketAt = _voxelPacket;
-    _lastVoxelPacket = new unsigned char[MAX_PACKET_SIZE];
-    _lastVoxelPacketLength = 0;
+    _octreePacket = new unsigned char[MAX_PACKET_SIZE];
+    _octreePacketAt = _octreePacket;
+    _lastOctreePacket = new unsigned char[MAX_PACKET_SIZE];
+    _lastOctreePacketLength = 0;
     _duplicatePacketCount = 0;
     _sequenceNumber = 0;
-    resetVoxelPacket(true); // don't bump sequence
 }
 
-void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
-    // Create voxel sending thread...
+void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer) {
+    // Create octree sending thread...
     QUuid nodeUUID = getOwningNode()->getUUID();
-    _voxelSendThread = new VoxelSendThread(nodeUUID, voxelServer);
-    _voxelSendThread->initialize(true);
+    _octreeSendThread = new OctreeSendThread(nodeUUID, octreeServer);
+    _octreeSendThread->initialize(true);
 }
 
-bool VoxelNodeData::packetIsDuplicate() const {
+bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
-    if (_lastVoxelPacketLength == getPacketLength()) {
-        return memcmp(_lastVoxelPacket + VOXEL_PACKET_HEADER_SIZE, 
-                _voxelPacket+VOXEL_PACKET_HEADER_SIZE , getPacketLength() - VOXEL_PACKET_HEADER_SIZE) == 0;
+    if (_lastOctreePacketLength == getPacketLength()) {
+        return memcmp(_lastOctreePacket + OCTREE_PACKET_HEADER_SIZE,
+                _octreePacket+OCTREE_PACKET_HEADER_SIZE , getPacketLength() - OCTREE_PACKET_HEADER_SIZE == 0);
     }
     return false;
 }
 
-bool VoxelNodeData::shouldSuppressDuplicatePacket() {
+bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
     bool shouldSuppress = false; // assume we won't suppress
     
     // only consider duplicate packets
@@ -90,19 +89,19 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
     return shouldSuppress;
 }
 
-void VoxelNodeData::resetVoxelPacket(bool lastWasSurpressed) {
+void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     // Whenever we call this, we will keep a copy of the last packet, so we can determine if the last packet has
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
-    _lastVoxelPacketLength = getPacketLength();
-    memcpy(_lastVoxelPacket, _voxelPacket, _lastVoxelPacketLength);
+    _lastOctreePacketLength = getPacketLength();
+    memcpy(_lastOctreePacket, _octreePacket, _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
     _currentPacketIsColor = getWantColor();
     _currentPacketIsCompressed = getWantCompression();
-    VOXEL_PACKET_FLAGS flags = 0;
+    OCTREE_PACKET_FLAGS flags = 0;
     if (_currentPacketIsColor) {
         setAtBit(flags,PACKET_IS_COLOR_BIT);
     }
@@ -110,63 +109,63 @@ void VoxelNodeData::resetVoxelPacket(bool lastWasSurpressed) {
         setAtBit(flags,PACKET_IS_COMPRESSED_BIT);
     }
 
-    _voxelPacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, PACKET_TYPE_VOXEL_DATA);
-    _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
-    _voxelPacketAvailableBytes -= numBytesPacketHeader;
+    _octreePacketAvailableBytes = MAX_PACKET_SIZE;
+    int numBytesPacketHeader = populateTypeAndVersion(_octreePacket, getMyPacketType());
+    _octreePacketAt = _octreePacket + numBytesPacketHeader;
+    _octreePacketAvailableBytes -= numBytesPacketHeader;
 
     // pack in flags
-    VOXEL_PACKET_FLAGS* flagsAt = (VOXEL_PACKET_FLAGS*)_voxelPacketAt;
+    OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)_octreePacketAt;
     *flagsAt = flags;
-    _voxelPacketAt += sizeof(VOXEL_PACKET_FLAGS);
-    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_FLAGS);
+    _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
+    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
 
     // pack in sequence number
-    VOXEL_PACKET_SEQUENCE* sequenceAt = (VOXEL_PACKET_SEQUENCE*)_voxelPacketAt;
+    OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
     *sequenceAt = _sequenceNumber;
-    _voxelPacketAt += sizeof(VOXEL_PACKET_SEQUENCE);
-    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SEQUENCE);
-    if (!(lastWasSurpressed || _lastVoxelPacketLength == VOXEL_PACKET_HEADER_SIZE)) {
+    _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
+    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
+    if (!(lastWasSurpressed || _lastOctreePacketLength == OCTREE_PACKET_HEADER_SIZE)) {
         _sequenceNumber++;
     }
 
     // pack in timestamp
-    VOXEL_PACKET_SENT_TIME now = usecTimestampNow();
-    VOXEL_PACKET_SENT_TIME* timeAt = (VOXEL_PACKET_SENT_TIME*)_voxelPacketAt;
+    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)_octreePacketAt;
     *timeAt = now;
-    _voxelPacketAt += sizeof(VOXEL_PACKET_SENT_TIME);
-    _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SENT_TIME);
+    _octreePacketAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SENT_TIME);
 
-    _voxelPacketWaiting = false;
+    _octreePacketWaiting = false;
 }
 
-void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
+void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
     if (_currentPacketIsCompressed) {
-        *(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)_voxelPacketAt = bytes;
-        _voxelPacketAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
-        _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+        *(OCTREE_PACKET_INTERNAL_SECTION_SIZE*)_octreePacketAt = bytes;
+        _octreePacketAt += sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+        _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
     }
-    if (bytes <= _voxelPacketAvailableBytes) {
-        memcpy(_voxelPacketAt, buffer, bytes);
-        _voxelPacketAvailableBytes -= bytes;
-        _voxelPacketAt += bytes;
-        _voxelPacketWaiting = true;
+    if (bytes <= _octreePacketAvailableBytes) {
+        memcpy(_octreePacketAt, buffer, bytes);
+        _octreePacketAvailableBytes -= bytes;
+        _octreePacketAt += bytes;
+        _octreePacketWaiting = true;
     }    
 }
 
-VoxelNodeData::~VoxelNodeData() {
-    delete[] _voxelPacket;
-    delete[] _lastVoxelPacket;
+OctreeQueryNode::~OctreeQueryNode() {
+    delete[] _octreePacket;
+    delete[] _lastOctreePacket;
 
-    if (_voxelSendThread) {
-        _voxelSendThread->terminate();
-        delete _voxelSendThread;
+    if (_octreeSendThread) {
+        _octreeSendThread->terminate();
+        delete _octreeSendThread;
     }
 }
 
-bool VoxelNodeData::updateCurrentViewFrustum() {
+bool OctreeQueryNode::updateCurrentViewFrustum() {
     bool currentViewFrustumChanged = false;
     ViewFrustum newestViewFrustum;
     // get position and orientation details from the camera
@@ -196,13 +195,13 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
             _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
             _lodChanged = true;
         }
-        if (_lastClientVoxelSizeScale != getOctreeSizeScale()) {
-            _lastClientVoxelSizeScale = getOctreeSizeScale();
+        if (_lastClientOctreeSizeScale != getOctreeSizeScale()) {
+            _lastClientOctreeSizeScale = getOctreeSizeScale();
             _lodChanged = true;
         }
     } else {
         _lodInitialized = true;
-        _lastClientVoxelSizeScale = getOctreeSizeScale();
+        _lastClientOctreeSizeScale = getOctreeSizeScale();
         _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
         _lodChanged = false;
     }
@@ -217,7 +216,7 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
     return currentViewFrustumChanged;
 }
 
-void VoxelNodeData::setViewSent(bool viewSent) { 
+void OctreeQueryNode::setViewSent(bool viewSent) { 
     _viewSent = viewSent; 
     if (viewSent) {
         _viewFrustumJustStoppedChanging = false;
@@ -225,7 +224,7 @@ void VoxelNodeData::setViewSent(bool viewSent) {
     }
 }
 
-void VoxelNodeData::updateLastKnownViewFrustum() {
+void OctreeQueryNode::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
     
     if (frustumChanges) {
@@ -239,7 +238,7 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
 }
 
 
-bool VoxelNodeData::moveShouldDump() const {
+bool OctreeQueryNode::moveShouldDump() const {
     glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
     glm::vec3 newPosition = _currentViewFrustum.getPosition();
 
@@ -251,7 +250,7 @@ bool VoxelNodeData::moveShouldDump() const {
     return false;
 }
 
-void VoxelNodeData::dumpOutOfView() {
+void OctreeQueryNode::dumpOutOfView() {
     int stillInView = 0;
     int outOfView = 0;
     OctreeElementBag tempBag;

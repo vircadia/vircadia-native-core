@@ -17,7 +17,7 @@
 #include <ReceivedPacketProcessor.h>
 #include "JurisdictionMap.h"
 
-/// Will process PACKET_TYPE_VOXEL_JURISDICTION_REQUEST packets and send out PACKET_TYPE_VOXEL_JURISDICTION packets
+/// Will process PACKET_TYPE_JURISDICTION_REQUEST packets and send out PACKET_TYPE_JURISDICTION packets
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {

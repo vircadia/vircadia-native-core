@@ -6,18 +6,13 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
 
-set(TARGET_NAME voxel-server-library)
+set(TARGET_NAME voxel-server)
 
 find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 
-# grab cJSON and civetweb sources to pass as OPTIONAL_SRCS 
-FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/*)
-
 setup_hifi_library(${TARGET_NAME} ${OPTIONAL_SRCS})
-
-include_directories(${ROOT_DIR}/externals/civetweb/include)
 
 qt5_use_modules(${TARGET_NAME} Widgets)
 
@@ -35,9 +30,5 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
 # link in the hifi octree library
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
-
-# link in the hifi voxels library
+link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
-
-# link in the hifi avatars library
-link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})

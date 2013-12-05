@@ -263,7 +263,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 int JurisdictionMap::packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_JURISDICTION);
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
     destinationBuffer += headerLength;
 
     // No root or end node details to pack!
@@ -277,7 +277,7 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(unsigned char* destination
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_JURISDICTION);
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
     destinationBuffer += headerLength;
 
     // add the root jurisdiction

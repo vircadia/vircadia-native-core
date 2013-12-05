@@ -63,6 +63,7 @@ private:
     Assignment* _staticAssignments;
     
     const char* _voxelServerConfig;
+    const char* _particleServerConfig;
     
     bool _hasCompletedRestartHold;
 private slots:
