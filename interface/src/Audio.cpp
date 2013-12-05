@@ -442,8 +442,8 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         glBegin(GL_QUADS);
         glVertex2f(startX, topY + 2);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, topY + 2);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer)/AUDIO_CALLBACK_MSECS*frameWidth, bottomY - 2);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer) / AUDIO_CALLBACK_MSECS * frameWidth, topY + 2);
+        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer) / AUDIO_CALLBACK_MSECS * frameWidth, bottomY - 2);
         glVertex2f(startX, bottomY - 2);
         glEnd();
         
@@ -469,7 +469,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         //  Show a red bar with the 'start' point of one frame plus the jitter buffer
         
         glColor3f(1, 0, 0);
-        int jitterBufferPels = (1.f + (float)getJitterBufferSamples() / (float)PACKET_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
+        int jitterBufferPels = (1.f + (float)getJitterBufferSamples() / (float) PACKET_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
         drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
         sprintf(out, "j %.1f\n", _measuredJitter);
