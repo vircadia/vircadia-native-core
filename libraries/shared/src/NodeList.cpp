@@ -175,6 +175,7 @@ void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned c
     Node* bulkSendNode = nodeWithAddress(senderAddress);
 
     if (bulkSendNode) {
+        
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
         
