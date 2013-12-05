@@ -42,7 +42,7 @@ void JurisdictionListener::nodeKilled(Node* node) {
 bool JurisdictionListener::queueJurisdictionRequest() {
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
-    ssize_t sizeOut = populateTypeAndVersion(bufferOut, PACKET_TYPE_VOXEL_JURISDICTION_REQUEST);
+    ssize_t sizeOut = populateTypeAndVersion(bufferOut, PACKET_TYPE_JURISDICTION_REQUEST);
     int nodeCount = 0;
 
     NodeList* nodeList = NodeList::getInstance();
@@ -65,7 +65,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
-    if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+    if (packetData[0] == PACKET_TYPE_JURISDICTION) {
         Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();

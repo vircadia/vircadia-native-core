@@ -22,7 +22,7 @@ void VoxelScriptingInterface::queueVoxelAdd(float x, float y, float z, float sca
     VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
     
     // queue the packet
-    queueVoxelAdd(PACKET_TYPE_SET_VOXEL, addVoxelDetail);
+    queueVoxelAdd(PACKET_TYPE_VOXEL_SET, addVoxelDetail);
 }
 
 void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z, float scale,
@@ -31,7 +31,7 @@ void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z
     VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
     
     // queue the destructive add
-    queueVoxelAdd(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, addVoxelDetail);
+    queueVoxelAdd(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE, addVoxelDetail);
 }
 
 void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float scale) {
@@ -39,6 +39,6 @@ void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float 
     // setup a VoxelDetail struct with data
     VoxelDetail deleteVoxelDetail = {x, y, z, scale, 0, 0, 0};
     
-    _voxelPacketSender.queueVoxelEditMessages(PACKET_TYPE_ERASE_VOXEL, 1, &deleteVoxelDetail);
+    _voxelPacketSender.queueVoxelEditMessages(PACKET_TYPE_VOXEL_ERASE, 1, &deleteVoxelDetail);
 }
 

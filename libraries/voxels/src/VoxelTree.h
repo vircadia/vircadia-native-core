@@ -53,6 +53,11 @@ public:
 
     void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
 
+    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
+    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength);
+    void processSetVoxelsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
+
 /**
 signals:
     void importSize(float x, float y, float z);

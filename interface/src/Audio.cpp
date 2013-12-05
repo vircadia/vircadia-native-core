@@ -32,7 +32,7 @@
 
 static const float JITTER_BUFFER_LENGTH_MSECS = 12;
 static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
-                                           NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
+NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
 static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -66,7 +66,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _numFramesDisplayStarve(0),
     _muted(false)
 {
-
+    
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -240,8 +240,8 @@ void Audio::handleAudioInput() {
                 // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
                 
                 PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                    ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-                    : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+                : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
                 
                 char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
                                                                                       packetType);
@@ -268,7 +268,7 @@ void Audio::handleAudioInput() {
                             averagedSample = (stereoInputBuffer[i - 2] / 2) + (stereoInputBuffer[i] / 2);
                         } else {
                             averagedSample = (stereoInputBuffer[i - 2] / 4) + (stereoInputBuffer[i] / 2)
-                                + (stereoInputBuffer[i + 2] / 4);
+                            + (stereoInputBuffer[i + 2] / 4);
                         }
                         
                         // add the averaged sample to our array of audio samples
@@ -284,7 +284,7 @@ void Audio::handleAudioInput() {
             }
         }
     }
-
+    
     // if there is anything in the ring buffer, decide what to do
     
     if (!_nextOutputSamples) {
@@ -342,7 +342,7 @@ void Audio::handleAudioInput() {
     }
     
     _outputDevice->write(stereoOutputBuffer);
-
+    
     // add output (@speakers) data just written to the scope
     QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
                               Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
@@ -375,8 +375,8 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         const float NUM_STANDARD_DEVIATIONS = 3.f;
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
-                                            / 1000.f
-                                            * SAMPLE_RATE;
+            / 1000.f
+            * SAMPLE_RATE;
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
         }
     }
@@ -394,10 +394,10 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     }
     
     _ringBuffer.parseData((unsigned char*) receivedData, receivedBytes);
-   
+    
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
-            .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
- 
+    .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
+    
     _lastReceiveTime = currentReceiveTime;
 }
 
@@ -494,14 +494,14 @@ void Audio::render(int screenWidth, int screenHeight) {
         } else {
             drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
         }
-    
+        
         glBegin(GL_QUADS);
         glVertex2f(startX + jitterBufferPels - 2, topY - 2);
         glVertex2f(startX + jitterBufferPels + 2, topY - 2);
         glVertex2f(startX + jitterBufferPels + 2, bottomY + 2);
         glVertex2f(startX + jitterBufferPels - 2, bottomY + 2);
         glEnd();
-
+        
     }
     renderToolIcon(screenHeight);
 }
@@ -537,8 +537,8 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
             t = (float) _proceduralEffectSample + (float) i;
             
             sample = sinf(t * _collisionSoundFrequency) +
-                     sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
-                     sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
+            sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
+            sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
             sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
             
             int16_t collisionSample = (int16_t) sample;
@@ -553,6 +553,33 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
         }
     }
     _proceduralEffectSample += numSamples;
+    
+    //  Add a drum sound
+    const float MAX_VOLUME = 32000.f;
+    const float MAX_DURATION = 2.f;
+    const float MIN_AUDIBLE_VOLUME = 0.001f;
+    const float NOISE_MAGNITUDE = 0.02f;
+    float frequency = (_drumSoundFrequency / SAMPLE_RATE) * PI_TIMES_TWO;
+    if (_drumSoundVolume > 0.f) {
+        for (int i = 0; i < numSamples; i++) {
+            t = (float) _drumSoundSample + (float) i;
+            sample = sinf(t * frequency);
+            sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
+            sample *= _drumSoundVolume * MAX_VOLUME;
+            inputBuffer[i] += sample;
+            
+            for (int j = (i * 4); j < (i * 4) + 4; j++) {
+                stereoOutput[j] += sample;
+            }
+            
+            _drumSoundVolume *= (1.f - _drumSoundDecay);
+        }
+        _drumSoundSample += numSamples;
+        _drumSoundDuration = glm::clamp(_drumSoundDuration - (AUDIO_CALLBACK_MSECS / 1000.f), 0.f, MAX_DURATION);
+        if (_drumSoundDuration == 0.f || (_drumSoundVolume < MIN_AUDIBLE_VOLUME)) {
+            _drumSoundVolume = 0.f;
+        }
+    }
 }
 
 //  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
@@ -562,6 +589,14 @@ void Audio::startCollisionSound(float magnitude, float frequency, float noise, f
     _collisionSoundNoise = noise;
     _collisionSoundDuration = duration;
     _collisionFlashesScreen = flashScreen;
+}
+
+void Audio::startDrumSound(float volume, float frequency, float duration, float decay) {
+    _drumSoundVolume = volume;
+    _drumSoundFrequency = frequency;
+    _drumSoundDuration = duration;
+    _drumSoundDecay = decay;
+    _drumSoundSample = 0;
 }
 
 void Audio::renderToolIcon(int screenHeight) {

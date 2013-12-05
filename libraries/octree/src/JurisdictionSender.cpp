@@ -30,7 +30,7 @@ JurisdictionSender::~JurisdictionSender() {
 
 
 void JurisdictionSender::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
-    if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+    if (packetData[0] == PACKET_TYPE_JURISDICTION_REQUEST) {
         Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();

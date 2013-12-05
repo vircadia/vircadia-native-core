@@ -28,7 +28,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_AVATAR_FACE_VIDEO:
             return 2;
 
-        case PACKET_TYPE_VOXEL_STATS:
+        case PACKET_TYPE_OCTREE_STATS:
             return 2;
        
         case PACKET_TYPE_DOMAIN:
@@ -39,9 +39,9 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_VOXEL_QUERY:
             return 2;
 
-        case PACKET_TYPE_SET_VOXEL:
-        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
-        case PACKET_TYPE_ERASE_VOXEL:
+        case PACKET_TYPE_VOXEL_SET:
+        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE:
+        case PACKET_TYPE_VOXEL_ERASE:
             return 1;
 
         case PACKET_TYPE_VOXEL_DATA:

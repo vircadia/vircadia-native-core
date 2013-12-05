@@ -43,7 +43,7 @@ public:
     void render(int screenWidth, int screenHeight);
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
-
+    
     float getLastInputLoudness() const { return _lastInputLoudness; }
     
     void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
@@ -55,6 +55,7 @@ public:
     void lowPassFilter(int16_t* inputBuffer);
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
+    void startDrumSound(float volume, float frequency, float duration, float decay);
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
@@ -62,8 +63,8 @@ public:
     
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
-
-public slots:
+    
+    public slots:
     void start();
     void handleAudioInput();
     void reset();
@@ -87,11 +88,20 @@ private:
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
+    
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;
     float _collisionSoundNoise;
     float _collisionSoundDuration;
     bool _collisionFlashesScreen;
+    
+    // Drum sound generator
+    float _drumSoundVolume;
+    float _drumSoundFrequency;
+    float _drumSoundDuration;
+    float _drumSoundDecay;
+    int _drumSoundSample;
+    
     int _proceduralEffectSample;
     int _numFramesDisplayStarve;
     bool _muted;
@@ -102,10 +112,10 @@ private:
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-
+    
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int numSamples);
-
+    
     void renderToolIcon(int screenHeight);
 };
 

@@ -1,22 +1,21 @@
 //
-//  VoxelPersistThread.cpp
-//  voxel-server
+//  OctreePersistThread.cpp
+//  Octree-server
 //
 //  Created by Brad Hefta-Gaub on 8/21/13
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  Threaded or non-threaded voxel persistence
+//  Threaded or non-threaded Octree persistence
 //
 
 #include <QDebug>
-#include <NodeList.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
-#include "VoxelPersistThread.h"
-#include "VoxelServer.h"
+#include "OctreePersistThread.h"
+#include "OctreeServer.h"
 
-VoxelPersistThread::VoxelPersistThread(VoxelTree* tree, const char* filename, int persistInterval) :
+OctreePersistThread::OctreePersistThread(Octree* tree, const char* filename, int persistInterval) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
@@ -24,17 +23,17 @@ VoxelPersistThread::VoxelPersistThread(VoxelTree* tree, const char* filename, in
     _loadTimeUSecs(0) {
 }
 
-bool VoxelPersistThread::process() {
+bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
         uint64_t loadStarted = usecTimestampNow();
-        qDebug("loading voxels from file: %s...\n", _filename);
+        qDebug("loading Octrees from file: %s...\n", _filename);
 
         bool persistantFileRead;
 
         _tree->lockForWrite();
         {
-            PerformanceWarning warn(true, "Loading Voxel File", true);
+            PerformanceWarning warn(true, "Loading Octree File", true);
             persistantFileRead = _tree->readFromSVOFile(_filename);
         }
         _tree->unlock();
@@ -44,7 +43,7 @@ bool VoxelPersistThread::process() {
         _loadTimeUSecs = loadDone - loadStarted;
         
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-        qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
+        qDebug("DONE loading Octrees from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         
         unsigned long nodeCount = OctreeElement::getNodeCount();
         unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
@@ -75,10 +74,10 @@ bool VoxelPersistThread::process() {
             // check the dirty bit and persist here...
             _lastCheck = usecTimestampNow();
             if (_tree->isDirty()) {
-                qDebug("saving voxels to file %s...\n",_filename);
+                qDebug("saving Octrees to file %s...\n",_filename);
                 _tree->writeToSVOFile(_filename);
                 _tree->clearDirtyBit(); // tree is clean after saving
-                qDebug("DONE saving voxels to file...\n");
+                qDebug("DONE saving Octrees to file...\n");
             }
         }
     }    

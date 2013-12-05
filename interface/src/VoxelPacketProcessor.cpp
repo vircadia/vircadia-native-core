@@ -34,10 +34,10 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
         app->_wantToKillLocalVoxels = false;
     }
     
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA
-    // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+    // note: PACKET_TYPE_OCTREE_STATS can have PACKET_TYPE_VOXEL_DATA
+    // immediately following them inside the same packet. So, we process the PACKET_TYPE_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
-    if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
+    if (packetData[0] == PACKET_TYPE_OCTREE_STATS) {
     
         int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderSockAddr);
         wasStatsPacket = true;
