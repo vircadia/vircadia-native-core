@@ -547,7 +547,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
                 nodeData->initializeOctreeSendThread(this);
             }
         }
-    } else if (_jurisdictionSender && packetType == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+    } else if (_jurisdictionSender && packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
         _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
                                                  dataByteArray.size());
     } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {

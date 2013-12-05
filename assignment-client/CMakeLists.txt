@@ -28,7 +28,8 @@ link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(particle-server ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(voxel-server ${TARGET_NAME} ${ROOT_DIR})
 
 include_directories(${ROOT_DIR}/externals/civetweb/include)
 

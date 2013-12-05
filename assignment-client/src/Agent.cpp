@@ -40,7 +40,7 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    if (dataByteArray[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+    if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
         _voxelScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());

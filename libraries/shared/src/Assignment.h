@@ -28,6 +28,7 @@ public:
         AvatarMixerType,
         AgentType,
         VoxelServerType,
+        ParticleServerType,
         AllTypes
     };
     

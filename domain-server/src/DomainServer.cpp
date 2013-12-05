@@ -390,6 +390,48 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         Assignment rootVoxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
         freshStaticAssignments[numFreshStaticAssignments++] = rootVoxelServerAssignment;
     }
+
+    // Handle Domain/Particle Server configuration command line arguments
+    if (_particleServerConfig) {
+        qDebug("Reading Particle Server Configuration.\n");
+        qDebug() << "config: " << _particleServerConfig << "\n";
+        
+        QString multiConfig((const char*) _particleServerConfig);
+        QStringList multiConfigList = multiConfig.split(";");
+        
+        // read each config to a payload for a VS assignment
+        for (int i = 0; i < multiConfigList.size(); i++) {
+            QString config = multiConfigList.at(i);
+            
+            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            
+            // Now, parse the config to check for a pool
+            const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
+            QString assignmentPool;
+            
+            int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
+            
+            if (poolIndex >= 0) {
+                int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
+                int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
+                
+                assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
+                qDebug() << "The pool for this particle-assignment is" << assignmentPool << "\n";
+            }
+            
+            Assignment particleServerAssignment(Assignment::CreateCommand,
+                                             Assignment::ParticleServerType,
+                                             (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
+            
+            int payloadLength = config.length() + sizeof(char);
+            particleServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+            
+            freshStaticAssignments[numFreshStaticAssignments++] = particleServerAssignment;
+        }
+    } else {
+        Assignment rootParticleServerAssignment(Assignment::CreateCommand, Assignment::ParticleServerType);
+        freshStaticAssignments[numFreshStaticAssignments++] = rootParticleServerAssignment;
+    }
     
     qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.\n";
     

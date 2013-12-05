@@ -159,7 +159,7 @@ static void renderMovingBug() {
     }
     
     // send the "erase message" first...
-    PACKET_TYPE message = PACKET_TYPE_ERASE_VOXEL;
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_ERASE;
     ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
 
     // Move the bug...
@@ -219,7 +219,7 @@ static void renderMovingBug() {
     }
     
     // send the "create message" ...
-    message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
+    message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE;
     ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
 }
 
@@ -254,7 +254,7 @@ static void sendVoxelBlinkMessage() {
     detail.green = 0   * ::intensity;
     detail.blue  = 0   * ::intensity;
     
-    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE;
 
     ::voxelEditPacketSender->sendVoxelEditMessage(message, detail);
 }
@@ -271,7 +271,7 @@ unsigned char onColor[3]  = {   0, 255, 255 };
 const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th meter
 
 static void sendBlinkingStringOfLights() {
-    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
     static VoxelDetail details[LIGHTS_PER_SEGMENT];
 
@@ -377,7 +377,7 @@ const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
-    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
     float lightScale = DANCE_FLOOR_LIGHT_SIZE;
     static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
 
@@ -493,7 +493,7 @@ bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
 };
 
 static void sendBillboard() {
-    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
     static VoxelDetail details[VOXELS_PER_PACKET];
 
@@ -564,7 +564,7 @@ void doBuildStreet() {
         return;
     }
 
-    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
     static VoxelDetail details[BRICKS_PER_PACKET];
 
     for (int z = 0; z < ROAD_LENGTH; z++) {
@@ -864,7 +864,7 @@ int main(int argc, const char * argv[])
                                                                        nodeSockAddr.getPortPointer())) &&
             packetVersionMatch(packetData)) {
             
-            if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+            if (packetData[0] == PACKET_TYPE_JURISDICTION) {
                 if (::jurisdictionListener) {
                     ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);
                 }

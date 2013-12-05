@@ -55,11 +55,11 @@ public:
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
-    virtual bool hasSpecialPacketToSend() = 0;
-    virtual int sendSpecialPacket(Node* node) = 0;
     
     // subclass may implement these method
     virtual void beforeRun() { };
+    virtual bool hasSpecialPacketToSend() { return false; }
+    virtual int sendSpecialPacket(Node* node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
 

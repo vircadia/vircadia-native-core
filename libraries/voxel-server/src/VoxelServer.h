@@ -43,11 +43,11 @@ public:
     virtual const char* getMyLoggingServerTargetName() const { return VOXEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_VOXELS_PERSIST_FILE; }
     
+    // subclass may implement these method
+    virtual void beforeRun();
     virtual bool hasSpecialPacketToSend();
     virtual int sendSpecialPacket(Node* node);
 
-    // subclass may implement these method
-    virtual void beforeRun();
 
 private:
     bool _sendEnvironments;
