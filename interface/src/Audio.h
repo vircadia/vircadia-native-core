@@ -56,7 +56,9 @@ public:
     void lowPassFilter(int16_t* inputBuffer);
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
-    
+
+    void startDrumSound(float volume, float frequency, float duration, float decay);
+
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
@@ -101,13 +103,21 @@ private:
     float _flangeIntensity;
     float _flangeRate;
     float _flangeWeight;
+    
+    // Collision sound generator
     float _collisionSoundMagnitude;
     float _collisionSoundFrequency;
     float _collisionSoundNoise;
     float _collisionSoundDuration;
     bool _collisionFlashesScreen;
     int _proceduralEffectSample;
-    float _heartbeatMagnitude;
+    
+    // Drum sound generator
+    float _drumSoundVolume;
+    float _drumSoundFrequency;
+    float _drumSoundDuration;
+    float _drumSoundDecay;
+    int _drumSoundSample;
 
     bool _muted;
     bool _localEcho;

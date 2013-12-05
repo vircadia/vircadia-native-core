@@ -1439,8 +1439,9 @@ FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
     return extractFBXGeometry(parseFBX(&modelBuffer), parseMapping(&mappingBuffer));
 }
 
-bool addMeshVoxelsOperation(VoxelNode* node, void* extraData) {
-    if (!node->isLeaf()) {
+bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+    if (!voxel->isLeaf()) {
         return true;
     }
     FBXMesh& mesh = *static_cast<FBXMesh*>(extraData);
@@ -1450,13 +1451,13 @@ bool addMeshVoxelsOperation(VoxelNode* node, void* extraData) {
     const int VERTICES_PER_FACE = 4;
     const int VERTEX_COUNT = FACE_COUNT * VERTICES_PER_FACE;
     const float EIGHT_BIT_MAXIMUM = 255.0f;
-    glm::vec3 color = glm::vec3(node->getColor()[0], node->getColor()[1], node->getColor()[2]) / EIGHT_BIT_MAXIMUM;
+    glm::vec3 color = glm::vec3(voxel->getColor()[0], voxel->getColor()[1], voxel->getColor()[2]) / EIGHT_BIT_MAXIMUM;
     for (int i = 0; i < VERTEX_COUNT; i++) {
         part.quadIndices.append(part.quadIndices.size());
         mesh.colors.append(color);
     }
-    glm::vec3 corner = node->getCorner();
-    float scale = node->getScale();
+    glm::vec3 corner = voxel->getCorner();
+    float scale = voxel->getScale();
     
     mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
     mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));

@@ -17,6 +17,7 @@
 
 class DataServerClient {
 public:
+    static const HifiSockAddr& dataServerSockAddr();
     static void putValueForKey(const QString& key, const char* value);
     static void getClientValueForKey(const QString& key);
     

@@ -145,11 +145,15 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             }
             
             // actually send it
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -169,8 +173,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             truePacketsSent++;
             packetsSent++;
 
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                            nodeData->getPacket(), nodeData->getPacketLength());
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
 
             packetSent = true;
 
@@ -191,8 +196,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting()) {
             // just send the voxel packet
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                                           nodeData->getPacket(), nodeData->getPacketLength());
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -353,17 +359,16 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         }
 
         ::startSceneSleepTime = _usleepTime;
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, 
-                            _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
         bool dontRestartSceneOnMove = false; // this is experimental
         if (dontRestartSceneOnMove) {
             if (nodeData->nodeBag.isEmpty()) {
-                nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // only in case of empty 
+                nodeData->nodeBag.insert(_myServer->getServerTree().getRoot()); // only in case of empty 
             }
         } else {
-            nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // original behavior, reset on move or empty
+            nodeData->nodeBag.insert(_myServer->getServerTree().getRoot()); // original behavior, reset on move or empty
         }
     }
 
@@ -376,13 +381,13 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
 
-        int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxVoxelPacketsPerSecond() / INTERVALS_PER_SECOND));
+        int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
         
         if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
             printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                 truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
-                nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+                nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
         }
         
         int extraPackingAttempts = 0;
@@ -390,16 +395,16 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
                 printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                     truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
-                    nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+                    nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
             }
 
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->nodeBag.isEmpty()) {
-                VoxelNode* subTree = nodeData->nodeBag.extract();
+                OctreeElement* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
 
-                float voxelSizeScale = nodeData->getVoxelSizeScale();
+                float voxelSizeScale = nodeData->getOctreeSizeScale();
                 int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
                 int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving() 
@@ -519,7 +524,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 envPacketLength += _myServer->getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
             }
             
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), _tempOutputBuffer, envPacketLength);
+            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) _tempOutputBuffer, envPacketLength,
+                                                                   node->getActiveSocket()->getAddress(),
+                                                                   node->getActiveSocket()->getPort());
             trueBytesSent += envPacketLength;
             truePacketsSent++;
             packetsSentThisInterval++;
@@ -563,7 +570,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
             printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                 truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
-                nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+                nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
         }
         
     } // end if bag wasn't empty, and so we sent stuff...

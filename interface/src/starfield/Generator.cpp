@@ -24,22 +24,24 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
     vertices->clear();
     vertices->reserve(limit);
     
-    const unsigned MILKY_WAY_WIDTH = 16.0; // width in degrees of one half of the Milky Way
-    const float MILKY_WAY_INCLINATION = 30.0f; // angle of Milky Way from horizontal in degrees
-    const float MILKY_WAY_RATIO = 0.6;
+    const unsigned MILKY_WAY_WIDTH = 12.0; // width in degrees of one half of the Milky Way
+    const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
+    const float MILKY_WAY_RATIO = 0.4;
     const unsigned NUM_DEGREES = 360;
     
     for(int star = 0; star < floor(limit * (1 - MILKY_WAY_RATIO)); ++star) {
         float azimuth, altitude;
         azimuth = (((float)rand() / (float) RAND_MAX) * NUM_DEGREES) - (NUM_DEGREES / 2);
         altitude = (acos((2.0f * ((float)rand() / (float)RAND_MAX)) - 1.0f) / PI_OVER_180) + 90;
-        
         vertices->push_back(InputVertex(azimuth, altitude, computeStarColor(STAR_COLORIZATION)));
     }
     
     for(int star = 0; star < ceil(limit * MILKY_WAY_RATIO); ++star) {
         float azimuth = ((float)rand() / (float) RAND_MAX) * NUM_DEGREES;
-        float altitude = asin((float)rand() / (float) RAND_MAX * 2 - 1) * MILKY_WAY_WIDTH;
+        float altitude = powf(randFloat()*0.5f, 2.f)/0.25f * MILKY_WAY_WIDTH;
+        if (randFloat() > 0.5f) {
+            altitude *= -1.f;
+        }
         
         // we need to rotate the Milky Way band to the correct orientation in the sky
         // convert from spherical coordinates to cartesian, rotate the point and then convert back.
@@ -71,8 +73,15 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
 // 0 = completely black & white
 // 1 = very colorful
 unsigned Generator::computeStarColor(float colorization) {
-    unsigned char red = rand() % 256;
-    unsigned char green = round((red * (1 - colorization)) + ((rand() % 256) * colorization));
-    unsigned char blue = round((red * (1 - colorization)) + ((rand() % 256) * colorization));
-    return red | green << 8 | blue << 16;
+    unsigned char red, green, blue;
+    if (randFloat() < 0.3f) {
+        // A few stars are colorful
+        red = 2 + (rand() % 254);
+        green = 2 + round((red * (1 - colorization)) + ((rand() % 254) * colorization));
+        blue = 2 + round((red * (1 - colorization)) + ((rand() % 254) * colorization));
+    } else {
+        // Most stars are dimmer and white
+        red = green = blue = 2 + (rand() % 128);
+    }
+    return red | (green << 8) | (blue << 16);
 }

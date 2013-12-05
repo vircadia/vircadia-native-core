@@ -15,11 +15,11 @@
 #include <unistd.h>
 
 #include <QtNetwork/QHostAddress>
+#include <QtNetwork/QUdpSocket>
 #include <QtCore/QSettings>
 
 #include "Node.h"
 #include "NodeTypes.h"
-#include "UDPSocket.h"
 
 #ifdef _WIN32
 #include "pthread.h"
@@ -31,7 +31,8 @@ const int NODES_PER_BUCKET = 100;
 const int MAX_PACKET_SIZE = 1500;
 
 const uint64_t NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
-const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const uint64_t DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
+const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
@@ -40,11 +41,12 @@ const int MAX_HOSTNAME_BYTES = 256;
 extern const QString DEFAULT_DOMAIN_HOSTNAME;
 extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
 
-const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 class Assignment;
+class HifiSockAddr;
 class NodeListIterator;
 
 // Callers who want to hook add/kill callbacks should implement this class
@@ -59,7 +61,8 @@ public:
     virtual void domainChanged(QString domain) = 0;
 };
 
-class NodeList {
+class NodeList : public QObject {
+    Q_OBJECT
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
@@ -75,19 +78,17 @@ public:
     const QString& getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const QString& domainHostname);
     
-    const QHostAddress& getDomainIP() const { return _domainIP; }
-    void setDomainIP(const QHostAddress& domainIP) { _domainIP = domainIP; }
-    void setDomainIPToLocalhost() { _domainIP = QHostAddress(INADDR_LOOPBACK); }
+    const QHostAddress& getDomainIP() const { return _domainSockAddr.getAddress(); }
+    void setDomainIPToLocalhost() { _domainSockAddr.setAddress(QHostAddress(INADDR_LOOPBACK)); }
     
-    unsigned short getDomainPort() const { return _domainPort; }
-    void setDomainPort(unsigned short domainPort) { _domainPort = domainPort; }
+    void setDomainSockAddr(const HifiSockAddr& domainSockAddr) { _domainSockAddr = domainSockAddr; }
+    
+    unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
     
     const QUuid& getOwnerUUID() const { return _ownerUUID; }
     void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
     
-    UDPSocket* getNodeSocket() { return &_nodeSocket; }
-    
-    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); }
+    QUdpSocket& getNodeSocket() { return _nodeSocket; }
     
     void(*linkedDataCreateCallback)(Node *);
     
@@ -101,26 +102,25 @@ public:
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
-    void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
+    void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
     
-    void pingPublicAndLocalSocketsForInactiveNode(Node* node) const;
+    void pingPublicAndLocalSocketsForInactiveNode(Node* node);
     
     void sendKillNode(const char* nodeTypes, int numNodeTypes);
     
-    Node* nodeWithAddress(sockaddr *senderAddress);
+    Node* nodeWithAddress(const HifiSockAddr& senderSockAddr);
     Node* nodeWithUUID(const QUuid& nodeUUID);
     
-    Node* addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket);
+    Node* addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     void killNode(Node* node, bool mustLockNode = true);
     
-    void processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-    void processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
+    void processNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, size_t dataBytes);
+    void processBulkNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, int numTotalBytes);
    
-    int updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes);
+    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
     
     unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
     
@@ -142,8 +142,11 @@ public:
     void addDomainListener(DomainChangeListener* listener);
     void removeDomainListener(DomainChangeListener* listener);
     
-    void possiblyPingInactiveNodes();
-    sockaddr* getNodeActiveSocketOrPing(Node* node);
+    const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
+public slots:
+    void sendDomainServerCheckIn();
+    void pingInactiveNodes();
+    void removeSilentNodes();
 private:
     static NodeList* _sharedInstance;
     
@@ -160,25 +163,23 @@ private:
     void processKillNode(unsigned char* packetData, size_t dataBytes);
     
     QString _domainHostname;
-    QHostAddress _domainIP;
-    unsigned short _domainPort;
+    HifiSockAddr _domainSockAddr;
     Node** _nodeBuckets[MAX_NUM_NODES / NODES_PER_BUCKET];
     int _numNodes;
-    UDPSocket _nodeSocket;
+    QUdpSocket _nodeSocket;
     char _ownerType;
     char* _nodeTypesOfInterest;
     QUuid _ownerUUID;
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
-    sockaddr* _assignmentServerSocket;
-    QHostAddress _publicAddress;
-    uint16_t _publicPort;
+    HifiSockAddr _assignmentServerSocket;
+    HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
     
-    void activateSocketFromNodeCommunication(sockaddr *nodeAddress);
-    void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
+    void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
+    void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
     
     std::vector<NodeListHook*> _hooks;
     std::vector<DomainChangeListener*> _domainListeners;

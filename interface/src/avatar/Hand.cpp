@@ -15,6 +15,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+
 using namespace std;
 
 Hand::Hand(Avatar* owningAvatar) :
@@ -24,7 +25,10 @@ Hand::Hand(Avatar* owningAvatar) :
     _raveGloveInitialized(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _ballColor(0.0, 0.0, 0.4)    
+    _ballColor(0.0, 0.0, 0.4),
+    _collisionCenter(0,0,0),
+    _collisionAge(0),
+    _collisionDuration(0)
  {
     // initialize all finger particle emitters with an invalid id as default
     for (int f = 0; f< NUM_FINGERS; f ++ ) {
@@ -51,6 +55,10 @@ void Hand::reset() {
 
 void Hand::simulate(float deltaTime, bool isMine) {
     
+    if (_collisionAge > 0.f) {
+        _collisionAge += deltaTime;
+    }
+    
     calculateGeometry();
 
     if (_isRaveGloveActive) {
@@ -67,27 +75,75 @@ void Hand::simulate(float deltaTime, bool isMine) {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            FingerData& finger = palm.getFingers()[0];
-            glm::vec3 newVoxelPosition = finger.getTipPosition();
+            FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
+            glm::vec3 fingerTipPosition = finger.getTipPosition();
             if (palm.getControllerButtons() & BUTTON_1) {
-                if (glm::length(newVoxelPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
+                if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
                     QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
-                    Application::getInstance()->makeVoxel(newVoxelPosition,
+                    Application::getInstance()->makeVoxel(fingerTipPosition,
                                                           FINGERTIP_VOXEL_SIZE,
                                                           paintColor.red(),
                                                           paintColor.green(),
                                                           paintColor.blue(),
                                                           true);
-                    _lastFingerAddVoxel = newVoxelPosition;
+                    _lastFingerAddVoxel = fingerTipPosition;
                 }
             } else if (palm.getControllerButtons() & BUTTON_2) {
-                if (glm::length(newVoxelPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                    Application::getInstance()->removeVoxel(newVoxelPosition, FINGERTIP_VOXEL_SIZE);
-                    _lastFingerDeleteVoxel = newVoxelPosition;
+                if (glm::length(fingerTipPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
+                    Application::getInstance()->removeVoxel(fingerTipPosition, FINGERTIP_VOXEL_SIZE);
+                    _lastFingerDeleteVoxel = fingerTipPosition;
+                }
+            }
+            //  Check if the finger is intersecting with a voxel in the client voxel tree
+            VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
+                                                                        glm::vec3(fingerTipPosition / (float)TREE_SCALE));
+            if (fingerNode) {
+                if (!palm.getIsCollidingWithVoxel()) {
+                    //  Collision has just started
+                    palm.setIsCollidingWithVoxel(true);
+                    handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
+                    //  Set highlight voxel
+                    VoxelDetail voxel;
+                    glm::vec3 pos = fingerNode->getCorner();
+                    voxel.x = pos.x;
+                    voxel.y = pos.y;
+                    voxel.z = pos.z;
+                    voxel.s = fingerNode->getScale();
+                    voxel.red = fingerNode->getColor()[0];
+                    voxel.green = fingerNode->getColor()[1];
+                    voxel.blue = fingerNode->getColor()[2];
+                    Application::getInstance()->setHighlightVoxel(voxel);
+                    Application::getInstance()->setIsHighlightVoxel(true);
+                }
+            } else {
+                if (palm.getIsCollidingWithVoxel()) {
+                    //  Collision has just ended
+                    palm.setIsCollidingWithVoxel(false);
+                    Application::getInstance()->setIsHighlightVoxel(false);
                 }
             }
         }
     }
+}
+
+void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
+    //  Collision between finger and a voxel plays sound
+    const float LOWEST_FREQUENCY = 100.f;
+    const float HERTZ_PER_RGB = 3.f;
+    const float DECAY_PER_SAMPLE = 0.0005f;
+    const float DURATION_MAX = 2.0f;
+    const float MIN_VOLUME = 0.1f;
+    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getVelocity()), 0.f, (1.f - MIN_VOLUME));
+    float duration = volume;
+    _collisionCenter = fingerTipPosition;
+    _collisionAge = deltaTime;
+    _collisionDuration = duration;
+    int voxelBrightness = voxel->getColor()[0] + voxel->getColor()[1] + voxel->getColor()[2];
+    float frequency = LOWEST_FREQUENCY + (voxelBrightness * HERTZ_PER_RGB);
+    Application::getInstance()->getAudio()->startDrumSound(volume,
+                                                           frequency,
+                                                           DURATION_MAX,
+                                                           DECAY_PER_SAMPLE);
 }
 
 void Hand::calculateGeometry() {
@@ -125,7 +181,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.005f;
+                    const float standardBallRadius = 0.010f;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
@@ -133,6 +189,7 @@ void Hand::calculateGeometry() {
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
                     ball.isCollidable   = true;
+                    ball.isColliding    = false;
                 }
             }
         }
@@ -154,6 +211,7 @@ void Hand::calculateGeometry() {
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
                     ball.isCollidable   = true;
+                    ball.isColliding    = false;
                 }
             }
         }
@@ -203,6 +261,21 @@ void Hand::render() {
             _raveGloveParticleSystem.render();
         }
     }
+    
+    //  If hand/voxel collision has happened, render a little expanding sphere
+    if (_collisionAge > 0.f) {
+        float opacity = glm::clamp(1.f - (_collisionAge / _collisionDuration), 0.f, 1.f);
+        glColor4f(1, 0, 0, 0.5 * opacity);
+        glPushMatrix();
+        glTranslatef(_collisionCenter.x, _collisionCenter.y, _collisionCenter.z);
+        glutSolidSphere(_collisionAge * 0.25f, 20, 20);
+        glPopMatrix();
+        if (_collisionAge > _collisionDuration) {
+            _collisionAge = 0.f;
+        }
+    }
+
+
     
     //  If hand controller buttons pressed, render stuff as needed
     if (getPalms().size() > 0) {
@@ -319,8 +392,11 @@ void Hand::renderLeapHands() {
     // Draw the leap balls
     for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
         if (alpha > 0.0f) {
-            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
-            
+            if (_leapFingerTipBalls[i].isColliding) {
+                glColor4f(handColor.r, 0, 0, alpha);
+            } else {
+                glColor4f(handColor.r, handColor.g, handColor.b, alpha);
+            }
             glPushMatrix();
             glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
             glutSolidSphere(_leapFingerTipBalls[i].radius, 20.0f, 20.0f);

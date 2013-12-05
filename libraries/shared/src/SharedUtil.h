@@ -24,7 +24,12 @@
 #include <sys/time.h>
 #endif
 
-typedef unsigned char rgbColor[3];
+const int BYTES_PER_COLOR = 3;
+const int BYTES_PER_FLAGS = 1;
+typedef unsigned char rgbColor[BYTES_PER_COLOR];
+typedef unsigned char colorPart;
+typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
+typedef unsigned char rgbColor[BYTES_PER_COLOR];
 
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
@@ -86,6 +91,7 @@ struct VoxelDetail {
 };
 
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
+unsigned char* pointToOctalCode(float x, float y, float z, float s);
 
 // Creates a full Voxel edit message, including command header, sequence, and details
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
@@ -112,6 +118,11 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
 class debug {
 public:                           
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
+    static void setDeadBeef(void* memoryVoid, int size);
+    static void checkDeadBeef(void* memoryVoid, int size);
+private:
+    static char DEADBEEF[];
+    static int DEADBEEF_SIZE;
 };
 
 bool isBetween(int64_t value, int64_t max, int64_t min);

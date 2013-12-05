@@ -1,2 +1,0 @@
-0 00000100001011101110 domain4.highfidelity.co domain4
-0 00000100110100010001 domain3.highfidelity.co domain3

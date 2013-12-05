@@ -83,7 +83,7 @@ void AvatarVoxelSystem::init() {
     _boneIndicesLocation = _skinProgram.attributeLocation("boneIndices");
     _boneWeightsLocation = _skinProgram.attributeLocation("boneWeights");
 
-    VoxelNode::removeUpdateHook(this); // we don't want this
+    VoxelTreeElement::removeUpdateHook(this); // we don't want this
 
     _initialized = true;
 }
