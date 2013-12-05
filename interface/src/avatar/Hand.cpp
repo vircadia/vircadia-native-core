@@ -8,13 +8,14 @@
 
 #include <NodeList.h>
 
+#include <GeometryUtil.h>
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Menu.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
-
 
 using namespace std;
 
@@ -57,6 +58,16 @@ void Hand::simulate(float deltaTime, bool isMine) {
     
     if (_collisionAge > 0.f) {
         _collisionAge += deltaTime;
+    }
+    
+    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    
+    Head& head = _owningAvatar->getHead();
+    _baseOrientation = _owningAvatar->getOrientation();
+    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
+    
+    if (isMine) {
+        updateCollisions();
     }
     
     calculateGeometry();
@@ -126,6 +137,49 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
+void Hand::updateCollisions() {
+    // use position to obtain the left and right palm indices
+    int leftPalmIndex, rightPalmIndex;   
+    getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
+    
+    // check for collisions
+    for (int i = 0; i < getNumPalms(); i++) {
+        PalmData& palm = getPalms()[i];
+        if (!palm.isActive()) {
+            continue;
+        }
+        const float PALM_RADIUS = 0.01f;
+        float scaledPalmRadius = PALM_RADIUS * _owningAvatar->getScale();
+        glm::vec3 totalPenetration;
+        
+        // check other avatars
+        NodeList* nodeList = NodeList::getInstance();
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+                Avatar* otherAvatar = (Avatar*)node->getLinkedData();
+                glm::vec3 avatarPenetration;
+                if (otherAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
+                    totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
+                }
+            }
+        }
+            
+        // and the current avatar
+        glm::vec3 owningPenetration;
+        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+        int skipIndex = skeletonModel.getParentJointIndex(
+            (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
+                (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
+        if (_owningAvatar->findSpherePenetration(palm.getPosition(),
+                PALM_RADIUS * _owningAvatar->getScale(), owningPenetration, skipIndex)) {
+            totalPenetration = addPenetrations(totalPenetration, owningPenetration);
+        }
+        
+        // un-penetrate
+        palm.addToPosition(-totalPenetration);
+    }
+}
+
 void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
     //  Collision between finger and a voxel plays sound
     const float LOWEST_FREQUENCY = 100.f;
@@ -147,34 +201,6 @@ void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPositi
 }
 
 void Hand::calculateGeometry() {
-    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
-    
-    Head& head = _owningAvatar->getHead();
-    _baseOrientation = _owningAvatar->getOrientation();
-    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
-    
-    // use position to obtain the left and right palm indices
-    int leftPalmIndex, rightPalmIndex;   
-    getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-    
-    // check for collisions
-    for (int i = 0; i < getNumPalms(); i++) {
-        PalmData& palm = getPalms()[i];
-        if (!palm.isActive()) {
-            continue;
-        }
-        const float PALM_RADIUS = 0.01f;
-        glm::vec3 penetration;
-        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
-        int skipIndex = skeletonModel.getParentJointIndex(
-            (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
-                (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
-        if (_owningAvatar->findSpherePenetration(palm.getPosition(),
-                PALM_RADIUS * _owningAvatar->getScale(), penetration, skipIndex)) {
-            palm.addToPosition(-penetration);
-        }
-    }
-    
     // generate finger tip balls....
     _leapFingerTipBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
