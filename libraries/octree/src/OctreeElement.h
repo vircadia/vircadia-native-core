@@ -180,7 +180,22 @@ public:
 #endif // def HAS_AUDIT_CHILDREN
 #endif // def BLENDED_UNION_CHILDREN
 
+    enum ChildIndex {
+        CHILD_BOTTOM_RIGHT_NEAR = 0,
+        CHILD_BOTTOM_RIGHT_FAR = 1,
+        CHILD_TOP_RIGHT_NEAR = 2,
+        CHILD_TOP_RIGHT_FAR = 3,
+        CHILD_BOTTOM_LEFT_NEAR = 4,
+        CHILD_BOTTOM_LEFT_FAR = 5,
+        CHILD_TOP_LEFT_NEAR = 6,
+        CHILD_TOP_LEFT_FAR = 7,
+        CHILD_UNKNOWN = -1
+    };
+
+    OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
+
 protected:
+
     void deleteAllChildren();
     void setChildAtIndex(int childIndex, OctreeElement* child);
 

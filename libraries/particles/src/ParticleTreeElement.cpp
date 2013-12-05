@@ -61,7 +61,6 @@ bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 
     
-
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfParticles = 0;
@@ -101,5 +100,10 @@ void ParticleTreeElement::calculateAverageFromChildren() {
 bool ParticleTreeElement::collapseChildren() {
     // nothing to do here yet...
     return false;
+}
+
+
+void ParticleTreeElement::storeParticle(const Particle& particle) {
+    _particles.push_back(particle);
 }
 

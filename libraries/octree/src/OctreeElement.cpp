@@ -1274,3 +1274,73 @@ void OctreeElement::notifyUpdateHooks() {
         _updateHooks[i]->elementUpdated(this);
     }
 }
+
+OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {
+    OctreeElement* child = NULL;
+    // If the requested size is less than or equal to our scale, but greater than half our scale, then
+    // we are the Element they are looking for.
+    float ourScale = getScale();
+    float halfOurScale = ourScale / 2.0f;
+
+    assert(s <= ourScale); // This should never happen
+
+    if (s > halfOurScale) {
+        return this;
+    }
+    // otherwise, we need to find which of our children we should recurse
+    glm::vec3 ourCenter = _box.calcCenter();
+    
+    int childIndex = CHILD_UNKNOWN;
+    // left half
+    if (x > ourCenter.x) {
+        if (y > ourCenter.y) {
+            // top left
+            if (z > ourCenter.z) {
+                // top left far
+                childIndex = CHILD_TOP_LEFT_FAR;
+            } else {
+                // top left near
+                childIndex = CHILD_TOP_LEFT_NEAR;
+            }
+        } else {
+            // bottom left
+            if (z > ourCenter.z) {
+                // bottom left far
+                childIndex = CHILD_BOTTOM_LEFT_FAR;
+            } else {
+                // bottom left near
+                childIndex = CHILD_BOTTOM_LEFT_NEAR;
+            }
+        }
+    } else {
+        // right half
+        if (y > ourCenter.y) {
+            // top right
+            if (z > ourCenter.z) {
+                // top right far
+                childIndex = CHILD_TOP_RIGHT_FAR;
+            } else {
+                // top right near
+                childIndex = CHILD_TOP_RIGHT_NEAR;
+            }
+        } else {
+            // bottom right
+            if (z > ourCenter.z) {
+                // bottom right far
+                childIndex = CHILD_BOTTOM_RIGHT_FAR;
+            } else {
+                // bottom right near
+                childIndex = CHILD_BOTTOM_RIGHT_NEAR;
+            }
+        }
+    }
+    
+    // Now, check if we have a child at that location
+    child = getChildAtIndex(childIndex);
+    if (!child) {
+        child = addChildAtIndex(childIndex);
+    }
+    
+    // Now that we have the child to recurse down, let it answer the original question...
+    return child->getOrCreateChildElementAt(x, y, z, s);
+}

@@ -31,6 +31,10 @@ public:
                     unsigned char* editData, int maxLength);
     
 private:
+    void storeParticle(const Particle& particle);
+
+
+
 };
 
 #endif /* defined(__hifi__ParticleTree__) */

@@ -70,6 +70,9 @@ public:
     virtual bool isRendered() const { return getShouldRender(); }
 
 protected:
+    void storeParticle(const Particle& particle);
+
+
     std::vector<Particle> _particles;
 };
 

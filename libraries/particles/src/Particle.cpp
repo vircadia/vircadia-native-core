@@ -99,3 +99,33 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
     }
     return bytesRead;
 }
+
+
+Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes) {
+    Particle newParticle; // id and lastUpdated will get set here...
+    unsigned char* dataAt = data;
+    processedBytes = 0;
+    
+    // radius
+    memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
+    dataAt += sizeof(newParticle._radius);
+    processedBytes += sizeof(newParticle._radius);
+
+    // position
+    memcpy(&newParticle._position, dataAt, sizeof(newParticle._position));
+    dataAt += sizeof(newParticle._position);
+    processedBytes += sizeof(newParticle._position);
+
+    // color
+    memcpy(newParticle._color, dataAt, sizeof(newParticle._color));
+    dataAt += sizeof(newParticle._color);
+    processedBytes += sizeof(newParticle._color);
+
+    // velocity
+    memcpy(&newParticle._velocity, dataAt, sizeof(newParticle._velocity));
+    dataAt += sizeof(newParticle._velocity);
+    processedBytes += sizeof(newParticle._velocity);
+    
+    return newParticle;
+}
+

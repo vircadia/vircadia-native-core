@@ -18,11 +18,40 @@ ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) c
 }
 
 bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
-    return false; // not yet.
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_PARTICLE_ADD:
+        case PACKET_TYPE_PARTICLE_ERASE:
+            return true;
+    }
+    return false;
+}
+
+void ParticleTree::storeParticle(const Particle& particle) {
+    glm::vec3 position = particle.getPosition();
+    float size = particle.getRadius();
+    ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+    element->storeParticle(particle);
 }
 
 int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength) {
-                    
-    return 0; // not yet... soon...
+
+    int processedBytes = 0;
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_PARTICLE_ADD: {
+            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
+            storeParticle(newParticle);
+
+            // It seems like we need some way to send the ID back to the creator??
+            
+        } break;
+            
+        case PACKET_TYPE_PARTICLE_ERASE: {
+            processedBytes = 0;
+        } break;
+    }
+    return processedBytes;
 }
+

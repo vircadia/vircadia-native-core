@@ -20,6 +20,10 @@ class Particle  {
 public:
     Particle();
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity);
+    
+    /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD edit data buffer
+    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
+    
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity);
 

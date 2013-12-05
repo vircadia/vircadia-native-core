@@ -198,6 +198,7 @@ public:
 
     void deleteOctreeElementAt(float x, float y, float z, float s);
     OctreeElement* getOctreeElementAt(float x, float y, float z, float s) const;
+    OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
                                     
