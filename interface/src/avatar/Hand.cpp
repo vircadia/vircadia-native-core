@@ -165,9 +165,11 @@ void Hand::calculateGeometry() {
         }
         const float PALM_RADIUS = 0.01f;
         glm::vec3 penetration;
-        int skipIndex = (i == leftPalmIndex) ? _owningAvatar->getSkeletonModel().getLeftHandJointIndex() :
-            (i == rightPalmIndex) ? _owningAvatar->getSkeletonModel().getRightHandJointIndex() : -1;
-        if (_owningAvatar->getSkeletonModel().findSpherePenetration(palm.getPosition(),
+        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+        int skipIndex = skeletonModel.getParentJointIndex(
+            (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
+                (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
+        if (skeletonModel.findSpherePenetration(palm.getPosition(),
                 PALM_RADIUS * _owningAvatar->getScale(), penetration, skipIndex)) {
             palm.addToPosition(-penetration);
         }

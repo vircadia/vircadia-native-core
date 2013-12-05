@@ -454,6 +454,10 @@ bool Model::render(float alpha) {
     return true;
 }
 
+int Model::getParentJointIndex(int jointIndex) const {
+    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
+}
+
 bool Model::getHeadPosition(glm::vec3& headPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }

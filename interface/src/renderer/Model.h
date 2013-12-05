@@ -60,6 +60,9 @@ public:
     /// Returns the index of the right hand joint, or -1 if not found.
     int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
     
+    /// Returns the index of the parent of the indexed joint, or -1 if not found.
+    int getParentJointIndex(int jointIndex) const;
+    
     /// Returns the position of the head joint.
     /// \return whether or not the head was found
     bool getHeadPosition(glm::vec3& headPosition) const;
