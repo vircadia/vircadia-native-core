@@ -37,9 +37,12 @@ public:
     // Subclasses must implement these methods    
     virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode);
     virtual Octree* createTree();
-    virtual unsigned char getMyNodeType();
-    virtual const char* getMyLoggingServerTargetName();
-    virtual const char* getMyDefaultPersistFilename();
+    virtual unsigned char getMyNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
+    virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_VOXEL_QUERY; }
+    virtual const char* getMyServerName() const { return VOXEL_SERVER_NAME; }
+    virtual const char* getMyLoggingServerTargetName() const { return VOXEL_SERVER_LOGGING_TARGET_NAME; }
+    virtual const char* getMyDefaultPersistFilename() const { return LOCAL_VOXELS_PERSIST_FILE; }
+    
     virtual bool hasSpecialPacketToSend();
     virtual int sendSpecialPacket(Node* node);
 

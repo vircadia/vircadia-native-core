@@ -12,6 +12,9 @@
 #include "VoxelServerConsts.h"
 #include "VoxelNodeData.h"
 
+const char* VOXEL_SERVER_NAME = "Voxel";
+const char* VOXEL_SERVER_LOGGING_TARGET_NAME = "voxel-server";
+const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : OctreeServer(dataBuffer, numBytes) {
     // nothing special to do here...
@@ -27,20 +30,6 @@ OctreeQueryNode* VoxelServer::createOctreeQueryNode(Node* newNode) {
 
 Octree* VoxelServer::createTree() {
     return new VoxelTree(true);
-}
-
-unsigned char VoxelServer::getMyNodeType() {
-    return NODE_TYPE_VOXEL_SERVER;
-}
-
-const char* VOXEL_SERVER_LOGGING_TARGET_NAME = "voxel-server";
-const char* VoxelServer::getMyLoggingServerTargetName() {
-    return VOXEL_SERVER_LOGGING_TARGET_NAME;
-}
-
-const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
-const char* VoxelServer::getMyDefaultPersistFilename() {
-    return LOCAL_VOXELS_PERSIST_FILE;
 }
 
 bool VoxelServer::hasSpecialPacketToSend() {
