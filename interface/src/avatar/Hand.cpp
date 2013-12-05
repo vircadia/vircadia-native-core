@@ -169,8 +169,8 @@ void Hand::calculateGeometry() {
         int skipIndex = skeletonModel.getParentJointIndex(
             (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
-        if (skeletonModel.findSpherePenetration(palm.getPosition(),
-                PALM_RADIUS * _owningAvatar->getScale(), penetration, 0.001f, skipIndex)) {
+        if (_owningAvatar->findSpherePenetration(palm.getPosition(),
+                PALM_RADIUS * _owningAvatar->getScale(), penetration, skipIndex)) {
             palm.addToPosition(-penetration);
         }
     }

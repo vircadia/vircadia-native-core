@@ -744,6 +744,40 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
     state.rotation = newRotation;
 }
 
+void Model::renderCollisionProxies(float alpha) {
+    glPushMatrix();
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    float uniformScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointStates.size(); i++) {
+        glPushMatrix();
+        
+        glm::vec3 position = extractTranslation(_jointStates[i].transform);
+        glTranslatef(position.x, position.y, position.z);
+        
+        glm::quat rotation;
+        getJointRotation(i, rotation);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+        
+        glColor4f(0.75f, 0.75f, 0.75f, alpha);
+        float scaledRadius = geometry.joints[i].boneRadius * uniformScale;
+        const int BALL_SUBDIVISIONS = 10;
+        glutSolidSphere(scaledRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        
+        glPopMatrix();
+        
+        int parentIndex = geometry.joints[i].parentIndex;
+        if (parentIndex != -1) {
+            Avatar::renderJointConnectingCone(extractTranslation(_jointStates[parentIndex].transform), position,
+                geometry.joints[parentIndex].boneRadius * uniformScale, scaledRadius);
+        }
+    }
+    
+    glPopMatrix();
+}
+
 void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     JointState& state = _jointStates[jointIndex];

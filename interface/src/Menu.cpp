@@ -318,6 +318,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarAsBalls);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
     
     addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::VoxelMode,

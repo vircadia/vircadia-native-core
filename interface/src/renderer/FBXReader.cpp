@@ -1308,15 +1308,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
-                        // expand the bone radius
-                        if (weight > 0.25f) {
+                        // expand the bone radius for vertices with at least 1/4 weight
+                        const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
+                        if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
                             float proj = glm::dot(boneDirection, vertex - boneEnd);
                             if (proj < 0.0f && proj > -boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
                                     vertex, boneEnd + boneDirection * proj));
-                        }   }
-                        
+                            }
+                        }
                         
                         // look for an unused slot in the weights vector
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
@@ -1338,15 +1339,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             int jointIndex = maxJointIndex;
             FBXJoint& joint = geometry.joints[jointIndex];
             glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
-            glm::vec3 boneStart = boneEnd;
+            glm::vec3 boneDirection;
+            float boneLength;
             if (joint.parentIndex != -1) {
-                boneStart = extractTranslation(inverseModelTransform * geometry.joints[joint.parentIndex].bindTransform);
+                boneDirection = boneEnd - extractTranslation(inverseModelTransform *
+                    geometry.joints[joint.parentIndex].bindTransform);
+                boneLength = glm::length(boneDirection);
+                if (boneLength > EPSILON) {
+                    boneDirection /= boneLength;
+                }
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                // expand the bone radius
-                joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::length(
-                    computeVectorFromPointToSegment(vertex, boneStart, boneEnd)));
+                float proj = glm::dot(boneDirection, vertex - boneEnd);
+                if (proj < 0.0f && proj > -boneLength) {
+                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
+                        vertex, boneEnd + boneDirection * proj));
+                }
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);

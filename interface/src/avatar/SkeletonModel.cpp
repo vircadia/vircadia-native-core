@@ -10,6 +10,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "Menu.h"
 #include "SkeletonModel.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
@@ -105,6 +106,10 @@ bool SkeletonModel::render(float alpha) {
     }
     
     Model::render(alpha);
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        renderCollisionProxies(alpha);
+    }
     
     return true;
 }

@@ -16,6 +16,8 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include <GeometryUtil.h>
+
 #include "Application.h"
 #include "Avatar.h"
 #include "DataServerClient.h"
@@ -816,6 +818,28 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     }
     distance = minDistance;
     return true;
+}
+
+bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, int skeletonSkipIndex) {
+    bool didPenetrate = false;
+    glm::vec3 totalPenetration;
+    glm::vec3 skeletonPenetration;
+    if (_skeletonModel.findSpherePenetration(penetratorCenter, penetratorRadius,
+            skeletonPenetration, 1.0f, skeletonSkipIndex)) {
+        addPenetrations(totalPenetration, skeletonPenetration);
+        didPenetrate = true; 
+    }
+    glm::vec3 facePenetration;
+    if (_head.getFaceModel().findSpherePenetration(penetratorCenter, penetratorRadius, facePenetration)) {
+        addPenetrations(totalPenetration, facePenetration);
+        didPenetrate = true; 
+    }
+    if (didPenetrate) {
+        penetration = totalPenetration;
+        return true;
+    }
+    return false;
 }
 
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {

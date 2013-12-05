@@ -153,6 +153,7 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
+    const QString CollisionProxies = "Collision Proxies";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";

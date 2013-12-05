@@ -171,6 +171,8 @@ protected:
     
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
+    void renderCollisionProxies(float alpha);
+    
 private:
     
     void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
