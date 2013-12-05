@@ -58,8 +58,8 @@ void attachAvatarDataToNode(Node* newNode) {
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
 void broadcastAvatarData() {
-    static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
-    static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
+    unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
+    unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
     unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
     unsigned char* currentBufferPosition = broadcastPacket + numHeaderBytes;
