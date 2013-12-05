@@ -70,6 +70,11 @@ void broadcastAvatarData() {
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
+            
+            // reset packet pointers for this node
+            currentBufferPosition = broadcastPacket + numHeaderBytes;
+            packetLength = currentBufferPosition - broadcastPacket;
+            
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
