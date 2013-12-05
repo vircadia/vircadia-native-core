@@ -113,7 +113,7 @@ private:
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int numSamples);
+    void addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutput, int numSamples);
     
     void renderToolIcon(int screenHeight);
 };

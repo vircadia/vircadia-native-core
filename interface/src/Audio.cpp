@@ -186,11 +186,6 @@ void Audio::handleAudioInput() {
     QByteArray inputByteArray = _inputDevice->read(CALLBACK_IO_BUFFER_SIZE);
     
     if (_isBufferSendCallback) {
-        // this is the second half of a full buffer of data
-        
-        // zero out the monoAudioSamples array
-        memset(monoAudioSamples, 0, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-        
         // copy samples from the inputByteArray to the stereoInputBuffer
         memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());
         
@@ -204,6 +199,10 @@ void Audio::handleAudioInput() {
         _lastInputLoudness = loudness;
         
     } else {
+        // this is the first half of a full buffer of data
+        // zero out the monoAudioSamples array
+        memset(monoAudioSamples, 0, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        
         // take samples we have in this callback and store them in the first half of the static buffer
         // to send off in the next callback
         memcpy((char*) stereoInputBuffer, inputByteArray.data(), inputByteArray.size());
@@ -516,7 +515,7 @@ void Audio::render(int screenWidth, int screenHeight) {
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int numSamples) {
+void Audio::addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutput, int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
@@ -531,8 +530,8 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH )
-                                        * volume * (1.f + randFloat() * 0.25f) * speed);
+            monoInput[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH )
+                                      * volume * (1.f + randFloat() * 0.25f) * speed);
         }
     }
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
@@ -545,17 +544,17 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
         for (int i = 0; i < numSamples; i++) {
             t = (float) _proceduralEffectSample + (float) i;
             
-            sample = sinf(t * _collisionSoundFrequency) +
-            sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
-            sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
+            sample = sinf(t * _collisionSoundFrequency)
+                + sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES)
+                + sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
             sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
             
             int16_t collisionSample = (int16_t) sample;
             
-            inputBuffer[i] += collisionSample;
+            monoInput[i] += collisionSample;
             
             for (int j = (i * 4); j < (i * 4) + 4; j++) {
-                stereoOutput[j] += collisionSample;
+                stereoUpsampledOutput[j] += collisionSample;
             }
             
             _collisionSoundMagnitude *= _collisionSoundDuration;
@@ -578,10 +577,10 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int16_t* stereoOutput, int
             
             int16_t collisionSample = (int16_t) sample;
             
-            inputBuffer[i] += collisionSample;
+            monoInput[i] += collisionSample;
             
             for (int j = (i * 4); j < (i * 4) + 4; j++) {
-                stereoOutput[j] += collisionSample;
+                stereoUpsampledOutput[j] += collisionSample;
             }
             
             _drumSoundVolume *= (1.f - _drumSoundDecay);
