@@ -1997,7 +1997,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     
     for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         node->lock();
-        if (node->getLinkedData() != NULL) {
+        if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
                 avatar->init();
