@@ -126,12 +126,12 @@ void Hand::simulate(float deltaTime, bool isMine) {
             }
         }
     }
-}
+} 
 
 void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
     //  Collision between finger and a voxel plays sound
     const float LOWEST_FREQUENCY = 100.f;
-    const float HERTZ_PER_RGB = 3.f;
+    const float HERTZ_PER_RGB = 2.f;
     const float DECAY_PER_SAMPLE = 0.0005f;
     const float DURATION_MAX = 2.0f;
     const float MIN_VOLUME = 0.1f;
