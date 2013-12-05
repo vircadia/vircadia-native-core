@@ -241,6 +241,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    // ask the audio thread to quit and wait until it is done
+    _audio.thread()->quit();
+    _audio.thread()->wait();
+    
     storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
