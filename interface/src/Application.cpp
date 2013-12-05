@@ -4239,7 +4239,8 @@ void* Application::networkReceive(void* args) {
                         
                         break;
                     case PACKET_TYPE_MIXED_AUDIO:
-                        app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                        QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
                     case PACKET_TYPE_VOXEL_ERASE:

@@ -42,8 +42,6 @@ public:
     
     void render(int screenWidth, int screenHeight);
     
-    void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
-    
     float getLastInputLoudness() const { return _lastInputLoudness; }
     
     void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
@@ -64,8 +62,9 @@ public:
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
-    public slots:
+public slots:
     void start();
+    void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
     void handleAudioInput();
     void reset();
     
