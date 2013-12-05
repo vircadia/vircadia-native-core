@@ -10,15 +10,6 @@
 #include <stdlib.h>
 #include <cmath>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#endif
-
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -2006,7 +1997,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     
     for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         node->lock();
-        if (node->getLinkedData() != NULL) {
+        if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
                 avatar->init();
@@ -2426,10 +2417,8 @@ void Application::updateAudio(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAudio()");
 
     //  Update audio stats for procedural sounds
-    #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
-    #endif
 }
 
 void Application::updateCursor(float deltaTime) {
@@ -2569,10 +2558,8 @@ void Application::updateAvatar(float deltaTime) {
     }
      
     //  Get audio loudness data from audio input device
-    #ifndef _WIN32
-        _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
-    #endif
-
+    _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
+    
     NodeList* nodeList = NodeList::getInstance();
     
     // send head/hand data to the avatar mixer and voxel server
@@ -3203,14 +3190,12 @@ void Application::displayOverlay() {
             }
         }
    
-        #ifndef _WIN32
         if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             _audio.render(_glWidget->width(), _glWidget->height());
             if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
                 _audioScope.render(45, _glWidget->height() - 200);
             }
         }
-        #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
     

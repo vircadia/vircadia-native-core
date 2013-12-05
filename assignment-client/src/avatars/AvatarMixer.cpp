@@ -58,9 +58,8 @@ void attachAvatarDataToNode(Node* newNode) {
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
 void broadcastAvatarData() {
-    static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
+    static unsigned char broadcastPacket[MAX_PACKET_SIZE];
     static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
-    unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
     unsigned char* currentBufferPosition = broadcastPacket + numHeaderBytes;
     int packetLength = currentBufferPosition - broadcastPacket;
@@ -79,7 +78,9 @@ void broadcastAvatarData() {
             // send back a packet with other active node data to this node
             for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
-                    unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0], &*node);
+                    
+                    unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0],
+                                                                                 &*otherNode);
                     int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
                     
                     if (avatarDataLength + packetLength <= MAX_PACKET_SIZE) {
@@ -89,7 +90,8 @@ void broadcastAvatarData() {
                     } else {
                         packetsSent++;
                         //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-                        nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, currentBufferPosition - broadcastPacket,
+                        nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket,
+                                                                currentBufferPosition - broadcastPacket,
                                                                 node->getActiveSocket()->getAddress(),
                                                                 node->getActiveSocket()->getPort());
                         
