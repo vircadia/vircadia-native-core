@@ -24,9 +24,8 @@ int main(int argc, char* argv[]) {
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
-    QCoreApplication application(argc, argv);
     DomainServer domainServer(argc, argv);
     
-    return domainServer.run();
+    return domainServer.exec();
 }
 
