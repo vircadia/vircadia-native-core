@@ -97,7 +97,7 @@ OctreeServer::~OctreeServer() {
     delete _jurisdiction;
     _jurisdiction = NULL;
     
-    qDebug() << "VoxelServer::run()... DONE\n";
+    qDebug() << "OctreeServer::run()... DONE\n";
 }
 
 void OctreeServer::initMongoose(int port) {
