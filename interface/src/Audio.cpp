@@ -350,7 +350,7 @@ void Audio::handleAudioInput() {
     gettimeofday(&_lastCallbackTime, NULL);
 }
 
-void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
+void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
     
@@ -389,7 +389,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         }
     }
     
-    _ringBuffer.parseData((unsigned char*) receivedData, receivedBytes);
+    _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
     
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
     .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
