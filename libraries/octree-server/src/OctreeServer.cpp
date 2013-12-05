@@ -75,6 +75,29 @@ OctreeServer::~OctreeServer() {
         }
         delete[] _parsedArgV;
     }
+    
+    if (_jurisdictionSender) {
+        _jurisdictionSender->terminate();
+        delete _jurisdictionSender;
+    }
+    
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminate();
+        delete _octreeInboundPacketProcessor;
+    }
+    
+    if (_persistThread) {
+        _persistThread->terminate();
+        delete _persistThread;
+    }
+    
+    // tell our NodeList we're done with notifications
+    NodeList::getInstance()->removeHook(this);
+    
+    delete _jurisdiction;
+    _jurisdiction = NULL;
+    
+    qDebug() << "OctreeServer::run()... DONE\n";
 }
 
 void OctreeServer::initMongoose(int port) {
@@ -684,38 +707,4 @@ void OctreeServer::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
-    // loop to send to nodes requesting data
-    while (!_isFinished) {
-        QCoreApplication::processEvents();
-    }
-
-    // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
-    // properly shutdown and cleaned up.
-    NodeList::getInstance()->clear();
-    
-    if (_jurisdictionSender) {
-        _jurisdictionSender->terminate();
-        delete _jurisdictionSender;
-    }
-
-    if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->terminate();
-        delete _octreeInboundPacketProcessor;
-    }
-
-    if (_persistThread) {
-        _persistThread->terminate();
-        delete _persistThread;
-    }
-    
-    // tell our NodeList we're done with notifications
-    nodeList->removeHook(this);
-
-    delete _jurisdiction;
-    _jurisdiction = NULL;
-
-    qDebug() << "OctreeServer::run()... DONE\n";
 }
-
-

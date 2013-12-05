@@ -16,6 +16,7 @@
 SixenseManager::SixenseManager() {
 #ifdef HAVE_SIXENSE
     sixenseInit();
+    sixenseSetFilterEnabled(0);
 #endif
 }
 
@@ -24,7 +25,7 @@ SixenseManager::~SixenseManager() {
     sixenseExit();
 #endif
 }
-    
+
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     if (sixenseGetNumActiveControllers() == 0) {
@@ -68,6 +69,12 @@ void SixenseManager::update(float deltaTime) {
         palm->setControllerButtons(data.buttons);
         palm->setTrigger(data.trigger);
         palm->setJoystick(data.joystick_x, data.joystick_y);
+        
+        //  Vibrate if needed
+        if (palm->getIsCollidingWithVoxel()) {
+            //printf("vibrate!\n");
+            //vibrate(data.controller_index, 100, 1);
+        }
 
         glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
         //  Adjust for distance between acquisition 'orb' and the user's torso
