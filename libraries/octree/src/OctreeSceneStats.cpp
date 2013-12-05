@@ -379,7 +379,7 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_STATS);
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_OCTREE_STATS);
     destinationBuffer += headerLength;
     
     memcpy(destinationBuffer, &_start, sizeof(_start));

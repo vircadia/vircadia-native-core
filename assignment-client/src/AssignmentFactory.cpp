@@ -12,6 +12,7 @@
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include <VoxelServer.h>
+#include <ParticleServer.h>
 
 #include "AssignmentFactory.h"
 
@@ -30,6 +31,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dat
             return new Agent(dataBuffer, numBytes);
         case Assignment::VoxelServerType:
             return new VoxelServer(dataBuffer, numBytes);
+        case Assignment::ParticleServerType:
+            return new ParticleServer(dataBuffer, numBytes);
         default:
             return NULL;
     }

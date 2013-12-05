@@ -6,12 +6,15 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "Oscilloscope.h"
-
-#include "InterfaceConfig.h"
 #include <limits>
 #include <cstring>
 #include <algorithm>
+
+#include <QtCore/QDebug>
+
+#include "InterfaceConfig.h"
+
+#include "Oscilloscope.h"
 
 //  Reimplemented 4/26/13 (tosh) - don't blame Philip for bugs
 
@@ -65,37 +68,50 @@ Oscilloscope::~Oscilloscope() {
     delete[] _samples;
 }
 
-void Oscilloscope::addSamples(unsigned ch, short const* data, unsigned n) {
+void Oscilloscope::addStereoSamples(const QByteArray& audioByteArray, bool isInput) {
 
     if (! enabled || inputPaused) {
         return;
     }
-
-    // determine start/end offset of this channel's region
-    unsigned baseOffs = MAX_SAMPLES_PER_CHANNEL * ch;
-    unsigned endOffs = baseOffs + MAX_SAMPLES_PER_CHANNEL;
-
-    // fetch write position for this channel
-    unsigned writePos = _writePos[ch];
-
-    // determine write position after adding the samples 
-    unsigned newWritePos = writePos + n;
-    unsigned n2 = 0;
-    if (newWritePos >= endOffs) {
-        // passed boundary of the circular buffer? -> we need to copy two blocks
-        n2 = newWritePos - endOffs;
-        newWritePos = baseOffs + n2;
-        n -= n2;
+    
+    unsigned int numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * 2);
+    int16_t samples[numSamplesPerChannel];
+    const int16_t* stereoSamples = (int16_t*) audioByteArray.constData();
+    
+    for (int channel = 0; channel < (isInput ? 1 : 2); channel++) {
+        // add samples for each of the channels
+        
+        // enumerate the interleaved stereoSamples array and pull out the samples for this channel
+        for (int i = 0; i < audioByteArray.size() / sizeof(int16_t); i += 2) {
+            samples[i / 2] = stereoSamples[i + channel];
+        }
+        
+        // determine start/end offset of this channel's region
+        unsigned baseOffs = MAX_SAMPLES_PER_CHANNEL * (channel + !isInput);
+        unsigned endOffs = baseOffs + MAX_SAMPLES_PER_CHANNEL;
+        
+        // fetch write position for this channel
+        unsigned writePos = _writePos[channel + !isInput];
+        
+        // determine write position after adding the samples
+        unsigned newWritePos = writePos + numSamplesPerChannel;
+        unsigned n2 = 0;
+        if (newWritePos >= endOffs) {
+            // passed boundary of the circular buffer? -> we need to copy two blocks
+            n2 = newWritePos - endOffs;
+            newWritePos = baseOffs + n2;
+            numSamplesPerChannel -= n2;
+        }
+        
+        // copy data
+        memcpy(_samples + writePos, samples, numSamplesPerChannel * sizeof(int16_t));
+        if (n2 > 0) {
+            memcpy(_samples + baseOffs, samples + numSamplesPerChannel, n2 * sizeof(int16_t));
+        }
+        
+        // set new write position for this channel 
+        _writePos[channel + !isInput] = newWritePos;
     }
-
-    // copy data 
-    memcpy(_samples + writePos, data, n * sizeof(short));
-    if (n2 > 0) {
-        memcpy(_samples + baseOffs, data + n, n2 * sizeof(short));
-    }
-
-    // set new write position for this channel 
-    _writePos[ch] = newWritePos;
 }
         
 void Oscilloscope::render(int x, int y) {

@@ -133,9 +133,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-#ifndef _WIN32
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
-#endif
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -163,12 +161,19 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
+    // put the audio processing on a separate thread
+    QThread* audioThread = new QThread(this);
+    
+    _audio.moveToThread(audioThread);
+    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    audioThread->start();
+    
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
     NodeList::getInstance()->addDomainListener(this);
     NodeList::getInstance()->addDomainListener(&_voxels);
 
-    
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     
@@ -236,14 +241,16 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    // ask the audio thread to quit and wait until it is done
+    _audio.thread()->quit();
+    _audio.thread()->wait();
+    
     storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    _audio.shutdown();
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
@@ -636,9 +643,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Comma:
             case Qt::Key_Period:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
-                break;
-            case Qt::Key_Semicolon:
-                _audio.ping();
                 break;
             case Qt::Key_Apostrophe:
                 _audioScope.inputPaused = !_audioScope.inputPaused;
@@ -1478,7 +1482,7 @@ void Application::removeVoxel(glm::vec3 position,
     voxel.y = position.y / TREE_SCALE;
     voxel.z = position.z / TREE_SCALE;
     voxel.s = scale / TREE_SCALE;
-    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxel);
+    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, voxel);
     
     // delete it locally to see the effect immediately (and in case no voxel server is present)
     _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
@@ -1498,7 +1502,7 @@ void Application::makeVoxel(glm::vec3 position,
     voxel.red = red;
     voxel.green = green;
     voxel.blue = blue;
-    PACKET_TYPE message = isDestructive ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL;
+    PACKET_TYPE message = isDestructive ? PACKET_TYPE_VOXEL_SET_DESTRUCTIVE : PACKET_TYPE_VOXEL_SET;
     _voxelEditSender.sendVoxelEditMessage(message, voxel);
     
     // create the voxel locally so it appears immediately
@@ -1580,7 +1584,7 @@ bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
         codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
-        getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
+        getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE, 
                 codeColorBuffer, codeAndColorLength);
         
         delete[] codeColorBuffer;
@@ -2425,7 +2429,6 @@ void Application::updateAudio(float deltaTime) {
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
-    _audio.eventuallyAnalyzePing();
     #endif
 }
 
@@ -3977,7 +3980,7 @@ bool Application::maybeEditVoxelUnderCursor() {
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, _mouseVoxel);
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
         _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -4024,14 +4027,18 @@ void Application::resetSensors() {
     _webcam.reset();
     _faceshift.reset();
     LeapManager::reset();
-    OculusManager::reset();
+    
+    if (OculusManager::isConnected()) {
+        OculusManager::reset();
+    }
+    
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
     _myAvatar.setVelocity(glm::vec3(0,0,0));
     _myAvatar.setThrust(glm::vec3(0,0,0));
     
-    _audio.reset();
+    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -4232,11 +4239,12 @@ void* Application::networkReceive(void* args) {
                         
                         break;
                     case PACKET_TYPE_MIXED_AUDIO:
-                        app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                        QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
-                    case PACKET_TYPE_ERASE_VOXEL:
-                    case PACKET_TYPE_VOXEL_STATS:
+                    case PACKET_TYPE_VOXEL_ERASE:
+                    case PACKET_TYPE_OCTREE_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
