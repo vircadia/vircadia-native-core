@@ -73,6 +73,8 @@ private:
     QIODevice* _inputDevice;
     QAudioOutput* _audioOutput;
     QIODevice* _outputDevice;
+    bool _isBufferSendCallback;
+    int16_t* _nextOutputSamples;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
     StDev _stdev;
@@ -81,8 +83,6 @@ private:
     float _averagedLatency;
     float _measuredJitter;
     int16_t _jitterBufferSamples;
-    int _wasStarved;
-    int _numStarves;
     float _lastInputLoudness;
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
@@ -93,8 +93,7 @@ private:
     float _collisionSoundDuration;
     bool _collisionFlashesScreen;
     int _proceduralEffectSample;
-    float _heartbeatMagnitude;
-
+    int _numFramesDisplayStarve;
     bool _muted;
     bool _localEcho;
     GLuint _micTextureId;
