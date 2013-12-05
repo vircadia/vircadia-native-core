@@ -1,3 +1,5 @@
+/*****
+
 //
 //  VoxelSendThread.cpp
 //  voxel-server
@@ -578,3 +580,4 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     return truePacketsSent;
 }
 
+****/

@@ -6,44 +6,45 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <time.h>
-
-#include <QtCore/QDebug>
-#include <QtCore/QString>
-#include <QtCore/QTimer>
-#include <QtCore/QUuid>
-
-#include <Logging.h>
-#include <OctalCode.h>
-#include <NodeList.h>
-#include <NodeTypes.h>
 #include <VoxelTree.h>
-#include "VoxelNodeData.h"
-#include <SharedUtil.h>
-#include <PacketHeaders.h>
-#include <SceneUtils.h>
-#include <PerfStat.h>
-#include <JurisdictionSender.h>
-#include <UUID.h>
-
-#ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#endif
 
 #include "VoxelServer.h"
 #include "VoxelServerConsts.h"
+#include "VoxelNodeData.h"
+
+
+VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : OctreeServer(dataBuffer, numBytes) {
+    // nothing special to do here...
+}
+
+VoxelServer::~VoxelServer() {
+    // nothing special to do here...
+}
+
+OctreeQueryNode* VoxelServer::createOctreeQueryNode(Node* newNode) {
+    return new VoxelNodeData(newNode);
+}
+
+Octree* VoxelServer::createTree() {
+    return new VoxelTree(true);
+}
+
+unsigned char VoxelServer::getMyNodeType() {
+    return NODE_TYPE_VOXEL_SERVER;
+}
+
+const char* VOXEL_SERVER_LOGGING_TARGET_NAME = "voxel-server";
+const char* VoxelServer::getMyLoggingServerTargetName() {
+    return VOXEL_SERVER_LOGGING_TARGET_NAME;
+}
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
-const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
+const char* VoxelServer::getMyDefaultPersistFilename() {
+    return LOCAL_VOXELS_PERSIST_FILE;
+}
+
+/*****
+
 
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -785,4 +786,5 @@ void VoxelServer::run() {
     qDebug() << "VoxelServer::run()... DONE\n";
 }
 
+**/
 

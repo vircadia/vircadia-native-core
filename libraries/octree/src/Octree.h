@@ -180,6 +180,10 @@ public:
     
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
 
+    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const { return false; }
+    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength) { return 0; }
+
     OctreeElement* getRoot() { return _rootNode; }
 
     void eraseAllOctreeElements();

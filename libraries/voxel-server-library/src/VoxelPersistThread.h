@@ -1,3 +1,5 @@
+/****
+
 //
 //  VoxelPersistThread.h
 //  voxel-server
@@ -42,3 +44,6 @@ private:
 };
 
 #endif // __voxel_server__VoxelPersistThread__
+
+
+***/

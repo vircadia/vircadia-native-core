@@ -1,3 +1,5 @@
+/****
+
 //
 //  VoxelSendThread.h
 //  voxel-server
@@ -46,3 +48,6 @@ private:
 };
 
 #endif // __voxel_server__VoxelSendThread__
+
+
+****/

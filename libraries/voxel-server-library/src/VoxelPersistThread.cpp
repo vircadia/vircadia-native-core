@@ -1,3 +1,6 @@
+
+/*****
+
 //
 //  VoxelPersistThread.cpp
 //  voxel-server
@@ -84,3 +87,7 @@ bool VoxelPersistThread::process() {
     }    
     return isStillRunning();  // keep running till they terminate us
 }
+
+
+
+****/
