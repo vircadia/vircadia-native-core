@@ -115,7 +115,7 @@ public:
     glm::vec4 computeAverageColor() const;
 
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skipIndex = -1) const;
+        glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
 
 protected:
 

@@ -530,12 +530,12 @@ glm::vec4 Model::computeAverageColor() const {
 }
 
 bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skipIndex) const {
+        glm::vec3& penetration, float boneScale, int skipIndex) const {
     const glm::vec3 relativeCenter = penetratorCenter - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     bool didPenetrate = false;
     glm::vec3 totalPenetration;
-    float radiusScale = extractUniformScale(_scale);
+    float radiusScale = extractUniformScale(_scale) * boneScale;
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
         glm::vec3 end = extractTranslation(_jointStates[i].transform);

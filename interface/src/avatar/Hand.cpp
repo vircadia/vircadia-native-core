@@ -170,7 +170,7 @@ void Hand::calculateGeometry() {
             (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
         if (skeletonModel.findSpherePenetration(palm.getPosition(),
-                PALM_RADIUS * _owningAvatar->getScale(), penetration, skipIndex)) {
+                PALM_RADIUS * _owningAvatar->getScale(), penetration, 0.001f, skipIndex)) {
             palm.addToPosition(-penetration);
         }
     }
