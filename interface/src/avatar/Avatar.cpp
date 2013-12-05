@@ -827,12 +827,12 @@ bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float pene
     glm::vec3 skeletonPenetration;
     if (_skeletonModel.findSpherePenetration(penetratorCenter, penetratorRadius,
             skeletonPenetration, 1.0f, skeletonSkipIndex)) {
-        addPenetrations(totalPenetration, skeletonPenetration);
+        totalPenetration = addPenetrations(totalPenetration, skeletonPenetration);
         didPenetrate = true; 
     }
     glm::vec3 facePenetration;
     if (_head.getFaceModel().findSpherePenetration(penetratorCenter, penetratorRadius, facePenetration)) {
-        addPenetrations(totalPenetration, facePenetration);
+        totalPenetration = addPenetrations(totalPenetration, facePenetration);
         didPenetrate = true; 
     }
     if (didPenetrate) {
