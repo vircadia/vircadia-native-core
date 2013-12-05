@@ -318,6 +318,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
     const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
     _voxelServerConfig = getCmdOption(argc, (const char**) argv, VOXEL_CONFIG_OPTION);
+
+    const char PARTICLE_CONFIG_OPTION[] = "--particleServerConfig";
+    _particleServerConfig = getCmdOption(argc, (const char**) argv, PARTICLE_CONFIG_OPTION);
     
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
