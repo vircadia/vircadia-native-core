@@ -728,7 +728,7 @@ void MyAvatar::renderBody(bool forceRenderHead) {
             _head.render(alpha, false);
         }
     }
-    _hand.render();
+    _hand.render(true);
 }
 
 void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {

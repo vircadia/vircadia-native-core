@@ -785,7 +785,7 @@ void Avatar::renderBody(bool forceRenderHead) {
             _head.render(alpha, false);
         }
     }
-    _hand.render();
+    _hand.render(false);
 }
 
 void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {

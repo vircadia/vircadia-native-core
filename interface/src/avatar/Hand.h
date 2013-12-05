@@ -52,7 +52,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render();
+    void render(bool isMine);
     void renderRaveGloveStage();
     void setRaveLights(RaveLightsSetting setting);
 
