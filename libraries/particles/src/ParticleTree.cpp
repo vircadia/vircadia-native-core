@@ -17,3 +17,12 @@ ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) c
     return newElement;
 }
 
+bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
+    return false; // not yet.
+}
+
+int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength) {
+                    
+    return 0; // not yet... soon...
+}

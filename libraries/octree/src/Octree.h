@@ -178,8 +178,11 @@ public:
     Octree(bool shouldReaverage = false);
     ~Octree();
     
+    /// Your tree class must implement this to create the correct element type
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
 
+    // These methods will allow the OctreeServer to send your tree inbound edit packets of your
+    // own definition. Implement these to allow your octree based server to support editing
     virtual bool handlesEditPacketType(PACKET_TYPE packetType) const { return false; }
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength) { return 0; }

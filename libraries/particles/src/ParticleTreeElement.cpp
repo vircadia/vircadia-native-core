@@ -33,17 +33,60 @@ void ParticleTreeElement::init(unsigned char* octalCode) {
     _voxelMemoryUsage += sizeof(ParticleTreeElement);
 }
 
+ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) { 
+    return (ParticleTreeElement*)OctreeElement::addChildAtIndex(index); 
+}
+
+
 bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const {
-    // will write to the encoded stream all of the contents of this element
-    return true;
+    bool success = true; // assume the best...
+
+    // write our particles out...
+    uint16_t numberOfParticles = _particles.size();
+    success = packetData->appendValue(numberOfParticles);
+    
+    if (success) {
+        for (uint16_t i = 0; i < numberOfParticles; i++) {
+            const Particle& particle = _particles[i];
+            success = particle.appendParticleData(packetData);
+            if (!success) {
+                break;
+            }
+        }
+    }
+    return success;
 }
 
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 
-            
-    // will read from the encoded stream all of the contents of this element
-    return 0;
+    
+
+    const unsigned char* dataAt = data;
+    int bytesRead = 0;
+    uint16_t numberOfParticles = 0;
+    int expectedBytesPerParticle = Particle::expectedBytes();
+    
+    _particles.clear();
+    
+    if (bytesLeftToRead >= sizeof(numberOfParticles)) {
+    
+        // read our particles in....
+        numberOfParticles = *(uint16_t*)dataAt;
+        dataAt += sizeof(numberOfParticles);
+        bytesLeftToRead -= sizeof(numberOfParticles);
+        bytesRead += sizeof(numberOfParticles);
+        
+        if (bytesLeftToRead >= (numberOfParticles * expectedBytesPerParticle)) {
+            for (uint16_t i = 0; i < numberOfParticles; i++) {
+                int bytesForThisParticle = _particles[i].readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
+                dataAt += bytesForThisParticle;
+                bytesLeftToRead -= bytesForThisParticle;
+                bytesRead += bytesForThisParticle;
+            }
+        }
+    }
+    return bytesRead;
 }
 
 // will average a "common reduced LOD view" from the the child elements...

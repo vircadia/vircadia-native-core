@@ -16,8 +16,20 @@ class ParticleTree : public Octree {
     Q_OBJECT
 public:
     ParticleTree(bool shouldReaverage = false);
+    
+    /// Implements our type specific root element factory
     virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL) const;
+    
+    /// Type safe version of getRoot()
     ParticleTreeElement* getRoot() { return (ParticleTreeElement*)_rootNode; }
+    
+    
+    // These methods will allow the OctreeServer to send your tree inbound edit packets of your
+    // own definition. Implement these to allow your octree based server to support editing
+    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
+    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength);
+    
 private:
 };
 
