@@ -277,6 +277,9 @@ void Audio::handleAudioInput() {
                 nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket, BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
                                                         audioMixer->getActiveSocket()->getAddress(),
                                                         audioMixer->getActiveSocket()->getPort());
+                
+                Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
+                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
             } else {
                 nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
@@ -341,6 +344,7 @@ void Audio::handleAudioInput() {
     
     _outputDevice->write(stereoOutputBuffer);
     
+    
     // add output (@speakers) data just written to the scope
     QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
                               Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
@@ -391,8 +395,8 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     
     _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
     
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
-    .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(PACKET_LENGTH_BYTES
+                                                                                                    + sizeof(PACKET_TYPE));
     
     _lastReceiveTime = currentReceiveTime;
 }
