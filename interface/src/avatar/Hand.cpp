@@ -15,6 +15,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+
 using namespace std;
 
 Hand::Hand(Avatar* owningAvatar) :
@@ -126,18 +127,23 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime) {
-    //
     //  Collision between finger and a voxel plays sound
-    //
-    float volume = 0.1f + glm::clamp(glm::length(palm->getVelocity()), 0.f, 0.9f);
+    const float LOWEST_FREQUENCY = 100.f;
+    const float HERTZ_PER_RGB = 3.f;
+    const float DECAY_PER_SAMPLE = 0.0005f;
+    const float DURATION_MAX = 2.0f;
+    const float MIN_VOLUME = 0.1f;
+    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getVelocity()), 0.f, (1.f - MIN_VOLUME));
     float duration = volume;
     _collisionCenter = fingerTipPosition;
     _collisionAge = deltaTime;
     _collisionDuration = duration;
     int voxelBrightness = voxel->getColor()[0] + voxel->getColor()[1] + voxel->getColor()[2];
-    float frequency = 100.f + (voxelBrightness * 3.f);     //  Hz
-    //  Play a sound
-    Application::getInstance()->getAudio()->startDrumSound(volume, frequency, 2.0f, 0.0005f);
+    float frequency = LOWEST_FREQUENCY + (voxelBrightness * HERTZ_PER_RGB);
+    Application::getInstance()->getAudio()->startDrumSound(volume,
+                                                           frequency,
+                                                           DURATION_MAX,
+                                                           DECAY_PER_SAMPLE);
 }
 
 void Hand::calculateGeometry() {
