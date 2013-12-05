@@ -92,7 +92,7 @@ OctreeServer::~OctreeServer() {
     }
     
     // tell our NodeList we're done with notifications
-    nodeList->removeHook(this);
+    NodeList::getInstance()->removeHook(this);
     
     delete _jurisdiction;
     _jurisdiction = NULL;
