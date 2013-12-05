@@ -81,18 +81,18 @@ OctreeServer::~OctreeServer() {
         delete _jurisdictionSender;
     }
     
-    if (_voxelServerPacketProcessor) {
-        _voxelServerPacketProcessor->terminate();
-        delete _voxelServerPacketProcessor;
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminate();
+        delete _octreeInboundPacketProcessor;
     }
     
-    if (_voxelPersistThread) {
-        _voxelPersistThread->terminate();
-        delete _voxelPersistThread;
+    if (_persistThread) {
+        _persistThread->terminate();
+        delete _persistThread;
     }
     
     // tell our NodeList we're done with notifications
-    NodeList::getInstance()->removeHook(&_nodeWatcher);
+    nodeList->removeHook(this);
     
     delete _jurisdiction;
     _jurisdiction = NULL;
