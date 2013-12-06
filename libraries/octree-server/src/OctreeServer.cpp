@@ -615,7 +615,6 @@ void OctreeServer::run() {
     nodeList->addHook(this);
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
-    nodeList->startSilentNodeRemovalThread();
     srand((unsigned)time(0));
     
     const char* VERBOSE_DEBUG = "--verboseDebug";
