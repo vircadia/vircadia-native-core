@@ -63,6 +63,9 @@ public:
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
     
+    /// Returns the index of the last free ancestor or the indexed joint, or -1 if not found.
+    int getLastFreeJointIndex(int jointIndex) const;
+    
     /// Returns the position of the head joint.
     /// \return whether or not the head was found
     bool getHeadPosition(glm::vec3& headPosition) const;

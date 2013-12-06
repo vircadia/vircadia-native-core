@@ -137,7 +137,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-const float PALM_COLLISION_RADIUS = 0.01f;
+const float PALM_COLLISION_RADIUS = 0.03f;
 
 void Hand::updateCollisions() {
     // use position to obtain the left and right palm indices
@@ -168,7 +168,7 @@ void Hand::updateCollisions() {
         // and the current avatar
         glm::vec3 owningPenetration;
         const Model& skeletonModel = _owningAvatar->getSkeletonModel();
-        int skipIndex = skeletonModel.getParentJointIndex(
+        int skipIndex = skeletonModel.getLastFreeJointIndex(
             (i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1);
         if (_owningAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, owningPenetration, skipIndex)) {

@@ -458,6 +458,10 @@ int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
 
+int Model::getLastFreeJointIndex(int jointIndex) const {
+    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
+}
+
 bool Model::getHeadPosition(glm::vec3& headPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }
