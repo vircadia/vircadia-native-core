@@ -26,27 +26,13 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
-enum RaveGloveEffectsMode
-{
-	RAVE_GLOVE_EFFECTS_MODE_NULL = -1,
-	RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR,
-	RAVE_GLOVE_EFFECTS_MODE_TRAILS,
-	RAVE_GLOVE_EFFECTS_MODE_FIRE,
-	RAVE_GLOVE_EFFECTS_MODE_WATER,
-	RAVE_GLOVE_EFFECTS_MODE_FLASHY,
-	RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER,
-	RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER,
-	RAVE_GLOVE_EFFECTS_MODE_SNAKE,
-	RAVE_GLOVE_EFFECTS_MODE_PULSE,
-	RAVE_GLOVE_EFFECTS_MODE_THROB,
-	NUM_RAVE_GLOVE_EFFECTS_MODES
-};
-
 const int BUTTON_1 = 32;
 const int BUTTON_2 = 64;
 const int BUTTON_3 = 8;
 const int BUTTON_4 = 16;
 const int BUTTON_FWD = 128;
+
+const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
 
 class HandData {
 public:
@@ -55,19 +41,24 @@ public:
     
     // These methods return the positions in Leap-relative space.
     // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
-    
+
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        const float unitScale = 0.001;            // convert mm to meters
-        return _basePosition + _baseOrientation * (leapPosition * unitScale);
+        return _basePosition + _baseOrientation * (leapPosition * LEAP_UNIT_SCALE);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
         return glm::normalize(_baseOrientation * leapDirection);
     }
+    glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
+    glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
 
     std::vector<PalmData>& getPalms()    { return _palms; }
     size_t                 getNumPalms() { return _palms.size(); }
     PalmData&              addNewPalm();
+
+    /// Finds the indices of the left and right palms according to their locations, or -1 if either or
+    /// both is not found.
+    void getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const;
 
     void setFingerTrailLength(unsigned int length);
     void updateFingerTrails();
@@ -76,20 +67,12 @@ public:
     int encodeRemoteData(unsigned char* destinationBuffer);
     int decodeRemoteData(unsigned char* sourceBuffer);
 
-    void setRaveGloveActive(bool active)          { _isRaveGloveActive = active; }
-    void setRaveGloveMode(int effectsMode);
-    bool isRaveGloveActive() const                { return _isRaveGloveActive; }
-    int  getRaveGloveMode()                       { return _raveGloveEffectsMode; }
-
     friend class AvatarData;
 protected:
     glm::vec3              _basePosition;      // Hands are placed relative to this
     glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
-    bool                   _isRaveGloveActive;
-    int                    _raveGloveEffectsMode;
-    bool                   _raveGloveEffectsModeChanged;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
@@ -157,6 +140,8 @@ public:
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
     const glm::vec3& getVelocity()  const { return _velocity; }
+
+    void addToPosition(const glm::vec3& delta);
 
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }

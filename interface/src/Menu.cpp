@@ -318,6 +318,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarAsBalls);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
     
     addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::VoxelMode,
@@ -363,12 +364,12 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
 
-    QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Rave Glove Options");
+    QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
-    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
+ 
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
     addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,

@@ -153,6 +153,7 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
+    const QString CollisionProxies = "Collision Proxies";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
@@ -239,7 +240,6 @@ namespace MenuOption {
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString TestPing = "Test Ping";
-    const QString TestRaveGlove = "Test Rave Glove";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";

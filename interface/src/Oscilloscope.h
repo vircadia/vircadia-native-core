@@ -11,12 +11,13 @@
 
 #include <cassert>
 
-class Oscilloscope {
+#include <QtCore/QObject>
+
+class Oscilloscope : public QObject {
+    Q_OBJECT
 public:
     Oscilloscope(int width, int height, bool isEnabled);
     ~Oscilloscope();
-
-    void addSamples(unsigned ch, short const* data, unsigned n);
 
     void render(int x, int y);
 
@@ -57,7 +58,8 @@ public:
     // Sets the number of input samples per output sample. Without filtering
     // just uses every nTh sample.
     void setDownsampleRatio(unsigned n) { assert(n > 0); _downsampleRatio = n; }
-
+public slots:
+    void addStereoSamples(const QByteArray& audioByteArray, bool isInput);
 private:
     // don't copy/assign
     Oscilloscope(Oscilloscope const&); // = delete;

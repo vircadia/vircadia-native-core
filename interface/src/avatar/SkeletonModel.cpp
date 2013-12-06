@@ -10,6 +10,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "Menu.h"
 #include "SkeletonModel.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
@@ -29,24 +30,9 @@ void SkeletonModel::simulate(float deltaTime) {
     Model::simulate(deltaTime);
 
     // find the left and rightmost active Leap palms
-    HandData& hand = _owningAvatar->getHand();
-    int leftPalmIndex = -1;
-    float leftPalmX = FLT_MAX;
-    int rightPalmIndex = -1;    
-    float rightPalmX = -FLT_MAX;
-    for (int i = 0; i < hand.getNumPalms(); i++) {
-        if (hand.getPalms()[i].isActive()) {
-            float x = hand.getPalms()[i].getRawPosition().x;
-            if (x < leftPalmX) {
-                leftPalmIndex = i;
-                leftPalmX = x;
-            }
-            if (x > rightPalmX) {
-                rightPalmIndex = i;
-                rightPalmX = x;
-            }
-        }
-    }
+    int leftPalmIndex, rightPalmIndex;   
+    HandData& hand = _owningAvatar->getHand(); 
+    hand.getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     const float HAND_RESTORATION_RATE = 0.25f;
     
@@ -121,6 +107,10 @@ bool SkeletonModel::render(float alpha) {
     
     Model::render(alpha);
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        renderCollisionProxies(alpha);
+    }
+    
     return true;
 }
 
@@ -141,7 +131,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
-    applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()));
+    applyRotationDelta(jointIndex, rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()), false);
     getJointRotation(jointIndex, palmRotation, true);
     
     // sort the finger indices by raw x, get the average direction
@@ -163,7 +153,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float directionLength = glm::length(direction);
     const int MIN_ROTATION_FINGERS = 3;
     if (directionLength > EPSILON && palm.getNumFingers() >= MIN_ROTATION_FINGERS) {
-        applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction));
+        applyRotationDelta(jointIndex, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction), false);
         getJointRotation(jointIndex, palmRotation, true);
     }
     

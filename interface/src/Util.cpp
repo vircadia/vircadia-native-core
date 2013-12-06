@@ -224,6 +224,18 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
         0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
 }
 
+glm::vec3 extractScale(const glm::mat4& matrix) {
+    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
+}
+
+float extractUniformScale(const glm::mat4& matrix) {
+    return extractUniformScale(extractScale(matrix));
+}
+
+float extractUniformScale(const glm::vec3& scale) {
+    return (scale.x + scale.y + scale.z) / 3.0f;
+}
+
 //  Draw a 3D vector floating in space
 void drawVector(glm::vec3 * vector) {
     glDisable(GL_LIGHTING);

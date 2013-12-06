@@ -8,6 +8,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <GeometryUtil.h>
+
 #include "Application.h"
 #include "Model.h"
 
@@ -452,6 +454,14 @@ bool Model::render(float alpha) {
     return true;
 }
 
+int Model::getParentJointIndex(int jointIndex) const {
+    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
+}
+
+int Model::getLastFreeJointIndex(int jointIndex) const {
+    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
+}
+
 bool Model::getHeadPosition(glm::vec3& headPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }
@@ -474,35 +484,35 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
 }
 
 bool Model::setLeftHandPosition(const glm::vec3& position) {
-    return isActive() && setJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, position);
+    return setJointPosition(getLeftHandJointIndex(), position);
 }
 
 bool Model::restoreLeftHandPosition(float percent) {
-    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, percent);
+    return restoreJointPosition(getLeftHandJointIndex(), percent);
 }
 
 bool Model::setLeftHandRotation(const glm::quat& rotation) {
-    return isActive() && setJointRotation(_geometry->getFBXGeometry().leftHandJointIndex, rotation);
+    return setJointRotation(getLeftHandJointIndex(), rotation);
 }
 
 float Model::getLeftArmLength() const {
-    return isActive() ? getLimbLength(_geometry->getFBXGeometry().leftHandJointIndex) : 0.0f;
+    return getLimbLength(getLeftHandJointIndex());
 }
 
 bool Model::setRightHandPosition(const glm::vec3& position) {
-    return isActive() && setJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, position);
+    return setJointPosition(getRightHandJointIndex(), position);
 }
 
 bool Model::restoreRightHandPosition(float percent) {
-    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, percent);
+    return restoreJointPosition(getRightHandJointIndex(), percent);
 }
 
 bool Model::setRightHandRotation(const glm::quat& rotation) {
-    return isActive() && setJointRotation(_geometry->getFBXGeometry().rightHandJointIndex, rotation);
+    return setJointRotation(getRightHandJointIndex(), rotation);
 }
 
 float Model::getRightArmLength() const {
-    return isActive() ? getLimbLength(_geometry->getFBXGeometry().rightHandJointIndex) : 0.0f;
+    return getLimbLength(getRightHandJointIndex());
 }
 
 void Model::setURL(const QUrl& url) {
@@ -521,6 +531,48 @@ void Model::setURL(const QUrl& url) {
 
 glm::vec4 Model::computeAverageColor() const {
     return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, float boneScale, int skipIndex) const {
+    const glm::vec3 relativeCenter = penetratorCenter - _translation;
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    bool didPenetrate = false;
+    glm::vec3 totalPenetration;
+    float radiusScale = extractUniformScale(_scale) * boneScale;
+    for (int i = 0; i < _jointStates.size(); i++) {
+        const FBXJoint& joint = geometry.joints[i];
+        glm::vec3 end = extractTranslation(_jointStates[i].transform);
+        float endRadius = joint.boneRadius * radiusScale;
+        glm::vec3 start = end;
+        float startRadius = joint.boneRadius * radiusScale;
+        glm::vec3 bonePenetration;
+        if (joint.parentIndex != -1) {
+            if (skipIndex != -1) {
+                int ancestorIndex = joint.parentIndex;
+                do {
+                    if (ancestorIndex == skipIndex) {
+                        goto outerContinue;
+                    }
+                    ancestorIndex = geometry.joints[ancestorIndex].parentIndex;
+                    
+                } while (ancestorIndex != -1);
+            }
+            start = extractTranslation(_jointStates[joint.parentIndex].transform);
+            startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
+        }
+        if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
+                startRadius, endRadius, bonePenetration)) {
+            totalPenetration = addPenetrations(totalPenetration, bonePenetration);
+            didPenetrate = true; 
+        }
+        outerContinue: ;
+    }
+    if (didPenetrate) {
+        penetration = totalPenetration;
+        return true;
+    }
+    return false;
 }
 
 void Model::updateJointState(int index) {
@@ -680,10 +732,11 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain) {
     JointState& state = _jointStates[jointIndex];
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-    if (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) && joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f)) {
+    if (!constrain || (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) &&
+            joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f))) {
         // no constraints
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
         state.combinedRotation = delta * state.combinedRotation;
@@ -693,6 +746,40 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
         glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
     state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
     state.rotation = newRotation;
+}
+
+void Model::renderCollisionProxies(float alpha) {
+    glPushMatrix();
+    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    float uniformScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointStates.size(); i++) {
+        glPushMatrix();
+        
+        glm::vec3 position = extractTranslation(_jointStates[i].transform);
+        glTranslatef(position.x, position.y, position.z);
+        
+        glm::quat rotation;
+        getJointRotation(i, rotation);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+        
+        glColor4f(0.75f, 0.75f, 0.75f, alpha);
+        float scaledRadius = geometry.joints[i].boneRadius * uniformScale;
+        const int BALL_SUBDIVISIONS = 10;
+        glutSolidSphere(scaledRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        
+        glPopMatrix();
+        
+        int parentIndex = geometry.joints[i].parentIndex;
+        if (parentIndex != -1) {
+            Avatar::renderJointConnectingCone(extractTranslation(_jointStates[parentIndex].transform), position,
+                geometry.joints[parentIndex].boneRadius * uniformScale, scaledRadius);
+        }
+    }
+    
+    glPopMatrix();
 }
 
 void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {

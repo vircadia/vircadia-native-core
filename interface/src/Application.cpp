@@ -10,15 +10,6 @@
 #include <stdlib.h>
 #include <cmath>
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#endif
-
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -133,9 +124,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-#ifndef _WIN32
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
-#endif
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
@@ -163,12 +152,19 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
+    // put the audio processing on a separate thread
+    QThread* audioThread = new QThread(this);
+    
+    _audio.moveToThread(audioThread);
+    connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
+    
+    audioThread->start();
+    
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
     NodeList::getInstance()->addDomainListener(this);
     NodeList::getInstance()->addDomainListener(&_voxels);
 
-    
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     
@@ -236,14 +232,16 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    // ask the audio thread to quit and wait until it is done
+    _audio.thread()->quit();
+    _audio.thread()->wait();
+    
     storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
-
-    _audio.shutdown();
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
@@ -611,12 +609,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             return;
         }
 
-        //this is for switching between modes for the leap rave glove test
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand)
-            || Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove)) {
-            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
-        }
-
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
@@ -636,9 +628,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Comma:
             case Qt::Key_Period:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
-                break;
-            case Qt::Key_Semicolon:
-                _audio.ping();
                 break;
             case Qt::Key_Apostrophe:
                 _audioScope.inputPaused = !_audioScope.inputPaused;
@@ -2002,7 +1991,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     
     for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         node->lock();
-        if (node->getLinkedData() != NULL) {
+        if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
                 avatar->init();
@@ -2257,7 +2246,6 @@ void Application::updateLeap(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateLeap()");
 
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
-    _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
     LeapManager::nextFrame();
 }
 
@@ -2422,11 +2410,8 @@ void Application::updateAudio(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAudio()");
 
     //  Update audio stats for procedural sounds
-    #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
     _audio.setLastVelocity(_myAvatar.getVelocity());
-    _audio.eventuallyAnalyzePing();
-    #endif
 }
 
 void Application::updateCursor(float deltaTime) {
@@ -2566,10 +2551,8 @@ void Application::updateAvatar(float deltaTime) {
     }
      
     //  Get audio loudness data from audio input device
-    #ifndef _WIN32
-        _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
-    #endif
-
+    _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
+    
     NodeList* nodeList = NodeList::getInstance();
     
     // send head/hand data to the avatar mixer and voxel server
@@ -3096,11 +3079,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
-    
     renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
-
-    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3200,14 +3179,12 @@ void Application::displayOverlay() {
             }
         }
    
-        #ifndef _WIN32
         if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             _audio.render(_glWidget->width(), _glWidget->height());
             if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
                 _audioScope.render(45, _glWidget->height() - 200);
             }
         }
-        #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
     
@@ -4024,14 +4001,18 @@ void Application::resetSensors() {
     _webcam.reset();
     _faceshift.reset();
     LeapManager::reset();
-    OculusManager::reset();
+    
+    if (OculusManager::isConnected()) {
+        OculusManager::reset();
+    }
+    
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
     _myAvatar.setVelocity(glm::vec3(0,0,0));
     _myAvatar.setThrust(glm::vec3(0,0,0));
     
-    _audio.reset();
+    QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {
@@ -4232,7 +4213,8 @@ void* Application::networkReceive(void* args) {
                         
                         break;
                     case PACKET_TYPE_MIXED_AUDIO:
-                        app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                        QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
                     case PACKET_TYPE_VOXEL_ERASE:
