@@ -10,8 +10,6 @@
 #include "AvatarData.h"
 #include <SharedUtil.h>
 
-// Glove flags
-#define GLOVE_FLAG_RAVE 0x01
 
 // When converting between fixed and float, use this as the radix.
 const int fingerVectorRadix = 4;
@@ -19,10 +17,7 @@ const int fingerVectorRadix = 4;
 HandData::HandData(AvatarData* owningAvatar) :
     _basePosition(0.0f, 0.0f, 0.0f),
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
-    _owningAvatarData(owningAvatar),
-    _isRaveGloveActive(false),
-    _raveGloveEffectsMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR),
-    _raveGloveEffectsModeChanged(false)
+    _owningAvatarData(owningAvatar)
 {
     // Start with two palms
     addNewPalm();
@@ -67,13 +62,6 @@ _owningHandData(owningHandData)
 int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
     const unsigned char* startPosition = destinationBuffer;
 
-    unsigned char gloveFlags = 0;
-    if (isRaveGloveActive())
-        gloveFlags |= GLOVE_FLAG_RAVE;
-    
-    *destinationBuffer++ = gloveFlags;
-    *destinationBuffer++ = getRaveGloveMode();
-    
     unsigned int numHands = 0;
     for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
         PalmData& palm = getPalms()[handIndex];
@@ -120,8 +108,6 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
 int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
         
-    unsigned char gloveFlags = *sourceBuffer++;
-    char effectsMode = *sourceBuffer++;
     unsigned int numHands = *sourceBuffer++;
     
     for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
@@ -165,24 +151,12 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         palm.setActive(false);
     }
     
-    setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
-    if (numHands > 0) {
-        setRaveGloveMode(effectsMode);
-    }
-    
     // One byte for error checking safety.
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
     unsigned char checkLength = *sourceBuffer++;
     assert(checkLength == requiredLength);
 
     return sourceBuffer - startPosition;
-}
-
-void HandData::setRaveGloveMode(int effectsMode) {
-    if (effectsMode != _raveGloveEffectsMode) {
-        _raveGloveEffectsModeChanged = true;
-    }
-    _raveGloveEffectsMode = effectsMode;
 }
 
 void HandData::setFingerTrailLength(unsigned int length) {

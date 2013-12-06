@@ -442,10 +442,6 @@ static TextRenderer* textRenderer() {
 
 void Avatar::render(bool forceRenderHead) {
 
-    if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
-        _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
-    }
-    
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
