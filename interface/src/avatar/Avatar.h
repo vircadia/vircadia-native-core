@@ -15,7 +15,6 @@
 
 #include <AvatarData.h>
 
-#include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
 #include "Balls.h"
 #include "Hand.h"
@@ -229,7 +228,6 @@ protected:
     float _scale;
     float _height;
     Balls* _balls;
-    AvatarTouch _avatarTouch;
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;

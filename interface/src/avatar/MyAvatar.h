@@ -13,6 +13,15 @@
 
 #include "Avatar.h"
 
+enum AvatarHandState
+{
+    HAND_STATE_NULL = 0,
+    HAND_STATE_OPEN,
+    HAND_STATE_GRASPING,
+    HAND_STATE_POINTING,
+    NUM_HAND_STATES
+};
+
 class MyAvatar : public Avatar {
 public:
 	MyAvatar(Node* owningNode = NULL);
@@ -67,7 +76,6 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-    Avatar* _interactingOther;
     float _elapsedTimeMoving; // Timers to drive camera transitions when moving
     float _elapsedTimeStopped;
     float _elapsedTimeSinceCollision;

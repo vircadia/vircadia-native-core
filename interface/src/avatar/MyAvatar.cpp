@@ -32,7 +32,6 @@ const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar colli
 const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
-const float PERIPERSONAL_RADIUS = 1.0f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const bool USING_HEAD_LEAN = false;
 const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
@@ -46,7 +45,6 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
-    _interactingOther(NULL),
     _elapsedTimeMoving(0.0f),
 	_elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
@@ -166,7 +164,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
-    _avatarTouch.simulate(deltaTime);
 
     // apply gravity
     // For gravity, always move the avatar by the amount driven by gravity, so that the collision
@@ -498,16 +495,10 @@ static TextRenderer* textRenderer() {
 }
 
 void MyAvatar::render(bool forceRenderHead) {
-    
-    // render a simple round on the ground projected down from the avatar's position
-    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
-    
+        
     // render body
     renderBody(forceRenderHead);
 
-    // if this is my avatar, then render my interactions with the other avatar
-    _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
-    
     //  Render the balls
     if (_balls) {
         glPushMatrix();
@@ -882,90 +873,6 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         pointing = true;
     }
     
-    _avatarTouch.setMyBodyPosition(_position);
-    _avatarTouch.setMyOrientation(orientation);
-    
-    float closestDistance = std::numeric_limits<float>::max();
-    
-    _interactingOther = NULL;
-    
-    //loop through all the other avatars for potential interactions...
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            Avatar *otherAvatar = (Avatar *)node->getLinkedData();
-            
-            // test whether shoulders are close enough to allow for reaching to touch hands
-            glm::vec3 v(_position - otherAvatar->_position);
-            float distance = glm::length(v);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                
-                if (distance < _scale * PERIPERSONAL_RADIUS) {
-                    _interactingOther = otherAvatar;
-                }
-            }
-        }
-    }
-    
-    if (_interactingOther) {
-        
-        _avatarTouch.setHasInteractingOther(true);
-        _avatarTouch.setYourBodyPosition(_interactingOther->_position);
-        _avatarTouch.setYourHandPosition(_interactingOther->_bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].position);
-        _avatarTouch.setYourOrientation (_interactingOther->getOrientation());
-        _avatarTouch.setYourHandState(_interactingOther->_handState);
-        
-        //if hand-holding is initiated by either avatar, turn on hand-holding...
-        if (_avatarTouch.getHandsCloseEnoughToGrasp()) {
-            if ((_handState == HAND_STATE_GRASPING ) || (_interactingOther->_handState == HAND_STATE_GRASPING)) {
-                if (!_avatarTouch.getHoldingHands())
-                {
-                    _avatarTouch.setHoldingHands(true);
-                }
-            }
-        }
-        
-        glm::vec3 vectorFromMyHandToYourHand
-        (
-         _interactingOther->_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position -
-         _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
-         );
-        
-        float distanceBetweenOurHands = glm::length(vectorFromMyHandToYourHand);
-        
-        // if neither of us are grasping, turn off hand-holding
-        if ((_handState != HAND_STATE_GRASPING ) && (_interactingOther->_handState != HAND_STATE_GRASPING)) {
-            _avatarTouch.setHoldingHands(false);
-        }
-        
-        //if holding hands, apply the appropriate forces
-        if (_avatarTouch.getHoldingHands()) {
-            _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS ].position +=
-                (_interactingOther->_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position
-                - _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position) * 0.5f;
-            
-            const float MAX_FORCE = 1.0f;
-            const float FORCE_RATIO = 10.0f;
-
-            if (distanceBetweenOurHands > 0.3) {
-                float force = min(MAX_FORCE, FORCE_RATIO * deltaTime);
-                _velocity += vectorFromMyHandToYourHand * force;
-            }
-        }
-    } else {
-        _avatarTouch.setHasInteractingOther(false);
-    }
-    
-    enableHandMovement |= updateLeapHandPositions();
-    
-    //constrain right arm length and re-adjust elbow position as it bends
-    // NOTE - the following must be called on all avatars - not just _isMine
-    if (enableHandMovement) {
-        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_RIGHT_FINGERTIPS);
-        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_LEFT_FINGERTIPS);
-    }
-    
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
     setHandPosition(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
     
@@ -976,9 +883,6 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     } else {
         _handState = HAND_STATE_NULL;
     }
-    
-    _avatarTouch.setMyHandState(_handState);
-    _avatarTouch.setMyHandPosition(_bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].position);
 }
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
