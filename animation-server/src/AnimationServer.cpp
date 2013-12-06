@@ -804,11 +804,6 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     printf("PROCESSING_FPS=%d\n",PROCESSING_FPS);
     printf("PROCESSING_INTERVAL_USECS=%d\n",PROCESSING_INTERVAL_USECS);
     
-    if (cmdOptionExists(argc, (const char**) argv, "--quickExit")) {
-        qDebug() << "quick exit asked for\n";
-        quit();
-    }
-    
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     
     // Create our JurisdictionListener so we'll know where to send edit packets
@@ -869,8 +864,7 @@ void AnimationServer::readPendingDatagrams() {
     }
 }
 
-void AnimationServer::exit(int returnCode) {
-    qDebug() << "AS exit called!\n";
+AnimationServer::~AnimationServer() {
     pthread_join(animateVoxelThread, NULL);
     
     if (::jurisdictionListener) {

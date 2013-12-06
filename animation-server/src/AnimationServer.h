@@ -15,7 +15,7 @@ class AnimationServer : public QCoreApplication {
     Q_OBJECT
 public:
     AnimationServer(int &argc, char **argv);
-    void exit(int retCode = 0);
+    ~AnimationServer();
 private slots:
     void readPendingDatagrams();
 };
