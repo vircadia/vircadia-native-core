@@ -105,6 +105,14 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     Particle newParticle; // id and lastUpdated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
+
+    // the first part of the data is our octcode...    
+    int octets = numberOfThreeBitSectionsInCode(data);
+    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+    
+    // we don't actually do anything with this octcode... 
+    dataAt += lengthOfOctcode;
+    processedBytes += lengthOfOctcode;
     
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
@@ -127,5 +135,59 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     processedBytes += sizeof(newParticle._velocity);
     
     return newParticle;
+}
+
+
+bool Particle::encodeParticleAddMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+
+    bool success = true; // assume the best
+    unsigned char* copyAt = bufferOut;
+    sizeOut = 0;
+
+    for (int i = 0; i < count && success; i++) {
+        // get the coded voxel
+        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, details[i].position.z, details[i].radius);
+
+        int octets = numberOfThreeBitSectionsInCode(octcode);
+        int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+        int lenfthOfEditData = lengthOfOctcode + expectedBytes();
+        
+        // make sure we have room to copy this voxel
+        if (sizeOut + lenfthOfEditData > sizeIn) {
+            success = false;
+        } else {
+            // add it to our message
+            memcpy(copyAt, octcode, lengthOfOctcode);
+            copyAt += lengthOfOctcode;
+            sizeOut += lengthOfOctcode;
+            
+            // Now add our edit content details...
+            
+            // radius
+            memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));
+            copyAt += sizeof(details[i].radius);
+            sizeOut += sizeof(details[i].radius);
+
+            // position
+            memcpy(copyAt, &details[i].position, sizeof(details[i].position));
+            copyAt += sizeof(details[i].position);
+            sizeOut += sizeof(details[i].position);
+
+            // color
+            memcpy(copyAt, details[i].color, sizeof(details[i].color));
+            copyAt += sizeof(details[i].color);
+            sizeOut += sizeof(details[i].color);
+
+            // velocity
+            memcpy(copyAt, &details[i].velocity, sizeof(details[i].velocity));
+            copyAt += sizeof(details[i].velocity);
+            sizeOut += sizeof(details[i].velocity);
+        }
+        // cleanup
+        delete[] octcode;
+    }
+
+    return success;
 }
 

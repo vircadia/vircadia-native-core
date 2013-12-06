@@ -16,6 +16,14 @@
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
+class ParticleDetail {
+public:
+    glm::vec3 position;
+	float radius;
+	rgbColor color;
+    glm::vec3 velocity;
+};
+
 class Particle  {
 public:
     Particle();
@@ -37,6 +45,9 @@ public:
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
+
+    static bool encodeParticleAddMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+                        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 protected:
     glm::vec3 _position;
     rgbColor _color;
