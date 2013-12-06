@@ -18,6 +18,7 @@
 #include <ThreadedAssignment.h>
 
 #include "voxels/VoxelScriptingInterface.h"
+#include <ParticleScriptingInterface.h>
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
@@ -33,6 +34,7 @@ signals:
     void willSendVisualDataCallback();
 private:
     VoxelScriptingInterface _voxelScriptingInterface;
+    ParticleScriptingInterface _particleScriptingInterface;
 };
 
 #endif /* defined(__hifi__Agent__) */

@@ -138,7 +138,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 }
 
 
-bool Particle::encodeParticleAddMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best

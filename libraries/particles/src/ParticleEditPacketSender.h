@@ -21,12 +21,12 @@ public:
     ~ParticleEditPacketSender() { }
     
     /// Send particle add message immediately
-    void sendAddParticleMessage(PACKET_TYPE type, const ParticleDetail& detail);
+    void sendEditParticleMessage(PACKET_TYPE type, const ParticleDetail& detail);
 
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines 
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in 
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
-    void queueParticleAddMessages(PACKET_TYPE type, int numberOfDetails, ParticleDetail* details);
+    void queueParticleEditMessages(PACKET_TYPE type, int numberOfDetails, ParticleDetail* details);
 
     // My server type is the voxel server
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }

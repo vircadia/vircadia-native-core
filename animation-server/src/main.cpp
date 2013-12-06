@@ -865,7 +865,9 @@ int main(int argc, const char * argv[])
             packetVersionMatch(packetData)) {
             
             if (packetData[0] == PACKET_TYPE_JURISDICTION) {
-                if (::jurisdictionListener) {
+                int headerBytes = numBytesForPacketHeader(packetData);
+                // PACKET_TYPE_JURISDICTION, first byte is the node type...
+                if (packetData[headerBytes] == NODE_TYPE_VOXEL_SERVER && ::jurisdictionListener) {
                     ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);
                 }
             }

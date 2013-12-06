@@ -93,7 +93,7 @@ OctreeServer::~OctreeServer() {
     
     // tell our NodeList we're done with notifications
     NodeList::getInstance()->removeHook(this);
-    
+
     delete _jurisdiction;
     _jurisdiction = NULL;
     
@@ -539,7 +539,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
                 nodeData->initializeOctreeSendThread(this);
             }
         }
-    } else if (_jurisdictionSender && packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
+    } else if (packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
         _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
                                                  dataByteArray.size());
     } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
@@ -670,18 +670,17 @@ void OctreeServer::run() {
     }
 
     HifiSockAddr senderSockAddr;
-
+    
     // set up our jurisdiction broadcaster...
-    _jurisdictionSender = new JurisdictionSender(_jurisdiction);
-    if (_jurisdictionSender) {
-        _jurisdictionSender->initialize(true);
+    if (_jurisdiction) {
+        _jurisdiction->setNodeType(getMyNodeType());
     }
+    _jurisdictionSender = new JurisdictionSender(_jurisdiction, getMyNodeType());
+    _jurisdictionSender->initialize(true);
     
     // set up our OctreeServerPacketProcessor
     _octreeInboundPacketProcessor = new OctreeInboundPacketProcessor(this);
-    if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->initialize(true);
-    }
+    _octreeInboundPacketProcessor->initialize(true);
 
     // Convert now to tm struct for local timezone
     tm* localtm = localtime(&_started);

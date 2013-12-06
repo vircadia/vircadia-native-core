@@ -15,6 +15,7 @@
 
 #include <AvatarData.h>
 #include <NodeList.h>
+#include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 
@@ -41,9 +42,20 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
-        _voxelScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+        int headerBytes = numBytesForPacketHeader((const unsigned char*) dataByteArray.constData());
+        // PACKET_TYPE_JURISDICTION, first byte is the node type...
+        switch (dataByteArray[headerBytes]) {
+            case NODE_TYPE_VOXEL_SERVER:
+                _voxelScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());
+                break;
+            case NODE_TYPE_PARTICLE_SERVER:
+                _particleScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                                                                                (unsigned char*) dataByteArray.data(),
+                                                                                dataByteArray.size());
+                break;
+        }
     } else {
         NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
     }
@@ -83,6 +95,9 @@ void Agent::run() {
     
     QScriptValue voxelScripterValue =  engine.newQObject(&_voxelScriptingInterface);
     engine.globalObject().setProperty("Voxels", voxelScripterValue);
+
+    QScriptValue particleScripterValue =  engine.newQObject(&_particleScriptingInterface);
+    engine.globalObject().setProperty("Particles", particleScripterValue);
     
     QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
     engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
@@ -91,6 +106,7 @@ void Agent::run() {
     
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     
     qDebug() << "Downloaded script:" << scriptContents << "\n";
     QScriptValue result = engine.evaluate(scriptContents);
@@ -127,9 +143,11 @@ void Agent::run() {
         
         QCoreApplication::processEvents();
         
+        bool willSendVisualDataCallBack = false;
+        
         if (_voxelScriptingInterface.getVoxelPacketSender()->voxelServersExist()) {            
             // allow the scripter's call back to setup visual data
-            emit willSendVisualDataCallback();
+            willSendVisualDataCallBack = true;
             
             // release the queue of edit voxel messages.
             _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
@@ -137,6 +155,22 @@ void Agent::run() {
             // since we're in non-threaded mode, call process so that the packets are sent
             _voxelScriptingInterface.getVoxelPacketSender()->process();
         }
+
+        if (_particleScriptingInterface.getParticlePacketSender()->serversExist()) {
+            // allow the scripter's call back to setup visual data
+            willSendVisualDataCallBack = true;
+            
+            // release the queue of edit voxel messages.
+            _particleScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+            
+            // since we're in non-threaded mode, call process so that the packets are sent
+            _particleScriptingInterface.getParticlePacketSender()->process();
+        }
+        
+        if (willSendVisualDataCallBack) {
+            emit willSendVisualDataCallback();
+        }
+
         
         if (engine.hasUncaughtException()) {
             int line = engine.uncaughtExceptionLineNumber();

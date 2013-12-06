@@ -46,7 +46,7 @@ public:
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 
-    static bool encodeParticleAddMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 protected:
     glm::vec3 _position;

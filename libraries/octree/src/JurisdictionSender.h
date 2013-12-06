@@ -24,12 +24,15 @@ class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
-    JurisdictionSender(JurisdictionMap* map, PacketSenderNotify* notify = NULL);
+    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER, PacketSenderNotify* notify = NULL);
     ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
 
     virtual bool process();
+
+    NODE_TYPE getNodeType() const { return _nodeType; }
+    void setNodeType(NODE_TYPE type) { _nodeType = type; }
 
 protected:
     virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
@@ -45,5 +48,6 @@ private:
     pthread_mutex_t _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
     std::queue<QUuid> _nodesRequestingJurisdictions;
+    NODE_TYPE _nodeType;
 };
 #endif // __shared__JurisdictionSender__
