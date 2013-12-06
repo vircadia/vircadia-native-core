@@ -23,12 +23,6 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <arpa/inet.h>
-#endif
-
 const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
     NODE_TYPE_AUDIO_MIXER
