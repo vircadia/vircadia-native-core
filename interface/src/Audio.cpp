@@ -142,23 +142,21 @@ void Audio::start() {
     
     qDebug() << "The format for audio I/O is" << audioFormat << "\n";
     
-    QAudioDeviceInfo inputAudioDevice = defaultAudioDeviceForMode(QAudio::AudioInput);
+    QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     
-    qDebug() << "Audio input device is" << inputAudioDevice.deviceName() << "\n";
-    if (!inputAudioDevice.isFormatSupported(audioFormat)) {
+    qDebug() << "Audio input device is" << inputDeviceInfo.deviceName() << "\n";
+    if (!inputDeviceInfo.isFormatSupported(audioFormat)) {
         qDebug() << "The desired audio input format is not supported by this device. Not starting audio input.\n";
         return;
     }
     
-    _audioInput = new QAudioInput(inputAudioDevice, audioFormat, this);
+    _audioInput = new QAudioInput(inputDeviceInfo, audioFormat, this);
     _audioInput->setBufferSize(CALLBACK_IO_BUFFER_SIZE);
     _inputDevice = _audioInput->start();
     
     connect(_inputDevice, SIGNAL(readyRead()), SLOT(handleAudioInput()));
     
     QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-    
-    qDebug() << outputDeviceInfo.supportedSampleRates() << "\n";
     
     qDebug() << "Audio output device is" << outputDeviceInfo.deviceName() << "\n";
     
@@ -350,8 +348,9 @@ void Audio::handleAudioInput() {
         }
     }
     
-    _outputDevice->write(stereoOutputBuffer);
-    
+    if (_outputDevice) {
+         _outputDevice->write(stereoOutputBuffer);
+    }
     
     // add output (@speakers) data just written to the scope
     QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
