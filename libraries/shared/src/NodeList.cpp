@@ -83,9 +83,6 @@ NodeList::~NodeList() {
     delete _nodeTypesOfInterest;
     
     clear();
-    
-    // stop the spawned threads, if they were started
-    stopSilentNodeRemovalThread();
 }
 
 void NodeList::setDomainHostname(const QString& domainHostname) {
@@ -830,26 +827,6 @@ void* removeSilentNodesAndSleep(void *args) {
     
     pthread_exit(0);
     return NULL;
-}
-
-void NodeList::startSilentNodeRemovalThread() {
-    if (!::silentNodeThreadStopFlag) {
-        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodesAndSleep, (void*) this);
-    } else {
-        qDebug("Refusing to start silent node removal thread from previously failed join.\n");
-    }
-   
-}
-
-void NodeList::stopSilentNodeRemovalThread() {
-    ::silentNodeThreadStopFlag = true;
-    int joinResult = pthread_join(removeSilentNodesThread, NULL);
-    
-    if (joinResult == 0) {
-        ::silentNodeThreadStopFlag = false;
-    } else {
-        qDebug("Silent node removal thread join failed with %d. Will not restart.\n", joinResult);
-    }
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";

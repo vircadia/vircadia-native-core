@@ -150,7 +150,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
@@ -160,10 +160,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     audioThread->start();
     
-    NodeList::getInstance()->addHook(&_voxels);
-    NodeList::getInstance()->addHook(this);
-    NodeList::getInstance()->addDomainListener(this);
-    NodeList::getInstance()->addDomainListener(&_voxels);
+    nodeList->addHook(&_voxels);
+    nodeList->addHook(this);
+    nodeList->addDomainListener(this);
+    nodeList->addDomainListener(&_voxels);
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -196,7 +196,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
     
     // the callback for our instance of NodeList is attachNewHeadToNode
-    NodeList::getInstance()->linkedDataCreateCallback = &attachNewHeadToNode;
+    nodeList->linkedDataCreateCallback = &attachNewHeadToNode;
     
     #ifdef _WIN32
     WSADATA WsaData;
@@ -205,10 +205,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // tell the NodeList instance who to tell the domain server we care about
     const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER};
-    NodeList::getInstance()->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
-    // start the nodeList threads
-    NodeList::getInstance()->startSilentNodeRemovalThread();
+    QTimer* silentNodeTimer = new QTimer(this);
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
