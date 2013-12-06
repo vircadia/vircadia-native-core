@@ -9,6 +9,8 @@
 #ifndef __interface__Bitstream__
 #define __interface__Bitstream__
 
+#include <QtGlobal>
+
 class QDataStream;
 
 /// A stream for bit-aligned data.
@@ -29,7 +31,7 @@ public:
 private:
    
     QDataStream& _underlying;
-    char _byte;
+    quint8 _byte;
     int _position;
 };
 

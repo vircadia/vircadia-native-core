@@ -14,12 +14,12 @@ Bitstream::Bitstream(QDataStream& underlying)
     : _underlying(underlying), _byte(0), _position(0) {
 }
 
-int Bitstream::write(const void* data, int bits) {
-    return bits;
+Bitstream& Bitstream::write(const void* data, int bits) {
+    return *this;
 }
 
-int Bitstream::read(void* data, int bits) {
-    return bits;
+Bitstream& Bitstream::read(void* data, int bits) {
+    return *this;
 }
 
 void Bitstream::flush() {
@@ -30,11 +30,12 @@ void Bitstream::flush() {
     }
 }
 
+const int LAST_BIT_POSITION = 7;
+
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);
     }
-    const int LAST_BIT_POSITION = 7;
     if (_position++ == LAST_BIT_POSITION) {
         flush();
     }
@@ -46,8 +47,6 @@ Bitstream& Bitstream::operator>>(bool& value) {
         _underlying >> _byte;
     }
     value = _byte & (1 << _position);
-    if (_position++ == 7) {
-        _position = 0;
-    }
+    _position = (_position + 1) & LAST_BIT_POSITION;
     return *this;
 }
