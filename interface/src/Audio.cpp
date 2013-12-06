@@ -185,16 +185,7 @@ void Audio::handleAudioInput() {
     
     if (_isBufferSendCallback) {
         // copy samples from the inputByteArray to the stereoInputBuffer
-        memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());
-        
-        //  Measure the loudness of the signal from the microphone and store in audio object
-        float loudness = 0;
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * SAMPLE_RATE_RATIO; i += 2) {
-            loudness += abs(stereoInputBuffer[i]);
-        }
-        
-        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL * SAMPLE_RATE_RATIO;
-        _lastInputLoudness = loudness;
+        memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());       
         
     } else {
         // this is the first half of a full buffer of data
@@ -264,6 +255,8 @@ void Audio::handleAudioInput() {
                 currentPacketPtr += sizeof(headOrientation);
                 
                 if (!_muted) {
+                    float loudness = 0;
+                    
                     // we aren't muted, average each set of four samples together to set up the mono input buffers
                     for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO; i += 4) {
                         
@@ -275,9 +268,16 @@ void Audio::handleAudioInput() {
                             + (stereoInputBuffer[i + 2] / 4);
                         }
                         
+                        loudness += abs(averagedSample);
+                        
                         // add the averaged sample to our array of audio samples
                         monoAudioSamples[(i - 2) / 4] += averagedSample;
                     }
+                    
+                    loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                    _lastInputLoudness = loudness;
+                } else {
+                    _lastInputLoudness = 0;
                 }
                 
                 nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket, BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
