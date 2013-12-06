@@ -27,6 +27,8 @@ Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
             return Assignment::AgentType;
         case NODE_TYPE_VOXEL_SERVER:
             return Assignment::VoxelServerType;
+        case NODE_TYPE_PARTICLE_SERVER:
+            return Assignment::ParticleServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -176,6 +178,8 @@ const char* Assignment::getTypeName() const {
             return "agent";
         case Assignment::VoxelServerType:
             return "voxel-server";
+        case Assignment::ParticleServerType:
+            return "particle-server";
         default:
             return "unknown";
     }
@@ -209,10 +213,6 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     }
     
     return numPackedBytes;
-}
-
-void Assignment::run() {
-    // run method ovveridden by subclasses
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {

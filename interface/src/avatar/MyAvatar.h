@@ -21,7 +21,6 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(bool turnWithHead);
     void render(bool forceRenderHead);
-    void renderScreenTint(ScreenTintLayer layer);
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }

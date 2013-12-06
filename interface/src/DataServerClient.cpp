@@ -7,10 +7,10 @@
 //
 
 #include <QtCore/QUrl>
+#include <QtNetwork/QUdpSocket>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <UDPSocket.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -24,7 +24,12 @@ const char MULTI_KEY_VALUE_SEPARATOR = '|';
 
 const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
-const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
+
+
+const HifiSockAddr& DataServerClient::dataServerSockAddr() {
+    static HifiSockAddr dsSockAddr = HifiSockAddr(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
+    return dsSockAddr;
+}
 
 void DataServerClient::putValueForKey(const QString& key, const char* value) {
     QString clientString = Application::getInstance()->getProfile()->getUserString();
@@ -57,7 +62,9 @@ void DataServerClient::putValueForKey(const QString& key, const char* value) {
         // _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
         
         // send this put request to the data server
-        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
+        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) putPacket, numPacketBytes,
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }
 
@@ -96,7 +103,9 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
         // _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
         
         // send the get to the data server
-        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
+        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) getPacket, numPacketBytes,
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }
 
@@ -236,8 +245,8 @@ void DataServerClient::resendUnmatchedPackets() {
           mapIterator != _unmatchedPackets.end();
           ++mapIterator) {
         // send the unmatched packet to the data server
-        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET,
-                                                       mapIterator->first,
-                                                       mapIterator->second);
+        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) mapIterator->first, mapIterator->second,
+                                                               dataServerSockAddr().getAddress(),
+                                                               dataServerSockAddr().getPort());
     }
 }

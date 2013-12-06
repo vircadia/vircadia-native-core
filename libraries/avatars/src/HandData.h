@@ -24,22 +24,7 @@ const int NUM_FINGERS_PER_HAND = 5;
 const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 
 const int LEAPID_INVALID = -1;
-
-enum RaveGloveEffectsMode
-{
-	RAVE_GLOVE_EFFECTS_MODE_NULL = -1,
-	RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR,
-	RAVE_GLOVE_EFFECTS_MODE_TRAILS,
-	RAVE_GLOVE_EFFECTS_MODE_FIRE,
-	RAVE_GLOVE_EFFECTS_MODE_WATER,
-	RAVE_GLOVE_EFFECTS_MODE_FLASHY,
-	RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER,
-	RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER,
-	RAVE_GLOVE_EFFECTS_MODE_SNAKE,
-	RAVE_GLOVE_EFFECTS_MODE_PULSE,
-	RAVE_GLOVE_EFFECTS_MODE_THROB,
-	NUM_RAVE_GLOVE_EFFECTS_MODES
-};
+const int SIXENSEID_INVALID = -1;
 
 const int BUTTON_1 = 32;
 const int BUTTON_2 = 64;
@@ -75,20 +60,12 @@ public:
     int encodeRemoteData(unsigned char* destinationBuffer);
     int decodeRemoteData(unsigned char* sourceBuffer);
 
-    void setRaveGloveActive(bool active)          { _isRaveGloveActive = active; }
-    void setRaveGloveMode(int effectsMode);
-    bool isRaveGloveActive() const                { return _isRaveGloveActive; }
-    int  getRaveGloveMode()                       { return _raveGloveEffectsMode; }
-
     friend class AvatarData;
 protected:
     glm::vec3              _basePosition;      // Hands are placed relative to this
     glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
-    bool                   _isRaveGloveActive;
-    int                    _raveGloveEffectsMode;
-    bool                   _raveGloveEffectsModeChanged;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
@@ -119,7 +96,7 @@ public:
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
     int  getFramesWithoutData()          const { return _numFramesWithoutData; }
-
+    
 private:
     glm::vec3 _tipRawPosition;
     glm::vec3 _rootRawPosition;
@@ -142,12 +119,16 @@ public:
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
     bool             isActive()       const { return _isActive; }
     int              getLeapID()      const { return _leapID; }
+    int              getSixenseID()   const { return _sixenseID; }
+
 
     std::vector<FingerData>& getFingers()    { return _fingers; }
     size_t                   getNumFingers() { return _fingers.size(); }
 
     void setActive(bool active)                { _isActive = active; }
     void setLeapID(int id)                     { _leapID = id; }
+    void setSixenseID(int id)                  { _sixenseID = id; }
+
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
@@ -166,6 +147,9 @@ public:
     void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
     float getJoystickX() { return _joystickX; }
     float getJoystickY() { return _joystickY; }
+    
+    bool getIsCollidingWithVoxel() { return _isCollidingWithVoxel; }
+    void setIsCollidingWithVoxel(bool isCollidingWithVoxel) { _isCollidingWithVoxel = isCollidingWithVoxel; }
 
 private:
     std::vector<FingerData> _fingers;
@@ -178,8 +162,12 @@ private:
     
     bool      _isActive;             // This has current valid data
     int       _leapID;               // the Leap's serial id for this tracked object
+    int       _sixenseID;            // Sixense controller ID for this palm
     int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
+    
+    bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
+    
 };
 
 #endif /* defined(__hifi__HandData__) */

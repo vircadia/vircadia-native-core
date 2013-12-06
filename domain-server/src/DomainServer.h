@@ -22,20 +22,20 @@
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
 
-class DomainServer : public NodeListHook {
+class DomainServer : public QCoreApplication, public NodeListHook {
+    Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
-    int run();
-    
-    static void signalHandler(int signal);
+    void exit(int retCode = 0);
+
     static void setDomainServerInstance(DomainServer* domainServer);
     
     /// Called by NodeList to inform us that a node has been added.
     void nodeAdded(Node* node);
     /// Called by NodeList to inform us that a node has been killed.
     void nodeKilled(Node* node);
-private:
+private:    
     static int civetwebRequestHandler(struct mg_connection *connection);
     static void civetwebUploadHandler(struct mg_connection *connection, const char *path);
     
@@ -45,8 +45,9 @@ private:
     Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     void removeAssignmentFromQueue(Assignment* removableAssignment);
-    bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const QUuid& checkInUUI);
-    void possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* startTime);
+    bool checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
+                                            const HifiSockAddr& nodeLocalSocket,
+                                            const QUuid& checkInUUI);
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
     void cleanup();
@@ -62,8 +63,12 @@ private:
     Assignment* _staticAssignments;
     
     const char* _voxelServerConfig;
+    const char* _particleServerConfig;
     
     bool _hasCompletedRestartHold;
+private slots:
+    void readAvailableDatagrams();
+    void addStaticAssignmentsBackToQueueAfterRestart();
 };
 
 #endif /* defined(__hifi__DomainServer__) */

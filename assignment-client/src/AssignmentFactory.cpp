@@ -12,10 +12,11 @@
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include <VoxelServer.h>
+#include <ParticleServer.h>
 
 #include "AssignmentFactory.h"
 
-Assignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
+ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
     int headerBytes = numBytesForPacketHeader(dataBuffer);
     
     Assignment::Type assignmentType = Assignment::AllTypes;
@@ -30,7 +31,9 @@ Assignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer,
             return new Agent(dataBuffer, numBytes);
         case Assignment::VoxelServerType:
             return new VoxelServer(dataBuffer, numBytes);
+        case Assignment::ParticleServerType:
+            return new ParticleServer(dataBuffer, numBytes);
         default:
-            return new Assignment(dataBuffer, numBytes);
+            return NULL;
     }
 }

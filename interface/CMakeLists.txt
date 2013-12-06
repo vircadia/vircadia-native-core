@@ -13,7 +13,6 @@ set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
 set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
 set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
-set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
@@ -83,6 +82,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 
 # link required hifi libraries
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(metavoxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
@@ -158,8 +158,6 @@ target_link_libraries(
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AppKit AppKit)
-    find_library(AudioToolbox AudioToolbox)
-    find_library(AudioUnit AudioUnit)
     find_library(CoreAudio CoreAudio)
     find_library(CoreServices CoreServices)
     find_library(Carbon Carbon)
@@ -175,9 +173,7 @@ if (APPLE)
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
-        ${AudioToolbox} 
-        ${AudioUnit} 
-        ${CoreAudio} 
+        ${CoreAudio}
         ${CoreServices} 
         ${Carbon}
         ${Foundation} 
@@ -210,24 +206,14 @@ if (WIN32)
         wsock32.lib
     )
 else (WIN32)
-  # link the PortAudio library
-  find_package(PortAudio REQUIRED)
-  include_directories(${PORTAUDIO_INCLUDE_DIRS})
-  target_link_libraries(${TARGET_NAME} ${PORTAUDIO_LIBRARIES})
-  
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
       find_package(Threads REQUIRED)
-      find_package(Librt REQUIRED)
-      find_package(ALSA)
-      find_package(Jack)
 
-      target_link_libraries(${TARGET_NAME}
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${LIBRT_LIBRARIES}
-          ${JACK_LIBRARIES}
-          ${ALSA_LIBRARIES}
-          ${GLUT_LIBRARY}
+      target_link_libraries(
+        ${TARGET_NAME}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${GLUT_LIBRARY}
       )
   endif (UNIX AND NOT APPLE)
 endif (WIN32)

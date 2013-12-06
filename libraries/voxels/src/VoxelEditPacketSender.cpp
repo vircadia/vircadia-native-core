@@ -123,7 +123,7 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
         if (node->getType() == NODE_TYPE_VOXEL_SERVER &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
-                sockaddr* nodeAddress = node->getActiveSocket();
+                const HifiSockAddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
                 
                 // debugging output...
@@ -137,14 +137,14 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
 
                     const char* messageName;
                     switch (buffer[0]) {
-                        case PACKET_TYPE_SET_VOXEL: 
-                            messageName = "PACKET_TYPE_SET_VOXEL"; 
+                        case PACKET_TYPE_VOXEL_SET: 
+                            messageName = "PACKET_TYPE_VOXEL_SET"; 
                             break;
-                        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
-                            messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
+                        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE: 
+                            messageName = "PACKET_TYPE_VOXEL_SET_DESTRUCTIVE"; 
                             break;
-                        case PACKET_TYPE_ERASE_VOXEL: 
-                            messageName = "PACKET_TYPE_ERASE_VOXEL"; 
+                        case PACKET_TYPE_VOXEL_ERASE: 
+                            messageName = "PACKET_TYPE_VOXEL_ERASE"; 
                             break;
                     }
                     printf("VoxelEditPacketSender::queuePacketToNode() queued %s - command to node bytes=%ld sequence=%d transitTimeSoFar=%llu usecs\n",

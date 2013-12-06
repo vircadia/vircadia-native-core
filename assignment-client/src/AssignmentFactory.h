@@ -9,11 +9,11 @@
 #ifndef __hifi__AssignmentFactory__
 #define __hifi__AssignmentFactory__
 
-#include "Assignment.h"
+#include <ThreadedAssignment.h>
 
 class AssignmentFactory {
 public:
-    static Assignment* unpackAssignment(const unsigned char* dataBuffer, int numBytes);
+    static ThreadedAssignment* unpackAssignment(const unsigned char* dataBuffer, int numBytes);
 };
 
 #endif /* defined(__hifi__AssignmentFactory__) */

@@ -9,19 +9,23 @@
 #ifndef __hifi__AudioMixer__
 #define __hifi__AudioMixer__
 
-#include <Assignment.h>
 #include <AudioRingBuffer.h>
+
+#include <ThreadedAssignment.h>
 
 class PositionalAudioRingBuffer;
 class AvatarAudioRingBuffer;
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
-class AudioMixer : public Assignment {
+class AudioMixer : public ThreadedAssignment {
+    Q_OBJECT
 public:
     AudioMixer(const unsigned char* dataBuffer, int numBytes);
-    
-    /// runs the audio mixer
+public slots:
+    /// threaded run of assignment
     void run();
+    
+    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,

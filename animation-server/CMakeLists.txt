@@ -20,6 +20,9 @@ setup_hifi_project(${TARGET_NAME} TRUE)
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
+# link in the hifi octree library
+link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
+
 # link in the hifi voxels library
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 

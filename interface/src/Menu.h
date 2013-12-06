@@ -239,7 +239,6 @@ namespace MenuOption {
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString TestPing = "Test Ping";
-    const QString TestRaveGlove = "Test Rave Glove";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";

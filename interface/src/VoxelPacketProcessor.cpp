@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "VoxelPacketProcessor.h"
 
-void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, unsigned char* packetData, ssize_t packetLength) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "VoxelPacketProcessor::processPacket()");
                             
@@ -34,12 +34,12 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
         app->_wantToKillLocalVoxels = false;
     }
     
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA
-    // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+    // note: PACKET_TYPE_OCTREE_STATS can have PACKET_TYPE_VOXEL_DATA
+    // immediately following them inside the same packet. So, we process the PACKET_TYPE_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
-    if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
+    if (packetData[0] == PACKET_TYPE_OCTREE_STATS) {
     
-        int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderAddress);
+        int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderSockAddr);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             packetData += statsMessageLength;
@@ -54,13 +54,12 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
     } // fall through to piggyback message
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-    
-        app->trackIncomingVoxelPacket(packetData, messageLength, senderAddress, wasStatsPacket);
+        app->trackIncomingVoxelPacket(packetData, messageLength, senderSockAddr, wasStatsPacket);
         
-        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
+        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+        if (voxelServer && *voxelServer->getActiveSocket() == senderSockAddr) {
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                app->_environment.parseData(&senderAddress, packetData, messageLength);
+                app->_environment.parseData(senderSockAddr, packetData, messageLength);
             } else {
                 app->_voxels.setDataSourceUUID(voxelServer->getUUID());
                 app->_voxels.parseData(packetData, messageLength);

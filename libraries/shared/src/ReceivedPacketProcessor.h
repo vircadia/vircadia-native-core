@@ -24,7 +24,7 @@ public:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread network receive thread
-    void queueReceivedPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    void queueReceivedPacket(const HifiSockAddr& senderSockAddr, unsigned char*  packetData, ssize_t packetLength);
 
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }
@@ -38,7 +38,7 @@ protected:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread "this" individual processing thread
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) = 0;
+    virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) = 0;
 
     /// Implements generic processing behavior for this thread.
     virtual bool process();

@@ -32,6 +32,9 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <QtCore/QCoreApplication>
+#include <QtCore/QTimer>
+
 #include <Logging.h>
 #include <NodeList.h>
 #include <Node.h>
@@ -51,7 +54,7 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE) * 1000 * 1000);
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -64,7 +67,9 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
-AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) :
+    ThreadedAssignment(dataBuffer, numBytes)
+{
     
 }
 
@@ -217,78 +222,77 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
     }
 }
 
+
+void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+    // pull any new audio data from nodes off of the network stack
+    if (dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
+        || dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+        || dataByteArray[0] == PACKET_TYPE_INJECT_AUDIO) {
+        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
+                                                              NUM_BYTES_RFC4122_UUID));
+        
+        NodeList* nodeList = NodeList::getInstance();
+        
+        Node* matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        
+        if (matchingNode) {
+            nodeList->updateNodeWithData(matchingNode, senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            
+            if (!matchingNode->getActiveSocket()) {
+                // we don't have an active socket for this node, but they're talking to us
+                // this means they've heard from us and can reply, let's assume public is active
+                matchingNode->activatePublicSocket();
+            }
+        }
+    } else {
+        // let processNodeData handle it.
+        NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+    }
+}
+
 void AudioMixer::run() {
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
     // change the logging target name while this is running
     Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
     
-    NodeList *nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);
     
     const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
     nodeList->setNodeTypesOfInterest(AUDIO_MIXER_NODE_TYPES_OF_INTEREST, sizeof(AUDIO_MIXER_NODE_TYPES_OF_INTEREST));
     
-    ssize_t receivedBytes = 0;
-    
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
     
-    nodeList->startSilentNodeRemovalThread();
+    QTimer* domainServerTimer = new QTimer(this);
+    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
+    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
     
-    unsigned char packetData[MAX_PACKET_SIZE] = {};
+    QTimer* silentNodeTimer = new QTimer(this);
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
-    sockaddr* nodeAddress = new sockaddr;
-    
-    // make sure our node socket is non-blocking
-    nodeList->getNodeSocket()->setBlocking(false);
+    QTimer* pingNodesTimer = new QTimer(this);
+    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
+    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     int nextFrame = 0;
     timeval startTime;
+    
+    gettimeofday(&startTime, NULL);
     
     int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
     unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
     populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
     
-    gettimeofday(&startTime, NULL);
-    
-    timeval lastDomainServerCheckIn = {};
-    
-    timeval beginSendTime, endSendTime;
-    float sumFrameTimePercentages = 0.0f;
-    int numStatCollections = 0;
-    
-    // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
-    if (Logging::shouldSendStats()) {
-        Logging::socket();
-    }
-    
-    while (true) {
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    while (!_isFinished) {
+        
+        QCoreApplication::processEvents();
+        
+        if (_isFinished) {
             break;
         }
-        
-        if (Logging::shouldSendStats()) {
-            gettimeofday(&beginSendTime, NULL);
-        }
-        
-        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
-        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
-            gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
-            
-            if (Logging::shouldSendStats() && numStatCollections > 0) {
-                // if we should be sending stats to Logstash send the appropriate average now
-                const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
-                
-                float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                Logging::stashValue(STAT_TYPE_TIMER, MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
-                
-                sumFrameTimePercentages = 0.0f;
-                numStatCollections = 0;
-            }
-        }
-        
-        // get the NodeList to ping any inactive nodes, for hole punching
-        nodeList->possiblyPingInactiveNodes();
-        
+
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
@@ -301,7 +305,9 @@ void AudioMixer::run() {
                 prepareMixForListeningNode(&(*node));
                 
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-                nodeList->getNodeSocket()->send(node->getActiveSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
+                                                        node->getActiveSocket()->getAddress(),
+                                                        node->getActiveSocket()->getPort());
             }
         }
         
@@ -312,47 +318,6 @@ void AudioMixer::run() {
             }
         }
         
-        // pull any new audio data from nodes off of the network stack
-        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
-               packetVersionMatch(packetData)) {
-            if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
-                || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-                || packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
-                
-                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
-                                                               NUM_BYTES_RFC4122_UUID));
-                
-                Node* matchingNode = nodeList->nodeWithUUID(nodeUUID);
-                
-                if (matchingNode) {
-                    nodeList->updateNodeWithData(matchingNode, nodeAddress, packetData, receivedBytes);
-                    
-                    if (!matchingNode->getActiveSocket()) {
-                        // we don't have an active socket for this node, but they're talking to us
-                        // this means they've heard from us and can reply, let's assume public is active
-                        matchingNode->activatePublicSocket();
-                    }
-                }
-            } else {
-                // let processNodeData handle it.
-                nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
-            }
-        }
-        
-        if (Logging::shouldSendStats()) {
-            // send a packet to our logstash instance
-            
-            // calculate the percentage value for time elapsed for this send (of the max allowable time)
-            gettimeofday(&endSendTime, NULL);
-            
-            float percentageOfMaxElapsed = ((float) (usecTimestamp(&endSendTime) - usecTimestamp(&beginSendTime))
-                                            / BUFFER_SEND_INTERVAL_USECS) * 100.0f;
-            
-            sumFrameTimePercentages += percentageOfMaxElapsed;
-            
-            numStatCollections++;
-        }
-        
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
         if (usecToSleep > 0) {
@@ -360,5 +325,6 @@ void AudioMixer::run() {
         } else {
             qDebug("Took too much time, not sleeping!\n");
         }
+        
     }
 }

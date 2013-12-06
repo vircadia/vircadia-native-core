@@ -15,6 +15,7 @@
 #include <QtNetwork/QHostInfo>
 
 #include "Assignment.h"
+#include "HifiSockAddr.h"
 #include "Logging.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -61,22 +62,21 @@ NodeList* NodeList::getInstance() {
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
-    _domainIP(),
-    _domainPort(DEFAULT_DOMAIN_SERVER_PORT),
+    _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeBuckets(),
     _numNodes(0),
-    _nodeSocket(newSocketListenPort),
+    _nodeSocket(),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerUUID(QUuid::createUuid()),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket(NULL),
-    _publicAddress(),
-    _publicPort(0),
+    _assignmentServerSocket(),
+    _publicSockAddr(),
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
-    
+    _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
+    qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort() << "\n";
 }
 
 NodeList::~NodeList() {
@@ -100,29 +100,29 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
             _domainHostname = domainHostname.left(colonIndex);
             
             // grab the port by reading the string after the colon
-            _domainPort = atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData());
+            _domainSockAddr.setPort(atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData()));
             
-            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainPort << "\n";
+            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainSockAddr.getPort() << "\n";
             
         } else {
             // no port included with the hostname, simply set the member variable and reset the domain server port to default
             _domainHostname = domainHostname;
-            _domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+            _domainSockAddr.setPort(DEFAULT_DOMAIN_SERVER_PORT);
         }
         
         // clear the NodeList so nodes from this domain are killed
         clear();
         
         // reset our _domainIP to the null address so that a lookup happens on next check in
-        _domainIP.clear();
+        _domainSockAddr.setAddress(QHostAddress::Null);
         notifyDomainChanged();
     }
 }
 
-void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
+void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
-        if (socketMatch(node->getPublicSocket(), nodeAddress) || 
-            socketMatch(node->getLocalSocket(), nodeAddress)) {     
+        if (node->getPublicSocket() == nodeAddress ||
+            node->getLocalSocket() == nodeAddress) {
 
             int pingTime = usecTimestampNow() - *(uint64_t*)(packetData + numBytesForPacketHeader(packetData));
             
@@ -132,11 +132,11 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     }
 }
 
-void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetData, size_t dataBytes) {
+void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char* packetData, size_t dataBytes) {
     switch (packetData[0]) {
         case PACKET_TYPE_DOMAIN: {
             // only process the DS if this is our current domain server
-            if (_domainIP == QHostAddress(senderAddress)) {
+            if (_domainSockAddr == senderSockAddr) {
                 processDomainServerList(packetData, dataBytes);
             }
             
@@ -145,15 +145,15 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
         case PACKET_TYPE_PING: {
             // send it right back
             populateTypeAndVersion(packetData, PACKET_TYPE_PING_REPLY);
-            _nodeSocket.send(senderAddress, packetData, dataBytes);
+            _nodeSocket.writeDatagram((char*) packetData, dataBytes, senderSockAddr.getAddress(), senderSockAddr.getPort());
             break;
         }
         case PACKET_TYPE_PING_REPLY: {
             // activate the appropriate socket for this node, if not yet updated
-            activateSocketFromNodeCommunication(senderAddress);
+            activateSocketFromNodeCommunication(senderSockAddr);
             
             // set the ping time for this node for stat collection
-            timePingReply(senderAddress, packetData);
+            timePingReply(senderSockAddr, packetData);
             break;
         }
         case PACKET_TYPE_STUN_RESPONSE: {
@@ -169,12 +169,13 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
     }
 }
 
-void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
+void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned char *packetData, int numTotalBytes) {
     
     // find the avatar mixer in our node list and update the lastRecvTime from it
     Node* bulkSendNode = nodeWithAddress(senderAddress);
 
     if (bulkSendNode) {
+        
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
         
@@ -198,11 +199,11 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
             
             if (!matchingNode) {
                 // we're missing this node, we need to add it to the list
-                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, NULL, NULL);
+                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, HifiSockAddr(), HifiSockAddr());
             }
             
             currentPosition += updateNodeWithData(matchingNode,
-                                                  NULL,
+                                                  HifiSockAddr(),
                                                   packetHolder,
                                                   numTotalBytes - (currentPosition - startPosition));
             
@@ -210,16 +211,16 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     }    
 }
 
-int NodeList::updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes) {
+int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
     node->lock();
     
     node->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (senderAddress) {
-        activateSocketFromNodeCommunication(senderAddress);
+    if (!senderSockAddr.isNull()) {
+        activateSocketFromNodeCommunication(senderSockAddr);
     }
     
-    if (node->getActiveSocket() || !senderAddress) {
+    if (node->getActiveSocket() || senderSockAddr.isNull()) {
         node->recordBytesReceived(dataBytes);
         
         if (!node->getLinkedData() && linkedDataCreateCallback) {
@@ -238,9 +239,9 @@ int NodeList::updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned c
     }
 }
 
-Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
+Node* NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
-        if (node->getActiveSocket() && socketMatch(node->getActiveSocket(), senderAddress)) {
+        if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return &(*node);
         }
     }
@@ -340,24 +341,14 @@ void NodeList::sendSTUNRequest() {
     memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
     
     // lookup the IP for the STUN server
-    static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+    static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
     
-    for (int i = 0; i < stunInfo.addresses().size(); i++) {
-        if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-            QString stunIPAddress = stunInfo.addresses()[i].toString();
-            
-            if (!_hasCompletedInitialSTUNFailure) {
-                qDebug("Sending intial stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
-            }
-            
-            _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
-                             STUN_SERVER_PORT,
-                             stunRequestPacket,
-                             sizeof(stunRequestPacket));
-            
-            break;
-        }
+    if (!_hasCompletedInitialSTUNFailure) {
+        qDebug("Sending intial stun request to %s\n", stunSockAddr.getAddress().toString().toLocal8Bit().constData());
     }
+    
+    _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
+                              stunSockAddr.getAddress(), stunSockAddr.getPort());
     
     _stunRequestsSinceSuccess++;
     
@@ -372,8 +363,8 @@ void NodeList::sendSTUNRequest() {
         }
         
         // reset the public address and port
-        _publicAddress = QHostAddress::Null;
-        _publicPort = 0;
+        // use 0 so the DS knows to act as out STUN server
+        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
     }
 }
 
@@ -425,13 +416,12 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     
                     QHostAddress newPublicAddress = QHostAddress(stunAddress);
                     
-                    if (newPublicAddress != _publicAddress || newPublicPort != _publicPort) {
-                        _publicAddress = newPublicAddress;
-                        _publicPort = newPublicPort;
+                    if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
+                        _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
                         
                         qDebug("New public socket received from STUN server is %s:%hu\n",
-                               _publicAddress.toString().toLocal8Bit().constData(),
-                               _publicPort);
+                               _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
+                               _publicSockAddr.getPort());
                         
                     }
                     
@@ -489,17 +479,17 @@ void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
-    if (_domainIP.isNull()) {
+    if (_domainSockAddr.getAddress().isNull()) {
         qDebug("Looking up DS hostname %s.\n", _domainHostname.toLocal8Bit().constData());
         
         QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
         
         for (int i = 0; i < domainServerHostInfo.addresses().size(); i++) {
             if (domainServerHostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-                _domainIP = domainServerHostInfo.addresses()[i];
+                _domainSockAddr.setAddress(domainServerHostInfo.addresses()[i]);
                 
                 qDebug("DS at %s is at %s\n", _domainHostname.toLocal8Bit().constData(),
-                       _domainIP.toString().toLocal8Bit().constData());
+                       _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
                 
                 printedDomainServerIP = true;
                 
@@ -512,11 +502,11 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainIP.toString().toLocal8Bit().constData());
+        qDebug("Domain Server IP: %s\n", _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
         printedDomainServerIP = true;
     }
     
-    if (_publicAddress.isNull() && !_hasCompletedInitialSTUNFailure) {
+    if (_publicSockAddr.isNull() && !_hasCompletedInitialSTUNFailure) {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
@@ -548,13 +538,12 @@ void NodeList::sendDomainServerCheckIn() {
         packetPosition += rfcOwnerUUID.size();
         
         // pack our public address to send to domain-server
-        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
-                                     htonl(_publicAddress.toIPv4Address()), htons(_publicPort));
+        packetPosition += HifiSockAddr::packSockAddr(checkInPacket + (packetPosition - checkInPacket), _publicSockAddr);
         
         // pack our local address to send to domain-server
-        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
-                                     getLocalAddress(),
-                                     htons(_nodeSocket.getListeningPort()));
+        packetPosition += HifiSockAddr::packSockAddr(checkInPacket + (packetPosition - checkInPacket),
+                                                     HifiSockAddr(QHostAddress(getHostOrderLocalAddress()),
+                                                                  _nodeSocket.localPort()));
         
         // add the number of bytes for node types of interest
         *(packetPosition++) = numBytesNodesOfInterest;
@@ -567,9 +556,8 @@ void NodeList::sendDomainServerCheckIn() {
             packetPosition += numBytesNodesOfInterest;
         }
         
-        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, 
-            packetPosition - checkInPacket);
-        
+        _nodeSocket.writeDatagram((char*) checkInPacket, packetPosition - checkInPacket,
+                                  _domainSockAddr.getAddress(), _domainSockAddr.getPort());
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
         
@@ -592,10 +580,8 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     char nodeType;
     
     // assumes only IPv4 addresses
-    sockaddr_in nodePublicSocket;
-    nodePublicSocket.sin_family = AF_INET;
-    sockaddr_in nodeLocalSocket;
-    nodeLocalSocket.sin_family = AF_INET;
+    HifiSockAddr nodePublicSocket;
+    HifiSockAddr nodeLocalSocket;
     
     unsigned char* readPtr = packetData + numBytesForPacketHeader(packetData);
     unsigned char* startPtr = packetData;
@@ -605,24 +591,22 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) readPtr, NUM_BYTES_RFC4122_UUID));
         readPtr += NUM_BYTES_RFC4122_UUID;
     
-        readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
-        readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
+        readPtr += HifiSockAddr::unpackSockAddr(readPtr, nodePublicSocket);
+        readPtr += HifiSockAddr::unpackSockAddr(readPtr, nodeLocalSocket);
         
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
-        if (nodePublicSocket.sin_addr.s_addr == 0) {
-            nodePublicSocket.sin_addr.s_addr = htonl(_domainIP.toIPv4Address());
+        if (nodePublicSocket.getAddress().isNull()) {
+            nodePublicSocket.setAddress(_domainSockAddr.getAddress());
         }
         
-        addOrUpdateNode(nodeUUID, nodeType, (sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket);
+        addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
     }
     
 
     return readNodes;
 }
 
-const sockaddr_in DEFAULT_LOCAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(LOCAL_ASSIGNMENT_SERVER_HOSTNAME,
-                                                                                      DEFAULT_DOMAIN_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
@@ -633,14 +617,18 @@ void NodeList::sendAssignment(Assignment& assignment) {
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
     int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
     
-    sockaddr* assignmentServerSocket = (_assignmentServerSocket == NULL)
-        ? (sockaddr*) &DEFAULT_LOCAL_ASSIGNMENT_SOCKET
-        : _assignmentServerSocket;
+    static HifiSockAddr DEFAULT_ASSIGNMENT_SOCKET(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, DEFAULT_DOMAIN_SERVER_PORT);
     
-    _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
+    const HifiSockAddr* assignmentServerSocket = _assignmentServerSocket.isNull()
+        ? &DEFAULT_ASSIGNMENT_SOCKET
+        : &_assignmentServerSocket;
+    
+    _nodeSocket.writeDatagram((char*) assignmentPacket, numHeaderBytes + numAssignmentBytes,
+                              assignmentServerSocket->getAddress(),
+                              assignmentServerSocket->getPort());
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
+void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
     
     uint64_t currentTime = 0;
     
@@ -652,11 +640,14 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
     memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
     
     // send the ping packet to the local and public sockets for this node
-    _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
-    _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
+    _nodeSocket.writeDatagram((char*) pingPacket, sizeof(pingPacket),
+                              node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
+    _nodeSocket.writeDatagram((char*) pingPacket, sizeof(pingPacket),
+                              node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
 }
 
-Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket) {
+Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
+                                const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     NodeList::iterator node = end();
     
     for (node = begin(); node != end(); node++) {
@@ -684,12 +675,12 @@ Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publ
         }
         
         // check if we need to change this node's public or local sockets
-        if (!socketMatch(publicSocket, node->getPublicSocket())) {
+        if (publicSocket != node->getPublicSocket()) {
             node->setPublicSocket(publicSocket);
             qDebug() << "Public socket change for node" << *node << "\n";
         }
         
-        if (!socketMatch(localSocket, node->getLocalSocket())) {
+        if (localSocket != node->getLocalSocket()) {
             node->setLocalSocket(localSocket);
             qDebug() << "Local socket change for node" << *node << "\n";
         }
@@ -725,7 +716,8 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
             if (getNodeActiveSocketOrPing(&(*node))) {
                 // we know which socket is good for this node, send there
-                _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
+                _nodeSocket.writeDatagram((char*) broadcastData, dataBytes,
+                                          node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
                 ++n;
             }
         }
@@ -733,25 +725,16 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     return n;
 }
 
-const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
-
-void NodeList::possiblyPingInactiveNodes() {
-    static timeval lastPing = {};
-    
-    // make sure PING_INACTIVE_NODE_INTERVAL_USECS has elapsed since last ping
-    if (usecTimestampNow() - usecTimestamp(&lastPing) >= PING_INACTIVE_NODE_INTERVAL_USECS) {
-        gettimeofday(&lastPing, NULL);
-        
-        for(NodeList::iterator node = begin(); node != end(); node++) {
-            if (!node->getActiveSocket()) {
-                // we don't have an active link to this node, ping it to set that up
-                pingPublicAndLocalSocketsForInactiveNode(&(*node));
-            }
+void NodeList::pingInactiveNodes() {
+    for(NodeList::iterator node = begin(); node != end(); node++) {
+        if (!node->getActiveSocket()) {
+            // we don't have an active link to this node, ping it to set that up
+            pingPublicAndLocalSocketsForInactiveNode(&(*node));
         }
     }
 }
 
-sockaddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
+const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
     if (node->getActiveSocket()) {
         return node->getActiveSocket();
     } else {
@@ -760,15 +743,15 @@ sockaddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
     }
 }
 
-void NodeList::activateSocketFromNodeCommunication(sockaddr *nodeAddress) {
+void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddress) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (!node->getActiveSocket()) {
             // check both the public and local addresses for each node to see if we find a match
             // prioritize the private address so that we prune erroneous local matches
-            if (socketMatch(node->getPublicSocket(), nodeAddress)) {
+            if (node->getPublicSocket() ==  nodeAddress) {
                 node->activatePublicSocket();
                 break;
-            } else if (socketMatch(node->getLocalSocket(), nodeAddress)) {
+            } else if (node->getLocalSocket() == nodeAddress) {
                 node->activateLocalSocket();
                 break;
             }
@@ -804,7 +787,22 @@ void NodeList::killNode(Node* node, bool mustLockNode) {
     }
 }
 
-void* removeSilentNodes(void *args) {
+void NodeList::removeSilentNodes() {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
+        node->lock();
+        
+        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+            // kill this node, don't lock - we already did it
+            nodeList->killNode(&(*node), false);
+        }
+        
+        node->unlock();
+    }
+}
+
+void* removeSilentNodesAndSleep(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUsecs = 0;
     int sleepTime = 0;
@@ -813,16 +811,7 @@ void* removeSilentNodes(void *args) {
         
         checkTimeUsecs = usecTimestampNow();
         
-        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-            node->lock();
-            
-            if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-                // kill this node, don't lock - we already did it
-                nodeList->killNode(&(*node), false);
-            }
-            
-            node->unlock();
-        }
+        nodeList->removeSilentNodes();
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
         
@@ -845,7 +834,7 @@ void* removeSilentNodes(void *args) {
 
 void NodeList::startSilentNodeRemovalThread() {
     if (!::silentNodeThreadStopFlag) {
-        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodesAndSleep, (void*) this);
     } else {
         qDebug("Refusing to start silent node removal thread from previously failed join.\n");
     }
@@ -969,7 +958,7 @@ void NodeListIterator::skipDeadAndStopIncrement() {
 
 void NodeList::addDomainListener(DomainChangeListener* listener) {
     _domainListeners.push_back(listener);
-    QString domain = _domainHostname.isEmpty() ? _domainIP.toString() : _domainHostname;
+    QString domain = _domainHostname.isEmpty() ? _domainSockAddr.getAddress().toString() : _domainHostname;
     listener->domainChanged(domain);
 }
 
