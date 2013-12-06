@@ -157,8 +157,6 @@ target_link_libraries(
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
     find_library(AppKit AppKit)
-    find_library(AudioToolbox AudioToolbox)
-    find_library(AudioUnit AudioUnit)
     find_library(CoreAudio CoreAudio)
     find_library(CoreServices CoreServices)
     find_library(Carbon Carbon)
@@ -174,9 +172,7 @@ if (APPLE)
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
-        ${AudioToolbox} 
-        ${AudioUnit} 
-        ${CoreAudio} 
+        ${CoreAudio}
         ${CoreServices} 
         ${Carbon}
         ${Foundation} 
@@ -212,16 +208,11 @@ else (WIN32)
   # link required libraries on UNIX
   if (UNIX AND NOT APPLE) 
       find_package(Threads REQUIRED)
-      find_package(Librt REQUIRED)
-      find_package(ALSA)
-      find_package(Jack)
 
-      target_link_libraries(${TARGET_NAME}
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${LIBRT_LIBRARIES}
-          ${JACK_LIBRARIES}
-          ${ALSA_LIBRARIES}
-          ${GLUT_LIBRARY}
+      target_link_libraries(
+        ${TARGET_NAME}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${GLUT_LIBRARY}
       )
   endif (UNIX AND NOT APPLE)
 endif (WIN32)
