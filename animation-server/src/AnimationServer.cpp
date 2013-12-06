@@ -12,7 +12,7 @@
 #include <cstring>
 #include <cstdio>
 
-#include <QtCore/Qtimer>
+#include <QtCore/QTimer>
 
 #include <EnvironmentData.h>
 #include <NodeList.h>
