@@ -24,9 +24,38 @@ HandData::HandData(AvatarData* owningAvatar) :
     addNewPalm();
 }
 
+glm::vec3 HandData::worldPositionToLeapPosition(const glm::vec3& worldPosition) const {
+    return glm::inverse(_baseOrientation) * (worldPosition - _basePosition) / LEAP_UNIT_SCALE;
+}
+
+glm::vec3 HandData::worldVectorToLeapVector(const glm::vec3& worldVector) const {
+    return glm::inverse(_baseOrientation) * worldVector / LEAP_UNIT_SCALE;
+}
+
 PalmData& HandData::addNewPalm()  {
     _palms.push_back(PalmData(this));
     return _palms.back();
+}
+
+void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
+    leftPalmIndex = -1;
+    float leftPalmX = FLT_MAX;
+    rightPalmIndex = -1;    
+    float rightPalmX = -FLT_MAX;
+    for (int i = 0; i < _palms.size(); i++) {
+        const PalmData& palm = _palms[i];
+        if (palm.isActive()) {
+            float x = palm.getRawPosition().x;
+            if (x < leftPalmX) {
+                leftPalmIndex = i;
+                leftPalmX = x;
+            }
+            if (x > rightPalmX) {
+                rightPalmIndex = i;
+                rightPalmX = x;
+            }
+        }
+    }
 }
 
 PalmData::PalmData(HandData* owningHandData) :
@@ -43,6 +72,19 @@ _isCollidingWithVoxel(false)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
+    }
+}
+
+void PalmData::addToPosition(const glm::vec3& delta) {
+    // convert to Leap coordinates, then add to palm and finger positions
+    glm::vec3 leapDelta = _owningHandData->worldVectorToLeapVector(delta);
+    _rawPosition += leapDelta;
+    for (int i = 0; i < getNumFingers(); i++) {
+        FingerData& finger = _fingers[i];
+        if (finger.isActive()) {
+            finger.setRawTipPosition(finger.getTipRawPosition() + leapDelta);
+            finger.setRawRootPosition(finger.getRootRawPosition() + leapDelta);
+        }
     }
 }
 

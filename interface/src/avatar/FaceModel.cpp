@@ -11,6 +11,7 @@
 #include "Avatar.h"
 #include "FaceModel.h"
 #include "Head.h"
+#include "Menu.h"
 
 FaceModel::FaceModel(Head* owningHead) :
     _owningHead(owningHead)
@@ -44,6 +45,16 @@ void FaceModel::simulate(float deltaTime) {
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
     Model::simulate(deltaTime);
+}
+
+bool FaceModel::render(float alpha) {
+    if (!Model::render(alpha)) {
+        return false;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        renderCollisionProxies(alpha);
+    }
+    return true;
 }
 
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
