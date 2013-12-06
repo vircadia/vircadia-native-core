@@ -609,12 +609,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             return;
         }
 
-        //this is for switching between modes for the leap rave glove test
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand)
-            || Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove)) {
-            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
-        }
-
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
@@ -2252,7 +2246,6 @@ void Application::updateLeap(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateLeap()");
 
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
-    _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
     LeapManager::nextFrame();
 }
 
@@ -3086,11 +3079,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
-    
     renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
-
-    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS);
 
     if (!selfAvatarOnly) {
         //  Render the world box

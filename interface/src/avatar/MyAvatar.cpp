@@ -499,10 +499,6 @@ static TextRenderer* textRenderer() {
 
 void MyAvatar::render(bool forceRenderHead) {
     
-    if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
-        _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
-    }
-    
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
@@ -559,21 +555,6 @@ void MyAvatar::render(bool forceRenderHead) {
         glDepthMask(true);
         
         glPopMatrix();
-    }
-}
-
-void MyAvatar::renderScreenTint(ScreenTintLayer layer) {
-    
-    if (layer == SCREEN_TINT_BEFORE_AVATARS) {
-        if (_hand.isRaveGloveActive()) {
-            _hand.renderRaveGloveStage();
-        }
-    }
-    else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
-        if (_hand.isRaveGloveActive()) {
-            // Restore the world lighting
-            Application::getInstance()->setupWorldLight();
-        }
     }
 }
 
@@ -728,7 +709,7 @@ void MyAvatar::renderBody(bool forceRenderHead) {
             _head.render(alpha, false);
         }
     }
-    _hand.render();
+    _hand.render(true);
 }
 
 void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
