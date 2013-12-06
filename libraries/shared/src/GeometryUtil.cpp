@@ -52,6 +52,12 @@ bool findSpherePointPenetration(const glm::vec3& penetratorCenter, float penetra
         penetratorRadius, penetration);
 }
 
+bool findPointSpherePenetration(const glm::vec3& penetratorLocation, const glm::vec3& penetrateeCenter,
+       float penetrateeRadius, glm::vec3& penetration) {
+    return findSpherePenetration(penetrateeCenter - penetratorLocation, glm::vec3(0.0f, -1.0f, 0.0f),
+        penetrateeRadius, penetration);
+}
+
 bool findSphereSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
                                  const glm::vec3& penetrateeCenter, float penetrateeRadius, glm::vec3& penetration) {
     return findSpherePointPenetration(penetratorCenter, penetratorRadius + penetrateeRadius, penetrateeCenter, penetration);
@@ -67,6 +73,35 @@ bool findSphereCapsulePenetration(const glm::vec3& penetratorCenter, float penet
                                   const glm::vec3& penetrateeEnd, float penetrateeRadius, glm::vec3& penetration) {
     return findSphereSegmentPenetration(penetratorCenter, penetratorRadius + penetrateeRadius,
         penetrateeStart, penetrateeEnd, penetration);
+}
+
+bool findPointCapsuleConePenetration(const glm::vec3& penetratorLocation, const glm::vec3& penetrateeStart,
+        const glm::vec3& penetrateeEnd, float penetrateeStartRadius, float penetrateeEndRadius, glm::vec3& penetration) {
+    // compute the projection of the point vector onto the segment vector
+    glm::vec3 segmentVector = penetrateeEnd - penetrateeStart;
+    float lengthSquared = glm::dot(segmentVector, segmentVector);
+    if (lengthSquared < EPSILON) { // start and end the same
+        return findPointSpherePenetration(penetratorLocation, penetrateeStart,
+            glm::max(penetrateeStartRadius, penetrateeEndRadius), penetration);
+    }
+    float proj = glm::dot(penetratorLocation - penetrateeStart, segmentVector) / lengthSquared;
+    if (proj <= 0.0f) { // closest to the start
+        return findPointSpherePenetration(penetratorLocation, penetrateeStart, penetrateeStartRadius, penetration);
+        
+    } else if (proj >= 1.0f) { // closest to the end
+        return findPointSpherePenetration(penetratorLocation, penetrateeEnd, penetrateeEndRadius, penetration);
+    
+    } else { // closest to the middle
+        return findPointSpherePenetration(penetratorLocation, penetrateeStart + segmentVector * proj,
+            glm::mix(penetrateeStartRadius, penetrateeEndRadius, proj), penetration);
+    }
+}
+
+bool findSphereCapsuleConePenetration(const glm::vec3& penetratorCenter,
+        float penetratorRadius, const glm::vec3& penetrateeStart, const glm::vec3& penetrateeEnd,
+        float penetrateeStartRadius, float penetrateeEndRadius, glm::vec3& penetration) {
+    return findPointCapsuleConePenetration(penetratorCenter, penetrateeStart, penetrateeEnd,
+        penetrateeStartRadius + penetratorRadius, penetrateeEndRadius + penetratorRadius, penetration);
 }
 
 bool findSpherePlanePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, 

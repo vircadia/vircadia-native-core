@@ -174,6 +174,15 @@ public:
     /// \return whether or not the ray intersected
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
+    /// Checks for penetration between the described sphere and the avatar.
+    /// \param penetratorCenter the center of the penetration test sphere
+    /// \param penetratorRadius the radius of the penetration test sphere
+    /// \param penetration[out] the vector in which to store the penetration
+    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
+    /// \return whether or not the sphere penetrated
+    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, int skeletonSkipIndex = -1);
+
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);

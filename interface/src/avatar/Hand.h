@@ -80,6 +80,8 @@ private:
 
     void renderLeapHands();
     void renderLeapFingerTrails();
+    
+    void updateCollisions();
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
