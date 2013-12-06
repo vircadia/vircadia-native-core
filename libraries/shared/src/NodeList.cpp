@@ -37,9 +37,6 @@ const char SOLO_NODE_TYPES[2] = {
 const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
-bool silentNodeThreadStopFlag = false;
-bool pingUnknownNodeThreadStopFlag = false;
-
 NodeList* NodeList::_sharedInstance = NULL;
 
 NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
@@ -797,36 +794,6 @@ void NodeList::removeSilentNodes() {
         
         node->unlock();
     }
-}
-
-void* removeSilentNodesAndSleep(void *args) {
-    NodeList* nodeList = (NodeList*) args;
-    uint64_t checkTimeUsecs = 0;
-    int sleepTime = 0;
-    
-    while (!::silentNodeThreadStopFlag) {
-        
-        checkTimeUsecs = usecTimestampNow();
-        
-        nodeList->removeSilentNodes();
-        
-        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
-        
-        #ifdef _WIN32
-        
-        Sleep( static_cast<int>(1000.0f*sleepTime) );
-        
-        #else
-        
-        if (sleepTime > 0) {
-            usleep(sleepTime);
-        }
-        
-        #endif
-    }
-    
-    pthread_exit(0);
-    return NULL;
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";
