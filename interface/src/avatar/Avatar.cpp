@@ -60,7 +60,7 @@ const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES = 9;
 const float chatMessageScale = 0.0015;
-const float chatMessageHeight = 0.20;
+const float chatMessageHeight = 0.4f;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
     QByteArray message;
