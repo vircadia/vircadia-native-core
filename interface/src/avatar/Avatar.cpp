@@ -205,16 +205,25 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
     }
     
-    // update avatar skeleton
-    _skeleton.update(deltaTime, getOrientation(), _position);
-            
-    
-    // if this is not my avatar, then hand position comes from transmitted data
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
-        
     //update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
     
+    // use speed and angular velocity to determine walking vs. standing
+    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+        _mode = AVATAR_MODE_WALKING;
+    } else {
+        _mode = AVATAR_MODE_INTERACTING;
+    }
+    
+    // update position by velocity, and subtract the change added earlier for gravity 
+    _position += _velocity * deltaTime;
+    
+    // update avatar skeleton
+    _skeleton.update(deltaTime, getOrientation(), _position);
+
+    // if this is not my avatar, then hand position comes from transmitted data
+    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
+
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -225,15 +234,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
 
-    // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-    
-    // update position by velocity, and subtract the change added earlier for gravity 
-    _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
