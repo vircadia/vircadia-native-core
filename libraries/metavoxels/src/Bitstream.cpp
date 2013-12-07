@@ -14,11 +14,41 @@ Bitstream::Bitstream(QDataStream& underlying)
     : _underlying(underlying), _byte(0), _position(0) {
 }
 
-Bitstream& Bitstream::write(const void* data, int bits) {
+const int BITS_IN_BYTE = 8;
+const int LAST_BIT_POSITION = BITS_IN_BYTE - 1;
+
+Bitstream& Bitstream::write(const void* data, int bits, int offset) {
+    const quint8* source = (const quint8*)data;
+    while (bits > 0) {
+        int bitsToWrite = qMin(BITS_IN_BYTE - _position, qMin(BITS_IN_BYTE - offset, bits));
+        _byte |= ((*source >> offset) & ((1 << bitsToWrite) - 1)) << _position;
+        if ((_position += bitsToWrite) == BITS_IN_BYTE) {
+            flush();
+        }
+        if ((offset += bitsToWrite) == BITS_IN_BYTE) {
+            source++;
+            offset = 0;
+        }
+        bits -= bitsToWrite;
+    }
     return *this;
 }
 
-Bitstream& Bitstream::read(void* data, int bits) {
+Bitstream& Bitstream::read(void* data, int bits, int offset) {
+    quint8* dest = (quint8*)data;
+    while (bits > 0) {
+        if (_position == 0) {
+            _underlying >> _byte;
+        }
+        int bitsToRead = qMin(BITS_IN_BYTE - _position, qMin(BITS_IN_BYTE - offset, bits));
+        *dest |= ((_byte >> _position) & ((1 << bitsToRead) - 1)) << offset;
+        _position = (_position + bitsToRead) & LAST_BIT_POSITION;
+        if ((offset += bitsToRead) == BITS_IN_BYTE) {
+            dest++;
+            offset = 0;
+        }
+        bits -= bitsToRead;
+    }
     return *this;
 }
 
@@ -30,13 +60,12 @@ void Bitstream::flush() {
     }
 }
 
-const int LAST_BIT_POSITION = 7;
 
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);
     }
-    if (_position++ == LAST_BIT_POSITION) {
+    if (++_position == BITS_IN_BYTE) {
         flush();
     }
     return *this;
