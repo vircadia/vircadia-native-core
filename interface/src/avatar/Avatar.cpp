@@ -48,7 +48,6 @@ const float HEAD_MAX_PITCH = 45;
 const float HEAD_MIN_PITCH = -45;
 const float HEAD_MAX_YAW = 85;
 const float HEAD_MIN_YAW = -85;
-const float PERIPERSONAL_RADIUS = 1.0f;
 const float AVATAR_BRAKING_STRENGTH = 40.0f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const float FLOATING_HEIGHT = 0.13f;
@@ -121,8 +120,6 @@ Avatar::Avatar(Node* owningNode) :
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
     _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
-    
-    _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
     
     if (BALLS_ON) {
         _balls = new Balls(100);
@@ -362,7 +359,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         
     //update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
-    _avatarTouch.simulate(deltaTime);
     
     // update body balls
     updateBodyBalls(deltaTime);
@@ -443,9 +439,6 @@ static TextRenderer* textRenderer() {
 }
 
 void Avatar::render(bool forceRenderHead) {
-
-    // render a simple round on the ground projected down from the avatar's position
-    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     {
         // glow when moving in the distance
@@ -960,6 +953,5 @@ void Avatar::setScale(const float scale) {
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
     _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
-    _avatarTouch.setReachableRadius(_scale * PERIPERSONAL_RADIUS);
 }
 
