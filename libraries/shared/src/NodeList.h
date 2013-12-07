@@ -21,10 +21,6 @@
 #include "Node.h"
 #include "NodeTypes.h"
 
-#ifdef _WIN32
-#include "pthread.h"
-#endif
-
 const int MAX_NUM_NODES = 10000;
 const int NODES_PER_BUCKET = 100;
 
@@ -126,9 +122,6 @@ public:
     
     Node* soloNodeOfType(char nodeType);
     
-    void startSilentNodeRemovalThread();
-    void stopSilentNodeRemovalThread();
-    
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
     
@@ -170,8 +163,6 @@ private:
     char _ownerType;
     char* _nodeTypesOfInterest;
     QUuid _ownerUUID;
-    pthread_t removeSilentNodesThread;
-    pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     HifiSockAddr _publicSockAddr;

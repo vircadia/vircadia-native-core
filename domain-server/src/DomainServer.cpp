@@ -22,6 +22,12 @@
 
 const int RESTART_HOLD_TIME_MSECS = 5 * 1000;
 
+void signalhandler(int sig){
+    if (sig == SIGINT) {
+        qApp->quit();
+    }
+}
+
 DomainServer* DomainServer::domainServerInstance = NULL;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
@@ -34,6 +40,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _hasCompletedRestartHold(false)
 {
     DomainServer::setDomainServerInstance(this);
+    
+    signal(SIGINT, signalhandler);
     
     const char CUSTOM_PORT_OPTION[] = "-p";
     const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
@@ -88,10 +96,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     // fire a single shot timer to add static assignments back into the queue after a restart
     QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
-}
-
-void DomainServer::exit(int retCode) {
-    cleanup();
+    
+    connect(this, SIGNAL(aboutToQuit()), SLOT(cleanup()));
 }
 
 void DomainServer::readAvailableDatagrams() {
@@ -774,8 +780,6 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
 }
 
 void DomainServer::cleanup() {
-    qDebug() << "cleanup called!\n";
-    
     _staticAssignmentFile.unmap(_staticAssignmentFileData);
     _staticAssignmentFile.close();
 }
