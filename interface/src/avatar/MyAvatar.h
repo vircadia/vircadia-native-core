@@ -88,7 +88,6 @@ private:
     int _moveTargetStepCounter;
 
 	// private methods
-    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
@@ -97,9 +96,7 @@ private:
     void updateCollisionWithVoxels(float deltaTime);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void updateChatCircle(float deltaTime);
-    void checkForMouseRayTouching();
 };
 
 #endif

@@ -250,9 +250,8 @@ void Head::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     // the blend face may have custom eye meshes
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls)) {
-        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
-    }
+    _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
+
 }
 
 void Head::calculateGeometry() {

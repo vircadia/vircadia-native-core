@@ -15,7 +15,6 @@
 
 #include <AvatarData.h>
 
-#include "AvatarVoxelSystem.h"
 #include "Balls.h"
 #include "Hand.h"
 #include "Head.h"
@@ -159,19 +158,8 @@ public:
     Hand& getHand() { return _hand; }
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
-    AvatarVoxelSystem* getVoxels() { return &_voxels; }
 
     void getSkinColors(glm::vec3& lighter, glm::vec3& darker);
-
-    // Get the position/rotation of a single body ball
-    void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
-
-    /// Checks for an intersection between the described ray and any of the avatar's body balls.
-    /// \param origin the origin of the ray
-    /// \param direction the unit direction vector
-    /// \param[out] distance the variable in which to store the distance to intersection
-    /// \return whether or not the ray intersected
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
@@ -217,7 +205,7 @@ protected:
     SkeletonModel _skeletonModel;
     bool _ballSpringsInitialized;
     float _bodyYawDelta;
-    AvatarBall _bodyBall[ NUM_AVATAR_BODY_BALLS ];
+    //AvatarBall _bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode _mode;
     glm::vec3 _velocity;
     glm::vec3 _thrust;
@@ -234,7 +222,6 @@ protected:
     bool _isCollisionsOn;
     Avatar* _leadingAvatar;
     float _stringLength;
-    AvatarVoxelSystem _voxels;
 
     bool _moving; ///< set when position is changing
 
@@ -243,7 +230,6 @@ protected:
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void updateBodyBalls(float deltaTime);
     bool updateLeapHandPositions();
     void updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID);
     void setScale(const float scale);

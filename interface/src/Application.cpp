@@ -1415,10 +1415,7 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     QDataStream in(QByteArray((char*)packetData, dataBytes));
     QUrl voxelURL;
     in >> voxelURL;
-    
-    // invoke the set URL functions on the simulate/render thread
-    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
-    
+        
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
     DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
         avatar->getUUID());
@@ -1793,9 +1790,6 @@ void Application::init() {
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
-
-    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-   
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
@@ -2330,20 +2324,6 @@ void Application::updateTransmitter(float deltaTime) {
         if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
             minDistance = min(minDistance, distance);
         }
-        NodeList* nodeList = NodeList::getInstance();
-        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-            node->lock();
-            if (node->getLinkedData() != NULL) {
-                Avatar *avatar = (Avatar*)node->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
-                }
-                if (avatar->findRayIntersection(_transmitterPickStart, direction, distance)) {
-                    minDistance = min(minDistance, distance);
-                }
-            }
-            node->unlock();
-        }
         _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
         
     } else {
@@ -2573,12 +2553,6 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
-    // once in a while, send my urls
-    const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
-    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-        Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-    }
-
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
