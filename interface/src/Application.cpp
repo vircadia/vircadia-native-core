@@ -1412,9 +1412,16 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     if (!avatar) {
         return;
     }
-    QDataStream in(QByteArray((char*)packetData, dataBytes));
-    QUrl voxelURL;
-    in >> voxelURL;
+    //  PER Note: message is no longer processed but used to trigger
+    //  Dataserver lookup - redesign this to instantly ask the
+    //  dataserver on first receipt of other avatar UUID, and also
+    //  don't ask over and over again.   Instead use this message to
+    //  Tell the other avatars that your dataserver data has
+    //  changed.
+    
+    //QDataStream in(QByteArray((char*)packetData, dataBytes));
+    //QUrl voxelURL;
+    //in >> voxelURL;
         
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
     DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
@@ -2553,6 +2560,11 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
+    const float AVATAR_URLS_SEND_INTERVAL = 1.0f;
+    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+        QUrl empty;
+        Avatar::sendAvatarURLsMessage(empty);
+    }
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
