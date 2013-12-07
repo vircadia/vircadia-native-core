@@ -168,7 +168,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _velocity += _thrust * deltaTime;
     
     // update body yaw by body yaw delta
-    printf("bodyYawDelta %.3f\n", _bodyYawDelta);
     orientation = orientation * glm::quat(glm::radians(
         glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
     // decay body rotation momentum
