@@ -12,7 +12,7 @@
 #include <QtCore/QObject>
 
 #include <JurisdictionListener.h>
-#include <VoxelEditPacketSender.h>
+#include "VoxelEditPacketSender.h"
 
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelScriptingInterface : public QObject {

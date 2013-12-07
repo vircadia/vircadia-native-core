@@ -17,7 +17,7 @@
 
 #include <ThreadedAssignment.h>
 
-#include "voxels/VoxelScriptingInterface.h"
+#include <VoxelScriptingInterface.h>
 #include <ParticleScriptingInterface.h>
 
 class Agent : public ThreadedAssignment {
