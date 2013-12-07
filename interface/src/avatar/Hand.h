@@ -24,6 +24,7 @@
 #include "ParticleSystem.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
+#include "VoxelSystem.h"
 
 class Avatar;
 class ProgramObject;
