@@ -147,7 +147,6 @@ namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
-    const QString AvatarAsBalls = "Avatar as Balls";
     const QString Atmosphere = "Atmosphere";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";

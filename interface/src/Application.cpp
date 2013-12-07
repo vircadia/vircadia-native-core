@@ -150,7 +150,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
@@ -160,10 +160,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     audioThread->start();
     
-    NodeList::getInstance()->addHook(&_voxels);
-    NodeList::getInstance()->addHook(this);
-    NodeList::getInstance()->addDomainListener(this);
-    NodeList::getInstance()->addDomainListener(&_voxels);
+    nodeList->addHook(&_voxels);
+    nodeList->addHook(this);
+    nodeList->addDomainListener(this);
+    nodeList->addDomainListener(&_voxels);
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -196,7 +196,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
     
     // the callback for our instance of NodeList is attachNewHeadToNode
-    NodeList::getInstance()->linkedDataCreateCallback = &attachNewHeadToNode;
+    nodeList->linkedDataCreateCallback = &attachNewHeadToNode;
     
     #ifdef _WIN32
     WSADATA WsaData;
@@ -205,10 +205,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // tell the NodeList instance who to tell the domain server we care about
     const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER};
-    NodeList::getInstance()->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
-    // start the nodeList threads
-    NodeList::getInstance()->startSilentNodeRemovalThread();
+    QTimer* silentNodeTimer = new QTimer(this);
+    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
@@ -369,6 +370,7 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
     
@@ -1413,10 +1415,7 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     QDataStream in(QByteArray((char*)packetData, dataBytes));
     QUrl voxelURL;
     in >> voxelURL;
-    
-    // invoke the set URL functions on the simulate/render thread
-    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
-    
+        
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
     DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
         avatar->getUUID());
@@ -1791,9 +1790,6 @@ void Application::init() {
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
-
-    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-   
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
@@ -2328,20 +2324,6 @@ void Application::updateTransmitter(float deltaTime) {
         if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
             minDistance = min(minDistance, distance);
         }
-        NodeList* nodeList = NodeList::getInstance();
-        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-            node->lock();
-            if (node->getLinkedData() != NULL) {
-                Avatar *avatar = (Avatar*)node->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
-                }
-                if (avatar->findRayIntersection(_transmitterPickStart, direction, distance)) {
-                    minDistance = min(minDistance, distance);
-                }
-            }
-            node->unlock();
-        }
         _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
         
     } else {
@@ -2571,12 +2553,6 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
-    // once in a while, send my urls
-    const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
-    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-        Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-    }
-
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
