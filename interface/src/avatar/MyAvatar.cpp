@@ -136,10 +136,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
     }
     
-    // update avatar skeleton
-    _skeleton.update(deltaTime, getOrientation(), _position);
-
-    
     // update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
 
@@ -172,6 +168,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _velocity += _thrust * deltaTime;
     
     // update body yaw by body yaw delta
+    printf("bodyYawDelta %.3f\n", _bodyYawDelta);
     orientation = orientation * glm::quat(glm::radians(
         glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
     // decay body rotation momentum
@@ -209,7 +206,10 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     } else {
         applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);            
     }
-        
+    
+    // update the euler angles
+    setOrientation(orientation);
+    
     // Compute instantaneous acceleration
     float forwardAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
     const float ACCELERATION_PITCH_DECAY = 0.4f;
@@ -243,16 +243,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
-    _hand.simulate(deltaTime, true);
-    _skeletonModel.simulate(deltaTime);
-    _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
-    glm::vec3 headPosition;
-    _skeletonModel.getHeadPosition(headPosition);
-    _head.setPosition(headPosition);
-    _head.setScale(_scale);
-    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, true);
-
     const float WALKING_SPEED_THRESHOLD = 0.2f;
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
@@ -284,6 +274,18 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     _position += _velocity * deltaTime;
     
+    // update avatar skeleton and simulate hand and head
+    _skeleton.update(deltaTime, getOrientation(), _position);
+    _hand.simulate(deltaTime, true);
+    _skeletonModel.simulate(deltaTime);
+    _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
+    glm::vec3 headPosition;
+    _skeletonModel.getHeadPosition(headPosition);
+    _head.setPosition(headPosition);
+    _head.setScale(_scale);
+    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
+    _head.simulate(deltaTime, true);
+
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
 
