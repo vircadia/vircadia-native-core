@@ -2992,6 +2992,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
     
+        // render the ambient occlusion effect if enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... AmbientOcclusion...");
+            _ambientOcclusionEffect.render();
+        }
+    
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
@@ -3073,13 +3080,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         //  Render the world box
         if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             renderWorldBox();
-        }
-    
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
         }
     
         // brad's frustum for debugging
