@@ -19,6 +19,7 @@ GlowEffect::GlowEffect()
     : _initialized(false),
       _renderMode(DIFFUSE_ADD_MODE),
       _isOddFrame(false),
+      _isFirstFrame(true),
       _intensity(0.0f) {
 }
 
@@ -167,7 +168,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         newDiffusedFBO->bind();
         
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
+        glBindTexture(GL_TEXTURE_2D, _isFirstFrame ? 0 : oldDiffusedFBO->texture());
             
         _diffuseProgram->bind();
         QSize size = Application::getInstance()->getGLWidget()->size();
@@ -221,7 +222,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             maybeRelease(destFBO);
             
         } else { // _renderMode == BLUR_PERSIST_ADD_MODE
-            // render the secondary to the tertiary with horizontal blur and persistence
+            // render the secondary to the tertiary with vertical blur and persistence
             QOpenGLFramebufferObject* tertiaryFBO =
                 Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
             tertiaryFBO->bind();
@@ -229,7 +230,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
             const float PERSISTENCE_SMOOTHING = 0.9f;
-            glBlendColor(0.0f, 0.0f, 0.0f, PERSISTENCE_SMOOTHING);
+            glBlendColor(0.0f, 0.0f, 0.0f, _isFirstFrame ? 0.0f : PERSISTENCE_SMOOTHING);
             
             glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
             
@@ -270,6 +271,8 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
     
+    _isFirstFrame = false;
+    
     return destFBO;
 }
 
@@ -292,6 +295,7 @@ void GlowEffect::cycleRenderMode() {
             qDebug() << "Glow mode: Diffuse/add\n";
             break;
     }
+    _isFirstFrame = true;
 }
 
 Glower::Glower(float amount) {
