@@ -27,7 +27,10 @@ Hand::Hand(Avatar* owningAvatar) :
     _ballColor(0.0, 0.0, 0.4),
     _collisionCenter(0,0,0),
     _collisionAge(0),
-    _collisionDuration(0)
+    _collisionDuration(0),
+    _toyBallPosition(0),
+    _toyBallVelocity(0),
+    _toyBallInHand(false)
  {
 }
 
@@ -64,13 +67,50 @@ void Hand::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     if (isMine) {
-        //  Create a voxel at fingertip if controller button is pressed
         const float FINGERTIP_VOXEL_SIZE = 0.0125;
+        
+        //  Iterate hand controllers, take actions as needed
+        
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
             if (palm.isActive()) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
+                //  Toy ball game
+                if (palm.getSixenseID() == 0) {
+                    if (palm.getControllerButtons() & BUTTON_FWD) {
+                        //  If grabbing toy ball, add forces to it
+                        if (!_toyBallInHand) {
+                            //  Test for whether close enough to catch and catch
+                            bool isCaught = true;
+                            if (isCaught) {
+                                _toyBallInHand = true;
+                            }
+                        }
+                        if (_toyBallInHand) {
+                            //  Ball is in hand
+                            _toyBallPosition = fingerTipPosition;
+                            _toyBallVelocity = glm::vec3(0);
+                            
+                        }
+                    } else {
+                        //  If toy ball just released, add velocity to it!
+                        if (_toyBallInHand) {
+                            _toyBallInHand = false;
+                            glm::vec3 handVelocity = palm.getVelocity();
+                            printVector(handVelocity);
+                            _toyBallVelocity += handVelocity;
+                        }
+                    }
+                    //  Simulate toy ball
+                    const glm::vec3 TOYBALL_GRAVITY (0, -1, 0);
+                    _toyBallPosition += _toyBallVelocity * deltaTime;
+                    if (!_toyBallInHand) {
+                        _toyBallVelocity += TOYBALL_GRAVITY * deltaTime;
+                    }
+                    _toyBallVelocity *= 0.99f;
+                }
+                
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
                         QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
@@ -253,6 +293,14 @@ void Hand::render( bool isMine) {
         renderLeapHands();
     }
 
+    //  Render toy ball
+    if (isMine) {
+        glPushMatrix();
+        glColor4f(1, 0, 0, 0.5);
+        glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
+        glutSolidSphere(0.1f, 10, 10);
+        glPopMatrix();
+    }
     
     if (isMine) {
         //  If hand/voxel collision has happened, render a little expanding sphere

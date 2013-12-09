@@ -86,6 +86,11 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
+    
+    glm::vec3 _toyBallPosition;
+    glm::vec3 _toyBallVelocity;
+    bool      _toyBallInHand;
+
 };
 
 #endif

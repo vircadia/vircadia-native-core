@@ -140,7 +140,7 @@ public:
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
     const glm::vec3& getVelocity()  const { return _velocity; }
-
+    const glm::vec3& getRotationalVelocity()  const { return _rotationalVelocity; }
     void addToPosition(const glm::vec3& delta);
 
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
@@ -165,6 +165,8 @@ private:
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
     glm::vec3 _velocity;
+    glm::vec3 _rotationalVelocity;
+    glm::quat _lastRotation;
     int _controllerButtons;
     float _trigger;
     float _joystickX, _joystickY;
