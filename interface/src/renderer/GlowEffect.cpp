@@ -167,16 +167,21 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         }
         newDiffusedFBO->bind();
         
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, _isFirstFrame ? 0 : oldDiffusedFBO->texture());
+        if (_isFirstFrame) {
+            glClear(GL_COLOR_BUFFER_BIT);    
             
-        _diffuseProgram->bind();
-        QSize size = Application::getInstance()->getGLWidget()->size();
-        _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
+        } else {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
+            
+            _diffuseProgram->bind();
+            QSize size = Application::getInstance()->getGLWidget()->size();
+            _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
         
-        renderFullscreenQuad();
+            renderFullscreenQuad();
         
-        _diffuseProgram->release();
+            _diffuseProgram->release();
+        }
         
         newDiffusedFBO->release();
         
