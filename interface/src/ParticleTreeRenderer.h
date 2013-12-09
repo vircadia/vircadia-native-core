@@ -32,7 +32,8 @@ public:
     virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_PARTICLE_QUERY; }
     virtual PACKET_TYPE getExpectedPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
     virtual void renderElement(OctreeElement* element);
-    
+
+    void update();
 protected:
 };
 

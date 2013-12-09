@@ -2479,6 +2479,8 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateAudio(deltaTime); // Update audio stats for procedural sounds
     updateCursor(deltaTime); // Handle cursor updates
+    
+    _particles.update(); // update the particles...
 }
 
 void Application::updateAvatar(float deltaTime) {

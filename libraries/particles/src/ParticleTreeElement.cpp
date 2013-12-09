@@ -41,13 +41,11 @@ ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) {
 bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const {
     bool success = true; // assume the best...
 
-
-
     // write our particles out...
     uint16_t numberOfParticles = _particles.size();
     success = packetData->appendValue(numberOfParticles);
 
-printf("ParticleTreeElement::appendElementData()... numberOfParticles=%d\n",numberOfParticles);
+    //printf("ParticleTreeElement::appendElementData()... numberOfParticles=%d\n",numberOfParticles);
     
     if (success) {
         for (uint16_t i = 0; i < numberOfParticles; i++) {
@@ -61,6 +59,14 @@ printf("ParticleTreeElement::appendElementData()... numberOfParticles=%d\n",numb
     return success;
 }
 
+void ParticleTreeElement::update() {
+    // update our contained particles
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        _particles[i].update();
+        // what if this update moves the particle to a new element??
+    }
+}
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 

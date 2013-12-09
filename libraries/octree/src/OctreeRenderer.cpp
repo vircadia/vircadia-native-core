@@ -126,7 +126,7 @@ public:
 
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    if (element->isInView(*args->_viewFrustum)) {
+    if (true || element->isInView(*args->_viewFrustum)) {
         if (element->hasContent()) {
             args->_renderer->renderElement(element);
         }

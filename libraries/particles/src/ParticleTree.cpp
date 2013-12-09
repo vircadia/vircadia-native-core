@@ -32,9 +32,8 @@ void ParticleTree::storeParticle(const Particle& particle) {
     float size = particle.getRadius();
     ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
-printf("ParticleTree::storeParticle() element=%p particle.getPosition()=%f,%f,%f\n", 
-        element,
-        particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
+    //printf("ParticleTree::storeParticle() element=%p particle.getPosition()=%f,%f,%f\n", 
+    //        element, particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
 
     element->storeParticle(particle);
     
@@ -50,15 +49,13 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD: {
         
-printf("got PACKET_TYPE_PARTICLE_ADD....\n");
+            //printf("got PACKET_TYPE_PARTICLE_ADD....\n");
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
 
-printf("newParticle...getPosition()=%f,%f,%f\n", newParticle.getPosition().x, newParticle.getPosition().y, newParticle.getPosition().z);
-
+            //printf("newParticle...getPosition()=%f,%f,%f\n", newParticle.getPosition().x, newParticle.getPosition().y, newParticle.getPosition().z);
             storeParticle(newParticle);
 
             // It seems like we need some way to send the ID back to the creator??
-            
         } break;
             
         case PACKET_TYPE_PARTICLE_ERASE: {
@@ -67,4 +64,22 @@ printf("newParticle...getPosition()=%f,%f,%f\n", newParticle.getPosition().x, ne
     }
     return processedBytes;
 }
+
+
+class UpdateArgs {
+public:
+};
+
+bool ParticleTree::updateOperation(OctreeElement* element, void* extraData) {
+    UpdateArgs* args = static_cast<UpdateArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    particleTreeElement->update();
+    return true;
+}
+
+void ParticleTree::update() {
+    UpdateArgs args = { };
+    recurseTreeWithOperation(updateOperation, &args);
+}
+
 

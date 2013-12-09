@@ -48,6 +48,9 @@ public:
 
     static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
+
+    void update();
+    
 protected:
     glm::vec3 _position;
     rgbColor _color;

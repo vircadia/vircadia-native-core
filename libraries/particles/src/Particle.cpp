@@ -193,3 +193,27 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
     return success;
 }
 
+
+void Particle::update() {
+    uint64_t now = usecTimestampNow();
+    uint64_t elapsed = now - _lastUpdated;
+    uint64_t USECS_PER_SECOND = 1000 * 1000;
+    uint64_t USECS_PER_FIVE_SECONDS = 5 * USECS_PER_SECOND;
+    uint64_t USECS_PER_TEN_SECONDS = 10 * USECS_PER_SECOND;
+    uint64_t USECS_PER_THIRTY_SECONDS = 30 * USECS_PER_SECOND;
+    uint64_t USECS_PER_MINUTE = 60 * USECS_PER_SECOND;
+    uint64_t USECS_PER_HOUR = 60 * USECS_PER_MINUTE;
+    float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
+    printf("elapsed=%llu timeElapsed=%f\n", elapsed, timeElapsed);
+
+    glm::vec3 position = getPosition() * (float)TREE_SCALE;
+    printf("OLD position=%f, %f, %f\n", position.x, position.y, position.z);
+    printf("velocity=%f, %f, %f\n", getVelocity().x, getVelocity().y, getVelocity().z);
+    
+    _position += _velocity * timeElapsed;
+
+    position = getPosition() * (float)TREE_SCALE;
+    printf("NEW position=%f, %f, %f\n", position.x, position.y, position.z);
+    _lastUpdated = now;
+}
+

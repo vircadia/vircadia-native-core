@@ -18,6 +18,13 @@ ParticleTreeRenderer::ParticleTreeRenderer() :
 ParticleTreeRenderer::~ParticleTreeRenderer() {
 }
 
+void ParticleTreeRenderer::update() {
+    if (_tree) {
+        ParticleTree* tree = (ParticleTree*)_tree;
+        tree->update();
+    }
+}
+
 void ParticleTreeRenderer::renderElement(OctreeElement* element) {
     // actually render it here...
     // we need to iterate the actual particles of the element
