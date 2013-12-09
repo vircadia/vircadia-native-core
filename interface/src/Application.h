@@ -285,7 +285,7 @@ private:
     
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
-    void queryVoxels();
+    void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     glm::vec3 getSunDirection();

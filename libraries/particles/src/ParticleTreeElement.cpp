@@ -41,9 +41,13 @@ ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) {
 bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const {
     bool success = true; // assume the best...
 
+
+
     // write our particles out...
     uint16_t numberOfParticles = _particles.size();
     success = packetData->appendValue(numberOfParticles);
+
+printf("ParticleTreeElement::appendElementData()... numberOfParticles=%d\n",numberOfParticles);
     
     if (success) {
         for (uint16_t i = 0; i < numberOfParticles; i++) {

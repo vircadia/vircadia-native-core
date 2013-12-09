@@ -42,6 +42,8 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
     bool success = packetData->appendValue(getID());
 
+printf("Particle::appendParticleData()... getID()=%d\n", getID());
+
     if (success) {
         success = packetData->appendValue(getLastUpdated());
     }

@@ -204,7 +204,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
     
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER};
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
+                                        NODE_TYPE_PARTICLE_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
     QTimer* silentNodeTimer = new QTimer(this);
@@ -1222,7 +1223,8 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
 
-    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER, 
+                                NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
 
     uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];
@@ -1791,6 +1793,9 @@ void Application::init() {
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
+
+    _particles.init();
+    _particles.setViewFrustum(getViewFrustum());
     
 
     Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
@@ -2587,17 +2592,18 @@ void Application::updateAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     // Update my voxel servers with my current voxel query...
-    queryVoxels();
+    queryOctree(NODE_TYPE_VOXEL_SERVER, PACKET_TYPE_VOXEL_QUERY);
+    queryOctree(NODE_TYPE_PARTICLE_SERVER, PACKET_TYPE_PARTICLE_QUERY);
 }
 
-void Application::queryVoxels() {
+void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType) {
 
     // if voxels are disabled, then don't send this at all...
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         return;
     }
     
-    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool wantExtraDebugging = true; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
@@ -2626,9 +2632,20 @@ void Application::queryVoxels() {
     int unknownJurisdictionServers = 0;
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+
+/**
+qDebug() << "Query... " << *node << "\n";
+qDebug("    node->getActiveSocket()=%p\n",node->getActiveSocket());
+qDebug("    node->getType()=%c\n",node->getType());
+qDebug("    serverType=%c\n",serverType);
+/**/
+        
+        // only send to the NodeTypes that are serverType
+        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
+
+//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
+//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
 
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
@@ -2656,7 +2673,15 @@ void Application::queryVoxels() {
                 }
             }
         }
+
+//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
+//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
+
+
     }
+
+//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
+//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
     
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
@@ -2684,8 +2709,8 @@ void Application::queryVoxels() {
     }
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        // only send to the NodeTypes that are serverType
+        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
 
 
             // get the server bounds for this server
@@ -2758,7 +2783,7 @@ void Application::queryVoxels() {
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
 
             // insert packet type/version and node UUID
-            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, packetType);
             QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
             memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
             endOfVoxelQueryPacket += ownerUUID.size();
@@ -2767,6 +2792,10 @@ void Application::queryVoxels() {
             endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
     
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+
+//qDebug("LINE:%d -- nodeList->getNodeSocket().writeDatagram()... packetLength=%d \n", 
+//    __LINE__, packetLength);
 
             nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
                                                     node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
@@ -3006,6 +3035,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         // render particles...
+        //printf("_particles.render()...\n");
         _particles.render();
     
         // restore default, white specular
@@ -4221,11 +4251,7 @@ void* Application::networkReceive(void* args) {
                                                   Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
                         
-                    case PACKET_TYPE_PARTICLE_DATA: {
-                        app->_particles.processDatagram(QByteArray((char*) app->_incomingPacket, bytesReceived),
-                                                    senderSockAddr);
-                        break;
-                    }
+                    case PACKET_TYPE_PARTICLE_DATA:
                     case PACKET_TYPE_VOXEL_DATA:
                     case PACKET_TYPE_VOXEL_ERASE:
                     case PACKET_TYPE_OCTREE_STATS:
@@ -4271,6 +4297,7 @@ void* Application::networkReceive(void* args) {
                         DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
                         break;
                     default:
+                        //printf("message: '%c'  \n",app->_incomingPacket[0]);
                         NodeList::getInstance()->processNodeData(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                 }

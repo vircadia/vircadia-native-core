@@ -15,12 +15,20 @@
 #include "OctreeRenderer.h"
 
 OctreeRenderer::OctreeRenderer() {
+    _tree = NULL;
+    _viewFrustum = NULL;
+}
+
+void OctreeRenderer::init() {
+    _tree = createTree();
 }
 
 OctreeRenderer::~OctreeRenderer() {
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+
+
 
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     bool extraDebugging = false; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)
@@ -55,6 +63,14 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
         
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
         int dataBytes = packetLength - OCTREE_PACKET_HEADER_SIZE;
+
+        if (extraDebugging) {
+            qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+                   " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
+                   "\n",
+                debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
+                sequence, flightTime, packetLength, dataBytes);
+        }
         
         int subsection = 1;
         while (dataBytes > 0) {
@@ -102,9 +118,6 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
     //Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
 }
 
-void OctreeRenderer::init() {
-}
-
 class RenderArgs {
 public:
     OctreeRenderer* _renderer;
@@ -125,5 +138,7 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 
 void OctreeRenderer::render() {
     RenderArgs args = { this, _viewFrustum };
-    _tree->recurseTreeWithOperation(renderOperation, &args);
+    if (_tree) {
+        _tree->recurseTreeWithOperation(renderOperation, &args);
+    }
 }

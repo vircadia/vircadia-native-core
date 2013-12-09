@@ -27,11 +27,16 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element) {
     
     uint16_t numberOfParticles = particles.size();
     
+    glPointSize(20.0f);
     glBegin(GL_POINTS);
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle& particle = particles[i];
         // render particle aspoints
-        glVertex3f(particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
+        glm::vec3 position = particle.getPosition() * (float)TREE_SCALE;
+        
+        printf("glVertex3f(%f, %f, %f)\n", position.x, position.y, position.z);
+        
+        glVertex3f(position.x, position.y, position.z);
     }
     glEnd();
 }
