@@ -78,7 +78,9 @@ int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, in
         
         if (bytesLeftToRead >= (numberOfParticles * expectedBytesPerParticle)) {
             for (uint16_t i = 0; i < numberOfParticles; i++) {
-                int bytesForThisParticle = _particles[i].readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
+                Particle tempParticle;
+                int bytesForThisParticle = tempParticle.readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
+                _particles.push_back(tempParticle);
                 dataAt += bytesForThisParticle;
                 bytesLeftToRead -= bytesForThisParticle;
                 bytesRead += bytesForThisParticle;
@@ -105,5 +107,11 @@ bool ParticleTreeElement::collapseChildren() {
 
 void ParticleTreeElement::storeParticle(const Particle& particle) {
     _particles.push_back(particle);
+
+    markWithChangedTime();
+
+printf("ParticleTreeElement::storeParticle() element=%p _particles.size()=%ld particle.getPosition()=%f,%f,%f\n", 
+        this, _particles.size(),
+        particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
 }
 

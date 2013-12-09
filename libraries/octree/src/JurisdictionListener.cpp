@@ -16,12 +16,16 @@
 #include "JurisdictionListener.h"
 
 
-JurisdictionListener::JurisdictionListener(PacketSenderNotify* notify) : 
+JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* notify) : 
     PacketSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
+    _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addHook(this);
+
+qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
+
 }
 
 JurisdictionListener::~JurisdictionListener() {
@@ -40,6 +44,8 @@ void JurisdictionListener::nodeKilled(Node* node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
+qDebug() << "JurisdictionListener::queueJurisdictionRequest()\n";
+
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
     ssize_t sizeOut = populateTypeAndVersion(bufferOut, PACKET_TYPE_JURISDICTION_REQUEST);
@@ -47,7 +53,11 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (nodeList->getNodeActiveSocketOrPing(&(*node)) && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    
+qDebug() << "Hello..." << *node << "\n";
+    
+        if (nodeList->getNodeActiveSocketOrPing(&(*node)) && 
+            node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();
             PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
             nodeCount++;

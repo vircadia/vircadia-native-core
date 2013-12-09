@@ -3004,6 +3004,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
             }
         }
+        
+        // render particles...
+        _particles.render();
     
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
@@ -4217,6 +4220,12 @@ void* Application::networkReceive(void* args) {
                         QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
+                        
+                    case PACKET_TYPE_PARTICLE_DATA: {
+                        app->_particles.processDatagram(QByteArray((char*) app->_incomingPacket, bytesReceived),
+                                                    senderSockAddr);
+                        break;
+                    }
                     case PACKET_TYPE_VOXEL_DATA:
                     case PACKET_TYPE_VOXEL_ERASE:
                     case PACKET_TYPE_OCTREE_STATS:

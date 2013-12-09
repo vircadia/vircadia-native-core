@@ -8,7 +8,9 @@
 
 #include "ParticleScriptingInterface.h"
 
-ParticleScriptingInterface::ParticleScriptingInterface() {
+ParticleScriptingInterface::ParticleScriptingInterface() :
+    _jurisdictionListener(NODE_TYPE_PARTICLE_SERVER)
+{
     _jurisdictionListener.initialize(true);
     _particlePacketSender.setServerJurisdictions(_jurisdictionListener.getJurisdictions());
 }

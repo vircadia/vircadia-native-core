@@ -63,6 +63,7 @@
 #include "ui/VoxelStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
+#include "ParticleTreeRenderer.h"
 
 class QAction;
 class QActionGroup;
@@ -341,6 +342,8 @@ private:
     VoxelImporter _voxelImporter;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
+    
+    ParticleTreeRenderer _particles;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;

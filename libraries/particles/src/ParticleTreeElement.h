@@ -69,6 +69,8 @@ public:
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
     virtual bool isRendered() const { return getShouldRender(); }
 
+    const std::vector<Particle>& getParticles() const { return _particles; }
+
 protected:
     void storeParticle(const Particle& particle);
 
