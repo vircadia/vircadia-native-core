@@ -2633,19 +2633,9 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType) {
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
 
-/**
-qDebug() << "Query... " << *node << "\n";
-qDebug("    node->getActiveSocket()=%p\n",node->getActiveSocket());
-qDebug("    node->getType()=%c\n",node->getType());
-qDebug("    serverType=%c\n",serverType);
-/**/
-        
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
-
-//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
-//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
 
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();

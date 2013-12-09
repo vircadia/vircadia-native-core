@@ -27,16 +27,33 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element) {
     
     uint16_t numberOfParticles = particles.size();
     
-    glPointSize(20.0f);
-    glBegin(GL_POINTS);
+    bool drawAsSphere = true;
+    
+    if (!drawAsSphere) {
+        glPointSize(20.0f);
+        glBegin(GL_POINTS);
+    }
+    
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle& particle = particles[i];
         // render particle aspoints
         glm::vec3 position = particle.getPosition() * (float)TREE_SCALE;
         
-        printf("glVertex3f(%f, %f, %f)\n", position.x, position.y, position.z);
+        glColor3ub(particle.getColor()[RED_INDEX],particle.getColor()[GREEN_INDEX],particle.getColor()[BLUE_INDEX]);
         
-        glVertex3f(position.x, position.y, position.z);
+        //printf("particle at... (%f, %f, %f)\n", position.x, position.y, position.z);
+        
+        if (drawAsSphere) {
+            float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
+            glPushMatrix();
+                glTranslatef(position.x, position.y, position.z);
+                glutSolidSphere(sphereRadius, 15, 15);
+            glPopMatrix();
+        } else {
+            glVertex3f(position.x, position.y, position.z);
+        }
     }
-    glEnd();
+    if (!drawAsSphere) {
+        glEnd();
+    }
 }
