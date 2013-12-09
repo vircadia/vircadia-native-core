@@ -14,6 +14,7 @@
 
 #include "AttributeRegistry.h"
 
+class MetavoxelLayer;
 class MetavoxelNode;
 class VoxelVisitor;
 
@@ -27,7 +28,7 @@ public:
 
 private:
    
-    
+    QVector<MetavoxelLayer> _layers;
 };
 
 /// A single layer of metavoxel data (a tree containing nodes of the same type).
@@ -36,6 +37,7 @@ public:
 
 private:
 
+    QVector<AttributeID> _attributes;
     QScopedPointer<MetavoxelNode> _root;
 };
 
@@ -49,6 +51,7 @@ public:
 
 private:
     
+    void* _attributeValues;
     QScopedPointer<MetavoxelNode> _children[CHILD_COUNT];
 };
 

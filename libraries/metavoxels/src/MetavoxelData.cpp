@@ -8,4 +8,7 @@
 
 #include "MetavoxelData.h"
 
-
+void MetavoxelData::visitVoxels(const QVector<AttributeID>& attributes, VoxelVisitor* visitor) {
+    // map attributes to layers, indices
+    
+}
