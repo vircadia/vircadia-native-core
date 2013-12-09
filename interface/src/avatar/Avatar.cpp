@@ -168,18 +168,18 @@ void Avatar::follow(Avatar* leadingAvatar) {
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
-
+    
     if (_leadingAvatar && !_leadingAvatar->getOwningNode()->isAlive()) {
         follow(NULL);
     }
-
+    
     if (_scale != _newScale) {
         setScale(_newScale);
     }
     
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
-
+    
     // update balls
     if (_balls) {
         _balls->moveOrigin(_position);
@@ -194,7 +194,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
-        _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
+                                                                                    _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
     
     // apply joint data (if any) to skeleton
     bool enableHandMovement = true;
@@ -205,25 +205,16 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
     }
     
+    // update avatar skeleton
+    _skeleton.update(deltaTime, getOrientation(), _position);
+    
+    
+    // if this is not my avatar, then hand position comes from transmitted data
+    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
+    
     //update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
     
-    // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
-        _mode = AVATAR_MODE_WALKING;
-    } else {
-        _mode = AVATAR_MODE_INTERACTING;
-    }
-    
-    // update position by velocity, and subtract the change added earlier for gravity 
-    _position += _velocity * deltaTime;
-    
-    // update avatar skeleton
-    _skeleton.update(deltaTime, getOrientation(), _position);
-
-    // if this is not my avatar, then hand position comes from transmitted data
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
-
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -233,11 +224,20 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
-
+    
+    // use speed and angular velocity to determine walking vs. standing
+    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+        _mode = AVATAR_MODE_WALKING;
+    } else {
+        _mode = AVATAR_MODE_INTERACTING;
+    }
+    
+    // update position by velocity, and subtract the change added earlier for gravity
+    _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-
+    
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
@@ -452,6 +452,8 @@ void Avatar::renderBody(bool forceRenderHead) {
         _head.getVideoFace().render(1.0f);
     } else {
         //  Render the body's voxels and head
+        glm::vec3 pos = getPosition();
+        //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
         _skeletonModel.render(1.0f);
         _head.render(1.0f, false);
     }
