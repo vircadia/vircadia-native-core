@@ -582,6 +582,7 @@ class ExtractedMesh {
 public:
     FBXMesh mesh;
     QMultiHash<int, int> newIndices;
+    QVector<QHash<int, int> > blendshapeIndexMaps;
 };
 
 class MeshData {
@@ -1068,14 +1069,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         ExtractedMesh& extractedMesh = meshes[meshID];
         foreach (const WeightedIndex& index, blendshapeChannelIndices.values(blendshapeChannelID)) {
             extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
+            extractedMesh.blendshapeIndexMaps.resize(extractedMesh.mesh.blendshapes.size());
             FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
+            QHash<int, int>& blendshapeIndexMap = extractedMesh.blendshapeIndexMaps[index.first];
             for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
                 int oldIndex = extracted.blendshape.indices.at(i);
                 for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
                         it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
-                    blendshape.indices.append(it.value());
-                    blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
-                    blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+                    QHash<int, int>::iterator blendshapeIndex = blendshapeIndexMap.find(it.value());
+                    if (blendshapeIndex == blendshapeIndexMap.end()) {
+                        blendshapeIndexMap.insert(it.value(), blendshape.indices.size());
+                        blendshape.indices.append(it.value());
+                        blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
+                        blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+                    } else {
+                        blendshape.vertices[*blendshapeIndex] += extracted.blendshape.vertices.at(i) * index.second;
+                        blendshape.normals[*blendshapeIndex] += extracted.blendshape.normals.at(i) * index.second;
+                    }
                 } 
             }
         }
