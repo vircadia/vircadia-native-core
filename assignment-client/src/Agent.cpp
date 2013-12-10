@@ -26,20 +26,6 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
 {
 }
 
-QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("x", vec3.x);
-    obj.setProperty("y", vec3.y);
-    obj.setProperty("z", vec3.z);
-    return obj;
-}
-
-void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
-    vec3.x = object.property("x").toVariant().toFloat();
-    vec3.y = object.property("y").toVariant().toFloat();
-    vec3.z = object.property("z").toVariant().toFloat();
-}
-
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
         int headerBytes = numBytesForPacketHeader((const unsigned char*) dataByteArray.constData());
@@ -91,7 +77,7 @@ void Agent::run() {
     QScriptEngine engine;
     
     // register meta-type for glm::vec3 conversions
-    qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+    registerMetaTypes(&engine);
     
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);

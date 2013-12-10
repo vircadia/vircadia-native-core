@@ -19,17 +19,12 @@ void ParticleScriptingInterface::queueParticleAdd(PACKET_TYPE addPacketType, Par
     _particlePacketSender.queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
 }
 
-void ParticleScriptingInterface::queueParticleAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue, 
-                                                    float vx, float vy, float vz) {
+void ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, QString updateScript) {
                                                     
     // setup a ParticleDetail struct with the data
-    ParticleDetail addParticleDetail = { glm::vec3(x, y, z), scale, {red, green, blue} , glm::vec3(vx, vy, vz) };
+    ParticleDetail addParticleDetail = { position, radius, {color.red, color.green, color.blue }, velocity, gravity, damping, updateScript };
     
     // queue the packet
     queueParticleAdd(PACKET_TYPE_PARTICLE_ADD, addParticleDetail);
 }
-
-void ParticleScriptingInterface::queueParticleDelete(float x, float y, float z, float scale) {
-    // not yet supported
-}
-

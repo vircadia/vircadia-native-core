@@ -25,23 +25,28 @@ public:
 	float radius;
 	rgbColor color;
     glm::vec3 velocity;
+    glm::vec3 gravity;
+    float damping;
+    QString updateScript;
 };
 
 const float DEFAULT_DAMPING = 0.99f;
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
+const QString DEFAULT_SCRIPT("");
 
 class Particle  {
     
 public:
     Particle();
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY);
+            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY, QString updateScript = DEFAULT_SCRIPT);
     
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD edit data buffer
     static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
     
     virtual ~Particle();
-    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, float damping, glm::vec3 gravity);
+    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
+                            float damping, glm::vec3 gravity, QString updateScript);
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }
@@ -53,6 +58,7 @@ public:
     uint64_t getLastUpdated() const { return _lastUpdated; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
+    QString getUpdateScript() const { return _updateScript; }
 
     void setPosition(const glm::vec3& value) { _position = value; }
     void setVelocity(const glm::vec3& value) { _velocity = value; }
@@ -66,6 +72,7 @@ public:
     void setGravity(const glm::vec3& value) { _gravity = value; }
     void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
+    void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
 
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -75,14 +82,14 @@ public:
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     void update();
-    void runScript();
 
+protected:
+    void runScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
     static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
     static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
     static void xColorFromScriptValue(const QScriptValue &object, xColor& color);
     
-protected:
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
@@ -91,9 +98,9 @@ protected:
     uint32_t _id;
     static uint32_t _nextID;
     bool _shouldDie;
-
     glm::vec3 _gravity;
     float _damping;
+    QString _updateScript;
 };
 
 class ParticleScriptObject  : public QObject {

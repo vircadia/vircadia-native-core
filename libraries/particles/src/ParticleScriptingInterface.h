@@ -24,23 +24,9 @@ public:
     JurisdictionListener* getJurisdictionListener() { return &_jurisdictionListener; }
 public slots:
     /// queues the creation of a Particle which will be sent by calling process on the PacketSender
-    /// \param x the x-coordinate of the particle (in VS space)
-    /// \param y the y-coordinate of the particle (in VS space)
-    /// \param z the z-coordinate of the particle (in VS space)
-    /// \param scale the scale of the particle (in VS space)
-    /// \param red the R value for RGB color of particle
-    /// \param green the G value for RGB color of particle
-    /// \param blue the B value for RGB color of particle
-    void queueParticleAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue, 
-                            float vx, float vy, float vz);
+    void queueParticleAdd(glm::vec3 position, float radius, 
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, QString updateScript);
     
-    /// queues the deletion of a particle, sent by calling process on the PacketSender
-    /// \param x the x-coordinate of the particle (in VS space)
-    /// \param y the y-coordinate of the particle (in VS space)
-    /// \param z the z-coordinate of the particle (in VS space)
-    /// \param scale the scale of the particle (in VS space)
-    void queueParticleDelete(float x, float y, float z, float scale);
-
     /// Set the desired max packet size in bytes that should be created
     void setMaxPacketSize(int maxPacketSize) { return _particlePacketSender.setMaxPacketSize(maxPacketSize); }
 
