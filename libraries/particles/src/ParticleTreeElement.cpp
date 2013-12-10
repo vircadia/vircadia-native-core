@@ -60,10 +60,13 @@ bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const 
 }
 
 void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
+    markWithChangedTime();
+
     // update our contained particles
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         _particles[i].update();
+
         // what if this update moves the particle to a new element??
         if (!_box.contains(_particles[i].getPosition())) {
         

@@ -7,6 +7,9 @@
 //
 //
 
+#include <QtScript/QScriptEngine>
+#include <QtCore/QObject>
+
 #include <SharedUtil.h> // usecTimestampNow()
 
 #include "Particle.h"
@@ -211,9 +214,115 @@ void Particle::update() {
     //printf("velocity=%f, %f, %f\n", getVelocity().x, getVelocity().y, getVelocity().z);
     
     _position += _velocity * timeElapsed;
+    
+    float gravity = -9.8f / TREE_SCALE;
+
+    glm::vec3 velocity = getVelocity() * (float)TREE_SCALE;
+    //printf("OLD velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
+
+    // handle bounces off the ground...
+    if (_position.y <= 0) {
+        _velocity = _velocity * glm::vec3(1,-1,1);
+        
+        velocity = getVelocity() * (float)TREE_SCALE;
+        //printf("NEW from ground BOUNCE velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
+        
+        _position.y = 0;
+    }
+
+    // handle gravity....
+    _velocity += glm::vec3(0,gravity,0) * timeElapsed;
+    velocity = getVelocity() * (float)TREE_SCALE;
+    //printf("NEW from gravity.... velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
+
+    // handle air resistance....
+    glm::vec3 airResistance = _velocity * glm::vec3(-0.25,-0.25,-0.25);
+    _velocity += airResistance * timeElapsed;
+
+    velocity = getVelocity() * (float)TREE_SCALE;
+    //printf("NEW from air resistance.... velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
 
     position = getPosition() * (float)TREE_SCALE;
     //printf("NEW position=%f, %f, %f\n", position.x, position.y, position.z);
+
+    runScript(); // test this...
+
+    position = getPosition() * (float)TREE_SCALE;
+    //printf("AFTER SCRIPT NEW position=%f, %f, %f\n", position.x, position.y, position.z);
+
     _lastUpdated = now;
 }
 
+Q_DECLARE_METATYPE(glm::vec3);
+Q_DECLARE_METATYPE(xColor);
+
+QScriptValue Particle::vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", vec3.x);
+    obj.setProperty("y", vec3.y);
+    obj.setProperty("z", vec3.z);
+    return obj;
+}
+
+void Particle::vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
+    vec3.x = object.property("x").toVariant().toFloat();
+    vec3.y = object.property("y").toVariant().toFloat();
+    vec3.z = object.property("z").toVariant().toFloat();
+}
+
+QScriptValue Particle::xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("red", color.red);
+    obj.setProperty("green", color.green);
+    obj.setProperty("blue", color.blue);
+    return obj;
+}
+
+void Particle::xColorFromScriptValue(const QScriptValue &object, xColor& color) {
+    color.red = object.property("red").toVariant().toInt();
+    color.green = object.property("green").toVariant().toInt();
+    color.blue = object.property("blue").toVariant().toInt();
+}
+
+void Particle::runScript() {
+    QString scriptContents(""
+        //"print(\"hello world\\n\");\n"
+        //"var position = Particle.getPosition();\n"
+        //"print(\"position.x=\" + position.x + \"\\n\");\n"
+        //"position.x = position.x * 0.9;\n"
+        //"Particle.setPosition(position);\n"
+        //"print(\"position.x=\" + position.x + \"\\n\");\n"
+        //"var color = Particle.getColor();\n"
+        //"color.red = color.red - 1;\n"
+        //"if (color.red < 10) { color.red = 255; }\n"
+        //"Particle.setColor(color);\n"
+        //"print(\"position=\" + position.x + \",\" +  position.y + \",\" +  position.z + \"\\n\");\n"
+    );
+    QScriptEngine engine;
+    
+    // register meta-type for glm::vec3 and rgbColor conversions
+    qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+    qScriptRegisterMetaType(&engine, xColorToScriptValue, xColorFromScriptValue);
+    
+    ParticleScriptObject particleScriptable(this);
+    QScriptValue particleValue = engine.newQObject(&particleScriptable);
+    engine.globalObject().setProperty("Particle", particleValue);
+    
+    //QScriptValue voxelScripterValue =  engine.newQObject(&_voxelScriptingInterface);
+    //engine.globalObject().setProperty("Voxels", voxelScripterValue);
+
+    //QScriptValue particleScripterValue =  engine.newQObject(&_particleScriptingInterface);
+    //engine.globalObject().setProperty("Particles", particleScripterValue);
+    
+    QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
+    engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
+    
+    //qDebug() << "Downloaded script:" << scriptContents << "\n";
+    QScriptValue result = engine.evaluate(scriptContents);
+    //qDebug() << "Evaluated script.\n";
+    
+    if (engine.hasUncaughtException()) {
+        int line = engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+    }
+}

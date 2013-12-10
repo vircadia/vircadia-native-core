@@ -21,7 +21,9 @@ ParticleTreeRenderer::~ParticleTreeRenderer() {
 void ParticleTreeRenderer::update() {
     if (_tree) {
         ParticleTree* tree = (ParticleTree*)_tree;
+        _tree->lockForWrite();
         tree->update();
+        _tree->unlock();
     }
 }
 
@@ -36,11 +38,6 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element) {
     
     bool drawAsSphere = true;
     
-    if (!drawAsSphere) {
-        glPointSize(20.0f);
-        glBegin(GL_POINTS);
-    }
-    
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle& particle = particles[i];
         // render particle aspoints
@@ -49,18 +46,18 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element) {
         glColor3ub(particle.getColor()[RED_INDEX],particle.getColor()[GREEN_INDEX],particle.getColor()[BLUE_INDEX]);
         
         //printf("particle at... (%f, %f, %f)\n", position.x, position.y, position.z);
+        float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
         
         if (drawAsSphere) {
-            float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
             glPushMatrix();
                 glTranslatef(position.x, position.y, position.z);
                 glutSolidSphere(sphereRadius, 15, 15);
             glPopMatrix();
         } else {
+            glPointSize(sphereRadius);
+            glBegin(GL_POINTS);
             glVertex3f(position.x, position.y, position.z);
+            glEnd();
         }
-    }
-    if (!drawAsSphere) {
-        glEnd();
     }
 }

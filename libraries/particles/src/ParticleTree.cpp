@@ -74,14 +74,25 @@ bool ParticleTree::updateOperation(OctreeElement* element, void* extraData) {
 }
 
 void ParticleTree::update() {
+    _isDirty = true;
+
     ParticleTreeUpdateArgs args = { };
     recurseTreeWithOperation(updateOperation, &args);
     
     // now add back any of the particles that moved elements....
     int movingParticles = args._movingParticles.size();
     for (int i = 0; i < movingParticles; i++) {
-        printf("re-storing moved particle...\n");
-        storeParticle(args._movingParticles[i]);
+        // if the particle is still inside our total bounds, then re-add it
+        AABox treeBounds = getRoot()->getAABox();
+        float velocityScalar = glm::length(args._movingParticles[i].getVelocity());
+        const float STILL_MOVING = 0.0001;
+        
+        if (velocityScalar > STILL_MOVING && treeBounds.contains(args._movingParticles[i].getPosition())) {
+            printf("re-storing moved particle...\n");
+            storeParticle(args._movingParticles[i]);
+        } else {
+            printf("out of bounds or !velocityScalar=[%f], not re-storing moved particle...\n",velocityScalar);
+        }
     }
 }
 

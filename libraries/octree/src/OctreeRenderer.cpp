@@ -126,7 +126,8 @@ public:
 
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    if (true || element->isInView(*args->_viewFrustum)) {
+    //if (true || element->isInView(*args->_viewFrustum)) {
+    if (element) {
         if (element->hasContent()) {
             args->_renderer->renderElement(element);
         }
@@ -139,6 +140,8 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 void OctreeRenderer::render() {
     RenderArgs args = { this, _viewFrustum };
     if (_tree) {
+        _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
+        _tree->unlock();
     }
 }

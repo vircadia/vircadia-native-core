@@ -64,8 +64,12 @@ bool OctreePersistThread::process() {
     
     if (isStillRunning()) {
         uint64_t MSECS_TO_USECS = 1000;
-        uint64_t USECS_TO_SLEEP = 100 * MSECS_TO_USECS; // every 100ms
+        uint64_t USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
         usleep(USECS_TO_SLEEP);
+        
+        // do our updates then check to save...
+        _tree->update();
+        
         uint64_t now = usecTimestampNow();
         uint64_t sinceLastSave = now - _lastCheck;
         uint64_t intervalToCheck = _persistInterval * MSECS_TO_USECS;

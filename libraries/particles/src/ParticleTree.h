@@ -37,7 +37,7 @@ public:
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength);
 
-    void update();    
+    virtual void update();    
 private:
     void storeParticle(const Particle& particle);
 

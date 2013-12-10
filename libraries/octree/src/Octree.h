@@ -187,6 +187,9 @@ public:
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength) { return 0; }
 
+
+    virtual void update() { }; // nothing to do by default
+
     OctreeElement* getRoot() { return _rootNode; }
 
     void eraseAllOctreeElements();
