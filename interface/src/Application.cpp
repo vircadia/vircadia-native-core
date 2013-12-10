@@ -3015,7 +3015,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         // render particles...
-        //printf("_particles.render()...\n");
         _particles.render();
     
         // restore default, white specular
@@ -4277,7 +4276,6 @@ void* Application::networkReceive(void* args) {
                         DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
                         break;
                     default:
-                        //printf("message: '%c'  \n",app->_incomingPacket[0]);
                         NodeList::getInstance()->processNodeData(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                 }
