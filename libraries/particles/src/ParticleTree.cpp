@@ -66,20 +66,23 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
 }
 
 
-class UpdateArgs {
-public:
-};
-
 bool ParticleTree::updateOperation(OctreeElement* element, void* extraData) {
-    UpdateArgs* args = static_cast<UpdateArgs*>(extraData);
+    ParticleTreeUpdateArgs* args = static_cast<ParticleTreeUpdateArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-    particleTreeElement->update();
+    particleTreeElement->update(*args);
     return true;
 }
 
 void ParticleTree::update() {
-    UpdateArgs args = { };
+    ParticleTreeUpdateArgs args = { };
     recurseTreeWithOperation(updateOperation, &args);
+    
+    // now add back any of the particles that moved elements....
+    int movingParticles = args._movingParticles.size();
+    for (int i = 0; i < movingParticles; i++) {
+        printf("re-storing moved particle...\n");
+        storeParticle(args._movingParticles[i]);
+    }
 }
 
 

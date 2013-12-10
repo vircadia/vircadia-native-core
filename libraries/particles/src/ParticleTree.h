@@ -12,6 +12,13 @@
 #include <Octree.h>
 #include "ParticleTreeElement.h"
 
+class ParticleTreeUpdateArgs {
+public:
+    std::vector<Particle> _movingParticles;
+};
+
+
+
 class ParticleTree : public Octree {
     Q_OBJECT
 public:

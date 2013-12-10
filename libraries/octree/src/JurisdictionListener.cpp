@@ -24,7 +24,7 @@ JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* n
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addHook(this);
 
-qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
+    //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
 
 }
 
@@ -44,7 +44,7 @@ void JurisdictionListener::nodeKilled(Node* node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
-qDebug() << "JurisdictionListener::queueJurisdictionRequest()\n";
+    //qDebug() << "JurisdictionListener::queueJurisdictionRequest()\n";
 
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
@@ -54,7 +54,7 @@ qDebug() << "JurisdictionListener::queueJurisdictionRequest()\n";
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
     
-qDebug() << "Hello..." << *node << "\n";
+        //qDebug() << "Hello..." << *node << "\n";
     
         if (nodeList->getNodeActiveSocketOrPing(&(*node)) && 
             node->getType() == getNodeType()) {

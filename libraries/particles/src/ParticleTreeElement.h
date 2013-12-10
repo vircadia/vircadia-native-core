@@ -15,9 +15,11 @@
 #include <OctreeElement.h>
 
 #include "Particle.h"
+#include "ParticleTree.h"
 
 class ParticleTree;
 class ParticleTreeElement;
+class ParticleTreeUpdateArgs;
 
 class ParticleTreeElement : public OctreeElement {
     friend class ParticleTree; // to allow createElement to new us...
@@ -71,7 +73,7 @@ public:
 
     const std::vector<Particle>& getParticles() const { return _particles; }
     
-    void update();
+    void update(ParticleTreeUpdateArgs& args);
 
 protected:
     void storeParticle(const Particle& particle);
