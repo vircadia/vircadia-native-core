@@ -32,9 +32,6 @@ void ParticleTree::storeParticle(const Particle& particle) {
     float size = particle.getRadius();
     ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
-    //printf("ParticleTree::storeParticle() element=%p particle.getPosition()=%f,%f,%f\n", 
-    //        element, particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
-
     element->storeParticle(particle);
     
     // what else do we need to do here to get reaveraging to work
@@ -48,13 +45,8 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     // we handle these types of "edit" packets
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD: {
-        
-            //printf("got PACKET_TYPE_PARTICLE_ADD....\n");
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
-
-            //printf("newParticle...getPosition()=%f,%f,%f\n", newParticle.getPosition().x, newParticle.getPosition().y, newParticle.getPosition().z);
             storeParticle(newParticle);
-
             // It seems like we need some way to send the ID back to the creator??
         } break;
             
@@ -88,10 +80,7 @@ void ParticleTree::update() {
         AABox treeBounds = getRoot()->getAABox();
         
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
-            printf("re-storing moved particle...\n");
             storeParticle(args._movingParticles[i]);
-        } else {
-            printf(">>>>>>>>>>>>>>>>>>>> out of bounds or shouldDie, not re-storing moved particle...\n");
         }
     }
 }
