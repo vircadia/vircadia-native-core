@@ -2605,7 +2605,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType) {
         return;
     }
     
-    bool wantExtraDebugging = true; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
