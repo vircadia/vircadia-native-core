@@ -23,12 +23,6 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <arpa/inet.h>
-#endif
-
 const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
     NODE_TYPE_AUDIO_MIXER
@@ -36,9 +30,6 @@ const char SOLO_NODE_TYPES[2] = {
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
-
-bool silentNodeThreadStopFlag = false;
-bool pingUnknownNodeThreadStopFlag = false;
 
 NodeList* NodeList::_sharedInstance = NULL;
 
@@ -83,9 +74,6 @@ NodeList::~NodeList() {
     delete _nodeTypesOfInterest;
     
     clear();
-    
-    // stop the spawned threads, if they were started
-    stopSilentNodeRemovalThread();
 }
 
 void NodeList::setDomainHostname(const QString& domainHostname) {
@@ -799,56 +787,6 @@ void NodeList::removeSilentNodes() {
         }
         
         node->unlock();
-    }
-}
-
-void* removeSilentNodesAndSleep(void *args) {
-    NodeList* nodeList = (NodeList*) args;
-    uint64_t checkTimeUsecs = 0;
-    int sleepTime = 0;
-    
-    while (!::silentNodeThreadStopFlag) {
-        
-        checkTimeUsecs = usecTimestampNow();
-        
-        nodeList->removeSilentNodes();
-        
-        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
-        
-        #ifdef _WIN32
-        
-        Sleep( static_cast<int>(1000.0f*sleepTime) );
-        
-        #else
-        
-        if (sleepTime > 0) {
-            usleep(sleepTime);
-        }
-        
-        #endif
-    }
-    
-    pthread_exit(0);
-    return NULL;
-}
-
-void NodeList::startSilentNodeRemovalThread() {
-    if (!::silentNodeThreadStopFlag) {
-        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodesAndSleep, (void*) this);
-    } else {
-        qDebug("Refusing to start silent node removal thread from previously failed join.\n");
-    }
-   
-}
-
-void NodeList::stopSilentNodeRemovalThread() {
-    ::silentNodeThreadStopFlag = true;
-    int joinResult = pthread_join(removeSilentNodesThread, NULL);
-    
-    if (joinResult == 0) {
-        ::silentNodeThreadStopFlag = false;
-    } else {
-        qDebug("Silent node removal thread join failed with %d. Will not restart.\n", joinResult);
     }
 }
 

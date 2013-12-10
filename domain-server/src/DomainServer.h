@@ -50,8 +50,6 @@ private:
                                             const QUuid& checkInUUI);
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
-    void cleanup();
-    
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
     
     QMutex _assignmentQueueMutex;
@@ -69,6 +67,7 @@ private:
 private slots:
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();
+    void cleanup();
 };
 
 #endif /* defined(__hifi__DomainServer__) */

@@ -61,6 +61,7 @@ void SkeletonModel::simulate(float deltaTime) {
 }
 
 bool SkeletonModel::render(float alpha) {
+
     if (_jointStates.isEmpty()) {
         return false;
     }

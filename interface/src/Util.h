@@ -77,8 +77,6 @@ void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS);
 
 void renderCollisionOverlay(int width, int height, float magnitude);
 
-void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
-
 void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );
 
 void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition);
