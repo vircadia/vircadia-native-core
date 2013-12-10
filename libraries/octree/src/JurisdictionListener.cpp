@@ -53,9 +53,6 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-    
-        //qDebug() << "Hello..." << *node << "\n";
-    
         if (nodeList->getNodeActiveSocketOrPing(&(*node)) && 
             node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();
