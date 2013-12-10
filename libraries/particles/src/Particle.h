@@ -27,27 +27,32 @@ public:
     glm::vec3 velocity;
 };
 
+const float DEFAULT_DAMPING = 0.99f;
+const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 
 class Particle  {
     
 public:
     Particle();
-    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity);
+    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
+            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY);
     
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD edit data buffer
     static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
     
     virtual ~Particle();
-    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity);
+    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, float damping, glm::vec3 gravity);
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }
     xColor getColor() { return { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; }
-
     float getRadius() const { return _radius; }
     const glm::vec3& getVelocity() const { return _velocity; }
+    const glm::vec3& getGravity() const { return _gravity; }
+    float getDamping() const { return _damping; }
     uint64_t getLastUpdated() const { return _lastUpdated; }
     uint32_t getID() const { return _id; }
+    bool getShouldDie() const { return _shouldDie; }
 
     void setPosition(const glm::vec3& value) { _position = value; }
     void setVelocity(const glm::vec3& value) { _velocity = value; }
@@ -57,6 +62,10 @@ public:
             _color[GREEN_INDEX] = value.green; 
             _color[BLUE_INDEX] = value.blue; 
     }
+    void setRadius(float value) { _radius = value; }
+    void setGravity(const glm::vec3& value) { _gravity = value; }
+    void setDamping(float value) { _damping = value; }
+    void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
 
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -81,6 +90,10 @@ protected:
     uint64_t _lastUpdated;
     uint32_t _id;
     static uint32_t _nextID;
+    bool _shouldDie;
+
+    glm::vec3 _gravity;
+    float _damping;
 };
 
 class ParticleScriptObject  : public QObject {
@@ -92,10 +105,16 @@ public slots:
     glm::vec3 getPosition() const { return _particle->getPosition(); }
     glm::vec3 getVelocity() const { return _particle->getVelocity(); }
     xColor getColor() const { return _particle->getColor(); }
+    glm::vec3 getGravity() const { return _particle->getGravity(); }
+    float getDamping() const { return _particle->getDamping(); }
+    float getRadius() const { return _particle->getRadius(); }
 
     void setPosition(glm::vec3 value) { return _particle->setPosition(value); }
     void setVelocity(glm::vec3 value) { return _particle->setVelocity(value); }
+    void setGravity(glm::vec3 value) { return _particle->setGravity(value); }
+    void setDamping(float value) { return _particle->setDamping(value); }
     void setColor(xColor value) { return _particle->setColor(value); }
+    void setRadius(float value) { return _particle->setRadius(value); }
 
 private:
     Particle* _particle;

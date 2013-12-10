@@ -67,28 +67,31 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         _particles[i].update();
 
-        // what if this update moves the particle to a new element??
-        if (!_box.contains(_particles[i].getPosition())) {
+        // If the particle wants to die, or if it's left our bounding box, then move it
+        // into the arguments moving particles. These will be added back or deleted completely
+        if (_particles[i].getShouldDie() || !_box.contains(_particles[i].getPosition())) {
         
             glm::vec3 position = _particles[i].getPosition() * (float)TREE_SCALE;
             glm::vec3 boxBRN =_box.getCorner() * (float)TREE_SCALE;
             glm::vec3 boxTLF =_box.calcTopFarLeft() * (float)TREE_SCALE;
             
+            /**
             printf("particle [%f,%f,%f] no longer contained in ParticleTreeElement() box [%f,%f,%f] -> [%f,%f,%f]\n",
                 position.x, position.y, position.z, 
                 boxBRN.x, boxBRN.y, boxBRN.z,
                 boxTLF.x, boxTLF.y, boxTLF.z);
+            **/
                 
             args._movingParticles.push_back(_particles[i]);
             
             // erase this particle
             _particles.erase(_particles.begin()+i);
-            printf("removed particle[%d]\n",i);
+            //printf("removed particle[%d]\n",i);
             
             // reduce our index since we just removed this item
             i--;
             numberOfParticles--;
-            printf("numberOfParticles=%d]\n",numberOfParticles);
+            //printf("numberOfParticles=%d\n",numberOfParticles);
         }
     }
 }
@@ -145,8 +148,10 @@ void ParticleTreeElement::storeParticle(const Particle& particle) {
 
     markWithChangedTime();
 
-printf("ParticleTreeElement::storeParticle() element=%p _particles.size()=%ld particle.getPosition()=%f,%f,%f\n", 
+    /***
+    printf("ParticleTreeElement::storeParticle() element=%p _particles.size()=%ld particle.getPosition()=%f,%f,%f\n", 
         this, _particles.size(),
         particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
+    **/
 }
 

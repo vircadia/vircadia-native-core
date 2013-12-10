@@ -17,19 +17,19 @@
 uint32_t Particle::_nextID = 0;
 
 
-Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity) {
-    init(position, radius, color, velocity);
+Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, float damping, glm::vec3 gravity) {
+    init(position, radius, color, velocity, damping, gravity);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0));
+    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY);
 }
 
 Particle::~Particle() {
 }
 
-void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity) {
+void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, float damping, glm::vec3 gravity) {
     _id = _nextID;
     _nextID++;
     _lastUpdated = usecTimestampNow();
@@ -38,6 +38,8 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _radius = radius;
     memcpy(_color, color, sizeof(_color));
     _velocity = velocity;
+    _damping = damping;
+    _gravity = gravity;
 }
 
 
@@ -45,7 +47,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
     bool success = packetData->appendValue(getID());
 
-printf("Particle::appendParticleData()... getID()=%d\n", getID());
+    //printf("Particle::appendParticleData()... getID()=%d\n", getID());
 
     if (success) {
         success = packetData->appendValue(getLastUpdated());
@@ -62,12 +64,19 @@ printf("Particle::appendParticleData()... getID()=%d\n", getID());
     if (success) {
         success = packetData->appendValue(getVelocity());
     }
+    if (success) {
+        success = packetData->appendValue(getGravity());
+    }
+    if (success) {
+        success = packetData->appendValue(getDamping());
+    }
     return success;
 }
 
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(float) + 
-                        sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3);
+                        sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3) +
+                        sizeof(glm::vec3) + sizeof(float);
     return expectedBytes;
 }
 
@@ -99,6 +108,14 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         // velocity
         memcpy(&_velocity, dataAt, sizeof(_velocity));
         dataAt += sizeof(_velocity);
+
+        // gravity
+        memcpy(&_gravity, dataAt, sizeof(_gravity));
+        dataAt += sizeof(_gravity);
+
+        // damping
+        memcpy(&_damping, dataAt, sizeof(_damping));
+        dataAt += sizeof(_damping);
     
         bytesRead = expectedBytes();
     }
@@ -201,54 +218,29 @@ void Particle::update() {
     uint64_t now = usecTimestampNow();
     uint64_t elapsed = now - _lastUpdated;
     uint64_t USECS_PER_SECOND = 1000 * 1000;
-    uint64_t USECS_PER_FIVE_SECONDS = 5 * USECS_PER_SECOND;
-    uint64_t USECS_PER_TEN_SECONDS = 10 * USECS_PER_SECOND;
-    uint64_t USECS_PER_THIRTY_SECONDS = 30 * USECS_PER_SECOND;
-    uint64_t USECS_PER_MINUTE = 60 * USECS_PER_SECOND;
-    uint64_t USECS_PER_HOUR = 60 * USECS_PER_MINUTE;
     float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
-    //printf("elapsed=%llu timeElapsed=%f\n", elapsed, timeElapsed);
-
-    glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    //printf("OLD position=%f, %f, %f\n", position.x, position.y, position.z);
-    //printf("velocity=%f, %f, %f\n", getVelocity().x, getVelocity().y, getVelocity().z);
     
+    // calculate our default shouldDie state... then allow script to change it if it wants...
+    float velocityScalar = glm::length(getVelocity());
+    const float STILL_MOVING = 0.05 / TREE_SCALE;
+    setShouldDie(velocityScalar < STILL_MOVING);
+
+    runScript(); // allow the javascript to alter our state
+
     _position += _velocity * timeElapsed;
     
-    float gravity = -9.8f / TREE_SCALE;
-
-    glm::vec3 velocity = getVelocity() * (float)TREE_SCALE;
-    //printf("OLD velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
-
     // handle bounces off the ground...
     if (_position.y <= 0) {
         _velocity = _velocity * glm::vec3(1,-1,1);
-        
-        velocity = getVelocity() * (float)TREE_SCALE;
-        //printf("NEW from ground BOUNCE velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
-        
         _position.y = 0;
     }
 
     // handle gravity....
-    _velocity += glm::vec3(0,gravity,0) * timeElapsed;
-    velocity = getVelocity() * (float)TREE_SCALE;
-    //printf("NEW from gravity.... velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
+    _velocity += _gravity * timeElapsed;
 
-    // handle air resistance....
-    glm::vec3 airResistance = _velocity * glm::vec3(-0.25,-0.25,-0.25);
-    _velocity += airResistance * timeElapsed;
-
-    velocity = getVelocity() * (float)TREE_SCALE;
-    //printf("NEW from air resistance.... velocity=%f, %f, %f\n", velocity.x, velocity.y, velocity.z);
-
-    position = getPosition() * (float)TREE_SCALE;
-    //printf("NEW position=%f, %f, %f\n", position.x, position.y, position.z);
-
-    runScript(); // test this...
-
-    position = getPosition() * (float)TREE_SCALE;
-    //printf("AFTER SCRIPT NEW position=%f, %f, %f\n", position.x, position.y, position.z);
+    // handle damping
+    glm::vec3 dampingResistance = _velocity * _damping;
+    _velocity -= dampingResistance * timeElapsed;
 
     _lastUpdated = now;
 }
@@ -286,6 +278,9 @@ void Particle::xColorFromScriptValue(const QScriptValue &object, xColor& color) 
 
 void Particle::runScript() {
     QString scriptContents(""
+        //"var myGravity = ((Math.random() * 20)-10) / TREE_SCALE;\n"
+        //"var myGravityVector = { x: myGravity, y: myGravity, z: myGravity };\n"
+        //"Particle.setGravity(myGravityVector);\n"
         //"print(\"hello world\\n\");\n"
         //"var position = Particle.getPosition();\n"
         //"print(\"position.x=\" + position.x + \"\\n\");\n"
