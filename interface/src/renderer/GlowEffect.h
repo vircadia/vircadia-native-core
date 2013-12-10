@@ -66,6 +66,7 @@ private:
     
     bool _isEmpty; ///< set when nothing in the scene is currently glowing
     bool _isOddFrame; ///< controls the alternation between texture targets in diffuse add mode
+    bool _isFirstFrame; ///< for persistent modes, notes whether this is the first frame rendered
     
     float _intensity;
     QStack<float> _intensityStack;

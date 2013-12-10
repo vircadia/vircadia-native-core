@@ -79,8 +79,10 @@ const int MIRROR_VIEW_TOP_PADDING = 5;
 const int MIRROR_VIEW_LEFT_PADDING = 10;
 const int MIRROR_VIEW_WIDTH = 265;
 const int MIRROR_VIEW_HEIGHT = 215;
-const float MAX_ZOOM_DISTANCE = 0.3f;
-const float MIN_ZOOM_DISTANCE = 2.0f;
+const float MIRROR_FULLSCREEN_DISTANCE = 0.2f;
+const float MIRROR_REARVIEW_DISTANCE = 0.3f;
+const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
+
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -376,11 +378,12 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        _myCamera.setDistance(MAX_ZOOM_DISTANCE);
-        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
+        float headHeight = _myAvatar.getHead().calculateAverageEyePosition().y - _myAvatar.getPosition().y;
+        _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar.getScale());
+        _myCamera.setTargetPosition(_myAvatar.getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
-    
+
     // Update camera position
     _myCamera.update( 1.f/_fps );
     
@@ -432,10 +435,10 @@ void Application::paintGL() {
             
             bool eyeRelativeCamera = false;
             if (_rearMirrorTools->getZoomLevel() == BODY) {
-                _mirrorCamera.setDistance(MIN_ZOOM_DISTANCE);
+                _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar.getScale());
                 _mirrorCamera.setTargetPosition(_myAvatar.getChestJointPosition());
             } else { // HEAD zoom level
-                _mirrorCamera.setDistance(MAX_ZOOM_DISTANCE);
+                _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar.getScale());
                 if (_myAvatar.getSkeletonModel().isActive() && _myAvatar.getHead().getFaceModel().isActive()) {
                     // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
                     // face/body so that the average eye position lies at the origin
@@ -1412,9 +1415,16 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     if (!avatar) {
         return;
     }
-    QDataStream in(QByteArray((char*)packetData, dataBytes));
-    QUrl voxelURL;
-    in >> voxelURL;
+    //  PER Note: message is no longer processed but used to trigger
+    //  Dataserver lookup - redesign this to instantly ask the
+    //  dataserver on first receipt of other avatar UUID, and also
+    //  don't ask over and over again.   Instead use this message to
+    //  Tell the other avatars that your dataserver data has
+    //  changed.
+    
+    //QDataStream in(QByteArray((char*)packetData, dataBytes));
+    //QUrl voxelURL;
+    //in >> voxelURL;
         
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
     DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
@@ -2553,6 +2563,11 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
+    const float AVATAR_URLS_SEND_INTERVAL = 1.0f;
+    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+        QUrl empty;
+        Avatar::sendAvatarURLsMessage(empty);
+    }
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -2980,6 +2995,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
     
+        // render the ambient occlusion effect if enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... AmbientOcclusion...");
+            _ambientOcclusionEffect.render();
+        }
+    
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
@@ -3061,13 +3083,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         //  Render the world box
         if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             renderWorldBox();
-        }
-    
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
         }
     
         // brad's frustum for debugging
