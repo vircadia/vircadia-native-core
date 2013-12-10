@@ -10,22 +10,68 @@
 
 AttributeRegistry AttributeRegistry::_instance;
 
-AttributeRegistry::AttributeRegistry() : _lastAttributeID(0) {
+AttributeRegistry::AttributeRegistry() {
+    registerAttribute(AttributePointer(new InlineAttribute<float, 32>("blerp")));
 }
 
-AttributeID AttributeRegistry::getAttributeID(const QString& name) {
-    AttributeID& id = _attributeIDs[name];
-    if (id == 0) {
-        id = ++_lastAttributeID;
-        _attributes.insert(id, Attribute(id, name));
+AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
+    AttributePointer& pointer = _attributes[attribute->getName()];
+    if (!pointer) {
+        pointer = attribute;
     }
-    return id;
+    return pointer;
 }
 
-Attribute AttributeRegistry::getAttribute(AttributeID id) const {
-    return _attributes.value(id);
-} 
-
-Attribute::Attribute(AttributeID id, const QString& name) :
-    _id(id), _name(name) {
+AttributeValue::AttributeValue(const AttributePointer& attribute, void* const* value) :
+        _attribute(attribute) {
+    
+    if (_attribute) {
+        _value = _attribute->create(value);
+    }
 }
+
+AttributeValue::AttributeValue(const AttributeValue& other) :
+        _attribute(other._attribute) {
+    
+    if (_attribute) {
+        _value = _attribute->create(&other._value);
+    }
+}
+
+AttributeValue::~AttributeValue() {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+}
+
+AttributeValue& AttributeValue::operator=(const AttributeValue& other) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    if ((_attribute = other._attribute)) {
+        _value = _attribute->create(&other._value);
+    }
+}
+
+void* AttributeValue::copy() const {
+    return _attribute->create(&_value);
+}
+
+bool AttributeValue::isDefault() const {
+    return !_attribute || _attribute->equal(_value, _attribute->getDefaultValue());
+}
+
+bool AttributeValue::operator==(const AttributeValue& other) const {
+    return _attribute == other._attribute && (!_attribute || _attribute->equal(_value, other._value));
+}
+
+bool AttributeValue::operator==(void* other) const {
+    return _attribute && _attribute->equal(_value, other);
+}
+
+Attribute::Attribute(const QString& name) : _name(name) {
+}
+
+Attribute::~Attribute() {
+}
+

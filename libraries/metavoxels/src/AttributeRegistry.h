@@ -10,11 +10,14 @@
 #define __interface__AttributeRegistry__
 
 #include <QHash>
+#include <QSharedPointer>
 #include <QString>
 
-typedef int AttributeID;
+#include "Bitstream.h"
 
 class Attribute;
+
+typedef QSharedPointer<Attribute> AttributePointer;
 
 /// Maintains information about metavoxel attribute types.
 class AttributeRegistry {
@@ -25,36 +28,103 @@ public:
     
     AttributeRegistry();
     
-    /// Returns a unique id for the described attribute, creating one if necessary.
-    AttributeID getAttributeID(const QString& name);
+    /// Registers an attribute with the system.
+    /// \return either the pointer passed as an argument, if the attribute wasn't already registered, or the existing
+    /// attribute
+    AttributePointer registerAttribute(AttributePointer attribute);
     
-    /// Returns the identified attribute, or an invalid attribute if not found.
-    Attribute getAttribute(AttributeID id) const;
+    /// Retrieves an attribute by name.
+    AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
     
 private:
 
     static AttributeRegistry _instance;
 
-    AttributeID _lastAttributeID;
-    QHash<QString, AttributeID> _attributeIDs;
-    QHash<AttributeID, Attribute> _attributes;    
+    QHash<QString, AttributePointer> _attributes;
+};
+
+/// Pairs an attribute value with its type.
+class AttributeValue {
+public:
+    
+    AttributeValue(const AttributePointer& attribute = AttributePointer(), void* const* value = NULL);
+    AttributeValue(const AttributeValue& other);
+    ~AttributeValue();
+    
+    AttributeValue& operator=(const AttributeValue& other);
+    
+    AttributePointer getAttribute() const { return _attribute; }
+    void* getValue() const { return _value; }
+    
+    void* copy() const;
+
+    bool isDefault() const;
+
+    bool operator==(const AttributeValue& other) const;
+    bool operator==(void* other) const;
+    
+private:
+    
+    AttributePointer _attribute;
+    void* _value;
 };
 
 /// Represents a registered attribute.
 class Attribute {
 public:
 
-    Attribute(AttributeID id = 0, const QString& name = QString());
+    Attribute(const QString& name);
+    virtual ~Attribute();
 
-    bool isValid() const { return !_name.isNull(); }
-
-    AttributeID getID() const { return _id; }
     const QString& getName() const { return _name; }
+
+    virtual void* create(void* const* copy = NULL) const = 0;
+    virtual void destroy(void* value) const = 0;
+
+    virtual bool read(Bitstream& in, void*& value) const = 0;
+    virtual bool write(Bitstream& out, void* value) const = 0;
+
+    virtual bool equal(void* first, void* second) const = 0;
+
+    virtual void* createAveraged(void* values[]) const = 0;
+
+    virtual void* getDefaultValue() const = 0;
 
 private:
 
-    AttributeID _id;
     QString _name;
 };
+
+/// A simple attribute class that stores its values inline.
+template<class T, int bits> class InlineAttribute : public Attribute {
+public:
+    
+    InlineAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(*(void**)&defaultValue) { }
+    
+    virtual void* create(void* const* copy = NULL) const { return (copy == NULL) ? _defaultValue : *copy; }
+    virtual void destroy(void* value) const { /* no-op */ }
+    
+    virtual bool read(Bitstream& in, void*& value) const { value = getDefaultValue(); in.read(&value, bits); return false; }
+    virtual bool write(Bitstream& out, void* value) const { out.write(&value, bits); return false; }
+
+    virtual bool equal(void* first, void* second) const { return first == second; }
+
+    virtual void* createAveraged(void* values[]) const;
+
+    virtual void* getDefaultValue() const { return _defaultValue; }
+
+private:
+    
+    void* _defaultValue;
+};
+
+template<class T, int bits> inline void* InlineAttribute<T, bits>::createAveraged(void* values[]) const {
+    T total = T();
+    for (int i = 0; i < 8; i++) {
+        total += *(T*)(values + i);
+    }
+    total /= 8;
+    return *(void**)&total;
+}
 
 #endif /* defined(__interface__AttributeRegistry__) */

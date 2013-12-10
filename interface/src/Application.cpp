@@ -1800,6 +1800,8 @@ void Application::init() {
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
+    _metavoxels.init();
+    
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);

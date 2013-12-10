@@ -55,9 +55,10 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/VoxelShader.h"
+#include "renderer/MetavoxelSystem.h"
 #include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
+#include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
@@ -344,6 +345,8 @@ private:
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
+    
+    MetavoxelSystem _metavoxels;
     
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
 
