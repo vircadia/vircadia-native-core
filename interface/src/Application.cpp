@@ -2665,16 +2665,8 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType) {
                 }
             }
         }
-
-//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
-//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
-
-
     }
 
-//qDebug("LINE:%d -- Servers: total %d, in view %d, unknown jurisdiction %d \n", 
-//    __LINE__, totalServers, inViewServers, unknownJurisdictionServers);
-    
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
             totalServers, inViewServers, unknownJurisdictionServers);
@@ -2784,10 +2776,6 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType) {
             endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
     
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
-
-
-//qDebug("LINE:%d -- nodeList->getNodeSocket().writeDatagram()... packetLength=%d \n", 
-//    __LINE__, packetLength);
 
             nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
                                                     node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
