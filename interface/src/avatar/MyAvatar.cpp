@@ -667,7 +667,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //  Add thrust and rotation from hand controllers
     const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD;
     const float JOYSTICK_YAW_MAG = YAW_MAG;
-    const float JOYSTICK_PITCH_MAG = PITCH_MAG;
+    const float JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5f;
     const int THRUST_CONTROLLER = 0;
     const int VIEW_CONTROLLER = 1;
     for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
@@ -677,7 +677,6 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
                 FingerData& finger = palm.getFingers()[0];
                 if (finger.isActive()) {
                 }
-                //glm::vec3 thrustDirection = glm::normalize(finger.getTipPosition() - palm.getPosition());
                 _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
             }
             if (palm.getJoystickX() != 0.f) {

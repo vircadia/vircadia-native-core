@@ -1504,18 +1504,7 @@ void Application::makeVoxel(glm::vec3 position,
     _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
                         voxel.red, voxel.green, voxel.blue,
                         isDestructive);
-    
-    // Implement voxel fade effect
-    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-    const float VOXEL_BOUNDS_ADJUST = 0.01f;
-    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
-    fade.voxelDetails.x = voxel.x - slightlyBigger;
-    fade.voxelDetails.y = voxel.y - slightlyBigger;
-    fade.voxelDetails.z = voxel.z - slightlyBigger;
-    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
-    _voxelFades.push_back(fade);
-    
-}
+   }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
