@@ -582,6 +582,7 @@ class ExtractedMesh {
 public:
     FBXMesh mesh;
     QMultiHash<int, int> newIndices;
+    QVector<QHash<int, int> > blendshapeIndexMaps;
 };
 
 class MeshData {
@@ -780,7 +781,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
-    QHash<QByteArray, QPair<int, float> > blendshapeIndices;
+    typedef QPair<int, float> WeightedIndex;
+    QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {
         QByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
         if (blendshapeName.isEmpty()) {
@@ -788,16 +790,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
         if (mappings.isEmpty()) {
-            blendshapeIndices.insert(blendshapeName, QPair<int, float>(i, 1.0f));
+            blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
         } else {
             foreach (const QVariant& mapping, mappings) {
                 QVariantList blendshapeMapping = mapping.toList();
                 blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(),
-                   QPair<int, float>(i, blendshapeMapping.at(1).toFloat()));
+                   WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
             }
         }
     }
-    QHash<QString, QPair<int, float> > blendshapeChannelIndices;
+    QMultiHash<QString, WeightedIndex> blendshapeChannelIndices;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -1033,7 +1035,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
-                        blendshapeChannelIndices.insert(getID(object.properties), blendshapeIndices.value(name));
+                        QString id = getID(object.properties);
+                        foreach (const WeightedIndex& index, blendshapeIndices.values(name)) {
+                            blendshapeChannelIndices.insert(id, index);
+                        }
                     }
                 }
             }
@@ -1059,20 +1064,30 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     // assign the blendshapes to their corresponding meshes
     foreach (const ExtractedBlendshape& extracted, blendshapes) {
         QString blendshapeChannelID = parentMap.value(extracted.id);
-        QPair<int, float> index = blendshapeChannelIndices.value(blendshapeChannelID);
         QString blendshapeID = parentMap.value(blendshapeChannelID);
         QString meshID = parentMap.value(blendshapeID);
         ExtractedMesh& extractedMesh = meshes[meshID];
-        extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
-        FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
-        for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
-            int oldIndex = extracted.blendshape.indices.at(i);
-            for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
-                    it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
-                blendshape.indices.append(it.value());
-                blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
-                blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
-            } 
+        foreach (const WeightedIndex& index, blendshapeChannelIndices.values(blendshapeChannelID)) {
+            extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
+            extractedMesh.blendshapeIndexMaps.resize(extractedMesh.mesh.blendshapes.size());
+            FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
+            QHash<int, int>& blendshapeIndexMap = extractedMesh.blendshapeIndexMaps[index.first];
+            for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
+                int oldIndex = extracted.blendshape.indices.at(i);
+                for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
+                        it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
+                    QHash<int, int>::iterator blendshapeIndex = blendshapeIndexMap.find(it.value());
+                    if (blendshapeIndex == blendshapeIndexMap.end()) {
+                        blendshapeIndexMap.insert(it.value(), blendshape.indices.size());
+                        blendshape.indices.append(it.value());
+                        blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
+                        blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+                    } else {
+                        blendshape.vertices[*blendshapeIndex] += extracted.blendshape.vertices.at(i) * index.second;
+                        blendshape.normals[*blendshapeIndex] += extracted.blendshape.normals.at(i) * index.second;
+                    }
+                } 
+            }
         }
     }
     

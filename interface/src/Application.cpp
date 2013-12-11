@@ -235,6 +235,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    // make sure we don't call the idle timer any more
+    delete idleTimer;
+
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();

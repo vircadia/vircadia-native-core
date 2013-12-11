@@ -263,6 +263,9 @@ bool Model::render(float alpha) {
     
     glDisable(GL_COLOR_MATERIAL);
     
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.5f);
+    
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
@@ -442,6 +445,8 @@ bool Model::render(float alpha) {
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    glDisable(GL_ALPHA_TEST);
     
     // bind with 0 to switch back to normal operation
     glBindBuffer(GL_ARRAY_BUFFER, 0);
