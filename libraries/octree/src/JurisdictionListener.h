@@ -26,7 +26,7 @@ public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
 
-    JurisdictionListener(PacketSenderNotify* notify = NULL);
+    JurisdictionListener(NODE_TYPE type = NODE_TYPE_VOXEL_SERVER, PacketSenderNotify* notify = NULL);
     ~JurisdictionListener();
     
     virtual bool process();
@@ -37,6 +37,9 @@ public:
     void nodeAdded(Node* node);
     /// Called by NodeList to inform us that a node has been killed.
     void nodeKilled(Node* node);
+
+    NODE_TYPE getNodeType() const { return _nodeType; }
+    void setNodeType(NODE_TYPE type) { _nodeType = type; }
 
 protected:
     /// Callback for processing of received packets. Will process any queued PACKET_TYPE_JURISDICTION and update the
@@ -49,6 +52,7 @@ protected:
 
 private:
     NodeToJurisdictionMap _jurisdictions;
+    NODE_TYPE _nodeType;
 
     bool queueJurisdictionRequest();
 };

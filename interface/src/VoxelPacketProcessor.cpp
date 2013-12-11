@@ -39,7 +39,7 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
     // then process any remaining bytes as if it was another packet
     if (packetData[0] == PACKET_TYPE_OCTREE_STATS) {
     
-        int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderSockAddr);
+        int statsMessageLength = app->parseOctreeStats(packetData, messageLength, senderSockAddr);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             packetData += statsMessageLength;
@@ -58,7 +58,10 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
         
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (voxelServer && *voxelServer->getActiveSocket() == senderSockAddr) {
-            if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+            if (packetData[0] == PACKET_TYPE_PARTICLE_DATA) {
+                //printf("VoxelPacketProcessor::processPacket().... got PACKET_TYPE_PARTICLE_DATA\n");
+                app->_particles.processDatagram(QByteArray((char*) packetData, messageLength), senderSockAddr);
+            } else if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                 app->_environment.parseData(senderSockAddr, packetData, messageLength);
             } else {
                 app->_voxels.setDataSourceUUID(voxelServer->getUUID());

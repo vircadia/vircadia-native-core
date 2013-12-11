@@ -9,11 +9,106 @@
 #include "ParticleTree.h"
 
 ParticleTree::ParticleTree(bool shouldReaverage) : Octree(shouldReaverage) {
-    _rootNode = createNewElement();
+    ParticleTreeElement* rootNode = createNewElement();
+    rootNode->setTree(this);
+    _rootNode = rootNode;
 }
 
 ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) const {
     ParticleTreeElement* newElement = new ParticleTreeElement(octalCode); 
     return newElement;
 }
+
+bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_PARTICLE_ADD:
+        case PACKET_TYPE_PARTICLE_ERASE:
+            return true;
+    }
+    return false;
+}
+
+
+class FindAndUpdateParticleArgs {
+public:
+    const Particle& searchParticle;
+    bool found;
+};
+    
+bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
+    FindAndUpdateParticleArgs* args = static_cast<FindAndUpdateParticleArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    if (particleTreeElement->containsParticle(args->searchParticle)) {
+        particleTreeElement->updateParticle(args->searchParticle);
+        args->found = true;
+        return false; // stop searching
+    }
+    return true;
+}
+
+void ParticleTree::storeParticle(const Particle& particle) {
+    // First, look for the existing particle in the tree..
+    FindAndUpdateParticleArgs args = { particle, false };
+    recurseTreeWithOperation(findAndUpdateOperation, &args);
+    
+    // if we didn't find it in the tree, then store it...
+    if (!args.found) {
+        glm::vec3 position = particle.getPosition();
+        float size = particle.getRadius();
+        ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+
+        element->storeParticle(particle);
+    }    
+    // what else do we need to do here to get reaveraging to work
+    _isDirty = true;
+}
+
+int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
+                    unsigned char* editData, int maxLength) {
+
+    int processedBytes = 0;
+    // we handle these types of "edit" packets
+    switch (packetType) {
+        case PACKET_TYPE_PARTICLE_ADD: {
+            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
+            storeParticle(newParticle);
+            // It seems like we need some way to send the ID back to the creator??
+        } break;
+            
+        case PACKET_TYPE_PARTICLE_ERASE: {
+            processedBytes = 0;
+        } break;
+    }
+    return processedBytes;
+}
+
+
+bool ParticleTree::updateOperation(OctreeElement* element, void* extraData) {
+    ParticleTreeUpdateArgs* args = static_cast<ParticleTreeUpdateArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    particleTreeElement->update(*args);
+    return true;
+}
+
+void ParticleTree::update() {
+    _isDirty = true;
+
+    ParticleTreeUpdateArgs args = { };
+    recurseTreeWithOperation(updateOperation, &args);
+    
+    // now add back any of the particles that moved elements....
+    int movingParticles = args._movingParticles.size();
+    for (int i = 0; i < movingParticles; i++) {
+        bool shouldDie = args._movingParticles[i].getShouldDie();
+
+        // if the particle is still inside our total bounds, then re-add it
+        AABox treeBounds = getRoot()->getAABox();
+        
+        if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
+            storeParticle(args._movingParticles[i]);
+        }
+    }
+}
+
 

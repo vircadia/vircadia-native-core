@@ -16,6 +16,8 @@
 #include <QtCore/QString>
 #include <QtCore/QUuid>
 
+#include <NodeTypes.h>
+
 class JurisdictionMap {
 public:
     enum Area {
@@ -25,7 +27,7 @@ public:
     };
     
     // standard constructors
-    JurisdictionMap(); // default constructor
+    JurisdictionMap(NODE_TYPE type = NODE_TYPE_VOXEL_SERVER); // default constructor
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
 
     // standard assignment
@@ -58,9 +60,12 @@ public:
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
     
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
-    static int packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    static int packEmptyJurisdictionIntoMessage(NODE_TYPE type, unsigned char* destinationBuffer, int availableBytes);
 
     void displayDebugDetails() const;
+    
+    NODE_TYPE getNodeType() const { return _nodeType; }
+    void setNodeType(NODE_TYPE type) { _nodeType = type; }
     
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
@@ -69,6 +74,7 @@ private:
 
     unsigned char* _rootOctalCode;
     std::vector<unsigned char*> _endNodes;
+    NODE_TYPE _nodeType;
 };
 
 /// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
