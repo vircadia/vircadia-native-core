@@ -252,7 +252,6 @@ void Audio::handleAudioInput() {
     QByteArray inputByteArray = _inputDevice->readAll();
     
     int numResampledBytes =  inputByteArray.size() / (_numInputCallbackBytes / BUFFER_LENGTH_BYTES_PER_CHANNEL);
-    qDebug() << "NSB:" << numResampledBytes << "\n";
     
     // zero out the monoAudioSamples array
     memset(monoAudioSamples, 0, numResampledBytes);
