@@ -19,6 +19,8 @@
 
 using namespace std;
 
+const int TOY_BALL_HAND = 1;
+
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
     
@@ -30,7 +32,8 @@ Hand::Hand(Avatar* owningAvatar) :
     _collisionDuration(0),
     _toyBallPosition(0),
     _toyBallVelocity(0),
-    _toyBallInHand(false)
+    _toyBallInHand(false),
+    _pitchUpdate(0)
  {
 }
 
@@ -77,7 +80,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 //  Toy ball game
-                if (palm.getSixenseID() == 0) {
+                if (palm.getSixenseID() == TOY_BALL_HAND) {
                     if (palm.getControllerButtons() & BUTTON_FWD) {
                         //  If grabbing toy ball, add forces to it
                         if (!_toyBallInHand) {
@@ -97,9 +100,11 @@ void Hand::simulate(float deltaTime, bool isMine) {
                         //  If toy ball just released, add velocity to it!
                         if (_toyBallInHand) {
                             _toyBallInHand = false;
-                            glm::vec3 handVelocity = palm.getVelocity();
-                            printVector(handVelocity);
-                            _toyBallVelocity += handVelocity;
+                            glm::vec3 handVelocity = palm.getRawVelocity();
+                            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
+                            glm::quat avatarRotation = _owningAvatar->getOrientation();
+                            //printVector(avatarRotation * handVelocity);
+                            _toyBallVelocity += avatarRotation * fingerTipVelocity;
                         }
                     }
                     //  Simulate toy ball
@@ -211,7 +216,7 @@ void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPositi
     const float DECAY_PER_SAMPLE = 0.0005f;
     const float DURATION_MAX = 2.0f;
     const float MIN_VOLUME = 0.1f;
-    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getVelocity()), 0.f, (1.f - MIN_VOLUME));
+    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getRawVelocity()), 0.f, (1.f - MIN_VOLUME));
     float duration = volume;
     _collisionCenter = fingerTipPosition;
     _collisionAge = deltaTime;
@@ -296,9 +301,10 @@ void Hand::render( bool isMine) {
     //  Render toy ball
     if (isMine) {
         glPushMatrix();
-        glColor4f(1, 0, 0, 0.5);
+        const float TOY_BALL_RADIUS = 0.05f;
+        glColor3f(1, 0, 0);
         glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
-        glutSolidSphere(0.1f, 10, 10);
+        glutSolidSphere(TOY_BALL_RADIUS, 10, 10);
         glPopMatrix();
     }
     
@@ -315,47 +321,8 @@ void Hand::render( bool isMine) {
                 _collisionAge = 0.f;
             }
         }
-
-        //  If hand controller buttons pressed, render stuff as needed
-        if (getPalms().size() > 0) {
-            for (size_t i = 0; i < getPalms().size(); ++i) {
-                PalmData& palm = getPalms()[i];
-                //  If trigger pulled, thrust in that direction and draw beam
-                const float MAX_THRUSTER_BEAM_LENGTH = 5.f;
-                const float THRUSTER_MARKER_SIZE = 0.0125f;
-                if (palm.getJoystickY() != 0.f) {
-                    FingerData& finger = palm.getFingers()[0];
-                    if (finger.isActive()) {
-                        if (palm.getJoystickY() > 0.f) {
-                            glColor3f(0, 1, 0);
-                        } else {
-                            glColor3f(1, 0, 0);
-                        }
-                        glm::vec3 palmPosition = palm.getPosition();
-                        glm::vec3 pointerPosition = palmPosition +
-                                                    glm::normalize(finger.getTipPosition() - palmPosition) *
-                                                    MAX_THRUSTER_BEAM_LENGTH;
-                        glPushMatrix();
-                        glm::vec3 markerPosition =  palmPosition +
-                                                    glm::normalize(finger.getTipPosition() - palmPosition) *
-                                                    MAX_THRUSTER_BEAM_LENGTH *
-                                                    (0.5f + palm.getJoystickY() / 2.f);
-
-                        glTranslatef(markerPosition.x, markerPosition.y, markerPosition.z);
-                        glutSolidSphere(THRUSTER_MARKER_SIZE, 10, 10);
-                        glPopMatrix();
-                        glLineWidth(2.0);
-                        glBegin(GL_LINES);
-                        glVertex3f(palmPosition.x, palmPosition.y, palmPosition.z);
-                        glVertex3f(pointerPosition.x, pointerPosition.y, pointerPosition.z);
-                        glEnd();
-                    }
-                }
-            }
-        }
     }
-    
-    
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     

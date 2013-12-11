@@ -54,6 +54,10 @@ public:
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
     
+    // Pitch from controller input to view
+    const float getPitchUpdate() const { return _pitchUpdate; }
+    void setPitchUpdate(float pitchUpdate) { _pitchUpdate = pitchUpdate; }
+    
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -90,6 +94,8 @@ private:
     glm::vec3 _toyBallPosition;
     glm::vec3 _toyBallVelocity;
     bool      _toyBallInHand;
+    
+    float _pitchUpdate;
 
 };
 

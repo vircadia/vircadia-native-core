@@ -59,9 +59,10 @@ void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) 
 }
 
 PalmData::PalmData(HandData* owningHandData) :
+_rawRotation(0, 0, 0, 1),
 _rawPosition(0, 0, 0),
 _rawNormal(0, 1, 0),
-_velocity(0, 0, 0),
+_rawVelocity(0, 0, 0),
 _rotationalVelocity(0, 0, 0),
 _controllerButtons(0),
 _isActive(false),
