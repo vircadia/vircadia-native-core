@@ -13,6 +13,15 @@
 
 #include "Avatar.h"
 
+enum AvatarHandState
+{
+    HAND_STATE_NULL = 0,
+    HAND_STATE_OPEN,
+    HAND_STATE_GRASPING,
+    HAND_STATE_POINTING,
+    NUM_HAND_STATES
+};
+
 class MyAvatar : public Avatar {
 public:
 	MyAvatar(Node* owningNode = NULL);
@@ -67,7 +76,6 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
-    Avatar* _interactingOther;
     float _elapsedTimeMoving; // Timers to drive camera transitions when moving
     float _elapsedTimeStopped;
     float _elapsedTimeSinceCollision;
@@ -80,7 +88,6 @@ private:
     int _moveTargetStepCounter;
 
 	// private methods
-    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
@@ -89,9 +96,7 @@ private:
     void updateCollisionWithVoxels(float deltaTime);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void updateChatCircle(float deltaTime);
-    void checkForMouseRayTouching();
 };
 
 #endif

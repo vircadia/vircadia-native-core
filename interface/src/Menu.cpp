@@ -317,14 +317,7 @@ Menu::Menu() :
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarAsBalls);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
-    
-    addActionToQMenuAndActionHash(avatarOptionsMenu,
-                                  MenuOption::VoxelMode,
-                                  0,
-                                  appInstance->getAvatar()->getVoxels(),
-                                  SLOT(cycleMode()));
     
     addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::FaceMode,
@@ -781,11 +774,7 @@ void Menu::editPreferences() {
     
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
-    
-    QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
-    avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Avatar URL:", avatarURL);
-    
+        
     QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
@@ -868,12 +857,7 @@ void Menu::editPreferences() {
             DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
                                              skeletonModelURL.toString().toLocal8Bit().constData());
         }
-        
-        QUrl avatarVoxelURL(avatarURL->text());
-        applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
-        
-        Avatar::sendAvatarURLsMessage(avatarVoxelURL);
-        
+                        
         applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
         
         _maxVoxels = maxVoxels->value();
