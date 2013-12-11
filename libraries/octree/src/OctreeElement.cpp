@@ -196,6 +196,7 @@ void OctreeElement::calculateAABox() {
 void OctreeElement::deleteChildAtIndex(int childIndex) {
     OctreeElement* childAt = getChildAtIndex(childIndex);
     if (childAt) {
+printf("deleteChildAtIndex()... about to call delete childAt=%p\n",childAt);
         delete childAt;
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
@@ -1119,24 +1120,33 @@ OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
 }
 
 // handles staging or deletion of all deep children
-void OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
+bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
+    bool deleteApproved = false;
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
-        return;
+        return deleteApproved;
     }
     OctreeElement* childToDelete = getChildAtIndex(childIndex);
     if (childToDelete) {
-        // If the child is not a leaf, then call ourselves recursively on all the children
-        if (!childToDelete->isLeaf()) {
-            // delete all it's children
-            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-                childToDelete->safeDeepDeleteChildAtIndex(i,recursionCount+1);
+        if (childToDelete->deleteApproved()) {
+            // If the child is not a leaf, then call ourselves recursively on all the children
+            if (!childToDelete->isLeaf()) {
+                // delete all it's children
+                for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                    deleteApproved = childToDelete->safeDeepDeleteChildAtIndex(i,recursionCount+1);
+                    if (!deleteApproved) {
+                        break; // no point in continuing...
+                    }
+                }
+            }
+            if (deleteApproved) {
+                deleteChildAtIndex(childIndex);
+                _isDirty = true;
+                markWithChangedTime();
             }
         }
-        deleteChildAtIndex(childIndex);
-        _isDirty = true;
-        markWithChangedTime();
     }
+    return deleteApproved;
 }
 
 

@@ -112,18 +112,12 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
     }
 }
 
-class RenderArgs {
-public:
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-};
-
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
     //if (true || element->isInView(*args->_viewFrustum)) {
     if (element->isInView(*args->_viewFrustum)) {
         if (element->hasContent()) {
-            args->_renderer->renderElement(element);
+            args->_renderer->renderElement(element, args);
         }
         return true;
     }
@@ -132,7 +126,7 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 }
 
 void OctreeRenderer::render() {
-    RenderArgs args = { this, _viewFrustum };
+    RenderArgs args = { 0, this, _viewFrustum };
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);

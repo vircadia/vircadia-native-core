@@ -20,6 +20,16 @@
 #include "OctreePacketData.h"
 #include "ViewFrustum.h"
 
+class OctreeRenderer;
+
+class RenderArgs {
+public:
+    int _renderedItems;
+    OctreeRenderer* _renderer;
+    ViewFrustum* _viewFrustum;
+};
+
+
 // Generic client side Octree renderer class.
 class OctreeRenderer  {
 public:
@@ -30,7 +40,7 @@ public:
     virtual NODE_TYPE getMyNodeType() const = 0;
     virtual PACKET_TYPE getMyQueryMessageType() const = 0;
     virtual PACKET_TYPE getExpectedPacketType() const = 0;
-    virtual void renderElement(OctreeElement* element) = 0;
+    virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
     
     /// process incoming data
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);

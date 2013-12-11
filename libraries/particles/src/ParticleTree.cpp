@@ -9,7 +9,9 @@
 #include "ParticleTree.h"
 
 ParticleTree::ParticleTree(bool shouldReaverage) : Octree(shouldReaverage) {
-    _rootNode = createNewElement();
+    ParticleTreeElement* rootNode = createNewElement();
+    rootNode->setTree(this);
+    _rootNode = rootNode;
 }
 
 ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) const {
@@ -27,13 +29,37 @@ bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
     return false;
 }
 
-void ParticleTree::storeParticle(const Particle& particle) {
-    glm::vec3 position = particle.getPosition();
-    float size = particle.getRadius();
-    ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
-    element->storeParticle(particle);
+class FindAndUpdateParticleArgs {
+public:
+    const Particle& searchParticle;
+    bool found;
+};
     
+bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
+    FindAndUpdateParticleArgs* args = static_cast<FindAndUpdateParticleArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    if (particleTreeElement->containsParticle(args->searchParticle)) {
+        particleTreeElement->updateParticle(args->searchParticle);
+        args->found = true;
+        return false; // stop searching
+    }
+    return true;
+}
+
+void ParticleTree::storeParticle(const Particle& particle) {
+    // First, look for the existing particle in the tree..
+    FindAndUpdateParticleArgs args = { particle, false };
+    recurseTreeWithOperation(findAndUpdateOperation, &args);
+    
+    // if we didn't find it in the tree, then store it...
+    if (!args.found) {
+        glm::vec3 position = particle.getPosition();
+        float size = particle.getRadius();
+        ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+
+        element->storeParticle(particle);
+    }    
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
 }

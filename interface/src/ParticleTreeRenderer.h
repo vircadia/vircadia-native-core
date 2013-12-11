@@ -31,7 +31,7 @@ public:
     virtual NODE_TYPE getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
     virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_PARTICLE_QUERY; }
     virtual PACKET_TYPE getExpectedPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
-    virtual void renderElement(OctreeElement* element);
+    virtual void renderElement(OctreeElement* element, RenderArgs* args);
 
     void update();
 protected:

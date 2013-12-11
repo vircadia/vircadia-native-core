@@ -25,6 +25,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 // we know must match ours.
 OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
     ParticleTreeElement* newChild = new ParticleTreeElement(octalCode);
+    newChild->setTree(_myTree);
     return newChild;
 }
 
@@ -34,7 +35,9 @@ void ParticleTreeElement::init(unsigned char* octalCode) {
 }
 
 ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) { 
-    return (ParticleTreeElement*)OctreeElement::addChildAtIndex(index); 
+    ParticleTreeElement* newElement = (ParticleTreeElement*)OctreeElement::addChildAtIndex(index); 
+    newElement->setTree(_myTree);
+    return newElement;
 }
 
 
@@ -45,8 +48,6 @@ bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const 
     uint16_t numberOfParticles = _particles.size();
     success = packetData->appendValue(numberOfParticles);
 
-    //printf("ParticleTreeElement::appendElementData()... numberOfParticles=%d\n",numberOfParticles);
-    
     if (success) {
         for (uint16_t i = 0; i < numberOfParticles; i++) {
             const Particle& particle = _particles[i];
@@ -82,6 +83,28 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     }
 }
 
+bool ParticleTreeElement::containsParticle(const Particle& particle) const {
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if (_particles[i].getID() == particle.getID()) {
+            return true;
+        }
+    }
+    return false;    
+}
+
+bool ParticleTreeElement::updateParticle(const Particle& particle) {
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if (_particles[i].getID() == particle.getID()) {
+            _particles[i] = particle;
+            return true;
+        }
+    }
+    return false;    
+}
+
+
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 
     
@@ -89,9 +112,7 @@ int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, in
     int bytesRead = 0;
     uint16_t numberOfParticles = 0;
     int expectedBytesPerParticle = Particle::expectedBytes();
-    
-    _particles.clear();
-    
+
     if (bytesLeftToRead >= sizeof(numberOfParticles)) {
     
         // read our particles in....
@@ -104,13 +125,14 @@ int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, in
             for (uint16_t i = 0; i < numberOfParticles; i++) {
                 Particle tempParticle;
                 int bytesForThisParticle = tempParticle.readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
-                _particles.push_back(tempParticle);
+                _myTree->storeParticle(tempParticle);
                 dataAt += bytesForThisParticle;
                 bytesLeftToRead -= bytesForThisParticle;
                 bytesRead += bytesForThisParticle;
             }
         }
     }
+    
     return bytesRead;
 }
 
@@ -131,13 +153,6 @@ bool ParticleTreeElement::collapseChildren() {
 
 void ParticleTreeElement::storeParticle(const Particle& particle) {
     _particles.push_back(particle);
-
     markWithChangedTime();
-
-    /***
-    printf("ParticleTreeElement::storeParticle() element=%p _particles.size()=%ld particle.getPosition()=%f,%f,%f\n", 
-        this, _particles.size(),
-        particle.getPosition().x, particle.getPosition().y, particle.getPosition().z);
-    **/
 }
 

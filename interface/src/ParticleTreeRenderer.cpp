@@ -27,7 +27,7 @@ void ParticleTreeRenderer::update() {
     }
 }
 
-void ParticleTreeRenderer::renderElement(OctreeElement* element) {
+void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
     // actually render it here...
     // we need to iterate the actual particles of the element
     ParticleTreeElement* particleTreeElement = (ParticleTreeElement*)element;
@@ -42,11 +42,10 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element) {
         const Particle& particle = particles[i];
         // render particle aspoints
         glm::vec3 position = particle.getPosition() * (float)TREE_SCALE;
-        
         glColor3ub(particle.getColor()[RED_INDEX],particle.getColor()[GREEN_INDEX],particle.getColor()[BLUE_INDEX]);
-        
-        //printf("particle at... (%f, %f, %f)\n", position.x, position.y, position.z);
         float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
+
+        args->_renderedItems++;
         
         if (drawAsSphere) {
             glPushMatrix();

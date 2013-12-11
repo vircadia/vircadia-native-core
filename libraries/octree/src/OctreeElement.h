@@ -89,6 +89,8 @@ public:
     /// where an element is not actually rendering all should render elements. If the isRendered() state doesn't match the
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
     virtual bool isRendered() const { return getShouldRender(); }
+    
+    virtual bool deleteApproved() const { return true; }
 
 
     // Base class methods you don't need to implement
@@ -96,7 +98,9 @@ public:
     OctreeElement* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
     OctreeElement* removeChildAtIndex(int childIndex);
-    void safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); // handles deletion of all descendents
+
+    /// handles deletion of all descendants, returns false if delete not approved
+    bool safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); 
 
 
     const AABox& getAABox() const { return _box; }

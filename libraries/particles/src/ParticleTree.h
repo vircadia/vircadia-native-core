@@ -38,10 +38,12 @@ public:
                     unsigned char* editData, int maxLength);
 
     virtual void update();    
-private:
+
     void storeParticle(const Particle& particle);
+private:
 
     static bool updateOperation(OctreeElement* element, void* extraData);
+    static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
 
 
 

@@ -71,14 +71,20 @@ public:
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
     virtual bool isRendered() const { return getShouldRender(); }
 
+    virtual bool deleteApproved() const { return (_particles.size() == 0); }
+
     const std::vector<Particle>& getParticles() const { return _particles; }
     
     void update(ParticleTreeUpdateArgs& args);
+    void setTree(ParticleTree* tree) { _myTree = tree; }
+    
+    bool containsParticle(const Particle& particle) const;
+    bool updateParticle(const Particle& particle);
 
 protected:
     void storeParticle(const Particle& particle);
 
-
+    ParticleTree* _myTree;
     std::vector<Particle> _particles;
 };
 
