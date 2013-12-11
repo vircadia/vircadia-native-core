@@ -25,7 +25,7 @@ void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const Attribute
     if (node == NULL) {
         node = new MetavoxelNode(attributeValue.getAttribute());
     }
-    if (node->setAttributeValue(path, 0, attributeValue)) {
+    if (node->setAttributeValue(path, 0, attributeValue) && attributeValue.isDefault()) {
         node->destroy(attributeValue.getAttribute());
         delete node;
         _roots.remove(attributeValue.getAttribute());
@@ -41,7 +41,7 @@ AttributeValue MetavoxelData::getAttributeValue(const MetavoxelPath& path, const
         int index = path[i];
         MetavoxelNode* child = node->getChild(i);
         if (child == NULL) {
-            return AttributeValue(attribute);
+            return node->getAttributeValue(attribute);
         }
         node = child;
     }
@@ -58,37 +58,51 @@ MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) {
 bool MetavoxelNode::setAttributeValue(const MetavoxelPath& path, int index, const AttributeValue& attributeValue) {
     if (index == path.getSize()) {
         setAttributeValue(attributeValue);
-        return attributeValue.isDefault();
+        return true;
     }
     int element = path[index];
     if (_children[element] == NULL) {
-        _children[element] = new MetavoxelNode(attributeValue.getAttribute());
-    }
-    if (_children[element]->setAttributeValue(path, index + 1, attributeValue)) {
-        _children[element]->destroy(attributeValue.getAttribute());
-        delete _children[element];
-        _children[element] = NULL;
-        if (allChildrenNull()) {
-            return true;
+        AttributeValue ownAttributeValue = getAttributeValue(attributeValue.getAttribute());
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            _children[i] = new MetavoxelNode(ownAttributeValue);
         }
     }
+    _children[element]->setAttributeValue(path, index + 1, attributeValue);
+    
     void* childValues[CHILD_COUNT];
+    bool allLeaves = true;
     for (int i = 0; i < CHILD_COUNT; i++) {
-        childValues[i] = (_children[i] == NULL) ? attributeValue.getAttribute()->getDefaultValue() :
-            _children[i]->_attributeValue;
+        childValues[i] = _children[i]->_attributeValue;
+        allLeaves &= _children[i]->isLeaf();
     }
     attributeValue.getAttribute()->destroy(_attributeValue);
     _attributeValue = attributeValue.getAttribute()->createAveraged(childValues);
+    
+    if (allLeaves && allChildrenEqual(attributeValue.getAttribute())) {
+        clearChildren(attributeValue.getAttribute());
+        return true;
+    }
+    
     return false;
 }
 
 void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
     attributeValue.getAttribute()->destroy(_attributeValue);
     _attributeValue = attributeValue.copy();
+    clearChildren(attributeValue.getAttribute());
 }
 
 AttributeValue MetavoxelNode::getAttributeValue(const AttributePointer& attribute) const {
     return AttributeValue(attribute, &_attributeValue);
+}
+
+bool MetavoxelNode::isLeaf() const {
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        if (_children[i]) {
+            return false;
+        }    
+    }
+    return true;
 }
 
 void MetavoxelNode::destroy(const AttributePointer& attribute) {
@@ -101,13 +115,23 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
     }
 }
 
-bool MetavoxelNode::allChildrenNull() const {
+bool MetavoxelNode::allChildrenEqual(const AttributePointer& attribute) const {
     for (int i = 0; i < CHILD_COUNT; i++) {
-        if (_children[i] != NULL) {
+        if (!attribute->equal(_attributeValue, _children[i]->_attributeValue)) {
             return false;
         }
     }
     return true;
+}
+
+void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        if (_children[i]) {
+            _children[i]->destroy(attribute);
+            delete _children[i];
+            _children[i] = NULL;
+        }
+    }
 }
 
 int MetavoxelPath::operator[](int index) const {

@@ -95,11 +95,19 @@ private:
     QString _name;
 };
 
+template<class T> inline void* encodeInline(const T& value) {
+    return *(void**)const_cast<T*>(&value);
+}
+
+template<class T> inline T decodeInline(void* value) {
+    return *(T*)&value;
+}
+
 /// A simple attribute class that stores its values inline.
 template<class T, int bits> class InlineAttribute : public Attribute {
 public:
     
-    InlineAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(*(void**)&defaultValue) { }
+    InlineAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(encodeInline(defaultValue)) { }
     
     virtual void* create(void* const* copy = NULL) const { return (copy == NULL) ? _defaultValue : *copy; }
     virtual void destroy(void* value) const { /* no-op */ }
@@ -121,10 +129,10 @@ private:
 template<class T, int bits> inline void* InlineAttribute<T, bits>::createAveraged(void* values[]) const {
     T total = T();
     for (int i = 0; i < 8; i++) {
-        total += *(T*)(values + i);
+        total += decodeInline<T>(values[i]);
     }
     total /= 8;
-    return *(void**)&total;
+    return encodeInline(total);
 }
 
 #endif /* defined(__interface__AttributeRegistry__) */

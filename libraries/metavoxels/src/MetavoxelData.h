@@ -51,7 +51,7 @@ public:
     /// Descends the voxel tree in order to set the value of a node.
     /// \param path the path to follow
     /// \param index the position in the path
-    /// \return whether or not the node is entirely equal to the default attribute, and can thus be collapsed
+    /// \return whether or not the node is entirely equal to the value
     bool setAttributeValue(const MetavoxelPath& path, int index, const AttributeValue& attributeValue);
 
     void setAttributeValue(const AttributeValue& attributeValue);
@@ -61,12 +61,15 @@ public:
     MetavoxelNode* getChild(int index) const { return _children[index]; }
     void setChild(int index, MetavoxelNode* child) { _children[index] = child; }
 
+    bool isLeaf() const;
+
     void destroy(const AttributePointer& attribute);
 
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
-    bool allChildrenNull() const;
+    bool allChildrenEqual(const AttributePointer& attribute) const;
+    void clearChildren(const AttributePointer& attribute);
     
     void* _attributeValue;
     MetavoxelNode* _children[CHILD_COUNT];
