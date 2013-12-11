@@ -139,7 +139,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _nextCreatorTokenID(0)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -1515,13 +1516,18 @@ void Application::shootParticle() {
 
 void Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript) {
+            
+    // The application will keep track of creatorTokenID
+    uint32_t creatorTokenID = _nextCreatorTokenID;
+    _nextCreatorTokenID++;
 
     // setup a ParticleDetail struct with the data
-    ParticleDetail addParticleDetail = { position, radius, {color.red, color.green, color.blue }, 
-            velocity, gravity, damping, updateScript };
+    ParticleDetail addParticleDetail = { NEW_PARTICLE, usecTimestampNow(), 
+            position, radius, {color.red, color.green, color.blue }, 
+            velocity, gravity, damping, updateScript, creatorTokenID };
     
     // queue the packet
-    _particleEditSender.queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD, 1, &addParticleDetail);
+    _particleEditSender.queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &addParticleDetail);
     
     // release them
     _particleEditSender.releaseQueuedMessages();

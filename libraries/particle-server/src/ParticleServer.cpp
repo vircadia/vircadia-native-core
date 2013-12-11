@@ -21,7 +21,8 @@ ParticleServer::ParticleServer(const unsigned char* dataBuffer, int numBytes) : 
 }
 
 ParticleServer::~ParticleServer() {
-    // nothing special to do here...
+    ParticleTree* tree = (ParticleTree*)_tree;
+    tree->removeNewlyCreatedHook(this);
 }
 
 OctreeQueryNode* ParticleServer::createOctreeQueryNode(Node* newNode) {
@@ -29,9 +30,15 @@ OctreeQueryNode* ParticleServer::createOctreeQueryNode(Node* newNode) {
 }
 
 Octree* ParticleServer::createTree() {
-    return new ParticleTree(true);
+    ParticleTree* tree = new ParticleTree(true);
+    tree->addNewlyCreatedHook(this);
+    return tree;
 }
 
 void ParticleServer::beforeRun() {
     // nothing special to do...
+}
+
+void ParticleServer::particleCreated(const Particle& newParticle, Node* senderNode) {
+    printf("ParticleServer::particleCreated(newParticle.creatorTokenID=%u, senderNode)\n",newParticle.getCreatorTokenID());
 }

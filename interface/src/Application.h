@@ -490,6 +490,8 @@ private:
     
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
+    
+    uint32_t _nextCreatorTokenID;
 };
 
 #endif /* defined(__interface__Application__) */

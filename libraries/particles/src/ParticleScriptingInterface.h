@@ -24,7 +24,8 @@ public:
     JurisdictionListener* getJurisdictionListener() { return &_jurisdictionListener; }
 public slots:
     /// queues the creation of a Particle which will be sent by calling process on the PacketSender
-    void queueParticleAdd(glm::vec3 position, float radius, 
+    /// returns the creatorTokenID for the newly created particle
+    uint32_t queueParticleAdd(glm::vec3 position, float radius, 
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, QString updateScript);
     
     /// Set the desired max packet size in bytes that should be created
@@ -84,6 +85,8 @@ private:
     JurisdictionListener _jurisdictionListener;
     
     void queueParticleAdd(PACKET_TYPE addPacketType, ParticleDetail& addParticleDetails);
+    
+    uint32_t _nextCreatorTokenID;
 };
 
 #endif /* defined(__hifi__ParticleScriptingInterface__) */
