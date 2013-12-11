@@ -12,12 +12,13 @@
 #include <QBitArray>
 #include <QHash>
 #include <QScopedPointer>
+#include <QVector>
 
 #include "AttributeRegistry.h"
 
 class MetavoxelNode;
 class MetavoxelPath;
-class VoxelVisitor;
+class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
@@ -27,7 +28,7 @@ public:
 
     /// Applies the specified function to the contained voxels.
     /// \param attributes the list of attributes desired
-    void visitVoxels(const QVector<Attribute*>& attributes, VoxelVisitor* visitor);
+    void visitVoxels(const QVector<AttributePointer>& attributes, MetavoxelVisitor& visitor);
 
     /// Sets the attribute value corresponding to the specified path.
     void setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue);
@@ -93,13 +94,14 @@ private:
     QBitArray _array;    
 };
 
-/// Interface for visitors to voxels.
-class VoxelVisitor {
+/// Interface for visitors to metavoxels.
+class MetavoxelVisitor {
 public:
     
-    /// Visits a voxel.
+    /// Visits a metavoxel.
     /// \param attributeValues the values of the desired attributes
-    virtual void visit(const QVector<void*>& attributeValues) = 0;
+    /// \param if true, continue descending; if false, stop
+    virtual bool visit(const QVector<AttributeValue>& attributeValues) = 0;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

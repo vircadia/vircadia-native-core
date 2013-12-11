@@ -15,9 +15,51 @@ MetavoxelData::~MetavoxelData() {
     }
 }
 
-void MetavoxelData::visitVoxels(const QVector<Attribute*>& attributes, VoxelVisitor* visitor) {
-    // map attributes to layers, indices
+class Visitation {
+public:
+    MetavoxelVisitor& visitor;
+    QVector<MetavoxelNode*> nodes;
+    QVector<AttributeValue> attributeValues;
+
+    void apply();
+};
+
+void Visitation::apply() {
+    Visitation nextVisitation = { visitor, QVector<MetavoxelNode*>(nodes.size()), attributeValues };
+    for (int i = 0; i < nodes.size(); i++) {
+        MetavoxelNode* node = nodes.at(i);
+        if (node) {
+            nextVisitation.attributeValues[i] = node->getAttributeValue(attributeValues[i].getAttribute());
+        }
+    }
     
+    if (!visitor.visit(nextVisitation.attributeValues)) {
+        return;
+    }
+    
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        bool anyChildrenPresent = false;
+        for (int j = 0; j < nodes.size(); j++) {
+            MetavoxelNode* node = nodes.at(j);
+            if ((nextVisitation.nodes[j] = node ? node->getChild(i) : NULL)) {
+                anyChildrenPresent = true;
+            }            
+        }
+        if (anyChildrenPresent) {
+            nextVisitation.apply();
+        }
+    }
+}
+
+void MetavoxelData::visitVoxels(const QVector<AttributePointer>& attributes, MetavoxelVisitor& visitor) {
+    // start with the root values/defaults
+    Visitation firstVisitation = { visitor, QVector<MetavoxelNode*>(attributes.size()),
+        QVector<AttributeValue>(attributes.size()) };
+    for (int i = 0; i < attributes.size(); i++) {
+        firstVisitation.nodes[i] = _roots.value(attributes[i]);
+        firstVisitation.attributeValues[i] = attributes[i];
+    }
+    firstVisitation.apply();
 }
 
 void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue) {

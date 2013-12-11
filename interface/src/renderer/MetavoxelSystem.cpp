@@ -10,6 +10,17 @@
 
 #include "MetavoxelSystem.h"
 
+class DebugVisitor : public MetavoxelVisitor {
+public:
+    
+    virtual bool visit(const QVector<AttributeValue>& attributeValues);
+};
+
+bool DebugVisitor::visit(const QVector<AttributeValue>& attributeValues) {
+    qDebug() << decodeInline<float>(attributeValues.at(0).getValue()) << "\n";
+    return true;
+}
+
 void MetavoxelSystem::init() {
     MetavoxelPath p1;
     p1 += 0;
@@ -28,5 +39,8 @@ void MetavoxelSystem::init() {
     AttributeValue value = _data.getAttributeValue(p2, blerp);
     
     qDebug("fliggedy bloo %g\n", decodeInline<float>(value.getValue()));
+    
+    DebugVisitor visitor;
+    _data.visitVoxels(QVector<AttributePointer>() << blerp, visitor);
 }
 
