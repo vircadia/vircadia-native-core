@@ -16,11 +16,12 @@
 #include "JurisdictionSender.h"
 
 
-JurisdictionSender::JurisdictionSender(JurisdictionMap* map, PacketSenderNotify* notify) : 
+JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NODE_TYPE type, PacketSenderNotify* notify) : 
     PacketSender(notify, JurisdictionSender::DEFAULT_PACKETS_PER_SECOND), 
     ReceivedPacketProcessor(),
     _jurisdictionMap(map)
 {
+    _nodeType = type;
     pthread_mutex_init(&_requestingNodeMutex, 0);
 }
 
@@ -54,7 +55,7 @@ bool JurisdictionSender::process() {
         if (_jurisdictionMap) {
             sizeOut = _jurisdictionMap->packIntoMessage(bufferOut, MAX_PACKET_SIZE);
         } else {
-            sizeOut = JurisdictionMap::packEmptyJurisdictionIntoMessage(bufferOut, MAX_PACKET_SIZE);
+            sizeOut = JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType(), bufferOut, MAX_PACKET_SIZE);
         }
         int nodeCount = 0;
 

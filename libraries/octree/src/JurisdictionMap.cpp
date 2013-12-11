@@ -70,6 +70,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
 }
 
 void JurisdictionMap::copyContents(const JurisdictionMap& other) {
+    _nodeType = other._nodeType;
     copyContents(other._rootOctalCode, other._endNodes);
 }
 
@@ -91,7 +92,8 @@ void JurisdictionMap::clear() {
     _endNodes.clear();
 }
 
-JurisdictionMap::JurisdictionMap() : _rootOctalCode(NULL) {
+JurisdictionMap::JurisdictionMap(NODE_TYPE type) : _rootOctalCode(NULL) {
+    _nodeType = type;
     unsigned char* rootCode = new unsigned char[1];
     *rootCode = 0;
     
@@ -260,11 +262,15 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     return true;
 }
 
-int JurisdictionMap::packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
+int JurisdictionMap::packEmptyJurisdictionIntoMessage(NODE_TYPE type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
     int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
     destinationBuffer += headerLength;
+
+    // Pack the Node Type in first byte
+    memcpy(destinationBuffer, &type, sizeof(type));
+    destinationBuffer += sizeof(type);
 
     // No root or end node details to pack!
     int bytes = 0;
@@ -279,6 +285,11 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
     
     int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
     destinationBuffer += headerLength;
+
+    // Pack the Node Type in first byte
+    NODE_TYPE type = getNodeType();
+    memcpy(destinationBuffer, &type, sizeof(type));
+    destinationBuffer += sizeof(type);
 
     // add the root jurisdiction
     if (_rootOctalCode) {

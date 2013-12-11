@@ -31,6 +31,13 @@ typedef unsigned char colorPart;
 typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
 
+struct xColor {
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+};
+
+
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;

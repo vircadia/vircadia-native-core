@@ -42,7 +42,7 @@ void OctreeInboundPacketProcessor::resetStats() {
 void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr,
                                                unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = _myServer->wantsVerboseDebug();
+    bool debugProcessPacket = true; //_myServer->wantsVerboseDebug();
     
     if (debugProcessPacket) {
         printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
@@ -66,8 +66,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         uint64_t lockWaitTime = 0;
         
         if (_myServer->wantsDebugReceiving()) {
-            printf("PROCESSING THREAD: got %c - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                packetType, _receivedPacketCount, packetLength, sequence, transitTime);
+            printf("PROCESSING THREAD: got '%c' packet - %d command from client "
+                   "receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+                    packetType, _receivedPacketCount, packetLength, sequence, transitTime);
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* editData = (unsigned char*)&packetData[atByte];

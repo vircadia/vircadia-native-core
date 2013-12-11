@@ -25,6 +25,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 // we know must match ours.
 OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
     ParticleTreeElement* newChild = new ParticleTreeElement(octalCode);
+    newChild->setTree(_myTree);
     return newChild;
 }
 
@@ -33,17 +34,106 @@ void ParticleTreeElement::init(unsigned char* octalCode) {
     _voxelMemoryUsage += sizeof(ParticleTreeElement);
 }
 
+ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) { 
+    ParticleTreeElement* newElement = (ParticleTreeElement*)OctreeElement::addChildAtIndex(index); 
+    newElement->setTree(_myTree);
+    return newElement;
+}
+
+
 bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const {
-    // will write to the encoded stream all of the contents of this element
-    return true;
+    bool success = true; // assume the best...
+
+    // write our particles out...
+    uint16_t numberOfParticles = _particles.size();
+    success = packetData->appendValue(numberOfParticles);
+
+    if (success) {
+        for (uint16_t i = 0; i < numberOfParticles; i++) {
+            const Particle& particle = _particles[i];
+            success = particle.appendParticleData(packetData);
+            if (!success) {
+                break;
+            }
+        }
+    }
+    return success;
+}
+
+void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
+    markWithChangedTime();
+
+    // update our contained particles
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        _particles[i].update();
+
+        // If the particle wants to die, or if it's left our bounding box, then move it
+        // into the arguments moving particles. These will be added back or deleted completely
+        if (_particles[i].getShouldDie() || !_box.contains(_particles[i].getPosition())) {
+            args._movingParticles.push_back(_particles[i]);
+            
+            // erase this particle
+            _particles.erase(_particles.begin()+i);
+            
+            // reduce our index since we just removed this item
+            i--;
+            numberOfParticles--;
+        }
+    }
+}
+
+bool ParticleTreeElement::containsParticle(const Particle& particle) const {
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if (_particles[i].getID() == particle.getID()) {
+            return true;
+        }
+    }
+    return false;    
+}
+
+bool ParticleTreeElement::updateParticle(const Particle& particle) {
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if (_particles[i].getID() == particle.getID()) {
+            _particles[i] = particle;
+            return true;
+        }
+    }
+    return false;    
 }
 
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 
-            
-    // will read from the encoded stream all of the contents of this element
-    return 0;
+    
+    const unsigned char* dataAt = data;
+    int bytesRead = 0;
+    uint16_t numberOfParticles = 0;
+    int expectedBytesPerParticle = Particle::expectedBytes();
+
+    if (bytesLeftToRead >= sizeof(numberOfParticles)) {
+    
+        // read our particles in....
+        numberOfParticles = *(uint16_t*)dataAt;
+        dataAt += sizeof(numberOfParticles);
+        bytesLeftToRead -= sizeof(numberOfParticles);
+        bytesRead += sizeof(numberOfParticles);
+        
+        if (bytesLeftToRead >= (numberOfParticles * expectedBytesPerParticle)) {
+            for (uint16_t i = 0; i < numberOfParticles; i++) {
+                Particle tempParticle;
+                int bytesForThisParticle = tempParticle.readParticleDataFromBuffer(dataAt, bytesLeftToRead, args);
+                _myTree->storeParticle(tempParticle);
+                dataAt += bytesForThisParticle;
+                bytesLeftToRead -= bytesForThisParticle;
+                bytesRead += bytesForThisParticle;
+            }
+        }
+    }
+    
+    return bytesRead;
 }
 
 // will average a "common reduced LOD view" from the the child elements...
@@ -58,5 +148,11 @@ void ParticleTreeElement::calculateAverageFromChildren() {
 bool ParticleTreeElement::collapseChildren() {
     // nothing to do here yet...
     return false;
+}
+
+
+void ParticleTreeElement::storeParticle(const Particle& particle) {
+    _particles.push_back(particle);
+    markWithChangedTime();
 }
 

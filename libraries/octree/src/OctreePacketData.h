@@ -106,6 +106,36 @@ public:
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendColor(const nodeColor& color);
 
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendColor(const rgbColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendColor(colorPart red, colorPart green, colorPart blue);
+
+    /// appends a unsigned 8 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(uint8_t value);
+
+    /// appends a unsigned 16 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(uint16_t value);
+
+    /// appends a unsigned 32 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(uint32_t value);
+
+    /// appends a unsigned 64 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(uint64_t value);
+
+    /// appends a float value to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(float value);
+
+    /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const glm::vec3& value);
+
+    /// appends a position to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendPosition(const glm::vec3& value);
+
+    /// appends raw bytes, might fail if byte would cause packet to be too large
+    bool appendRawData(const unsigned char* data, int length);
+
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
@@ -167,6 +197,10 @@ private:
     int _bytesOfOctalCodes;
     int _bytesOfBitMasks;
     int _bytesOfColor;
+    int _bytesOfValues;
+    int _bytesOfPositions;
+    int _bytesOfRawData;
+
     int _bytesOfOctalCodesCurrentSubTree;
 
     static bool _debug;
@@ -177,6 +211,9 @@ private:
     static uint64_t _totalBytesOfOctalCodes;
     static uint64_t _totalBytesOfBitMasks;
     static uint64_t _totalBytesOfColor;
+    static uint64_t _totalBytesOfValues;
+    static uint64_t _totalBytesOfPositions;
+    static uint64_t _totalBytesOfRawData;
 };
 
 #endif /* defined(__hifi__OctreePacketData__) */
