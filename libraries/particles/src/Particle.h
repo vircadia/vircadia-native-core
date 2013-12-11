@@ -22,8 +22,8 @@
 class ParticleDetail {
 public:
     glm::vec3 position;
-	float radius;
-	rgbColor color;
+    float radius;
+    rgbColor color;
     glm::vec3 velocity;
     glm::vec3 gravity;
     float damping;

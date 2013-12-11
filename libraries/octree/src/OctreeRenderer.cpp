@@ -110,12 +110,6 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
         }
         subsection++;
     }
-
-    // setup rendering for the new items...
-    //setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
-    
-    // handle bandwidth meter stuff??? seems like this would be better done in application...
-    //Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
 }
 
 class RenderArgs {

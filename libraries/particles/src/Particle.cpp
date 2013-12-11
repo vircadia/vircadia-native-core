@@ -216,14 +216,14 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
     sizeOut = 0;
 
     for (int i = 0; i < count && success; i++) {
-        // get the coded voxel
+        // get the octal code for the particle
         unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, details[i].position.z, details[i].radius);
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
         int lenfthOfEditData = lengthOfOctcode + expectedBytes();
         
-        // make sure we have room to copy this voxel
+        // make sure we have room to copy this particle
         if (sizeOut + lenfthOfEditData > sizeIn) {
             success = false;
         } else {

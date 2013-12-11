@@ -39,7 +39,7 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
     // then process any remaining bytes as if it was another packet
     if (packetData[0] == PACKET_TYPE_OCTREE_STATS) {
     
-        int statsMessageLength = app->parseVoxelStats(packetData, messageLength, senderSockAddr);
+        int statsMessageLength = app->parseOctreeStats(packetData, messageLength, senderSockAddr);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             packetData += statsMessageLength;
