@@ -43,10 +43,17 @@ static const int BOTTOM_PADDING = 110;
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     QObject(parent),
     _audioInput(NULL),
+    _desiredInputFormat(),
+    _inputFormat(),
     _inputDevice(NULL),
+    _inputBuffer(),
+    _numInputCallbackBytes(0),
     _audioOutput(NULL),
+    _desiredOutputFormat(),
+    _outputFormat(),
     _outputDevice(NULL),
-    _isBufferSendCallback(false),
+    _outputBuffer(),
+    _numOutputCallbackBytes(0),
     _nextOutputSamples(NULL),
     _ringBuffer(true),
     _scope(scope),
@@ -124,180 +131,216 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
 
-const int QT_SAMPLE_RATE = 44100;
-const int SAMPLE_RATE_RATIO = QT_SAMPLE_RATE / SAMPLE_RATE;
+bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
+                                  const QAudioFormat& desiredAudioFormat,
+                                  QAudioFormat& adjustedAudioFormat) {
+    if (!audioDevice.isFormatSupported(desiredAudioFormat)) {
+        qDebug() << "The desired format for audio I/O is" << desiredAudioFormat << "\n";
+        qDebug() << "The desired audio format is not supported by this device.\n";
+        
+        if (desiredAudioFormat.channelCount() == 1) {
+            adjustedAudioFormat = desiredAudioFormat;
+            adjustedAudioFormat.setChannelCount(2);
+            
+            if (audioDevice.isFormatSupported(adjustedAudioFormat)) {
+                return true;
+            } else {
+                adjustedAudioFormat.setChannelCount(1);
+            }
+        }
+        
+        if (audioDevice.supportedSampleRates().contains(SAMPLE_RATE * 2)) {
+            // use 48, which is a sample downsample, upsample
+            adjustedAudioFormat = desiredAudioFormat;
+            adjustedAudioFormat.setSampleRate(SAMPLE_RATE * 2);
+            
+            // return the nearest in case it needs 2 channels
+            adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
+            return true;
+        }
+        
+        return false;
+    } else {
+        // set the adjustedAudioFormat to the desiredAudioFormat, since it will work
+        adjustedAudioFormat = desiredAudioFormat;
+        return true;
+    }
+}
+
+void nearestNeighborResampling(int16_t* sourceSamples, int16_t* destinationSamples,
+                               int numDestinationSamples,
+                               const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
+    if (sourceAudioFormat == destinationAudioFormat) {
+        memcpy(destinationSamples, sourceSamples, numDestinationSamples * sizeof(int16_t));
+    } else {
+        float sourceMultiplier = sourceAudioFormat.sampleRate() / (float) destinationAudioFormat.sampleRate();
+        
+        // take into account the number of channels in source and destination
+        // accomodate for the case where have an output with > 2 channels
+        // this is the case with our HDMI capture
+        sourceMultiplier *= sourceAudioFormat.channelCount()
+            / (float) (destinationAudioFormat.channelCount() > 2 ? 2 : destinationAudioFormat.channelCount());
+        
+        for (int i = 0; i < numDestinationSamples; i++) {
+            destinationSamples[i] = sourceSamples[static_cast<int>(i * sourceMultiplier)];
+        }
+    }
+}
+
 const int CALLBACK_ACCELERATOR_RATIO = 2;
-const int CALLBACK_IO_BUFFER_SIZE = BUFFER_LENGTH_BYTES_STEREO * SAMPLE_RATE_RATIO / CALLBACK_ACCELERATOR_RATIO;
 
 void Audio::start() {
     
-    QAudioFormat audioFormat;
     // set up the desired audio format
-    audioFormat.setSampleRate(QT_SAMPLE_RATE);
-    audioFormat.setSampleSize(16);
-    audioFormat.setCodec("audio/pcm");
-    audioFormat.setSampleType(QAudioFormat::SignedInt);
-    audioFormat.setByteOrder(QAudioFormat::LittleEndian);
-    audioFormat.setChannelCount(2);
+    _desiredInputFormat.setSampleRate(SAMPLE_RATE);
+    _desiredInputFormat.setSampleSize(16);
+    _desiredInputFormat.setCodec("audio/pcm");
+    _desiredInputFormat.setSampleType(QAudioFormat::SignedInt);
+    _desiredInputFormat.setByteOrder(QAudioFormat::LittleEndian);
+    _desiredInputFormat.setChannelCount(1);
     
-    qDebug() << "The format for audio I/O is" << audioFormat << "\n";
+    _desiredOutputFormat = _desiredInputFormat;
+    _desiredOutputFormat.setChannelCount(2);
     
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
     
-    qDebug() << "Audio input device is" << inputDeviceInfo.deviceName() << "\n";
-    if (!inputDeviceInfo.isFormatSupported(audioFormat)) {
-        qDebug() << "The desired audio input format is not supported by this device. Not starting audio input.\n";
+    qDebug() << "The audio input device is" << inputDeviceInfo.deviceName() << "\n";
+    
+    if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
+        qDebug() << "The format to be used for audio input is" << _inputFormat << "\n";
+        
+        _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
+        _numInputCallbackBytes = BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
+            * (_inputFormat.sampleRate() / SAMPLE_RATE)
+            / CALLBACK_ACCELERATOR_RATIO;
+        _audioInput->setBufferSize(_numInputCallbackBytes);
+        
+        QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
+        
+        qDebug() << "The audio output device is" << outputDeviceInfo.deviceName() << "\n";
+
+        if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
+            qDebug() << "The format to be used for audio output is" << _outputFormat << "\n";
+            
+            _inputDevice = _audioInput->start();
+            connect(_inputDevice, SIGNAL(readyRead()), SLOT(handleAudioInput()));
+            
+            _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _numOutputCallbackBytes = BUFFER_LENGTH_BYTES_PER_CHANNEL * _outputFormat.channelCount()
+                * (_outputFormat.sampleRate() / SAMPLE_RATE)
+                / CALLBACK_ACCELERATOR_RATIO;
+            _audioOutput->setBufferSize(_numOutputCallbackBytes);
+            _outputDevice = _audioOutput->start();
+            
+            gettimeofday(&_lastReceiveTime, NULL);
+        }
+        
         return;
     }
     
-    _audioInput = new QAudioInput(inputDeviceInfo, audioFormat, this);
-    _audioInput->setBufferSize(CALLBACK_IO_BUFFER_SIZE);
-    _inputDevice = _audioInput->start();
-    
-    connect(_inputDevice, SIGNAL(readyRead()), SLOT(handleAudioInput()));
-    
-    QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-    
-    qDebug() << "Audio output device is" << outputDeviceInfo.deviceName() << "\n";
-    
-    if (!outputDeviceInfo.isFormatSupported(audioFormat)) {
-        qDebug() << "The desired audio output format is not supported by this device.\n";
-        return;
-    }
-    
-    _audioOutput = new QAudioOutput(outputDeviceInfo, audioFormat, this);
-    _audioOutput->setBufferSize(CALLBACK_IO_BUFFER_SIZE);
-    _outputDevice = _audioOutput->start();
-    
-    gettimeofday(&_lastReceiveTime, NULL);
+    qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.\n";
 }
 
 void Audio::handleAudioInput() {
-    static int16_t stereoInputBuffer[CALLBACK_IO_BUFFER_SIZE * 2];
+    
     static char monoAudioDataPacket[MAX_PACKET_SIZE];
-    static int bufferSizeSamples = _audioInput->bufferSize() / sizeof(int16_t);
     
     static int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
-    QByteArray inputByteArray = _inputDevice->read(CALLBACK_IO_BUFFER_SIZE);
+    QByteArray inputByteArray = _inputDevice->readAll();
     
-    if (_isBufferSendCallback) {
-        // copy samples from the inputByteArray to the stereoInputBuffer
-        memcpy((char*) (stereoInputBuffer + bufferSizeSamples), inputByteArray.data(), inputByteArray.size());       
-        
+    int numResampledBytes =  inputByteArray.size() / (_numInputCallbackBytes / BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    qDebug() << "NSB:" << numResampledBytes << "\n";
+    
+    // zero out the monoAudioSamples array
+    memset(monoAudioSamples, 0, numResampledBytes);
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
+        _outputBuffer.resize(inputByteArray.size());
+        //  if local loopback enabled, copy input to output
+        nearestNeighborResampling((int16_t*) inputByteArray.data(), (int16_t*) _outputBuffer.data(),
+                                  inputByteArray.size() / sizeof(int16_t),
+                                  _inputFormat, _outputFormat);
     } else {
-        // this is the first half of a full buffer of data
-        // zero out the monoAudioSamples array
-        memset(monoAudioSamples, 0, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-        
-        // take samples we have in this callback and store them in the first half of the static buffer
-        // to send off in the next callback
-        memcpy((char*) stereoInputBuffer, inputByteArray.data(), inputByteArray.size());
+        _outputBuffer.fill(0, inputByteArray.size());
     }
     
     // add input data just written to the scope
-    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
-    
-    QByteArray stereoOutputBuffer;
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
-        //  if local loopback enabled, copy input to output
-        if (_isBufferSendCallback) {
-            stereoOutputBuffer.append((char*) (stereoInputBuffer + bufferSizeSamples), CALLBACK_IO_BUFFER_SIZE);
-        } else {
-            stereoOutputBuffer.append((char*) stereoInputBuffer, CALLBACK_IO_BUFFER_SIZE);
-        }
-    } else {
-        // zero out the stereoOutputBuffer
-        stereoOutputBuffer = QByteArray(CALLBACK_IO_BUFFER_SIZE, 0);
-    }
+    //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+    //                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
     
     // add procedural effects to the appropriate input samples
-    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
-                                            ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
-                        (int16_t*) stereoOutputBuffer.data(),
-                        BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
+    //    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
+    //                                            ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
+    //                        (int16_t*) stereoOutputBuffer.data(),
+    //                        BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
     
-    if (_isBufferSendCallback) {
-        NodeList* nodeList = NodeList::getInstance();
-        Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        
-        if (audioMixer) {
-            if (audioMixer->getActiveSocket()) {
-                MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
+    NodeList* nodeList = NodeList::getInstance();
+    Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+    
+    if (audioMixer) {
+        if (audioMixer->getActiveSocket()) {
+            MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
+            
+            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+            
+            // we need the amount of bytes in the buffer + 1 for type
+            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+            
+            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
+            ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+            
+            char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
+                                                                                  packetType);
+            
+            // pack Source Data
+            QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+            memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
+            currentPacketPtr += rfcUUID.size();
+            
+            // memcpy the three float positions
+            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+            currentPacketPtr += (sizeof(headPosition));
+            
+            // memcpy our orientation
+            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+            currentPacketPtr += sizeof(headOrientation);
+            
+            if (!_muted) {
+                float loudness = 0;
+                //                    loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                _lastInputLoudness = loudness;
                 
-                glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
-                glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+                // we aren't muted - pull our input audio to send off to the mixer
+                nearestNeighborResampling((int16_t*) inputByteArray.data(),
+                                          monoAudioSamples, numResampledBytes / sizeof(int16_t),
+                                          _inputFormat, _desiredInputFormat);
                 
-                // we need the amount of bytes in the buffer + 1 for type
-                // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-                
-                PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                    ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
-                
-                char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
-                                                                                      packetType);
-                
-                // pack Source Data
-                QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-                memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
-                currentPacketPtr += rfcUUID.size();
-                
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
-                
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
-                
-                if (!_muted) {
-                    float loudness = 0;
-                    
-                    // we aren't muted, average each set of four samples together to set up the mono input buffers
-                    for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO; i += 4) {
-                        
-                        int16_t averagedSample = 0;
-                        if (i + 2 == BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2 * SAMPLE_RATE_RATIO) {
-                            averagedSample = (stereoInputBuffer[i - 2] / 2) + (stereoInputBuffer[i] / 2);
-                        } else {
-                            averagedSample = (stereoInputBuffer[i - 2] / 4) + (stereoInputBuffer[i] / 2)
-                            + (stereoInputBuffer[i + 2] / 4);
-                        }
-                        
-                        loudness += abs(averagedSample);
-                        
-                        // add the averaged sample to our array of audio samples
-                        monoAudioSamples[(i - 2) / 4] += averagedSample;
-                    }
-                    
-                    loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                    _lastInputLoudness = loudness;
-                } else {
-                    _lastInputLoudness = 0;
-                }
-                
-                nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket, BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
-                                                        audioMixer->getActiveSocket()->getAddress(),
-                                                        audioMixer->getActiveSocket()->getPort());
-                
-                Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
             } else {
-                nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
+                _lastInputLoudness = 0;
             }
+            
+            nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
+                                                    numResampledBytes + leadingBytes,
+                                                    audioMixer->getActiveSocket()->getAddress(),
+                                                    audioMixer->getActiveSocket()->getPort());
+            
+            Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
+            .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+        } else {
+            nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
         }
     }
     
-    // if there is anything in the ring buffer, decide what to do
-    
-    if (!_nextOutputSamples) {
+    if (_outputDevice) {
+        // if there is anything in the ring buffer, decide what to do
+        
         if (_ringBuffer.getEndOfLastWrite()) {
             if (_ringBuffer.isStarved() && _ringBuffer.diffLastWriteNextOutput() <
-                (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (_ringBuffer.isStereo() ? 2 : 1))) {
+                ((_outputBuffer.size() / sizeof(int16_t)) + _jitterBufferSamples * (_ringBuffer.isStereo() ? 2 : 1))) {
                 //  If not enough audio has arrived to start playback, keep waiting
             } else if (!_ringBuffer.isStarved() && _ringBuffer.diffLastWriteNextOutput() == 0) {
                 //  If we have started and now have run out of audio to send to the audio device,
@@ -314,49 +357,28 @@ void Audio::handleAudioInput() {
                     _ringBuffer.setHasStarted(true);
                 }
                 
-                _nextOutputSamples = _ringBuffer.getNextOutput();
+                int numOutputBufferSamples = _outputBuffer.size() / sizeof(int16_t);
+                
+                // copy the packet from the RB to the output
+                nearestNeighborResampling(_ringBuffer.getNextOutput(),
+                                          (int16_t*) _outputBuffer.data(),
+                                          numOutputBufferSamples,
+                                          _desiredOutputFormat, _outputFormat);
+                
+                _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + numOutputBufferSamples);
+                
+                if (_ringBuffer.getNextOutput() >= _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+                    _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
+                }
             }
         }
-    }
-    
-    if (_nextOutputSamples) {
         
-        int16_t* stereoOutputBufferSamples = (int16_t*) stereoOutputBuffer.data();
+        // add output (@speakers) data just written to the scope
+        //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+        //                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
         
-        // play whatever we have in the audio buffer
-        for (int s = 0; s < PACKET_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO; s++) {
-            int16_t leftSample = _nextOutputSamples[s];
-            int16_t rightSample = _nextOutputSamples[s + PACKET_LENGTH_SAMPLES_PER_CHANNEL];
-            
-            stereoOutputBufferSamples[(s * 4)] += leftSample;
-            stereoOutputBufferSamples[(s * 4) + 2] += leftSample;
-            
-            stereoOutputBufferSamples[(s * 4) + 1] += rightSample;
-            stereoOutputBufferSamples[(s * 4) + 3] += rightSample;
-        }
-        
-        if (_isBufferSendCallback) {
-            _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + PACKET_LENGTH_SAMPLES);
-            
-            if (_ringBuffer.getNextOutput() == _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
-            }
-            
-            _nextOutputSamples = NULL;
-        } else {
-            _nextOutputSamples += PACKET_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO;
-        }
+        _outputDevice->write(_outputBuffer);
     }
-    
-    if (_outputDevice) {
-         _outputDevice->write(stereoOutputBuffer);
-    }
-    
-    // add output (@speakers) data just written to the scope
-    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
-    
-    _isBufferSendCallback = !_isBufferSendCallback;
     
     gettimeofday(&_lastCallbackTime, NULL);
 }

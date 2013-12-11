@@ -15,6 +15,7 @@
 #include "InterfaceConfig.h"
 
 #include <QtCore/QObject>
+#include <QtMultimedia/QAudioFormat>
 
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
@@ -70,10 +71,17 @@ public slots:
     
 private:
     QAudioInput* _audioInput;
+    QAudioFormat _desiredInputFormat;
+    QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
+    QByteArray _inputBuffer;
+    int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
+    QAudioFormat _desiredOutputFormat;
+    QAudioFormat _outputFormat;
     QIODevice* _outputDevice;
-    bool _isBufferSendCallback;
+    QByteArray _outputBuffer;
+    int _numOutputCallbackBytes;
     int16_t* _nextOutputSamples;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;

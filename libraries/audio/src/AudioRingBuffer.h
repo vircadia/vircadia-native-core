@@ -16,7 +16,7 @@
 
 #include "NodeData.h"
 
-const int SAMPLE_RATE = 22050;
+const int SAMPLE_RATE = 24000;
 
 const int BUFFER_LENGTH_BYTES_STEREO = 1024;
 const int BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
