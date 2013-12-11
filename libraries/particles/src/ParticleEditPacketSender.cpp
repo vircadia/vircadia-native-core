@@ -43,7 +43,7 @@ void ParticleEditPacketSender::queueParticleEditMessages(PACKET_TYPE type, int n
     }
 
     for (int i = 0; i < numberOfDetails; i++) {
-        // use MAX_PACKET_SIZE since it's static and guarenteed to be larger than _maxPacketSize
+        // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
         static unsigned char bufferOut[MAX_PACKET_SIZE]; 
         int sizeOut = 0;
         

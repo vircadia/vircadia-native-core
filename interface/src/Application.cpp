@@ -1485,9 +1485,10 @@ void Application::removeVoxel(glm::vec3 position,
 
 void Application::shootParticle() {
 
-    glm::vec3 position  = _viewFrustum.getOffsetPosition();
-    glm::vec3 direction = _viewFrustum.getOffsetDirection();
-    glm::vec3 lookingAt = position + (direction * 0.2f);
+    glm::vec3 position  = _viewFrustum.getPosition();
+    glm::vec3 direction = _viewFrustum.getDirection();
+    const float LINEAR_VELOCITY = 30.0f;
+    glm::vec3 lookingAt = position + (direction * LINEAR_VELOCITY);
 
     const float radius = 0.5 / TREE_SCALE;
     xColor color = { 255, 0, 0};
@@ -1495,7 +1496,10 @@ void Application::shootParticle() {
     glm::vec3 gravity = DEFAULT_GRAVITY;
     float damping = DEFAULT_DAMPING;
     QString updateScript("");
-    makeParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    
+    makeParticle(position / (float)TREE_SCALE, radius, color, 
+                 velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                 
 }
 
 void Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
@@ -1507,6 +1511,9 @@ void Application::makeParticle(glm::vec3 position, float radius, xColor color, g
     
     // queue the packet
     _particleEditSender.queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD, 1, &addParticleDetail);
+    
+    // release them
+    _particleEditSender.releaseQueuedMessages();
 }
     
 
