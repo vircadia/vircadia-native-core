@@ -2815,8 +2815,11 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
 
-            nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
+            // make sure we still have an active socket
+            if (node->getActiveSocket()) {
+                nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
                                                     node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
+            }
 
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);

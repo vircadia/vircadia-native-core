@@ -249,6 +249,9 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
     printf(" last updated:%llu\n", _lastUpdated);
+    printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
+    printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
+    printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
 }
 
 bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 

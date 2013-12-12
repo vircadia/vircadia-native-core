@@ -169,6 +169,17 @@ bool ParticleTree::updateOperation(OctreeElement* element, void* extraData) {
     return true;
 }
 
+bool ParticleTree::pruneOperation(OctreeElement* element, void* extraData) {
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        ParticleTreeElement* childAt = particleTreeElement->getChildAtIndex(i);
+        if (childAt && childAt->isLeaf() && !childAt->hasParticles()) {
+            particleTreeElement->deleteChildAtIndex(i);
+        }
+    }
+    return true;
+}
+
 void ParticleTree::update() {
     _isDirty = true;
 
@@ -187,6 +198,9 @@ void ParticleTree::update() {
             storeParticle(args._movingParticles[i]);
         }
     }
+    
+    // prune the tree...
+    recurseTreeWithOperation(pruneOperation, NULL);
 }
 
 
