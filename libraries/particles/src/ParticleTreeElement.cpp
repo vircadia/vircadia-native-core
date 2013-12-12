@@ -65,6 +65,7 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
 
     // update our contained particles
     uint16_t numberOfParticles = _particles.size();
+
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         _particles[i].update();
 

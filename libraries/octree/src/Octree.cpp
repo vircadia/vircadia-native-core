@@ -1083,19 +1083,22 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 OctreeElement* childNode = node->getChildAtIndex(i);
-                continueThisLevel = childNode->appendElementData(packetData);
-                
-                if (!continueThisLevel) {
-                    break; // no point in continuing
-                }
-                
-                bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
+                if (childNode) {
+                    int bytesBeforeChild = packetData->getUncompressedSize();
+                    continueThisLevel = childNode->appendElementData(packetData);
+                    int bytesAfterChild = packetData->getUncompressedSize();
+                    
+                    if (!continueThisLevel) {
+                        break; // no point in continuing
+                    }
+                    
+                    bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
 
-                // don't need to check childNode here, because we can't get here with no childNode
-                if (params.stats) {
-                    params.stats->colorSent(childNode);
+                    // don't need to check childNode here, because we can't get here with no childNode
+                    if (params.stats) {
+                        params.stats->colorSent(childNode);
+                    }
                 }
-
             }
         }
     }
