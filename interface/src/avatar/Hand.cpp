@@ -19,11 +19,16 @@
 
 using namespace std;
 
+const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
+const float TOY_BALL_RADIUS = 0.05f;
+const glm::vec3 TOYBALL_GRAVITY (0, -1, 0);
+float TOYBALL_DAMPING = 1.f;
+const float PALM_COLLISION_RADIUS = 0.03f;
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
-    
+
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _ballColor(0.0, 0.0, 0.4),
@@ -50,6 +55,57 @@ void Hand::init() {
 void Hand::reset() {
 }
 
+void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
+        if (palm.getControllerButtons() & BUTTON_FWD) {
+            //  If grabbing toy ball, add forces to it
+            if (!_toyBallInHand) {
+                //  Test for whether close enough to catch and catch
+                bool isCaught = true;
+                if (isCaught) {
+                    _toyBallInHand = true;
+                }
+            }
+            if (_toyBallInHand) {
+                //  Ball is in hand
+                _toyBallPosition = fingerTipPosition;
+                _toyBallVelocity = glm::vec3(0);
+                
+            }
+        } else {
+            //  If toy ball just released, add velocity to it!
+            if (_toyBallInHand) {
+                _toyBallInHand = false;
+                glm::vec3 handVelocity = palm.getRawVelocity();
+                glm::vec3 fingerTipVelocity = palm.getTipVelocity();
+                glm::quat avatarRotation = _owningAvatar->getOrientation();
+                //printVector(avatarRotation * handVelocity);
+                _toyBallVelocity += avatarRotation * fingerTipVelocity;
+                
+                //  Create a particle on the particle server
+                xColor color = { 255, 255, 0};    //  Slightly different color on server
+                glm::vec3 gravity = glm::vec3(0, -1, 0);
+                float damping = 0.99f;
+                QString updateScript("");
+                Application::getInstance()->makeParticle(fingerTipPosition / (float)TREE_SCALE,
+                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                         color,
+                                                         _toyBallVelocity / (float)TREE_SCALE,
+                                                         gravity / (float) TREE_SCALE, damping, updateScript);
+            }
+        }
+        //  Simulate toy ball
+        _toyBallPosition += _toyBallVelocity * deltaTime;
+        
+        if (!_toyBallInHand) {
+            _toyBallVelocity += TOYBALL_GRAVITY * deltaTime;
+        }
+        if (_toyBallPosition.y < 0.f) {
+            _toyBallPosition.y = 0.f;
+            _toyBallVelocity.y *= -1.f;
+        }
+        _toyBallVelocity -= (_toyBallVelocity * TOYBALL_DAMPING) * deltaTime;
+    
+}
 
 void Hand::simulate(float deltaTime, bool isMine) {
     
@@ -70,7 +126,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     if (isMine) {
-        const float FINGERTIP_VOXEL_SIZE = 0.0125;
         
         //  Iterate hand controllers, take actions as needed
         
@@ -79,41 +134,9 @@ void Hand::simulate(float deltaTime, bool isMine) {
             if (palm.isActive()) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
-                //  Toy ball game
+                
                 if (palm.getSixenseID() == TOY_BALL_HAND) {
-                    if (palm.getControllerButtons() & BUTTON_FWD) {
-                        //  If grabbing toy ball, add forces to it
-                        if (!_toyBallInHand) {
-                            //  Test for whether close enough to catch and catch
-                            bool isCaught = true;
-                            if (isCaught) {
-                                _toyBallInHand = true;
-                            }
-                        }
-                        if (_toyBallInHand) {
-                            //  Ball is in hand
-                            _toyBallPosition = fingerTipPosition;
-                            _toyBallVelocity = glm::vec3(0);
-                            
-                        }
-                    } else {
-                        //  If toy ball just released, add velocity to it!
-                        if (_toyBallInHand) {
-                            _toyBallInHand = false;
-                            glm::vec3 handVelocity = palm.getRawVelocity();
-                            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
-                            glm::quat avatarRotation = _owningAvatar->getOrientation();
-                            //printVector(avatarRotation * handVelocity);
-                            _toyBallVelocity += avatarRotation * fingerTipVelocity;
-                        }
-                    }
-                    //  Simulate toy ball
-                    const glm::vec3 TOYBALL_GRAVITY (0, -1, 0);
-                    _toyBallPosition += _toyBallVelocity * deltaTime;
-                    if (!_toyBallInHand) {
-                        _toyBallVelocity += TOYBALL_GRAVITY * deltaTime;
-                    }
-                    _toyBallVelocity *= 0.99f;
+                    simulateToyBall(palm, fingerTipPosition, deltaTime);
                 }
                 
                 if (palm.getControllerButtons() & BUTTON_1) {
@@ -165,8 +188,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
         }
     }
 }
-
-const float PALM_COLLISION_RADIUS = 0.03f;
 
 void Hand::updateCollisions() {
     // use position to obtain the left and right palm indices
@@ -301,7 +322,6 @@ void Hand::render( bool isMine) {
     //  Render toy ball
     if (isMine) {
         glPushMatrix();
-        const float TOY_BALL_RADIUS = 0.05f;
         glColor3f(1, 0, 0);
         glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
         glutSolidSphere(TOY_BALL_RADIUS, 10, 10);

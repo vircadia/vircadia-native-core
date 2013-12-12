@@ -1498,14 +1498,14 @@ void Application::shootParticle() {
 
     glm::vec3 position  = _viewFrustum.getPosition();
     glm::vec3 direction = _viewFrustum.getDirection();
-    const float LINEAR_VELOCITY = 30.0f;
+    const float LINEAR_VELOCITY = 5.f;
     glm::vec3 lookingAt = position + (direction * LINEAR_VELOCITY);
 
-    const float radius = 0.5 / TREE_SCALE;
-    xColor color = { 255, 0, 0};
+    const float radius = 0.125 / TREE_SCALE;
+    xColor color = { 0, 255, 255};
     glm::vec3 velocity = lookingAt - position;
-    glm::vec3 gravity = DEFAULT_GRAVITY;
-    float damping = DEFAULT_DAMPING;
+    glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
+    float damping = DEFAULT_DAMPING * 0.01f;
     QString updateScript("");
     
     makeParticle(position / (float)TREE_SCALE, radius, color, 

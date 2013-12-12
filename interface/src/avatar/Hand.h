@@ -91,6 +91,8 @@ private:
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
     
+    void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
+    
     glm::vec3 _toyBallPosition;
     glm::vec3 _toyBallVelocity;
     bool      _toyBallInHand;
