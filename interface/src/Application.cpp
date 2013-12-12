@@ -1499,14 +1499,14 @@ void Application::shootParticle() {
 
     glm::vec3 position  = _viewFrustum.getPosition();
     glm::vec3 direction = _viewFrustum.getDirection();
-    const float LINEAR_VELOCITY = 30.0f;
+    const float LINEAR_VELOCITY = 5.f;
     glm::vec3 lookingAt = position + (direction * LINEAR_VELOCITY);
 
-    const float radius = 0.5 / TREE_SCALE;
-    xColor color = { 255, 0, 0};
+    const float radius = 0.125 / TREE_SCALE;
+    xColor color = { 0, 255, 255};
     glm::vec3 velocity = lookingAt - position;
-    glm::vec3 gravity = DEFAULT_GRAVITY;
-    float damping = DEFAULT_DAMPING;
+    glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
+    float damping = DEFAULT_DAMPING * 0.01f;
     QString updateScript("");
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
@@ -1551,18 +1551,7 @@ void Application::makeVoxel(glm::vec3 position,
     _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
                         voxel.red, voxel.green, voxel.blue,
                         isDestructive);
-    
-    // Implement voxel fade effect
-    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-    const float VOXEL_BOUNDS_ADJUST = 0.01f;
-    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
-    fade.voxelDetails.x = voxel.x - slightlyBigger;
-    fade.voxelDetails.y = voxel.y - slightlyBigger;
-    fade.voxelDetails.z = voxel.z - slightlyBigger;
-    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
-    _voxelFades.push_back(fade);
-    
-}
+   }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -2530,7 +2519,10 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
     
     // apply pitch from touch
-    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() + _pitchFromTouch);
+    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() +
+                                      _myAvatar.getHand().getPitchUpdate() +
+                                      _pitchFromTouch);
+    _myAvatar.getHand().setPitchUpdate(0.f);
     _pitchFromTouch = 0.0f;
     
     // Update my avatar's state from gyros and/or webcam
