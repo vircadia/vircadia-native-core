@@ -42,7 +42,7 @@ void OctreeInboundPacketProcessor::resetStats() {
 void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr,
                                                unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = true; //_myServer->wantsVerboseDebug();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
     
     if (debugProcessPacket) {
         printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);

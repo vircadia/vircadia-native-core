@@ -236,10 +236,13 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += scriptLength;
     processedBytes += scriptLength;
 
-    printf("Particle::fromEditPacket()...\n"); 
-    printf("   Particle id in packet:%u\n", editID);
-    newParticle.debugDump();
-
+    const bool wantDebugging = false;
+    if (wantDebugging) {
+        printf("Particle::fromEditPacket()...\n"); 
+        printf("   Particle id in packet:%u\n", editID);
+        newParticle.debugDump();
+    }
+    
     return newParticle;
 }
 
