@@ -13,11 +13,13 @@
 class DebugVisitor : public MetavoxelVisitor {
 public:
     
-    virtual bool visit(const QVector<AttributeValue>& attributeValues);
+    virtual bool visit(const MetavoxelInfo& info);
 };
 
-bool DebugVisitor::visit(const QVector<AttributeValue>& attributeValues) {
-    qDebug() << decodeInline<float>(attributeValues.at(0).getValue()) << "\n";
+bool DebugVisitor::visit(const MetavoxelInfo& info) {
+    QRgb color = info.attributeValues.at(0).getInlineValue<QRgb>();
+    qDebug("%g %g %g %g %d %d %d %d\n", info.minimum.x, info.minimum.y, info.minimum.z, info.size,
+        qRed(color), qGreen(color), qBlue(color), qAlpha(color));
     return true;
 }
 
@@ -27,20 +29,12 @@ void MetavoxelSystem::init() {
     p1 += 1;
     p1 += 2;
     
-    AttributePointer blerp = AttributeRegistry::getInstance()->getAttribute("blerp");
+    AttributePointer diffuseColor = AttributeRegistry::getInstance()->getAttribute("diffuseColor");
     
-    void* foo = encodeInline(5.0f);
-    _data.setAttributeValue(p1, AttributeValue(blerp, &foo));
-    
-    //p1 += 0;
-    
-    MetavoxelPath p2;
-    
-    AttributeValue value = _data.getAttributeValue(p2, blerp);
-    
-    qDebug("fliggedy bloo %g\n", decodeInline<float>(value.getValue()));
+    void* white = encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF));
+    _data.setAttributeValue(p1, AttributeValue(diffuseColor, &white));
     
     DebugVisitor visitor;
-    _data.visitVoxels(QVector<AttributePointer>() << blerp, visitor);
+    _data.visitVoxels(QVector<AttributePointer>() << diffuseColor, visitor);
 }
 

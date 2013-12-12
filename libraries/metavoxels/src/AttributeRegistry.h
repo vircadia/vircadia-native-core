@@ -9,6 +9,7 @@
 #ifndef __interface__AttributeRegistry__
 #define __interface__AttributeRegistry__
 
+#include <QColor>
 #include <QHash>
 #include <QSharedPointer>
 #include <QString>
@@ -43,6 +44,16 @@ private:
     QHash<QString, AttributePointer> _attributes;
 };
 
+/// Converts a value to a void pointer.
+template<class T> inline void* encodeInline(T value) {
+    return *(void**)&value;
+}
+
+/// Extracts a value from a void pointer.
+template<class T> inline T decodeInline(void* value) {
+    return *(T*)&value;
+}
+
 /// Pairs an attribute value with its type.
 class AttributeValue {
 public:
@@ -55,6 +66,9 @@ public:
     
     AttributePointer getAttribute() const { return _attribute; }
     void* getValue() const { return _value; }
+    
+    template<class T> void setInlineValue(T value) { _value = encodeInline(value); }
+    template<class T> T getInlineValue() const { return decodeInline<T>(_value); }
     
     void* copy() const;
 
@@ -73,6 +87,8 @@ private:
 class Attribute {
 public:
 
+    static const int AVERAGE_COUNT = 8;
+    
     Attribute(const QString& name);
     virtual ~Attribute();
 
@@ -94,14 +110,6 @@ private:
 
     QString _name;
 };
-
-template<class T> inline void* encodeInline(const T& value) {
-    return *(void**)const_cast<T*>(&value);
-}
-
-template<class T> inline T decodeInline(void* value) {
-    return *(T*)&value;
-}
 
 /// A simple attribute class that stores its values inline.
 template<class T, int bits> class InlineAttribute : public Attribute {
@@ -128,11 +136,20 @@ private:
 
 template<class T, int bits> inline void* InlineAttribute<T, bits>::createAveraged(void* values[]) const {
     T total = T();
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < AVERAGE_COUNT; i++) {
         total += decodeInline<T>(values[i]);
     }
-    total /= 8;
+    total /= AVERAGE_COUNT;
     return encodeInline(total);
 }
+
+/// Provides appropriate averaging for RGBA values.
+class QRgbAttribute : public InlineAttribute<QRgb, 32> {
+public:
+    
+    QRgbAttribute(const QString& name, QRgb defaultValue = QRgb());
+    
+    virtual void* createAveraged(void* values[]) const;
+};
 
 #endif /* defined(__interface__AttributeRegistry__) */

@@ -19,45 +19,58 @@ class Visitation {
 public:
     MetavoxelVisitor& visitor;
     QVector<MetavoxelNode*> nodes;
-    QVector<AttributeValue> attributeValues;
+    MetavoxelInfo info;
 
     void apply();
+
+protected:
+    
+    bool allNodesLeaves() const;
 };
 
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int Z_MAXIMUM_FLAG = 4;
+
 void Visitation::apply() {
-    Visitation nextVisitation = { visitor, QVector<MetavoxelNode*>(nodes.size()), attributeValues };
-    for (int i = 0; i < nodes.size(); i++) {
-        MetavoxelNode* node = nodes.at(i);
-        if (node) {
-            nextVisitation.attributeValues[i] = node->getAttributeValue(attributeValues[i].getAttribute());
-        }
-    }
-    
-    if (!visitor.visit(nextVisitation.attributeValues)) {
+    if (!visitor.visit(info) || allNodesLeaves()) {
         return;
     }
-    
+    Visitation nextVisitation = { visitor, QVector<MetavoxelNode*>(nodes.size()),
+        { glm::vec3(), info.size * 0.5f, QVector<AttributeValue>(nodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
-        bool anyChildrenPresent = false;
         for (int j = 0; j < nodes.size(); j++) {
             MetavoxelNode* node = nodes.at(j);
-            if ((nextVisitation.nodes[j] = node ? node->getChild(i) : NULL)) {
-                anyChildrenPresent = true;
-            }            
+            MetavoxelNode* child = node ? node->getChild(i) : NULL;
+            nextVisitation.info.attributeValues[j] = ((nextVisitation.nodes[j] = child)) ?
+                child->getAttributeValue(info.attributeValues[j].getAttribute()) : info.attributeValues[j];
         }
-        if (anyChildrenPresent) {
-            nextVisitation.apply();
+        nextVisitation.info.minimum = info.minimum + glm::vec3(
+            (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
+            (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
+            (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
+        nextVisitation.apply();
+    }
+}
+
+bool Visitation::allNodesLeaves() const {
+    foreach (MetavoxelNode* node, nodes) {
+        if (node != NULL && !node->isLeaf()) {
+            return false;
         }
     }
+    return true;
 }
 
 void MetavoxelData::visitVoxels(const QVector<AttributePointer>& attributes, MetavoxelVisitor& visitor) {
     // start with the root values/defaults
+    const float TOP_LEVEL_SIZE = 1.0f;
     Visitation firstVisitation = { visitor, QVector<MetavoxelNode*>(attributes.size()),
-        QVector<AttributeValue>(attributes.size()) };
+        { glm::vec3(), TOP_LEVEL_SIZE, QVector<AttributeValue>(attributes.size()) } };
     for (int i = 0; i < attributes.size(); i++) {
-        firstVisitation.nodes[i] = _roots.value(attributes[i]);
-        firstVisitation.attributeValues[i] = attributes[i];
+        MetavoxelNode* node = _roots.value(attributes[i]);
+        firstVisitation.nodes[i] = node;
+        firstVisitation.info.attributeValues[i] = node ? node->getAttributeValue(attributes[i]) : attributes[i];
     }
     firstVisitation.apply();
 }

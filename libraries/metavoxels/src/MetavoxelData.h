@@ -14,6 +14,8 @@
 #include <QScopedPointer>
 #include <QVector>
 
+#include <glm/glm.hpp>
+
 #include "AttributeRegistry.h"
 
 class MetavoxelNode;
@@ -94,14 +96,23 @@ private:
     QBitArray _array;    
 };
 
+/// Contains information about a metavoxel (explicit or procedural).
+class MetavoxelInfo {
+public:
+    
+    glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
+    float size; ///< the size of the voxel in all dimensions
+    QVector<AttributeValue> attributeValues;
+};
+
 /// Interface for visitors to metavoxels.
 class MetavoxelVisitor {
 public:
     
     /// Visits a metavoxel.
-    /// \param attributeValues the values of the desired attributes
+    /// \param info the metavoxel ata
     /// \param if true, continue descending; if false, stop
-    virtual bool visit(const QVector<AttributeValue>& attributeValues) = 0;
+    virtual bool visit(const MetavoxelInfo& info) = 0;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

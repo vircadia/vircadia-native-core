@@ -11,7 +11,7 @@
 AttributeRegistry AttributeRegistry::_instance;
 
 AttributeRegistry::AttributeRegistry() {
-    registerAttribute(AttributePointer(new InlineAttribute<float, 32>("blerp")));
+    registerAttribute(AttributePointer(new QRgbAttribute("diffuseColor")));
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -74,4 +74,25 @@ Attribute::Attribute(const QString& name) : _name(name) {
 
 Attribute::~Attribute() {
 }
+
+QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
+    InlineAttribute<QRgb, 32>(name, defaultValue) {
+}
+ 
+void* QRgbAttribute::createAveraged(void* values[]) const {
+    int totalRed = 0;
+    int totalGreen = 0;
+    int totalBlue = 0;
+    int totalAlpha = 0;
+    for (int i = 0; i < AVERAGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(values[i]);
+        totalRed += qRed(value);
+        totalGreen += qGreen(value);
+        totalBlue += qBlue(value);
+        totalAlpha += qAlpha(value);
+    }
+    const int SHIFT_FACTOR = 3;
+    return encodeInline(qRgba(totalRed / AVERAGE_COUNT, totalGreen / AVERAGE_COUNT,
+        totalBlue / AVERAGE_COUNT, totalAlpha / AVERAGE_COUNT));
+} 
 
