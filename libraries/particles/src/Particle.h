@@ -20,6 +20,8 @@
 #include <OctreePacketData.h>
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
+const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
+
 class ParticleDetail {
 public:
     uint32_t id;

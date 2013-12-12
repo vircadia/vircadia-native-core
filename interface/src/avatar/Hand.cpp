@@ -69,6 +69,12 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
 
     if (closestParticle) {
         printf("potentially caught... particle ID:%d\n", closestParticle->getID());
+        
+        // you can create a ParticleEditHandle by doing this...
+        ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+        
+        // but make sure you clean it up, when you're done
+        delete caughtParticle;
     }
 
     // Is the controller button being held down....

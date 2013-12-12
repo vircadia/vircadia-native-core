@@ -121,6 +121,7 @@ public:
     void wheelEvent(QWheelEvent* event);
 
     void shootParticle(); // shoots a particle in the direction you're looking
+    ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
     ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript);
     

@@ -16,15 +16,22 @@ std::map<uint32_t,ParticleEditHandle*> ParticleEditHandle::_allHandles;
 uint32_t ParticleEditHandle::_nextCreatorTokenID = 0;
 
 
-ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree) {
-    _creatorTokenID = _nextCreatorTokenID;
-    _nextCreatorTokenID++;
-    _id = NEW_PARTICLE;
-    _isKnownID = false;
+ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree, uint32_t id) {
+    if (id == NEW_PARTICLE) {
+        _creatorTokenID = _nextCreatorTokenID;
+        _nextCreatorTokenID++;
+        _id = NEW_PARTICLE;
+        _isKnownID = false;
+        _allHandles[_creatorTokenID] = this;
+    } else {
+        _creatorTokenID = UNKNOWN_TOKEN; 
+        _id = id;
+        _isKnownID = true;
+        // don't add to _allHandles because we already know it...
+    }
     _packetSender = packetSender;
     _localTree = localTree;
     
-    _allHandles[_creatorTokenID] = this;
 }
 
 ParticleEditHandle::~ParticleEditHandle() {
