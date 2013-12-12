@@ -173,7 +173,7 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     if (sourceAudioFormat == destinationAudioFormat) {
         memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
     } else {
-        float sourceToDestinationFactor = numSourceSamples / numDestinationSamples;
+        float sourceToDestinationFactor = numSourceSamples / (float) numDestinationSamples;
         
         // take into account the number of channels in source and destination
         // accomodate for the case where have an output with > 2 channels
@@ -200,15 +200,18 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
                 * (destinationAudioFormat.sampleRate() / sourceAudioFormat.sampleRate())
                 * (destinationAudioFormat.channelCount() / sourceAudioFormat.channelCount());
             
+            int sourceIndex = 0;
+            
             // upsample from 24 to 48
             for (int i = 0; i < numResultingDestinationSamples; i += destinationAudioFormat.channelCount()) {
                 
-                destinationSamples[i] = sourceSamples[i / 4];
+                sourceIndex = i * sourceToDestinationFactor;
+                destinationSamples[i] = sourceSamples[sourceIndex];
                 
                 if (sourceAudioFormat.channelCount() == 1) {
-                    destinationSamples[i + 1] = sourceSamples[i / 4];
+                    destinationSamples[i + 1] = sourceSamples[sourceIndex];
                 } else {
-                    destinationSamples[i + 1] = sourceSamples[(i / 4) + 1];
+                    destinationSamples[i + 1] = sourceSamples[(sourceIndex) + 1];
                     
                     if (destinationAudioFormat.channelCount() > 2) {
                         // fill the rest of the channels with silence
@@ -292,16 +295,16 @@ void Audio::handleAudioInput() {
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
-    static int inputToOutputRatio = _numOutputCallbackBytes / _numInputCallbackBytes;
-    static int inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / BUFFER_LENGTH_BYTES_PER_CHANNEL;
+    static float inputToOutputRatio = _numOutputCallbackBytes / _numInputCallbackBytes;
+    static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / BUFFER_LENGTH_BYTES_PER_CHANNEL;
     
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    int numResampledNetworkBytes =  inputByteArray.size() / inputToNetworkInputRatio;
-    int numResampledNetworkSamples = numResampledNetworkBytes / sizeof(int16_t);
+    int numResampledNetworkInputBytes =  inputByteArray.size() / inputToNetworkInputRatio;
+    int numResampledNetworkInputSamples = numResampledNetworkInputBytes / sizeof(int16_t);
     
     // zero out the monoAudioSamples array
-    memset(monoAudioSamples, 0, numResampledNetworkBytes);
+    memset(monoAudioSamples, 0, numResampledNetworkInputBytes);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
         _outputBuffer.resize(inputByteArray.size());
@@ -327,7 +330,7 @@ void Audio::handleAudioInput() {
     NodeList* nodeList = NodeList::getInstance();
     Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
     
-    if (false) {
+    if (audioMixer) {
         if (audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             
@@ -338,7 +341,7 @@ void Audio::handleAudioInput() {
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             
             PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-            ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
             char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
                                                                                   packetType);
@@ -365,7 +368,7 @@ void Audio::handleAudioInput() {
                 linearResampling((int16_t*) inputByteArray.data(),
                                  monoAudioSamples,
                                  inputByteArray.size() / sizeof(int16_t),
-                                 numResampledNetworkSamples,
+                                 numResampledNetworkInputSamples,
                                  _inputFormat, _desiredInputFormat);
                 
             } else {
@@ -373,7 +376,7 @@ void Audio::handleAudioInput() {
             }
             
             nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
-                                                    numResampledNetworkBytes + leadingBytes,
+                                                    numResampledNetworkInputBytes + leadingBytes,
                                                     audioMixer->getActiveSocket()->getAddress(),
                                                     audioMixer->getActiveSocket()->getPort());
             
@@ -384,23 +387,10 @@ void Audio::handleAudioInput() {
         }
     }
     
-    // we aren't muted - pull our input audio to send off to the mixer
-    linearResampling((int16_t*) inputByteArray.data(),
-                     monoAudioSamples,
-                     inputByteArray.size() / sizeof(int16_t),
-                     numResampledNetworkSamples,
-                     _inputFormat, _desiredInputFormat);
-    
-    linearResampling(monoAudioSamples,
-                     (int16_t*) _outputBuffer.data(),
-                     numResampledNetworkSamples,
-                     inputByteArray.size() * inputToOutputRatio / sizeof(int16_t),
-                     _desiredInputFormat, _outputFormat);
-    
     if (_outputDevice) {
         // if there is anything in the ring buffer, decide what to do
         
-        if (false) {
+        if (_ringBuffer.getEndOfLastWrite()) {
             if (_ringBuffer.isStarved() && _ringBuffer.diffLastWriteNextOutput() <
                 ((_outputBuffer.size() / sizeof(int16_t)) + _jitterBufferSamples * (_ringBuffer.isStereo() ? 2 : 1))) {
                 //  If not enough audio has arrived to start playback, keep waiting
@@ -419,19 +409,24 @@ void Audio::handleAudioInput() {
                     _ringBuffer.setHasStarted(true);
                 }
                 
-                int numOutputBufferSamples = _outputBuffer.size() / sizeof(int16_t);
-                if (_ringBuffer.getNextOutput() + numOutputBufferSamples > _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                    qDebug() << _ringBuffer.getNextOutput() - _ringBuffer.getBuffer() << "\n";
-                    numOutputBufferSamples =  (_ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) - _ringBuffer.getNextOutput();
+                int numRequiredNetworkOutputBytes = numResampledNetworkInputBytes * 2;
+                int numRequiredNetworkOutputSamples = numRequiredNetworkOutputBytes / sizeof(int16_t);
+                
+                int numResampledOutputBytes = inputByteArray.size() * inputToOutputRatio;
+                
+                if (_ringBuffer.getNextOutput() + numRequiredNetworkOutputSamples
+                    > _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+                    numRequiredNetworkOutputSamples =  (_ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) - _ringBuffer.getNextOutput();
                 }
                 
                 // copy the packet from the RB to the output
-//                nearestNeighborResampling(_ringBuffer.getNextOutput(),
-//                                          (int16_t*) _outputBuffer.data(),
-//                                          numOutputBufferSamples,
-//                                          _desiredOutputFormat, _outputFormat);
+                linearResampling(_ringBuffer.getNextOutput(),
+                                 (int16_t*) _outputBuffer.data(),
+                                 numRequiredNetworkOutputSamples,
+                                 numResampledOutputBytes / sizeof(int16_t),
+                                 _desiredOutputFormat, _outputFormat);
                 
-                _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + numOutputBufferSamples);
+                _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + numRequiredNetworkOutputSamples);
                 
                 if (_ringBuffer.getNextOutput() >= _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
                     _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
