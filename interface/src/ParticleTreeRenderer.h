@@ -34,6 +34,9 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
 
     void update();
+
+    ParticleTree* getTree() { return (ParticleTree*)_tree; }
+
 protected:
 };
 

@@ -43,14 +43,15 @@ class Particle  {
 public:
     Particle();
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY, QString updateScript = DEFAULT_SCRIPT);
+            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY, QString updateScript = DEFAULT_SCRIPT, 
+            uint32_t id = NEW_PARTICLE);
     
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
     static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
     
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                            float damping, glm::vec3 gravity, QString updateScript);
+                            float damping, glm::vec3 gravity, QString updateScript, uint32_t id);
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }

@@ -19,23 +19,27 @@ uint32_t Particle::_nextID = 0;
 
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                    float damping, glm::vec3 gravity, QString updateScript) {
+                    float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
                     
-    init(position, radius, color, velocity, damping, gravity, updateScript);
+    init(position, radius, color, velocity, damping, gravity, updateScript, id);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY, DEFAULT_SCRIPT);
+    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
 Particle::~Particle() {
 }
 
 void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                        float damping, glm::vec3 gravity, QString updateScript) {
-    _id = _nextID;
-    _nextID++;
+                        float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
+    if (id == NEW_PARTICLE) {
+        _id = _nextID;
+        _nextID++;
+    } else {
+        _id = id;
+    }
     _lastUpdated = usecTimestampNow();
 
     _position = position;

@@ -1528,7 +1528,7 @@ void Application::shootParticle() {
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript) {
 
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender);
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
     particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
     return particleEditHandle;
 }

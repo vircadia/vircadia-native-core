@@ -10,17 +10,19 @@
 #include "Particle.h"
 #include "ParticleEditHandle.h"
 #include "ParticleEditPacketSender.h"
+#include "ParticleTree.h"
 
 std::map<uint32_t,ParticleEditHandle*> ParticleEditHandle::_allHandles;
 uint32_t ParticleEditHandle::_nextCreatorTokenID = 0;
 
 
-ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender) {
+ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree) {
     _creatorTokenID = _nextCreatorTokenID;
     _nextCreatorTokenID++;
     _id = NEW_PARTICLE;
     _isKnownID = false;
     _packetSender = packetSender;
+    _localTree = localTree;
     
     _allHandles[_creatorTokenID] = this;
 }
@@ -43,6 +45,12 @@ void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor
     
     // release them
     _packetSender->releaseQueuedMessages();
+    
+    // if we have a local tree, also update it...
+    if (_localTree) {
+        // we can't really do this here, because if we create a particle locally, we'll get a ghost particle
+        // because we can't really handle updating/deleting it locally
+    }
 }
 
 bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
@@ -62,6 +70,13 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     
     // release them
     _packetSender->releaseQueuedMessages();
+
+    // if we have a local tree, also update it...
+    if (_localTree) {
+        rgbColor rcolor = {color.red, color.green, color.blue };
+        Particle tempParticle(position, radius, rcolor, velocity, damping, gravity, updateScript, _id);
+        _localTree->storeParticle(tempParticle);
+    }
     
     return true;
 }
@@ -79,13 +94,10 @@ void ParticleEditHandle::handleAddResponse(unsigned char* packetData , int packe
     memcpy(&particleID, dataAt, sizeof(particleID));
     dataAt += sizeof(particleID);
 
-    printf("handleAddResponse() creatorTokenID=%u particleID=%u\n",creatorTokenID, particleID);
-    
     // find this particle in the _allHandles map
     if (_allHandles.find(creatorTokenID) != _allHandles.end()) {
         ParticleEditHandle* theHandle = _allHandles[creatorTokenID];
         theHandle->_id = particleID;
         theHandle->_isKnownID = true;
-        printf("handleAddResponse() for creatorTokenID=%u theHandle->_id=%u\n",creatorTokenID, particleID);
     }
 }

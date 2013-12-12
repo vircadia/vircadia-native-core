@@ -20,10 +20,11 @@
 #include <OctreePacketData.h>
 
 class ParticleEditPacketSender;
+class ParticleTree;
 
 class ParticleEditHandle {
 public:
-    ParticleEditHandle(ParticleEditPacketSender* packetSender);
+    ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree);
     ~ParticleEditHandle();
 
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
@@ -45,6 +46,7 @@ private:
     static uint32_t _nextCreatorTokenID;
     static std::map<uint32_t,ParticleEditHandle*> _allHandles;
     ParticleEditPacketSender* _packetSender;
+    ParticleTree* _localTree;
 };
 
 #endif /* defined(__hifi__ParticleEditHandle__) */
