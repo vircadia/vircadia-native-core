@@ -9,6 +9,8 @@
 #include <cstring>
 #include <math.h>
 
+#include <QtCore/QDebug>
+
 #include "PacketHeaders.h"
 
 #include "AudioRingBuffer.h"
@@ -43,30 +45,26 @@ int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
 int AudioRingBuffer::parseAudioSamples(unsigned char* sourceBuffer, int numBytes) {
     // make sure we have enough bytes left for this to be the right amount of audio
     // otherwise we should not copy that data, and leave the buffer pointers where they are
-    int samplesToCopy = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * (_isStereo ? 2 : 1);
     
-    if (numBytes == samplesToCopy * sizeof(int16_t)) {
-        
-        if (!_endOfLastWrite) {
-            _endOfLastWrite = _buffer;
-        } else if (diffLastWriteNextOutput() > RING_BUFFER_LENGTH_SAMPLES - samplesToCopy) {
-            _endOfLastWrite = _buffer;
-            _nextOutput = _buffer;
-            _isStarved = true;
-        }
-        
-        memcpy(_endOfLastWrite, sourceBuffer, numBytes);
-        
-        _endOfLastWrite += samplesToCopy;
-        
-        if (_endOfLastWrite >= _buffer + RING_BUFFER_LENGTH_SAMPLES) {
-            _endOfLastWrite = _buffer;
-        }
-        
-        return numBytes;
-    } else {
-        return 0;
-    }    
+    int samplesToCopy = numBytes / sizeof(int16_t);
+    
+    if (!_endOfLastWrite) {
+        _endOfLastWrite = _buffer;
+    } else if (diffLastWriteNextOutput() > RING_BUFFER_LENGTH_SAMPLES - samplesToCopy) {
+        _endOfLastWrite = _buffer;
+        _nextOutput = _buffer;
+        _isStarved = true;
+    }
+    
+    memcpy(_endOfLastWrite, sourceBuffer, numBytes);
+    
+    _endOfLastWrite += samplesToCopy;
+    
+    if (_endOfLastWrite >= _buffer + RING_BUFFER_LENGTH_SAMPLES) {
+        _endOfLastWrite = _buffer;
+    }
+    
+    return numBytes;
 }
 
 int AudioRingBuffer::diffLastWriteNextOutput() const {
