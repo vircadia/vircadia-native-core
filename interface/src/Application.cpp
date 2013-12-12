@@ -139,8 +139,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false),
-        _nextCreatorTokenID(0)
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
