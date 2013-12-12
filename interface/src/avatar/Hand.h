@@ -102,6 +102,7 @@ private:
     bool _hasToyBall;
     bool _toyBallShouldRender;
     
+    const Particle* _heldParticle;
     ParticleEditHandle* _ballParticleEditHandle;
     
     float _pitchUpdate;

@@ -62,7 +62,20 @@ void Hand::reset() {
 }
 
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
-    
+    glm::vec3 targetPosition = fingerTipPosition / (float)TREE_SCALE;
+    float targetRadius = (TOY_BALL_RADIUS * 2.0f) / (float)TREE_SCALE;
+    const Particle* closestParticle = Application::getInstance()->getParticles()
+                                                ->getTree()->findClosestParticle(targetPosition, targetRadius);
+
+    if (closestParticle) {
+        printf("potentially caught... particle ID:%d\n", closestParticle->getID());
+        
+        // you can create a ParticleEditHandle by doing this...
+        ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+        
+        // but make sure you clean it up, when you're done
+        delete caughtParticle;
+    }
     // Is the controller button being held down....
     if (palm.getControllerButtons() & BUTTON_FWD) {
         //  If grabbing toy ball, add forces to it.
@@ -74,8 +87,10 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             
             // isCaught is also used as "creating" a new ball... for now, this section is the
             // create new ball portion of the code...
-            bool isCaught = true;
-            if (isCaught) {
+            bool isCaught = false;
+
+            // If we didn't catch something, then create a new ball....
+            if (!isCaught) {
                 _toyBallInHand = true;
                 _hasToyBall = true;
                 

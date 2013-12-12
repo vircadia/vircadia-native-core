@@ -19,12 +19,14 @@
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
+#include "Particle.h"
+
 class ParticleEditPacketSender;
 class ParticleTree;
 
 class ParticleEditHandle {
 public:
-    ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree);
+    ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree, uint32_t id = NEW_PARTICLE);
     ~ParticleEditHandle();
 
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }

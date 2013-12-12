@@ -1524,10 +1524,16 @@ void Application::shootParticle() {
 }
 
 // Caller is responsible for managing this EditableParticle
+ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    return particleEditHandle;
+}
+
+// Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript) {
 
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    ParticleEditHandle* particleEditHandle = newParticleEditHandle();
     particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
     return particleEditHandle;
 }
