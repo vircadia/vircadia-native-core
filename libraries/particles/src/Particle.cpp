@@ -375,6 +375,7 @@ void Particle::update() {
     // handle damping
     glm::vec3 dampingResistance = _velocity * _damping;
     _velocity -= dampingResistance * timeElapsed;
+    //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
 
     _lastUpdated = now;
 }
