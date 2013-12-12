@@ -43,7 +43,7 @@ public:
     virtual void update();    
 
     void storeParticle(const Particle& particle);
-    const Particle* findClosestPartice(glm::vec3 position, float targetRadius);
+    const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);

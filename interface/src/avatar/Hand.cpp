@@ -65,7 +65,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     glm::vec3 targetPosition = fingerTipPosition / (float)TREE_SCALE;
     float targetRadius = (TOY_BALL_RADIUS * 2.0f) / (float)TREE_SCALE;
     const Particle* closestParticle = Application::getInstance()->getParticles()
-                                                ->getTree()->findClosestPartice(targetPosition, targetRadius);
+                                                ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
     if (closestParticle) {
         printf("potentially caught... particle ID:%d\n", closestParticle->getID());
