@@ -27,9 +27,6 @@ OctreeRenderer::~OctreeRenderer() {
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-
-
-
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     bool extraDebugging = false; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
@@ -38,6 +35,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
     int packetLength = dataByteArray.size();
 
     unsigned char command = *packetData;
+    
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     
     PACKET_TYPE expectedType = getExpectedPacketType();

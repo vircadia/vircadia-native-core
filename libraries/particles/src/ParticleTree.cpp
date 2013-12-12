@@ -77,7 +77,7 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
                 notifyNewlyCreatedParticle(newParticle, senderNode);
             }
         } break;
-            
+        
         case PACKET_TYPE_PARTICLE_ERASE: {
             processedBytes = 0;
         } break;

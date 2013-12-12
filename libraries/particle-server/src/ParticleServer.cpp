@@ -39,6 +39,29 @@ void ParticleServer::beforeRun() {
     // nothing special to do...
 }
 
-void ParticleServer::particleCreated(const Particle& newParticle, Node* senderNode) {
+void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
     printf("ParticleServer::particleCreated(newParticle.creatorTokenID=%u, senderNode)\n",newParticle.getCreatorTokenID());
+    unsigned char outputBuffer[MAX_PACKET_SIZE];
+    unsigned char* copyAt = outputBuffer;
+
+    int numBytesPacketHeader = populateTypeAndVersion(outputBuffer, PACKET_TYPE_PARTICLE_ADD_RESPONSE);
+    int packetLength = numBytesPacketHeader;
+    copyAt += numBytesPacketHeader;
+    
+    // encode the creatorTokenID
+    uint32_t creatorTokenID = newParticle.getCreatorTokenID();
+    memcpy(copyAt, &creatorTokenID, sizeof(creatorTokenID));
+    copyAt += sizeof(creatorTokenID);
+    packetLength += sizeof(creatorTokenID);
+    
+    // encode the particle ID
+    uint32_t particleID = newParticle.getID();
+    memcpy(copyAt, &particleID, sizeof(particleID));
+    copyAt += sizeof(particleID);
+    packetLength += sizeof(particleID);
+    
+    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) outputBuffer, packetLength,
+                                                           node->getActiveSocket()->getAddress(),
+                                                           node->getActiveSocket()->getPort());
+    printf("ParticleServer::particleCreated() called writeDatagram() packetLength=%d\n", packetLength);
 }

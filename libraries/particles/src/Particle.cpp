@@ -147,7 +147,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += scriptLength;
         bytesRead += scriptLength;
         
-        printf("Particle::readParticleDataFromBuffer()... "); debugDump();
+        //printf("Particle::readParticleDataFromBuffer()... "); debugDump();
     }
     return bytesRead;
 }
@@ -253,7 +253,8 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
     for (int i = 0; i < count && success; i++) {
         // get the octal code for the particle
-        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, details[i].position.z, details[i].radius);
+        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, 
+                                                    details[i].position.z, details[i].radius);
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
@@ -326,12 +327,14 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             memcpy(copyAt, qPrintable(details[i].updateScript), scriptLength);
             copyAt += scriptLength;
             sizeOut += scriptLength;
-            
-            printf("encodeParticleEditMessageDetails()....\n");
-            printf("Particle id  :%u\n", details[i].id);
-            printf(" last updated:%llu\n", details[i].lastUpdated);
-            printf(" nextID:%u\n", _nextID);
 
+            bool wantDebugging = false;
+            if (wantDebugging) {            
+                printf("encodeParticleEditMessageDetails()....\n");
+                printf("Particle id  :%u\n", details[i].id);
+                printf(" last updated:%llu\n", details[i].lastUpdated);
+                printf(" nextID:%u\n", _nextID);
+            }
         }
         // cleanup
         delete[] octcode;

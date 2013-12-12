@@ -1509,28 +1509,23 @@ void Application::shootParticle() {
     float damping = DEFAULT_DAMPING;
     QString updateScript("");
     
-    makeParticle(position / (float)TREE_SCALE, radius, color, 
-                 velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
-                 
+    ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
+                                     velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                            
+    // If we wanted to be able to edit this particle after shooting, then we could store this value
+    // and use it for editing later. But we don't care about that for "shooting" and therefore we just
+    // clean up our memory now. deleting a ParticleEditHandle does not effect the underlying particle,
+    // it just removes your ability to edit that particle later.
+    delete particleEditHandle;
 }
 
-void Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
+// Caller is responsible for managing this EditableParticle
+ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript) {
-            
-    // The application will keep track of creatorTokenID
-    uint32_t creatorTokenID = _nextCreatorTokenID;
-    _nextCreatorTokenID++;
 
-    // setup a ParticleDetail struct with the data
-    ParticleDetail addParticleDetail = { NEW_PARTICLE, usecTimestampNow(), 
-            position, radius, {color.red, color.green, color.blue }, 
-            velocity, gravity, damping, updateScript, creatorTokenID };
-    
-    // queue the packet
-    _particleEditSender.queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &addParticleDetail);
-    
-    // release them
-    _particleEditSender.releaseQueuedMessages();
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender);
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    return particleEditHandle;
 }
     
 
@@ -4309,6 +4304,11 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_MIXED_AUDIO:
                         QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
+                        break;
+                        
+                    case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
+                        // look up our ParticleEditHanders....
+                        ParticleEditHandle::handleAddResponse(app->_incomingPacket, bytesReceived);
                         break;
                         
                     case PACKET_TYPE_PARTICLE_DATA:

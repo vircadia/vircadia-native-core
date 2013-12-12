@@ -140,4 +140,5 @@ private:
     Particle* _particle;
 };
 
+
 #endif /* defined(__hifi__Particle__) */

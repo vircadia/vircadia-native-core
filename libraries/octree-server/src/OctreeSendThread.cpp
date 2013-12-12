@@ -506,23 +506,6 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             trueBytesSent += _myServer->sendSpecialPacket(node);
             truePacketsSent++;
             packetsSentThisInterval++;
-        
-            /**
-            int numBytesPacketHeader = populateTypeAndVersion(_tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
-            int envPacketLength = numBytesPacketHeader;
-            int environmentsToSend = _myServer->getSendMinimalEnvironment() ? 1 : _myServer->getEnvironmentDataCount();
-            
-            for (int i = 0; i < environmentsToSend; i++) {
-                envPacketLength += _myServer->getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
-            }
-            
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) _tempOutputBuffer, envPacketLength,
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
-            trueBytesSent += envPacketLength;
-            truePacketsSent++;
-            packetsSentThisInterval++;
-            **/
         }
         
         
