@@ -388,50 +388,43 @@ void Audio::handleAudioInput() {
     }
     
     if (_outputDevice) {
-        // if there is anything in the ring buffer, decide what to do
         
-        if (_ringBuffer.getEndOfLastWrite()) {
-            if (_ringBuffer.isStarved() && _ringBuffer.diffLastWriteNextOutput() <
-                ((_outputBuffer.size() / sizeof(int16_t)) + _jitterBufferSamples * (_ringBuffer.isStereo() ? 2 : 1))) {
-                //  If not enough audio has arrived to start playback, keep waiting
-            } else if (!_ringBuffer.isStarved() && _ringBuffer.diffLastWriteNextOutput() == 0) {
-                //  If we have started and now have run out of audio to send to the audio device,
-                //  this means we've starved and should restart.
-                _ringBuffer.setIsStarved(true);
-                
-                // show a starve in the GUI for 10 frames
-                _numFramesDisplayStarve = 10;
-                
+        // if there is anything in the ring buffer, decide what to do
+        if (_ringBuffer.samplesAvailable() > 0) {
+            
+            int numRequiredNetworkOutputBytes = numResampledNetworkInputBytes
+                * (_desiredOutputFormat.channelCount() / _desiredInputFormat.channelCount());
+            int numRequiredNetworkOutputSamples = numRequiredNetworkOutputBytes / sizeof(int16_t);
+            
+            if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numRequiredNetworkOutputSamples)) {
+                // starved and we don't have enough to start, keep waiting
+                qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.\n";
             } else {
                 //  We are either already playing back, or we have enough audio to start playing back.
                 if (_ringBuffer.isStarved()) {
                     _ringBuffer.setIsStarved(false);
-                    _ringBuffer.setHasStarted(true);
                 }
-                
-                int numRequiredNetworkOutputBytes = numResampledNetworkInputBytes * 2;
-                int numRequiredNetworkOutputSamples = numRequiredNetworkOutputBytes / sizeof(int16_t);
                 
                 int numResampledOutputBytes = inputByteArray.size() * inputToOutputRatio;
                 
-                if (_ringBuffer.getNextOutput() + numRequiredNetworkOutputSamples
-                    > _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                    numRequiredNetworkOutputSamples =  (_ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) - _ringBuffer.getNextOutput();
-                }
+                // copy the samples we'll resample from the ring buffer - this also
+                // pushes the read pointer of the ring buffer forwards
+                int16_t ringBufferSamples[numRequiredNetworkOutputSamples];
+                _ringBuffer.read(ringBufferSamples, numRequiredNetworkOutputSamples);
                 
                 // copy the packet from the RB to the output
-                linearResampling(_ringBuffer.getNextOutput(),
+                linearResampling(ringBufferSamples,
                                  (int16_t*) _outputBuffer.data(),
                                  numRequiredNetworkOutputSamples,
                                  numResampledOutputBytes / sizeof(int16_t),
                                  _desiredOutputFormat, _outputFormat);
                 
-                _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + numRequiredNetworkOutputSamples);
-                
-                if (_ringBuffer.getNextOutput() >= _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                    _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
-                }
             }
+        } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+            // we don't have any audio data left in the output buffer, and the ring buffer from
+            // the network has nothing in it either - we just starved
+            _ringBuffer.setIsStarved(true);
+            _numFramesDisplayStarve = 10;
         }
         
         // add output (@speakers) data just written to the scope
@@ -470,18 +463,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
         }
     }
-    
-//    if (_ringBuffer.diffLastWriteNextOutput() + PACKET_LENGTH_SAMPLES >
-//        PACKET_LENGTH_SAMPLES + (ceilf((float) (_jitterBufferSamples * 2) / PACKET_LENGTH_SAMPLES) * PACKET_LENGTH_SAMPLES)) {
-//        // this packet would give us more than the required amount for play out
-//        // discard the first packet in the buffer
-//        
-//        _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + PACKET_LENGTH_SAMPLES);
-//        
-//        if (_ringBuffer.getNextOutput() >= _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-//            _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
-//        }
-//    }
     
     _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
     
@@ -536,8 +517,7 @@ void Audio::render(int screenWidth, int screenHeight) {
             timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&_lastCallbackTime, &currentTime);
         }
         
-        if (_ringBuffer.getEndOfLastWrite() != NULL)
-            remainingBuffer = _ringBuffer.diffLastWriteNextOutput() / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
+        remainingBuffer = PACKET_LENGTH_SAMPLES / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
         
         if (_numFramesDisplayStarve == 0) {
             glColor3f(0, 1, 0);

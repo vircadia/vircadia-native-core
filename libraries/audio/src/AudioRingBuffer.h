@@ -34,36 +34,30 @@ public:
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
     int parseAudioSamples(unsigned char* sourceBuffer, int numBytes);
-
-    int16_t* getNextOutput() const { return _nextOutput; }
-    void setNextOutput(int16_t* nextOutput) { _nextOutput = nextOutput; }
     
-    int16_t* getEndOfLastWrite() const { return _endOfLastWrite; }
-    void setEndOfLastWrite(int16_t* endOfLastWrite) { _endOfLastWrite = endOfLastWrite; }
+    int16_t& operator[](const int index);
     
-    int16_t* getBuffer() const { return _buffer; }
+    void read(int16_t* destination, unsigned int numSamples);
+    
+    void shiftReadPosition(unsigned int numSamples);
+    
+    unsigned int samplesAvailable() const;
+    
+    bool isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const;
     
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
-    
-    bool hasStarted() const { return _hasStarted; }
-    void setHasStarted(bool hasStarted) { _hasStarted = hasStarted; }
-    
-    int diffLastWriteNextOutput() const;
-    
-    bool isStereo() const { return _isStereo; }
-    
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
     AudioRingBuffer& operator= (const AudioRingBuffer&);
     
+    int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
+    
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
     bool _isStarved;
-    bool _hasStarted;
-    bool _isStereo;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

@@ -160,27 +160,21 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         }
     }
     
-    int16_t* sourceBuffer = bufferToAdd->getNextOutput();
-    
     // if the bearing relative angle to source is > 0 then the delayed channel is the right one
     int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
     int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
     
-    int16_t* delaySamplePointer = bufferToAdd->getNextOutput() == bufferToAdd->getBuffer()
-        ? bufferToAdd->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
-        : bufferToAdd->getNextOutput() - numSamplesDelay;
-    
     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2; s += 2) {
         if (s < numSamplesDelay) {
             // pull the earlier sample for the delayed channel
-            int earlierSample = delaySamplePointer[s / 2] * attenuationCoefficient * weakChannelAmplitudeRatio;
+            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
             
             _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
                                                                     MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
         
         // pull the current sample for the good channel
-        int16_t currentSample = sourceBuffer[s / 2] * attenuationCoefficient;
+        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
         _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
                                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         
