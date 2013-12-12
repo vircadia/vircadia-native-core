@@ -22,6 +22,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ParticleEditPacketSender.h>
 #include <VoxelQuery.h>
 
 #ifndef _WIN32
@@ -64,6 +65,8 @@
 #include "ui/VoxelStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
+#include "ParticleTreeRenderer.h"
+#include "ParticleEditHandle.h"
 
 class QAction;
 class QActionGroup;
@@ -117,6 +120,11 @@ public:
     void updateWindowTitle();
 
     void wheelEvent(QWheelEvent* event);
+
+    void shootParticle(); // shoots a particle in the direction you're looking
+    ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
+    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
+            glm::vec3 gravity, float damping, QString updateScript);
     
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -135,6 +143,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    ParticleTreeRenderer* getParticles() { return &_particles; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
@@ -286,7 +295,7 @@ private:
     
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
-    void queryVoxels();
+    void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     glm::vec3 getSunDirection();
@@ -343,6 +352,8 @@ private:
     VoxelImporter _voxelImporter;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
+    
+    ParticleTreeRenderer _particles;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -454,6 +465,7 @@ private:
     VoxelPacketProcessor _voxelProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
+    ParticleEditPacketSender _particleEditSender;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
@@ -474,11 +486,12 @@ private:
 
     PieMenu _pieMenu;
     
-    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
+    int parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
     void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
                                   const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
+    NodeToJurisdictionMap _particleServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;
     QReadWriteLock _voxelSceneStatsLock;
     

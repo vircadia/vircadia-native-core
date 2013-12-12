@@ -8,7 +8,6 @@
 
 #include "AnimationServer.h"
 
-
 int main(int argc, char * argv[]) {
     AnimationServer animationServer(argc, argv);
     return animationServer.exec();

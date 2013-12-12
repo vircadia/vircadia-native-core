@@ -18,6 +18,7 @@
 
 #include <AvatarData.h>
 #include <HandData.h>
+#include <ParticleEditHandle.h>
 
 #include "Balls.h"
 #include "InterfaceConfig.h"
@@ -26,8 +27,10 @@
 #include "devices/SerialInterface.h"
 #include "VoxelSystem.h"
 
+
 class Avatar;
 class ProgramObject;
+
 
 class Hand : public HandData {
 public:
@@ -53,6 +56,10 @@ public:
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
+    
+    // Pitch from controller input to view
+    const float getPitchUpdate() const { return _pitchUpdate; }
+    void setPitchUpdate(float pitchUpdate) { _pitchUpdate = pitchUpdate; }
     
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
@@ -86,6 +93,17 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
+    
+    void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
+    
+    glm::vec3 _toyBallPosition;
+    glm::vec3 _toyBallVelocity;
+    bool _toyBallInHand;
+    bool _hasToyBall;
+    ParticleEditHandle* _ballParticleEditHandle;
+    
+    float _pitchUpdate;
+
 };
 
 #endif

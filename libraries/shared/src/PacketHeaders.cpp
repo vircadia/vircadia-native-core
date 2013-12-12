@@ -46,6 +46,12 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 
         case PACKET_TYPE_VOXEL_DATA:
             return 1;
+            
+        case PACKET_TYPE_JURISDICTION:
+            return 1;
+            
+        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:    
+            return 1;
         
         default:
             return 0;

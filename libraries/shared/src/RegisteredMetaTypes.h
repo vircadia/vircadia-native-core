@@ -11,6 +11,18 @@
 #ifndef hifi_RegisteredMetaTypes_h
 #define hifi_RegisteredMetaTypes_h
 
+#include <glm/glm.hpp>
+#include <QtScript/QScriptEngine>
+
+#include "SharedUtil.h"
+
 Q_DECLARE_METATYPE(glm::vec3)
+Q_DECLARE_METATYPE(xColor)
+
+void registerMetaTypes(QScriptEngine* engine);
+QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
+void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
+QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
+void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 
 #endif

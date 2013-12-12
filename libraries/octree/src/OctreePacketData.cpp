@@ -13,6 +13,9 @@ bool OctreePacketData::_debug = false;
 uint64_t OctreePacketData::_totalBytesOfOctalCodes = 0;
 uint64_t OctreePacketData::_totalBytesOfBitMasks = 0;
 uint64_t OctreePacketData::_totalBytesOfColor = 0;
+uint64_t OctreePacketData::_totalBytesOfValues = 0;
+uint64_t OctreePacketData::_totalBytesOfPositions = 0;
+uint64_t OctreePacketData::_totalBytesOfRawData = 0;
 
 
 
@@ -210,14 +213,22 @@ bool OctreePacketData::appendBitMask(unsigned char bitmask) {
 }
 
 bool OctreePacketData::appendColor(const nodeColor& color) {
+    return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
+}
+
+bool OctreePacketData::appendColor(const rgbColor& color) {
+    return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
+}
+
+bool OctreePacketData::appendColor(colorPart red, colorPart green, colorPart blue) {
     // eventually we can make this use a dictionary...
     bool success = false;
     const int BYTES_PER_COLOR = 3;
     if (_bytesAvailable > BYTES_PER_COLOR) {
         // handles checking compression...
-        if (append(color[RED_INDEX])) {
-            if (append(color[GREEN_INDEX])) {
-                if (append(color[BLUE_INDEX])) {
+        if (append(red)) {
+            if (append(green)) {
+                if (append(blue)) {
                     success = true;
                 }
             }
@@ -226,6 +237,90 @@ bool OctreePacketData::appendColor(const nodeColor& color) {
     if (success) {
         _bytesOfColor += BYTES_PER_COLOR;
         _totalBytesOfColor += BYTES_PER_COLOR;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(uint8_t value) {
+    bool success = append(value); // used unsigned char version
+    if (success) {
+        _bytesOfValues++;
+        _totalBytesOfValues++;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(uint16_t value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(uint32_t value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(uint64_t value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(float value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(const glm::vec3& value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendPosition(const glm::vec3& value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfPositions += length;
+        _totalBytesOfPositions += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfRawData += length;
+        _totalBytesOfRawData += length;
     }
     return success;
 }

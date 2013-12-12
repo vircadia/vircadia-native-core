@@ -19,16 +19,32 @@
 
 using namespace std;
 
+const float FINGERTIP_VOXEL_SIZE = 0.05;
+const int TOY_BALL_HAND = 1;
+const float TOY_BALL_RADIUS = 0.05f;
+const float TOY_BALL_DAMPING = 0.99f;
+const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-1,0);
+const QString TOY_BALL_UPDATE_SCRIPT("");
+const QString TOY_BALL_DONT_DIE_SCRIPT("Particle.setShouldDie(false);");
+const float PALM_COLLISION_RADIUS = 0.03f;
+const xColor TOY_BALL_ON_SERVER_COLOR = { 255, 255, 0 };
+
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
-    
+
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _ballColor(0.0, 0.0, 0.4),
     _collisionCenter(0,0,0),
     _collisionAge(0),
-    _collisionDuration(0)
- {
+    _collisionDuration(0),
+    _toyBallPosition(0),
+    _toyBallVelocity(0),
+    _toyBallInHand(false),
+    _hasToyBall(false),
+    _ballParticleEditHandle(NULL),
+    _pitchUpdate(0)
+{
 }
 
 void Hand::init() {
@@ -44,6 +60,107 @@ void Hand::init() {
 void Hand::reset() {
 }
 
+void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
+
+    glm::vec3 targetPosition = fingerTipPosition / (float)TREE_SCALE;
+    float targetRadius = (TOY_BALL_RADIUS * 2.0f) / (float)TREE_SCALE;
+    const Particle* closestParticle = Application::getInstance()->getParticles()
+                                                ->getTree()->findClosestParticle(targetPosition, targetRadius);
+
+    if (closestParticle) {
+        printf("potentially caught... particle ID:%d\n", closestParticle->getID());
+        
+        // you can create a ParticleEditHandle by doing this...
+        ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+        
+        // but make sure you clean it up, when you're done
+        delete caughtParticle;
+    }
+
+    // Is the controller button being held down....
+    if (palm.getControllerButtons() & BUTTON_FWD) {
+        //  If grabbing toy ball, add forces to it.
+
+        // If we don't currently have a ball in hand, then create it...
+        if (!_toyBallInHand) {
+            //  Test for whether close enough to catch and catch....
+            
+            // isCaught is also used as "creating" a new ball... for now, this section is the
+            // create new ball portion of the code...
+            bool isCaught = false;
+
+            // If we didn't catch something, then create a new ball....
+            if (!isCaught) {
+                _toyBallInHand = true;
+                _hasToyBall = true;
+                
+                // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
+                // manage the newly created particle.
+                //  Create a particle on the particle server
+                _ballParticleEditHandle = Application::getInstance()->makeParticle(fingerTipPosition / (float)TREE_SCALE,
+                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                         TOY_BALL_ON_SERVER_COLOR,
+                                                         _toyBallVelocity / (float)TREE_SCALE,
+                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         TOY_BALL_DAMPING, 
+                                                         TOY_BALL_DONT_DIE_SCRIPT);
+            }
+        }
+        if (_toyBallInHand) {
+            //  Ball is in hand
+            _toyBallPosition = fingerTipPosition;
+            _toyBallVelocity = glm::vec3(0);
+
+            _ballParticleEditHandle->updateParticle(fingerTipPosition / (float)TREE_SCALE,
+                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                         TOY_BALL_ON_SERVER_COLOR,
+                                                         _toyBallVelocity / (float)TREE_SCALE,
+                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         TOY_BALL_DAMPING, 
+                                                         TOY_BALL_DONT_DIE_SCRIPT);
+        }
+    } else {
+        //  If toy ball just released, add velocity to it!
+        if (_toyBallInHand) {
+        
+            _toyBallInHand = false;
+            glm::vec3 handVelocity = palm.getRawVelocity();
+            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
+            glm::quat avatarRotation = _owningAvatar->getOrientation();
+            //printVector(avatarRotation * handVelocity);
+            _toyBallVelocity += avatarRotation * fingerTipVelocity;
+
+            _ballParticleEditHandle->updateParticle(fingerTipPosition / (float)TREE_SCALE,
+                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                         TOY_BALL_ON_SERVER_COLOR,
+                                                         _toyBallVelocity / (float)TREE_SCALE,
+                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         TOY_BALL_DAMPING, 
+                                                         TOY_BALL_UPDATE_SCRIPT);
+
+            // after releasing the ball, we free our ParticleEditHandle so we can't edit it further
+            // note: deleting the edit handle doesn't effect the actual particle
+            delete _ballParticleEditHandle;
+            _ballParticleEditHandle = NULL;
+
+        }
+    }
+    //  Simulate toy ball
+    _toyBallPosition += _toyBallVelocity * deltaTime;
+    
+    if (!_toyBallInHand) {
+        _toyBallVelocity += TOY_BALL_GRAVITY * deltaTime;
+    }
+    if (_toyBallPosition.y < 0.f) {
+        _toyBallPosition.y = 0.f;
+        _toyBallVelocity.y *= -1.f;
+    }
+    
+    if (_hasToyBall) {
+        _toyBallVelocity -= (_toyBallVelocity * TOY_BALL_DAMPING) * deltaTime;
+        //printf("applying damping to TOY_BALL deltaTime=%f\n",deltaTime);
+    }
+}
 
 void Hand::simulate(float deltaTime, bool isMine) {
     
@@ -64,13 +181,19 @@ void Hand::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     if (isMine) {
-        //  Create a voxel at fingertip if controller button is pressed
-        const float FINGERTIP_VOXEL_SIZE = 0.0125;
+        
+        //  Iterate hand controllers, take actions as needed
+        
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
             if (palm.isActive()) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
+                
+                if (palm.getSixenseID() == TOY_BALL_HAND) {
+                    simulateToyBall(palm, fingerTipPosition, deltaTime);
+                }
+                
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
                         QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
@@ -121,8 +244,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-const float PALM_COLLISION_RADIUS = 0.03f;
-
 void Hand::updateCollisions() {
     // use position to obtain the left and right palm indices
     int leftPalmIndex, rightPalmIndex;   
@@ -171,7 +292,7 @@ void Hand::handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPositi
     const float DECAY_PER_SAMPLE = 0.0005f;
     const float DURATION_MAX = 2.0f;
     const float MIN_VOLUME = 0.1f;
-    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getVelocity()), 0.f, (1.f - MIN_VOLUME));
+    float volume = MIN_VOLUME + glm::clamp(glm::length(palm->getRawVelocity()), 0.f, (1.f - MIN_VOLUME));
     float duration = volume;
     _collisionCenter = fingerTipPosition;
     _collisionAge = deltaTime;
@@ -253,6 +374,14 @@ void Hand::render( bool isMine) {
         renderLeapHands();
     }
 
+    //  Render toy ball
+    if (isMine) {
+        glPushMatrix();
+        glColor3f(1, 0, 0);
+        glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
+        glutWireSphere(TOY_BALL_RADIUS, 10, 10);
+        glPopMatrix();
+    }
     
     if (isMine) {
         //  If hand/voxel collision has happened, render a little expanding sphere
@@ -267,47 +396,8 @@ void Hand::render( bool isMine) {
                 _collisionAge = 0.f;
             }
         }
-
-        //  If hand controller buttons pressed, render stuff as needed
-        if (getPalms().size() > 0) {
-            for (size_t i = 0; i < getPalms().size(); ++i) {
-                PalmData& palm = getPalms()[i];
-                //  If trigger pulled, thrust in that direction and draw beam
-                const float MAX_THRUSTER_BEAM_LENGTH = 5.f;
-                const float THRUSTER_MARKER_SIZE = 0.0125f;
-                if (palm.getJoystickY() != 0.f) {
-                    FingerData& finger = palm.getFingers()[0];
-                    if (finger.isActive()) {
-                        if (palm.getJoystickY() > 0.f) {
-                            glColor3f(0, 1, 0);
-                        } else {
-                            glColor3f(1, 0, 0);
-                        }
-                        glm::vec3 palmPosition = palm.getPosition();
-                        glm::vec3 pointerPosition = palmPosition +
-                                                    glm::normalize(finger.getTipPosition() - palmPosition) *
-                                                    MAX_THRUSTER_BEAM_LENGTH;
-                        glPushMatrix();
-                        glm::vec3 markerPosition =  palmPosition +
-                                                    glm::normalize(finger.getTipPosition() - palmPosition) *
-                                                    MAX_THRUSTER_BEAM_LENGTH *
-                                                    (0.5f + palm.getJoystickY() / 2.f);
-
-                        glTranslatef(markerPosition.x, markerPosition.y, markerPosition.z);
-                        glutSolidSphere(THRUSTER_MARKER_SIZE, 10, 10);
-                        glPopMatrix();
-                        glLineWidth(2.0);
-                        glBegin(GL_LINES);
-                        glVertex3f(palmPosition.x, palmPosition.y, palmPosition.z);
-                        glVertex3f(pointerPosition.x, pointerPosition.y, pointerPosition.z);
-                        glEnd();
-                    }
-                }
-            }
-        }
     }
-    
-    
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     

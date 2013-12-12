@@ -55,7 +55,7 @@ public:
 
     virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength);
+                    unsigned char* editData, int maxLength, Node* senderNode);
     void processSetVoxelsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
 
 /**

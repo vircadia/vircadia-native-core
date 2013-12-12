@@ -21,7 +21,8 @@ ParticleServer::ParticleServer(const unsigned char* dataBuffer, int numBytes) : 
 }
 
 ParticleServer::~ParticleServer() {
-    // nothing special to do here...
+    ParticleTree* tree = (ParticleTree*)_tree;
+    tree->removeNewlyCreatedHook(this);
 }
 
 OctreeQueryNode* ParticleServer::createOctreeQueryNode(Node* newNode) {
@@ -29,9 +30,36 @@ OctreeQueryNode* ParticleServer::createOctreeQueryNode(Node* newNode) {
 }
 
 Octree* ParticleServer::createTree() {
-    return new ParticleTree(true);
+    ParticleTree* tree = new ParticleTree(true);
+    tree->addNewlyCreatedHook(this);
+    return tree;
 }
 
 void ParticleServer::beforeRun() {
     // nothing special to do...
+}
+
+void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
+    unsigned char outputBuffer[MAX_PACKET_SIZE];
+    unsigned char* copyAt = outputBuffer;
+
+    int numBytesPacketHeader = populateTypeAndVersion(outputBuffer, PACKET_TYPE_PARTICLE_ADD_RESPONSE);
+    int packetLength = numBytesPacketHeader;
+    copyAt += numBytesPacketHeader;
+    
+    // encode the creatorTokenID
+    uint32_t creatorTokenID = newParticle.getCreatorTokenID();
+    memcpy(copyAt, &creatorTokenID, sizeof(creatorTokenID));
+    copyAt += sizeof(creatorTokenID);
+    packetLength += sizeof(creatorTokenID);
+    
+    // encode the particle ID
+    uint32_t particleID = newParticle.getID();
+    memcpy(copyAt, &particleID, sizeof(particleID));
+    copyAt += sizeof(particleID);
+    packetLength += sizeof(particleID);
+    
+    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) outputBuffer, packetLength,
+                                                           node->getActiveSocket()->getAddress(),
+                                                           node->getActiveSocket()->getPort());
 }

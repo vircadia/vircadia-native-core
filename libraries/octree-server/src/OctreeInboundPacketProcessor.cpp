@@ -56,6 +56,8 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
+
+        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
@@ -66,8 +68,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         uint64_t lockWaitTime = 0;
         
         if (_myServer->wantsDebugReceiving()) {
-            printf("PROCESSING THREAD: got %c - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                packetType, _receivedPacketCount, packetLength, sequence, transitTime);
+            printf("PROCESSING THREAD: got '%c' packet - %d command from client "
+                   "receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+                    packetType, _receivedPacketCount, packetLength, sequence, transitTime);
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* editData = (unsigned char*)&packetData[atByte];
@@ -84,7 +87,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType, 
-                                                                packetData, packetLength, editData, maxSize);
+                                                                packetData, packetLength, editData, maxSize, senderNode);
             _myServer->getOctree()->unlock();
             uint64_t endProcess = usecTimestampNow();
 
@@ -106,7 +109,6 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         QUuid& nodeUUID = DEFAULT_NODE_ID_REF;
         if (senderNode) {
             senderNode->setLastHeardMicrostamp(usecTimestampNow());

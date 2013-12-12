@@ -131,6 +131,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
         _voxelEditSender(this),
+        _particleEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -206,7 +207,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
     
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER};
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
+                                        NODE_TYPE_PARTICLE_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
     QTimer* silentNodeTimer = new QTimer(this);
@@ -232,6 +234,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
+    _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
+
+    // For now we're going to set the PPS for outbound packets to be super high, this is
+    // probably not the right long term solution. But for now, we're going to do this to 
+    // allow you to move a particle around in your hand
+    _particleEditSender.setPacketsPerSecond(3000); // super high!!
 }
 
 Application::~Application() {
@@ -319,6 +327,7 @@ void Application::initializeGL() {
     _voxelProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
+    _particleEditSender.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.\n");
     }
@@ -620,6 +629,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
+            case Qt::Key_N:
+                shootParticle();
+                break;
             case Qt::Key_Shift:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
                     _pasteMode = true;
@@ -1229,7 +1241,8 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
 
-    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER, 
+                                NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
 
     uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];
@@ -1383,6 +1396,7 @@ void Application::terminate() {
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
+    _particleEditSender.terminate();
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
@@ -1485,6 +1499,46 @@ void Application::removeVoxel(glm::vec3 position,
     _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
 }
 
+void Application::shootParticle() {
+
+    glm::vec3 position  = _viewFrustum.getPosition();
+    glm::vec3 direction = _viewFrustum.getDirection();
+    const float LINEAR_VELOCITY = 5.f;
+    glm::vec3 lookingAt = position + (direction * LINEAR_VELOCITY);
+
+    const float radius = 0.125 / TREE_SCALE;
+    xColor color = { 0, 255, 255};
+    glm::vec3 velocity = lookingAt - position;
+    glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
+    float damping = DEFAULT_DAMPING * 0.01f;
+    QString updateScript("");
+    
+    ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
+                                     velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                            
+    // If we wanted to be able to edit this particle after shooting, then we could store this value
+    // and use it for editing later. But we don't care about that for "shooting" and therefore we just
+    // clean up our memory now. deleting a ParticleEditHandle does not effect the underlying particle,
+    // it just removes your ability to edit that particle later.
+    delete particleEditHandle;
+}
+
+// Caller is responsible for managing this EditableParticle
+ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    return particleEditHandle;
+}
+
+// Caller is responsible for managing this EditableParticle
+ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
+            glm::vec3 gravity, float damping, QString updateScript) {
+
+    ParticleEditHandle* particleEditHandle = newParticleEditHandle();
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    return particleEditHandle;
+}
+    
+
 void Application::makeVoxel(glm::vec3 position,
                             float scale,
                             unsigned char red,
@@ -1507,18 +1561,7 @@ void Application::makeVoxel(glm::vec3 position,
     _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
                         voxel.red, voxel.green, voxel.blue,
                         isDestructive);
-    
-    // Implement voxel fade effect
-    VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-    const float VOXEL_BOUNDS_ADJUST = 0.01f;
-    float slightlyBigger = voxel.s * VOXEL_BOUNDS_ADJUST;
-    fade.voxelDetails.x = voxel.x - slightlyBigger;
-    fade.voxelDetails.y = voxel.y - slightlyBigger;
-    fade.voxelDetails.z = voxel.z - slightlyBigger;
-    fade.voxelDetails.s = voxel.s + slightlyBigger + slightlyBigger;
-    _voxelFades.push_back(fade);
-    
-}
+   }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -1802,6 +1845,9 @@ void Application::init() {
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
+
+    _particles.init();
+    _particles.setViewFrustum(getViewFrustum());
     
     _metavoxels.init();
     
@@ -2290,6 +2336,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelProcessor.threadRoutine();
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
+        _particleEditSender.threadRoutine();
     }
 }
 
@@ -2480,6 +2527,8 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateAudio(deltaTime); // Update audio stats for procedural sounds
     updateCursor(deltaTime); // Handle cursor updates
+    
+    _particles.update(); // update the particles...
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2492,7 +2541,10 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
     
     // apply pitch from touch
-    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() + _pitchFromTouch);
+    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() +
+                                      _myAvatar.getHand().getPitchUpdate() +
+                                      _pitchFromTouch);
+    _myAvatar.getHand().setPitchUpdate(0.f);
     _pitchFromTouch = 0.0f;
     
     // Update my avatar's state from gyros and/or webcam
@@ -2592,10 +2644,11 @@ void Application::updateAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     // Update my voxel servers with my current voxel query...
-    queryVoxels();
+    queryOctree(NODE_TYPE_VOXEL_SERVER, PACKET_TYPE_VOXEL_QUERY, _voxelServerJurisdictions);
+    queryOctree(NODE_TYPE_PARTICLE_SERVER, PACKET_TYPE_PARTICLE_QUERY, _particleServerJurisdictions);
 }
 
-void Application::queryVoxels() {
+void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions) {
 
     // if voxels are disabled, then don't send this at all...
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -2631,8 +2684,9 @@ void Application::queryVoxels() {
     int unknownJurisdictionServers = 0;
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+
+        // only send to the NodeTypes that are serverType
+        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
 
             // get the server bounds for this server
@@ -2640,10 +2694,10 @@ void Application::queryVoxels() {
             
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
-            if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
+            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownJurisdictionServers++;
             } else {
-                const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
                 unsigned char* rootCode = map.getRootOctalCode();
             
@@ -2662,7 +2716,7 @@ void Application::queryVoxels() {
             }
         }
     }
-    
+
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
             totalServers, inViewServers, unknownJurisdictionServers);
@@ -2689,8 +2743,8 @@ void Application::queryVoxels() {
     }
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        // only send to the NodeTypes that are serverType
+        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
 
 
             // get the server bounds for this server
@@ -2701,13 +2755,13 @@ void Application::queryVoxels() {
             
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
-            if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
+            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
                 }
             } else {
-                const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
                 unsigned char* rootCode = map.getRootOctalCode();
             
@@ -2763,7 +2817,7 @@ void Application::queryVoxels() {
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
 
             // insert packet type/version and node UUID
-            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, packetType);
             QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
             memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
             endOfVoxelQueryPacket += ownerUUID.size();
@@ -3016,7 +3070,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
         }    
-        
+
+        // render particles...
+        _particles.render();
+    
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
@@ -4078,6 +4135,7 @@ void Application::domainChanged(QString domain) {
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _voxelServerJurisdictions.clear();
     _voxelServerSceneStats.clear();
+    _particleServerJurisdictions.clear();
 }
 
 void Application::nodeAdded(Node* node) {
@@ -4107,6 +4165,37 @@ void Application::nodeKilled(Node* node) {
             
             // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _voxelServerJurisdictions.erase(nodeUUID);
+        }
+        
+        // also clean up scene stats for that server
+        _voxelSceneStatsLock.lockForWrite();
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            _voxelServerSceneStats.erase(nodeUUID);
+        }
+        _voxelSceneStatsLock.unlock();
+        
+    } else if (node->getType() == NODE_TYPE_PARTICLE_SERVER) {
+        QUuid nodeUUID = node->getUUID();
+        // see if this is the first we've heard of this node...
+        if (_particleServerJurisdictions.find(nodeUUID) != _particleServerJurisdictions.end()) {
+            unsigned char* rootCode = _particleServerJurisdictions[nodeUUID].getRootOctalCode();
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(rootCode, rootDetails);
+
+            printf("particle server going away...... v[%f, %f, %f, %f]\n",
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+                
+            // Add the jurisditionDetails object to the list of "fade outs"
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
+                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+                fade.voxelDetails = rootDetails;
+                const float slightly_smaller = 0.99;
+                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFades.push_back(fade);
+            }
+            
+            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _particleServerJurisdictions.erase(nodeUUID);
         }
         
         // also clean up scene stats for that server
@@ -4147,10 +4236,10 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
     }
 }
 
-int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderSockAddr) {
+int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderSockAddr) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+    Node* server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
     
     // parse the incoming stats datas stick it in a temporary object for now, while we 
     // determine which server it belongs to
@@ -4158,8 +4247,8 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     int statsMessageLength = temp.unpackFromMessage(messageData, messageLength);
     
     // quick fix for crash... why would voxelServer be NULL?
-    if (voxelServer) {
-        QUuid nodeUUID = voxelServer->getUUID();
+    if (server) {
+        QUuid nodeUUID = server->getUUID();
         
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
@@ -4174,8 +4263,16 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
-        if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
-            printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
+        NodeToJurisdictionMap* jurisdiction = NULL;
+        if (server->getType() == NODE_TYPE_VOXEL_SERVER) {
+            jurisdiction = &_voxelServerJurisdictions;
+        } else {
+            jurisdiction = &_particleServerJurisdictions;
+        }
+        
+        
+        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+            printf("stats from new server... v[%f, %f, %f, %f]\n",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -4193,7 +4290,7 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         // details from the VoxelSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        _voxelServerJurisdictions[nodeUUID] = jurisdictionMap;
+        (*jurisdiction)[nodeUUID] = jurisdictionMap;
     }
     return statsMessageLength;
 }
@@ -4229,6 +4326,13 @@ void* Application::networkReceive(void* args) {
                         QMetaObject::invokeMethod(&app->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, QByteArray((char*) app->_incomingPacket, bytesReceived)));
                         break;
+                        
+                    case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
+                        // look up our ParticleEditHanders....
+                        ParticleEditHandle::handleAddResponse(app->_incomingPacket, bytesReceived);
+                        break;
+                        
+                    case PACKET_TYPE_PARTICLE_DATA:
                     case PACKET_TYPE_VOXEL_DATA:
                     case PACKET_TYPE_VOXEL_ERASE:
                     case PACKET_TYPE_OCTREE_STATS:
