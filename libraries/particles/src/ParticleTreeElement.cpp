@@ -104,6 +104,19 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     return false;    
 }
 
+const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {
+    const Particle* closestParticle = NULL;
+    float closestParticleDistance = FLT_MAX;
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        float distanceToParticle = glm::distance(position, _particles[i].getPosition());
+        if (distanceToParticle < closestParticleDistance) {
+            closestParticle = &_particles[i];
+        }
+    }
+    return closestParticle;    
+}
+
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
             ReadBitstreamToTreeParams& args) { 

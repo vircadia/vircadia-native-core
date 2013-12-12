@@ -64,6 +64,57 @@ void ParticleTree::storeParticle(const Particle& particle) {
     _isDirty = true;
 }
 
+class FindNearPointArgs {
+public:
+    glm::vec3 position;
+    float targetRadius;
+    bool found;
+    const Particle* closestParticle;
+    float closestParticleDistance;
+};
+    
+
+bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraData) {
+    FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+
+
+    // If this particleTreeElement contains the point, then search it...
+    if (particleTreeElement->getAABox().contains(args->position)) {
+        const Particle* thisClosestParticle = particleTreeElement->getClosestParticle(args->position);
+        
+        // we may have gotten NULL back, meaning no particle was available
+        if (thisClosestParticle) {
+            glm::vec3 particlePosition = thisClosestParticle->getPosition();
+            float distanceFromPointToParticle = glm::distance(particlePosition, args->position);
+            
+            // If we're within our target radius
+            if (distanceFromPointToParticle <= args->targetRadius) {
+                // we are closer than anything else we've found
+                if (distanceFromPointToParticle < args->closestParticleDistance) {
+                    args->closestParticle = thisClosestParticle;
+                    args->closestParticleDistance = distanceFromPointToParticle;
+                    args->found = true;
+                }
+            }
+        }
+        
+        // we should be able to optimize this...
+        return true; // keep searching in case children have closer particles
+    }
+    
+    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
+    return false;
+}
+
+const Particle* ParticleTree::findClosestPartice(glm::vec3 position, float targetRadius) {
+    // First, look for the existing particle in the tree..
+    FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
+    recurseTreeWithOperation(findNearPointOperation, &args);
+    return args.closestParticle;
+}
+
+
 int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength, Node* senderNode) {
 

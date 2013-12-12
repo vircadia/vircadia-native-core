@@ -141,6 +141,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    ParticleTreeRenderer* getParticles() { return &_particles; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
