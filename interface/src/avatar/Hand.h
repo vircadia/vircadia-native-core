@@ -100,6 +100,8 @@ private:
     glm::vec3 _toyBallVelocity;
     bool _toyBallInHand;
     bool _hasToyBall;
+    bool _toyBallShouldRender;
+    
     ParticleEditHandle* _ballParticleEditHandle;
     
     float _pitchUpdate;

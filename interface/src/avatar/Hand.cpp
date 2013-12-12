@@ -42,6 +42,7 @@ Hand::Hand(Avatar* owningAvatar) :
     _toyBallVelocity(0),
     _toyBallInHand(false),
     _hasToyBall(false),
+    _toyBallShouldRender(false),
     _ballParticleEditHandle(NULL),
     _pitchUpdate(0)
 {
@@ -61,9 +62,11 @@ void Hand::reset() {
 }
 
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
+    
     // Is the controller button being held down....
     if (palm.getControllerButtons() & BUTTON_FWD) {
         //  If grabbing toy ball, add forces to it.
+        _toyBallShouldRender = true;
 
         // If we don't currently have a ball in hand, then create it...
         if (!_toyBallInHand) {
@@ -357,7 +360,8 @@ void Hand::render( bool isMine) {
     }
 
     //  Render toy ball
-    if (isMine) {
+    
+    if (isMine && _toyBallShouldRender) {
         glPushMatrix();
         glColor3f(1, 0, 0);
         glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
