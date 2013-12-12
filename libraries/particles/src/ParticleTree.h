@@ -43,6 +43,7 @@ public:
     virtual void update();    
 
     void storeParticle(const Particle& particle);
+    const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
@@ -51,6 +52,7 @@ private:
 
     static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findNearPointOperation(OctreeElement* element, void* extraData);
     
     void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
     

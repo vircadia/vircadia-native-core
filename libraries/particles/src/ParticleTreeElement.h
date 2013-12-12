@@ -80,6 +80,7 @@ public:
     
     bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
+    const Particle* getClosestParticle(glm::vec3 position) const;
 
 protected:
     void storeParticle(const Particle& particle);
