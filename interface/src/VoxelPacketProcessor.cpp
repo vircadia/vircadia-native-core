@@ -58,15 +58,21 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
         
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (voxelServer && *voxelServer->getActiveSocket() == senderSockAddr) {
-            if (packetData[0] == PACKET_TYPE_PARTICLE_DATA) {
-                //printf("VoxelPacketProcessor::processPacket().... got PACKET_TYPE_PARTICLE_DATA\n");
-                app->_particles.processDatagram(QByteArray((char*) packetData, messageLength), senderSockAddr);
-            } else if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                app->_environment.parseData(senderSockAddr, packetData, messageLength);
-            } else {
-                app->_voxels.setDataSourceUUID(voxelServer->getUUID());
-                app->_voxels.parseData(packetData, messageLength);
-                app->_voxels.setDataSourceUUID(QUuid());
+        
+            switch(packetData[0]) {
+                case PACKET_TYPE_PARTICLE_DATA: {
+                    app->_particles.processDatagram(QByteArray((char*) packetData, messageLength), senderSockAddr);
+                } break;
+                
+                case PACKET_TYPE_ENVIRONMENT_DATA: {
+                    app->_environment.parseData(senderSockAddr, packetData, messageLength);
+                } break;
+                
+                default : {
+                    app->_voxels.setDataSourceUUID(voxelServer->getUUID());
+                    app->_voxels.parseData(packetData, messageLength);
+                    app->_voxels.setDataSourceUUID(QUuid());
+                } break;
             }
         }
     }

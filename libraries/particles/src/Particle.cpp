@@ -19,23 +19,27 @@ uint32_t Particle::_nextID = 0;
 
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                    float damping, glm::vec3 gravity, QString updateScript) {
+                    float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
                     
-    init(position, radius, color, velocity, damping, gravity, updateScript);
+    init(position, radius, color, velocity, damping, gravity, updateScript, id);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY, DEFAULT_SCRIPT);
+    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
 Particle::~Particle() {
 }
 
 void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                        float damping, glm::vec3 gravity, QString updateScript) {
-    _id = _nextID;
-    _nextID++;
+                        float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
+    if (id == NEW_PARTICLE) {
+        _id = _nextID;
+        _nextID++;
+    } else {
+        _id = id;
+    }
     _lastUpdated = usecTimestampNow();
 
     _position = position;
@@ -146,6 +150,8 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         _updateScript = tempString;
         dataAt += scriptLength;
         bytesRead += scriptLength;
+        
+        //printf("Particle::readParticleDataFromBuffer()... "); debugDump();
     }
     return bytesRead;
 }
@@ -163,6 +169,32 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     // we don't actually do anything with this octcode... 
     dataAt += lengthOfOctcode;
     processedBytes += lengthOfOctcode;
+
+    // id
+    uint32_t editID;
+    memcpy(&editID, dataAt, sizeof(editID));
+    dataAt += sizeof(editID);
+    processedBytes += sizeof(editID);
+    
+    // special case for handling "new" particles
+    if (editID == NEW_PARTICLE) {
+        // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
+        // we want to send back to the creator as an map to the actual id
+        uint32_t creatorTokenID;
+        memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
+        dataAt += sizeof(creatorTokenID);
+        processedBytes += sizeof(creatorTokenID);
+        newParticle.setCreatorTokenID(creatorTokenID);
+        newParticle._newlyCreated = true;
+    } else {
+        newParticle._id = editID;
+        newParticle._newlyCreated = false;
+    } 
+
+    // lastUpdated
+    memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
+    dataAt += sizeof(newParticle._lastUpdated);
+    processedBytes += sizeof(newParticle._lastUpdated);
     
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
@@ -204,9 +236,20 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += scriptLength;
     processedBytes += scriptLength;
 
+    const bool wantDebugging = false;
+    if (wantDebugging) {
+        printf("Particle::fromEditPacket()...\n"); 
+        printf("   Particle id in packet:%u\n", editID);
+        newParticle.debugDump();
+    }
+    
     return newParticle;
 }
 
+void Particle::debugDump() const {
+    printf("Particle id  :%u\n", _id);
+    printf(" last updated:%llu\n", _lastUpdated);
+}
 
 bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
@@ -217,7 +260,8 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
     for (int i = 0; i < count && success; i++) {
         // get the octal code for the particle
-        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, details[i].position.z, details[i].radius);
+        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, 
+                                                    details[i].position.z, details[i].radius);
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
@@ -233,6 +277,24 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             sizeOut += lengthOfOctcode;
             
             // Now add our edit content details...
+
+            // id
+            memcpy(copyAt, &details[i].id, sizeof(details[i].id));
+            copyAt += sizeof(details[i].id);
+            sizeOut += sizeof(details[i].id);
+            // special case for handling "new" particles
+            if (details[i].id == NEW_PARTICLE) {
+                // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
+                // we want to send back to the creator as an map to the actual id
+                memcpy(copyAt, &details[i].creatorTokenID, sizeof(details[i].creatorTokenID));
+                copyAt += sizeof(details[i].creatorTokenID);
+                sizeOut += sizeof(details[i].creatorTokenID);
+            } 
+
+            // lastUpdated
+            memcpy(copyAt, &details[i].lastUpdated, sizeof(details[i].lastUpdated));
+            copyAt += sizeof(details[i].lastUpdated);
+            sizeOut += sizeof(details[i].lastUpdated);
             
             // radius
             memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));
@@ -272,6 +334,14 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             memcpy(copyAt, qPrintable(details[i].updateScript), scriptLength);
             copyAt += scriptLength;
             sizeOut += scriptLength;
+
+            bool wantDebugging = false;
+            if (wantDebugging) {            
+                printf("encodeParticleEditMessageDetails()....\n");
+                printf("Particle id  :%u\n", details[i].id);
+                printf(" last updated:%llu\n", details[i].lastUpdated);
+                printf(" nextID:%u\n", _nextID);
+            }
         }
         // cleanup
         delete[] octcode;
@@ -308,6 +378,7 @@ void Particle::update() {
     // handle damping
     glm::vec3 dampingResistance = _velocity * _damping;
     _velocity -= dampingResistance * timeElapsed;
+    //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
 
     _lastUpdated = now;
 }

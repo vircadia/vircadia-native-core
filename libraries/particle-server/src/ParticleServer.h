@@ -12,10 +12,12 @@
 
 #include <OctreeServer.h>
 
+#include "Particle.h"
 #include "ParticleServerConsts.h"
+#include "ParticleTree.h"
 
 /// Handles assignments of type ParticleServer - sending particles to various clients.
-class ParticleServer : public OctreeServer {
+class ParticleServer : public OctreeServer, public NewlyCreatedParticleHook {
 public:                
     ParticleServer(const unsigned char* dataBuffer, int numBytes);
     ~ParticleServer();
@@ -31,6 +33,8 @@ public:
     
     // subclass may implement these method
     virtual void beforeRun();
+
+    virtual void particleCreated(const Particle& newParticle, Node* senderNode);
 
 private:
 };

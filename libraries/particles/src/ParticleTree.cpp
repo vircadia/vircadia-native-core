@@ -22,7 +22,7 @@ ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) c
 bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_PARTICLE_ADD:
+        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:
         case PACKET_TYPE_PARTICLE_ERASE:
             return true;
     }
@@ -65,22 +65,49 @@ void ParticleTree::storeParticle(const Particle& particle) {
 }
 
 int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength) {
+                    unsigned char* editData, int maxLength, Node* senderNode) {
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_PARTICLE_ADD: {
+        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
             storeParticle(newParticle);
-            // It seems like we need some way to send the ID back to the creator??
+            if (newParticle.isNewlyCreated()) {
+                notifyNewlyCreatedParticle(newParticle, senderNode);
+            }
         } break;
-            
+        
         case PACKET_TYPE_PARTICLE_ERASE: {
             processedBytes = 0;
         } break;
     }
     return processedBytes;
+}
+
+void ParticleTree::notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode) {
+    _newlyCreatedHooksLock.lockForRead();
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
+        _newlyCreatedHooks[i]->particleCreated(newParticle, senderNode);
+    }
+    _newlyCreatedHooksLock.unlock();
+}
+
+void ParticleTree::addNewlyCreatedHook(NewlyCreatedParticleHook* hook) {
+    _newlyCreatedHooksLock.lockForWrite();
+    _newlyCreatedHooks.push_back(hook);
+    _newlyCreatedHooksLock.unlock();
+}
+
+void ParticleTree::removeNewlyCreatedHook(NewlyCreatedParticleHook* hook) {
+    _newlyCreatedHooksLock.lockForWrite();
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
+        if (_newlyCreatedHooks[i] == hook) {
+            _newlyCreatedHooks.erase(_newlyCreatedHooks.begin() + i);
+            break;
+        }
+    }
+    _newlyCreatedHooksLock.unlock();
 }
 
 

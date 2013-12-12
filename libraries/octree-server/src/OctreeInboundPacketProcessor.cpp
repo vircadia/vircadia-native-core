@@ -42,7 +42,7 @@ void OctreeInboundPacketProcessor::resetStats() {
 void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr,
                                                unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = true; //_myServer->wantsVerboseDebug();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
     
     if (debugProcessPacket) {
         printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
@@ -56,6 +56,8 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
+
+        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
@@ -85,7 +87,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType, 
-                                                                packetData, packetLength, editData, maxSize);
+                                                                packetData, packetLength, editData, maxSize, senderNode);
             _myServer->getOctree()->unlock();
             uint64_t endProcess = usecTimestampNow();
 
@@ -107,7 +109,6 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         QUuid& nodeUUID = DEFAULT_NODE_ID_REF;
         if (senderNode) {
             senderNode->setLastHeardMicrostamp(usecTimestampNow());

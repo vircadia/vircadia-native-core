@@ -65,6 +65,7 @@
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ParticleTreeRenderer.h"
+#include "ParticleEditHandle.h"
 
 class QAction;
 class QActionGroup;
@@ -120,7 +121,7 @@ public:
     void wheelEvent(QWheelEvent* event);
 
     void shootParticle(); // shoots a particle in the direction you're looking
-    void makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
+    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
             glm::vec3 gravity, float damping, QString updateScript);
     
     void makeVoxel(glm::vec3 position,
