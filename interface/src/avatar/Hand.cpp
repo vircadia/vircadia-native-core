@@ -25,7 +25,9 @@ const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.99f;
 const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-1,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
+const QString TOY_BALL_DONT_DIE_SCRIPT("Particle.setShouldDie(false);");
 const float PALM_COLLISION_RADIUS = 0.03f;
+const xColor TOY_BALL_ON_SERVER_COLOR = { 255, 255, 0 };
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
@@ -77,15 +79,13 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
                 // manage the newly created particle.
                 //  Create a particle on the particle server
-                xColor color = { 255, 255, 0};    //  Slightly different color on server
-                
                 _ballParticleEditHandle = Application::getInstance()->makeParticle(fingerTipPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         color,
+                                                         TOY_BALL_ON_SERVER_COLOR,
                                                          _toyBallVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING, 
-                                                         TOY_BALL_UPDATE_SCRIPT);
+                                                         TOY_BALL_DONT_DIE_SCRIPT);
             }
         }
         if (_toyBallInHand) {
@@ -93,15 +93,13 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             _toyBallPosition = fingerTipPosition;
             _toyBallVelocity = glm::vec3(0);
 
-            xColor color = { 255, 255, 0};    //  Slightly different color on server
-            
             _ballParticleEditHandle->updateParticle(fingerTipPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         color,
+                                                         TOY_BALL_ON_SERVER_COLOR,
                                                          _toyBallVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING, 
-                                                         TOY_BALL_UPDATE_SCRIPT);
+                                                         TOY_BALL_DONT_DIE_SCRIPT);
         }
     } else {
         //  If toy ball just released, add velocity to it!
@@ -114,10 +112,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             //printVector(avatarRotation * handVelocity);
             _toyBallVelocity += avatarRotation * fingerTipVelocity;
 
-            xColor color = { 255, 255, 0};    //  Slightly different color on server
             _ballParticleEditHandle->updateParticle(fingerTipPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         color,
+                                                         TOY_BALL_ON_SERVER_COLOR,
                                                          _toyBallVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING, 
@@ -364,7 +361,7 @@ void Hand::render( bool isMine) {
         glPushMatrix();
         glColor3f(1, 0, 0);
         glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
-        glutSolidSphere(TOY_BALL_RADIUS, 10, 10);
+        glutWireSphere(TOY_BALL_RADIUS, 10, 10);
         glPopMatrix();
     }
     
