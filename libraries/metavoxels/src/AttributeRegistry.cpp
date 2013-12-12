@@ -10,8 +10,9 @@
 
 AttributeRegistry AttributeRegistry::_instance;
 
-AttributeRegistry::AttributeRegistry() {
-    registerAttribute(AttributePointer(new QRgbAttribute("diffuseColor")));
+AttributeRegistry::AttributeRegistry() :
+    _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
+    _normalAttribute(registerAttribute(new QRgbAttribute("normal"))) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -91,7 +92,6 @@ void* QRgbAttribute::createAveraged(void* values[]) const {
         totalBlue += qBlue(value);
         totalAlpha += qAlpha(value);
     }
-    const int SHIFT_FACTOR = 3;
     return encodeInline(qRgba(totalRed / AVERAGE_COUNT, totalGreen / AVERAGE_COUNT,
         totalBlue / AVERAGE_COUNT, totalAlpha / AVERAGE_COUNT));
 } 

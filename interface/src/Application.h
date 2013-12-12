@@ -269,6 +269,7 @@ private:
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);
     void updateParticles(float deltaTime);
+    void updateMetavoxels(float deltaTime);
     void updateTransmitter(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);

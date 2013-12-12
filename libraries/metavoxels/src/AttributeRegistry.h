@@ -29,6 +29,11 @@ public:
     
     AttributeRegistry();
     
+    /// Registers an attribute with the system.  The registry assumes ownership of the object.
+    /// \return either the pointer passed as an argument, if the attribute wasn't already registered, or the existing
+    /// attribute
+    AttributePointer registerAttribute(Attribute* attribute) { return registerAttribute(AttributePointer(attribute)); }
+    
     /// Registers an attribute with the system.
     /// \return either the pointer passed as an argument, if the attribute wasn't already registered, or the existing
     /// attribute
@@ -37,11 +42,19 @@ public:
     /// Retrieves an attribute by name.
     AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
     
+    /// Returns a reference to the standard QRgb "color" attribute.
+    const AttributePointer& getColorAttribute() const { return _colorAttribute; }
+    
+    /// Returns a reference to the standard QRgb "normal" attribute.
+    const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
+    
 private:
 
     static AttributeRegistry _instance;
 
     QHash<QString, AttributePointer> _attributes;
+    AttributePointer _colorAttribute;
+    AttributePointer _normalAttribute;
 };
 
 /// Converts a value to a void pointer.

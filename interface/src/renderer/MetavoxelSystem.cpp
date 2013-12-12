@@ -10,16 +10,16 @@
 
 #include "MetavoxelSystem.h"
 
-class DebugVisitor : public MetavoxelVisitor {
+class PointVisitor : public MetavoxelVisitor {
 public:
     
     virtual bool visit(const MetavoxelInfo& info);
 };
 
-bool DebugVisitor::visit(const MetavoxelInfo& info) {
+bool PointVisitor::visit(const MetavoxelInfo& info) {
     QRgb color = info.attributeValues.at(0).getInlineValue<QRgb>();
-    qDebug("%g %g %g %g %d %d %d %d\n", info.minimum.x, info.minimum.y, info.minimum.z, info.size,
-        qRed(color), qGreen(color), qBlue(color), qAlpha(color));
+    QRgb normal = info.attributeValues.at(1).getInlineValue<QRgb>();
+    
     return true;
 }
 
@@ -29,12 +29,20 @@ void MetavoxelSystem::init() {
     p1 += 1;
     p1 += 2;
     
-    AttributePointer diffuseColor = AttributeRegistry::getInstance()->getAttribute("diffuseColor");
+    AttributePointer color = AttributeRegistry::getInstance()->getAttribute("color");
     
     void* white = encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF));
-    _data.setAttributeValue(p1, AttributeValue(diffuseColor, &white));
-    
-    DebugVisitor visitor;
-    _data.visitVoxels(QVector<AttributePointer>() << diffuseColor, visitor);
+    _data.setAttributeValue(p1, AttributeValue(color, &white));
 }
 
+void MetavoxelSystem::simulate(float deltaTime) {
+    QVector<AttributePointer> attributes;
+    attributes << AttributeRegistry::getInstance()->getColorAttribute();
+    attributes << AttributeRegistry::getInstance()->getNormalAttribute();
+    PointVisitor visitor;
+    _data.visitVoxels(attributes, visitor);
+}
+
+void MetavoxelSystem::render() {
+    
+}

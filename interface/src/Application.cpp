@@ -2320,6 +2320,15 @@ void Application::updateParticles(float deltaTime) {
     }
 }
 
+void Application::updateMetavoxels(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMetavoxels()");
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
+        _metavoxels.simulate(deltaTime);
+    }
+}
+
 void Application::updateTransmitter(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateTransmitter()");
@@ -2465,6 +2474,7 @@ void Application::update(float deltaTime) {
     updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection); //loop through all the other avatars and simulate them...
     updateMyAvatarSimulation(deltaTime); // Simulate myself
     updateParticles(deltaTime); // Simulate particle cloud movements
+    updateMetavoxels(deltaTime); // update metavoxels
     updateTransmitter(deltaTime); // transmitter drive or pick
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -2999,7 +3009,14 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
             }
         }
-    
+        
+        // also, metavoxels
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... metavoxels...");
+            _metavoxels.render();
+        }    
+        
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 

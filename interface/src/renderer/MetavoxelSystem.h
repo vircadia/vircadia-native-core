@@ -17,6 +17,9 @@ public:
 
     void init();
     
+    void simulate(float deltaTime);
+    void render();
+    
 private:
     
     MetavoxelData _data;    
