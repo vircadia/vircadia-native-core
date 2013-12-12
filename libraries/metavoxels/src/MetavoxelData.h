@@ -103,6 +103,7 @@ public:
     glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
     float size; ///< the size of the voxel in all dimensions
     QVector<AttributeValue> attributeValues;
+    bool isLeaf;
 };
 
 /// Interface for visitors to metavoxels.

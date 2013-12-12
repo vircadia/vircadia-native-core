@@ -9,11 +9,20 @@
 #ifndef __interface__MetavoxelSystem__
 #define __interface__MetavoxelSystem__
 
+#include <QOpenGLBuffer>
+#include <QVector>
+
+#include <glm/glm.hpp>
+
 #include <MetavoxelData.h>
+
+#include "ProgramObject.h"
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem {
 public:
+
+    MetavoxelSystem();
 
     void init();
     
@@ -21,8 +30,30 @@ public:
     void render();
     
 private:
+
+    class Point {
+    public:
+        glm::vec4 vertex;
+        quint8 color[4];
+        quint8 normal[3];
+    };
     
-    MetavoxelData _data;    
+    class PointVisitor : public MetavoxelVisitor {
+    public:
+        PointVisitor(QVector<Point>& points) : _points(points) { }
+        virtual bool visit(const MetavoxelInfo& info);
+    
+    protected:
+        QVector<Point>& _points;
+    };
+    
+    static ProgramObject _program;
+    static int _pointScaleLocation;
+    
+    MetavoxelData _data;
+    QVector<Point> _points;
+    PointVisitor _pointVisitor;
+    QOpenGLBuffer _buffer;
 };
 
 #endif /* defined(__interface__MetavoxelSystem__) */

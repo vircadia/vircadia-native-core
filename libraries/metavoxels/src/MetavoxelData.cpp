@@ -33,7 +33,8 @@ const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;
 
 void Visitation::apply() {
-    if (!visitor.visit(info) || allNodesLeaves()) {
+    info.isLeaf = allNodesLeaves();
+    if (!visitor.visit(info) || info.isLeaf) {
         return;
     }
     Visitation nextVisitation = { visitor, QVector<MetavoxelNode*>(nodes.size()),
