@@ -94,6 +94,7 @@ public:
     void setLeapID(int id)                        { _leapID = id; }
     void setRawTipPosition(const glm::vec3& pos)  { _tipRawPosition = pos; }
     void setRawRootPosition(const glm::vec3& pos) { _rootRawPosition = pos; }
+
     void setTrailLength(unsigned int length);
     void updateTrail();
 
@@ -122,6 +123,7 @@ public:
     PalmData(HandData* owningHandData);
     glm::vec3 getPosition()           const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
     glm::vec3 getNormal()             const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
+
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
     bool             isActive()       const { return _isActive; }
@@ -136,13 +138,19 @@ public:
     void setLeapID(int id)                     { _leapID = id; }
     void setSixenseID(int id)                  { _sixenseID = id; }
 
+    void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
+    const glm::quat getRawRotation() const { return _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
-    void setVelocity(const glm::vec3& velocity) { _velocity = velocity; }
-    const glm::vec3& getVelocity()  const { return _velocity; }
-
+    void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
+    const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
     void addToPosition(const glm::vec3& delta);
-
+    
+    void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
+    const glm::vec3 getTipPosition() const { return _tipPosition; } 
+    const glm::vec3& getTipVelocity() const { return _tipVelocity; }
+    void setTipVelocity(const glm::vec3& velocity) { _tipVelocity = velocity; }
+    
     void incrementFramesWithoutData()          { _numFramesWithoutData++; }
     void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
     int  getFramesWithoutData()          const { return _numFramesWithoutData; }
@@ -162,9 +170,15 @@ public:
 
 private:
     std::vector<FingerData> _fingers;
+    glm::quat _rawRotation;
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
-    glm::vec3 _velocity;
+    glm::vec3 _rawVelocity;
+    glm::vec3 _rotationalVelocity;
+    glm::quat _lastRotation;
+    
+    glm::vec3 _tipPosition;
+    glm::vec3 _tipVelocity;
     int _controllerButtons;
     float _trigger;
     float _joystickX, _joystickY;
