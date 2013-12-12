@@ -53,6 +53,7 @@ private:
     static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
+    static bool pruneOperation(OctreeElement* element, void* extraData);
     
     void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
     

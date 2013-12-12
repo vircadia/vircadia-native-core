@@ -68,7 +68,9 @@ bool OctreePersistThread::process() {
         usleep(USECS_TO_SLEEP);
         
         // do our updates then check to save...
+        _tree->lockForWrite();
         _tree->update();
+        _tree->unlock();
         
         uint64_t now = usecTimestampNow();
         uint64_t sinceLastSave = now - _lastCheck;
