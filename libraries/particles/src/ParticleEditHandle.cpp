@@ -85,6 +85,7 @@ void ParticleEditHandle::handleAddResponse(unsigned char* packetData , int packe
     if (_allHandles.find(creatorTokenID) != _allHandles.end()) {
         ParticleEditHandle* theHandle = _allHandles[creatorTokenID];
         theHandle->_id = particleID;
+        theHandle->_isKnownID = true;
         printf("handleAddResponse() for creatorTokenID=%u theHandle->_id=%u\n",creatorTokenID, particleID);
     }
 }

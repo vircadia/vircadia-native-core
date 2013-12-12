@@ -236,6 +236,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
     _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
+
+    // For now we're going to set the PPS for outbound packets to be super high, this is
+    // probably not the right long term solution. But for now, we're going to do this to 
+    // allow you to move a particle around in your hand
+    _particleEditSender.setPacketsPerSecond(3000); // super high!!
 }
 
 Application::~Application() {

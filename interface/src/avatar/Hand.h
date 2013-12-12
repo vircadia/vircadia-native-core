@@ -18,6 +18,7 @@
 
 #include <AvatarData.h>
 #include <HandData.h>
+#include <ParticleEditHandle.h>
 
 #include "Balls.h"
 #include "InterfaceConfig.h"
@@ -26,8 +27,10 @@
 #include "devices/SerialInterface.h"
 #include "VoxelSystem.h"
 
+
 class Avatar;
 class ProgramObject;
+
 
 class Hand : public HandData {
 public:
@@ -95,7 +98,8 @@ private:
     
     glm::vec3 _toyBallPosition;
     glm::vec3 _toyBallVelocity;
-    bool      _toyBallInHand;
+    bool _toyBallInHand;
+    ParticleEditHandle* _ballParticleEditHandle;
     
     float _pitchUpdate;
 
