@@ -23,6 +23,7 @@ const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.99f;
+const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-1,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const QString TOY_BALL_DONT_DIE_SCRIPT("Particle.setShouldDie(false);");
@@ -101,7 +102,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR,
                                                          _toyBallVelocity / (float)TREE_SCALE,
-                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         NO_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING, 
                                                          TOY_BALL_DONT_DIE_SCRIPT);
             }
@@ -115,7 +116,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR,
                                                          _toyBallVelocity / (float)TREE_SCALE,
-                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         NO_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING, 
                                                          TOY_BALL_DONT_DIE_SCRIPT);
         }
@@ -130,6 +131,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             //printVector(avatarRotation * handVelocity);
             _toyBallVelocity += avatarRotation * fingerTipVelocity;
 
+            // ball is no longer in hand...
             _ballParticleEditHandle->updateParticle(fingerTipPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR,
