@@ -894,7 +894,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     unsigned char childrenExistInTreeBits = 0;
     unsigned char childrenExistInPacketBits = 0;
     unsigned char childrenColoredBits = 0;
-    const int BYTES_PER_COLOR = 3;
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
     LevelDetails thisLevelKey = packetData->startLevel();

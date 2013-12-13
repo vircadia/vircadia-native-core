@@ -2923,6 +2923,7 @@ void Application::updateShadowMap() {
     glTranslatef(translation.x, translation.y, translation.z);
     
     renderAvatars(true);
+    _particles.render();    
     
     glPopMatrix();
     
