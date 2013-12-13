@@ -599,7 +599,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     }
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
-        if (box.findSpherePenetration(args->center, args->radius, elementPenetration)) {
+        if (element->findSpherePenetration(args->center, args->radius, elementPenetration)) {
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)TREE_SCALE);
             args->found = true;
             args->penetratedElement = element;

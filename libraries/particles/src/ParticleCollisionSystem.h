@@ -40,6 +40,7 @@ public:
     void update();
     void checkParticle(Particle* particle);
     void updateCollisionWithVoxels(Particle* particle);
+    void updateCollisionWithParticles(Particle* particle);
     void applyHardCollision(Particle* particle, const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
