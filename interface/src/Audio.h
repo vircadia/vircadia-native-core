@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 
+#include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
@@ -34,7 +35,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-class Audio : public QObject {
+class Audio : public QObject, public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
@@ -52,9 +53,9 @@ public:
     
     void lowPassFilter(int16_t* inputBuffer);
     
-    void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
-    void startDrumSound(float volume, float frequency, float duration, float decay);
-    
+    virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
+    virtual void startDrumSound(float volume, float frequency, float duration, float decay);
+
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
