@@ -26,6 +26,7 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
+const int BUTTON_0 = 1; // the skinny button between 1 and 2
 const int BUTTON_1 = 32;
 const int BUTTON_2 = 64;
 const int BUTTON_3 = 8;
