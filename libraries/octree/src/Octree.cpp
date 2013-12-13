@@ -583,33 +583,40 @@ public:
     float radius;
     glm::vec3& penetration;
     bool found;
+    OctreeElement* penetratedElement;
 };
 
-bool findSpherePenetrationOp(OctreeElement* node, void* extraData) {
+bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
-    const AABox& box = node->getAABox();
+    const AABox& box = element->getAABox();
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
-    if (!node->isLeaf()) {
+    if (!element->isLeaf()) {
         return true; // recurse on children
     }
-    if (node->hasContent()) {
-        glm::vec3 nodePenetration;
-        if (box.findSpherePenetration(args->center, args->radius, nodePenetration)) {
-            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+    if (element->hasContent()) {
+        glm::vec3 elementPenetration;
+        if (element->findSpherePenetration(args->center, args->radius, elementPenetration)) {
+            args->penetration = addPenetrations(args->penetration, elementPenetration * (float)TREE_SCALE);
             args->found = true;
+            args->penetratedElement = element;
         }
     }
     return false;
 }
 
-bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
-    SphereArgs args = { center / (float)TREE_SCALE, radius / TREE_SCALE, penetration };
+bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
+                    OctreeElement** penetratedElement) {
+                    
+    SphereArgs args = { center / (float)TREE_SCALE, radius / TREE_SCALE, penetration, false, NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     recurseTreeWithOperation(findSpherePenetrationOp, &args);
+    if (penetratedElement) {
+        *penetratedElement = args.penetratedElement;
+    }
     return args.found;
 }
 
@@ -887,7 +894,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     unsigned char childrenExistInTreeBits = 0;
     unsigned char childrenExistInPacketBits = 0;
     unsigned char childrenColoredBits = 0;
-    const int BYTES_PER_COLOR = 3;
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
     LevelDetails thisLevelKey = packetData->startLevel();

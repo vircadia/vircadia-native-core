@@ -22,6 +22,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
 #include <VoxelQuery.h>
 
@@ -354,6 +355,7 @@ private:
     ViewFrustum _sharedVoxelSystemViewFrustum;
     
     ParticleTreeRenderer _particles;
+    ParticleCollisionSystem _particleCollisionSystem;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;

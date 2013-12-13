@@ -218,7 +218,9 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              OctreeElement*& node, float& distance, BoxFace& face);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
+                                OctreeElement** penetratedElement = NULL);
+                                
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files

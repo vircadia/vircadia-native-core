@@ -1285,6 +1285,11 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
+bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+    return _box.findSpherePenetration(center, radius, penetration);
+}
+
+
 OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {
     OctreeElement* child = NULL;
     // If the requested size is less than or equal to our scale, but greater than half our scale, then

@@ -1851,6 +1851,8 @@ void Application::init() {
     
     _metavoxels.init();
     
+    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio);
+    
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
@@ -2529,6 +2531,7 @@ void Application::update(float deltaTime) {
     updateCursor(deltaTime); // Handle cursor updates
     
     _particles.update(); // update the particles...
+    _particleCollisionSystem.update(); // handle collisions for the particles...
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2932,6 +2935,7 @@ void Application::updateShadowMap() {
     glTranslatef(translation.x, translation.y, translation.z);
     
     renderAvatars(true);
+    _particles.render();    
     
     glPopMatrix();
     
