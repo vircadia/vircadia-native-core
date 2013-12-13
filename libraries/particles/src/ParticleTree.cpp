@@ -110,7 +110,9 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
 const Particle* ParticleTree::findClosestParticle(glm::vec3 position, float targetRadius) {
     // First, look for the existing particle in the tree..
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
+    lockForRead();
     recurseTreeWithOperation(findNearPointOperation, &args);
+    unlock();
     return args.closestParticle;
 }
 

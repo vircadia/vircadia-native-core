@@ -62,6 +62,8 @@ public:
     const glm::vec3& getVelocity() const { return _velocity; }
     const glm::vec3& getGravity() const { return _gravity; }
     float getDamping() const { return _damping; }
+    uint64_t getCreated() const { return _created; }
+    uint64_t getLifetime() const { return usecTimestampNow() - _created; }
     uint64_t getLastUpdated() const { return _lastUpdated; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
@@ -83,6 +85,7 @@ public:
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
     void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
+    void setCreated(uint64_t created) { _created = created; }
 
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -106,6 +109,7 @@ protected:
     float _radius;
     glm::vec3 _velocity;
     uint64_t _lastUpdated;
+    uint64_t _created;
     uint32_t _id;
     static uint32_t _nextID;
     bool _shouldDie;
@@ -129,8 +133,11 @@ public slots:
     glm::vec3 getGravity() const { return _particle->getGravity(); }
     float getDamping() const { return _particle->getDamping(); }
     float getRadius() const { return _particle->getRadius(); }
-    bool setShouldDie() { return _particle->getShouldDie(); }
-
+    bool getShouldDie() { return _particle->getShouldDie(); }
+    float getCreated() const { return ((float)_particle->getCreated() / (float)USECS_PER_SECOND); }
+    float getLifetime() const { return ((float)_particle->getLifetime() / (float)USECS_PER_SECOND); }
+    
+    
     void setPosition(glm::vec3 value) { _particle->setPosition(value); }
     void setVelocity(glm::vec3 value) { _particle->setVelocity(value); }
     void setGravity(glm::vec3 value) { _particle->setGravity(value); }

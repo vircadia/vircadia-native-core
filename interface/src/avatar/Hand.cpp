@@ -79,7 +79,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                 ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
     if (closestParticle) {
-        printf("potentially caught... particle ID:%d\n", closestParticle->getID());
+        //printf("potentially caught... particle ID:%d\n", closestParticle->getID());
         
         // you can create a ParticleEditHandle by doing this...
         ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
@@ -91,7 +91,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     
     // If there's a ball in hand, and the user presses the skinny button, then change the color of the ball
     int currentControllerButtons = palm.getControllerButtons();
-    printf("currentControllerButtons=%d\n",currentControllerButtons);
     
     if (currentControllerButtons != _lastControllerButtons && (currentControllerButtons & BUTTON_0)) {
         _whichBallColor[handID]++;
