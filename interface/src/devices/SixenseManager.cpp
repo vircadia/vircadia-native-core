@@ -16,13 +16,24 @@
 SixenseManager::SixenseManager() {
 #ifdef HAVE_SIXENSE
     sixenseInit();
-    sixenseSetFilterEnabled(1);
 #endif
 }
 
 SixenseManager::~SixenseManager() {
 #ifdef HAVE_SIXENSE
     sixenseExit();
+#endif
+}
+
+void SixenseManager::setFilter(bool filter) {
+#ifdef HAVE_SIXENSE
+    if (filter) {
+        qDebug("Sixense Filter ON\n");
+        sixenseSetFilterEnabled(1);
+    } else {
+        qDebug("Sixense Filter OFF\n");
+        sixenseSetFilterEnabled(0);
+    }
 #endif
 }
 

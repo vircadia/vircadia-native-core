@@ -240,6 +240,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // probably not the right long term solution. But for now, we're going to do this to 
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
+    
+    // Set the sixense filtering
+    _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
 }
 
 Application::~Application() {
