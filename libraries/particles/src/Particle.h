@@ -57,7 +57,7 @@ public:
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }
-    xColor getColor() { return { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; }
+    xColor getColor() { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     float getRadius() const { return _radius; }
     const glm::vec3& getVelocity() const { return _velocity; }
     const glm::vec3& getGravity() const { return _gravity; }
