@@ -377,7 +377,7 @@ void Hand::render( bool isMine) {
     }
 
     //  Render toy ball
-    if (isMine) {
+    if (isMine && _hasToyBall) {
         glPushMatrix();
         glColor3f(1, 0, 0);
         glTranslatef(_toyBallPosition.x, _toyBallPosition.y, _toyBallPosition.z);
