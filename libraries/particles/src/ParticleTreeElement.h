@@ -70,8 +70,9 @@ public:
     /// where an element is not actually rendering all should render elements. If the isRendered() state doesn't match the
     /// shouldRender() state, the tree will remark elements as changed even in cases there the elements have not changed.
     virtual bool isRendered() const { return getShouldRender(); }
-
     virtual bool deleteApproved() const { return !hasParticles(); }
+
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
 
     const std::vector<Particle>& getParticles() const { return _particles; }
     std::vector<Particle>& getParticles() { return _particles; }
