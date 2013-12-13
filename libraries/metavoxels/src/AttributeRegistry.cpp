@@ -12,7 +12,8 @@ AttributeRegistry AttributeRegistry::_instance;
 
 AttributeRegistry::AttributeRegistry() :
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
+    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))),
+    _voxelizerAttribute(registerAttribute(new PointerAttribute<bool>("voxelizer", false))) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -23,39 +24,16 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
     return pointer;
 }
 
-AttributeValue::AttributeValue(const AttributePointer& attribute, void* const* value) :
-        _attribute(attribute) {
-    
-    if (_attribute) {
-        _value = _attribute->create(value);
-    }
+AttributeValue::AttributeValue(const AttributePointer& attribute) :
+    _attribute(attribute), _value(attribute ? attribute->getDefaultValue() : NULL) {
 }
 
-AttributeValue::AttributeValue(const AttributeValue& other) :
-        _attribute(other._attribute) {
-    
-    if (_attribute) {
-        _value = _attribute->create(&other._value);
-    }
-}
-
-AttributeValue::~AttributeValue() {
-    if (_attribute) {
-        _attribute->destroy(_value);
-    }
-}
-
-AttributeValue& AttributeValue::operator=(const AttributeValue& other) {
-    if (_attribute) {
-        _attribute->destroy(_value);
-    }
-    if ((_attribute = other._attribute)) {
-        _value = _attribute->create(&other._value);
-    }
+AttributeValue::AttributeValue(const AttributePointer& attribute, void* value) :
+    _attribute(attribute), _value(value) {
 }
 
 void* AttributeValue::copy() const {
-    return _attribute->create(&_value);
+    return _attribute->create(_value);
 }
 
 bool AttributeValue::isDefault() const {
@@ -68,6 +46,33 @@ bool AttributeValue::operator==(const AttributeValue& other) const {
 
 bool AttributeValue::operator==(void* other) const {
     return _attribute && _attribute->equal(_value, other);
+}
+
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute) :
+    AttributeValue(attribute, attribute ? attribute->create() : NULL) {
+}
+
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
+    AttributeValue(attribute, attribute ? attribute->create(value) : NULL) {
+}
+
+OwnedAttributeValue::OwnedAttributeValue(const AttributeValue& other) :
+    AttributeValue(other.getAttribute(), other.getAttribute() ? other.copy() : NULL) {
+}
+
+OwnedAttributeValue::~OwnedAttributeValue() {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+}
+
+OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    if ((_attribute = other.getAttribute())) {
+        _value = _attribute->create(other.getValue());
+    }
 }
 
 Attribute::Attribute(const QString& name) : _name(name) {

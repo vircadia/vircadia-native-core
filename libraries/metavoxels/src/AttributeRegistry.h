@@ -48,6 +48,9 @@ public:
     /// Returns a reference to the standard QRgb "normal" attribute.
     const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
     
+    /// Returns a reference to the standard "voxelizer" attribute.
+    const AttributePointer& getVoxelizerAttribute() const { return _voxelizerAttribute; }
+    
 private:
 
     static AttributeRegistry _instance;
@@ -55,6 +58,7 @@ private:
     QHash<QString, AttributePointer> _attributes;
     AttributePointer _colorAttribute;
     AttributePointer _normalAttribute;
+    AttributePointer _voxelizerAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -71,17 +75,16 @@ template<class T> inline T decodeInline(void* value) {
 class AttributeValue {
 public:
     
-    AttributeValue(const AttributePointer& attribute = AttributePointer(), void* const* value = NULL);
-    AttributeValue(const AttributeValue& other);
-    ~AttributeValue();
-    
-    AttributeValue& operator=(const AttributeValue& other);
+    AttributeValue(const AttributePointer& attribute = AttributePointer());
+    AttributeValue(const AttributePointer& attribute, void* value);
     
     AttributePointer getAttribute() const { return _attribute; }
     void* getValue() const { return _value; }
     
     template<class T> void setInlineValue(T value) { _value = encodeInline(value); }
     template<class T> T getInlineValue() const { return decodeInline<T>(_value); }
+    
+    template<class T> T* getPointerValue() const { return static_cast<T*>(_value); }
     
     void* copy() const;
 
@@ -90,10 +93,22 @@ public:
     bool operator==(const AttributeValue& other) const;
     bool operator==(void* other) const;
     
-private:
+protected:
     
     AttributePointer _attribute;
     void* _value;
+};
+
+// Assumes ownership of an attribute value.
+class OwnedAttributeValue : public AttributeValue {
+public:
+    
+    OwnedAttributeValue(const AttributePointer& attribute = AttributePointer());
+    OwnedAttributeValue(const AttributePointer& attribute, void* value);
+    OwnedAttributeValue(const AttributeValue& other);
+    ~OwnedAttributeValue();
+    
+    OwnedAttributeValue& operator=(const AttributeValue& other);
 };
 
 /// Represents a registered attribute.
@@ -107,7 +122,8 @@ public:
 
     const QString& getName() const { return _name; }
 
-    virtual void* create(void* const* copy = NULL) const = 0;
+    void* create() const { return create(getDefaultValue()); }
+    virtual void* create(void* copy) const = 0;
     virtual void destroy(void* value) const = 0;
 
     virtual bool read(Bitstream& in, void*& value) const = 0;
@@ -130,7 +146,7 @@ public:
     
     InlineAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(encodeInline(defaultValue)) { }
     
-    virtual void* create(void* const* copy = NULL) const { return (copy == NULL) ? _defaultValue : *copy; }
+    virtual void* create(void* copy) const { return copy; }
     virtual void destroy(void* value) const { /* no-op */ }
     
     virtual bool read(Bitstream& in, void*& value) const { value = getDefaultValue(); in.read(&value, bits); return false; }
@@ -164,5 +180,37 @@ public:
     
     virtual void* createAveraged(void* values[]) const;
 };
+
+/// An attribute class that stores pointers to its values.
+template<class T> class PointerAttribute : public Attribute {
+public:
+    
+    PointerAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(defaultValue) { }
+    
+    virtual void* create(void* copy) const { new T(*static_cast<T*>(copy)); }
+    virtual void destroy(void* value) const { delete static_cast<T*>(value); }
+    
+    virtual bool read(Bitstream& in, void*& value) const { in >> *static_cast<T*>(value); return true; }
+    virtual bool write(Bitstream& out, void* value) const { out << *static_cast<T*>(value); return true; }
+
+    virtual bool equal(void* first, void* second) const { return *static_cast<T*>(first) == *static_cast<T*>(second); }
+
+    virtual void* createAveraged(void* values[]) const;
+
+    virtual void* getDefaultValue() const { return const_cast<void*>((void*)&_defaultValue); }
+
+private:
+    
+    T _defaultValue;
+}; 
+
+template<class T> inline void* PointerAttribute<T>::createAveraged(void* values[]) const {
+    T* total = new T();
+    for (int i = 0; i < AVERAGE_COUNT; i++) {
+        *total += *static_cast<T*>(values[i]);
+    }
+    *total /= AVERAGE_COUNT;
+    return total;
+}
 
 #endif /* defined(__interface__AttributeRegistry__) */

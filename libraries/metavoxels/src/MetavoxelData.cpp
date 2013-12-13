@@ -150,7 +150,7 @@ void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
 }
 
 AttributeValue MetavoxelNode::getAttributeValue(const AttributePointer& attribute) const {
-    return AttributeValue(attribute, &_attributeValue);
+    return AttributeValue(attribute, _attributeValue);
 }
 
 bool MetavoxelNode::isLeaf() const {

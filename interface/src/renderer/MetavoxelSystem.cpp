@@ -37,8 +37,10 @@ void MetavoxelSystem::init() {
     
     AttributePointer color = AttributeRegistry::getInstance()->getAttribute("color");
     
-    void* white = encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF));
-    _data.setAttributeValue(p1, AttributeValue(color, &white));
+    _data.setAttributeValue(p1, AttributeValue(color, encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF))));
+    
+    bool blerp = true;
+    _data.setAttributeValue(p1, AttributeValue(AttributeRegistry::getInstance()->getAttribute("voxelizer"), &blerp));
     
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
@@ -102,7 +104,8 @@ void MetavoxelSystem::render() {
 MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
     MetavoxelVisitor(QVector<AttributePointer>() <<
         AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute()),
+        AttributeRegistry::getInstance()->getNormalAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelizerAttribute()),
     _points(points) {
 }
 
@@ -112,6 +115,7 @@ bool MetavoxelSystem::PointVisitor::visit(const MetavoxelInfo& info) {
     }
     QRgb color = info.attributeValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.attributeValues.at(1).getInlineValue<QRgb>();
+    bool blerp = *info.attributeValues.at(2).getPointerValue<bool>();
     int alpha = qAlpha(color);
     if (alpha > 0) {
         Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
