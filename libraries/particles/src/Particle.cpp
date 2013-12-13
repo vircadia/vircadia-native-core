@@ -35,6 +35,7 @@ Particle::~Particle() {
 void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
                         float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
     if (id == NEW_PARTICLE) {
+        _created = usecTimestampNow();
         _id = _nextID;
         _nextID++;
     } else {
@@ -58,6 +59,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
     //printf("Particle::appendParticleData()... getID()=%d\n", getID());
 
+    if (success) {
+        success = packetData->appendValue(getCreated());
+    }
     if (success) {
         success = packetData->appendValue(getLastUpdated());
     }
@@ -90,7 +94,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 }
 
 int Particle::expectedBytes() {
-    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(float) + 
+    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
                         sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3) +
                         sizeof(glm::vec3) + sizeof(float);
     return expectedBytes;
@@ -105,6 +109,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_id, dataAt, sizeof(_id));
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
+
+        // created
+        memcpy(&_created, dataAt, sizeof(_created));
+        dataAt += sizeof(_created);
+        bytesRead += sizeof(_created);
 
         // lastupdated
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
@@ -191,6 +200,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         newParticle._newlyCreated = false;
     } 
 
+    // created
+    memcpy(&newParticle._created, dataAt, sizeof(newParticle._created));
+    dataAt += sizeof(newParticle._created);
+    processedBytes += sizeof(newParticle._created);
+
     // lastUpdated
     memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
     dataAt += sizeof(newParticle._lastUpdated);
@@ -248,6 +262,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
 void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
+    printf(" created:%llu\n", _created);
     printf(" last updated:%llu\n", _lastUpdated);
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
@@ -280,7 +295,8 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             sizeOut += lengthOfOctcode;
             
             // Now add our edit content details...
-
+            uint64_t created = usecTimestampNow();
+            
             // id
             memcpy(copyAt, &details[i].id, sizeof(details[i].id));
             copyAt += sizeof(details[i].id);
@@ -292,8 +308,15 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
                 memcpy(copyAt, &details[i].creatorTokenID, sizeof(details[i].creatorTokenID));
                 copyAt += sizeof(details[i].creatorTokenID);
                 sizeOut += sizeof(details[i].creatorTokenID);
-            } 
+            } else {
+                created = 0;
+            }
 
+            // created
+            memcpy(copyAt, &created, sizeof(created));
+            copyAt += sizeof(created);
+            sizeOut += sizeof(created);
+            
             // lastUpdated
             memcpy(copyAt, &details[i].lastUpdated, sizeof(details[i].lastUpdated));
             copyAt += sizeof(details[i].lastUpdated);
@@ -363,7 +386,11 @@ void Particle::update() {
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float velocityScalar = glm::length(getVelocity());
     const float STILL_MOVING = 0.05 / TREE_SCALE;
-    setShouldDie(velocityScalar < STILL_MOVING);
+    bool isStillMoving = (velocityScalar > STILL_MOVING);
+    const uint64_t REALLY_OLD = 30 * 1000 * 1000;
+    bool isReallyOld = (getLifetime() > REALLY_OLD);
+    bool shouldDie = !isStillMoving && isReallyOld;
+    setShouldDie(shouldDie);
 
     runScript(); // allow the javascript to alter our state
 
