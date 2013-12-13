@@ -173,7 +173,8 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     if (sourceAudioFormat == destinationAudioFormat) {
         memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
     } else {
-        float sourceToDestinationFactor = numSourceSamples / (float) numDestinationSamples;
+        float sourceToDestinationFactor = (sourceAudioFormat.sampleRate() / (float) destinationAudioFormat.sampleRate())
+        * (sourceAudioFormat.channelCount() / (float) destinationAudioFormat.channelCount()) ;
         
         // take into account the number of channels in source and destination
         // accomodate for the case where have an output with > 2 channels
@@ -187,25 +188,25 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
                 
                 if (i + 2 >= numSourceSamples) {
                     destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 2)
-                        + (sourceSamples[i] / 2);
+                    + (sourceSamples[i] / 2);
                 } else {
                     destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 4)
-                        + (sourceSamples[i] / 2)
-                        + (sourceSamples[i + 2] / 4);
+                    + (sourceSamples[i] / 2)
+                    + (sourceSamples[i + 2] / 4);
                 }
             }
             
         } else {
-            int numResultingDestinationSamples = numSourceSamples
-                * (destinationAudioFormat.sampleRate() / sourceAudioFormat.sampleRate())
-                * (destinationAudioFormat.channelCount() / sourceAudioFormat.channelCount());
-            
             int sourceIndex = 0;
             
             // upsample from 24 to 48
-            for (int i = 0; i < numResultingDestinationSamples; i += destinationAudioFormat.channelCount()) {
-                
+            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount()) {
                 sourceIndex = i * sourceToDestinationFactor;
+                
+                if (sourceIndex >= numSourceSamples) {
+                    sourceIndex -= destinationAudioFormat.channelCount();
+                }
+                
                 destinationSamples[i] = sourceSamples[sourceIndex];
                 
                 if (sourceAudioFormat.channelCount() == 1) {
@@ -218,14 +219,6 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
                         for (int j = 2; j < destinationAudioFormat.channelCount(); j++) {
                             destinationSamples[i] = 0;
                         }
-                    }
-                }
-                
-                if (numResultingDestinationSamples < numDestinationSamples
-                    && i + destinationAudioFormat.channelCount() >= numResultingDestinationSamples) {
-                    // make sure we don't leave a gap on the number of destination samples
-                    for (int k = numResultingDestinationSamples; k < numDestinationSamples; k++) {
-                        destinationSamples[k] = destinationSamples[k - destinationAudioFormat.channelCount()];
                     }
                 }
             }
@@ -330,7 +323,7 @@ void Audio::handleAudioInput() {
     NodeList* nodeList = NodeList::getInstance();
     Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
     
-    if (audioMixer) {
+    if (false) {
         if (audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             
@@ -389,12 +382,29 @@ void Audio::handleAudioInput() {
     
     if (_outputDevice) {
         
+        int numRequiredNetworkOutputSamples = numResampledNetworkInputSamples
+        * (_desiredOutputFormat.channelCount() / _desiredInputFormat.channelCount());
+        
+        int numResampledOutputBytes = _inputBuffer.size() * inputToOutputRatio;
+        
+        //        linearResampling((int16_t*) inputByteArray.data(),
+        //                         monoAudioSamples,
+        //                         inputByteArray.size() / sizeof(int16_t),
+        //                         numResampledNetworkInputSamples,
+        //                         _inputFormat, _desiredInputFormat);
+        
+        // copy the packet from the RB to the output
+        //        linearResampling(monoAudioSamples,
+        //                         (int16_t*) _outputBuffer.data(),
+        //                         numResampledNetworkInputSamples,
+        //                         numResampledOutputBytes / sizeof(int16_t),
+        //                         _desiredInputFormat, _outputFormat);
+        
+        
         // if there is anything in the ring buffer, decide what to do
-        if (_ringBuffer.samplesAvailable() > 0) {
+        if (false) {
             
-            int numRequiredNetworkOutputBytes = numResampledNetworkInputBytes
-                * (_desiredOutputFormat.channelCount() / _desiredInputFormat.channelCount());
-            int numRequiredNetworkOutputSamples = numRequiredNetworkOutputBytes / sizeof(int16_t);
+
             
             if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numRequiredNetworkOutputSamples)) {
                 // starved and we don't have enough to start, keep waiting
