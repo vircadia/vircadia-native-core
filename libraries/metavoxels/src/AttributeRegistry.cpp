@@ -12,7 +12,7 @@ AttributeRegistry AttributeRegistry::_instance;
 
 AttributeRegistry::AttributeRegistry() :
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new QRgbAttribute("normal"))) {
+    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
