@@ -40,10 +40,10 @@ private:
     
     class PointVisitor : public MetavoxelVisitor {
     public:
-        PointVisitor(QVector<Point>& points) : _points(points) { }
+        PointVisitor(QVector<Point>& points);
         virtual bool visit(const MetavoxelInfo& info);
     
-    protected:
+    private:
         QVector<Point>& _points;
     };
     

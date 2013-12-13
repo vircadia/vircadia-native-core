@@ -63,9 +63,10 @@ bool Visitation::allNodesLeaves() const {
     return true;
 }
 
-void MetavoxelData::visitVoxels(const QVector<AttributePointer>& attributes, MetavoxelVisitor& visitor) {
+void MetavoxelData::traverse(MetavoxelVisitor& visitor) {
     // start with the root values/defaults
     const float TOP_LEVEL_SIZE = 1.0f;
+    const QVector<AttributePointer>& attributes = visitor.getAttributes();
     Visitation firstVisitation = { visitor, QVector<MetavoxelNode*>(attributes.size()),
         { glm::vec3(), TOP_LEVEL_SIZE, QVector<AttributeValue>(attributes.size()) } };
     for (int i = 0; i < attributes.size(); i++) {

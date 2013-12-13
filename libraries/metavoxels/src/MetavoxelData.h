@@ -12,6 +12,7 @@
 #include <QBitArray>
 #include <QHash>
 #include <QScopedPointer>
+#include <QSharedData>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -28,9 +29,8 @@ public:
 
     ~MetavoxelData();
 
-    /// Applies the specified function to the contained voxels.
-    /// \param attributes the list of attributes desired
-    void visitVoxels(const QVector<AttributePointer>& attributes, MetavoxelVisitor& visitor);
+    /// Applies the specified visitor to the contained voxels.
+    void traverse(MetavoxelVisitor& visitor);
 
     /// Sets the attribute value corresponding to the specified path.
     void setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue);
@@ -110,10 +110,27 @@ public:
 class MetavoxelVisitor {
 public:
     
+    MetavoxelVisitor(const QVector<AttributePointer>& attributes) : _attributes(attributes) { }
+        
+    /// Returns a reference to the list of attributes desired.
+    const QVector<AttributePointer>& getAttributes() const { return _attributes; }
+    
     /// Visits a metavoxel.
     /// \param info the metavoxel ata
     /// \param if true, continue descending; if false, stop
     virtual bool visit(const MetavoxelInfo& info) = 0;
+
+protected:
+
+    QVector<AttributePointer> _attributes;
+};
+
+/// Interface for objects that host metavoxel visitors.
+class MetavoxelTraverser : public QSharedData {
+public:
+    
+    /// Applies the specified visitor to the contained voxels.
+    virtual void traverse(MetavoxelVisitor& visitor) = 0;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

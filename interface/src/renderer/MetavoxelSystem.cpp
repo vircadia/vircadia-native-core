@@ -46,11 +46,7 @@ void MetavoxelSystem::init() {
 
 void MetavoxelSystem::simulate(float deltaTime) {
     _points.clear();
-    
-    QVector<AttributePointer> attributes;
-    attributes << AttributeRegistry::getInstance()->getColorAttribute();
-    attributes << AttributeRegistry::getInstance()->getNormalAttribute();
-    _data.visitVoxels(attributes, _pointVisitor);
+    _data.traverse(_pointVisitor);
     
     _buffer.bind();
     int bytes = _points.size() * sizeof(Point);
@@ -101,6 +97,13 @@ void MetavoxelSystem::render() {
     _buffer.release();
     
     _program.release();
+}
+
+MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
+    MetavoxelVisitor(QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getColorAttribute() <<
+        AttributeRegistry::getInstance()->getNormalAttribute()),
+    _points(points) {
 }
 
 bool MetavoxelSystem::PointVisitor::visit(const MetavoxelInfo& info) {
