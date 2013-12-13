@@ -67,10 +67,6 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     glm::vec3 penetration;
     OctreeElement* penetratedVoxel;
     if (_voxels->findSpherePenetration(center, radius, penetration, &penetratedVoxel)) {
-        printf("findSpherePenetration()... penetration=%f,%f,%f\n",penetration.x, penetration.y, penetration.z);
-        printf("penetratedElement=%f,%f,%f,%f\n", penetratedVoxel->getCorner().x, penetratedVoxel->getCorner().y,
-            penetratedVoxel->getCorner().z, penetratedVoxel->getScale());
-
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
