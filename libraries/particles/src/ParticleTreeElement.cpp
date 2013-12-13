@@ -8,6 +8,8 @@
 
 #include <QtCore/QDebug>
 
+#include <GeometryUtil.h>
+
 #include "ParticleTree.h"
 #include "ParticleTreeElement.h"
 
@@ -82,6 +84,24 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
             numberOfParticles--;
         }
     }
+}
+
+bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        glm::vec3 particleCenter = _particles[i].getPosition();
+        float particleRadius = _particles[i].getRadius();
+        
+        // don't penetrate yourself
+        if (particleCenter == center && particleRadius == radius) {
+            return false;
+        }
+        
+        if (findSphereSpherePenetration(center, radius, particleCenter, particleRadius, penetration)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool ParticleTreeElement::containsParticle(const Particle& particle) const {

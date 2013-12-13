@@ -58,6 +58,7 @@ void ParticleCollisionSystem::update() {
 
 void ParticleCollisionSystem::checkParticle(Particle* particle) {
     updateCollisionWithVoxels(particle);
+    updateCollisionWithParticles(particle);
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
@@ -69,6 +70,21 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     glm::vec3 penetration;
     OctreeElement* penetratedVoxel;
     if (_voxels->findSpherePenetration(center, radius, penetration, &penetratedVoxel)) {
+        penetration /= (float)TREE_SCALE;
+        updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+        applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+    }
+}
+
+void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
+    glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
+    float radius = particle->getRadius() * (float)TREE_SCALE;
+    const float VOXEL_ELASTICITY = 1.4f;
+    const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+    glm::vec3 penetration;
+    OctreeElement* penetratedElement;
+    if (_particles->findSpherePenetration(center, radius, penetration, &penetratedElement)) {
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);

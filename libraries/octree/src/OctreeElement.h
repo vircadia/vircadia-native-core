@@ -93,6 +93,8 @@ public:
     virtual bool deleteApproved() const { return true; }
 
 
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
+
     // Base class methods you don't need to implement
     const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
     OctreeElement* getChildAtIndex(int childIndex) const;
