@@ -74,6 +74,7 @@ public:
     virtual bool deleteApproved() const { return !hasParticles(); }
 
     const std::vector<Particle>& getParticles() const { return _particles; }
+    std::vector<Particle>& getParticles() { return _particles; }
     bool hasParticles() const { return _particles.size() > 0; }
     
     void update(ParticleTreeUpdateArgs& args);

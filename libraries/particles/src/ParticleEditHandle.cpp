@@ -15,7 +15,6 @@
 std::map<uint32_t,ParticleEditHandle*> ParticleEditHandle::_allHandles;
 uint32_t ParticleEditHandle::_nextCreatorTokenID = 0;
 
-
 ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree, uint32_t id) {
     if (id == NEW_PARTICLE) {
         _creatorTokenID = _nextCreatorTokenID;
@@ -36,7 +35,9 @@ ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, P
 
 ParticleEditHandle::~ParticleEditHandle() {
     // remove us from our _allHandles map
-    _allHandles.erase(_allHandles.find(_creatorTokenID));
+    if (_creatorTokenID != UNKNOWN_TOKEN) {
+        _allHandles.erase(_allHandles.find(_creatorTokenID));
+    }
 }
 
 void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
@@ -71,7 +72,7 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     ParticleDetail newParticleDetail = { _id, usecTimestampNow(), 
             position, radius, {color.red, color.green, color.blue }, 
             velocity, gravity, damping, updateScript, _creatorTokenID };
-    
+
     // queue the packet
     _packetSender->queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &newParticleDetail);
     
