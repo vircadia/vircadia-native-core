@@ -33,7 +33,6 @@ public slots:
     void run();
     void stop() { 
         _isFinished = true; 
-        emit finished();
     }
     
 signals:

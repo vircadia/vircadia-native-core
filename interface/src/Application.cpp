@@ -4416,10 +4416,11 @@ void Application::loadScript() {
     file.seekg( 0, std::ios::beg );
 
     // read the entire file into a buffer, WHAT!? Why not.
-    char* entireFile = new char[fileLength];
+    char* entireFile = new char[fileLength+1];
     file.read((char*)entireFile, fileLength);
     file.close();
     
+    entireFile[fileLength] = 0;// null terminate
     QString script(entireFile);
     delete[] entireFile;
 
@@ -4435,13 +4436,19 @@ void Application::loadScript() {
     //_scriptEngine->getParticleScriptingInterface()->setJurisdictionListener();
     
     QThread* workerThread = new QThread(this);
-    
+
+    // when the worker thread is started, call our engine's run..    
     connect(workerThread, SIGNAL(started()), _scriptEngine, SLOT(run()));
     
-    //connect(_scriptEngine, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-    //connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
-    //connect(_scriptEngine, SIGNAL(finished()), _scriptEngine, SLOT(deleteLater()));
-    //connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    // when the engine emits finished, call our threads quit
+    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
+
+    // when the thread is terminated, add both _scriptEngine and thread to the deleteLater queue
+    connect(workerThread, SIGNAL(terminated()), _scriptEngine, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(terminated()), workerThread, SLOT(deleteLater()));
+
+    // when the application is about to quit, stop our script engine so it unwinds properly
+    connect(this, SIGNAL(aboutToQuit()), _scriptEngine, SLOT(stop()));
     
     _scriptEngine->moveToThread(workerThread);
     

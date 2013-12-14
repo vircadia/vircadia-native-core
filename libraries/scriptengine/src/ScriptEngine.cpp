@@ -52,6 +52,8 @@ void ScriptEngine::run() {
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     _particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+
+    qDebug() << "Script:\n" << _scriptContents << "\n";
     
     QScriptValue result = engine.evaluate(_scriptContents);
     qDebug() << "Evaluated script.\n";
@@ -112,7 +114,6 @@ void ScriptEngine::run() {
             int line = engine.uncaughtExceptionLineNumber();
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
-        
-        
     }
+    emit finished();
 }
