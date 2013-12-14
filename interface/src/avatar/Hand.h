@@ -96,14 +96,11 @@ private:
     
     void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
     
-    glm::vec3 _toyBallPosition;
-    glm::vec3 _toyBallVelocity;
-    bool _toyBallInHand;
-    bool _hasToyBall;
-    bool _toyBallShouldRender;
-    
-    const Particle* _heldParticle;
-    ParticleEditHandle* _ballParticleEditHandle;
+    #define MAX_HANDS 2
+    bool _toyBallInHand[MAX_HANDS];
+    int _whichBallColor[MAX_HANDS];
+    ParticleEditHandle* _ballParticleEditHandles[MAX_HANDS];
+    int _lastControllerButtons;
     
     float _pitchUpdate;
 

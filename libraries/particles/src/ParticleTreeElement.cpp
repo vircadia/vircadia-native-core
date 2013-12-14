@@ -118,7 +118,12 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
+            uint64_t actuallyCreated = particle.getCreated();
+            if (!particle.isNewlyCreated()) {
+                actuallyCreated = _particles[i].getCreated();
+            }
             _particles[i] = particle;
+            _particles[i].setCreated(actuallyCreated);
             return true;
         }
     }

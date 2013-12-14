@@ -127,6 +127,9 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 
 void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
         const QVector<int>& fingertipJointIndices, PalmData& palm) {
+    if (jointIndex == -1) {
+        return;
+    }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
