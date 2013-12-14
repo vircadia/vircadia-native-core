@@ -48,7 +48,9 @@ Hand::Hand(Avatar* owningAvatar) :
     _collisionCenter(0,0,0),
     _collisionAge(0),
     _collisionDuration(0),
-    _pitchUpdate(0)
+    _pitchUpdate(0),
+    _grabDelta(0, 0, 0),
+    _grabDeltaVelocity(0, 0, 0)
 {
     for (int i = 0; i < MAX_HANDS; i++) {
         _toyBallInHand[i] = false;
@@ -167,6 +169,23 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     }
 }
 
+glm::vec3 Hand::getAndResetGrabDelta() {
+    const float HAND_GRAB_SCALE_DISTANCE = 5.f;
+    glm::vec3 delta = _grabDelta * _owningAvatar->getScale() * HAND_GRAB_SCALE_DISTANCE;
+    _grabDelta = glm::vec3(0,0,0);
+    glm::quat avatarRotation = _owningAvatar->getOrientation();
+    return avatarRotation * -delta;
+}
+
+glm::vec3 Hand::getAndResetGrabDeltaVelocity() {
+    const float HAND_GRAB_SCALE_VELOCITY = 5.f;
+    glm::vec3 delta = _grabDeltaVelocity * _owningAvatar->getScale() * HAND_GRAB_SCALE_VELOCITY;
+    _grabDeltaVelocity = glm::vec3(0,0,0);
+    glm::quat avatarRotation = _owningAvatar->getOrientation();
+    return avatarRotation * -delta;
+    
+}
+
 void Hand::simulate(float deltaTime, bool isMine) {
     
     if (_collisionAge > 0.f) {
@@ -196,6 +215,13 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 
                 simulateToyBall(palm, fingerTipPosition, deltaTime);
+                
+                if (palm.getControllerButtons() & BUTTON_4) {
+                    _grabDelta +=  palm.getRawVelocity() * deltaTime;
+                }
+                if ((palm.getLastControllerButtons() & BUTTON_4) && !(palm.getControllerButtons() & BUTTON_4)) {
+                    _grabDeltaVelocity = palm.getRawVelocity();
+                }
                 
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
@@ -243,6 +269,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
                     }
                 }
             }
+            palm.setLastControllerButtons(palm.getControllerButtons());
         }
     }
 }
