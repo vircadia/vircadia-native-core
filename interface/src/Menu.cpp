@@ -90,6 +90,9 @@ Menu::Menu() :
                                    this,
                                    SLOT(login())));
 
+    addDisabledActionAndSeparator(fileMenu, "Scripts");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadScript()));
+
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));

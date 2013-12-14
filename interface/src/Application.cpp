@@ -139,7 +139,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _scriptEngine(NULL)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -4385,3 +4386,62 @@ void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
 }
 
+void Application::loadScript() {
+    // shut down and stop any existing script
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+        _scriptEngine = NULL;
+    }
+
+
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/script.js");
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+                                                          tr("JavaScript Files (*.js)"));
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
+    const char* fileName = fileNameAscii.data();
+    
+    printf("fileName:%s\n",fileName);
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()) {
+        printf("error loading file\n");
+        return;
+    }
+    qDebug("loading file %s...\n", fileName);
+
+    // get file length....
+    unsigned long fileLength = file.tellg();
+    file.seekg( 0, std::ios::beg );
+
+    // read the entire file into a buffer, WHAT!? Why not.
+    char* entireFile = new char[fileLength];
+    file.read((char*)entireFile, fileLength);
+    file.close();
+    
+    QString script(entireFile);
+    delete[] entireFile;
+
+    // start the script on a new thread...
+    _scriptEngine = new ScriptEngine(script);
+    
+    QThread* workerThread = new QThread(this);
+    
+    connect(workerThread, SIGNAL(started()), _scriptEngine, SLOT(run()));
+    
+    connect(_scriptEngine, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
+    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
+    connect(_scriptEngine, SIGNAL(finished()), _scriptEngine, SLOT(deleteLater()));
+    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    
+    _scriptEngine->moveToThread(workerThread);
+    
+    // Starts an event loop, and emits workerThread->started()
+    workerThread->start();
+
+
+
+    // restore the main window's active state
+    _window->activateWindow();
+}

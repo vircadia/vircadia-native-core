@@ -24,6 +24,7 @@
 #include <PacketHeaders.h>
 #include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
+#include <ScriptEngine.h>
 #include <VoxelQuery.h>
 
 #ifndef _WIN32
@@ -217,6 +218,7 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void loadScript();
     
     
 private slots:
@@ -495,6 +497,8 @@ private:
     
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
+    
+    ScriptEngine* _scriptEngine;
 };
 
 #endif /* defined(__interface__Application__) */
