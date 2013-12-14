@@ -23,6 +23,12 @@ class ScriptEngine : public QObject {
 public:
     ScriptEngine(QString scriptContents);
     
+    /// Access the VoxelScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
+    VoxelScriptingInterface* getVoxelScriptingInterface() { return &_voxelScriptingInterface; }
+
+    /// Access the ParticleScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
+    ParticleScriptingInterface* getParticleScriptingInterface() { return &_particleScriptingInterface; }
+    
 public slots:
     void run();
     void stop() { 

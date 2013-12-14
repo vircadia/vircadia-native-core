@@ -4426,14 +4426,22 @@ void Application::loadScript() {
     // start the script on a new thread...
     _scriptEngine = new ScriptEngine(script);
     
+    // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
+    // we can use the same ones from the application.
+    _scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
+    _scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+
+    //_scriptEngine->getVoxelScriptingInterface()->setJurisdictionListener();
+    //_scriptEngine->getParticleScriptingInterface()->setJurisdictionListener();
+    
     QThread* workerThread = new QThread(this);
     
     connect(workerThread, SIGNAL(started()), _scriptEngine, SLOT(run()));
     
-    connect(_scriptEngine, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
-    connect(_scriptEngine, SIGNAL(finished()), _scriptEngine, SLOT(deleteLater()));
-    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    //connect(_scriptEngine, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
+    //connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
+    //connect(_scriptEngine, SIGNAL(finished()), _scriptEngine, SLOT(deleteLater()));
+    //connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
     
     _scriptEngine->moveToThread(workerThread);
     

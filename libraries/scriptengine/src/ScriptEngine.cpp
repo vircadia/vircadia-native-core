@@ -29,6 +29,9 @@ ScriptEngine::ScriptEngine(QString scriptContents) {
 void ScriptEngine::run() {
     QScriptEngine engine;
     
+    _voxelScriptingInterface.init();
+    _particleScriptingInterface.init();
+    
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&engine);
     
@@ -76,7 +79,28 @@ void ScriptEngine::run() {
         
         QCoreApplication::processEvents();
         
-        bool willSendVisualDataCallBack = true;
+        bool willSendVisualDataCallBack = false;
+        if (_voxelScriptingInterface.getVoxelPacketSender()->serversExist()) {            
+            // allow the scripter's call back to setup visual data
+            willSendVisualDataCallBack = true;
+            
+            // release the queue of edit voxel messages.
+            _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
+            
+            // since we're in non-threaded mode, call process so that the packets are sent
+            //_voxelScriptingInterface.getVoxelPacketSender()->process();
+        }
+
+        if (_particleScriptingInterface.getParticlePacketSender()->serversExist()) {
+            // allow the scripter's call back to setup visual data
+            willSendVisualDataCallBack = true;
+            
+            // release the queue of edit voxel messages.
+            _particleScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+            
+            // since we're in non-threaded mode, call process so that the packets are sent
+            //_particleScriptingInterface.getParticlePacketSender()->process();
+        }
         
         if (willSendVisualDataCallBack) {
             qDebug() << "willSendVisualDataCallback thisFrame:" << thisFrame << "\n";
