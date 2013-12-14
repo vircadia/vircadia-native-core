@@ -25,6 +25,7 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes)
 {
     _particleScriptingInterface.init();
+    _voxelScriptingInterface.init();
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {

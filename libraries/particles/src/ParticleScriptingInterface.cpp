@@ -8,53 +8,10 @@
 
 #include "ParticleScriptingInterface.h"
 
-ParticleScriptingInterface::ParticleScriptingInterface(ParticleEditPacketSender* particleSender, 
-                JurisdictionListener* particleJurisdictionListener) :
-    _nextCreatorTokenID(0)
-{
-    setParticlePacketSender(particleSender);
-    setJurisdictionListener(particleJurisdictionListener);
-}
-
-ParticleScriptingInterface::~ParticleScriptingInterface() {
-    if (_managedJuridiciontListerner) {
-        delete _jurisdictionListener;
-    }
-    if (_managedPacketSender) {
-        delete _particlePacketSender;
-    }
-}
-
-
-void ParticleScriptingInterface::setParticlePacketSender(ParticleEditPacketSender* particlePacketSender) {
-    _particlePacketSender = particlePacketSender;
-}
-
-void ParticleScriptingInterface::setJurisdictionListener(JurisdictionListener* jurisdictionListener) {
-    _jurisdictionListener = jurisdictionListener;
-}
-
-void ParticleScriptingInterface::init() {
-    if (_jurisdictionListener) {
-        _managedJuridiciontListerner = false;
-    } else {
-        _managedJuridiciontListerner = true;
-        _jurisdictionListener = new JurisdictionListener(NODE_TYPE_PARTICLE_SERVER);
-        _jurisdictionListener->initialize(true);
-    }
-    
-    if (_particlePacketSender) {
-        _managedPacketSender = false;
-    } else {
-        _managedPacketSender = true;
-        _particlePacketSender = new ParticleEditPacketSender();
-        _particlePacketSender->setServerJurisdictions(_jurisdictionListener->getJurisdictions());
-    }
-}
 
 
 void ParticleScriptingInterface::queueParticleAdd(PACKET_TYPE addPacketType, ParticleDetail& addParticleDetails) {
-    _particlePacketSender->queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
+    getParticlePacketSender()->queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
 }
 
 unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
