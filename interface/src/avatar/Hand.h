@@ -61,6 +61,10 @@ public:
     const float getPitchUpdate() const { return _pitchUpdate; }
     void setPitchUpdate(float pitchUpdate) { _pitchUpdate = pitchUpdate; }
     
+    // Get the drag distance to move
+    glm::vec3 getAndResetGrabDelta();
+    glm::vec3 getAndResetGrabDeltaVelocity();
+    
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -95,6 +99,7 @@ private:
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
     
     void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
+
     
     #define MAX_HANDS 2
     bool _toyBallInHand[MAX_HANDS];
@@ -103,6 +108,9 @@ private:
     int _lastControllerButtons;
     
     float _pitchUpdate;
+    
+    glm::vec3 _grabDelta;
+    glm::vec3 _grabDeltaVelocity;
 
 };
 
