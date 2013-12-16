@@ -78,9 +78,12 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
     FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
+    glm::vec3 penetration;
+    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position, 
+                                                                    args->targetRadius, penetration);
 
     // If this particleTreeElement contains the point, then search it...
-    if (particleTreeElement->getAABox().contains(args->position)) {
+    if (sphereIntersection) {
         const Particle* thisClosestParticle = particleTreeElement->getClosestParticle(args->position);
         
         // we may have gotten NULL back, meaning no particle was available
