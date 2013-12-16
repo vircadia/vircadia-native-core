@@ -70,7 +70,8 @@ _leapID(LEAPID_INVALID),
 _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
-_isCollidingWithVoxel(false)
+_isCollidingWithVoxel(false),
+_isCollidingWithPalm(false)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));

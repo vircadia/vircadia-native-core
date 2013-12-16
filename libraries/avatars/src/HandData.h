@@ -172,6 +172,9 @@ public:
     bool getIsCollidingWithVoxel() { return _isCollidingWithVoxel; }
     void setIsCollidingWithVoxel(bool isCollidingWithVoxel) { _isCollidingWithVoxel = isCollidingWithVoxel; }
 
+    bool getIsCollidingWithPalm() { return _isCollidingWithPalm; }
+    void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
+
 private:
     std::vector<FingerData> _fingers;
     glm::quat _rawRotation;
@@ -195,6 +198,7 @@ private:
     HandData* _owningHandData;
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
+    bool      _isCollidingWithPalm;
     
 };
 

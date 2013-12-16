@@ -293,9 +293,22 @@ void Hand::updateCollisions() {
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
+                //  Check for palm collisions
+                glm::vec3 myPalmPosition = palm.getPosition();
+                float palmCollisionDistance = 0.1f;
+                palm.setIsCollidingWithPalm(false);
+                for (int j = 0; j < getNumPalms(); j++) {
+                    PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
+                    glm::vec3 otherPalmPosition = otherPalm.getPosition();
+                    if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
+                        palm.setIsCollidingWithPalm(true);
+                        
+                    }
+                }
                 glm::vec3 avatarPenetration;
                 if (otherAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
                     totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
+                    //  Check for collisions with the other avatar's leap palms
                 }
             }
         }
@@ -469,7 +482,11 @@ void Hand::renderLeapHands() {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             const float palmThickness = 0.02f;
-            glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+            if (palm.getIsCollidingWithPalm()) {
+                glColor4f(1, 0, 0, 0.50);
+            } else {
+                glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+            }
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
             Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
