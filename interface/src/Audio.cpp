@@ -416,11 +416,12 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
     
     static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
-    * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
+        * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
     
     static int numRequiredOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / networkOutputToOutputRatio;
     
-    int16_t outputBuffer[numRequiredOutputSamples];
+    QByteArray outputBuffer;
+    outputBuffer.resize(numRequiredOutputSamples * sizeof(int16_t));
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
@@ -441,13 +442,18 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             
             // copy the packet from the RB to the output
             linearResampling(ringBufferSamples,
-                             outputBuffer,
+                             (int16_t*) outputBuffer.data(),
                              NETWORK_BUFFER_LENGTH_SAMPLES_STEREO,
                              numRequiredOutputSamples,
                              _desiredOutputFormat, _outputFormat);
             
             if (_outputDevice) {
-                _outputDevice->write((char*) outputBuffer, numRequiredOutputSamples * sizeof(int16_t));
+                _outputDevice->write(outputBuffer);
+                
+                // add output (@speakers) data just written to the scope
+                QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
+                                          Q_ARG(QByteArray, outputBuffer),
+                                          Q_ARG(bool, true), Q_ARG(bool, false));
             }
         }
         
@@ -457,12 +463,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }
-    
-    // add output (@speakers) data just written to the scope
-    //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-    //                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
-    
-
     
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
     
