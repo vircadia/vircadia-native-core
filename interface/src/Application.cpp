@@ -218,9 +218,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
-    cache->setCacheDirectory("interfaceCache");
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     _networkAccessManager->setCache(cache);
     
     _window->setCentralWidget(_glWidget);
