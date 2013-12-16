@@ -12,5 +12,4 @@
 #define GL_GLEXT_PROTOTYPES 1
 @GL_HEADERS@
 
-
 #endif

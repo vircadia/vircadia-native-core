@@ -49,6 +49,7 @@
 
 #include "Application.h"
 #include "DataServerClient.h"
+#include "InterfaceVersion.h"
 #include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -143,6 +144,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
+    
+    qDebug( "[VERSION] Build sequence: %i", BUILD_VERSION);
     
     qInstallMessageHandler(messageHandler);
     
