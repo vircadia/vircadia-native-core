@@ -302,6 +302,15 @@ void Hand::updateCollisions() {
                     glm::vec3 otherPalmPosition = otherPalm.getPosition();
                     if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
                         palm.setIsCollidingWithPalm(true);
+                        const float PALM_COLLIDE_VOLUME = 1.f;
+                        const float PALM_COLLIDE_FREQUENCY = 150.f;
+                        const float PALM_COLLIDE_DURATION_MAX = 2.f;
+                        const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
+                        Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                               PALM_COLLIDE_FREQUENCY,
+                                                                               PALM_COLLIDE_DURATION_MAX,
+                                                                               PALM_COLLIDE_DECAY_PER_SAMPLE);
+
                         
                     }
                 }
