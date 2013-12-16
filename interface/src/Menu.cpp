@@ -711,8 +711,6 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
 }
 
 void Menu::removeAction(QMenu* menu, const QString& actionName) {
-qDebug() << "removeAction() menu=" << menu << " actionName=" << actionName << "\n";
-
     menu->removeAction(_actionHash.value(actionName));
 }
 

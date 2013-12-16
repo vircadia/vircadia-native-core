@@ -9,6 +9,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QTimer>
+#include <QtCore/QThread>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -39,6 +40,11 @@ ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems,
     _menu = menu;
 }
 
+ScriptEngine::~ScriptEngine() {
+    printf("ScriptEngine::~ScriptEngine()...\n");
+}
+
+
 void ScriptEngine::setupMenuItems() {
     if (_menu && _wantMenuItems) {
         _menu->addActionToQMenuAndActionHash(_menu->getActiveScriptsMenu(), _scriptMenuName, 0, this, SLOT(stop()));
@@ -53,7 +59,7 @@ void ScriptEngine::cleanMenuItems() {
 
 void ScriptEngine::run() {
 
-    setupMenuItems();
+    //setupMenuItems();
     
     QScriptEngine engine;
     
@@ -103,12 +109,14 @@ void ScriptEngine::run() {
         }
         
         if (_isFinished) {
+            qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
 
         QCoreApplication::processEvents();
 
         if (_isFinished) {
+            qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
         
@@ -146,6 +154,23 @@ void ScriptEngine::run() {
         }
     }
     cleanMenuItems();
-    qDebug() << "About to emit finished...\n";
+
+    // If we were on a thread, then wait till it's done
+    if (thread()) {
+        qDebug() << "line: " << __LINE__ << " calling quit()...\n";
+        thread()->quit();
+    }
+
+    qDebug() << "line: " << __LINE__ << " emitting finished()...\n";
     emit finished();
+}
+
+void ScriptEngine::stop() { 
+    _isFinished = true; 
+    qDebug() << "line: " << __LINE__ << " ScriptEngine::stop().. setting _isFinished = true...\n";
+}
+
+void ScriptEngine::applicationAboutToQuit() {
+    qDebug() << "line: " << __LINE__ << " ScriptEngine::applicationAboutToQuit().. setting _isFinished = true...\n";
+    stop();
 }

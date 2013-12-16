@@ -24,18 +24,22 @@ class ScriptEngine : public QObject {
 public:
     ScriptEngine(QString scriptContents, bool wantMenuItems = false, 
                     const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL);
+
+    ~ScriptEngine();
     
     /// Access the VoxelScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     VoxelScriptingInterface* getVoxelScriptingInterface() { return &_voxelScriptingInterface; }
 
     /// Access the ParticleScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     ParticleScriptingInterface* getParticleScriptingInterface() { return &_particleScriptingInterface; }
+
+    void setupMenuItems();
+    void cleanMenuItems();
     
 public slots:
     void run();
-    void stop() { 
-        _isFinished = true; 
-    }
+    void stop();
+    void applicationAboutToQuit();
     
 signals:
     void willSendAudioDataCallback();
@@ -45,8 +49,6 @@ protected:
     QString _scriptContents;
     bool _isFinished;
 
-    void setupMenuItems();
-    void cleanMenuItems();
 
 private:
     VoxelScriptingInterface _voxelScriptingInterface;

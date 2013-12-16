@@ -41,6 +41,11 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
     _totalPacketsQueued(0),
     _totalBytesQueued(0)
 {
+    printf("PacketSender[%p] created... \n", this);
+}
+
+PacketSender::~PacketSender() {
+    printf("PacketSender::~PacketSender[%p] destroyed... \n", this);
 }
 
 
@@ -328,6 +333,7 @@ bool PacketSender::nonThreadedProcess() {
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
         NetworkPacket& packet = _packets.front();
+        printf("PacketSender[%p], copying packet... \n", this);
         NetworkPacket temporary = packet; // make a copy
         _packets.erase(_packets.begin());
         packetsLeft = _packets.size();
