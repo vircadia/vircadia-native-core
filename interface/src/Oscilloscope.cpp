@@ -77,7 +77,7 @@ void Oscilloscope::addSamples(const QByteArray& audioByteArray, bool isStereo, b
     int numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * (isStereo ? 2 : 1));
     int16_t* samples = (int16_t*) audioByteArray.data();
     
-    for (int channel = 0; channel < (isStereo ? 1 : 2); channel++) {
+    for (int channel = 0; channel < (isStereo ? 2 : 1); channel++) {
         // add samples for each of the channels
 
         // determine start/end offset of this channel's region

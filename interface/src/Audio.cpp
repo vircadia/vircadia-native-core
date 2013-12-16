@@ -353,14 +353,17 @@ void Audio::handleAudioInput() {
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
             
+            float loudness = 0;
+            
             if (!_muted) {
-                float loudness = 0;
-                //                    loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                _lastInputLoudness = loudness;
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    loudness += fabsf(_monoAudioSamples[i]);
+                }
                 
-            } else {
-                _lastInputLoudness = 0;
+                loudness /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
             }
+            
+            _lastInputLoudness = loudness;
             
             nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
                                                     NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
