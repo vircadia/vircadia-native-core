@@ -152,6 +152,7 @@ public:
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }

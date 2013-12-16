@@ -271,6 +271,14 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     updateChatCircle(deltaTime);
     
+    //  Get any position or velocity update from Grab controller
+    glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
+    if (glm::length(moveFromGrab) > EPSILON) {
+        _position += moveFromGrab;
+        _velocity = glm::vec3(0, 0, 0);
+    }
+    _velocity += _hand.getAndResetGrabDeltaVelocity();
+    
     _position += _velocity * deltaTime;
     
     // update avatar skeleton and simulate hand and head

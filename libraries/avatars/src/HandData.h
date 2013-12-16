@@ -26,6 +26,7 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 const int LEAPID_INVALID = -1;
 const int SIXENSEID_INVALID = -1;
 
+const int BUTTON_0 = 1; // the skinny button between 1 and 2
 const int BUTTON_1 = 32;
 const int BUTTON_2 = 64;
 const int BUTTON_3 = 8;
@@ -157,8 +158,11 @@ public:
     
     // Controller buttons
     void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
-    int getControllerButtons() { return _controllerButtons; }
+    void setLastControllerButtons(int controllerButtons) { _lastControllerButtons = controllerButtons; }
 
+    int getControllerButtons() { return _controllerButtons; }
+    int getLastControllerButtons() { return _lastControllerButtons; }
+    
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() { return _trigger; }
     void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
@@ -180,6 +184,7 @@ private:
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
     int _controllerButtons;
+    int _lastControllerButtons;
     float _trigger;
     float _joystickX, _joystickY;
     
