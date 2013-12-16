@@ -47,6 +47,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _desiredInputFormat(),
     _inputFormat(),
     _inputBuffer(),
+    _monoAudioSamples(NULL),
     _numInputCallbackBytes(0),
     _audioOutput(NULL),
     _desiredOutputFormat(),
@@ -172,8 +173,9 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     if (sourceAudioFormat == destinationAudioFormat) {
         memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
     } else {
+        int destinationChannels = (destinationAudioFormat.channelCount() >= 2) ? 2 : destinationAudioFormat.channelCount();
         float sourceToDestinationFactor = (sourceAudioFormat.sampleRate() / (float) destinationAudioFormat.sampleRate())
-        * (sourceAudioFormat.channelCount() / (float) destinationAudioFormat.channelCount()) ;
+            * (sourceAudioFormat.channelCount() / (float) destinationChannels);
         
         // take into account the number of channels in source and destination
         // accomodate for the case where have an output with > 2 channels
@@ -184,40 +186,36 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             // for now this only supports a mono output - this would be the case for audio input
             
             for (int i = 2; i < numSourceSamples; i += 4) {
-                
                 if (i + 2 >= numSourceSamples) {
                     destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 2)
-                    + (sourceSamples[i] / 2);
+                        + (sourceSamples[i] / 2);
                 } else {
                     destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 4)
-                    + (sourceSamples[i] / 2)
-                    + (sourceSamples[i + 2] / 4);
+                        + (sourceSamples[i] / 2)
+                        + (sourceSamples[i + 2] / 4);
                 }
             }
             
         } else {
-            int sourceIndex = 0;
-            
             // upsample from 24 to 48
-            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount()) {
-                sourceIndex = i * sourceToDestinationFactor;
+            // for now this only supports a stereo to stereo conversion - this is our case for network audio to output
+            int sourceIndex = 0;
+            int destinationToSourceFactor =  (1 / sourceToDestinationFactor);
+            
+            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount() * destinationToSourceFactor) {
+                sourceIndex = (i / destinationToSourceFactor);
                 
-                if (sourceIndex >= numSourceSamples) {
-                    sourceIndex -= destinationAudioFormat.channelCount();
-                }
-                
-                destinationSamples[i] = sourceSamples[sourceIndex];
-                
-                if (sourceAudioFormat.channelCount() == 1) {
-                    destinationSamples[i + 1] = sourceSamples[sourceIndex];
-                } else {
-                    destinationSamples[i + 1] = sourceSamples[(sourceIndex) + 1];
-                    
-                    if (destinationAudioFormat.channelCount() > 2) {
-                        // fill the rest of the channels with silence
-                        for (int j = 2; j < destinationAudioFormat.channelCount(); j++) {
-                            destinationSamples[i] = 0;
-                        }
+                // fill the L/R channels and make the rest silent
+                for (int j = i; j < i + (destinationToSourceFactor * destinationAudioFormat.channelCount()); j++) {
+                    if (j % destinationAudioFormat.channelCount() == 0) {
+                        // left channel
+                        destinationSamples[j] = sourceSamples[sourceIndex];
+                    } else if (j % destinationAudioFormat.channelCount() == 1) {
+                         // right channel
+                        destinationSamples[j] = sourceSamples[sourceIndex + 1];
+                    } else {
+                        // channels above 2, fill with silence
+                        destinationSamples[j] = 0;
                     }
                 }
             }
@@ -281,7 +279,8 @@ void Audio::handleAudioInput() {
     
     static int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
-    static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
+    
+    _monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
     static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
@@ -298,36 +297,22 @@ void Audio::handleAudioInput() {
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
         
         // zero out the monoAudioSamples array
-        memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        memset(_monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
         
         if (!_muted) {
             // we aren't muted, downsample the input audio
             linearResampling((int16_t*) inputAudioSamples,
-                             monoAudioSamples,
+                             _monoAudioSamples,
                              inputSamplesRequired,
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
             
             // add input data just written to the scope
             QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, QByteArray((char*) monoAudioSamples,
+                                      Q_ARG(QByteArray, QByteArray((char*) _monoAudioSamples,
                                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)),
                                       Q_ARG(bool, false), Q_ARG(bool, true));
         }
-        
-//        if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
-//            //  if local loopback enabled, copy input to output
-//            QByteArray samplesForOutput;
-//            samplesForOutput.resize(inputSamplesRequired * outputToInputRatio * sizeof(int16_t));
-//            
-//            linearResampling(monoAudioSamples, (int16_t*) samplesForOutput.data(),
-//                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-//                             inputSamplesRequired,
-//                             _desiredInputFormat, _outputFormat);
-//            
-//            _outputDevice->write(samplesForOutput);
-//        }
-
         
         // add procedural effects to the appropriate input samples
         //    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
@@ -440,6 +425,17 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
             _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
             
+            if (!_muted && Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+                // copy whatever is pointed to at _monoAudioSamples into our ringBufferSamples
+                // so that local audio is echoed back
+                
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _monoAudioSamples[i],
+                                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                    ringBufferSamples[(i * 2) + 1] = ringBufferSamples[i * 2];
+                }
+            }
+            
             // copy the packet from the RB to the output
             linearResampling(ringBufferSamples,
                              (int16_t*) outputBuffer.data(),
@@ -460,6 +456,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer, and the ring buffer from
         // the network has nothing in it either - we just starved
+        qDebug() << "Audio output just starved.\n";
         _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }

@@ -76,6 +76,7 @@ private:
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     QByteArray _inputBuffer;
+    int16_t* _monoAudioSamples;
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;

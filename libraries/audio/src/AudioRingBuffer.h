@@ -9,6 +9,7 @@
 #ifndef __interface__AudioRingBuffer__
 #define __interface__AudioRingBuffer__
 
+#include <limits>
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -23,6 +24,9 @@ const int NETWORK_BUFFER_LENGTH_BYTES_STEREO = 1024;
 const int NETWORK_BUFFER_LENGTH_SAMPLES_STEREO = NETWORK_BUFFER_LENGTH_BYTES_STEREO / sizeof(int16_t);
 const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
 const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
+
+const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 class AudioRingBuffer : public NodeData {
     Q_OBJECT
