@@ -102,7 +102,15 @@ void ScriptEngine::run() {
             usleep(usecToSleep);
         }
         
+        if (_isFinished) {
+            break;
+        }
+
         QCoreApplication::processEvents();
+
+        if (_isFinished) {
+            break;
+        }
         
         bool willSendVisualDataCallBack = false;
         if (_voxelScriptingInterface.getVoxelPacketSender()->serversExist()) {            
@@ -138,5 +146,6 @@ void ScriptEngine::run() {
         }
     }
     cleanMenuItems();
+    qDebug() << "About to emit finished...\n";
     emit finished();
 }

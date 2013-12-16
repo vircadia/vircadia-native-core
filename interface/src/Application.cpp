@@ -263,6 +263,8 @@ Application::~Application() {
     delete _settings;
     delete _followMode;
     delete _glWidget;
+    
+    qDebug() << "DONE... Application::~Application()\n";
 }
 
 void Application::restoreSizeAndPosition() {
@@ -4435,8 +4437,8 @@ void Application::loadScript() {
     connect(scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(workerThread, SIGNAL(terminated()), scriptEngine, SLOT(deleteLater()));
-    connect(workerThread, SIGNAL(terminated()), workerThread, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), scriptEngine, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
