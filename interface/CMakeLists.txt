@@ -23,8 +23,6 @@ else ()
   set(BUILD_SEQ "0")
 endif ()
 
-message("BUILD_SEQ = ${BUILD_SEQ}")
-
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
