@@ -13,6 +13,8 @@
 #include <QHash>
 #include <QKeySequence>
 
+#include "ui/LogDialog.h"
+
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
     FRUSTUM_DRAW_MODE_VECTORS,
@@ -47,6 +49,7 @@ public:
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
+    void appendLogLine(QString logLine);
     
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -81,6 +84,7 @@ public slots:
     void exportSettings();
     void goToUser();
     void pasteToVoxel();
+    void showLogDialog();
     
 private slots:
     void aboutApp();
@@ -96,6 +100,7 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void logDialogClosed();
     
 private:
     static Menu* _instance;
@@ -141,6 +146,7 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
+    LogDialog* _logDialog;
 };
 
 namespace MenuOption {

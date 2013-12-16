@@ -69,7 +69,8 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
+    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _logDialog(NULL)
 {
     Application *appInstance = Application::getInstance();
     
@@ -261,7 +262,7 @@ Menu::Menu() :
     
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, this, SLOT(showLogDialog()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
@@ -1005,6 +1006,29 @@ void Menu::pasteToVoxel() {
     }
     
     sendFakeEnterEvent();
+}
+
+void Menu::appendLogLine(QString logLine) {
+    if (_logDialog) {
+        _logDialog->appendLogLine(logLine);
+    }
+}
+
+void Menu::showLogDialog() {
+    if (! _logDialog) {
+        _logDialog = new LogDialog(Application::getInstance()->getGLWidget());
+        connect(_logDialog, SIGNAL(closed()), SLOT(logDialogClosed()));
+
+        _logDialog->show();
+    }
+    _logDialog->raise();
+}
+
+void Menu::logDialogClosed() {
+    if (_logDialog) {
+        delete _logDialog;
+        _logDialog = NULL;
+    }
 }
 
 void Menu::bandwidthDetails() {

@@ -1,0 +1,10 @@
+QWidget {
+	background-color: none;
+}
+
+QPlainTextEdit { 
+	font-family: Inconsolata, Lucida Console, Andale Mono, Monaco; 
+	font-size: 16px; 
+	padding: 28px;
+	color: #333333; 
+}

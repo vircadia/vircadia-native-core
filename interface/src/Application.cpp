@@ -86,7 +86,7 @@ const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
-    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
+    Menu::getInstance()->appendLogLine(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -142,10 +142,21 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
+
+#ifdef Q_OS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+
+    QFontDatabase::addApplicationFont(resourcesPath + "/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
     
+    // call Menu getInstance static method to set up the menu
+    _window->setMenuBar(Menu::getInstance());
+
     qInstallMessageHandler(messageHandler);
-    
+
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -170,14 +181,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
-    
-    // setup QSettings    
-#ifdef Q_OS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-    
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
     
@@ -190,9 +194,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
     _settings = new QSettings(this);
-    
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
 
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
@@ -243,6 +244,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+
+    qInstallMessageHandler(NULL);
+    
     // make sure we don't call the idle timer any more
     delete idleTimer;
 
@@ -3322,11 +3326,6 @@ void Application::displayOverlay() {
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
         renderCoverageMap();
-    }
-    
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
-        LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
     }
 
     //  Show chat entry field
