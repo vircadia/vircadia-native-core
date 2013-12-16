@@ -363,6 +363,12 @@ Menu::Menu() :
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu,
+                                           MenuOption::FilterSixense,
+                                           0,
+                                           true,
+                                           appInstance->getSixenseManager(),
+                                           SLOT(setFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LeapDrive, 0, false);

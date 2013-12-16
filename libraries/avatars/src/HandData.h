@@ -158,8 +158,11 @@ public:
     
     // Controller buttons
     void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
-    int getControllerButtons() { return _controllerButtons; }
+    void setLastControllerButtons(int controllerButtons) { _lastControllerButtons = controllerButtons; }
 
+    int getControllerButtons() { return _controllerButtons; }
+    int getLastControllerButtons() { return _lastControllerButtons; }
+    
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() { return _trigger; }
     void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
@@ -181,6 +184,7 @@ private:
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
     int _controllerButtons;
+    int _lastControllerButtons;
     float _trigger;
     float _joystickX, _joystickY;
     
