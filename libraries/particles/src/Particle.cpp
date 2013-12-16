@@ -416,7 +416,7 @@ void Particle::update() {
 void Particle::runScript() {
     if (!_updateScript.isEmpty()) {
     
-        qDebug() << "Script: " << _updateScript << "\n";
+        //qDebug() << "Script: " << _updateScript << "\n";
         
         QScriptEngine engine;
     

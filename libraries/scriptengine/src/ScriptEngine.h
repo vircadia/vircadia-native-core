@@ -15,13 +15,15 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <VoxelScriptingInterface.h>
+#include <AbstractMenuInterface.h>
 #include <ParticleScriptingInterface.h>
+#include <VoxelScriptingInterface.h>
 
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(QString scriptContents);
+    ScriptEngine(QString scriptContents, bool wantMenuItems = false, 
+                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL);
     
     /// Access the VoxelScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     VoxelScriptingInterface* getVoxelScriptingInterface() { return &_voxelScriptingInterface; }
@@ -42,9 +44,17 @@ signals:
 protected:
     QString _scriptContents;
     bool _isFinished;
+
+    void setupMenuItems();
+    void cleanMenuItems();
+
 private:
     VoxelScriptingInterface _voxelScriptingInterface;
     ParticleScriptingInterface _particleScriptingInterface;
+    bool _wantMenuItems;
+    QString _scriptMenuName;
+    AbstractMenuInterface* _menu;
+    static int _scriptNumber;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */

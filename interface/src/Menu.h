@@ -13,6 +13,8 @@
 #include <QHash>
 #include <QKeySequence>
 
+#include <AbstractMenuInterface.h>
+
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
     FRUSTUM_DRAW_MODE_VECTORS,
@@ -37,7 +39,7 @@ class BandwidthDialog;
 class VoxelStatsDialog;
 class LodToolsDialog;
 
-class Menu : public QMenuBar {
+class Menu : public QMenuBar, public AbstractMenuInterface {
     Q_OBJECT
 public:
     static Menu* getInstance();
@@ -70,6 +72,15 @@ public:
     
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    
+    virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
+    virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           const QString actionName,
+                                           const QKeySequence& shortcut = 0,
+                                           const QObject* receiver = NULL,
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole);
+    virtual void removeAction(QMenu* menu, const QString& actionName);
     
 public slots:
     void bandwidthDetails();
@@ -110,12 +121,6 @@ private:
     
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
                                            
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
@@ -141,6 +146,8 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
+    
+    QMenu* _activeScriptsMenu;
 };
 
 namespace MenuOption {

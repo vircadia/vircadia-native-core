@@ -497,8 +497,6 @@ private:
     
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
-    
-    ScriptEngine* _scriptEngine;
 };
 
 #endif /* defined(__interface__Application__) */

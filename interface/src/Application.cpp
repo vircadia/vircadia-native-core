@@ -139,8 +139,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false),
-        _scriptEngine(NULL)
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -259,7 +258,7 @@ Application::~Application() {
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
-    delete Menu::getInstance();
+    Menu::getInstance()->deleteLater();
     
     delete _settings;
     delete _followMode;
@@ -4388,12 +4387,6 @@ void Application::packetSentNotification(ssize_t length) {
 
 void Application::loadScript() {
     // shut down and stop any existing script
-    if (_scriptEngine) {
-        _scriptEngine->stop();
-        _scriptEngine = NULL;
-    }
-
-
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/script.js");
 
@@ -4425,32 +4418,30 @@ void Application::loadScript() {
     delete[] entireFile;
 
     // start the script on a new thread...
-    _scriptEngine = new ScriptEngine(script);
+    bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance());
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    _scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
-    _scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
 
-    //_scriptEngine->getVoxelScriptingInterface()->setJurisdictionListener();
-    //_scriptEngine->getParticleScriptingInterface()->setJurisdictionListener();
-    
     QThread* workerThread = new QThread(this);
 
     // when the worker thread is started, call our engine's run..    
-    connect(workerThread, SIGNAL(started()), _scriptEngine, SLOT(run()));
+    connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
     
     // when the engine emits finished, call our threads quit
-    connect(_scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
+    connect(scriptEngine, SIGNAL(finished()), workerThread, SLOT(quit()));
 
-    // when the thread is terminated, add both _scriptEngine and thread to the deleteLater queue
-    connect(workerThread, SIGNAL(terminated()), _scriptEngine, SLOT(deleteLater()));
+    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
+    connect(workerThread, SIGNAL(terminated()), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(terminated()), workerThread, SLOT(deleteLater()));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
-    connect(this, SIGNAL(aboutToQuit()), _scriptEngine, SLOT(stop()));
+    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
     
-    _scriptEngine->moveToThread(workerThread);
+    scriptEngine->moveToThread(workerThread);
     
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();

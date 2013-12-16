@@ -92,6 +92,7 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadScript()));
+    _activeScriptsMenu = fileMenu->addMenu("Running Scripts");
 
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
@@ -708,6 +709,13 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
     
     return action;
 }
+
+void Menu::removeAction(QMenu* menu, const QString& actionName) {
+qDebug() << "removeAction() menu=" << menu << " actionName=" << actionName << "\n";
+
+    menu->removeAction(_actionHash.value(actionName));
+}
+
 
 bool Menu::isOptionChecked(const QString& menuOption) {
     return _actionHash.value(menuOption)->isChecked();

@@ -21,12 +21,40 @@
 
 #include "ScriptEngine.h"
 
-ScriptEngine::ScriptEngine(QString scriptContents) {
+int ScriptEngine::_scriptNumber = 1;
+
+ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems, 
+                                const char* scriptMenuName, AbstractMenuInterface* menu) {
     _scriptContents = scriptContents;
     _isFinished = false;
+    _wantMenuItems = wantMenuItems;
+    if (scriptMenuName) {
+        _scriptMenuName = "Stop ";
+        _scriptMenuName.append(scriptMenuName);
+    } else {
+        _scriptMenuName = "Stop Script ";
+        _scriptNumber++;
+        _scriptMenuName.append(_scriptNumber);
+    }
+    _menu = menu;
+}
+
+void ScriptEngine::setupMenuItems() {
+    if (_menu && _wantMenuItems) {
+        _menu->addActionToQMenuAndActionHash(_menu->getActiveScriptsMenu(), _scriptMenuName, 0, this, SLOT(stop()));
+    }
+}
+
+void ScriptEngine::cleanMenuItems() {
+    if (_menu && _wantMenuItems) {
+        _menu->removeAction(_menu->getActiveScriptsMenu(), _scriptMenuName);
+    }
 }
 
 void ScriptEngine::run() {
+
+    setupMenuItems();
+    
     QScriptEngine engine;
     
     _voxelScriptingInterface.init();
@@ -68,12 +96,7 @@ void ScriptEngine::run() {
     
     int thisFrame = 0;
 
-    qDebug() << "before while... thisFrame:" << thisFrame << "\n";
-    
     while (!_isFinished) {
-
-        qDebug() << "while... thisFrame:" << thisFrame << "\n";
-        
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -105,7 +128,6 @@ void ScriptEngine::run() {
         }
         
         if (willSendVisualDataCallBack) {
-            qDebug() << "willSendVisualDataCallback thisFrame:" << thisFrame << "\n";
             emit willSendVisualDataCallback();
         }
 
@@ -115,5 +137,6 @@ void ScriptEngine::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
     }
+    cleanMenuItems();
     emit finished();
 }
