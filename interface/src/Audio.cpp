@@ -185,14 +185,16 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             // we need to downsample from 48 to 24
             // for now this only supports a mono output - this would be the case for audio input
             
-            for (int i = 2; i < numSourceSamples; i += 4) {
-                if (i + 2 >= numSourceSamples) {
-                    destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 2)
+            for (int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
+                if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
+                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+                        (sourceSamples[i - sourceAudioFormat.channelCount()] / 2)
                         + (sourceSamples[i] / 2);
                 } else {
-                    destinationSamples[(i - 2) / 4] = (sourceSamples[i - 2] / 4)
+                    destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
+                        (sourceSamples[i - sourceAudioFormat.channelCount()] / 4)
                         + (sourceSamples[i] / 2)
-                        + (sourceSamples[i + 2] / 4);
+                        + (sourceSamples[i + sourceAudioFormat.channelCount()] / 4);
                 }
             }
             
@@ -448,7 +450,8 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                 
                 // add output (@speakers) data just written to the scope
                 QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, outputBuffer),
+                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples,
+                                                                       NETWORK_BUFFER_LENGTH_BYTES_STEREO)),
                                           Q_ARG(bool, true), Q_ARG(bool, false));
             }
         }
