@@ -361,11 +361,13 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
 
-    QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Hand Options");
+    QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
-    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
-    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
-    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::SimulateLeapHand);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LeapDrive, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);    
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::BallFromHand, 0, false);    
  
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");

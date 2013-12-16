@@ -156,6 +156,7 @@ namespace MenuOption {
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
+    const QString BallFromHand = "Ball from Hand";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
@@ -174,6 +175,7 @@ namespace MenuOption {
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
+    const QString DisplayHandTargets = "Display Hand Targets";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
