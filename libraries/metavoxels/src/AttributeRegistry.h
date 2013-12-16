@@ -44,23 +44,23 @@ public:
     /// Retrieves an attribute by name.
     AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
     
+    /// Returns a reference to the standard PolymorphicDataPointer "guide" attribute.
+    const AttributePointer& getGuideAttribute() const { return _guideAttribute; }
+    
     /// Returns a reference to the standard QRgb "color" attribute.
     const AttributePointer& getColorAttribute() const { return _colorAttribute; }
     
     /// Returns a reference to the standard QRgb "normal" attribute.
     const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
     
-    /// Returns a reference to the standard "voxelizer" attribute.
-    const AttributePointer& getVoxelizerAttribute() const { return _voxelizerAttribute; }
-    
 private:
 
     static AttributeRegistry _instance;
 
     QHash<QString, AttributePointer> _attributes;
+    AttributePointer _guideAttribute;
     AttributePointer _colorAttribute;
     AttributePointer _normalAttribute;
-    AttributePointer _voxelizerAttribute;
 };
 
 /// Converts a value to a void pointer.
@@ -253,7 +253,8 @@ typedef QSharedDataPointer<PolymorphicData> PolymorphicDataPointer;
 
 /// Provides polymorphic streaming and averaging.
 class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {
-    
+public:
+
     PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
     
     virtual bool merge(void*& parent, void* children[]) const;

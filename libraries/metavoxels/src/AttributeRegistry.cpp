@@ -7,13 +7,14 @@
 //
 
 #include "AttributeRegistry.h"
+#include "MetavoxelData.h"
 
 AttributeRegistry AttributeRegistry::_instance;
 
 AttributeRegistry::AttributeRegistry() :
+    _guideAttribute(registerAttribute(new PolymorphicAttribute("guide", PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
-    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))),
-    _voxelizerAttribute(registerAttribute(new SimplePointerAttribute<bool>("voxelizer", false))) {
+    _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {

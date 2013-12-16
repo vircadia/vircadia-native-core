@@ -11,6 +11,7 @@
 
 #include <QBitArray>
 #include <QHash>
+#include <QScriptValue>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -19,6 +20,7 @@
 
 class MetavoxelNode;
 class MetavoxelPath;
+class MetavoxelTour;
 class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
@@ -28,7 +30,7 @@ public:
     ~MetavoxelData();
 
     /// Applies the specified visitor to the contained voxels.
-    void traverse(MetavoxelVisitor& visitor);
+    void guide(MetavoxelVisitor& visitor);
 
     /// Sets the attribute value corresponding to the specified path.
     void setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue);
@@ -123,12 +125,41 @@ protected:
     QVector<AttributePointer> _attributes;
 };
 
-/// Interface for objects that host metavoxel visitors.
-class MetavoxelTraverser : public PolymorphicData {
+/// Interface for objects that guide metavoxel visitors.
+class MetavoxelGuide : public PolymorphicData {
 public:
     
-    /// Applies the specified visitor to the contained voxels.
-    virtual void traverse(MetavoxelVisitor& visitor) = 0;
+    /// Guides the specified visitor to the contained voxels.
+    virtual void guide(MetavoxelTour& tour) const = 0;
+};
+
+/// Guides visitors through the explicit content of the system.
+class DefaultMetavoxelGuide : public MetavoxelGuide {
+public:
+    
+    virtual PolymorphicData* clone() const;
+    
+    virtual void guide(MetavoxelTour& tour) const;
+};
+
+/// Represents a guide implemented in Javascript.
+class ScriptedMetavoxelGuide : public MetavoxelGuide {
+public:
+
+    ScriptedMetavoxelGuide(const QScriptValue& guideFunction);
+
+    virtual PolymorphicData* clone() const;
+    
+    virtual void guide(MetavoxelTour& tour) const;
+
+private:
+
+    QScriptValue _guideFunction;
+};
+
+/// Contains the state associated with a tour of a metavoxel system.
+class MetavoxelTour {
+    
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

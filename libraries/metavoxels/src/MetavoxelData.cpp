@@ -63,7 +63,7 @@ bool Visitation::allNodesLeaves() const {
     return true;
 }
 
-void MetavoxelData::traverse(MetavoxelVisitor& visitor) {
+void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     // start with the root values/defaults
     const float TOP_LEVEL_SIZE = 1.0f;
     const QVector<AttributePointer>& attributes = visitor.getAttributes();
@@ -202,3 +202,19 @@ MetavoxelPath& MetavoxelPath::operator+=(int element) {
     return *this;
 }
 
+PolymorphicData* DefaultMetavoxelGuide::clone() const {
+    return new DefaultMetavoxelGuide();
+}
+
+void DefaultMetavoxelGuide::guide(MetavoxelTour& tour) const {
+}
+
+ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) : _guideFunction(guideFunction) {
+}
+
+PolymorphicData* ScriptedMetavoxelGuide::clone() const {
+    return new ScriptedMetavoxelGuide(_guideFunction);
+}
+
+void ScriptedMetavoxelGuide::guide(MetavoxelTour& tour) const {
+}
