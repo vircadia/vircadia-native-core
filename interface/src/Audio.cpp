@@ -309,8 +309,10 @@ void Audio::handleAudioInput() {
                              _inputFormat, _desiredInputFormat);
             
             // add input data just written to the scope
-            //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-            //                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
+            QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, QByteArray((char*) monoAudioSamples,
+                                                                   NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)),
+                                      Q_ARG(bool, false), Q_ARG(bool, true));
         }
         
 //        if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
@@ -419,20 +421,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     static int numRequiredOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / networkOutputToOutputRatio;
     
     int16_t outputBuffer[numRequiredOutputSamples];
-    
-    //        linearResampling((int16_t*) inputByteArray.data(),
-    //                         monoAudioSamples,
-    //                         inputByteArray.size() / sizeof(int16_t),
-    //                         numResampledNetworkInputSamples,
-    //                         _inputFormat, _desiredInputFormat);
-    
-    // copy the packet from the RB to the output
-    //        linearResampling(monoAudioSamples,
-    //                         (int16_t*) _outputBuffer.data(),
-    //                         numResampledNetworkInputSamples,
-    //                         numResampledOutputBytes / sizeof(int16_t),
-    //                         _desiredInputFormat, _outputFormat);
-    
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {

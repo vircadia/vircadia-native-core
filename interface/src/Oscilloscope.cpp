@@ -68,24 +68,18 @@ Oscilloscope::~Oscilloscope() {
     delete[] _samples;
 }
 
-void Oscilloscope::addStereoSamples(const QByteArray& audioByteArray, bool isInput) {
+void Oscilloscope::addSamples(const QByteArray& audioByteArray, bool isStereo, bool isInput) {
 
     if (! enabled || inputPaused) {
         return;
     }
     
-    unsigned int numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * 2);
-    int16_t samples[numSamplesPerChannel];
-    const int16_t* stereoSamples = (int16_t*) audioByteArray.constData();
+    int numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * (isStereo ? 2 : 1));
+    int16_t* samples = (int16_t*) audioByteArray.data();
     
-    for (int channel = 0; channel < (isInput ? 1 : 2); channel++) {
+    for (int channel = 0; channel < (isStereo ? 1 : 2); channel++) {
         // add samples for each of the channels
-        
-        // enumerate the interleaved stereoSamples array and pull out the samples for this channel
-        for (int i = 0; i < audioByteArray.size() / sizeof(int16_t); i += 2) {
-            samples[i / 2] = stereoSamples[i + channel];
-        }
-        
+
         // determine start/end offset of this channel's region
         unsigned baseOffs = MAX_SAMPLES_PER_CHANNEL * (channel + !isInput);
         unsigned endOffs = baseOffs + MAX_SAMPLES_PER_CHANNEL;
@@ -103,10 +97,21 @@ void Oscilloscope::addStereoSamples(const QByteArray& audioByteArray, bool isInp
             numSamplesPerChannel -= n2;
         }
         
-        // copy data
-        memcpy(_samples + writePos, samples, numSamplesPerChannel * sizeof(int16_t));
-        if (n2 > 0) {
-            memcpy(_samples + baseOffs, samples + numSamplesPerChannel, n2 * sizeof(int16_t));
+        if (!isStereo) {
+            // copy data
+            memcpy(_samples + writePos, samples, numSamplesPerChannel * sizeof(int16_t));
+            if (n2 > 0) {
+                memcpy(_samples + baseOffs, samples + numSamplesPerChannel, n2 * sizeof(int16_t));
+            }
+        } else {
+            // we have interleaved samples we need to separate into two channels
+            for (int i = 0; i < numSamplesPerChannel + n2; i++) {
+                if (i < numSamplesPerChannel - n2) {
+                    _samples[writePos] = samples[(i * 2) + channel];
+                } else {
+                    _samples[baseOffs] = samples[(i * 2) + channel];
+                }
+            }
         }
         
         // set new write position for this channel 
