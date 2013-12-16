@@ -2,7 +2,7 @@
 //  ScriptEngine.h
 //  hifi
 //
-//  Created by Stephen Birarda on 7/1/13.
+//  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
