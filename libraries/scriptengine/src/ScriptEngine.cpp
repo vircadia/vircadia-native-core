@@ -41,7 +41,7 @@ ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems,
 }
 
 ScriptEngine::~ScriptEngine() {
-    printf("ScriptEngine::~ScriptEngine()...\n");
+    //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
 
@@ -87,7 +87,7 @@ void ScriptEngine::run() {
     _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     _particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
 
-    qDebug() << "Script:\n" << _scriptContents << "\n";
+    //qDebug() << "Script:\n" << _scriptContents << "\n";
     
     QScriptValue result = engine.evaluate(_scriptContents);
     qDebug() << "Evaluated script.\n";
@@ -109,14 +109,14 @@ void ScriptEngine::run() {
         }
         
         if (_isFinished) {
-            qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
+            //qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
 
         QCoreApplication::processEvents();
 
         if (_isFinished) {
-            qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
+            //qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
         
@@ -157,20 +157,13 @@ void ScriptEngine::run() {
 
     // If we were on a thread, then wait till it's done
     if (thread()) {
-        qDebug() << "line: " << __LINE__ << " calling quit()...\n";
         thread()->quit();
     }
 
-    qDebug() << "line: " << __LINE__ << " emitting finished()...\n";
     emit finished();
 }
 
 void ScriptEngine::stop() { 
     _isFinished = true; 
-    qDebug() << "line: " << __LINE__ << " ScriptEngine::stop().. setting _isFinished = true...\n";
 }
 
-void ScriptEngine::applicationAboutToQuit() {
-    qDebug() << "line: " << __LINE__ << " ScriptEngine::applicationAboutToQuit().. setting _isFinished = true...\n";
-    stop();
-}

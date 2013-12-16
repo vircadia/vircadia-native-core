@@ -39,7 +39,6 @@ public:
 public slots:
     void run();
     void stop();
-    void applicationAboutToQuit();
     
 signals:
     void willSendAudioDataCallback();

@@ -16,17 +16,17 @@ OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packe
 }
 
 OctreeScriptingInterface::~OctreeScriptingInterface() {
-    printf("OctreeScriptingInterface::~OctreeScriptingInterface()\n");
+    //printf("OctreeScriptingInterface::~OctreeScriptingInterface()\n");
     if (_managedJuridiciontListerner) {
-        printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... _jurisdictionListener->terminate()\n");
+        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... _jurisdictionListener->terminate()\n");
         _jurisdictionListener->terminate();
-        printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... deleting _jurisdictionListener\n");
+        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... deleting _jurisdictionListener\n");
         delete _jurisdictionListener;
     }
     if (_managedPacketSender) {
-        printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... _packetSender->terminate()\n");
+        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJuridiciontListerner... _packetSender->terminate()\n");
         _packetSender->terminate();
-        printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedPacketSender... deleting _packetSender\n");
+        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedPacketSender... deleting _packetSender\n");
         delete _packetSender;
     }
 }
@@ -40,13 +40,13 @@ void OctreeScriptingInterface::setJurisdictionListener(JurisdictionListener* jur
 }
 
 void OctreeScriptingInterface::init() {
-    printf("OctreeScriptingInterface::init()\n");
+    //printf("OctreeScriptingInterface::init()\n");
     if (_jurisdictionListener) {
         _managedJuridiciontListerner = false;
     } else {
         _managedJuridiciontListerner = true;
         _jurisdictionListener = new JurisdictionListener(getServerNodeType());
-        printf("OctreeScriptingInterface::init() _managedJuridiciontListerner=true, creating _jurisdictionListener=%p\n", _jurisdictionListener);
+        //printf("OctreeScriptingInterface::init() _managedJuridiciontListerner=true, creating _jurisdictionListener=%p\n", _jurisdictionListener);
         _jurisdictionListener->initialize(true);
     }
     
@@ -55,7 +55,7 @@ void OctreeScriptingInterface::init() {
     } else {
         _managedPacketSender = true;
         _packetSender = createPacketSender();
-        printf("OctreeScriptingInterface::init() _managedPacketSender=true, creating _packetSender=%p\n", _packetSender);
+        //printf("OctreeScriptingInterface::init() _managedPacketSender=true, creating _packetSender=%p\n", _packetSender);
         _packetSender->setServerJurisdictions(_jurisdictionListener->getJurisdictions());
     }
 }

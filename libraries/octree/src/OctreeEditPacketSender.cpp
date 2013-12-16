@@ -35,7 +35,7 @@ OctreeEditPacketSender::OctreeEditPacketSender(PacketSenderNotify* notify) :
     _serverJurisdictions(NULL),
     _sequenceNumber(0),
     _maxPacketSize(MAX_PACKET_SIZE) {
-    printf("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... \n", this);
+    //printf("OctreeEditPacketSender::OctreeEditPacketSender() [%p] created... \n", this);
 }
 
 OctreeEditPacketSender::~OctreeEditPacketSender() {
@@ -49,7 +49,7 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
         delete packet;
         _preServerPackets.erase(_preServerPackets.begin());
     }
-    printf("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... \n", this);
+    //printf("OctreeEditPacketSender::~OctreeEditPacketSender() [%p] destroyed... \n", this);
 }
 
 

@@ -248,7 +248,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
-    qDebug() << "START Application::~Application()...\n";
     // make sure we don't call the idle timer any more
     delete idleTimer;
 
@@ -269,7 +268,6 @@ Application::~Application() {
     delete _settings;
     delete _followMode;
     delete _glWidget;
-    qDebug() << "DONE Application::~Application()...\n";
 }
 
 void Application::restoreSizeAndPosition() {
@@ -4429,9 +4427,7 @@ void Application::loadScript() {
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
 
-    qDebug("about to create ScriptEngine\n");
     ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance());
-    qDebug("scriptEngine=%p\n",scriptEngine);
     scriptEngine->setupMenuItems();
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -4439,9 +4435,7 @@ void Application::loadScript() {
     scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
 
-    qDebug("about to create workerThread\n");
     QThread* workerThread = new QThread(this);
-    qDebug("workerThread=%p\n",workerThread);
 
     // when the worker thread is started, call our engine's run..    
     connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
@@ -4453,15 +4447,10 @@ void Application::loadScript() {
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
     
-    qDebug("about to scriptEngine->moveToThread(workerThread)\n");
     scriptEngine->moveToThread(workerThread);
-    qDebug("after scriptEngine->moveToThread(workerThread)\n");
     
     // Starts an event loop, and emits workerThread->started()
-    qDebug("about to workerThread->start()\n");
     workerThread->start();
-    qDebug("after workerThread->start()\n");
-
 
     // restore the main window's active state
     _window->activateWindow();
