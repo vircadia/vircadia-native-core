@@ -70,6 +70,7 @@ public slots:
     void reset();
     
 private:
+    QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
@@ -80,9 +81,8 @@ private:
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     QIODevice* _outputDevice;
-    QByteArray _outputBuffer;
     int _numOutputCallbackBytes;
-    int16_t* _nextOutputSamples;
+    AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
     StDev _stdev;

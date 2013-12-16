@@ -91,7 +91,7 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
         
         if (audioBuffer->willBeAddedToMix()) {
-            audioBuffer->shiftReadPosition(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            audioBuffer->shiftReadPosition(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             audioBuffer->setWillBeAddedToMix(false);
         } else if (audioBuffer->isStarved()) {

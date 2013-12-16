@@ -13,6 +13,7 @@
 #include <CoreAudio/AudioHardware.h>
 #endif
 
+#include <QtCore/QBuffer>
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
@@ -33,7 +34,7 @@
 static const float JITTER_BUFFER_LENGTH_MSECS = 12;
 static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0);
 
-static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
+static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
 // Mute icon configration
 static const int ICON_SIZE = 24;
@@ -45,17 +46,15 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
-    _inputDevice(NULL),
     _inputBuffer(),
     _numInputCallbackBytes(0),
     _audioOutput(NULL),
     _desiredOutputFormat(),
     _outputFormat(),
     _outputDevice(NULL),
-    _outputBuffer(),
     _numOutputCallbackBytes(0),
-    _nextOutputSamples(NULL),
-    _ringBuffer(true),
+    _inputRingBuffer(0),
+    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -249,7 +248,7 @@ void Audio::start() {
         qDebug() << "The format to be used for audio input is" << _inputFormat << "\n";
         
         _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
-        _numInputCallbackBytes = BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
+        _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
             * (_inputFormat.sampleRate() / SAMPLE_RATE)
             / CALLBACK_ACCELERATOR_RATIO;
         _audioInput->setBufferSize(_numInputCallbackBytes);
@@ -261,14 +260,11 @@ void Audio::start() {
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qDebug() << "The format to be used for audio output is" << _outputFormat << "\n";
             
+            _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
             _inputDevice = _audioInput->start();
-            connect(_inputDevice, SIGNAL(readyRead()), SLOT(handleAudioInput()));
+            connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
             
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _numOutputCallbackBytes = BUFFER_LENGTH_BYTES_PER_CHANNEL * _outputFormat.channelCount()
-                * (_outputFormat.sampleRate() / SAMPLE_RATE)
-                / CALLBACK_ACCELERATOR_RATIO;
-            _audioOutput->setBufferSize(_numOutputCallbackBytes);
             _outputDevice = _audioOutput->start();
             
             gettimeofday(&_lastReceiveTime, NULL);
@@ -281,50 +277,66 @@ void Audio::start() {
 }
 
 void Audio::handleAudioInput() {
-    
     static char monoAudioDataPacket[MAX_PACKET_SIZE];
     
     static int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
-    static float inputToOutputRatio = _numOutputCallbackBytes / _numInputCallbackBytes;
-    static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / BUFFER_LENGTH_BYTES_PER_CHANNEL;
+    static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
+        / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
+    
+    static int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
     
     QByteArray inputByteArray = _inputDevice->readAll();
+    
+    _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
+    
+    while (_inputRingBuffer.samplesAvailable() > inputSamplesRequired) {
+        
+        int16_t inputAudioSamples[inputSamplesRequired];
+        _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
+        
+        // zero out the monoAudioSamples array
+        memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        
+        if (!_muted) {
+            // we aren't muted, downsample the input audio
+            linearResampling((int16_t*) inputAudioSamples,
+                             monoAudioSamples,
+                             inputSamplesRequired,
+                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+                             _inputFormat, _desiredInputFormat);
+            
+            // add input data just written to the scope
+            //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+            //                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
+        }
+        
+//        if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+//            //  if local loopback enabled, copy input to output
+//            QByteArray samplesForOutput;
+//            samplesForOutput.resize(inputSamplesRequired * outputToInputRatio * sizeof(int16_t));
+//            
+//            linearResampling(monoAudioSamples, (int16_t*) samplesForOutput.data(),
+//                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+//                             inputSamplesRequired,
+//                             _desiredInputFormat, _outputFormat);
+//            
+//            _outputDevice->write(samplesForOutput);
+//        }
 
-    int numResampledNetworkInputBytes =  inputByteArray.size() / inputToNetworkInputRatio;
-    int numResampledNetworkInputSamples = numResampledNetworkInputBytes / sizeof(int16_t);
-    
-    // zero out the monoAudioSamples array
-    memset(monoAudioSamples, 0, numResampledNetworkInputBytes);
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
-        _outputBuffer.resize(inputByteArray.size());
-        //  if local loopback enabled, copy input to output
-        linearResampling((int16_t*) inputByteArray.data(), (int16_t*) _outputBuffer.data(),
-                         inputByteArray.size() / sizeof(int16_t),
-                         inputByteArray.size() * inputToOutputRatio / sizeof(int16_t),
-                         _inputFormat, _outputFormat);
-    } else {
-        _outputBuffer.fill(0, inputByteArray.size());
-    }
-    
-    // add input data just written to the scope
-    //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-    //                              Q_ARG(QByteArray, inputByteArray), Q_ARG(bool, true));
-    
-    // add procedural effects to the appropriate input samples
-    //    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
-    //                                            ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
-    //                        (int16_t*) stereoOutputBuffer.data(),
-    //                        BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
-    
-    NodeList* nodeList = NodeList::getInstance();
-    Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-    
-    if (false) {
-        if (audioMixer->getActiveSocket()) {
+        
+        // add procedural effects to the appropriate input samples
+        //    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
+        //                                            ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
+        //                        (int16_t*) stereoOutputBuffer.data(),
+        //                        BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
+        
+        NodeList* nodeList = NodeList::getInstance();
+        Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        
+        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
@@ -334,7 +346,7 @@ void Audio::handleAudioInput() {
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             
             PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+            ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
             char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
                                                                                   packetType);
@@ -357,94 +369,19 @@ void Audio::handleAudioInput() {
                 //                    loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                 _lastInputLoudness = loudness;
                 
-                // we aren't muted - pull our input audio to send off to the mixer
-                linearResampling((int16_t*) inputByteArray.data(),
-                                 monoAudioSamples,
-                                 inputByteArray.size() / sizeof(int16_t),
-                                 numResampledNetworkInputSamples,
-                                 _inputFormat, _desiredInputFormat);
-                
             } else {
                 _lastInputLoudness = 0;
             }
             
             nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
-                                                    numResampledNetworkInputBytes + leadingBytes,
+                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
                                                     audioMixer->getActiveSocket()->getAddress(),
                                                     audioMixer->getActiveSocket()->getPort());
             
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
-        } else {
-            nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
+                .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
     }
-    
-    if (_outputDevice) {
-        
-        int numRequiredNetworkOutputSamples = numResampledNetworkInputSamples
-        * (_desiredOutputFormat.channelCount() / _desiredInputFormat.channelCount());
-        
-        int numResampledOutputBytes = _inputBuffer.size() * inputToOutputRatio;
-        
-        //        linearResampling((int16_t*) inputByteArray.data(),
-        //                         monoAudioSamples,
-        //                         inputByteArray.size() / sizeof(int16_t),
-        //                         numResampledNetworkInputSamples,
-        //                         _inputFormat, _desiredInputFormat);
-        
-        // copy the packet from the RB to the output
-        //        linearResampling(monoAudioSamples,
-        //                         (int16_t*) _outputBuffer.data(),
-        //                         numResampledNetworkInputSamples,
-        //                         numResampledOutputBytes / sizeof(int16_t),
-        //                         _desiredInputFormat, _outputFormat);
-        
-        
-        // if there is anything in the ring buffer, decide what to do
-        if (false) {
-            
-
-            
-            if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numRequiredNetworkOutputSamples)) {
-                // starved and we don't have enough to start, keep waiting
-                qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.\n";
-            } else {
-                //  We are either already playing back, or we have enough audio to start playing back.
-                if (_ringBuffer.isStarved()) {
-                    _ringBuffer.setIsStarved(false);
-                }
-                
-                int numResampledOutputBytes = inputByteArray.size() * inputToOutputRatio;
-                
-                // copy the samples we'll resample from the ring buffer - this also
-                // pushes the read pointer of the ring buffer forwards
-                int16_t ringBufferSamples[numRequiredNetworkOutputSamples];
-                _ringBuffer.read(ringBufferSamples, numRequiredNetworkOutputSamples);
-                
-                // copy the packet from the RB to the output
-                linearResampling(ringBufferSamples,
-                                 (int16_t*) _outputBuffer.data(),
-                                 numRequiredNetworkOutputSamples,
-                                 numResampledOutputBytes / sizeof(int16_t),
-                                 _desiredOutputFormat, _outputFormat);
-                
-            }
-        } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
-            // we don't have any audio data left in the output buffer, and the ring buffer from
-            // the network has nothing in it either - we just starved
-            _ringBuffer.setIsStarved(true);
-            _numFramesDisplayStarve = 10;
-        }
-        
-        // add output (@speakers) data just written to the scope
-        //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
-        //                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
-        
-        _outputDevice->write(_outputBuffer);
-    }
-    
-    gettimeofday(&_lastCallbackTime, NULL);
 }
 
 void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
@@ -466,7 +403,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         _measuredJitter = _stdev.getStDev();
         _stdev.reset();
         //  Set jitter buffer to be a multiple of the measured standard deviation
-        const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
+        const int MAX_JITTER_BUFFER_SAMPLES = _ringBuffer.getSampleCapacity() / 2;
         const float NUM_STANDARD_DEVIATIONS = 3.f;
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.f * SAMPLE_RATE;
@@ -476,8 +413,70 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     
     _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
     
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(PACKET_LENGTH_BYTES
-                                                                                                    + sizeof(PACKET_TYPE));
+    static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
+    * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
+    
+    static int numRequiredOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / networkOutputToOutputRatio;
+    
+    int16_t outputBuffer[numRequiredOutputSamples];
+    
+    //        linearResampling((int16_t*) inputByteArray.data(),
+    //                         monoAudioSamples,
+    //                         inputByteArray.size() / sizeof(int16_t),
+    //                         numResampledNetworkInputSamples,
+    //                         _inputFormat, _desiredInputFormat);
+    
+    // copy the packet from the RB to the output
+    //        linearResampling(monoAudioSamples,
+    //                         (int16_t*) _outputBuffer.data(),
+    //                         numResampledNetworkInputSamples,
+    //                         numResampledOutputBytes / sizeof(int16_t),
+    //                         _desiredInputFormat, _outputFormat);
+    
+    
+    // if there is anything in the ring buffer, decide what to do
+    if (_ringBuffer.samplesAvailable() > 0) {
+        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
+                                                         + (_jitterBufferSamples * 2))) {
+            // starved and we don't have enough to start, keep waiting
+            qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.\n";
+        } else {
+            //  We are either already playing back, or we have enough audio to start playing back.
+            if (_ringBuffer.isStarved()) {
+                _ringBuffer.setIsStarved(false);
+            }
+            
+            // copy the samples we'll resample from the ring buffer - this also
+            // pushes the read pointer of the ring buffer forwards
+            int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
+            _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+            
+            // copy the packet from the RB to the output
+            linearResampling(ringBufferSamples,
+                             outputBuffer,
+                             NETWORK_BUFFER_LENGTH_SAMPLES_STEREO,
+                             numRequiredOutputSamples,
+                             _desiredOutputFormat, _outputFormat);
+            
+            if (_outputDevice) {
+                _outputDevice->write((char*) outputBuffer, numRequiredOutputSamples * sizeof(int16_t));
+            }
+        }
+        
+    } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+        // we don't have any audio data left in the output buffer, and the ring buffer from
+        // the network has nothing in it either - we just starved
+        _ringBuffer.setIsStarved(true);
+        _numFramesDisplayStarve = 10;
+    }
+    
+    // add output (@speakers) data just written to the scope
+    //    QMetaObject::invokeMethod(_scope, "addStereoSamples", Qt::QueuedConnection,
+    //                              Q_ARG(QByteArray, stereoOutputBuffer), Q_ARG(bool, false));
+    
+
+    
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
     
     _lastReceiveTime = currentReceiveTime;
 }
@@ -508,7 +507,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES / 2; i++) {
+        for (int i = 0; i < _ringBuffer.getSampleCapacity() / 2; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;
