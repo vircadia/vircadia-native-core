@@ -165,28 +165,26 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
     
     for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 2) {
-//        if (s < numSamplesDelay) {
-//            // pull the earlier sample for the delayed channel
-//            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
-//            
-//            _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
-//                                                                    MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-//        }
-//        
-//        // pull the current sample for the good channel
-//        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
-//        _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
-//                                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-//        
-//        if (s + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO) {
-//            // place the curernt sample at the right spot in the delayed channel
-//            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + numSamplesDelay + delayedChannelOffset]
-//                                               + (currentSample * weakChannelAmplitudeRatio)),
-//                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-//            _clientSamples[s + numSamplesDelay + delayedChannelOffset] = clampedSample;
-//        }
+        if ((s / 2) < numSamplesDelay) {
+            // pull the earlier sample for the delayed channel
+            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
+            
+            _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
+                                                                    MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        }
         
-        _clientSamples[s] = _clientSamples[s + 1] = (*bufferToAdd)[s / 2] * attenuationCoefficient;
+        // pull the current sample for the good channel
+        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
+        _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
+                                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        
+        if ((s / 2) + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+            // place the curernt sample at the right spot in the delayed channel
+            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + numSamplesDelay + delayedChannelOffset]
+                                               + (currentSample * weakChannelAmplitudeRatio)),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + numSamplesDelay + delayedChannelOffset] = clampedSample;
+        }
     }
 }
 
