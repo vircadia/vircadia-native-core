@@ -4106,12 +4106,14 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
+    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
-        title += _profile.getUsername();
+        title += _profile.getUsername();s
         title += " @ ";
     }
     title += _profile.getLastDomain();
+    title += buildVersion;
 
     qDebug("Application title set to: %s.\n", title.toStdString().c_str());
     _window->setWindowTitle(title);
