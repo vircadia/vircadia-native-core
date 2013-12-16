@@ -11,8 +11,6 @@
 
 #include <QBitArray>
 #include <QHash>
-#include <QScopedPointer>
-#include <QSharedData>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -126,7 +124,7 @@ protected:
 };
 
 /// Interface for objects that host metavoxel visitors.
-class MetavoxelTraverser : public QSharedData {
+class MetavoxelTraverser : public PolymorphicData {
 public:
     
     /// Applies the specified visitor to the contained voxels.

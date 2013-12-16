@@ -13,7 +13,7 @@ AttributeRegistry AttributeRegistry::_instance;
 AttributeRegistry::AttributeRegistry() :
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))),
-    _voxelizerAttribute(registerAttribute(new PointerAttribute<bool>("voxelizer", false))) {
+    _voxelizerAttribute(registerAttribute(new SimplePointerAttribute<bool>("voxelizer", false))) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -82,22 +82,40 @@ Attribute::~Attribute() {
 }
 
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
-    InlineAttribute<QRgb, 32>(name, defaultValue) {
+    InlineAttribute<QRgb>(name, defaultValue) {
 }
  
-void* QRgbAttribute::createAveraged(void* values[]) const {
-    int totalRed = 0;
-    int totalGreen = 0;
-    int totalBlue = 0;
-    int totalAlpha = 0;
-    for (int i = 0; i < AVERAGE_COUNT; i++) {
-        QRgb value = decodeInline<QRgb>(values[i]);
+bool QRgbAttribute::merge(void*& parent, void* children[]) const {
+    QRgb firstValue = decodeInline<QRgb>(children[0]);
+    int totalRed = qRed(firstValue);
+    int totalGreen = qGreen(firstValue);
+    int totalBlue = qBlue(firstValue);
+    int totalAlpha = qAlpha(firstValue);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        QRgb value = decodeInline<QRgb>(children[i]);
         totalRed += qRed(value);
         totalGreen += qGreen(value);
         totalBlue += qBlue(value);
         totalAlpha += qAlpha(value);
+        allChildrenEqual &= (firstValue == value);
     }
-    return encodeInline(qRgba(totalRed / AVERAGE_COUNT, totalGreen / AVERAGE_COUNT,
-        totalBlue / AVERAGE_COUNT, totalAlpha / AVERAGE_COUNT));
+    parent = encodeInline(qRgba(totalRed / MERGE_COUNT, totalGreen / MERGE_COUNT,
+        totalBlue / MERGE_COUNT, totalAlpha / MERGE_COUNT));
+    return allChildrenEqual;
 } 
 
+PolymorphicData::~PolymorphicData() {
+}
+
+template<> PolymorphicData* QSharedDataPointer<PolymorphicData>::clone() {
+    return d->clone();
+}
+
+PolymorphicAttribute::PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue) :
+    InlineAttribute<PolymorphicDataPointer>(name, defaultValue) {
+}
+
+bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
+    return false;
+}

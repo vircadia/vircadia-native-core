@@ -132,10 +132,7 @@ bool MetavoxelNode::setAttributeValue(const MetavoxelPath& path, int index, cons
         childValues[i] = _children[i]->_attributeValue;
         allLeaves &= _children[i]->isLeaf();
     }
-    attributeValue.getAttribute()->destroy(_attributeValue);
-    _attributeValue = attributeValue.getAttribute()->createAveraged(childValues);
-    
-    if (allLeaves && allChildrenEqual(attributeValue.getAttribute())) {
+    if (attributeValue.getAttribute()->merge(_attributeValue, childValues) && allLeaves) {
         clearChildren(attributeValue.getAttribute());
         return true;
     }

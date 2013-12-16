@@ -11,6 +11,8 @@
 
 #include <QColor>
 #include <QHash>
+#include <QSharedData>
+#include <QSharedDataPointer>
 #include <QSharedPointer>
 #include <QString>
 
@@ -115,7 +117,7 @@ public:
 class Attribute {
 public:
 
-    static const int AVERAGE_COUNT = 8;
+    static const int MERGE_COUNT = 8;
     
     Attribute(const QString& name);
     virtual ~Attribute();
@@ -131,7 +133,9 @@ public:
 
     virtual bool equal(void* first, void* second) const = 0;
 
-    virtual void* createAveraged(void* values[]) const = 0;
+    /// Merges the value of a parent and its children.
+    /// \return whether or not the children and parent values are all equal
+    virtual bool merge(void*& parent, void* children[]) const = 0;
 
     virtual void* getDefaultValue() const = 0;
 
@@ -141,44 +145,54 @@ private:
 };
 
 /// A simple attribute class that stores its values inline.
-template<class T, int bits> class InlineAttribute : public Attribute {
+template<class T, int bits = 32> class InlineAttribute : public Attribute {
 public:
     
-    InlineAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(encodeInline(defaultValue)) { }
+    InlineAttribute(const QString& name, const T& defaultValue = T()) : Attribute(name), _defaultValue(defaultValue) { }
     
-    virtual void* create(void* copy) const { return copy; }
-    virtual void destroy(void* value) const { /* no-op */ }
+    virtual void* create(void* copy) const { void* value; new (&value) T(*(T*)&copy); return value; }
+    virtual void destroy(void* value) const { ((T*)&value)->~T(); }
     
     virtual bool read(Bitstream& in, void*& value) const { value = getDefaultValue(); in.read(&value, bits); return false; }
     virtual bool write(Bitstream& out, void* value) const { out.write(&value, bits); return false; }
 
-    virtual bool equal(void* first, void* second) const { return first == second; }
+    virtual bool equal(void* first, void* second) const { return decodeInline<T>(first) == decodeInline<T>(second); }
 
-    virtual void* createAveraged(void* values[]) const;
-
-    virtual void* getDefaultValue() const { return _defaultValue; }
+    virtual void* getDefaultValue() const { return encodeInline(_defaultValue); }
 
 private:
     
-    void* _defaultValue;
+    T _defaultValue;
 };
 
-template<class T, int bits> inline void* InlineAttribute<T, bits>::createAveraged(void* values[]) const {
-    T total = T();
-    for (int i = 0; i < AVERAGE_COUNT; i++) {
-        total += decodeInline<T>(values[i]);
+/// Provides merging using the =, ==, += and /= operators.
+template<class T, int bits = 32> class SimpleInlineAttribute : public InlineAttribute<T, bits> {
+public:
+    
+    SimpleInlineAttribute(const QString& name, T defaultValue = T()) : InlineAttribute<T, bits>(name, defaultValue) { }
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
+template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(void*& parent, void* children[]) const {
+    T& merged = *(T*)&parent;
+    merged = decodeInline<T>(children[0]);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        merged += decodeInline<T>(children[i]);
+        allChildrenEqual &= (decodeInline<T>(children[0]) == decodeInline<T>(children[i]));
     }
-    total /= AVERAGE_COUNT;
-    return encodeInline(total);
+    merged /= Attribute::MERGE_COUNT;
+    return allChildrenEqual;
 }
 
 /// Provides appropriate averaging for RGBA values.
-class QRgbAttribute : public InlineAttribute<QRgb, 32> {
+class QRgbAttribute : public InlineAttribute<QRgb> {
 public:
     
     QRgbAttribute(const QString& name, QRgb defaultValue = QRgb());
     
-    virtual void* createAveraged(void* values[]) const;
+    virtual bool merge(void*& parent, void* children[]) const;
 };
 
 /// An attribute class that stores pointers to its values.
@@ -195,8 +209,6 @@ public:
 
     virtual bool equal(void* first, void* second) const { return *static_cast<T*>(first) == *static_cast<T*>(second); }
 
-    virtual void* createAveraged(void* values[]) const;
-
     virtual void* getDefaultValue() const { return const_cast<void*>((void*)&_defaultValue); }
 
 private:
@@ -204,13 +216,47 @@ private:
     T _defaultValue;
 }; 
 
-template<class T> inline void* PointerAttribute<T>::createAveraged(void* values[]) const {
-    T* total = new T();
-    for (int i = 0; i < AVERAGE_COUNT; i++) {
-        *total += *static_cast<T*>(values[i]);
+/// Provides merging using the =, ==, += and /= operators.
+template<class T> class SimplePointerAttribute : public PointerAttribute<T> {
+public:
+    
+    SimplePointerAttribute(const QString& name, T defaultValue = T()) : PointerAttribute<T>(name, defaultValue) { }
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
+
+template<class T> inline bool SimplePointerAttribute<T>::merge(void*& parent, void* children[]) const {
+    T& merged = *static_cast<T*>(parent);
+    merged = *static_cast<T*>(children[0]);
+    bool allChildrenEqual = true;
+    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
+        merged += *static_cast<T*>(children[i]);
+        allChildrenEqual &= (*static_cast<T*>(children[0]) == *static_cast<T*>(children[i]));
     }
-    *total /= AVERAGE_COUNT;
-    return total;
+    merged /= Attribute::MERGE_COUNT;
+    return allChildrenEqual;
 }
+
+/// Base class for polymorphic attribute data.  
+class PolymorphicData : public QSharedData {
+public:
+    
+    virtual ~PolymorphicData();
+    
+    /// Creates a new clone of this object.
+    virtual PolymorphicData* clone() const = 0;
+};
+
+template<> PolymorphicData* QSharedDataPointer<PolymorphicData>::clone();
+
+typedef QSharedDataPointer<PolymorphicData> PolymorphicDataPointer;
+
+/// Provides polymorphic streaming and averaging.
+class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {
+    
+    PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+};
 
 #endif /* defined(__interface__AttributeRegistry__) */
