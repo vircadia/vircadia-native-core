@@ -43,6 +43,7 @@ LogDialog::LogDialog(QWidget* parent) :
 }
 
 LogDialog::~LogDialog() {
+    deleteLater();
     delete _logTextBox;
 }
 

@@ -49,6 +49,7 @@
 
 #include "Application.h"
 #include "DataServerClient.h"
+#include "InterfaceVersion.h"
 #include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -151,12 +152,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     QFontDatabase::addApplicationFont(resourcesPath + "/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
-    
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
-
     qInstallMessageHandler(messageHandler);
 
+    qDebug( "[VERSION] Build sequence: %i", BUILD_VERSION);
+    
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -182,6 +184,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
 
+    // setup QSettings
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
     
@@ -192,7 +195,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setApplicationVersion(applicationInfo.value("version").toString());
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-    
+
     _settings = new QSettings(this);
 
     // Check to see if the user passed in a command line option for loading a local
@@ -216,9 +219,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
+    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
-    cache->setCacheDirectory("interfaceCache");
+    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     _networkAccessManager->setCache(cache);
     
     _window->setCentralWidget(_glWidget);
@@ -241,6 +246,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // probably not the right long term solution. But for now, we're going to do this to 
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
+    
+    // Set the sixense filtering
+    _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
 }
 
 Application::~Application() {
@@ -3327,6 +3335,11 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
         renderCoverageMap();
     }
+    
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
+        LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
+    }
 
     //  Show chat entry field
     if (_chatEntryOn) {
@@ -4099,12 +4112,14 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
+    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
         title += _profile.getUsername();
         title += " @ ";
     }
     title += _profile.getLastDomain();
+    title += buildVersion;
 
     qDebug("Application title set to: %s.\n", title.toStdString().c_str());
     _window->setWindowTitle(title);
