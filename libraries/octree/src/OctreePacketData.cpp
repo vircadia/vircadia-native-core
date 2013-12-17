@@ -305,6 +305,15 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(bool value) {
+    bool success = append((uint8_t)value); // used unsigned char version
+    if (success) {
+        _bytesOfValues++;
+        _totalBytesOfValues++;
+    }
+    return success;
+}
+
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);

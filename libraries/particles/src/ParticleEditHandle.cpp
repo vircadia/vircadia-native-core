@@ -41,12 +41,12 @@ ParticleEditHandle::~ParticleEditHandle() {
 }
 
 void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, QString updateScript) {
+                           glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     // setup a ParticleDetail struct with the data
     ParticleDetail addParticleDetail = { NEW_PARTICLE, usecTimestampNow(), 
             position, radius, {color.red, color.green, color.blue }, 
-            velocity, gravity, damping, updateScript, _creatorTokenID };
+            velocity, gravity, damping, inHand, updateScript, _creatorTokenID };
     
     // queue the packet
     _packetSender->queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &addParticleDetail);
@@ -62,7 +62,7 @@ void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor
 }
 
 bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, QString updateScript) {
+                           glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     if (!isKnownID()) {
         return false; // not allowed until we know the id
@@ -71,7 +71,7 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     // setup a ParticleDetail struct with the data
     ParticleDetail newParticleDetail = { _id, usecTimestampNow(), 
             position, radius, {color.red, color.green, color.blue }, 
-            velocity, gravity, damping, updateScript, _creatorTokenID };
+            velocity, gravity, damping, inHand, updateScript, _creatorTokenID };
 
     // queue the packet
     _packetSender->queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &newParticleDetail);
@@ -82,7 +82,7 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     // if we have a local tree, also update it...
     if (_localTree) {
         rgbColor rcolor = {color.red, color.green, color.blue };
-        Particle tempParticle(position, radius, rcolor, velocity, damping, gravity, updateScript, _id);
+        Particle tempParticle(position, radius, rcolor, velocity, gravity, damping, inHand, updateScript, _id);
         _localTree->storeParticle(tempParticle);
     }
     

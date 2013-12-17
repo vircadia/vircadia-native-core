@@ -35,10 +35,10 @@ public:
     bool isKnownID() const { return _isKnownID; }
 
     void createParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, QString updateScript);
+                           glm::vec3 gravity, float damping, bool inHand, QString updateScript);
 
     bool updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, QString updateScript);
+                           glm::vec3 gravity, float damping, bool inHand, QString updateScript);
             
     static void handleAddResponse(unsigned char* packetData , int packetLength);
 private:
