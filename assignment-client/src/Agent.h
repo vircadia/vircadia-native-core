@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
 #include <VoxelScriptingInterface.h>
@@ -35,6 +36,7 @@ signals:
 private:
     VoxelScriptingInterface _voxelScriptingInterface;
     ParticleScriptingInterface _particleScriptingInterface;
+    ScriptEngine _scriptEngine;
 };
 
 #endif /* defined(__hifi__Agent__) */

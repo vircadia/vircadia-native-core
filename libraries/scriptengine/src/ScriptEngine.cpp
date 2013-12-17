@@ -28,6 +28,9 @@ ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu) {
     _scriptContents = scriptContents;
     _isFinished = false;
+    _isRunning = false;
+    
+    // some clients will use these menu features
     _wantMenuItems = wantMenuItems;
     if (scriptMenuName) {
         _scriptMenuName = "Stop ";
@@ -57,10 +60,16 @@ void ScriptEngine::cleanMenuItems() {
     }
 }
 
-void ScriptEngine::run() {
+bool ScriptEngine::setScriptContents(QString scriptContents) {
+    if (_isRunning) {
+        return false;
+    }
+    _scriptContents = scriptContents;
+    return true;
+}
 
-    //setupMenuItems();
-    
+void ScriptEngine::run() {
+    _isRunning = true;
     QScriptEngine engine;
     
     _voxelScriptingInterface.init();
@@ -161,6 +170,7 @@ void ScriptEngine::run() {
     }
 
     emit finished();
+    _isRunning = false;
 }
 
 void ScriptEngine::stop() { 

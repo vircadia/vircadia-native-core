@@ -14,6 +14,13 @@
 //#include <QHash>
 //#include <QKeySequence>
 
+//class QMenu;
+//class QString;
+//class QObject;
+//class QKeySequence;
+//class QAction;
+//extern enum QAction::MenuRole;
+
 class AbstractMenuInterface {
 public:
     virtual QMenu* getActiveScriptsMenu() = 0;
