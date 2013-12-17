@@ -75,8 +75,7 @@ private:
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
-    QByteArray _inputBuffer;
-    int16_t* _monoAudioSamples;
+    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
@@ -122,7 +121,7 @@ private:
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutput, int numSamples);
+    void addProceduralSounds(int16_t* monoInput, int numSamples);
     
     void renderToolIcon(int screenHeight);
 };

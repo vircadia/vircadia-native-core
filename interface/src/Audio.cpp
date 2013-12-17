@@ -46,8 +46,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
-    _inputBuffer(),
-    _monoAudioSamples(NULL),
     _numInputCallbackBytes(0),
     _audioOutput(NULL),
     _desiredOutputFormat(),
@@ -55,7 +53,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _outputDevice(NULL),
     _numOutputCallbackBytes(0),
     _inputRingBuffer(0),
-    _ringBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2),
+    _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
@@ -72,7 +70,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _numFramesDisplayStarve(0),
     _muted(false)
 {
-    
+    // clear the array of locally injected samples
+    memset(_localInjectedSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -282,7 +281,7 @@ void Audio::handleAudioInput() {
     static int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
     static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
     
-    _monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
+    static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
     
     static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
@@ -298,29 +297,46 @@ void Audio::handleAudioInput() {
         int16_t inputAudioSamples[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
         
-        // zero out the monoAudioSamples array
-        memset(_monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        // zero out the monoAudioSamples array and the locally injected audio
+        memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        
+        // zero out the locally injected audio in preparation for audio procedural sounds
+        memset(_localInjectedSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
         
         if (!_muted) {
             // we aren't muted, downsample the input audio
             linearResampling((int16_t*) inputAudioSamples,
-                             _monoAudioSamples,
+                             monoAudioSamples,
                              inputSamplesRequired,
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
             
+            float loudness = 0;
+            
+            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                loudness += fabsf(monoAudioSamples[i]);
+            }
+            
+            _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            
             // add input data just written to the scope
             QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, QByteArray((char*) _monoAudioSamples,
+                                      Q_ARG(QByteArray, QByteArray((char*) monoAudioSamples,
                                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)),
                                       Q_ARG(bool, false), Q_ARG(bool, true));
+            
+            if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+                // if this person wants local loopback add that to the locally injected audio
+                memcpy(_localInjectedSamples, monoAudioSamples, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+            }
+        } else {
+            // our input loudness is 0, since we're muted
+            _lastInputLoudness = 0;
         }
         
         // add procedural effects to the appropriate input samples
-        //    addProceduralSounds(monoAudioSamples + (_isBufferSendCallback
-        //                                            ? BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO : 0),
-        //                        (int16_t*) stereoOutputBuffer.data(),
-        //                        BUFFER_LENGTH_SAMPLES_PER_CHANNEL / CALLBACK_ACCELERATOR_RATIO);
+        addProceduralSounds(monoAudioSamples,
+                            NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         
         NodeList* nodeList = NodeList::getInstance();
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
@@ -352,18 +368,6 @@ void Audio::handleAudioInput() {
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
-            
-            float loudness = 0;
-            
-            if (!_muted) {
-                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                    loudness += fabsf(_monoAudioSamples[i]);
-                }
-                
-                loudness /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            }
-            
-            _lastInputLoudness = loudness;
             
             nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
                                                     NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
@@ -430,15 +434,13 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
             _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
             
-            if (!_muted && Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
-                // copy whatever is pointed to at _monoAudioSamples into our ringBufferSamples
-                // so that local audio is echoed back
-                
-                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                    ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _monoAudioSamples[i],
-                                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-                    ringBufferSamples[(i * 2) + 1] = ringBufferSamples[i * 2];
-                }
+            // add to the output samples whatever is in the _localAudioOutput byte array
+            // that lets this user hear sound effects and loopback (if enabled)
+            
+            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
+                                                      MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                ringBufferSamples[(i * 2) + 1] = ringBufferSamples[i * 2];
             }
             
             // copy the packet from the RB to the output
@@ -577,7 +579,7 @@ void Audio::render(int screenWidth, int screenHeight) {
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutput, int numSamples) {
+void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
@@ -614,10 +616,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutp
             int16_t collisionSample = (int16_t) sample;
             
             monoInput[i] += collisionSample;
-            
-            for (int j = (i * 4); j < (i * 4) + 4; j++) {
-                stereoUpsampledOutput[j] += collisionSample;
-            }
+            _localInjectedSamples[i] += collisionSample;
             
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
@@ -640,10 +639,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutp
             int16_t collisionSample = (int16_t) sample;
             
             monoInput[i] += collisionSample;
-            
-            for (int j = (i * 4); j < (i * 4) + 4; j++) {
-                stereoUpsampledOutput[j] += collisionSample;
-            }
+            _localInjectedSamples[i] += collisionSample;
             
             _drumSoundVolume *= (1.f - _drumSoundDecay);
         }
