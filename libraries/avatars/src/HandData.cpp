@@ -9,6 +9,7 @@
 #include "HandData.h"
 #include "AvatarData.h"
 #include <SharedUtil.h>
+#include <GeometryUtil.h>
 
 
 // When converting between fixed and float, use this as the radix.
@@ -224,6 +225,25 @@ void HandData::updateFingerTrails() {
     }
 }
 
+bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
+                                        const PalmData*& collidingPalm) const {
+    
+    for (size_t i = 0; i < _palms.size(); ++i) {
+        const PalmData& palm = _palms[i];
+        if (!palm.isActive()) {
+            continue;
+        }
+        glm::vec3 palmPosition = palm.getPosition();
+        const float PALM_RADIUS = 0.05f; // in world (not voxel) coordinates
+        if (findSphereSpherePenetration(penetratorCenter, penetratorRadius, palmPosition, PALM_RADIUS, penetration)) {
+            collidingPalm = &palm;
+            return true;
+        }
+    }
+    return false;
+}
+
+
 void FingerData::setTrailLength(unsigned int length) {
     _tipTrailPositions.resize(length);
     _tipTrailCurrentStartIndex = 0;
@@ -263,6 +283,7 @@ const glm::vec3& FingerData::getTrailPosition(int index) {
     int posIndex = (index + _tipTrailCurrentStartIndex) % _tipTrailCurrentValidLength;
     return _tipTrailPositions[posIndex];
 }
+
 
 
 

@@ -64,7 +64,7 @@ public:
     // Get the drag distance to move
     glm::vec3 getAndResetGrabDelta();
     glm::vec3 getAndResetGrabDeltaVelocity();
-    
+
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);

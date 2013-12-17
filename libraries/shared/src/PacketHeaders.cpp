@@ -51,7 +51,10 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
             
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:    
-            return 1;
+            return 2;
+
+        case PACKET_TYPE_PARTICLE_DATA:
+            return 2;
         
         default:
             return 0;

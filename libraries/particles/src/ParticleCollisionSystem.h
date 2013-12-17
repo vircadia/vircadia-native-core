@@ -22,18 +22,22 @@
 #include "Particle.h"
 
 class AbstractAudioInterface;
+class AvatarData;
 class ParticleEditPacketSender;
 class ParticleTree;
 class VoxelTree;
+
+const glm::vec3 NO_ADDED_VELOCITY = glm::vec3(0);
 
 class ParticleCollisionSystem {
 public:
     ParticleCollisionSystem(ParticleEditPacketSender* packetSender = NULL, ParticleTree* particles = NULL, 
                                 VoxelTree* voxels = NULL, 
-                                AbstractAudioInterface* audio = NULL);
+                                AbstractAudioInterface* audio = NULL,
+                                AvatarData* selfAvatar = NULL);
 
     void init(ParticleEditPacketSender* packetSender, ParticleTree* particles, VoxelTree* voxels, 
-                                AbstractAudioInterface* audio = NULL);
+                                AbstractAudioInterface* audio = NULL, AvatarData* selfAvatar = NULL);
                                 
     ~ParticleCollisionSystem();
 
@@ -41,7 +45,9 @@ public:
     void checkParticle(Particle* particle);
     void updateCollisionWithVoxels(Particle* particle);
     void updateCollisionWithParticles(Particle* particle);
-    void applyHardCollision(Particle* particle, const glm::vec3& penetration, float elasticity, float damping);
+    void updateCollisionWithAvatars(Particle* particle);
+    void applyHardCollision(Particle* particle, const glm::vec3& penetration, float elasticity, float damping, 
+                            const glm::vec3& addedVelocity = NO_ADDED_VELOCITY);
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
 private:
@@ -52,6 +58,7 @@ private:
     ParticleTree* _particles;
     VoxelTree* _voxels;
     AbstractAudioInterface* _audio;
+    AvatarData* _selfAvatar;
 };
 
 #endif /* defined(__hifi__ParticleCollisionSystem__) */

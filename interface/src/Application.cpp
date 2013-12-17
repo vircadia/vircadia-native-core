@@ -1523,7 +1523,7 @@ void Application::shootParticle() {
     QString updateScript("");
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -1534,16 +1534,16 @@ void Application::shootParticle() {
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree(), id);
     return particleEditHandle;
 }
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-            glm::vec3 gravity, float damping, QString updateScript) {
+            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     ParticleEditHandle* particleEditHandle = newParticleEditHandle();
-    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, inHand, updateScript);
     return particleEditHandle;
 }
     
@@ -1858,7 +1858,7 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
     
-    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio);
+    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_myAvatar);
     
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);

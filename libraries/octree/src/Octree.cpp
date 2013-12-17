@@ -1299,6 +1299,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 }
 
 bool Octree::readFromSVOFile(const char* fileName) {
+    bool fileOk = false;
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
         emit importSize(1.0f, 1.0f, 1.0f);
@@ -1314,16 +1315,44 @@ bool Octree::readFromSVOFile(const char* fileName) {
         unsigned char* entireFile = new unsigned char[fileLength];
         file.read((char*)entireFile, fileLength);
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, wantImportProgress);
-        readBitstreamToTree(entireFile, fileLength, args);
+
+        unsigned char* dataAt = entireFile;
+        unsigned long  dataLength = fileLength;
+        
+        // before reading the file, check to see if this version of the Octree supports file versions
+        if (getWantSVOfileVersions()) {
+            // if so, read the first byte of the file and see if it matches the expected version code
+            PACKET_TYPE expectedType = expectedDataPacketType();
+            PACKET_TYPE gotType = *dataAt;
+            if (gotType == expectedType) {
+                dataAt += sizeof(expectedType);
+                dataLength -= sizeof(expectedType);
+                PACKET_VERSION expectedVersion = versionForPacketType(expectedType);
+                PACKET_VERSION gotVersion = *dataAt;
+                if (gotVersion == expectedVersion) {
+                    dataAt += sizeof(expectedVersion);
+                    dataLength -= sizeof(expectedVersion);
+                    fileOk = true;
+                } else {
+                    qDebug("SVO file version mismatch. Expected: %d Got: %d\n", expectedVersion, gotVersion);
+                }
+            } else {
+                qDebug("SVO file type mismatch. Expected: %c Got: %c\n", expectedType, gotType);
+            }
+        } else {
+            fileOk = true; // assume the file is ok
+        }
+        if (fileOk) {
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, wantImportProgress);
+            readBitstreamToTree(dataAt, dataLength, args);
+        }
         delete[] entireFile;
 
         emit importProgress(100);
 
         file.close();
-        return true;
     }
-    return false;
+    return fileOk;
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
@@ -1332,7 +1361,16 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
 
     if(file.is_open()) {
         qDebug("saving to file %s...\n", fileName);
-
+        
+        // before reading the file, check to see if this version of the Octree supports file versions
+        if (getWantSVOfileVersions()) {
+            // if so, read the first byte of the file and see if it matches the expected version code
+            PACKET_TYPE expectedType = expectedDataPacketType();
+            PACKET_VERSION expectedVersion = versionForPacketType(expectedType);
+            file.write(&expectedType, sizeof(expectedType));
+            file.write(&expectedVersion, sizeof(expectedType));
+        }
+        
         OctreeElementBag nodeBag;
         // If we were given a specific node, start from there, otherwise start from root
         if (node) {
