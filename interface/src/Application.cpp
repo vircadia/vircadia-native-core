@@ -72,7 +72,7 @@ const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simul
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
-const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
+const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
