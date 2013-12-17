@@ -465,7 +465,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                 ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
                                                       MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 ringBufferSamples[(i * 2) + 1] = glm::clamp(ringBufferSamples[(i * 2) + 1] + _localInjectedSamples[i],
-                                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             }
             
             // copy the packet from the RB to the output
