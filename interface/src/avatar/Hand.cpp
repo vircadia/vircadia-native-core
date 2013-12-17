@@ -297,7 +297,7 @@ void Hand::updateCollisions() {
                 glm::vec3 myPalmPosition = palm.getPosition();
                 float palmCollisionDistance = 0.1f;
                 palm.setIsCollidingWithPalm(false);
-                for (int j = 0; j < getNumPalms(); j++) {
+                for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
                     PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
                     if (!otherPalm.isActive()) {
                         continue;
