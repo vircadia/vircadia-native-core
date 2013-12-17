@@ -37,7 +37,7 @@ LogDialog::LogDialog(QWidget* parent) : QDialog(parent, Qt::Dialog) {
 
         QDesktopWidget* desktop = new QDesktopWidget();
         QRect screen = desktop->screenGeometry();
-        resize(static_cast<int>(screen.width() * INITIAL_WIDTH_RATIO), static_cast<int>(screen.height() * INITIAL_HEIGHT_RATIO));
+        resize(720, static_cast<int>(screen.height() * INITIAL_HEIGHT_RATIO));
         move(screen.center() - rect().center());
         delete desktop;
 }
