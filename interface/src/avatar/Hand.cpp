@@ -285,32 +285,35 @@ void Hand::simulate(float deltaTime, bool isMine) {
                         _lastFingerDeleteVoxel = fingerTipPosition;
                     }
                 }
-                //  Check if the finger is intersecting with a voxel in the client voxel tree
-                VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
-                                                                            glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                if (fingerNode) {
-                    if (!palm.getIsCollidingWithVoxel()) {
-                        //  Collision has just started
-                        palm.setIsCollidingWithVoxel(true);
-                        handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
-                        //  Set highlight voxel
-                        VoxelDetail voxel;
-                        glm::vec3 pos = fingerNode->getCorner();
-                        voxel.x = pos.x;
-                        voxel.y = pos.y;
-                        voxel.z = pos.z;
-                        voxel.s = fingerNode->getScale();
-                        voxel.red = fingerNode->getColor()[0];
-                        voxel.green = fingerNode->getColor()[1];
-                        voxel.blue = fingerNode->getColor()[2];
-                        Application::getInstance()->setHighlightVoxel(voxel);
-                        Application::getInstance()->setIsHighlightVoxel(true);
-                    }
-                } else {
-                    if (palm.getIsCollidingWithVoxel()) {
-                        //  Collision has just ended
-                        palm.setIsCollidingWithVoxel(false);
-                        Application::getInstance()->setIsHighlightVoxel(false);
+                
+                //  Voxel Drumming with fingertips if enabled
+                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
+                    VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
+                                                                                glm::vec3(fingerTipPosition / (float)TREE_SCALE));
+                    if (fingerNode) {
+                        if (!palm.getIsCollidingWithVoxel()) {
+                            //  Collision has just started
+                            palm.setIsCollidingWithVoxel(true);
+                            handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
+                            //  Set highlight voxel
+                            VoxelDetail voxel;
+                            glm::vec3 pos = fingerNode->getCorner();
+                            voxel.x = pos.x;
+                            voxel.y = pos.y;
+                            voxel.z = pos.z;
+                            voxel.s = fingerNode->getScale();
+                            voxel.red = fingerNode->getColor()[0];
+                            voxel.green = fingerNode->getColor()[1];
+                            voxel.blue = fingerNode->getColor()[2];
+                            Application::getInstance()->setHighlightVoxel(voxel);
+                            Application::getInstance()->setIsHighlightVoxel(true);
+                        }
+                    } else {
+                        if (palm.getIsCollidingWithVoxel()) {
+                            //  Collision has just ended
+                            palm.setIsCollidingWithVoxel(false);
+                            Application::getInstance()->setIsHighlightVoxel(false);
+                        }
                     }
                 }
             }
@@ -338,28 +341,31 @@ void Hand::updateCollisions() {
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
-                //  Check for palm collisions
-                glm::vec3 myPalmPosition = palm.getPosition();
-                float palmCollisionDistance = 0.1f;
-                palm.setIsCollidingWithPalm(false);
-                for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
-                    PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
-                    if (!otherPalm.isActive()) {
-                        continue;
-                    }
-                    glm::vec3 otherPalmPosition = otherPalm.getPosition();
-                    if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
-                        palm.setIsCollidingWithPalm(true);
-                        const float PALM_COLLIDE_VOLUME = 1.f;
-                        const float PALM_COLLIDE_FREQUENCY = 150.f;
-                        const float PALM_COLLIDE_DURATION_MAX = 2.f;
-                        const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
-                        Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                               PALM_COLLIDE_FREQUENCY,
-                                                                               PALM_COLLIDE_DURATION_MAX,
-                                                                               PALM_COLLIDE_DECAY_PER_SAMPLE);
+                if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+                    //  Check for palm collisions
+                    glm::vec3 myPalmPosition = palm.getPosition();
+                    float palmCollisionDistance = 0.1f;
+                    palm.setIsCollidingWithPalm(false);
+                    //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
+                    for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
+                        PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
+                        if (!otherPalm.isActive()) {
+                            continue;
+                        }
+                        glm::vec3 otherPalmPosition = otherPalm.getPosition();
+                        if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
+                            palm.setIsCollidingWithPalm(true);
+                            const float PALM_COLLIDE_VOLUME = 1.f;
+                            const float PALM_COLLIDE_FREQUENCY = 150.f;
+                            const float PALM_COLLIDE_DURATION_MAX = 2.f;
+                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
+                            Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                                   PALM_COLLIDE_FREQUENCY,
+                                                                                   PALM_COLLIDE_DURATION_MAX,
+                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
 
-                        
+                            
+                        }
                     }
                 }
                 glm::vec3 avatarPenetration;
