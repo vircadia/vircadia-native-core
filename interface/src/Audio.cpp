@@ -52,6 +52,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _outputFormat(),
     _outputDevice(NULL),
     _numOutputCallbackBytes(0),
+    _loopbackAudioOutput(NULL),
+    _loopbackOutputDevice(NULL),
     _inputRingBuffer(0),
     _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
     _scope(scope),
@@ -263,8 +265,12 @@ void Audio::start() {
             _inputDevice = _audioInput->start();
             connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
             
+            // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             _outputDevice = _audioOutput->start();
+            
+            // setup a loopback audio output device
+            _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             
             gettimeofday(&_lastReceiveTime, NULL);
         }
@@ -289,6 +295,30 @@ void Audio::handleAudioInput() {
     static int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
     
     QByteArray inputByteArray = _inputDevice->readAll();
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+        // if this person wants local loopback add that to the locally injected audio
+        
+        if (!_loopbackOutputDevice) {
+            // we didn't have the loopback output device going so set that up now
+            _loopbackOutputDevice = _loopbackAudioOutput->start();
+        }
+        
+        if (_inputFormat == _outputFormat) {
+            _loopbackOutputDevice->write(inputByteArray);
+        } else {
+            static float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+                * (_outputFormat.channelCount() / _inputFormat.channelCount());
+            
+            QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
+            
+            linearResampling((int16_t*) inputByteArray.data(), (int16_t*) loopBackByteArray.data(),
+                             inputByteArray.size() / sizeof(int16_t),
+                             loopBackByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
+            
+            _loopbackOutputDevice->write(loopBackByteArray);
+        }
+    }
     
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
     
@@ -324,11 +354,6 @@ void Audio::handleAudioInput() {
                                       Q_ARG(QByteArray, QByteArray((char*) monoAudioSamples,
                                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL)),
                                       Q_ARG(bool, false), Q_ARG(bool, true));
-            
-            if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
-                // if this person wants local loopback add that to the locally injected audio
-                memcpy(_localInjectedSamples, monoAudioSamples, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            }
         } else {
             // our input loudness is 0, since we're muted
             _lastInputLoudness = 0;
