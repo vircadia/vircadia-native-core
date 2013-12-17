@@ -8,19 +8,13 @@
 
 #include "ParticleScriptingInterface.h"
 
-ParticleScriptingInterface::ParticleScriptingInterface() :
-    _jurisdictionListener(NODE_TYPE_PARTICLE_SERVER),
-    _nextCreatorTokenID(0)
-{
-    _jurisdictionListener.initialize(true);
-    _particlePacketSender.setServerJurisdictions(_jurisdictionListener.getJurisdictions());
-}
+
 
 void ParticleScriptingInterface::queueParticleAdd(PACKET_TYPE addPacketType, ParticleDetail& addParticleDetails) {
-    _particlePacketSender.queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
+    getParticlePacketSender()->queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
 }
 
-uint32_t ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
+unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, QString updateScript) {
 
     // The application will keep track of creatorTokenID

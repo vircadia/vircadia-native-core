@@ -41,6 +41,11 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
     _totalPacketsQueued(0),
     _totalBytesQueued(0)
 {
+    //printf("PacketSender[%p] created... \n", this);
+}
+
+PacketSender::~PacketSender() {
+    //printf("PacketSender::~PacketSender[%p] destroyed... \n", this);
 }
 
 

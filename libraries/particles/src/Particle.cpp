@@ -415,6 +415,9 @@ void Particle::update() {
 
 void Particle::runScript() {
     if (!_updateScript.isEmpty()) {
+    
+        //qDebug() << "Script: " << _updateScript << "\n";
+        
         QScriptEngine engine;
     
         // register meta-type for glm::vec3 and rgbColor conversions

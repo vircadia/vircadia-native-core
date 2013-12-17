@@ -122,8 +122,8 @@ private:
 class PalmData {
 public:
     PalmData(HandData* owningHandData);
-    glm::vec3 getPosition()           const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
-    glm::vec3 getNormal()             const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
+    glm::vec3 getPosition() const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
+    glm::vec3 getNormal() const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
@@ -140,7 +140,7 @@ public:
     void setSixenseID(int id)                  { _sixenseID = id; }
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
-    const glm::quat getRawRotation() const { return _rawRotation; }
+    glm::quat getRawRotation() const { return _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }

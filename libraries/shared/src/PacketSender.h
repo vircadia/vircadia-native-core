@@ -36,6 +36,7 @@ public:
     static const int MINIMAL_SLEEP_INTERVAL;
 
     PacketSender(PacketSenderNotify* notify = NULL, int packetsPerSecond = DEFAULT_PACKETS_PER_SECOND);
+    ~PacketSender();
 
     /// Add packet to outbound queue.
     /// \param HifiSockAddr& address the destination address

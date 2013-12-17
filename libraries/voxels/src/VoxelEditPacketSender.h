@@ -14,7 +14,7 @@
 #include <OctreeEditPacketSender.h>
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class VoxelEditPacketSender :  public virtual OctreeEditPacketSender {
+class VoxelEditPacketSender :  public OctreeEditPacketSender {
 public:
     VoxelEditPacketSender(PacketSenderNotify* notify = NULL) : OctreeEditPacketSender(notify) { }
     ~VoxelEditPacketSender() { }

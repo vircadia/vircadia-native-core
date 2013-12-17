@@ -17,6 +17,14 @@ set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
+if (DEFINED ENV{JOB_ID})
+  set(BUILD_SEQ $ENV{JOB_ID})
+else ()
+  set(BUILD_SEQ "0")
+endif ()
+
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
+
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 else (APPLE)
@@ -35,6 +43,7 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 # create the InterfaceConfig.h file based on GL_HEADERS above
 configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h)
+configure_file(InterfaceVersion.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h)
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
@@ -87,6 +96,7 @@ link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(scriptengine ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(Faceshift)

@@ -74,21 +74,57 @@ void Hand::reset() {
 }
 
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
-    glm::vec3 targetPosition = fingerTipPosition / (float)TREE_SCALE;
-    float targetRadius = (TOY_BALL_RADIUS * 2.0f) / (float)TREE_SCALE;
+    bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
+    int handID = palm.getSixenseID();
+    glm::vec3 targetPosition = palm.getPosition() / (float)TREE_SCALE;
+    float targetRadius = (TOY_BALL_RADIUS * 4.0f) / (float)TREE_SCALE;
     const Particle* closestParticle = Application::getInstance()->getParticles()
                                                 ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
     if (closestParticle) {
         //printf("potentially caught... particle ID:%d\n", closestParticle->getID());
         
-        // you can create a ParticleEditHandle by doing this...
-        ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+        if (!_toyBallInHand[handID]) {
+            printf("particle ID:%d NOT IN HAND\n", closestParticle->getID());
+
+            // you can create a ParticleEditHandle by doing this...
+            ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
         
-        // but make sure you clean it up, when you're done
-        delete caughtParticle;
+            // reflect off the hand...
+            printf("particle ID:%d old velocity=%f,%f,%f\n", closestParticle->getID(), 
+                    closestParticle->getVelocity().x, closestParticle->getVelocity().y, closestParticle->getVelocity().z);
+            glm::vec3 newVelocity = glm::reflect(closestParticle->getVelocity(), palm.getNormal());
+
+            printf("particle ID:%d REFLECT velocity=%f,%f,%f\n", closestParticle->getID(), 
+                    newVelocity.x, newVelocity.y, newVelocity.z);
+
+            newVelocity += palm.getTipVelocity() / (float)TREE_SCALE;
+
+            printf("particle ID:%d with TIP velocity=%f,%f,%f\n", closestParticle->getID(), 
+                    newVelocity.x, newVelocity.y, newVelocity.z);
+
+            
+            printf("particle ID:%d OLD position=%f,%f,%f\n", closestParticle->getID(), 
+                    closestParticle->getPosition().x, closestParticle->getPosition().y, closestParticle->getPosition().z);
+            glm::vec3 newPosition = closestParticle->getPosition();
+
+            newPosition += newVelocity; // move it as if it's already been moving in new direction
+
+            printf("particle ID:%d NEW position=%f,%f,%f\n", closestParticle->getID(), 
+                    newPosition.x, newPosition.y, newPosition.z);
+        
+            caughtParticle->updateParticle(newPosition,
+                                            closestParticle->getRadius(),
+                                            closestParticle->getXColor(),
+                                            newVelocity,
+                                            closestParticle->getGravity(), 
+                                            closestParticle->getDamping(), 
+                                            closestParticle->getUpdateScript());
+        
+            // but make sure you clean it up, when you're done
+            delete caughtParticle;
+        }
     }
-    int handID = palm.getSixenseID();
     
     // If there's a ball in hand, and the user presses the skinny button, then change the color of the ball
     int currentControllerButtons = palm.getControllerButtons();
@@ -117,8 +153,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
                 // manage the newly created particle.
                 //  Create a particle on the particle server
+                glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
                 _ballParticleEditHandles[handID] = Application::getInstance()->makeParticle(
-                                                                    fingerTipPosition / (float)TREE_SCALE,
+                                                                    ballPosition / (float)TREE_SCALE,
                                                                      TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                                      TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                                      NO_VELOCITY / (float)TREE_SCALE,
@@ -128,7 +165,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             }
         } else {
             //  Ball is in hand
-            _ballParticleEditHandles[handID]->updateParticle(fingerTipPosition / (float)TREE_SCALE,
+            glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
+            _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                          NO_VELOCITY / (float)TREE_SCALE,
@@ -141,13 +179,14 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         if (_toyBallInHand[handID]) {
         
             _toyBallInHand[handID] = false;
+            glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             glm::vec3 handVelocity = palm.getRawVelocity();
             glm::vec3 fingerTipVelocity = palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
             glm::vec3 toyBallVelocity = avatarRotation * fingerTipVelocity;
 
             // ball is no longer in hand...
-            _ballParticleEditHandles[handID]->updateParticle(fingerTipPosition / (float)TREE_SCALE,
+            _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                          toyBallVelocity / (float)TREE_SCALE,
@@ -455,8 +494,37 @@ void Hand::renderLeapHands() {
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
+
+    
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+        for (size_t i = 0; i < getNumPalms(); ++i) {
+            PalmData& palm = getPalms()[i];
+            if (!palm.isActive()) {
+                continue;
+            }
+            glm::vec3 targetPosition = palm.getPosition();
+            float targetRadius = (TOY_BALL_RADIUS * 4.0f);
+            glPushMatrix();
+        
+            const Particle* closestParticle = Application::getInstance()->getParticles()
+                                                        ->getTree()->findClosestParticle(targetPosition / (float)TREE_SCALE, 
+                                                                                         targetRadius / (float)TREE_SCALE);
+                                                                                         
+            // If we are hitting a particle then draw the target green, otherwise yellow
+            if (closestParticle) {
+                glColor4f(0,1,0, alpha);
+            } else {
+                glColor4f(1,1,0, alpha);
+            }
+            glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
+            glutWireSphere(targetRadius, 20.0f, 20.0f);
+            glPopMatrix();
+        }
+    }
+    
     glPushMatrix();
     // Draw the leap balls
     for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
@@ -501,7 +569,9 @@ void Hand::renderLeapHands() {
             }
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
-            Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
+            const float radiusA = 0.05f;
+            const float radiusB = 0.03f;
+            Avatar::renderJointConnectingCone(root, tip, radiusA, radiusB);
         }
     }
     glDepthMask(GL_TRUE);
