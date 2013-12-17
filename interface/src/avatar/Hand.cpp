@@ -143,6 +143,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
                 // manage the newly created particle.
                 //  Create a particle on the particle server
+                qDebug("Created New Ball\n");
                 glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
                 _ballParticleEditHandles[handID] = Application::getInstance()->makeParticle(
                                                                     ballPosition / (float)TREE_SCALE,
@@ -172,16 +173,15 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         
             _toyBallInHand[handID] = false;
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
-            glm::vec3 handVelocity = palm.getRawVelocity();
-            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
+            glm::vec3 ballVelocity = ballFromHand ? palm.getRawVelocity() : palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
-            glm::vec3 toyBallVelocity = avatarRotation * fingerTipVelocity;
+            ballVelocity = avatarRotation * ballVelocity;
 
             // ball is no longer in hand...
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
-                                                         toyBallVelocity / (float)TREE_SCALE,
+                                                         ballVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
                                                          NOT_IN_HAND,
