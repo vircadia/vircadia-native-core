@@ -464,7 +464,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
                                                       MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-                ringBufferSamples[(i * 2) + 1] += glm::clamp(ringBufferSamples[(i * 2) + 1] + _localInjectedSamples[i],
+                ringBufferSamples[(i * 2) + 1] = glm::clamp(ringBufferSamples[(i * 2) + 1] + _localInjectedSamples[i],
                                                              MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             }
             
