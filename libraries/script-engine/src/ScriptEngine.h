@@ -24,7 +24,7 @@ const QString NO_SCRIPT("");
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(QString scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
                     const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL);
 
     ~ScriptEngine();
@@ -36,7 +36,7 @@ public:
     ParticleScriptingInterface* getParticleScriptingInterface() { return &_particleScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
-    bool setScriptContents(QString scriptContents);
+    bool setScriptContents(const QString& scriptContents);
 
     void setupMenuItems();
     void cleanMenuItems();

@@ -24,7 +24,7 @@
 
 int ScriptEngine::_scriptNumber = 1;
 
-ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems, 
+ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu) {
     _scriptContents = scriptContents;
     _isFinished = false;
@@ -60,7 +60,7 @@ void ScriptEngine::cleanMenuItems() {
     }
 }
 
-bool ScriptEngine::setScriptContents(QString scriptContents) {
+bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     if (_isRunning) {
         return false;
     }
