@@ -8,8 +8,6 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
-
 find_package(Qt5Network REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
