@@ -3484,13 +3484,13 @@ void Application::displayStats() {
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
     std::stringstream sendingMode("");
-    sendingMode << "Voxel Sending Mode: [";
+    sendingMode << "Octree Sending Mode: [";
     int serverCount = 0;
     int movingServerCount = 0;
     unsigned long totalNodes = 0;
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
-    for(NodeToVoxelSceneStatsIterator i = _voxelServerSceneStats.begin(); i != _voxelServerSceneStats.end(); i++) {
+    for(NodeToVoxelSceneStatsIterator i = _octreeServerSceneStats.begin(); i != _octreeServerSceneStats.end(); i++) {
         //const QUuid& uuid = i->first;
         VoxelSceneStats& stats = i->second;
         serverCount++;
@@ -4138,7 +4138,7 @@ void Application::domainChanged(QString domain) {
     
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _voxelServerJurisdictions.clear();
-    _voxelServerSceneStats.clear();
+    _octreeServerSceneStats.clear();
     _particleServerJurisdictions.clear();
 }
 
@@ -4173,8 +4173,8 @@ void Application::nodeKilled(Node* node) {
         
         // also clean up scene stats for that server
         _voxelSceneStatsLock.lockForWrite();
-        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            _voxelServerSceneStats.erase(nodeUUID);
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            _octreeServerSceneStats.erase(nodeUUID);
         }
         _voxelSceneStatsLock.unlock();
         
@@ -4204,8 +4204,8 @@ void Application::nodeKilled(Node* node) {
         
         // also clean up scene stats for that server
         _voxelSceneStatsLock.lockForWrite();
-        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            _voxelServerSceneStats.erase(nodeUUID);
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            _octreeServerSceneStats.erase(nodeUUID);
         }
         _voxelSceneStatsLock.unlock();
         
@@ -4232,8 +4232,8 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
         
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
-        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            VoxelSceneStats& stats = _voxelServerSceneStats[nodeUUID];
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
             stats.trackIncomingOctreePacket(messageData, messageLength, wasStatsPacket);
         }
         _voxelSceneStatsLock.unlock();
@@ -4256,10 +4256,10 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
         
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
-        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
+        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+            _octreeServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
         } else {
-            _voxelServerSceneStats[nodeUUID] = temp;
+            _octreeServerSceneStats[nodeUUID] = temp;
         }
         _voxelSceneStatsLock.unlock();
         
