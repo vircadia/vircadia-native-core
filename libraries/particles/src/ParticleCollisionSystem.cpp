@@ -206,7 +206,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
 void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency) {
                                 
     //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
+    const float AUDIBLE_COLLISION_THRESHOLD = 0.1f;
     const float COLLISION_LOUDNESS = 1.f;
     const float DURATION_SCALING = 0.004f;
     const float NOISE_SCALING = 0.1f;
