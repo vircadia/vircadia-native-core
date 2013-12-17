@@ -157,7 +157,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
+    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
     void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
     
@@ -199,6 +199,7 @@ public:
     
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
+    NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
     
     /// set a voxel which is to be rendered with a highlight
@@ -493,7 +494,7 @@ private:
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _voxelServerSceneStats;
+    NodeToVoxelSceneStats _octreeServerSceneStats;
     QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;

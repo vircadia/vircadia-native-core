@@ -170,7 +170,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     unsigned long totalLeaves = 0;
 
     Application::getInstance()->lockVoxelSceneStats();
-    NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
+    NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
     for(NodeToVoxelSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
         VoxelSceneStats& stats = i->second;
@@ -215,26 +215,42 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
     label->setText(statsValue.str().c_str());
 
-    showAllVoxelServers();
+    showAllOctreeServers();
 
     this->QDialog::paintEvent(event);
 }
+void VoxelStatsDialog::showAllOctreeServers() {
+    int serverCount = 0;
 
-void VoxelStatsDialog::showAllVoxelServers() {
+    showOctreeServersOfType(serverCount, NODE_TYPE_VOXEL_SERVER, "Voxel", 
+            Application::getInstance()->getVoxelServerJurisdictions());
+    showOctreeServersOfType(serverCount, NODE_TYPE_PARTICLE_SERVER, "Particle", 
+            Application::getInstance()->getParticleServerJurisdictions());
+
+    if (_voxelServerLabelsCount > serverCount) {
+        for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
+            int serverLabel = _voxelServerLables[i];
+            RemoveStatItem(serverLabel);
+            _voxelServerLables[i] = 0;
+        }
+        _voxelServerLabelsCount = serverCount;
+    }
+}
+
+void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serverType, const char* serverTypeName,
+                                                NodeToJurisdictionMap& serverJurisdictions) {
+                                                
     QLocale locale(QLocale::English);
 
-    int serverNumber = 0;
-    int serverCount = 0;
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            serverNumber++;
+        if (node->getType() == serverType) {
             serverCount++;
             
             if (serverCount > _voxelServerLabelsCount) {
                 char label[128] = { 0 };
-                sprintf(label, "Voxel Server %d",serverCount);
+                sprintf(label, "%s Server %d", serverTypeName, serverCount);
                 int thisServerRow = _voxelServerLables[serverCount-1] = AddStatItem(label);
                 _labels[thisServerRow]->setTextFormat(Qt::RichText);
                 _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
@@ -254,14 +270,12 @@ void VoxelStatsDialog::showAllVoxelServers() {
             
             QUuid nodeUUID = node->getUUID();
             
-            NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
-            
             // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
             // missing at least one jurisdiction
-            if (voxelServerJurisdictions.find(nodeUUID) == voxelServerJurisdictions.end()) {
+            if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
                 serverDetails << " unknown jurisdiction ";
             } else {
-                const JurisdictionMap& map = voxelServerJurisdictions[nodeUUID];
+                const JurisdictionMap& map = serverJurisdictions[nodeUUID];
 
                 unsigned char* rootCode = map.getRootOctalCode();
             
@@ -285,13 +299,13 @@ void VoxelStatsDialog::showAllVoxelServers() {
             } // jurisdiction
             
             // now lookup stats details for this server...
-            if (_extraServerDetails[serverNumber-1] != LESS) {
+            if (_extraServerDetails[serverCount-1] != LESS) {
                 Application::getInstance()->lockVoxelSceneStats();
-                NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
+                NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
                 if (sceneStats->find(nodeUUID) != sceneStats->end()) {
                     VoxelSceneStats& stats = sceneStats->at(nodeUUID);
 
-                    switch (_extraServerDetails[serverNumber-1]) {
+                    switch (_extraServerDetails[serverCount-1]) {
                         case MOST: {
                             extraDetails << "<br/>" ;
                             
@@ -345,12 +359,12 @@ void VoxelStatsDialog::showAllVoxelServers() {
                                 " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
 
                             serverDetails << extraDetails.str();
-                            if (_extraServerDetails[serverNumber-1] == MORE) {
-                                linkDetails << "   " << " [<a href='most-" << serverNumber << "'>most...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverNumber << "'>less...</a>]";
+                            if (_extraServerDetails[serverCount-1] == MORE) {
+                                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
+                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>less...</a>]";
                             } else {
-                                linkDetails << "   " << " [<a href='more-" << serverNumber << "'>less...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverNumber << "'>least...</a>]";
+                                linkDetails << "   " << " [<a href='more-" << serverCount << "'>less...</a>]";
+                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>least...</a>]";
                             }
                     
                         } break;
@@ -361,22 +375,13 @@ void VoxelStatsDialog::showAllVoxelServers() {
                 }
                 Application::getInstance()->unlockVoxelSceneStats();
             } else {
-                linkDetails << "   " << " [<a href='more-" << serverNumber << "'>more...</a>]";
-                linkDetails << "   " << " [<a href='most-" << serverNumber << "'>most...</a>]";
+                linkDetails << "   " << " [<a href='more-" << serverCount << "'>more...</a>]";
+                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
             }
             serverDetails << linkDetails.str();
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
     } // Node Loop
-    
-    if (_voxelServerLabelsCount > serverCount) {
-        for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
-            int serverLabel = _voxelServerLables[i];
-            RemoveStatItem(serverLabel);
-            _voxelServerLables[i] = 0;
-        }
-        _voxelServerLabelsCount = serverCount;
-    }
 }
 
 void VoxelStatsDialog::reject() {
