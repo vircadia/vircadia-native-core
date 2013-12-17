@@ -509,14 +509,15 @@ void Audio::render(int screenWidth, int screenHeight) {
         }
         glEnd();
         
-        //  Show a bar with the amount of audio remaining in ring buffer beyond current playback
-        float remainingBuffer = 0;
+        // show a bar with the amount of audio remaining in ring buffer and output device
+        // beyond the current playback
         
         int bytesLeftInAudioOutput = _audioOutput->bufferSize() - _audioOutput->bytesFree();
-        float secondsLeftForAudioOutput = (bytesLeftInAudioOutput / sizeof(int16_t)) / _outputFormat.sampleRate();
-        float timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - (secondsLeftForAudioOutput * 1000);
-        
-        remainingBuffer = 1 / AUDIO_CALLBACK_MSECS;
+        float secondsLeftForAudioOutput = (bytesLeftInAudioOutput / sizeof(int16_t))
+            / ((float) _outputFormat.sampleRate() * _outputFormat.channelCount());
+        float secondsLeftForRingBuffer = _ringBuffer.samplesAvailable()
+            / ((float) _desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
+        float msLeftForAudioOutput = (secondsLeftForAudioOutput + secondsLeftForRingBuffer) * 1000;
         
         if (_numFramesDisplayStarve == 0) {
             glColor3f(0, 1, 0);
@@ -525,18 +526,18 @@ void Audio::render(int screenWidth, int screenHeight) {
             _numFramesDisplayStarve--;
         }
         
+        if (_averagedLatency == 0.0) {
+            _averagedLatency = msLeftForAudioOutput;
+        } else {
+            _averagedLatency = 0.99f * _averagedLatency + 0.01f * (msLeftForAudioOutput);
+        }
+        
         glBegin(GL_QUADS);
         glVertex2f(startX, topY + 2);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer) / AUDIO_CALLBACK_MSECS * frameWidth, topY + 2);
-        glVertex2f(startX + (remainingBuffer + timeLeftInCurrentBuffer) / AUDIO_CALLBACK_MSECS * frameWidth, bottomY - 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth, topY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth, bottomY - 2);
         glVertex2f(startX, bottomY - 2);
         glEnd();
-        
-        if (_averagedLatency == 0.0) {
-            _averagedLatency = remainingBuffer + timeLeftInCurrentBuffer;
-        } else {
-            _averagedLatency = 0.99f * _averagedLatency + 0.01f * (remainingBuffer + timeLeftInCurrentBuffer);
-        }
         
         //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
         glColor3f(1,1,0);
