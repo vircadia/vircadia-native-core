@@ -17,6 +17,8 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+//#define DEBUG_HAND
+
 using namespace std;
 
 const float FINGERTIP_VOXEL_SIZE = 0.05;
@@ -98,7 +100,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             glm::vec3 newVelocity = NO_VELOCITY;
             
             // update the particle with it's new state...
+#ifdef DEBUG_HAND
             qDebug("Update caught particle!\n");
+#endif
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
@@ -144,7 +148,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
                 // manage the newly created particle.
                 //  Create a particle on the particle server
+#ifdef DEBUG_HAND
                 qDebug("Created New Ball\n");
+#endif
                 glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
                 _ballParticleEditHandles[handID] = Application::getInstance()->makeParticle(
                                                                     ballPosition / (float)TREE_SCALE,
@@ -158,7 +164,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             }
         } else {
             //  Ball is in hand
-            //qDebug("Ball in hand\n");
+#ifdef DEBUG_HAND
+            qDebug("Ball in hand\n");
+#endif
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
@@ -180,7 +188,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             ballVelocity = avatarRotation * ballVelocity;
 
             // ball is no longer in hand...
+#ifdef DEBUG_HAND
             qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
+#endif
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
