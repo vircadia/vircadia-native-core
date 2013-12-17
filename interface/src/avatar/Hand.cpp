@@ -17,6 +17,8 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+//#define DEBUG_HAND
+
 using namespace std;
 
 const float FINGERTIP_VOXEL_SIZE = 0.05;
@@ -98,6 +100,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             glm::vec3 newVelocity = NO_VELOCITY;
             
             // update the particle with it's new state...
+#ifdef DEBUG_HAND
+            qDebug("Update caught particle!\n");
+#endif
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
@@ -143,6 +148,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
                 // manage the newly created particle.
                 //  Create a particle on the particle server
+#ifdef DEBUG_HAND
+                qDebug("Created New Ball\n");
+#endif
                 glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
                 _ballParticleEditHandles[handID] = Application::getInstance()->makeParticle(
                                                                     ballPosition / (float)TREE_SCALE,
@@ -156,6 +164,9 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             }
         } else {
             //  Ball is in hand
+#ifdef DEBUG_HAND
+            qDebug("Ball in hand\n");
+#endif
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
@@ -172,16 +183,18 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         
             _toyBallInHand[handID] = false;
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
-            glm::vec3 handVelocity = palm.getRawVelocity();
-            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
+            glm::vec3 ballVelocity = ballFromHand ? palm.getRawVelocity() : palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
-            glm::vec3 toyBallVelocity = avatarRotation * fingerTipVelocity;
+            ballVelocity = avatarRotation * ballVelocity;
 
             // ball is no longer in hand...
+#ifdef DEBUG_HAND
+            qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
+#endif
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
-                                                         toyBallVelocity / (float)TREE_SCALE,
+                                                         ballVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
                                                          NOT_IN_HAND,
@@ -272,32 +285,35 @@ void Hand::simulate(float deltaTime, bool isMine) {
                         _lastFingerDeleteVoxel = fingerTipPosition;
                     }
                 }
-                //  Check if the finger is intersecting with a voxel in the client voxel tree
-                VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
-                                                                            glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                if (fingerNode) {
-                    if (!palm.getIsCollidingWithVoxel()) {
-                        //  Collision has just started
-                        palm.setIsCollidingWithVoxel(true);
-                        handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
-                        //  Set highlight voxel
-                        VoxelDetail voxel;
-                        glm::vec3 pos = fingerNode->getCorner();
-                        voxel.x = pos.x;
-                        voxel.y = pos.y;
-                        voxel.z = pos.z;
-                        voxel.s = fingerNode->getScale();
-                        voxel.red = fingerNode->getColor()[0];
-                        voxel.green = fingerNode->getColor()[1];
-                        voxel.blue = fingerNode->getColor()[2];
-                        Application::getInstance()->setHighlightVoxel(voxel);
-                        Application::getInstance()->setIsHighlightVoxel(true);
-                    }
-                } else {
-                    if (palm.getIsCollidingWithVoxel()) {
-                        //  Collision has just ended
-                        palm.setIsCollidingWithVoxel(false);
-                        Application::getInstance()->setIsHighlightVoxel(false);
+                
+                //  Voxel Drumming with fingertips if enabled
+                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
+                    VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
+                                                                                glm::vec3(fingerTipPosition / (float)TREE_SCALE));
+                    if (fingerNode) {
+                        if (!palm.getIsCollidingWithVoxel()) {
+                            //  Collision has just started
+                            palm.setIsCollidingWithVoxel(true);
+                            handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
+                            //  Set highlight voxel
+                            VoxelDetail voxel;
+                            glm::vec3 pos = fingerNode->getCorner();
+                            voxel.x = pos.x;
+                            voxel.y = pos.y;
+                            voxel.z = pos.z;
+                            voxel.s = fingerNode->getScale();
+                            voxel.red = fingerNode->getColor()[0];
+                            voxel.green = fingerNode->getColor()[1];
+                            voxel.blue = fingerNode->getColor()[2];
+                            Application::getInstance()->setHighlightVoxel(voxel);
+                            Application::getInstance()->setIsHighlightVoxel(true);
+                        }
+                    } else {
+                        if (palm.getIsCollidingWithVoxel()) {
+                            //  Collision has just ended
+                            palm.setIsCollidingWithVoxel(false);
+                            Application::getInstance()->setIsHighlightVoxel(false);
+                        }
                     }
                 }
             }
@@ -325,9 +341,37 @@ void Hand::updateCollisions() {
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
+                if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+                    //  Check for palm collisions
+                    glm::vec3 myPalmPosition = palm.getPosition();
+                    float palmCollisionDistance = 0.1f;
+                    palm.setIsCollidingWithPalm(false);
+                    //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
+                    for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
+                        PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
+                        if (!otherPalm.isActive()) {
+                            continue;
+                        }
+                        glm::vec3 otherPalmPosition = otherPalm.getPosition();
+                        if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
+                            palm.setIsCollidingWithPalm(true);
+                            const float PALM_COLLIDE_VOLUME = 1.f;
+                            const float PALM_COLLIDE_FREQUENCY = 150.f;
+                            const float PALM_COLLIDE_DURATION_MAX = 2.f;
+                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
+                            Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                                   PALM_COLLIDE_FREQUENCY,
+                                                                                   PALM_COLLIDE_DURATION_MAX,
+                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
+
+                            
+                        }
+                    }
+                }
                 glm::vec3 avatarPenetration;
                 if (otherAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
                     totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
+                    //  Check for collisions with the other avatar's leap palms
                 }
             }
         }
@@ -534,7 +578,11 @@ void Hand::renderLeapHands() {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             const float palmThickness = 0.02f;
-            glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+            if (palm.getIsCollidingWithPalm()) {
+                glColor4f(1, 0, 0, 0.50);
+            } else {
+                glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+            }
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
             const float radiusA = 0.05f;

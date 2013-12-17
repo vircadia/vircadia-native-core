@@ -373,7 +373,10 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);    
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::BallFromHand, 0, false);    
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::BallFromHand, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
+    
  
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
