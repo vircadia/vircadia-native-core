@@ -42,7 +42,7 @@ int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes
     unsigned int attenuationByte = *(currentBuffer++);
     _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
     
-    currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+    currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
     return currentBuffer - sourceBuffer;
 }

@@ -765,3 +765,4 @@ void Head::updateHairPhysics(float deltaTime) {
         _hairTuft[t].update(deltaTime);     
     }
 }
+

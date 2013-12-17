@@ -15,7 +15,7 @@
 #include "Particle.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class ParticleEditPacketSender :  public virtual OctreeEditPacketSender {
+class ParticleEditPacketSender :  public OctreeEditPacketSender {
 public:
     ParticleEditPacketSender(PacketSenderNotify* notify = NULL) : OctreeEditPacketSender(notify) { }
     ~ParticleEditPacketSender() { }

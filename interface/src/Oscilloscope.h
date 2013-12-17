@@ -59,7 +59,7 @@ public:
     // just uses every nTh sample.
     void setDownsampleRatio(unsigned n) { assert(n > 0); _downsampleRatio = n; }
 public slots:
-    void addStereoSamples(const QByteArray& audioByteArray, bool isInput);
+    void addSamples(const QByteArray& audioByteArray, bool isStereo, bool isInput);
 private:
     // don't copy/assign
     Oscilloscope(Oscilloscope const&); // = delete;

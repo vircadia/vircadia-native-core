@@ -9,6 +9,9 @@
 
 #include <AbstractAudioInterface.h>
 #include <VoxelTree.h>
+#include <AvatarData.h>
+#include <HeadData.h>
+#include <HandData.h>
 
 #include "Particle.h"
 #include "ParticleCollisionSystem.h"
@@ -17,16 +20,17 @@
 #include "ParticleTree.h"
 
 ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender, 
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
-    init(packetSender, particles, voxels, audio);
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
+    init(packetSender, particles, voxels, audio, selfAvatar);
 }
 
 void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender, 
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
     _packetSender = packetSender;
     _particles = particles;
     _voxels = voxels;
     _audio = audio;
+    _selfAvatar = selfAvatar;
 }
 
 ParticleCollisionSystem::~ParticleCollisionSystem() {
@@ -59,6 +63,7 @@ void ParticleCollisionSystem::update() {
 void ParticleCollisionSystem::checkParticle(Particle* particle) {
     updateCollisionWithVoxels(particle);
     updateCollisionWithParticles(particle);
+    updateCollisionWithAvatars(particle);
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
@@ -91,8 +96,81 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     }
 }
 
+void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
+
+    // particles that are in hand, don't collide with other avatar parts
+    if (particle->getInHand()) {
+        return;
+    }
+
+    //printf("updateCollisionWithAvatars()...\n");
+    glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
+    float radius = particle->getRadius() * (float)TREE_SCALE;
+    const float VOXEL_ELASTICITY = 1.4f;
+    const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+    glm::vec3 penetration;
+    const PalmData* collidingPalm = NULL;
+    
+    // first check the selfAvatar if set...
+    if (_selfAvatar) {
+        AvatarData* avatar = (AvatarData*)_selfAvatar;
+        //printf("updateCollisionWithAvatars()..._selfAvatar=%p\n", avatar);
+        
+        // check hands...
+        const HandData* handData = avatar->getHandData();
+
+        // if the particle penetrates the hand, then apply a hard collision
+        if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
+            penetration /= (float)TREE_SCALE;
+            updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+    
+            // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
+            glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
+            if (collidingPalm) {
+                glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)TREE_SCALE;
+                //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
+                addedVelocity = palmVelocity;
+            }
+
+            applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
+        }
+    }
+
+    // loop through all the other avatars for potential interactions...
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            AvatarData* avatar = (AvatarData*)node->getLinkedData();
+            //printf("updateCollisionWithAvatars()...avatar=%p\n", avatar);
+            
+            // check hands...
+            const HandData* handData = avatar->getHandData();
+
+            // if the particle penetrates the hand, then apply a hard collision
+            if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
+                penetration /= (float)TREE_SCALE;
+                updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+
+                // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
+                glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
+                if (collidingPalm) {
+                    glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)TREE_SCALE;
+                    //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
+                    addedVelocity = palmVelocity;
+                }
+
+                applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
+
+            }
+        }
+    }
+}
+
+
 void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::vec3& penetration, 
-                                float elasticity, float damping) {
+                                                 float elasticity, float damping, const glm::vec3& addedVelocity) {
     //
     //  Update the avatar in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
@@ -112,6 +190,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     if (penetrationLength > EPSILON) {
         glm::vec3 direction = penetration / penetrationLength;
         velocity -= glm::dot(velocity, direction) * direction * elasticity;
+        velocity += addedVelocity;
         velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if (glm::length(velocity) < HALTING_VELOCITY) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
@@ -119,8 +198,8 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
         }
     }
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
-    particleEditHandle.updateParticle(position, particle->getRadius(), particle->getColor(), velocity, 
-                           particle->getGravity(), particle->getDamping(), particle->getUpdateScript());
+    particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
+                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
 }
 
 

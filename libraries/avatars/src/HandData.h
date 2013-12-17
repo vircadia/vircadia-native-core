@@ -68,6 +68,15 @@ public:
     int encodeRemoteData(unsigned char* destinationBuffer);
     int decodeRemoteData(unsigned char* sourceBuffer);
 
+    /// Checks for penetration between the described sphere and the hand.
+    /// \param penetratorCenter the center of the penetration test sphere
+    /// \param penetratorRadius the radius of the penetration test sphere
+    /// \param penetration[out] the vector in which to store the penetration
+    /// \param collidingPalm[out] a const PalmData* to the palm that was collided with
+    /// \return whether or not the sphere penetrated
+    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
+        const PalmData*& collidingPalm) const;
+
     friend class AvatarData;
 protected:
     glm::vec3              _basePosition;      // Hands are placed relative to this
@@ -122,8 +131,9 @@ private:
 class PalmData {
 public:
     PalmData(HandData* owningHandData);
-    glm::vec3 getPosition()           const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
-    glm::vec3 getNormal()             const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
+    glm::vec3 getPosition() const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
+    glm::vec3 getNormal() const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
+    glm::vec3 getVelocity() const { return _owningHandData->leapDirectionToWorldDirection(_rawVelocity); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
@@ -140,7 +150,7 @@ public:
     void setSixenseID(int id)                  { _sixenseID = id; }
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
-    const glm::quat getRawRotation() const { return _rawRotation; }
+    glm::quat getRawRotation() const { return _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }

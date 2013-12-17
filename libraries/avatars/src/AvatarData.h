@@ -98,6 +98,9 @@ public:
 
     const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
+    const HeadData* getHeadData() const { return _headData; }
+    const HandData* getHandData() const { return _handData; }
+
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
     

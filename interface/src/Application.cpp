@@ -72,7 +72,7 @@ const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simul
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
-const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
+const int STARTUP_JITTER_SAMPLES = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
@@ -271,7 +271,7 @@ Application::~Application() {
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
-    delete Menu::getInstance();
+    Menu::getInstance()->deleteLater();
     
     delete _settings;
     delete _followMode;
@@ -1406,6 +1406,7 @@ void Application::terminate() {
         pthread_join(_networkReceiveThread, NULL); 
     }
 
+    printf("");
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
@@ -1527,7 +1528,7 @@ void Application::shootParticle() {
     QString updateScript("");
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -1538,16 +1539,16 @@ void Application::shootParticle() {
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree(), id);
     return particleEditHandle;
 }
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-            glm::vec3 gravity, float damping, QString updateScript) {
+            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     ParticleEditHandle* particleEditHandle = newParticleEditHandle();
-    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, inHand, updateScript);
     return particleEditHandle;
 }
     
@@ -1862,7 +1863,7 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
     
-    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio);
+    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_myAvatar);
     
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -4400,3 +4401,67 @@ void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
 }
 
+void Application::loadScript() {
+    // shut down and stop any existing script
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/script.js");
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+                                                          tr("JavaScript Files (*.js)"));
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
+    const char* fileName = fileNameAscii.data();
+    
+    printf("fileName:%s\n",fileName);
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()) {
+        printf("error loading file\n");
+        return;
+    }
+    qDebug("loading file %s...\n", fileName);
+
+    // get file length....
+    unsigned long fileLength = file.tellg();
+    file.seekg( 0, std::ios::beg );
+
+    // read the entire file into a buffer, WHAT!? Why not.
+    char* entireFile = new char[fileLength+1];
+    file.read((char*)entireFile, fileLength);
+    file.close();
+    
+    entireFile[fileLength] = 0;// null terminate
+    QString script(entireFile);
+    delete[] entireFile;
+
+    // start the script on a new thread...
+    bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
+
+
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance());
+    scriptEngine->setupMenuItems();
+    
+    // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
+    // we can use the same ones from the application.
+    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+
+    QThread* workerThread = new QThread(this);
+
+    // when the worker thread is started, call our engine's run..    
+    connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
+
+    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
+    connect(scriptEngine, SIGNAL(finished()), scriptEngine, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+
+    // when the application is about to quit, stop our script engine so it unwinds properly
+    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
+    
+    scriptEngine->moveToThread(workerThread);
+    
+    // Starts an event loop, and emits workerThread->started()
+    workerThread->start();
+
+    // restore the main window's active state
+    _window->activateWindow();
+}

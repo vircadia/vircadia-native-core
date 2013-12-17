@@ -53,6 +53,7 @@ public:
 
     void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
 
+    virtual PACKET_TYPE expectedDataPacketType() const { return PACKET_TYPE_VOXEL_DATA; }
     virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength, Node* senderNode);

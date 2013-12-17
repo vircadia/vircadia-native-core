@@ -14,6 +14,7 @@
 #include <QKeySequence>
 
 #include "ui/LogDialog.h"
+#include <AbstractMenuInterface.h>
 
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
@@ -39,7 +40,7 @@ class BandwidthDialog;
 class VoxelStatsDialog;
 class LodToolsDialog;
 
-class Menu : public QMenuBar {
+class Menu : public QMenuBar, public AbstractMenuInterface {
     Q_OBJECT
 public:
     static Menu* getInstance();
@@ -72,6 +73,15 @@ public:
     
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    
+    virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
+    virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           const QString actionName,
+                                           const QKeySequence& shortcut = 0,
+                                           const QObject* receiver = NULL,
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole);
+    virtual void removeAction(QMenu* menu, const QString& actionName);
     
 public slots:
     void bandwidthDetails();
@@ -114,12 +124,6 @@ private:
     
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
                                            
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
@@ -146,6 +150,7 @@ private:
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     LogDialog* _logDialog;
+    QMenu* _activeScriptsMenu;
 };
 
 namespace MenuOption {
@@ -154,6 +159,7 @@ namespace MenuOption {
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
+    const QString BallFromHand = "Ball from Hand";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
@@ -172,6 +178,7 @@ namespace MenuOption {
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
+    const QString DisplayHandTargets = "Display Hand Targets";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
@@ -223,6 +230,7 @@ namespace MenuOption {
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
     const QString ClickToFly = "Fly to voxel on click";
+    const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";
