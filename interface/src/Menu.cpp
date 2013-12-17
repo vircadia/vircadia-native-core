@@ -1045,7 +1045,7 @@ void Menu::bandwidthDetailsClosed() {
 void Menu::voxelStatsDetails() {
     if (!_voxelStatsDialog) {
         _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
-                                                 Application::getInstance()->getVoxelSceneStats());
+                                                 Application::getInstance()->getOcteeSceneStats());
         connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
         _voxelStatsDialog->show();
     }
