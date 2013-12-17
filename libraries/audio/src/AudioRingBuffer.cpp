@@ -162,7 +162,7 @@ int16_t* AudioRingBuffer::shiftedPositionAccomodatingWrap(int16_t* position, int
         return position + numSamplesShift - _sampleCapacity;
     } else if (numSamplesShift < 0 && position + numSamplesShift < _buffer) {
         // this shift will go around to the end of the ring
-        return position + numSamplesShift - _sampleCapacity;
+        return position + numSamplesShift + _sampleCapacity;
     } else {
         return position + numSamplesShift;
     }
