@@ -35,7 +35,7 @@ private:
     void prepareMixForListeningNode(Node* node);
     
     
-    int16_t _clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2];
+    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

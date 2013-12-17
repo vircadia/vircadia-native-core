@@ -15,7 +15,7 @@
 #include "PositionalAudioRingBuffer.h"
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
-    AudioRingBuffer(false),
+    AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
@@ -31,7 +31,7 @@ int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numByt
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     currentBuffer += NUM_BYTES_RFC4122_UUID; // the source UUID
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
-    currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+    currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
     return currentBuffer - sourceBuffer;
 }
@@ -47,8 +47,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (std::isnan(_orientation.x)) {
-        _endOfLastWrite = _nextOutput = _buffer;
-        _isStarved = true;
+        reset();
         return 0;
     }
     
@@ -56,20 +55,17 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
 }
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
-    if (_endOfLastWrite) {
-        if (_isStarved && diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples) {
-            printf("Buffer held back\n");
-            return false;
-        } else if (diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            printf("Buffer starved.\n");
-            _isStarved = true;
-            return false;
-        } else {
-            // good buffer, add this to the mix
-            _isStarved = false;
-            _hasStarted = true;
-            return true;
-        }
+    if (!isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples)) {
+        qDebug() << "Starved and do not have minimum samples to start. Buffer held back.\n";
+        return false;
+    } else if (samplesAvailable() < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+        qDebug() << "Do not have number of samples needed for interval. Buffer starved.\n";
+        _isStarved = true;
+        return false;
+    } else {
+        // good buffer, add this to the mix
+        _isStarved = false;
+        return true;
     }
     
     return false;
