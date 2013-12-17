@@ -203,19 +203,20 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             // upsample from 24 to 48
             // for now this only supports a stereo to stereo conversion - this is our case for network audio to output
             int sourceIndex = 0;
-            int destinationToSourceFactor =  (1 / sourceToDestinationFactor);
+            int destinationToSourceFactor = (1 / sourceToDestinationFactor);
+            int dtsSampleRateFactor = (destinationAudioFormat.sampleRate() / sourceAudioFormat.sampleRate());
             
-            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount() * destinationToSourceFactor) {
+            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount() * dtsSampleRateFactor) {
                 sourceIndex = (i / destinationToSourceFactor);
                 
                 // fill the L/R channels and make the rest silent
-                for (int j = i; j < i + (destinationToSourceFactor * destinationAudioFormat.channelCount()); j++) {
+                for (int j = i; j < i + (dtsSampleRateFactor * destinationAudioFormat.channelCount()); j++) {
                     if (j % destinationAudioFormat.channelCount() == 0) {
                         // left channel
                         destinationSamples[j] = sourceSamples[sourceIndex];
                     } else if (j % destinationAudioFormat.channelCount() == 1) {
                          // right channel
-                        destinationSamples[j] = sourceSamples[sourceIndex + 1];
+                        destinationSamples[j] = sourceSamples[sourceIndex + (sourceAudioFormat.channelCount() > 1 ? 1 : 0)];
                     } else {
                         // channels above 2, fill with silence
                         destinationSamples[j] = 0;
