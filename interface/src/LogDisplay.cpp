@@ -90,6 +90,7 @@ void LogDisplay::setCharacterSize(unsigned width, unsigned height) {
 
 void LogDisplay::addMessage(const char* ptr) {
 
+    emit logReceived(ptr);
     pthread_mutex_lock(& _mutex);
 
     // T-pipe, if requested

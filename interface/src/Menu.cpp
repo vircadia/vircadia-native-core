@@ -1014,12 +1014,6 @@ void Menu::pasteToVoxel() {
     sendFakeEnterEvent();
 }
 
-void Menu::appendLogLine(QString logLine) {
-    if (_logDialog) {
-        _logDialog->appendLogLine(logLine);
-    }
-}
-
 void Menu::showLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(Application::getInstance()->getGLWidget());

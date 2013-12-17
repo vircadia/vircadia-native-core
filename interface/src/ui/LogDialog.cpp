@@ -12,6 +12,7 @@
 
 #include "SharedUtil.h"
 #include "ui/LogDialog.h"
+#include "LogDisplay.h"
 
 #define INITIAL_WIDTH_RATIO 0.3
 #define INITIAL_HEIGHT_RATIO 0.6
@@ -37,7 +38,7 @@ LogDialog::LogDialog(QWidget* parent) :
 
         QDesktopWidget* desktop = new QDesktopWidget();
         QRect screen = desktop->screenGeometry();
-        resize((int)(screen.width() * INITIAL_WIDTH_RATIO), (int)(screen.height() * INITIAL_HEIGHT_RATIO));
+        resize(static_cast<int>(screen.width() * INITIAL_WIDTH_RATIO), static_cast<int>(screen.height() * INITIAL_HEIGHT_RATIO));
         move(screen.center() - rect().center());
         delete desktop;
 }
@@ -49,6 +50,18 @@ LogDialog::~LogDialog() {
 
 void LogDialog::showEvent(QShowEvent *e)  {
     _logTextBox->clear();
+    pthread_mutex_lock(& _mutex);
+    char** _lines = LogDisplay::instance.getLogData();
+    char** _lastLinePos = LogDisplay::instance.getLastLinePos();
+
+    int i = 0;
+    while (_lines[i] != *_lastLinePos) {
+        appendLogLine(_lines[i]);
+        i++;
+    }
+
+    connect(&LogDisplay::instance, &LogDisplay::logReceived, this, &LogDialog::appendLogLine);
+    pthread_mutex_unlock(& _mutex);
 }
 
 void LogDialog::resizeEvent(QResizeEvent *e) {
@@ -63,7 +76,7 @@ void LogDialog::appendLogLine(QString logLine) {
 }
 
 void LogDialog::reject() {
-    this->QDialog::close();
+    close();
 }
 
 void LogDialog::closeEvent(QCloseEvent* event) {

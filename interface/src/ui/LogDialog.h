@@ -18,13 +18,13 @@ class LogDialog : public QDialog {
 public:
     LogDialog(QWidget* parent);
     ~LogDialog();
-    void appendLogLine(QString logLine);
 
 signals:
     void closed();
 
 public slots:    
     void reject();
+    void appendLogLine(QString logLine);
 
 protected:
     // Emits a 'closed' signal when this dialog is closed.
@@ -34,6 +34,7 @@ protected:
 
 private:
     QPlainTextEdit* _logTextBox;
+    pthread_mutex_t _mutex;
 
 };
 

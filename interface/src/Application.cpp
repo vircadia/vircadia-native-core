@@ -87,7 +87,7 @@ const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
-    Menu::getInstance()->appendLogLine(message.toLocal8Bit().constData());
+    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -153,9 +153,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QFontDatabase::addApplicationFont(resourcesPath + "/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
+    qInstallMessageHandler(messageHandler);
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
-    qInstallMessageHandler(messageHandler);
 
     qDebug( "[VERSION] Build sequence: %i", BUILD_VERSION);
     
