@@ -42,7 +42,10 @@ protected:
 
     int AddStatItem(const char* caption, unsigned colorRGBA = DEFAULT_COLOR);
     void RemoveStatItem(int item);
-    void showAllVoxelServers();
+    void showAllOctreeServers();
+
+    void showOctreeServersOfType(int& serverNumber, NODE_TYPE serverType, 
+                    const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
 
 private:
 

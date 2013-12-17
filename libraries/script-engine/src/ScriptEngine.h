@@ -20,6 +20,8 @@
 #include <VoxelScriptingInterface.h>
 #include "ControllerScriptingInterface.h"
 
+const QString NO_SCRIPT("");
+
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
@@ -35,6 +37,9 @@ public:
     /// Access the ParticleScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     ParticleScriptingInterface* getParticleScriptingInterface() { return &_particleScriptingInterface; }
 
+    /// sets the script contents, will return false if failed, will fail if script is already running
+    bool setScriptContents(const QString& scriptContents);
+
     void setupMenuItems();
     void cleanMenuItems();
     
@@ -49,6 +54,7 @@ signals:
 protected:
     QString _scriptContents;
     bool _isFinished;
+    bool _isRunning;
 
 
 private:

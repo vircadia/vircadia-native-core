@@ -76,10 +76,10 @@ public:
     virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
     virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString actionName,
-                                           const QKeySequence& shortcut = 0,
+                                           const QKEYSEQUENCE& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
+                                           QACTION_MENUROLE role = NO_ROLE);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     
 public slots:
@@ -244,6 +244,8 @@ namespace MenuOption {
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
+    const QString VoxelDrumming = "Voxel Drumming";
+    const QString PlaySlaps = "Play Slaps";
     const QString SkeletonTracking = "Skeleton Tracking";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString LEDTracking = "LED Tracking";

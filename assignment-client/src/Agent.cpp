@@ -24,8 +24,6 @@
 Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes)
 {
-    _particleScriptingInterface.init();
-    _voxelScriptingInterface.init();
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
@@ -34,12 +32,12 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
         // PACKET_TYPE_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
             case NODE_TYPE_VOXEL_SERVER:
-                _voxelScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                _scriptEngine.getVoxelScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());
                 break;
             case NODE_TYPE_PARTICLE_SERVER:
-                _particleScriptingInterface.getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                _scriptEngine.getParticleScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());
                 break;
@@ -76,42 +74,11 @@ void Agent::run() {
     loop.exec();
     
     QString scriptContents(reply->readAll());
-    QScriptEngine engine;
-    
-    // register meta-type for glm::vec3 conversions
-    registerMetaTypes(&engine);
-    
-    QScriptValue agentValue = engine.newQObject(this);
-    engine.globalObject().setProperty("Agent", agentValue);
-    
-    QScriptValue voxelScripterValue =  engine.newQObject(&_voxelScriptingInterface);
-    engine.globalObject().setProperty("Voxels", voxelScripterValue);
-
-    QScriptValue particleScripterValue =  engine.newQObject(&_particleScriptingInterface);
-    engine.globalObject().setProperty("Particles", particleScripterValue);
-    
-    QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-    engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
-    
-    const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
-    
-    // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    _particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     
     qDebug() << "Downloaded script:" << scriptContents << "\n";
-    QScriptValue result = engine.evaluate(scriptContents);
-    qDebug() << "Evaluated script.\n";
-    
-    if (engine.hasUncaughtException()) {
-        int line = engine.uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
-    }
     
     timeval startTime;
     gettimeofday(&startTime, NULL);
-    
-    int thisFrame = 0;
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
@@ -124,50 +91,7 @@ void Agent::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
-    while (!_isFinished) {
-        
-        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-        
-        QCoreApplication::processEvents();
-        
-        bool willSendVisualDataCallBack = false;
-        
-        if (_voxelScriptingInterface.getVoxelPacketSender()->voxelServersExist()) {            
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-            
-            // release the queue of edit voxel messages.
-            _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
-            
-            // since we're in non-threaded mode, call process so that the packets are sent
-            _voxelScriptingInterface.getVoxelPacketSender()->process();
-        }
 
-        if (_particleScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-            
-            // release the queue of edit voxel messages.
-            _particleScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
-            
-            // since we're in non-threaded mode, call process so that the packets are sent
-            _particleScriptingInterface.getParticlePacketSender()->process();
-        }
-        
-        if (willSendVisualDataCallBack) {
-            emit willSendVisualDataCallback();
-        }
-
-        
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
-        }
-        
-        
-    }
+    _scriptEngine.setScriptContents(scriptContents);
+    _scriptEngine.run();    
 }

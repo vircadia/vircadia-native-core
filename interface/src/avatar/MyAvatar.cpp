@@ -426,6 +426,31 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
+void MyAvatar::renderDebugBodyPoints() {
+    glm::vec3 torsoPosition(getPosition());
+    glm::vec3 headPosition(getHead().getEyePosition());
+    float torsoToHead = glm::length(headPosition - torsoPosition);
+    glm::vec3 position;
+    printf("head-above-torso %.2f, scale = %0.2f\n", torsoToHead, getScale());
+    
+    //  Torso Sphere
+    position = torsoPosition;
+    glPushMatrix();
+    glColor4f(0, 1, 0, .5f);
+    glTranslatef(position.x, position.y, position.z);
+    glutSolidSphere(0.2, 10, 10);
+    glPopMatrix();
+
+    //  Head Sphere
+    position = headPosition;
+    glPushMatrix();
+    glColor4f(0, 1, 0, .5f);
+    glTranslatef(position.x, position.y, position.z);
+    glutSolidSphere(0.15, 10, 10);
+    glPopMatrix();
+
+    
+}
 void MyAvatar::render(bool forceRenderHead) {
         
     // render body
@@ -437,6 +462,9 @@ void MyAvatar::render(bool forceRenderHead) {
         _balls->render();
         glPopMatrix();
     }
+    
+    //renderDebugBodyPoints();
+
     
     if (!_chatMessage.empty()) {
         int width = 0;

@@ -29,6 +29,9 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 ControllerScriptingInterface* controllerScriptingInterface) {
     _scriptContents = scriptContents;
     _isFinished = false;
+    _isRunning = false;
+    
+    // some clients will use these menu features
     _wantMenuItems = wantMenuItems;
     if (scriptMenuName) {
         _scriptMenuName = "Stop ";
@@ -59,10 +62,16 @@ void ScriptEngine::cleanMenuItems() {
     }
 }
 
-void ScriptEngine::run() {
+bool ScriptEngine::setScriptContents(const QString& scriptContents) {
+    if (_isRunning) {
+        return false;
+    }
+    _scriptContents = scriptContents;
+    return true;
+}
 
-    //setupMenuItems();
-    
+void ScriptEngine::run() {
+    _isRunning = true;
     QScriptEngine engine;
     
     _voxelScriptingInterface.init();
@@ -114,16 +123,14 @@ void ScriptEngine::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         }
-        
+
         if (_isFinished) {
-            //qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
 
         QCoreApplication::processEvents();
 
         if (_isFinished) {
-            //qDebug() << "line: " << __LINE__ << " _isFinished... breaking loop\n";
             break;
         }
         
@@ -136,7 +143,9 @@ void ScriptEngine::run() {
             _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
             
             // since we're in non-threaded mode, call process so that the packets are sent
-            //_voxelScriptingInterface.getVoxelPacketSender()->process();
+            if (!_voxelScriptingInterface.getVoxelPacketSender()->isThreaded()) {
+                _voxelScriptingInterface.getVoxelPacketSender()->process();
+            }
         }
 
         if (_particleScriptingInterface.getParticlePacketSender()->serversExist()) {
@@ -147,14 +156,15 @@ void ScriptEngine::run() {
             _particleScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
             
             // since we're in non-threaded mode, call process so that the packets are sent
-            //_particleScriptingInterface.getParticlePacketSender()->process();
+            if (!_particleScriptingInterface.getParticlePacketSender()->isThreaded()) {
+                _particleScriptingInterface.getParticlePacketSender()->process();
+            }
         }
         
         if (willSendVisualDataCallBack) {
             emit willSendVisualDataCallback();
         }
 
-        
         if (engine.hasUncaughtException()) {
             int line = engine.uncaughtExceptionLineNumber();
             qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
@@ -168,9 +178,11 @@ void ScriptEngine::run() {
     }
 
     emit finished();
+    _isRunning = false;
 }
 
 void ScriptEngine::stop() { 
     _isFinished = true; 
 }
+
 

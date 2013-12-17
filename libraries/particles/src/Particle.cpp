@@ -43,6 +43,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
         _id = id;
     }
     _lastUpdated = usecTimestampNow();
+    _lastEdited = _lastUpdated;
 
     _position = position;
     _radius = radius;
@@ -66,6 +67,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     }
     if (success) {
         success = packetData->appendValue(getLastUpdated());
+    }
+    if (success) {
+        success = packetData->appendValue(getLastEdited());
     }
     if (success) {
         success = packetData->appendValue(getRadius());
@@ -99,7 +103,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 }
 
 int Particle::expectedBytes() {
-    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
+    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
                         sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3) +
                         sizeof(glm::vec3) + sizeof(float) + sizeof(bool);
     return expectedBytes;
@@ -124,6 +128,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
         dataAt += sizeof(_lastUpdated);
         bytesRead += sizeof(_lastUpdated);
+
+        // _lastEdited
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -219,6 +228,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
     dataAt += sizeof(newParticle._lastUpdated);
     processedBytes += sizeof(newParticle._lastUpdated);
+
+    // lastEdited
+    memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
+    dataAt += sizeof(newParticle._lastEdited);
+    processedBytes += sizeof(newParticle._lastEdited);
     
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
@@ -279,6 +293,7 @@ void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
     printf(" created:%llu\n", _created);
     printf(" last updated:%llu\n", _lastUpdated);
+    printf(" last edited:%llu\n", _lastEdited);
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
     printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
@@ -336,6 +351,11 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             memcpy(copyAt, &details[i].lastUpdated, sizeof(details[i].lastUpdated));
             copyAt += sizeof(details[i].lastUpdated);
             sizeOut += sizeof(details[i].lastUpdated);
+            
+            // lastEdited
+            memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
+            copyAt += sizeof(details[i].lastEdited);
+            sizeOut += sizeof(details[i].lastEdited);
             
             // radius
             memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));

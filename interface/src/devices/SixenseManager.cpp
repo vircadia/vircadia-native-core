@@ -79,12 +79,6 @@ void SixenseManager::update(float deltaTime) {
         palm->setTrigger(data.trigger);
         palm->setJoystick(data.joystick_x, data.joystick_y);
         
-        //  Vibrate if needed
-        if (palm->getIsCollidingWithVoxel()) {
-            //printf("vibrate!\n");
-            //vibrate(data.controller_index, 100, 1);
-        }
-
         glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)
@@ -113,8 +107,8 @@ void SixenseManager::update(float deltaTime) {
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
         finger.setRawTipPosition(position + rotation * FINGER_VECTOR);
         
-        // temporary for toy ball - store first finger tip velocity
-        glm::vec3 oldTipPosition = palm->getTipPosition();
+        // Store the one fingertip in the palm structure so we can track velocity
+        glm::vec3 oldTipPosition = palm->getTipRawPosition();
         palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime / 1000.f);
         palm->setTipPosition(newTipPosition);
         

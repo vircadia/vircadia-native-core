@@ -164,7 +164,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         if ((s / 2) < numSamplesDelay) {
             // pull the earlier sample for the delayed channel
             int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
-            
             _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
                                                                     MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
@@ -175,11 +174,11 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
                                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         
         if ((s / 2) + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            // place the curernt sample at the right spot in the delayed channel
-            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + numSamplesDelay + delayedChannelOffset]
+            // place the current sample at the right spot in the delayed channel
+            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset]
                                                + (currentSample * weakChannelAmplitudeRatio)),
                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _clientSamples[s + numSamplesDelay + delayedChannelOffset] = clampedSample;
+            _clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset] = clampedSample;
         }
     }
 }

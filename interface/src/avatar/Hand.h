@@ -79,7 +79,6 @@ private:
     std::vector<HandBall> _leapFingerRootBalls;
     
     glm::vec3 _lastFingerAddVoxel, _lastFingerDeleteVoxel;
-    bool _isCollidingWithVoxel;
     VoxelDetail _collidingVoxel;
     
     glm::vec3 _collisionCenter;
