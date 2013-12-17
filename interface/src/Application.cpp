@@ -1523,7 +1523,7 @@ void Application::shootParticle() {
     QString updateScript("");
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -1540,10 +1540,10 @@ ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-            glm::vec3 gravity, float damping, QString updateScript) {
+            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     ParticleEditHandle* particleEditHandle = newParticleEditHandle();
-    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, updateScript);
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, inHand, updateScript);
     return particleEditHandle;
 }
     

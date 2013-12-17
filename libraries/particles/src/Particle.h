@@ -32,6 +32,7 @@ public:
     glm::vec3 velocity;
     glm::vec3 gravity;
     float damping;
+    bool inHand;
     QString updateScript;
     uint32_t creatorTokenID;
 };
@@ -39,21 +40,24 @@ public:
 const float DEFAULT_DAMPING = 0.99f;
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 const QString DEFAULT_SCRIPT("");
+const bool IN_HAND = true; // it's in a hand
+const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 
 class Particle  {
     
 public:
     Particle();
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-            float damping = DEFAULT_DAMPING, glm::vec3 gravity = DEFAULT_GRAVITY, QString updateScript = DEFAULT_SCRIPT, 
-            uint32_t id = NEW_PARTICLE);
+            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND, 
+            QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
     
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
     static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
     
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                            float damping, glm::vec3 gravity, QString updateScript, uint32_t id);
+            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND, 
+            QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }
@@ -61,6 +65,7 @@ public:
     float getRadius() const { return _radius; }
     const glm::vec3& getVelocity() const { return _velocity; }
     const glm::vec3& getGravity() const { return _gravity; }
+    bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
     uint64_t getCreated() const { return _created; }
     uint64_t getLifetime() const { return usecTimestampNow() - _created; }
@@ -81,6 +86,7 @@ public:
     }
     void setRadius(float value) { _radius = value; }
     void setGravity(const glm::vec3& value) { _gravity = value; }
+    void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
     void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
@@ -116,6 +122,7 @@ protected:
     glm::vec3 _gravity;
     float _damping;
     QString _updateScript;
+    bool _inHand;
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;

@@ -98,6 +98,11 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
 
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
+    // particles that are in hand, don't collide with other avatar parts
+    if (particle->getInHand()) {
+        return;
+    }
+
     //printf("updateCollisionWithAvatars()...\n");
     glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
     float radius = particle->getRadius() * (float)TREE_SCALE;
@@ -194,7 +199,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     }
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getUpdateScript());
+                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
 }
 
 

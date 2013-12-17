@@ -23,11 +23,9 @@ const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.99f;
-const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-1,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
-const QString TOY_BALL_DONT_DIE_SCRIPT("Particle.setShouldDie(false);");
 const float PALM_COLLISION_RADIUS = 0.03f;
 const xColor TOY_BALL_ON_SERVER_COLOR[] = 
     {
@@ -161,9 +159,10 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                                      TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                                      TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                                      NO_VELOCITY / (float)TREE_SCALE,
-                                                                     NO_GRAVITY / (float) TREE_SCALE, 
-                                                                     TOY_BALL_DAMPING, 
-                                                                     TOY_BALL_DONT_DIE_SCRIPT);
+                                                                     TOY_BALL_GRAVITY / (float) TREE_SCALE,
+                                                                     TOY_BALL_DAMPING,
+                                                                     IN_HAND,
+                                                                     TOY_BALL_UPDATE_SCRIPT);
             }
         } else {
             //  Ball is in hand
@@ -172,9 +171,10 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                          NO_VELOCITY / (float)TREE_SCALE,
-                                                         NO_GRAVITY / (float) TREE_SCALE, 
-                                                         TOY_BALL_DAMPING, 
-                                                         TOY_BALL_DONT_DIE_SCRIPT);
+                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
+                                                         TOY_BALL_DAMPING,
+                                                         IN_HAND,
+                                                         TOY_BALL_UPDATE_SCRIPT);
         }
     } else {
         //  If toy ball just released, add velocity to it!
@@ -193,7 +193,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
                                                          toyBallVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
-                                                         TOY_BALL_DAMPING, 
+                                                         TOY_BALL_DAMPING,
+                                                         NOT_IN_HAND,
                                                          TOY_BALL_UPDATE_SCRIPT);
 
             // after releasing the ball, we free our ParticleEditHandle so we can't edit it further
