@@ -79,12 +79,6 @@ void SixenseManager::update(float deltaTime) {
         palm->setTrigger(data.trigger);
         palm->setJoystick(data.joystick_x, data.joystick_y);
         
-        //  Vibrate if needed
-        if (palm->getIsCollidingWithVoxel()) {
-            //printf("vibrate!\n");
-            //vibrate(data.controller_index, 100, 1);
-        }
-
         glm::vec3 position(data.pos[0], data.pos[1], data.pos[2]);
         //  Adjust for distance between acquisition 'orb' and the user's torso
         //  (distance to the right of body center, distance below torso, distance behind torso)

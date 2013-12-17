@@ -38,22 +38,20 @@ PalmData& HandData::addNewPalm()  {
     return _palms.back();
 }
 
+const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
+const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
     leftPalmIndex = -1;
-    float leftPalmX = FLT_MAX;
-    rightPalmIndex = -1;    
-    float rightPalmX = -FLT_MAX;
+    rightPalmIndex = -1;
     for (int i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
-            float x = palm.getRawPosition().x;
-            if (x < leftPalmX) {
+            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
                 leftPalmIndex = i;
-                leftPalmX = x;
             }
-            if (x > rightPalmX) {
+            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
                 rightPalmIndex = i;
-                rightPalmX = x;
             }
         }
     }
@@ -71,7 +69,8 @@ _leapID(LEAPID_INVALID),
 _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
-_isCollidingWithVoxel(false)
+_isCollidingWithVoxel(false),
+_isCollidingWithPalm(false)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
