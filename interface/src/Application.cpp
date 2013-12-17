@@ -266,7 +266,7 @@ Application::~Application() {
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
-    delete Menu::getInstance();
+    Menu::getInstance()->deleteLater();
     
     delete _settings;
     delete _followMode;
@@ -1401,6 +1401,7 @@ void Application::terminate() {
         pthread_join(_networkReceiveThread, NULL); 
     }
 
+    printf("");
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
@@ -4395,3 +4396,67 @@ void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
 }
 
+void Application::loadScript() {
+    // shut down and stop any existing script
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/script.js");
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+                                                          tr("JavaScript Files (*.js)"));
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
+    const char* fileName = fileNameAscii.data();
+    
+    printf("fileName:%s\n",fileName);
+
+    std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()) {
+        printf("error loading file\n");
+        return;
+    }
+    qDebug("loading file %s...\n", fileName);
+
+    // get file length....
+    unsigned long fileLength = file.tellg();
+    file.seekg( 0, std::ios::beg );
+
+    // read the entire file into a buffer, WHAT!? Why not.
+    char* entireFile = new char[fileLength+1];
+    file.read((char*)entireFile, fileLength);
+    file.close();
+    
+    entireFile[fileLength] = 0;// null terminate
+    QString script(entireFile);
+    delete[] entireFile;
+
+    // start the script on a new thread...
+    bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
+
+
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance());
+    scriptEngine->setupMenuItems();
+    
+    // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
+    // we can use the same ones from the application.
+    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+
+    QThread* workerThread = new QThread(this);
+
+    // when the worker thread is started, call our engine's run..    
+    connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
+
+    // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
+    connect(scriptEngine, SIGNAL(finished()), scriptEngine, SLOT(deleteLater()));
+    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+
+    // when the application is about to quit, stop our script engine so it unwinds properly
+    connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
+    
+    scriptEngine->moveToThread(workerThread);
+    
+    // Starts an event loop, and emits workerThread->started()
+    workerThread->start();
+
+    // restore the main window's active state
+    _window->activateWindow();
+}

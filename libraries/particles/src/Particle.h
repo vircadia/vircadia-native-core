@@ -57,7 +57,7 @@ public:
 
     const glm::vec3& getPosition() const { return _position; }
     const rgbColor& getColor() const { return _color; }
-    xColor getColor() { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     float getRadius() const { return _radius; }
     const glm::vec3& getVelocity() const { return _velocity; }
     const glm::vec3& getGravity() const { return _gravity; }
@@ -129,7 +129,7 @@ public:
 public slots:
     glm::vec3 getPosition() const { return _particle->getPosition(); }
     glm::vec3 getVelocity() const { return _particle->getVelocity(); }
-    xColor getColor() const { return _particle->getColor(); }
+    xColor getColor() const { return _particle->getXColor(); }
     glm::vec3 getGravity() const { return _particle->getGravity(); }
     float getDamping() const { return _particle->getDamping(); }
     float getRadius() const { return _particle->getRadius(); }

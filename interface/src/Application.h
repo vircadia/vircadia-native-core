@@ -24,6 +24,7 @@
 #include <PacketHeaders.h>
 #include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
+#include <ScriptEngine.h>
 #include <VoxelQuery.h>
 
 #ifndef _WIN32
@@ -218,6 +219,7 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void loadScript();
     
     
 private slots:

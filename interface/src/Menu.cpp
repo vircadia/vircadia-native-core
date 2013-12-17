@@ -90,6 +90,10 @@ Menu::Menu() :
                                    this,
                                    SLOT(login())));
 
+    addDisabledActionAndSeparator(fileMenu, "Scripts");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadScript()));
+    _activeScriptsMenu = fileMenu->addMenu("Running Scripts");
+
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
@@ -368,6 +372,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LeapDrive, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);    
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::BallFromHand, 0, false);    
  
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
@@ -711,6 +717,11 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
     
     return action;
 }
+
+void Menu::removeAction(QMenu* menu, const QString& actionName) {
+    menu->removeAction(_actionHash.value(actionName));
+}
+
 
 bool Menu::isOptionChecked(const QString& menuOption) {
     return _actionHash.value(menuOption)->isChecked();

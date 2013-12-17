@@ -27,7 +27,7 @@ public:
 };
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
-class OctreeEditPacketSender :  public virtual PacketSender {
+class OctreeEditPacketSender :  public PacketSender {
 public:
     OctreeEditPacketSender(PacketSenderNotify* notify = NULL);
     ~OctreeEditPacketSender();
