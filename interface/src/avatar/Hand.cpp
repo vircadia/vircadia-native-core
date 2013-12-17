@@ -98,6 +98,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             glm::vec3 newVelocity = NO_VELOCITY;
             
             // update the particle with it's new state...
+            qDebug("Update caught particle!\n");
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
@@ -157,6 +158,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             }
         } else {
             //  Ball is in hand
+            //qDebug("Ball in hand\n");
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
@@ -178,6 +180,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             ballVelocity = avatarRotation * ballVelocity;
 
             // ball is no longer in hand...
+            qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
