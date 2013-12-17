@@ -26,11 +26,6 @@
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
-static const int PACKET_LENGTH_BYTES = 1024;
-static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
-static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
-static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
-
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
@@ -86,7 +81,6 @@ private:
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
     StDev _stdev;
-    timeval _lastCallbackTime;
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;

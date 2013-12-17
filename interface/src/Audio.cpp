@@ -451,6 +451,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                              _desiredOutputFormat, _outputFormat);
             
             if (_outputDevice) {
+                
                 _outputDevice->write(outputBuffer);
                 
                 // add output (@speakers) data just written to the scope
@@ -500,7 +501,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < _ringBuffer.getSampleCapacity() / 2; i++) {
+        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;
@@ -512,14 +513,12 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         //  Show a bar with the amount of audio remaining in ring buffer beyond current playback
         float remainingBuffer = 0;
-        timeval currentTime;
-        gettimeofday(&currentTime, NULL);
-        float timeLeftInCurrentBuffer = 0;
-        if (_lastCallbackTime.tv_usec > 0) {
-            timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - diffclock(&_lastCallbackTime, &currentTime);
-        }
         
-        remainingBuffer = PACKET_LENGTH_SAMPLES / PACKET_LENGTH_SAMPLES * AUDIO_CALLBACK_MSECS;
+        int bytesLeftInAudioOutput = _audioOutput->bufferSize() - _audioOutput->bytesFree();
+        float secondsLeftForAudioOutput = (bytesLeftInAudioOutput / sizeof(int16_t)) / _outputFormat.sampleRate();
+        float timeLeftInCurrentBuffer = AUDIO_CALLBACK_MSECS - (secondsLeftForAudioOutput * 1000);
+        
+        remainingBuffer = 1 / AUDIO_CALLBACK_MSECS;
         
         if (_numFramesDisplayStarve == 0) {
             glColor3f(0, 1, 0);
@@ -557,7 +556,8 @@ void Audio::render(int screenWidth, int screenHeight) {
         //  Show a red bar with the 'start' point of one frame plus the jitter buffer
         
         glColor3f(1, 0, 0);
-        int jitterBufferPels = (1.f + (float)getJitterBufferSamples() / (float) PACKET_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
+        int jitterBufferPels = (1.f + (float)getJitterBufferSamples()
+                                / (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
         drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
         sprintf(out, "j %.1f\n", _measuredJitter);
