@@ -186,19 +186,24 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
 }
 
 QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngine* engine) {
-    qDebug() << context->callee().data().toVariant() << " oh hi thar\n";
-    
+    ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
+
     MetavoxelInfo info;
     QScriptValue infoValue = context->argument(0);
+    QScriptValue minimumValue = infoValue.property(guide->_minimumHandle);
+    info.minimum = glm::vec3(minimumValue.property(0).toNumber(), minimumValue.property(1).toNumber(),
+        minimumValue.property(2).toNumber());
+    info.size = infoValue.property(guide->_sizeHandle).toNumber();    
+    info.isLeaf = infoValue.property(guide->_isLeafHandle).toBool();
     
-    
-    
-    return QScriptValue();
+    return guide->_visitor->visit(info);
 }
 
 ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
     _guideFunction(guideFunction),
+    _minimumHandle(guideFunction.engine()->toStringHandle("minimum")),
     _sizeHandle(guideFunction.engine()->toStringHandle("size")),
+    _isLeafHandle(guideFunction.engine()->toStringHandle("isLeaf")),
     _visitFunction(guideFunction.engine()->newFunction(visit, 1)),
     _info(guideFunction.engine()->newObject()),
     _minimum(guideFunction.engine()->newArray(3)) {
@@ -208,7 +213,7 @@ ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction
     visitor.setProperty("visit", _visitFunction);
     _arguments[0].setProperty("visitor", visitor);
     _arguments[0].setProperty("info", _info);
-    _info.setProperty("minimum", _minimum);
+    _info.setProperty(_minimumHandle, _minimum);
 }
 
 PolymorphicData* ScriptedMetavoxelGuide::clone() const {
@@ -221,6 +226,8 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     _minimum.setProperty(1, visitation.info.minimum.y);
     _minimum.setProperty(2, visitation.info.minimum.z);
     _info.setProperty(_sizeHandle, visitation.info.size);
+    _info.setProperty(_isLeafHandle, visitation.info.isLeaf);
+    _visitor = &visitation.visitor;
     _guideFunction.call(QScriptValue(), _arguments);
 }
 
