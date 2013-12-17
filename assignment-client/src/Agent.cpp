@@ -78,18 +78,9 @@ void Agent::run() {
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents << "\n";
-    QScriptValue result = engine.evaluate(scriptContents);
-    qDebug() << "Evaluated script.\n";
-    
-    if (engine.hasUncaughtException()) {
-        int line = engine.uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
-    }
     
     timeval startTime;
     gettimeofday(&startTime, NULL);
-    
-    int thisFrame = 0;
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));

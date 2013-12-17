@@ -6,15 +6,12 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
 find_package(Qt5Network REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
 qt5_use_modules(${TARGET_NAME} Network)
-qt5_use_modules(${TARGET_NAME} Gui)
 
 # include GLM
 include(${MACRO_DIR}/IncludeGLM.cmake)

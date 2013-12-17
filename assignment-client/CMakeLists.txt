@@ -10,23 +10,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
 find_package(Qt5Network REQUIRED)
-
-#find_package(Qt5Multimedia REQUIRED)
-#find_package(Qt5Network REQUIRED)
-#find_package(Qt5OpenGL REQUIRED)
-#find_package(Qt5Svg REQUIRED)
-#find_package(Qt5WebKit REQUIRED)
-#find_package(Qt5WebKitWidgets REQUIRED)
-
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 setup_hifi_project(${TARGET_NAME} TRUE)
 
 qt5_use_modules(${TARGET_NAME} Network)
-qt5_use_modules(${TARGET_NAME} Gui)
 
 # include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)
