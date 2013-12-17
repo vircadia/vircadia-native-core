@@ -14,14 +14,14 @@
 #include "ui/LogDialog.h"
 #include "LogDisplay.h"
 
-#define INITIAL_WIDTH_RATIO 0.3
+#define INITIAL_WIDTH_RATIO 0.6
 #define INITIAL_HEIGHT_RATIO 0.6
 
 int cursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
 int blockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
 
 LogDialog::LogDialog(QWidget* parent) :
-    QDialog(parent, Qt::Dialog | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) {
+    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint) {
 
         setWindowTitle("Log");
 
