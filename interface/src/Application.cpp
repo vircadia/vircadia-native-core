@@ -158,7 +158,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug( "[VERSION] Build sequence: %i", BUILD_VERSION);
+    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -185,7 +185,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
 
-    // setup QSettings
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
     

@@ -119,7 +119,7 @@ void LogDisplay::addMessage(const char* ptr) {
             _writePos = _chars;
         }
 
-        if (++_writtenInLine >= _lineLength || c == '\0') {
+        if (c == '\0') {
 
             // new line? store its start to the line buffer and mark next line as empty
             ++_lastLinePos;
@@ -149,7 +149,6 @@ void LogDisplay::addMessage(const char* ptr) {
 
             // remember start position in character buffer for next line and reset character count
             _writeLineStartPos = _writePos;
-            _writtenInLine = 0;
         }
     }
 
