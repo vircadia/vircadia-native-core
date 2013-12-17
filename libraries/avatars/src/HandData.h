@@ -55,7 +55,7 @@ public:
 
     std::vector<PalmData>& getPalms() { return _palms; }
     const std::vector<PalmData>& getPalms() const { return _palms; }
-    size_t getNumPalms() { return _palms.size(); }
+    size_t getNumPalms() const { return _palms.size(); }
     PalmData& addNewPalm();
 
     /// Finds the indices of the left and right palms according to their locations, or -1 if either or
