@@ -425,9 +425,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.\n";
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
-            if (_ringBuffer.isStarved()) {
-                _ringBuffer.setIsStarved(false);
-            }
+            _ringBuffer.setIsStarved(false);
             
             // copy the samples we'll resample from the ring buffer - this also
             // pushes the read pointer of the ring buffer forwards
