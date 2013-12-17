@@ -78,8 +78,11 @@ private:
     QAudioFormat _outputFormat;
     QIODevice* _outputDevice;
     int _numOutputCallbackBytes;
+    QAudioOutput* _loopbackAudioOutput;
+    QIODevice* _loopbackOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
+    
     Oscilloscope* _scope;
     StDev _stdev;
     timeval _lastReceiveTime;

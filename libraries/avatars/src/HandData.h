@@ -158,7 +158,9 @@ public:
     void addToPosition(const glm::vec3& delta);
     
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
-    const glm::vec3 getTipPosition() const { return _tipPosition; } 
+    const glm::vec3 getTipPosition() const { return _owningHandData->leapPositionToWorldPosition(_tipPosition); }
+    const glm::vec3 getTipRawPosition() const { return _tipPosition; }
+
     const glm::vec3& getTipVelocity() const { return _tipVelocity; }
     void setTipVelocity(const glm::vec3& velocity) { _tipVelocity = velocity; }
     
@@ -181,6 +183,9 @@ public:
     
     bool getIsCollidingWithVoxel() { return _isCollidingWithVoxel; }
     void setIsCollidingWithVoxel(bool isCollidingWithVoxel) { _isCollidingWithVoxel = isCollidingWithVoxel; }
+
+    bool getIsCollidingWithPalm() { return _isCollidingWithPalm; }
+    void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
 
 private:
     std::vector<FingerData> _fingers;
@@ -205,6 +210,7 @@ private:
     HandData* _owningHandData;
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
+    bool      _isCollidingWithPalm;
     
 };
 

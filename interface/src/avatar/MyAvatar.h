@@ -30,6 +30,7 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(bool turnWithHead);
     void render(bool forceRenderHead);
+    void renderDebugBodyPoints();
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }

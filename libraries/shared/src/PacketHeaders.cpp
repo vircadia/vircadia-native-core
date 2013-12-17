@@ -54,7 +54,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 2;
 
         case PACKET_TYPE_PARTICLE_DATA:
-            return 2;
+            return 3;
         
         default:
             return 0;
