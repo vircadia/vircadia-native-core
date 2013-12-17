@@ -85,7 +85,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         //printf("potentially caught... particle ID:%d\n", closestParticle->getID());
         
         if (!_toyBallInHand[handID]) {
-            printf("particle ID:%d NOT IN HAND\n", closestParticle->getID());
+            /***
+            printf("particle ID:%d IN TARGET AND NOT IN HAND\n", closestParticle->getID());
 
             // you can create a ParticleEditHandle by doing this...
             ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
@@ -93,22 +94,22 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // reflect off the hand...
             printf("particle ID:%d old velocity=%f,%f,%f\n", closestParticle->getID(), 
                     closestParticle->getVelocity().x, closestParticle->getVelocity().y, closestParticle->getVelocity().z);
-            glm::vec3 newVelocity = glm::reflect(closestParticle->getVelocity(), palm.getNormal());
+                    
+            glm::vec3 reflectNormal = glm::vec3(0,1,0); // palm.getNormal()                    
+            glm::vec3 newVelocity = glm::reflect(closestParticle->getVelocity(), reflectNormal);
 
             printf("particle ID:%d REFLECT velocity=%f,%f,%f\n", closestParticle->getID(), 
                     newVelocity.x, newVelocity.y, newVelocity.z);
 
-            newVelocity += palm.getTipVelocity() / (float)TREE_SCALE;
-
-            printf("particle ID:%d with TIP velocity=%f,%f,%f\n", closestParticle->getID(), 
-                    newVelocity.x, newVelocity.y, newVelocity.z);
+            //newVelocity += palm.getTipVelocity() / (float)TREE_SCALE;
+            //printf("particle ID:%d with TIP velocity=%f,%f,%f\n", closestParticle->getID(), newVelocity.x, newVelocity.y, newVelocity.z);
 
             
             printf("particle ID:%d OLD position=%f,%f,%f\n", closestParticle->getID(), 
                     closestParticle->getPosition().x, closestParticle->getPosition().y, closestParticle->getPosition().z);
             glm::vec3 newPosition = closestParticle->getPosition();
 
-            newPosition += newVelocity; // move it as if it's already been moving in new direction
+            newPosition += newVelocity * 10.f; // move it as if it's already been moving in new direction
 
             printf("particle ID:%d NEW position=%f,%f,%f\n", closestParticle->getID(), 
                     newPosition.x, newPosition.y, newPosition.z);
@@ -123,6 +124,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         
             // but make sure you clean it up, when you're done
             delete caughtParticle;
+            **/
         }
     }
     
@@ -496,6 +498,10 @@ void Hand::renderLeapHands() {
             }
             glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
             glutWireSphere(targetRadius, 20.0f, 20.0f);
+            
+            const float collisionRadius = 0.05f;
+            glColor4f(0.5f,0.5f,0.5f, alpha);
+            glutWireSphere(collisionRadius, 20.0f, 20.0f);
             glPopMatrix();
         }
     }
