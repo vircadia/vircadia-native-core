@@ -89,7 +89,7 @@ protected:
     OctreeEditPacketSender* _packetSender;
     JurisdictionListener* _jurisdictionListener;
     bool _managedPacketSender;
-    bool _managedJuridiciontListerner;
+    bool _managedJurisdictionListener;
 };
 
 #endif /* defined(__hifi__OctreeScriptingInterface__) */
