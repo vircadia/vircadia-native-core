@@ -1534,7 +1534,7 @@ void Application::shootParticle() {
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree());
+    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree(), id);
     return particleEditHandle;
 }
 

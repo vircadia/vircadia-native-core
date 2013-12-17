@@ -74,55 +74,45 @@ void Hand::reset() {
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
     bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     int handID = palm.getSixenseID();
+
+    bool grabButtonPressed = (palm.getControllerButtons() & BUTTON_FWD);
+    bool ballAlreadyInHand = _toyBallInHand[handID];
+
     glm::vec3 targetPosition = palm.getPosition() / (float)TREE_SCALE;
     float targetRadius = (TOY_BALL_RADIUS * 4.0f) / (float)TREE_SCALE;
     const Particle* closestParticle = Application::getInstance()->getParticles()
                                                 ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
+    //printf("simulateToyBall() handID:%d grabButtonPressed:%s ballAlreadyInHand:%s\n", 
+    //        handID, debug::valueOf(grabButtonPressed), debug::valueOf(ballAlreadyInHand));
+
     if (closestParticle) {
-        //printf("potentially caught... particle ID:%d\n", closestParticle->getID());
-        
-        if (!_toyBallInHand[handID]) {
-            /***
-            printf("particle ID:%d IN TARGET AND NOT IN HAND\n", closestParticle->getID());
-
-            // you can create a ParticleEditHandle by doing this...
-            ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
-        
-            // reflect off the hand...
-            printf("particle ID:%d old velocity=%f,%f,%f\n", closestParticle->getID(), 
-                    closestParticle->getVelocity().x, closestParticle->getVelocity().y, closestParticle->getVelocity().z);
-                    
-            glm::vec3 reflectNormal = glm::vec3(0,1,0); // palm.getNormal()                    
-            glm::vec3 newVelocity = glm::reflect(closestParticle->getVelocity(), reflectNormal);
-
-            printf("particle ID:%d REFLECT velocity=%f,%f,%f\n", closestParticle->getID(), 
-                    newVelocity.x, newVelocity.y, newVelocity.z);
-
-            //newVelocity += palm.getTipVelocity() / (float)TREE_SCALE;
-            //printf("particle ID:%d with TIP velocity=%f,%f,%f\n", closestParticle->getID(), newVelocity.x, newVelocity.y, newVelocity.z);
-
+        //printf("potentially caught... handID:%d particle ID:%d grabButtonPressed:%s ballAlreadyInHand:%s\n", 
+        //    handID, closestParticle->getID(), debug::valueOf(grabButtonPressed), debug::valueOf(ballAlreadyInHand));
             
-            printf("particle ID:%d OLD position=%f,%f,%f\n", closestParticle->getID(), 
-                    closestParticle->getPosition().x, closestParticle->getPosition().y, closestParticle->getPosition().z);
-            glm::vec3 newPosition = closestParticle->getPosition();
-
-            newPosition += newVelocity * 10.f; // move it as if it's already been moving in new direction
-
-            printf("particle ID:%d NEW position=%f,%f,%f\n", closestParticle->getID(), 
-                    newPosition.x, newPosition.y, newPosition.z);
-        
+        // If I don't currently have a ball in my hand, then I can catch this closest particle
+        if (!ballAlreadyInHand && grabButtonPressed) {
+            //printf("caught... handID:%d particle ID:%d\n", handID, closestParticle->getID());
+            ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+            glm::vec3 newPosition = targetPosition;
+            glm::vec3 newVelocity = NO_VELOCITY;
+            
+            // update the particle with it's new state...
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
                                             newVelocity,
                                             closestParticle->getGravity(), 
                                             closestParticle->getDamping(), 
+                                            IN_HAND, // we just grabbed it!
                                             closestParticle->getUpdateScript());
-        
-            // but make sure you clean it up, when you're done
-            delete caughtParticle;
-            **/
+                                            
+            // now tell our hand about us having caught it...
+            _toyBallInHand[handID] = true;
+
+            //printf(">>>>>>> caught... handID:%d particle ID:%d _toyBallInHand[handID] = true\n", handID, closestParticle->getID());
+            _ballParticleEditHandles[handID] = caughtParticle;
+            caughtParticle = NULL;
         }
     }
     
