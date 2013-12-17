@@ -10,6 +10,7 @@
 #define __interface__MetavoxelSystem__
 
 #include <QOpenGLBuffer>
+#include <QScriptEngine>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -50,6 +51,7 @@ private:
     static ProgramObject _program;
     static int _pointScaleLocation;
     
+    QScriptEngine _scriptEngine;
     MetavoxelData _data;
     QVector<Point> _points;
     PointVisitor _pointVisitor;

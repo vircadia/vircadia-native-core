@@ -109,7 +109,7 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
 PolymorphicData::~PolymorphicData() {
 }
 
-template<> PolymorphicData* QSharedDataPointer<PolymorphicData>::clone() {
+template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone() {
     return d->clone();
 }
 

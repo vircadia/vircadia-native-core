@@ -39,6 +39,13 @@ void MetavoxelSystem::init() {
     
     _data.setAttributeValue(p1, AttributeValue(color, encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF))));
     
+    QScriptValue guideFunction = _scriptEngine.evaluate(
+        "(function(visitation) { "
+        "    visitation.visitor.visit(visitation.info);"
+        "})");
+    _data.setAttributeValue(MetavoxelPath(), AttributeValue(AttributeRegistry::getInstance()->getGuideAttribute(),
+        encodeInline(PolymorphicDataPointer(new ScriptedMetavoxelGuide(guideFunction)))));
+    
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
 }

@@ -11,6 +11,7 @@
 
 #include <QBitArray>
 #include <QHash>
+#include <QScriptString>
 #include <QScriptValue>
 #include <QVector>
 
@@ -18,9 +19,11 @@
 
 #include "AttributeRegistry.h"
 
+class QScriptContext;
+
 class MetavoxelNode;
 class MetavoxelPath;
-class MetavoxelTour;
+class MetavoxelVisitation;
 class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
@@ -71,7 +74,6 @@ public:
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
-    bool allChildrenEqual(const AttributePointer& attribute) const;
     void clearChildren(const AttributePointer& attribute);
     
     void* _attributeValue;
@@ -130,7 +132,7 @@ class MetavoxelGuide : public PolymorphicData {
 public:
     
     /// Guides the specified visitor to the contained voxels.
-    virtual void guide(MetavoxelTour& tour) const = 0;
+    virtual void guide(MetavoxelVisitation& visitation) = 0;
 };
 
 /// Guides visitors through the explicit content of the system.
@@ -139,7 +141,7 @@ public:
     
     virtual PolymorphicData* clone() const;
     
-    virtual void guide(MetavoxelTour& tour) const;
+    virtual void guide(MetavoxelVisitation& visitation);
 };
 
 /// Represents a guide implemented in Javascript.
@@ -150,16 +152,29 @@ public:
 
     virtual PolymorphicData* clone() const;
     
-    virtual void guide(MetavoxelTour& tour) const;
+    virtual void guide(MetavoxelVisitation& visitation);
 
 private:
 
+    static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
+
     QScriptValue _guideFunction;
+    QScriptString _sizeHandle;
+    QScriptValueList _arguments;
+    QScriptValue _visitFunction;
+    QScriptValue _info;
+    QScriptValue _minimum;
 };
 
-/// Contains the state associated with a tour of a metavoxel system.
-class MetavoxelTour {
+/// Contains the state associated with a visit to a metavoxel system.
+class MetavoxelVisitation {
+public:
+
+    MetavoxelVisitor& visitor;
+    QVector<MetavoxelNode*> nodes;
+    MetavoxelInfo info;
     
+    bool allNodesLeaves() const;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

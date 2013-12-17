@@ -10,9 +10,9 @@
 #define __interface__AttributeRegistry__
 
 #include <QColor>
+#include <QExplicitlySharedDataPointer>
 #include <QHash>
 #include <QSharedData>
-#include <QSharedDataPointer>
 #include <QSharedPointer>
 #include <QString>
 
@@ -247,9 +247,9 @@ public:
     virtual PolymorphicData* clone() const = 0;
 };
 
-template<> PolymorphicData* QSharedDataPointer<PolymorphicData>::clone();
+template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone();
 
-typedef QSharedDataPointer<PolymorphicData> PolymorphicDataPointer;
+typedef QExplicitlySharedDataPointer<PolymorphicData> PolymorphicDataPointer;
 
 /// Provides polymorphic streaming and averaging.
 class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {

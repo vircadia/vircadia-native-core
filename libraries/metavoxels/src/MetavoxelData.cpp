@@ -6,6 +6,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QScriptEngine>
+#include <QtDebug>
+
 #include "MetavoxelData.h"
 
 MetavoxelData::~MetavoxelData() {
@@ -15,66 +18,23 @@ MetavoxelData::~MetavoxelData() {
     }
 }
 
-class Visitation {
-public:
-    MetavoxelVisitor& visitor;
-    QVector<MetavoxelNode*> nodes;
-    MetavoxelInfo info;
-
-    void apply();
-
-protected:
-    
-    bool allNodesLeaves() const;
-};
-
-const int X_MAXIMUM_FLAG = 1;
-const int Y_MAXIMUM_FLAG = 2;
-const int Z_MAXIMUM_FLAG = 4;
-
-void Visitation::apply() {
-    info.isLeaf = allNodesLeaves();
-    if (!visitor.visit(info) || info.isLeaf) {
-        return;
-    }
-    Visitation nextVisitation = { visitor, QVector<MetavoxelNode*>(nodes.size()),
-        { glm::vec3(), info.size * 0.5f, QVector<AttributeValue>(nodes.size()) } };
-    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
-        for (int j = 0; j < nodes.size(); j++) {
-            MetavoxelNode* node = nodes.at(j);
-            MetavoxelNode* child = node ? node->getChild(i) : NULL;
-            nextVisitation.info.attributeValues[j] = ((nextVisitation.nodes[j] = child)) ?
-                child->getAttributeValue(info.attributeValues[j].getAttribute()) : info.attributeValues[j];
-        }
-        nextVisitation.info.minimum = info.minimum + glm::vec3(
-            (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
-            (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
-            (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
-        nextVisitation.apply();
-    }
-}
-
-bool Visitation::allNodesLeaves() const {
-    foreach (MetavoxelNode* node, nodes) {
-        if (node != NULL && !node->isLeaf()) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {
-    // start with the root values/defaults
+    // start with the root values/defaults (plus the guide attribute)
     const float TOP_LEVEL_SIZE = 1.0f;
     const QVector<AttributePointer>& attributes = visitor.getAttributes();
-    Visitation firstVisitation = { visitor, QVector<MetavoxelNode*>(attributes.size()),
-        { glm::vec3(), TOP_LEVEL_SIZE, QVector<AttributeValue>(attributes.size()) } };
+    MetavoxelVisitation firstVisitation = { visitor, QVector<MetavoxelNode*>(attributes.size() + 1),
+        { glm::vec3(), TOP_LEVEL_SIZE, QVector<AttributeValue>(attributes.size() + 1) } };
     for (int i = 0; i < attributes.size(); i++) {
         MetavoxelNode* node = _roots.value(attributes[i]);
         firstVisitation.nodes[i] = node;
         firstVisitation.info.attributeValues[i] = node ? node->getAttributeValue(attributes[i]) : attributes[i];
     }
-    firstVisitation.apply();
+    AttributePointer guideAttribute = AttributeRegistry::getInstance()->getGuideAttribute();
+    MetavoxelNode* node = _roots.value(guideAttribute);
+    firstVisitation.nodes.last() = node;
+    firstVisitation.info.attributeValues.last() = node ? node->getAttributeValue(guideAttribute) : guideAttribute;
+    static_cast<MetavoxelGuide*>(firstVisitation.info.attributeValues.last().getInlineValue<
+        PolymorphicDataPointer>().data())->guide(firstVisitation);
 }
 
 void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue) {
@@ -169,15 +129,6 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
     }
 }
 
-bool MetavoxelNode::allChildrenEqual(const AttributePointer& attribute) const {
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        if (!attribute->equal(_attributeValue, _children[i]->_attributeValue)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
@@ -206,15 +157,78 @@ PolymorphicData* DefaultMetavoxelGuide::clone() const {
     return new DefaultMetavoxelGuide();
 }
 
-void DefaultMetavoxelGuide::guide(MetavoxelTour& tour) const {
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int Z_MAXIMUM_FLAG = 4;
+
+void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    visitation.info.isLeaf = visitation.allNodesLeaves();
+    if (!visitation.visitor.visit(visitation.info) || visitation.info.isLeaf) {
+        return;
+    }
+    MetavoxelVisitation nextVisitation = { visitation.visitor, QVector<MetavoxelNode*>(visitation.nodes.size()),
+        { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.nodes.size()) } };
+    for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+        for (int j = 0; j < visitation.nodes.size(); j++) {
+            MetavoxelNode* node = visitation.nodes.at(j);
+            MetavoxelNode* child = node ? node->getChild(i) : NULL;
+            nextVisitation.info.attributeValues[j] = ((nextVisitation.nodes[j] = child)) ?
+                child->getAttributeValue(visitation.info.attributeValues[j].getAttribute()) :
+                    visitation.info.attributeValues[j];
+        }
+        nextVisitation.info.minimum = visitation.info.minimum + glm::vec3(
+            (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
+            (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
+            (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
+        static_cast<MetavoxelGuide*>(nextVisitation.info.attributeValues.last().getInlineValue<
+            PolymorphicDataPointer>().data())->guide(nextVisitation);
+    }
 }
 
-ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) : _guideFunction(guideFunction) {
+QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngine* engine) {
+    qDebug() << context->callee().data().toVariant() << " oh hi thar\n";
+    
+    MetavoxelInfo info;
+    QScriptValue infoValue = context->argument(0);
+    
+    
+    
+    return QScriptValue();
+}
+
+ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
+    _guideFunction(guideFunction),
+    _sizeHandle(guideFunction.engine()->toStringHandle("size")),
+    _visitFunction(guideFunction.engine()->newFunction(visit, 1)),
+    _info(guideFunction.engine()->newObject()),
+    _minimum(guideFunction.engine()->newArray(3)) {
+    
+    _arguments.append(guideFunction.engine()->newObject());
+    QScriptValue visitor = guideFunction.engine()->newObject();
+    visitor.setProperty("visit", _visitFunction);
+    _arguments[0].setProperty("visitor", visitor);
+    _arguments[0].setProperty("info", _info);
+    _info.setProperty("minimum", _minimum);
 }
 
 PolymorphicData* ScriptedMetavoxelGuide::clone() const {
     return new ScriptedMetavoxelGuide(_guideFunction);
 }
 
-void ScriptedMetavoxelGuide::guide(MetavoxelTour& tour) const {
+void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    _visitFunction.setData(_guideFunction.engine()->newVariant(QVariant::fromValue<void*>(this)));
+    _minimum.setProperty(0, visitation.info.minimum.x);
+    _minimum.setProperty(1, visitation.info.minimum.y);
+    _minimum.setProperty(2, visitation.info.minimum.z);
+    _info.setProperty(_sizeHandle, visitation.info.size);
+    _guideFunction.call(QScriptValue(), _arguments);
+}
+
+bool MetavoxelVisitation::allNodesLeaves() const {
+    foreach (MetavoxelNode* node, nodes) {
+        if (node != NULL && !node->isLeaf()) {
+            return false;
+        }
+    }
+    return true;
 }
