@@ -24,8 +24,6 @@
 Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes)
 {
-    //_particleScriptingInterface.init();
-    //_voxelScriptingInterface.init();
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
@@ -94,12 +92,6 @@ void Agent::run() {
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
 
-    //const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
-    // let the VoxelPacketSender know how frequently we plan to call it
-    //_voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    //_particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    
     _scriptEngine.setScriptContents(scriptContents);
-
     _scriptEngine.run();    
 }

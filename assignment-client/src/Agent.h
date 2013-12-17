@@ -34,8 +34,6 @@ signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
 private:
-    //VoxelScriptingInterface _voxelScriptingInterface;
-    //ParticleScriptingInterface _particleScriptingInterface;
     ScriptEngine _scriptEngine;
 };
 
