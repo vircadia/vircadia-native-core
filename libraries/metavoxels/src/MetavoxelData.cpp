@@ -185,31 +185,67 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     }
 }
 
+QScriptValue ScriptedMetavoxelGuide::getAttributes(QScriptContext* context, QScriptEngine* engine) {
+    ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
+    
+    const QVector<AttributePointer>& attributes = guide->_visitation->visitor.getAttributes();
+    QScriptValue attributesValue = engine->newArray(attributes.size());
+    for (int i = 0; i < attributes.size(); i++) {
+        attributesValue.setProperty(i, engine->newQObject(attributes.at(i).data(), QScriptEngine::QtOwnership,
+            QScriptEngine::PreferExistingWrapperObject));
+    }
+    
+    return attributesValue;
+}
+
 QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngine* engine) {
     ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
 
-    MetavoxelInfo info;
+    // start with the basics, including inherited attribute values
     QScriptValue infoValue = context->argument(0);
-    QScriptValue minimumValue = infoValue.property(guide->_minimumHandle);
-    info.minimum = glm::vec3(minimumValue.property(0).toNumber(), minimumValue.property(1).toNumber(),
-        minimumValue.property(2).toNumber());
-    info.size = infoValue.property(guide->_sizeHandle).toNumber();    
-    info.isLeaf = infoValue.property(guide->_isLeafHandle).toBool();
+    QScriptValue minimum = infoValue.property(guide->_minimumHandle);
+    MetavoxelInfo info = {
+        glm::vec3(minimum.property(0).toNumber(), minimum.property(1).toNumber(), minimum.property(2).toNumber()),
+        infoValue.property(guide->_sizeHandle).toNumber(), guide->_visitation->info.attributeValues,
+        infoValue.property(guide->_isLeafHandle).toBool() };
     
-    return guide->_visitor->visit(info);
+    // extract and convert the values provided by the script
+    QScriptValue attributeValues = infoValue.property(guide->_attributeValuesHandle);
+    const QVector<AttributePointer>& attributes = guide->_visitation->visitor.getAttributes();
+    for (int i = 0; i < attributes.size(); i++) {
+        QScriptValue attributeValue = attributeValues.property(i);
+        if (attributeValue.isValid()) {
+            info.attributeValues[i] = AttributeValue(attributes.at(i),
+                attributes.at(i)->createFromScript(attributeValue, engine));
+        }
+    }
+    
+    QScriptValue result = guide->_visitation->visitor.visit(info);
+    
+    // destroy any created values
+    for (int i = 0; i < attributes.size(); i++) {
+        if (attributeValues.property(i).isValid()) {
+            info.attributeValues[i].getAttribute()->destroy(info.attributeValues[i].getValue());
+        }
+    }
+    
+    return result;
 }
 
 ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
     _guideFunction(guideFunction),
     _minimumHandle(guideFunction.engine()->toStringHandle("minimum")),
     _sizeHandle(guideFunction.engine()->toStringHandle("size")),
+    _attributeValuesHandle(guideFunction.engine()->toStringHandle("attributeValues")),
     _isLeafHandle(guideFunction.engine()->toStringHandle("isLeaf")),
+    _getAttributesFunction(guideFunction.engine()->newFunction(getAttributes, 0)),
     _visitFunction(guideFunction.engine()->newFunction(visit, 1)),
     _info(guideFunction.engine()->newObject()),
     _minimum(guideFunction.engine()->newArray(3)) {
     
     _arguments.append(guideFunction.engine()->newObject());
     QScriptValue visitor = guideFunction.engine()->newObject();
+    visitor.setProperty("getAttributes", _getAttributesFunction);
     visitor.setProperty("visit", _visitFunction);
     _arguments[0].setProperty("visitor", visitor);
     _arguments[0].setProperty("info", _info);
@@ -221,14 +257,19 @@ PolymorphicData* ScriptedMetavoxelGuide::clone() const {
 }
 
 void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    _visitFunction.setData(_guideFunction.engine()->newVariant(QVariant::fromValue<void*>(this)));
+    QScriptValue data = _guideFunction.engine()->newVariant(QVariant::fromValue<void*>(this));
+    _getAttributesFunction.setData(data);
+    _visitFunction.setData(data);
     _minimum.setProperty(0, visitation.info.minimum.x);
     _minimum.setProperty(1, visitation.info.minimum.y);
     _minimum.setProperty(2, visitation.info.minimum.z);
     _info.setProperty(_sizeHandle, visitation.info.size);
     _info.setProperty(_isLeafHandle, visitation.info.isLeaf);
-    _visitor = &visitation.visitor;
+    _visitation = &visitation;
     _guideFunction.call(QScriptValue(), _arguments);
+    if (_guideFunction.engine()->hasUncaughtException()) {
+        qDebug() << "Script error: " << _guideFunction.engine()->uncaughtException().toString() << "\n";
+    }
 }
 
 bool MetavoxelVisitation::allNodesLeaves() const {

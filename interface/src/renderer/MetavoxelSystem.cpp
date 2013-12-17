@@ -30,6 +30,8 @@ void MetavoxelSystem::init() {
         _pointScaleLocation = _program.uniformLocation("pointScale");
     }
     
+    AttributeRegistry::getInstance()->configureScriptEngine(&_scriptEngine);
+    
     MetavoxelPath p1;
     p1 += 7;
     p1 += 7;
@@ -41,6 +43,13 @@ void MetavoxelSystem::init() {
     
     QScriptValue guideFunction = _scriptEngine.evaluate(
         "(function(visitation) { "
+        "    var attributes = visitation.visitor.getAttributes();"
+        "    var colorIndex = attributes.indexOf(AttributeRegistry.colorAttribute);"
+        "    var normalIndex = attributes.indexOf(AttributeRegistry.normalAttribute);"
+        "    for (var i = 0; i < attributes.length; i++) {"
+        "       print(attributes[i].getName() + ' ');"
+        "    }"
+        "    print('\\n');"
         "    visitation.visitor.visit(visitation.info);"
         "})");
     _data.setAttributeValue(MetavoxelPath(), AttributeValue(AttributeRegistry::getInstance()->getGuideAttribute(),

@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QScriptEngine>
+
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
 
@@ -17,12 +19,25 @@ AttributeRegistry::AttributeRegistry() :
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
 
+void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
+    QScriptValue registry = engine->newObject();
+    registry.setProperty("colorAttribute", engine->newQObject(_colorAttribute.data()));
+    registry.setProperty("normalAttribute", engine->newQObject(_normalAttribute.data()));
+    registry.setProperty("getAttribute", engine->newFunction(getAttribute, 1));
+    engine->globalObject().setProperty("AttributeRegistry", registry);
+}
+
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
     AttributePointer& pointer = _attributes[attribute->getName()];
     if (!pointer) {
         pointer = attribute;
     }
     return pointer;
+}
+
+QScriptValue AttributeRegistry::getAttribute(QScriptContext* context, QScriptEngine* engine) {
+    return engine->newQObject(_instance.getAttribute(context->argument(0).toString()).data(), QScriptEngine::QtOwnership,
+        QScriptEngine::PreferExistingWrapperObject);
 }
 
 AttributeValue::AttributeValue(const AttributePointer& attribute) :
@@ -76,7 +91,8 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other)
     }
 }
 
-Attribute::Attribute(const QString& name) : _name(name) {
+Attribute::Attribute(const QString& name) {
+    setObjectName(name);
 }
 
 Attribute::~Attribute() {
@@ -105,6 +121,10 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
         totalBlue / MERGE_COUNT, totalAlpha / MERGE_COUNT));
     return allChildrenEqual;
 } 
+
+void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
+    return encodeInline((QRgb)value.toUInt32());
+}
 
 PolymorphicData::~PolymorphicData() {
 }

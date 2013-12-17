@@ -156,18 +156,21 @@ public:
 
 private:
 
+    static QScriptValue getAttributes(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
 
     QScriptValue _guideFunction;
     QScriptString _minimumHandle;
     QScriptString _sizeHandle;
+    QScriptString _attributeValuesHandle;
     QScriptString _isLeafHandle;
     QScriptValueList _arguments;
+    QScriptValue _getAttributesFunction;
     QScriptValue _visitFunction;
     QScriptValue _info;
     QScriptValue _minimum;
     
-    MetavoxelVisitor* _visitor;
+    MetavoxelVisitation* _visitation;
 };
 
 /// Contains the state associated with a visit to a metavoxel system.

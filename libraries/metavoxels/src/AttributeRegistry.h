@@ -12,11 +12,16 @@
 #include <QColor>
 #include <QExplicitlySharedDataPointer>
 #include <QHash>
+#include <QObject>
 #include <QSharedData>
 #include <QSharedPointer>
 #include <QString>
 
 #include "Bitstream.h"
+
+class QScriptContext;
+class QScriptEngine;
+class QScriptValue;
 
 class Attribute;
 
@@ -30,6 +35,9 @@ public:
     static AttributeRegistry* getInstance() { return &_instance; }
     
     AttributeRegistry();
+    
+    /// Configures the supplied script engine with the global AttributeRegistry property.
+    void configureScriptEngine(QScriptEngine* engine);
     
     /// Registers an attribute with the system.  The registry assumes ownership of the object.
     /// \return either the pointer passed as an argument, if the attribute wasn't already registered, or the existing
@@ -54,6 +62,8 @@ public:
     const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
     
 private:
+
+    static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
 
     static AttributeRegistry _instance;
 
@@ -114,15 +124,17 @@ public:
 };
 
 /// Represents a registered attribute.
-class Attribute {
+class Attribute : public QObject {
+    Q_OBJECT
+    
 public:
-
+    
     static const int MERGE_COUNT = 8;
     
     Attribute(const QString& name);
     virtual ~Attribute();
 
-    const QString& getName() const { return _name; }
+    Q_INVOKABLE QString getName() const { return objectName(); }
 
     void* create() const { return create(getDefaultValue()); }
     virtual void* create(void* copy) const = 0;
@@ -139,9 +151,7 @@ public:
 
     virtual void* getDefaultValue() const = 0;
 
-private:
-
-    QString _name;
+    virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const { return create(); }
 };
 
 /// A simple attribute class that stores its values inline.
@@ -193,6 +203,8 @@ public:
     QRgbAttribute(const QString& name, QRgb defaultValue = QRgb());
     
     virtual bool merge(void*& parent, void* children[]) const;
+    
+    virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
 };
 
 /// An attribute class that stores pointers to its values.
