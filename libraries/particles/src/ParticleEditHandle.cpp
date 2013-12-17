@@ -44,7 +44,8 @@ void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor
                            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
 
     // setup a ParticleDetail struct with the data
-    ParticleDetail addParticleDetail = { NEW_PARTICLE, usecTimestampNow(), 
+    uint64_t now = usecTimestampNow();
+    ParticleDetail addParticleDetail = { NEW_PARTICLE, now, now,
             position, radius, {color.red, color.green, color.blue }, 
             velocity, gravity, damping, inHand, updateScript, _creatorTokenID };
     
@@ -69,7 +70,8 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     }
     
     // setup a ParticleDetail struct with the data
-    ParticleDetail newParticleDetail = { _id, usecTimestampNow(), 
+    uint64_t now = usecTimestampNow();
+    ParticleDetail newParticleDetail = { _id, now, now,
             position, radius, {color.red, color.green, color.blue }, 
             velocity, gravity, damping, inHand, updateScript, _creatorTokenID };
 
