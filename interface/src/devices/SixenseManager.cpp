@@ -107,8 +107,8 @@ void SixenseManager::update(float deltaTime) {
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
         finger.setRawTipPosition(position + rotation * FINGER_VECTOR);
         
-        // temporary for toy ball - store first finger tip velocity
-        glm::vec3 oldTipPosition = palm->getTipPosition();
+        // Store the one fingertip in the palm structure so we can track velocity
+        glm::vec3 oldTipPosition = palm->getTipRawPosition();
         palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime / 1000.f);
         palm->setTipPosition(newTipPosition);
         

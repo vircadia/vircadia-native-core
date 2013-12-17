@@ -26,9 +26,12 @@ const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.99f;
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
-const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-1,0);
+const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
+const float NO_DAMPING = 0.f;
+const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-0.5,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
+const float CATCH_RADIUS = 0.2f;
 const xColor TOY_BALL_ON_SERVER_COLOR[] = 
     {
         { 255, 0, 0 },
@@ -80,21 +83,15 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     bool grabButtonPressed = (palm.getControllerButtons() & BUTTON_FWD);
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
-    glm::vec3 targetPosition = palm.getPosition() / (float)TREE_SCALE;
-    float targetRadius = (TOY_BALL_RADIUS * 4.0f) / (float)TREE_SCALE;
+    glm::vec3 targetPosition = (ballFromHand ? palm.getPosition() : fingerTipPosition) / (float)TREE_SCALE;
+    float targetRadius = CATCH_RADIUS / (float)TREE_SCALE;
     const Particle* closestParticle = Application::getInstance()->getParticles()
                                                 ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
-    //printf("simulateToyBall() handID:%d grabButtonPressed:%s ballAlreadyInHand:%s\n", 
-    //        handID, debug::valueOf(grabButtonPressed), debug::valueOf(ballAlreadyInHand));
 
     if (closestParticle) {
-        //printf("potentially caught... handID:%d particle ID:%d grabButtonPressed:%s ballAlreadyInHand:%s\n", 
-        //    handID, closestParticle->getID(), debug::valueOf(grabButtonPressed), debug::valueOf(ballAlreadyInHand));
-            
         // If I don't currently have a ball in my hand, then I can catch this closest particle
         if (!ballAlreadyInHand && grabButtonPressed) {
-            //printf("caught... handID:%d particle ID:%d\n", handID, closestParticle->getID());
             ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
             glm::vec3 newPosition = targetPosition;
             glm::vec3 newVelocity = NO_VELOCITY;
@@ -107,8 +104,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
                                             newVelocity,
-                                            closestParticle->getGravity(), 
-                                            closestParticle->getDamping(), 
+                                            NO_GRAVITY,
+                                            NO_DAMPING,
                                             IN_HAND, // we just grabbed it!
                                             closestParticle->getUpdateScript());
                                             
@@ -461,20 +458,23 @@ void Hand::render( bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-        for (int i = 0; i < getNumPalms(); i++) {
-            PalmData& palm = getPalms()[i];
-            if (!palm.isActive()) {
-                continue;
+    
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+            for (int i = 0; i < getNumPalms(); i++) {
+                PalmData& palm = getPalms()[i];
+                if (!palm.isActive()) {
+                    continue;
+                }
+                glm::vec3 position = palm.getPosition();
+                glPushMatrix();
+                glTranslatef(position.x, position.y, position.z);
+                glColor3f(0.0f, 1.0f, 0.0f);
+                glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
+                glPopMatrix();
             }
-            glm::vec3 position = palm.getPosition();
-            glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glColor3f(0.0f, 1.0f, 0.0f);
-            glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
-            glPopMatrix();
         }
-    }
+
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         renderLeapHands();
@@ -503,10 +503,11 @@ void Hand::render( bool isMine) {
 void Hand::renderLeapHands() {
 
     const float alpha = 1.0f;
+    const float TARGET_ALPHA = 0.5f;
+    
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
-    
-
+    bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -517,26 +518,25 @@ void Hand::renderLeapHands() {
             if (!palm.isActive()) {
                 continue;
             }
-            glm::vec3 targetPosition = palm.getPosition();
-            float targetRadius = (TOY_BALL_RADIUS * 4.0f);
+            glm::vec3 targetPosition = ballFromHand ? palm.getPosition() : palm.getTipPosition();
             glPushMatrix();
         
             const Particle* closestParticle = Application::getInstance()->getParticles()
                                                         ->getTree()->findClosestParticle(targetPosition / (float)TREE_SCALE, 
-                                                                                         targetRadius / (float)TREE_SCALE);
+                                                                                         CATCH_RADIUS / (float)TREE_SCALE);
                                                                                          
             // If we are hitting a particle then draw the target green, otherwise yellow
             if (closestParticle) {
-                glColor4f(0,1,0, alpha);
+                glColor4f(0,1,0, TARGET_ALPHA);
             } else {
-                glColor4f(1,1,0, alpha);
+                glColor4f(1,1,0, TARGET_ALPHA);
             }
             glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
-            glutWireSphere(targetRadius, 20.0f, 20.0f);
+            glutWireSphere(CATCH_RADIUS, 10.f, 10.f);
             
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
-            glutWireSphere(collisionRadius, 20.0f, 20.0f);
+            glutWireSphere(collisionRadius, 10.f, 10.f);
             glPopMatrix();
         }
     }
