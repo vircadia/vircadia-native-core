@@ -115,15 +115,39 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
+    bool wantDebug = false;
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
-            uint64_t actuallyCreated = particle.getCreated();
-            if (!particle.isNewlyCreated()) {
-                actuallyCreated = _particles[i].getCreated();
+            int difference = _particles[i].getLastUpdated() - particle.getLastUpdated();
+            
+            bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
+            bool localOlder = _particles[i].getLastUpdated() < particle.getLastUpdated();
+            
+            if (changedOnServer || localOlder) {
+
+                if (wantDebug) {
+                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
+                                particle.getID(), (changedOnServer ? "CHANGED" : "same"),
+                                (localOlder ? "OLDER" : "NEWER"),               
+                                difference, debug::valueOf(particle.isNewlyCreated()) );
+                }
+
+                uint64_t actuallyCreated = particle.getCreated();
+                if (!particle.isNewlyCreated()) {
+                    actuallyCreated = _particles[i].getCreated();
+                }
+                _particles[i] = particle;
+                _particles[i].setCreated(actuallyCreated);
+            } else {
+                if (wantDebug) {
+                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s and %s than server particle by %d, "
+                                "particle.isNewlyCreated()=%s\n", 
+                                particle.getID(), (changedOnServer ? "CHANGED" : "same"),
+                                (localOlder ? "OLDER" : "NEWER"),               
+                                difference, debug::valueOf(particle.isNewlyCreated()) );
+                }
             }
-            _particles[i] = particle;
-            _particles[i].setCreated(actuallyCreated);
             return true;
         }
     }

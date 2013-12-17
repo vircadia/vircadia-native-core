@@ -10,7 +10,6 @@
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
@@ -54,10 +53,7 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE) * 1000 * 1000);
-
-const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE) * 1000 * 1000);
 
 const char AUDIO_MIXER_LOGGING_TARGET_NAME[] = "audio-mixer";
 
@@ -160,35 +156,29 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         }
     }
     
-    int16_t* sourceBuffer = bufferToAdd->getNextOutput();
+    // if the bearing relative angle to source is > 0 then the delayed channel is the right one
+    int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
+    int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
     
-    int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
-        ? _clientSamples
-        : _clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    int16_t* delayedChannel = (bearingRelativeAngleToSource > 0.0f)
-        ? _clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-        : _clientSamples;
-    
-    int16_t* delaySamplePointer = bufferToAdd->getNextOutput() == bufferToAdd->getBuffer()
-        ? bufferToAdd->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
-        : bufferToAdd->getNextOutput() - numSamplesDelay;
-    
-    for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-        if (s < numSamplesDelay) {
+    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 2) {
+        if ((s / 2) < numSamplesDelay) {
             // pull the earlier sample for the delayed channel
-            int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
-            
-            delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            int earlierSample = (*bufferToAdd)[(s / 2) - numSamplesDelay] * attenuationCoefficient * weakChannelAmplitudeRatio;
+            _clientSamples[s + delayedChannelOffset] = glm::clamp(_clientSamples[s + delayedChannelOffset] + earlierSample,
+                                                                    MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
         
         // pull the current sample for the good channel
-        int16_t currentSample = sourceBuffer[s] * attenuationCoefficient;
-        goodChannel[s] = glm::clamp(goodChannel[s] + currentSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        int16_t currentSample = (*bufferToAdd)[s / 2] * attenuationCoefficient;
+        _clientSamples[s + goodChannelOffset] = glm::clamp(_clientSamples[s + goodChannelOffset] + currentSample,
+                                                           MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         
-        if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            // place the curernt sample at the right spot in the delayed channel
-            int sumSample = delayedChannel[s + numSamplesDelay] + (currentSample * weakChannelAmplitudeRatio);
-            delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        if ((s / 2) + numSamplesDelay < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+            // place the current sample at the right spot in the delayed channel
+            int16_t clampedSample = glm::clamp((int) (_clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset]
+                                               + (currentSample * weakChannelAmplitudeRatio)),
+                                               MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _clientSamples[s + (numSamplesDelay * 2) + delayedChannelOffset] = clampedSample;
         }
     }
 }
@@ -282,7 +272,7 @@ void AudioMixer::run() {
     gettimeofday(&startTime, NULL);
     
     int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
-    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
+    unsigned char clientPacket[NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
     populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
     
     while (!_isFinished) {

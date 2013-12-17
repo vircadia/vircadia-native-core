@@ -90,17 +90,15 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
         // this was a used buffer, push the output pointer forwards
         PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
         
-        if (audioBuffer->willBeAddedToMix()) {            
-            audioBuffer->setNextOutput(audioBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-            
-            if (audioBuffer->getNextOutput() >= audioBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                audioBuffer->setNextOutput(audioBuffer->getBuffer());
-            }
+        if (audioBuffer->willBeAddedToMix()) {
+            audioBuffer->shiftReadPosition(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             audioBuffer->setWillBeAddedToMix(false);
-        } else if (audioBuffer->hasStarted() && audioBuffer->isStarved()) {
-            delete audioBuffer;
-            _ringBuffers.erase(_ringBuffers.begin() + i);
+        } else if (audioBuffer->isStarved()) {
+            // this was previously the kill for injected audio from a client
+            // fix when that is added back
+            // delete audioBuffer;
+            // _ringBuffers.erase(_ringBuffers.begin() + i);
         }
     }
 }

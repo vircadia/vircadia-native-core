@@ -9,61 +9,69 @@
 #ifndef __interface__AudioRingBuffer__
 #define __interface__AudioRingBuffer__
 
+#include <limits>
 #include <stdint.h>
-#include <map>
 
 #include <glm/glm.hpp>
 
+#include <QtCore/QIODevice>
+
 #include "NodeData.h"
 
-const int SAMPLE_RATE = 22050;
+const int SAMPLE_RATE = 24000;
 
-const int BUFFER_LENGTH_BYTES_STEREO = 1024;
-const int BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
-const int BUFFER_LENGTH_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
+const int NETWORK_BUFFER_LENGTH_BYTES_STEREO = 1024;
+const int NETWORK_BUFFER_LENGTH_SAMPLES_STEREO = NETWORK_BUFFER_LENGTH_BYTES_STEREO / sizeof(int16_t);
+const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
+const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
 
-const short RING_BUFFER_LENGTH_FRAMES = 20;
-const short RING_BUFFER_LENGTH_SAMPLES = RING_BUFFER_LENGTH_FRAMES * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+const short RING_BUFFER_LENGTH_FRAMES = 10;
+
+const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 class AudioRingBuffer : public NodeData {
+    Q_OBJECT
 public:
-    AudioRingBuffer(bool isStereo);
+    AudioRingBuffer(int numFrameSamples);
     ~AudioRingBuffer();
 
     void reset();
-
+    void resizeForFrameSize(qint64 numFrameSamples);
+    
+    int getSampleCapacity() const { return _sampleCapacity; }
+    
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    int parseAudioSamples(unsigned char* sourceBuffer, int numBytes);
 
-    int16_t* getNextOutput() const { return _nextOutput; }
-    void setNextOutput(int16_t* nextOutput) { _nextOutput = nextOutput; }
+    qint64 readSamples(int16_t* destination, qint64 maxSamples);
+    qint64 writeSamples(const int16_t* source, qint64 maxSamples);
     
-    int16_t* getEndOfLastWrite() const { return _endOfLastWrite; }
-    void setEndOfLastWrite(int16_t* endOfLastWrite) { _endOfLastWrite = endOfLastWrite; }
+    qint64 readData(char* data, qint64 maxSize);
+    qint64 writeData(const char* data, qint64 maxSize);
     
-    int16_t* getBuffer() const { return _buffer; }
+    int16_t& operator[](const int index);
+    
+    void shiftReadPosition(unsigned int numSamples);
+    
+    unsigned int samplesAvailable() const;
+    
+    bool isNotStarvedOrHasMinimumSamples(unsigned int numRequiredSamples) const;
     
     bool isStarved() const { return _isStarved; }
     void setIsStarved(bool isStarved) { _isStarved = isStarved; }
-    
-    bool hasStarted() const { return _hasStarted; }
-    void setHasStarted(bool hasStarted) { _hasStarted = hasStarted; }
-    
-    int diffLastWriteNextOutput() const;
-    
-    bool isStereo() const { return _isStereo; }
-    
 protected:
     // disallow copying of AudioRingBuffer objects
     AudioRingBuffer(const AudioRingBuffer&);
     AudioRingBuffer& operator= (const AudioRingBuffer&);
     
+    int16_t* shiftedPositionAccomodatingWrap(int16_t* position, int numSamplesShift) const;
+    
+    int _sampleCapacity;
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
     bool _isStarved;
     bool _hasStarted;
-    bool _isStereo;
 };
 
 #endif /* defined(__interface__AudioRingBuffer__) */

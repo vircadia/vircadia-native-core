@@ -9,6 +9,7 @@
 #include "HandData.h"
 #include "AvatarData.h"
 #include <SharedUtil.h>
+#include <GeometryUtil.h>
 
 
 // When converting between fixed and float, use this as the radix.
@@ -37,22 +38,20 @@ PalmData& HandData::addNewPalm()  {
     return _palms.back();
 }
 
+const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
+const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
     leftPalmIndex = -1;
-    float leftPalmX = FLT_MAX;
-    rightPalmIndex = -1;    
-    float rightPalmX = -FLT_MAX;
+    rightPalmIndex = -1;
     for (int i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
-            float x = palm.getRawPosition().x;
-            if (x < leftPalmX) {
+            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
                 leftPalmIndex = i;
-                leftPalmX = x;
             }
-            if (x > rightPalmX) {
+            if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
                 rightPalmIndex = i;
-                rightPalmX = x;
             }
         }
     }
@@ -70,7 +69,8 @@ _leapID(LEAPID_INVALID),
 _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
-_isCollidingWithVoxel(false)
+_isCollidingWithVoxel(false),
+_isCollidingWithPalm(false)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
@@ -223,6 +223,25 @@ void HandData::updateFingerTrails() {
     }
 }
 
+bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
+                                        const PalmData*& collidingPalm) const {
+    
+    for (size_t i = 0; i < _palms.size(); ++i) {
+        const PalmData& palm = _palms[i];
+        if (!palm.isActive()) {
+            continue;
+        }
+        glm::vec3 palmPosition = palm.getPosition();
+        const float PALM_RADIUS = 0.05f; // in world (not voxel) coordinates
+        if (findSphereSpherePenetration(penetratorCenter, penetratorRadius, palmPosition, PALM_RADIUS, penetration)) {
+            collidingPalm = &palm;
+            return true;
+        }
+    }
+    return false;
+}
+
+
 void FingerData::setTrailLength(unsigned int length) {
     _tipTrailPositions.resize(length);
     _tipTrailCurrentStartIndex = 0;
@@ -262,6 +281,7 @@ const glm::vec3& FingerData::getTrailPosition(int index) {
     int posIndex = (index + _tipTrailCurrentStartIndex) % _tipTrailCurrentValidLength;
     return _tipTrailPositions[posIndex];
 }
+
 
 
 

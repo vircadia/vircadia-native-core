@@ -24,6 +24,7 @@
 #include <PacketHeaders.h>
 #include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
+#include <ScriptEngine.h>
 #include <VoxelQuery.h>
 
 #ifndef _WIN32
@@ -125,7 +126,7 @@ public:
     void shootParticle(); // shoots a particle in the direction you're looking
     ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
     ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-            glm::vec3 gravity, float damping, QString updateScript);
+            glm::vec3 gravity, float damping, bool inHand, QString updateScript);
     
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -157,7 +158,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
-    NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
+    NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
     void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
     
@@ -199,6 +200,7 @@ public:
     
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
+    NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
     
     /// set a voxel which is to be rendered with a highlight
@@ -219,6 +221,7 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void loadScript();
     
     
 private slots:
@@ -495,7 +498,7 @@ private:
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToVoxelSceneStats _voxelServerSceneStats;
+    NodeToVoxelSceneStats _octreeServerSceneStats;
     QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;

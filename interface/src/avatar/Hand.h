@@ -64,7 +64,7 @@ public:
     // Get the drag distance to move
     glm::vec3 getAndResetGrabDelta();
     glm::vec3 getAndResetGrabDeltaVelocity();
-    
+
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -79,7 +79,6 @@ private:
     std::vector<HandBall> _leapFingerRootBalls;
     
     glm::vec3 _lastFingerAddVoxel, _lastFingerDeleteVoxel;
-    bool _isCollidingWithVoxel;
     VoxelDetail _collidingVoxel;
     
     glm::vec3 _collisionCenter;

@@ -15,6 +15,7 @@
 #include "InterfaceConfig.h"
 
 #include <QtCore/QObject>
+#include <QtMultimedia/QAudioFormat>
 
 #include <AbstractAudioInterface.h>
 #include <AudioRingBuffer.h>
@@ -25,11 +26,6 @@
 #include <QGLWidget>
 
 static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int PACKET_LENGTH_BYTES = 1024;
-static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
-static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
-static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
 class QAudioInput;
 class QAudioOutput;
@@ -70,16 +66,25 @@ public slots:
     void reset();
     
 private:
+    QByteArray firstInputFrame;
     QAudioInput* _audioInput;
+    QAudioFormat _desiredInputFormat;
+    QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
+    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
+    QAudioFormat _desiredOutputFormat;
+    QAudioFormat _outputFormat;
     QIODevice* _outputDevice;
-    bool _isBufferSendCallback;
-    int16_t* _nextOutputSamples;
+    int _numOutputCallbackBytes;
+    QAudioOutput* _loopbackAudioOutput;
+    QIODevice* _loopbackOutputDevice;
+    AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
+    
     Oscilloscope* _scope;
     StDev _stdev;
-    timeval _lastCallbackTime;
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
@@ -114,7 +119,7 @@ private:
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
     
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* monoInput, int16_t* stereoUpsampledOutput, int numSamples);
+    void addProceduralSounds(int16_t* monoInput, int numSamples);
     
     void renderToolIcon(int screenHeight);
 };

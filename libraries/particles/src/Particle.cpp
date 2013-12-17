@@ -18,22 +18,23 @@
 uint32_t Particle::_nextID = 0;
 
 
-Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                    float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
+Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
+                    float damping, bool inHand, QString updateScript, uint32_t id) {
                     
-    init(position, radius, color, velocity, damping, gravity, updateScript, id);
+    init(position, radius, color, velocity, gravity, damping, inHand, updateScript, id);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), DEFAULT_DAMPING, DEFAULT_GRAVITY, DEFAULT_SCRIPT, NEW_PARTICLE);
+    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), 
+            DEFAULT_GRAVITY, DEFAULT_DAMPING, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
 Particle::~Particle() {
 }
 
-void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-                        float damping, glm::vec3 gravity, QString updateScript, uint32_t id) {
+void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
+                    float damping, bool inHand, QString updateScript, uint32_t id) {
     if (id == NEW_PARTICLE) {
         _created = usecTimestampNow();
         _id = _nextID;
@@ -42,6 +43,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
         _id = id;
     }
     _lastUpdated = usecTimestampNow();
+    _lastEdited = _lastUpdated;
 
     _position = position;
     _radius = radius;
@@ -50,6 +52,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _damping = damping;
     _gravity = gravity;
     _updateScript = updateScript;
+    _inHand = inHand;
 }
 
 
@@ -64,6 +67,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     }
     if (success) {
         success = packetData->appendValue(getLastUpdated());
+    }
+    if (success) {
+        success = packetData->appendValue(getLastEdited());
     }
     if (success) {
         success = packetData->appendValue(getRadius());
@@ -84,6 +90,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
         success = packetData->appendValue(getDamping());
     }
     if (success) {
+        success = packetData->appendValue(getInHand());
+    }
+    if (success) {
         uint16_t scriptLength = _updateScript.size() + 1; // include NULL
         success = packetData->appendValue(scriptLength);
         if (success) {
@@ -94,9 +103,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 }
 
 int Particle::expectedBytes() {
-    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
+    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
                         sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3) +
-                        sizeof(glm::vec3) + sizeof(float);
+                        sizeof(glm::vec3) + sizeof(float) + sizeof(bool);
     return expectedBytes;
 }
 
@@ -119,6 +128,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
         dataAt += sizeof(_lastUpdated);
         bytesRead += sizeof(_lastUpdated);
+
+        // _lastEdited
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -149,6 +163,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_damping, dataAt, sizeof(_damping));
         dataAt += sizeof(_damping);
         bytesRead += sizeof(_damping);
+
+        // inHand
+        memcpy(&_inHand, dataAt, sizeof(_inHand));
+        dataAt += sizeof(_inHand);
+        bytesRead += sizeof(_inHand);
 
         // script
         uint16_t scriptLength;
@@ -209,6 +228,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
     dataAt += sizeof(newParticle._lastUpdated);
     processedBytes += sizeof(newParticle._lastUpdated);
+
+    // lastEdited
+    memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
+    dataAt += sizeof(newParticle._lastEdited);
+    processedBytes += sizeof(newParticle._lastEdited);
     
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
@@ -240,6 +264,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += sizeof(newParticle._damping);
     processedBytes += sizeof(newParticle._damping);
 
+    // inHand
+    memcpy(&newParticle._inHand, dataAt, sizeof(newParticle._inHand));
+    dataAt += sizeof(newParticle._inHand);
+    processedBytes += sizeof(newParticle._inHand);
+
     // script
     uint16_t scriptLength;
     memcpy(&scriptLength, dataAt, sizeof(scriptLength));
@@ -264,6 +293,7 @@ void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
     printf(" created:%llu\n", _created);
     printf(" last updated:%llu\n", _lastUpdated);
+    printf(" last edited:%llu\n", _lastEdited);
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
     printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
@@ -322,6 +352,11 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             copyAt += sizeof(details[i].lastUpdated);
             sizeOut += sizeof(details[i].lastUpdated);
             
+            // lastEdited
+            memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
+            copyAt += sizeof(details[i].lastEdited);
+            sizeOut += sizeof(details[i].lastEdited);
+            
             // radius
             memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));
             copyAt += sizeof(details[i].radius);
@@ -351,6 +386,11 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             memcpy(copyAt, &details[i].damping, sizeof(details[i].damping));
             copyAt += sizeof(details[i].damping);
             sizeOut += sizeof(details[i].damping);
+
+            // inHand
+            memcpy(copyAt, &details[i].inHand, sizeof(details[i].inHand));
+            copyAt += sizeof(details[i].inHand);
+            sizeOut += sizeof(details[i].inHand);
 
             // script
             uint16_t scriptLength = details[i].updateScript.size() + 1;
@@ -389,32 +429,39 @@ void Particle::update() {
     bool isStillMoving = (velocityScalar > STILL_MOVING);
     const uint64_t REALLY_OLD = 30 * 1000 * 1000;
     bool isReallyOld = (getLifetime() > REALLY_OLD);
-    bool shouldDie = !isStillMoving && isReallyOld;
+    bool isInHand = getInHand();
+    bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
 
     runScript(); // allow the javascript to alter our state
-
-    _position += _velocity * timeElapsed;
     
-    // handle bounces off the ground...
-    if (_position.y <= 0) {
-        _velocity = _velocity * glm::vec3(1,-1,1);
-        _position.y = 0;
+    // If the ball is in hand, it doesn't move or have gravity effect it
+    if (!isInHand) {
+        _position += _velocity * timeElapsed;
+    
+        // handle bounces off the ground...
+        if (_position.y <= 0) {
+            _velocity = _velocity * glm::vec3(1,-1,1);
+            _position.y = 0;
+        }
+
+        // handle gravity....
+        _velocity += _gravity * timeElapsed;
+
+        // handle damping
+        glm::vec3 dampingResistance = _velocity * _damping;
+        _velocity -= dampingResistance * timeElapsed;
+        //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
     }
-
-    // handle gravity....
-    _velocity += _gravity * timeElapsed;
-
-    // handle damping
-    glm::vec3 dampingResistance = _velocity * _damping;
-    _velocity -= dampingResistance * timeElapsed;
-    //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
-
+    
     _lastUpdated = now;
 }
 
 void Particle::runScript() {
     if (!_updateScript.isEmpty()) {
+    
+        //qDebug() << "Script: " << _updateScript << "\n";
+        
         QScriptEngine engine;
     
         // register meta-type for glm::vec3 and rgbColor conversions
