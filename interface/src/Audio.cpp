@@ -351,7 +351,7 @@ void Audio::handleAudioInput() {
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             
             PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-            ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
             char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
                                                                                   packetType);
@@ -615,8 +615,9 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             
             int16_t collisionSample = (int16_t) sample;
             
-            monoInput[i] += collisionSample;
-            _localInjectedSamples[i] += collisionSample;
+            monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + collisionSample,
+                                                  MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
@@ -638,8 +639,9 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             
             int16_t collisionSample = (int16_t) sample;
             
-            monoInput[i] += collisionSample;
-            _localInjectedSamples[i] += collisionSample;
+            monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+            _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + collisionSample,
+                                                  MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
             
             _drumSoundVolume *= (1.f - _drumSoundDecay);
         }
