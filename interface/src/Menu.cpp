@@ -689,10 +689,10 @@ void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& 
 
 QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QString actionName,
-                                             const QKeySequence& shortcut,
+                                             const QKEYSEQUENCE& shortcut,
                                              const QObject* receiver,
                                              const char* member,
-                                             QAction::MenuRole role) {
+                                             QACTION_MENUROLE role) {
     QAction* action;
     
     if (receiver && member) {
@@ -701,7 +701,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
         action = destinationMenu->addAction(actionName);
         action->setShortcut(shortcut);
     }
-    action->setMenuRole(role);    
+    action->setMenuRole((QAction::MenuRole)role);
     
     _actionHash.insert(actionName, action);
     
@@ -714,7 +714,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                       const bool checked,
                                                       const QObject* receiver,
                                                       const char* member) {
-    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member);
+    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, (QKEYSEQUENCE&)shortcut, receiver, member);
     action->setCheckable(true);
     action->setChecked(checked);
     
