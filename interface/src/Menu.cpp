@@ -1032,10 +1032,10 @@ void Menu::showLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(Application::getInstance()->getGLWidget());
         connect(_logDialog, SIGNAL(closed()), SLOT(logDialogClosed()));
-
         _logDialog->show();
+    } else {
+        _logDialog->close();
     }
-    _logDialog->raise();
 }
 
 void Menu::logDialogClosed() {

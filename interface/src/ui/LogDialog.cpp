@@ -21,7 +21,7 @@ int cursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
 int blockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
 
 LogDialog::LogDialog(QWidget* parent) :
-    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) {
+    QDialog(parent, Qt::Dialog | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) {
 
         setWindowTitle("Log");
 
