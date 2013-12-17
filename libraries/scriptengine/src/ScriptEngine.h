@@ -18,12 +18,14 @@
 #include <AbstractMenuInterface.h>
 #include <ParticleScriptingInterface.h>
 #include <VoxelScriptingInterface.h>
+#include "ControllerScriptingInterface.h"
 
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(QString scriptContents, bool wantMenuItems = false, 
-                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL);
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
+                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL,
+                    ControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
     
@@ -52,6 +54,7 @@ protected:
 private:
     VoxelScriptingInterface _voxelScriptingInterface;
     ParticleScriptingInterface _particleScriptingInterface;
+    ControllerScriptingInterface* _controllerScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;
     AbstractMenuInterface* _menu;

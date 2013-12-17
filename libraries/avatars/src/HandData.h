@@ -53,9 +53,10 @@ public:
     glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
     glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
 
-    std::vector<PalmData>& getPalms()    { return _palms; }
-    size_t                 getNumPalms() { return _palms.size(); }
-    PalmData&              addNewPalm();
+    std::vector<PalmData>& getPalms() { return _palms; }
+    const std::vector<PalmData>& getPalms() const { return _palms; }
+    size_t getNumPalms() { return _palms.size(); }
+    PalmData& addNewPalm();
 
     /// Finds the indices of the left and right palms according to their locations, or -1 if either or
     /// both is not found.
@@ -137,17 +138,18 @@ public:
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
-    bool             isActive()       const { return _isActive; }
-    int              getLeapID()      const { return _leapID; }
-    int              getSixenseID()   const { return _sixenseID; }
+    bool isActive() const { return _isActive; }
+    int getLeapID() const { return _leapID; }
+    int getSixenseID() const { return _sixenseID; }
 
 
-    std::vector<FingerData>& getFingers()    { return _fingers; }
-    size_t                   getNumFingers() { return _fingers.size(); }
+    std::vector<FingerData>& getFingers() { return _fingers; }
+    const std::vector<FingerData>& getFingers() const { return _fingers; }
+    size_t getNumFingers() const { return _fingers.size(); }
 
-    void setActive(bool active)                { _isActive = active; }
-    void setLeapID(int id)                     { _leapID = id; }
-    void setSixenseID(int id)                  { _sixenseID = id; }
+    void setActive(bool active) { _isActive = active; }
+    void setLeapID(int id) { _leapID = id; }
+    void setSixenseID(int id) { _sixenseID = id; }
 
     void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
     glm::quat getRawRotation() const { return _rawRotation; }
@@ -162,26 +164,28 @@ public:
     const glm::vec3& getTipVelocity() const { return _tipVelocity; }
     void setTipVelocity(const glm::vec3& velocity) { _tipVelocity = velocity; }
     
-    void incrementFramesWithoutData()          { _numFramesWithoutData++; }
-    void resetFramesWithoutData()              { _numFramesWithoutData = 0; }
-    int  getFramesWithoutData()          const { return _numFramesWithoutData; }
+    void incrementFramesWithoutData() { _numFramesWithoutData++; }
+    void resetFramesWithoutData() { _numFramesWithoutData = 0; }
+    int  getFramesWithoutData() const { return _numFramesWithoutData; }
     
     // Controller buttons
     void setControllerButtons(int controllerButtons) { _controllerButtons = controllerButtons; }
     void setLastControllerButtons(int controllerButtons) { _lastControllerButtons = controllerButtons; }
 
-    int getControllerButtons() { return _controllerButtons; }
-    int getLastControllerButtons() { return _lastControllerButtons; }
+    int getControllerButtons() const { return _controllerButtons; }
+    int getLastControllerButtons() const { return _lastControllerButtons; }
     
     void setTrigger(float trigger) { _trigger = trigger; }
-    float getTrigger() { return _trigger; }
+    float getTrigger() const { return _trigger; }
     void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
-    float getJoystickX() { return _joystickX; }
-    float getJoystickY() { return _joystickY; }
+    float getJoystickX() const { return _joystickX; }
+    float getJoystickY() const { return _joystickY; }
     
-    bool getIsCollidingWithVoxel() { return _isCollidingWithVoxel; }
+    bool getIsCollidingWithVoxel() const { return _isCollidingWithVoxel; }
     void setIsCollidingWithVoxel(bool isCollidingWithVoxel) { _isCollidingWithVoxel = isCollidingWithVoxel; }
 
+    bool getIsCollidingWithPalm() const { return _isCollidingWithPalm; }
+    void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
 private:
     std::vector<FingerData> _fingers;
     glm::quat _rawRotation;

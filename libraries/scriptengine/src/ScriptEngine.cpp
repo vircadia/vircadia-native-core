@@ -24,8 +24,9 @@
 
 int ScriptEngine::_scriptNumber = 1;
 
-ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems, 
-                                const char* scriptMenuName, AbstractMenuInterface* menu) {
+ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
+                                const char* scriptMenuName, AbstractMenuInterface* menu,
+                                ControllerScriptingInterface* controllerScriptingInterface) {
     _scriptContents = scriptContents;
     _isFinished = false;
     _wantMenuItems = wantMenuItems;
@@ -38,6 +39,7 @@ ScriptEngine::ScriptEngine(QString scriptContents, bool wantMenuItems,
         _scriptMenuName.append(_scriptNumber);
     }
     _menu = menu;
+    _controllerScriptingInterface = controllerScriptingInterface;
 }
 
 ScriptEngine::~ScriptEngine() {
@@ -78,6 +80,11 @@ void ScriptEngine::run() {
     QScriptValue particleScripterValue =  engine.newQObject(&_particleScriptingInterface);
     engine.globalObject().setProperty("Particles", particleScripterValue);
     
+    if (_controllerScriptingInterface) {
+        QScriptValue controllerScripterValue =  engine.newQObject(_controllerScriptingInterface);
+        engine.globalObject().setProperty("Controller", controllerScripterValue);
+    }
+        
     QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
     engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
     
