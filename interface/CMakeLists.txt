@@ -93,6 +93,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(metavoxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
@@ -135,7 +136,7 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
 include_directories(

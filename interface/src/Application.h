@@ -58,9 +58,10 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/VoxelShader.h"
+#include "renderer/MetavoxelSystem.h"
 #include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
+#include "renderer/VoxelShader.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
@@ -282,6 +283,7 @@ private:
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);
     void updateParticles(float deltaTime);
+    void updateMetavoxels(float deltaTime);
     void updateTransmitter(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
@@ -361,6 +363,8 @@ private:
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
+    
+    MetavoxelSystem _metavoxels;
     
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
 
