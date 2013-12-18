@@ -34,15 +34,6 @@ void MetavoxelSystem::init() {
     
     AttributeRegistry::getInstance()->configureScriptEngine(&_scriptEngine);
     
-    MetavoxelPath p1;
-    p1 += 7;
-    p1 += 7;
-    p1 += 7;
-    
-    AttributePointer color = AttributeRegistry::getInstance()->getAttribute("color");
-    
-    _data.setAttributeValue(p1, AttributeValue(color, encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF))));
-    
     QFile scriptFile("resources/scripts/sphere.js");
     scriptFile.open(QIODevice::ReadOnly);
     QScriptValue guideFunction = _scriptEngine.evaluate(QTextStream(&scriptFile).readAll());
