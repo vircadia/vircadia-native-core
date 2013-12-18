@@ -14,7 +14,8 @@
 
 #include "ui/TextRenderer.h"
 
-class LogDisplay {
+class LogDisplay : public QObject {
+    Q_OBJECT
 public:
 
     static LogDisplay instance;
@@ -42,6 +43,11 @@ public:
     static unsigned const CHARACTER_BUFFER_SIZE    = 16384; // number of character that are buffered
     static unsigned const LINE_BUFFER_SIZE         = 256;   // number of lines that are buffered
     static unsigned const MAX_MESSAGE_LENGTH       = 512;   // maximum number of characters for a message
+
+    QStringList getLogData();
+
+signals:
+    void logReceived(QString message);
 
 private:
     // use static 'instance' to access the single instance
