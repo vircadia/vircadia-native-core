@@ -134,9 +134,6 @@ int ControllerScriptingInterface::getNumberOfSpatialControls() const {
     return getNumberOfActivePalms() * NUMBER_OF_SPATIALCONTROLS_PER_PALM;
 }
 
-const int PALM_SPATIALCONTROL = 0;
-const int TIP_SPATIALCONTROL = 1;
-
 glm::vec3 ControllerScriptingInterface::getSpatialControlPosition(int controlIndex) const {
     int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
     int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;

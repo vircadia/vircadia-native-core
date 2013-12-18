@@ -40,12 +40,13 @@ private:
     const PalmData* getPalm(int palmIndex) const;
     int getNumberOfActivePalms() const;
     const PalmData* getActivePalm(int palmIndex) const;
-
-    const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
-    
-    const int NUMBER_OF_JOYSTICKS_PER_PALM = 1;
-    const int NUMBER_OF_TRIGGERS_PER_PALM = 1;
-    const int NUMBER_OF_BUTTONS_PER_PALM = 6;
 };
+
+const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
+const int NUMBER_OF_JOYSTICKS_PER_PALM = 1;
+const int NUMBER_OF_TRIGGERS_PER_PALM = 1;
+const int NUMBER_OF_BUTTONS_PER_PALM = 6;
+const int PALM_SPATIALCONTROL = 0;
+const int TIP_SPATIALCONTROL = 1;
 
 #endif /* defined(__hifi__ControllerScriptingInterface__) */
