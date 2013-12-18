@@ -12,7 +12,7 @@
 #include <QtCore/QObject>
 
 class AudioInjectionManager : public QObject {
-    
+    AudioInjectionManager(QObject* parent = 0);
 };
 
 #endif /* defined(__hifi__AudioInjectionManager__) */
