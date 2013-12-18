@@ -19,8 +19,8 @@ ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
 
 MetavoxelSystem::MetavoxelSystem() :
-    _buffer(QOpenGLBuffer::VertexBuffer),
-    _pointVisitor(_points) {
+    _pointVisitor(_points),
+    _buffer(QOpenGLBuffer::VertexBuffer) {
 }
 
 void MetavoxelSystem::init() {

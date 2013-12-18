@@ -55,8 +55,7 @@ AttributeValue MetavoxelData::getAttributeValue(const MetavoxelPath& path, const
         return AttributeValue(attribute);
     }
     for (int i = 0, n = path.getSize(); i < n; i++) {
-        int index = path[i];
-        MetavoxelNode* child = node->getChild(i);
+        MetavoxelNode* child = node->getChild(path[i]);
         if (child == NULL) {
             return node->getAttributeValue(attribute);
         }

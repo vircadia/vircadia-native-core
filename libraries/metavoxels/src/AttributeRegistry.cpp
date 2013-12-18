@@ -89,6 +89,7 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other)
     if ((_attribute = other.getAttribute())) {
         _value = _attribute->create(other.getValue());
     }
+    return *this;
 }
 
 Attribute::Attribute(const QString& name) {
