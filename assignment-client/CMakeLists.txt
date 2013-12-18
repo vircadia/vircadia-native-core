@@ -13,7 +13,7 @@ find_package(Qt5Network REQUIRED)
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 setup_hifi_project(${TARGET_NAME} TRUE)
 
-qt5_use_modules(${TARGET_NAME} Network)
+qt5_use_modules(${TARGET_NAME} Gui Network Script)
 
 # include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)
@@ -27,6 +27,7 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(metavoxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particle-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxel-server ${TARGET_NAME} ${ROOT_DIR})

@@ -211,7 +211,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // tell the NodeList instance who to tell the domain server we care about
     const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
-                                        NODE_TYPE_PARTICLE_SERVER};
+        NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
     QTimer* silentNodeTimer = new QTimer(this);
@@ -1249,8 +1249,8 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
 
-    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER, 
-                                NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
+        NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_METAVOXEL_SERVER};
 
     uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];

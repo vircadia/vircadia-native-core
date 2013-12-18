@@ -17,7 +17,7 @@ MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) 
 }
 
 void MetavoxelServer::run() {
-    // change the logging target name while AvatarMixer is running
+    // change the logging target name while the metavoxel server is running
     Logging::setTargetName("metavoxel-server");
     
     NodeList* nodeList = NodeList::getInstance();

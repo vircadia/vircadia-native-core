@@ -11,6 +11,8 @@
 
 #include <ThreadedAssignment.h>
 
+#include <MetavoxelData.h>
+
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
 class MetavoxelServer : public ThreadedAssignment {
     Q_OBJECT
@@ -22,6 +24,10 @@ public:
     virtual void run();
     
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+
+private:
+    
+    MetavoxelData _data;
 };
 
 #endif /* defined(__hifi__MetavoxelServer__) */
