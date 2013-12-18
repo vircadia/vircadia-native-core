@@ -33,6 +33,8 @@ public:
     /// Override this function to do whatever your class actually does, return false to exit thread early.
     virtual bool process() = 0;
 
+    bool isThreaded() const { return _isThreaded; }
+
 protected:
 
     /// Locks all the resources of the thread.
@@ -43,8 +45,6 @@ protected:
     
     bool isStillRunning() const { return !_stopThread; }
 
-    bool isThreaded() const { return _isThreaded; }
-    
 private:
     pthread_mutex_t _mutex;
 
