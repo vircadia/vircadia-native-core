@@ -146,7 +146,6 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
-    
     QMenu* _activeScriptsMenu;
 };
 

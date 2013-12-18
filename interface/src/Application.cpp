@@ -143,11 +143,17 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
+
+    switchToResourcesParentIfRequired();
+    QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
-    
-    qDebug( "[VERSION] Build sequence: %i", BUILD_VERSION);
-    
+
     qInstallMessageHandler(messageHandler);
+
+    // call Menu getInstance static method to set up the menu
+    _window->setMenuBar(Menu::getInstance());
+
+    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -173,16 +179,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
-    
-    // setup QSettings    
-#ifdef Q_OS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-    
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
     
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -191,11 +190,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setApplicationVersion(applicationInfo.value("version").toString());
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-    
+
     _settings = new QSettings(this);
-    
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
 
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
@@ -251,6 +247,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+
+    qInstallMessageHandler(NULL);
+    
     // make sure we don't call the idle timer any more
     delete idleTimer;
 
@@ -4478,4 +4477,13 @@ void Application::loadScript() {
 
     // restore the main window's active state
     _window->activateWindow();
+}
+
+void Application::toggleLogDialog() {
+    if (! _logDialog) {
+        _logDialog = new LogDialog(_glWidget);
+        _logDialog->show();
+    } else {
+        _logDialog->close();
+    }
 }
