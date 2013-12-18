@@ -31,6 +31,8 @@ public slots:
 
     virtual int getNumberOfSpatialControls() const = 0;
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const = 0;
+    virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const = 0;
+    virtual glm::vec3 getSpatialControlNormal(int controlIndex) const = 0;
 };
 
 #endif /* defined(__hifi__AbstractControllerScriptingInterface__) */

@@ -32,6 +32,8 @@ public slots:
 
     virtual int getNumberOfSpatialControls() const;
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const;
+    virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
+    virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
 
 private:
     const PalmData* getPrimaryPalm() const;
@@ -39,7 +41,8 @@ private:
     int getNumberOfActivePalms() const;
     const PalmData* getActivePalm(int palmIndex) const;
 
-    const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 0;
+    const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
+    
     const int NUMBER_OF_JOYSTICKS_PER_PALM = 1;
     const int NUMBER_OF_TRIGGERS_PER_PALM = 1;
     const int NUMBER_OF_BUTTONS_PER_PALM = 6;

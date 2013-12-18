@@ -134,8 +134,52 @@ int ControllerScriptingInterface::getNumberOfSpatialControls() const {
     return getNumberOfActivePalms() * NUMBER_OF_SPATIALCONTROLS_PER_PALM;
 }
 
+const int PALM_SPATIALCONTROL = 0;
+const int TIP_SPATIALCONTROL = 1;
+
 glm::vec3 ControllerScriptingInterface::getSpatialControlPosition(int controlIndex) const {
-    return glm::vec3(0); // not yet implemented
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getPosition();
+            case TIP_SPATIALCONTROL:
+                return palmData->getTipPosition();
+        }
+    }
+    return glm::vec3(0); // bad index
+}
+
+glm::vec3 ControllerScriptingInterface::getSpatialControlVelocity(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getVelocity();
+            case TIP_SPATIALCONTROL:
+                return palmData->getTipVelocity();
+        }
+    }
+    return glm::vec3(0); // bad index
+}
+
+glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getNormal();
+            case TIP_SPATIALCONTROL:
+                return palmData->getNormal(); // currently the tip doesn't have a unique normal, use the palm normal
+        }
+    }
+    return glm::vec3(0); // bad index
 }
 
 
