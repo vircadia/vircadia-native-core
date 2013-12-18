@@ -174,9 +174,8 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
     if (sourceAudioFormat == destinationAudioFormat) {
         memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
     } else {
-        int destinationChannels = (destinationAudioFormat.channelCount() >= 2) ? 2 : destinationAudioFormat.channelCount();
         float sourceToDestinationFactor = (sourceAudioFormat.sampleRate() / (float) destinationAudioFormat.sampleRate())
-            * (sourceAudioFormat.channelCount() / (float) destinationChannels);
+            * (sourceAudioFormat.channelCount() / (float) destinationAudioFormat.channelCount());
         
         // take into account the number of channels in source and destination
         // accomodate for the case where have an output with > 2 channels
@@ -203,14 +202,15 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             // upsample from 24 to 48
             // for now this only supports a stereo to stereo conversion - this is our case for network audio to output
             int sourceIndex = 0;
-            int destinationToSourceFactor = (1 / sourceToDestinationFactor);
             int dtsSampleRateFactor = (destinationAudioFormat.sampleRate() / sourceAudioFormat.sampleRate());
+            int sampleShift = destinationAudioFormat.channelCount() * dtsSampleRateFactor;
+            int destinationToSourceFactor = (1 / sourceToDestinationFactor);
             
-            for (int i = 0; i < numDestinationSamples; i += destinationAudioFormat.channelCount() * dtsSampleRateFactor) {
+            for (int i = 0; i < numDestinationSamples; i += sampleShift) {
                 sourceIndex = (i / destinationToSourceFactor);
                 
                 // fill the L/R channels and make the rest silent
-                for (int j = i; j < i + (dtsSampleRateFactor * destinationAudioFormat.channelCount()); j++) {
+                for (int j = i; j < i + sampleShift; j++) {
                     if (j % destinationAudioFormat.channelCount() == 0) {
                         // left channel
                         destinationSamples[j] = sourceSamples[sourceIndex];
