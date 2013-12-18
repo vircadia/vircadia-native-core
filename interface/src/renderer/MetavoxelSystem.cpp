@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QFile>
+#include <QTextStream>
 #include <QtDebug>
 
 #include <SharedUtil.h>
@@ -41,17 +43,9 @@ void MetavoxelSystem::init() {
     
     _data.setAttributeValue(p1, AttributeValue(color, encodeInline(qRgba(0xFF, 0xFF, 0xFF, 0xFF))));
     
-    QScriptValue guideFunction = _scriptEngine.evaluate(
-        "(function(visitation) { "
-        "    var attributes = visitation.visitor.getAttributes();"
-        "    var colorIndex = attributes.indexOf(AttributeRegistry.colorAttribute);"
-        "    var normalIndex = attributes.indexOf(AttributeRegistry.normalAttribute);"
-        "    for (var i = 0; i < attributes.length; i++) {"
-        "       print(attributes[i].getName() + ' ');"
-        "    }"
-        "    print('\\n');"
-        "    visitation.visitor.visit(visitation.info);"
-        "})");
+    QFile scriptFile("resources/scripts/sphere.js");
+    scriptFile.open(QIODevice::ReadOnly);
+    QScriptValue guideFunction = _scriptEngine.evaluate(QTextStream(&scriptFile).readAll());
     _data.setAttributeValue(MetavoxelPath(), AttributeValue(AttributeRegistry::getInstance()->getGuideAttribute(),
         encodeInline(PolymorphicDataPointer(new ScriptedMetavoxelGuide(guideFunction)))));
     
