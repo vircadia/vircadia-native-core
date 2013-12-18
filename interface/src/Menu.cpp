@@ -285,7 +285,8 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
-
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, false);
+    
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
 
