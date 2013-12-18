@@ -13,7 +13,6 @@
 #include <QHash>
 #include <QKeySequence>
 
-#include "ui/LogDialog.h"
 #include <AbstractMenuInterface.h>
 
 enum FrustumDrawMode {
@@ -93,7 +92,6 @@ public slots:
     void exportSettings();
     void goToUser();
     void pasteToVoxel();
-    void showLogDialog();
     
 private slots:
     void aboutApp();
@@ -109,7 +107,6 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    void logDialogClosed();
     
 private:
     static Menu* _instance;
@@ -149,7 +146,6 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
-    LogDialog* _logDialog;
     QMenu* _activeScriptsMenu;
 };
 

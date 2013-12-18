@@ -4478,3 +4478,12 @@ void Application::loadScript() {
     // restore the main window's active state
     _window->activateWindow();
 }
+
+void Application::toggleLogDialog() {
+    if (! _logDialog) {
+        _logDialog = new LogDialog(_glWidget);
+        _logDialog->show();
+    } else {
+        _logDialog->close();
+    }
+}
