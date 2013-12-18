@@ -51,6 +51,7 @@ Node::~Node() {
 const char* NODE_TYPE_NAME_DOMAIN = "Domain";
 const char* NODE_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
 const char* NODE_TYPE_NAME_PARTICLE_SERVER = "Particle Server";
+const char* NODE_TYPE_NAME_METAVOXEL_SERVER = "Metavoxel Server";
 const char* NODE_TYPE_NAME_AGENT = "Agent";
 const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
@@ -67,6 +68,8 @@ const char* Node::getTypeName() const {
 			return NODE_TYPE_NAME_VOXEL_SERVER;
 		case NODE_TYPE_PARTICLE_SERVER:
 		    return NODE_TYPE_NAME_PARTICLE_SERVER;
+		case NODE_TYPE_METAVOXEL_SERVER:
+		    return NODE_TYPE_NAME_METAVOXEL_SERVER;
 		case NODE_TYPE_AGENT:
 			return NODE_TYPE_NAME_AGENT;
 		case NODE_TYPE_AUDIO_MIXER:

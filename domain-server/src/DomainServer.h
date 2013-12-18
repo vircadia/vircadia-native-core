@@ -62,6 +62,7 @@ private:
     
     const char* _voxelServerConfig;
     const char* _particleServerConfig;
+    const char* _metavoxelServerConfig;
     
     bool _hasCompletedRestartHold;
 private slots:

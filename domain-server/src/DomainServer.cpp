@@ -37,6 +37,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
     _staticAssignmentFileData(NULL),
     _voxelServerConfig(NULL),
+    _metavoxelServerConfig(NULL),
     _hasCompletedRestartHold(false)
 {
     DomainServer::setDomainServerInstance(this);
@@ -54,6 +55,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     const char PARTICLE_CONFIG_OPTION[] = "--particleServerConfig";
     _particleServerConfig = getCmdOption(argc, (const char**) argv, PARTICLE_CONFIG_OPTION);
+    
+    const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
+    _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
     
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
@@ -152,10 +156,11 @@ void DomainServer::readAvailableDatagrams() {
                 int numBytesPublicSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodeLocalAddress);
                 packetIndex += numBytesPublicSocket;
                 
-                const char STATICALLY_ASSIGNED_NODES[3] = {
+                const char STATICALLY_ASSIGNED_NODES[] = {
                     NODE_TYPE_AUDIO_MIXER,
                     NODE_TYPE_AVATAR_MIXER,
-                    NODE_TYPE_VOXEL_SERVER
+                    NODE_TYPE_VOXEL_SERVER,
+                    NODE_TYPE_METAVOXEL_SERVER
                 };
                 
                 Assignment* matchingStaticAssignment = NULL;
@@ -608,6 +613,13 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     } else {
         Assignment rootParticleServerAssignment(Assignment::CreateCommand, Assignment::ParticleServerType);
         freshStaticAssignments[numFreshStaticAssignments++] = rootParticleServerAssignment;
+    }
+    
+    // handle metavoxel configuration command line argument
+    Assignment& metavoxelAssignment = (freshStaticAssignments[numFreshStaticAssignments++] =
+        Assignment(Assignment::CreateCommand, Assignment::MetavoxelServerType));
+    if (_metavoxelServerConfig) {
+        metavoxelAssignment.setPayload((const unsigned char*)_metavoxelServerConfig, strlen(_metavoxelServerConfig));
     }
     
     qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.\n";
