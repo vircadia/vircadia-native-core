@@ -24,7 +24,7 @@ using namespace std;
 const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
-const float TOY_BALL_DAMPING = 0.999f;
+const float TOY_BALL_DAMPING = 0.1f;
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const float NO_DAMPING = 0.f;
