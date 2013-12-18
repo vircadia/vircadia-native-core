@@ -24,11 +24,11 @@ using namespace std;
 const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
-const float TOY_BALL_DAMPING = 0.99f;
+const float TOY_BALL_DAMPING = 0.1f;
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const float NO_DAMPING = 0.f;
-const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-0.5,0);
+const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
 const float CATCH_RADIUS = 0.2f;
@@ -98,7 +98,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             
             // update the particle with it's new state...
 #ifdef DEBUG_HAND
-            qDebug("Update caught particle!\n");
+            qDebug("Caught!\n");
 #endif
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
@@ -108,6 +108,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                             NO_DAMPING,
                                             IN_HAND, // we just grabbed it!
                                             closestParticle->getUpdateScript());
+            
                                             
             // now tell our hand about us having caught it...
             _toyBallInHand[handID] = true;
@@ -115,6 +116,11 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             //printf(">>>>>>> caught... handID:%d particle ID:%d _toyBallInHand[handID] = true\n", handID, closestParticle->getID());
             _ballParticleEditHandles[handID] = caughtParticle;
             caughtParticle = NULL;
+            //  Play a catch sound!
+            Application::getInstance()->getAudio()->startDrumSound(1.0,
+                                                                   300,
+                                                                   0.5,
+                                                                   0.05);
         }
     }
     
@@ -158,11 +164,17 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                                      TOY_BALL_DAMPING,
                                                                      IN_HAND,
                                                                      TOY_BALL_UPDATE_SCRIPT);
+                // Play a new ball sound
+                Application::getInstance()->getAudio()->startDrumSound(1.0,
+                                                                       2000,
+                                                                       0.5,
+                                                                       0.02);
+
             }
         } else {
             //  Ball is in hand
 #ifdef DEBUG_HAND
-            qDebug("Ball in hand\n");
+            //qDebug("Ball in hand\n");
 #endif
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
@@ -178,13 +190,14 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         //  If toy ball just released, add velocity to it!
         if (_toyBallInHand[handID]) {
         
+            const float THROWN_VELOCITY_SCALING = 1.5f;
             _toyBallInHand[handID] = false;
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             glm::vec3 ballVelocity = ballFromHand ? palm.getRawVelocity() : palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
             ballVelocity = avatarRotation * ballVelocity;
+            ballVelocity *= THROWN_VELOCITY_SCALING;
 
-            // ball is no longer in hand...
 #ifdef DEBUG_HAND
             qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
 #endif
@@ -201,6 +214,13 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // note: deleting the edit handle doesn't effect the actual particle
             delete _ballParticleEditHandles[handID];
             _ballParticleEditHandles[handID] = NULL;
+            
+            // Play a throw sound
+            Application::getInstance()->getAudio()->startDrumSound(1.0,
+                                                                   3000,
+                                                                   0.5,
+                                                                   0.02);
+
 
         }
     }
