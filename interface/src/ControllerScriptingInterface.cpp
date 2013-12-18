@@ -1,5 +1,5 @@
 //
-//  InterfaceControllerScriptingInterface.h
+//  ControllerScriptingInterface.h
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 12/17/13
@@ -8,9 +8,9 @@
 
 #include <HandData.h>
 #include "Application.h"
-#include "InterfaceControllerScriptingInterface.h"
+#include "ControllerScriptingInterface.h"
 
-const PalmData* InterfaceControllerScriptingInterface::getPrimaryPalm() const {
+const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
@@ -23,7 +23,7 @@ const PalmData* InterfaceControllerScriptingInterface::getPrimaryPalm() const {
     return NULL;
 }
 
-bool InterfaceControllerScriptingInterface::isPrimaryButtonPressed() const {
+bool ControllerScriptingInterface::isPrimaryButtonPressed() const {
     const PalmData* primaryPalm = getPrimaryPalm();
     if (primaryPalm) {
         if (primaryPalm->getControllerButtons() & BUTTON_FWD) {
@@ -34,7 +34,7 @@ bool InterfaceControllerScriptingInterface::isPrimaryButtonPressed() const {
     return false;
 }
 
-glm::vec2 InterfaceControllerScriptingInterface::getPrimaryJoystickPosition() const {
+glm::vec2 ControllerScriptingInterface::getPrimaryJoystickPosition() const {
     const PalmData* primaryPalm = getPrimaryPalm();
     if (primaryPalm) {
         return glm::vec2(primaryPalm->getJoystickX(), primaryPalm->getJoystickY());

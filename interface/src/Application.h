@@ -69,7 +69,7 @@
 #include "ui/LodToolsDialog.h"
 #include "ParticleTreeRenderer.h"
 #include "ParticleEditHandle.h"
-#include "InterfaceControllerScriptingInterface.h"
+#include "ControllerScriptingInterface.h"
 
 
 class QAction;
@@ -506,7 +506,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
     
-    InterfaceControllerScriptingInterface _controllerScriptingInterface;
+    ControllerScriptingInterface _controllerScriptingInterface;
 };
 
 #endif /* defined(__interface__Application__) */

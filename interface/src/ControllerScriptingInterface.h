@@ -1,5 +1,5 @@
 //
-//  InterfaceControllerScriptingInterface.h
+//  ControllerScriptingInterface.h
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 12/17/13
@@ -11,10 +11,10 @@
 
 #include <QtCore/QObject>
 
-#include <ControllerScriptingInterface.h>
+#include <AbstractControllerScriptingInterface.h>
 
 /// handles scripting of input controller commands from JS
-class InterfaceControllerScriptingInterface : public ControllerScriptingInterface {
+class ControllerScriptingInterface : public AbstractControllerScriptingInterface {
     Q_OBJECT
 
 public slots:

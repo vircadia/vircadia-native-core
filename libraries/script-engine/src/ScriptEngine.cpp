@@ -26,7 +26,7 @@ int ScriptEngine::_scriptNumber = 1;
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu,
-                                ControllerScriptingInterface* controllerScriptingInterface) {
+                                AbstractControllerScriptingInterface* controllerScriptingInterface) {
     _scriptContents = scriptContents;
     _isFinished = false;
     _isRunning = false;
