@@ -6,12 +6,13 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "LogDisplay.h"
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
+#include <QStringList>
+
+#include "LogDisplay.h"
 #include "Util.h"
 
 using namespace std;
