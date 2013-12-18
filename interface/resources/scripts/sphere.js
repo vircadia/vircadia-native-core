@@ -20,7 +20,7 @@ var normalIndex;
 var visitor;
 var info;
 
-var MAX_DEPTH = 5;
+var MAX_DEPTH = 4;
 
 var sphereCenter = [ 0.5, 0.5, 0.5 ];
 var sphereColor = 0xFFFF00FF;
