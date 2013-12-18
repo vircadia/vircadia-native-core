@@ -19,16 +19,10 @@ public:
     LogDialog(QWidget* parent);
     ~LogDialog();
 
-//signals:
-//    void closed();
-
-public slots:    
-//    void reject();
+public slots:
     void appendLogLine(QString logLine);
 
 protected:
-    // Emits a 'closed' signal when this dialog is closed.
-//    void closeEvent(QCloseEvent* e);
     void resizeEvent(QResizeEvent* e);
     void showEvent(QShowEvent* e);
 
