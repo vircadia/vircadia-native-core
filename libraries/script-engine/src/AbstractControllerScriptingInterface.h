@@ -19,6 +19,18 @@ class AbstractControllerScriptingInterface : public QObject {
 public slots:
     virtual bool isPrimaryButtonPressed() const = 0;
     virtual glm::vec2 getPrimaryJoystickPosition() const = 0;
+
+    virtual int getNumberOfButtons() const = 0;
+    virtual bool isButtonPressed(int buttonIndex) const = 0;
+
+    virtual int getNumberOfTriggers() const = 0;
+    virtual float getTriggerValue(int triggerIndex) const = 0;
+
+    virtual int getNumberOfJoysticks() const = 0;
+    virtual glm::vec2 getJoystickPosition(int joystickIndex) const = 0;
+
+    virtual int getNumberOfSpatialControls() const = 0;
+    virtual glm::vec3 getSpatialControlPosition(int controlIndex) const = 0;
 };
 
 #endif /* defined(__hifi__AbstractControllerScriptingInterface__) */
