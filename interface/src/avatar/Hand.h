@@ -89,7 +89,7 @@ private:
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
 
-    void renderLeapHands();
+    void renderLeapHands(bool isMine);
     void renderLeapFingerTrails();
     
     void updateCollisions();
