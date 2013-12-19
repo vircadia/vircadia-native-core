@@ -127,12 +127,12 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
                                 debug::valueOf(particle.isNewlyCreated()) );
                 }
 
-                uint64_t actuallyCreated = particle.getCreated();
+                float actualLifetime = particle.getLifetime();
                 if (!particle.isNewlyCreated()) {
-                    actuallyCreated = _particles[i].getCreated();
+                    actualLifetime = _particles[i].getLifetime();
                 }
                 _particles[i] = particle;
-                _particles[i].setCreated(actuallyCreated);
+                _particles[i].setLifetime(actualLifetime);
             } else {
                 if (wantDebug) {
                     printf(">>> NO CHANGE <<< -- local particle [id:%d] %s particle.isNewlyCreated()=%s\n", 
