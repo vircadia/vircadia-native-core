@@ -10,6 +10,12 @@
 
 #include "Bitstream.h"
 
+QHash<QByteArray, const QMetaObject*> Bitstream::_metaObjects;
+
+void Bitstream::registerMetaObject(const QByteArray& name, const QMetaObject* metaObject) {
+    _metaObjects.insert(name, metaObject);
+}
+
 Bitstream::Bitstream(QDataStream& underlying)
     : _underlying(underlying), _byte(0), _position(0) {
 }
@@ -60,7 +66,6 @@ void Bitstream::flush() {
     }
 }
 
-
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);
@@ -78,4 +83,12 @@ Bitstream& Bitstream::operator>>(bool& value) {
     value = _byte & (1 << _position);
     _position = (_position + 1) & LAST_BIT_POSITION;
     return *this;
+}
+
+Bitstream& Bitstream::operator<<(qint32 value) {
+    return write(&value, 32, 0);
+}
+
+Bitstream& Bitstream::operator>>(qint32& value) {
+    return read(&value, 32, 0);
 }

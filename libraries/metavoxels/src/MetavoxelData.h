@@ -41,6 +41,9 @@ public:
     /// Retrieves the attribute value corresponding to the specified path.
     AttributeValue getAttributeValue(const MetavoxelPath& path, const AttributePointer& attribute) const;
 
+    void read(Bitstream& in);
+    void write(Bitstream& out) const;
+
 private:
    
     QHash<AttributePointer, MetavoxelNode*> _roots;
@@ -68,6 +71,9 @@ public:
     void setChild(int index, MetavoxelNode* child) { _children[index] = child; }
 
     bool isLeaf() const;
+
+    void read(const AttributePointer& attribute, Bitstream& in);
+    void write(const AttributePointer& attribute, Bitstream& out) const;
 
     void destroy(const AttributePointer& attribute);
 

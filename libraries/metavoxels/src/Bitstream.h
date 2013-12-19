@@ -9,13 +9,19 @@
 #ifndef __interface__Bitstream__
 #define __interface__Bitstream__
 
+#include <QHash>
 #include <QtGlobal>
 
+class QByteArray;
 class QDataStream;
+class QMetaObject;
 
 /// A stream for bit-aligned data.
 class Bitstream {
 public:
+
+    /// Registers a metaobject under its name so that instances of it can be streamed.
+    static void registerMetaObject(const QByteArray& name, const QMetaObject* metaObject);
 
     Bitstream(QDataStream& underlying);
 
@@ -35,11 +41,18 @@ public:
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
+    Bitstream& operator<<(qint32 value);
+    Bitstream& operator>>(qint32& value);
+    
+    
+    
 private:
    
     QDataStream& _underlying;
     quint8 _byte;
     int _position;
+    
+    static QHash<QByteArray, const QMetaObject*> _metaObjects;
 };
 
 #endif /* defined(__interface__Bitstream__) */
