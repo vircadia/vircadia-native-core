@@ -72,7 +72,8 @@ public:
     virtual bool isRendered() const { return getShouldRender(); }
     virtual bool deleteApproved() const { return !hasParticles(); }
 
-    virtual bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
+                        glm::vec3& penetration, void** penetratedObject) const;
 
     const std::vector<Particle>& getParticles() const { return _particles; }
     std::vector<Particle>& getParticles() { return _particles; }
@@ -84,6 +85,8 @@ public:
     bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
     const Particle* getClosestParticle(glm::vec3 position) const;
+    const Particle* getParticleWithID(uint32_t id) const;
+    
 
 protected:
     void storeParticle(const Particle& particle);

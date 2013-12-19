@@ -25,6 +25,7 @@ const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 class ParticleDetail {
 public:
     uint32_t id;
+    uint64_t lastEdited;
     glm::vec3 position;
     float radius;
     rgbColor color;
@@ -66,11 +67,16 @@ public:
     const glm::vec3& getGravity() const { return _gravity; }
     bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
+    
+    /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
+    uint64_t getLastUpdated() const { return _lastUpdated; }
+
+    /// The last edited time of this particle from the time perspective of the authoritative server/source
+    uint64_t getLastEdited() const { return _lastEdited; }
 
     /// lifetime of the particle in seconds
     float getLifetime() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    /// seconds since last edited
-    float getEditedAgo() const { return (float)(usecTimestampNow() - _edited) / (float)USECS_PER_SECOND; }
+    float getEditedAgo() const { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
     QString getUpdateScript() const { return _updateScript; }
@@ -116,7 +122,6 @@ protected:
     static void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 
     void setLifetime(float lifetime);    
-    void setEditedAgo(float editedAgo);    
     
     glm::vec3 _position;
     rgbColor _color;
@@ -133,11 +138,11 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
 
-    // these are never included in wire time    
-    uint64_t _lastSimulated;
+    uint64_t _lastUpdated;
+    uint64_t _lastEdited;
+
+    // this doesn't go on the wire, we send it as lifetime
     uint64_t _created;
-    uint64_t _edited;
-    
 };
 
 class ParticleScriptObject  : public QObject {
