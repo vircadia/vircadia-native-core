@@ -153,7 +153,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
+    qDebug("[VERSION] Build sequence: %i\n", BUILD_VERSION);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
