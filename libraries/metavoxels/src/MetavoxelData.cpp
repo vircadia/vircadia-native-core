@@ -75,6 +75,7 @@ void MetavoxelData::read(Bitstream& in) {
 void MetavoxelData::write(Bitstream& out) const {
     out << (qint32)_roots.size();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        
         it.value()->write(it.key(), out);
     }
 }

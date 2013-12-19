@@ -12,6 +12,7 @@
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
+    qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
 }
 
@@ -28,6 +29,19 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.y = object.property("y").toVariant().toFloat();
     vec3.z = object.property("z").toVariant().toFloat();
 }
+
+QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", vec2.x);
+    obj.setProperty("y", vec2.y);
+    return obj;
+}
+
+void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2) {
+    vec2.x = object.property("x").toVariant().toFloat();
+    vec2.y = object.property("y").toVariant().toFloat();
+}
+
 
 QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
     QScriptValue obj = engine->newObject();

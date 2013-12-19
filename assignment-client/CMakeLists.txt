@@ -9,11 +9,13 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Script REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 setup_hifi_project(${TARGET_NAME} TRUE)
 
-qt5_use_modules(${TARGET_NAME} Gui Network Script)
+qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 
 # include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)
