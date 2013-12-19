@@ -362,6 +362,7 @@ void Hand::updateCollisions() {
                     //  Check for palm collisions
                     glm::vec3 myPalmPosition = palm.getPosition();
                     float palmCollisionDistance = 0.1f;
+                    bool wasColliding = palm.getIsCollidingWithPalm();
                     palm.setIsCollidingWithPalm(false);
                     //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
                     for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
@@ -372,14 +373,21 @@ void Hand::updateCollisions() {
                         glm::vec3 otherPalmPosition = otherPalm.getPosition();
                         if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
                             palm.setIsCollidingWithPalm(true);
+                            if (!wasColliding) {
                             const float PALM_COLLIDE_VOLUME = 1.f;
-                            const float PALM_COLLIDE_FREQUENCY = 150.f;
-                            const float PALM_COLLIDE_DURATION_MAX = 2.f;
-                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
+                            const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                            const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
                             Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
                                                                                    PALM_COLLIDE_FREQUENCY,
                                                                                    PALM_COLLIDE_DURATION_MAX,
                                                                                    PALM_COLLIDE_DECAY_PER_SAMPLE);
+                            //  If the other person's palm is in motion, move mine downward to show I was hit
+                            const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                                if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
+                                    // add slapback here
+                                }
+                            }
 
                             
                         }
