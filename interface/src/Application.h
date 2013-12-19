@@ -71,6 +71,8 @@
 #include "ui/LogDialog.h"
 #include "ParticleTreeRenderer.h"
 #include "ParticleEditHandle.h"
+#include "ControllerScriptingInterface.h"
+
 
 class QAction;
 class QActionGroup;
@@ -505,7 +507,7 @@ private:
     
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
-
+    ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 };
 

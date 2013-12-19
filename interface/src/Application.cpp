@@ -4450,7 +4450,8 @@ void Application::loadScript() {
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance());
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(), 
+                                                    &_controllerScriptingInterface);
     scriptEngine->setupMenuItems();
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
