@@ -97,7 +97,7 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
         memcpy(currentPacketPosition, &_position, sizeof(_position));
         currentPacketPosition += sizeof(_position);
         
-        // pack a zero orientation for injected audio
+        // pack our orientation for injected audio
         memcpy(currentPacketPosition, &_orientation, sizeof(_orientation));
         currentPacketPosition += sizeof(_orientation);
         
@@ -107,7 +107,7 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
         currentPacketPosition += sizeof(radius);
         
         // pack 255 for attenuation byte
-        uchar volume = 1;
+        uchar volume = 255;
         memcpy(currentPacketPosition, &volume, sizeof(volume));
         currentPacketPosition += sizeof(volume);
         

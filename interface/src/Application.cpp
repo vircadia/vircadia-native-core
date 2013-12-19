@@ -1320,7 +1320,6 @@ void Application::timer() {
     
     if (testInjector.size()) {
         testInjector.setPosition(_myAvatar.getHead().getPosition());
-        testInjector.setOrientation(_myAvatar.getOrientation());
         testInjector.injectViaThread();
     }
     
