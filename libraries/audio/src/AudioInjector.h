@@ -19,6 +19,8 @@
 class AbstractAudioInterface;
 class QNetworkReply;
 
+const uchar MAX_INJECTOR_VOLUME = 0xFF;
+
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
@@ -28,6 +30,7 @@ public:
     
     void setPosition(const glm::vec3& position) { _position = position; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
+    void setVolume(float volume) { _volume = std::max(fabsf(volume), 1.0f); }
 public slots:
     void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
     
@@ -38,6 +41,7 @@ private:
     QUrl _sourceURL;
     glm::vec3 _position;
     glm::quat _orientation;
+    float _volume;
     
 private slots:
     void startDownload();

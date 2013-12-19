@@ -107,7 +107,7 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
         currentPacketPosition += sizeof(radius);
         
         // pack 255 for attenuation byte
-        uchar volume = 255;
+        uchar volume = MAX_INJECTOR_VOLUME * _volume;
         memcpy(currentPacketPosition, &volume, sizeof(volume));
         currentPacketPosition += sizeof(volume);
         
