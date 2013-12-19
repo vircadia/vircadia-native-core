@@ -68,6 +68,9 @@ public:
 
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
+
+    int getClockSkewUsec() const { return _clockSkewUsec; }
+    void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
     
     void lock() { pthread_mutex_lock(&_mutex); }
     
@@ -93,6 +96,7 @@ private:
     NodeData* _linkedData;
     bool _isAlive;
     int _pingMs;
+    int _clockSkewUsec;
     pthread_mutex_t _mutex;
 };
 

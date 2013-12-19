@@ -47,7 +47,7 @@ bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraDat
     return true;
 }
 
-void ParticleTree::storeParticle(const Particle& particle) {
+void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
     // First, look for the existing particle in the tree..
     FindAndUpdateParticleArgs args = { particle, false };
     recurseTreeWithOperation(findAndUpdateOperation, &args);
@@ -58,7 +58,7 @@ void ParticleTree::storeParticle(const Particle& particle) {
         float size = particle.getRadius();
         ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
-        element->storeParticle(particle);
+        element->storeParticle(particle, senderNode);
     }    
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
@@ -165,7 +165,7 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
-            storeParticle(newParticle);
+            storeParticle(newParticle, senderNode);
             if (newParticle.isNewlyCreated()) {
                 notifyNewlyCreatedParticle(newParticle, senderNode);
             }

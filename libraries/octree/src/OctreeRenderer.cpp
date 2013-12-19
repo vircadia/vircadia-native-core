@@ -26,7 +26,7 @@ void OctreeRenderer::init() {
 OctreeRenderer::~OctreeRenderer() {
 }
 
-void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode) {
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     bool extraDebugging = false; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
@@ -57,7 +57,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
         bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
         
         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-        int flightTime = arrivedAt - sentAt;
+        int clockSkew = sourceNode ? sourceNode->getClockSkewUsec() : 0;
+        int flightTime = arrivedAt - sentAt + clockSkew;
         
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
         int dataBytes = packetLength - OCTREE_PACKET_HEADER_SIZE;
@@ -88,7 +89,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                getDataSourceUUID());
+                                                getDataSourceUUID(), sourceNode);
                 _tree->lockForWrite();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);

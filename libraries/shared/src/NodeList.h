@@ -103,6 +103,8 @@ public:
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
     
+    int fillPingPacket(unsigned char* buffer);
+    int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
     
     void sendKillNode(const char* nodeTypes, int numNodeTypes);

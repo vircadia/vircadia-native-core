@@ -86,6 +86,7 @@ public:
 
     // you must override these...
     virtual unsigned char getMyNodeType() const = 0;
+    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { };
     
 protected:
     bool _shouldSend;
