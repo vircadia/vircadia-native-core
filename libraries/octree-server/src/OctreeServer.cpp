@@ -656,6 +656,16 @@ void OctreeServer::run() {
             _persistThread->initialize(true);
         }
     }
+    
+    // Debug option to demonstrate that the server's local time does not 
+    // need to be in sync with any other network node. This forces clock 
+    // skew for the individual server node
+    const char* TIME_ADJUST = "--usecTimestampNowAdjust";
+    const char* timeAdjustOption = getCmdOption(_argc, _argv, TIME_ADJUST);
+    if (timeAdjustOption) {
+        ::usecTimestampNowAdjust = atoi(timeAdjustOption);
+        qDebug("timeAdjustOption=%s usecTimestampNowAdjust=%d\n", timeAdjustOption, ::usecTimestampNowAdjust);
+    }
 
     // Check to see if the user passed in a command line option for setting packet send rate
     const char* PACKETS_PER_SECOND = "--packetsPerSecond";

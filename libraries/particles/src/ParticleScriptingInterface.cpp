@@ -23,7 +23,7 @@ unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, fl
                                                     
     // setup a ParticleDetail struct with the data
     uint64_t now = usecTimestampNow();
-    ParticleDetail addParticleDetail = { NEW_PARTICLE, now, now,
+    ParticleDetail addParticleDetail = { NEW_PARTICLE, now,
                                         position, radius, {color.red, color.green, color.blue }, velocity, 
                                         gravity, damping, inHand, updateScript, creatorTokenID };
     

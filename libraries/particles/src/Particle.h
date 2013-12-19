@@ -25,7 +25,6 @@ const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 class ParticleDetail {
 public:
     uint32_t id;
-    uint64_t lastUpdated;
     uint64_t lastEdited;
     glm::vec3 position;
     float radius;
@@ -70,7 +69,6 @@ public:
     float getDamping() const { return _damping; }
     uint64_t getCreated() const { return _created; }
     uint64_t getLifetime() const { return usecTimestampNow() - _created; }
-    uint64_t getLastUpdated() const { return _lastUpdated; }
     uint64_t getLastEdited() const { return _lastEdited; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
@@ -116,7 +114,6 @@ protected:
     rgbColor _color;
     float _radius;
     glm::vec3 _velocity;
-    uint64_t _lastUpdated;
     uint64_t _created;
     uint64_t _lastEdited;
     uint32_t _id;
@@ -129,6 +126,9 @@ protected:
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;
+    
+    uint64_t _lastSimulated;
+    
 };
 
 class ParticleScriptObject  : public QObject {

@@ -42,8 +42,9 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     } else {
         _id = id;
     }
-    _lastUpdated = usecTimestampNow();
-    _lastEdited = _lastUpdated;
+    uint64_t now = usecTimestampNow();
+    _lastEdited = now;
+    _lastSimulated = now;
 
     _position = position;
     _radius = radius;
@@ -64,9 +65,6 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
     if (success) {
         success = packetData->appendValue(getCreated());
-    }
-    if (success) {
-        success = packetData->appendValue(getLastUpdated());
     }
     if (success) {
         success = packetData->appendValue(getLastEdited());
@@ -123,11 +121,6 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_created, dataAt, sizeof(_created));
         dataAt += sizeof(_created);
         bytesRead += sizeof(_created);
-
-        // lastupdated
-        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
-        dataAt += sizeof(_lastUpdated);
-        bytesRead += sizeof(_lastUpdated);
 
         // _lastEdited
         memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
@@ -186,7 +179,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 
 
 Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes) {
-    Particle newParticle; // id and lastUpdated will get set here...
+    Particle newParticle; // id and _lastSimulated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
 
@@ -223,11 +216,6 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     memcpy(&newParticle._created, dataAt, sizeof(newParticle._created));
     dataAt += sizeof(newParticle._created);
     processedBytes += sizeof(newParticle._created);
-
-    // lastUpdated
-    memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
-    dataAt += sizeof(newParticle._lastUpdated);
-    processedBytes += sizeof(newParticle._lastUpdated);
 
     // lastEdited
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
@@ -292,7 +280,6 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
     printf(" created:%llu\n", _created);
-    printf(" last updated:%llu\n", _lastUpdated);
     printf(" last edited:%llu\n", _lastEdited);
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
@@ -347,11 +334,6 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             copyAt += sizeof(created);
             sizeOut += sizeof(created);
             
-            // lastUpdated
-            memcpy(copyAt, &details[i].lastUpdated, sizeof(details[i].lastUpdated));
-            copyAt += sizeof(details[i].lastUpdated);
-            sizeOut += sizeof(details[i].lastUpdated);
-            
             // lastEdited
             memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
             copyAt += sizeof(details[i].lastEdited);
@@ -405,7 +387,6 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             if (wantDebugging) {            
                 printf("encodeParticleEditMessageDetails()....\n");
                 printf("Particle id  :%u\n", details[i].id);
-                printf(" last updated:%llu\n", details[i].lastUpdated);
                 printf(" nextID:%u\n", _nextID);
             }
         }
@@ -419,7 +400,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
 void Particle::update() {
     uint64_t now = usecTimestampNow();
-    uint64_t elapsed = now - _lastUpdated;
+    uint64_t elapsed = now - _lastSimulated;
     uint64_t USECS_PER_SECOND = 1000 * 1000;
     float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
     
@@ -454,7 +435,7 @@ void Particle::update() {
         //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
     }
     
-    _lastUpdated = now;
+    _lastSimulated = now;
 }
 
 void Particle::runScript() {
