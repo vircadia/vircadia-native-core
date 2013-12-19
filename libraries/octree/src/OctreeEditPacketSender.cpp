@@ -81,7 +81,7 @@ bool OctreeEditPacketSender::serversExist() const {
 }
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
-// a known nodeID. However, we also want to handle the case where the 
+// a known nodeID. 
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -241,6 +241,14 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned c
                 // If the buffer is empty and not correctly initialized for our type...
                 if (type != packetBuffer._currentType && packetBuffer._currentSize == 0) {
                     initializePacket(packetBuffer, type);
+                }
+
+                // This is really the first time we know which server/node this particular edit message
+                // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
+                // We call this virtual function that allows our specific type of EditPacketSender to
+                // fixup the buffer for any clock skew
+                if (node->getClockSkewUsec() != 0) {
+                    adjustEditPacketForClockSkew(codeColorBuffer, length, node->getClockSkewUsec());
                 }
 
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], codeColorBuffer, length);

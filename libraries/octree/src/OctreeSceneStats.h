@@ -153,7 +153,8 @@ public:
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket);
+    void trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, 
+                                        bool wasStatsPacket, int nodeClockSkewUsec);
 
     unsigned int getIncomingPackets() const { return _incomingPacket; }
     unsigned long getIncomingBytes() const { return _incomingBytes; } 

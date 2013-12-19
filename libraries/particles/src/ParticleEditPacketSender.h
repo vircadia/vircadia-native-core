@@ -28,7 +28,8 @@ public:
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
     void queueParticleEditMessages(PACKET_TYPE type, int numberOfDetails, ParticleDetail* details);
 
-    // My server type is the voxel server
+    // My server type is the particle server
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
+    virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };
 #endif // __shared__ParticleEditPacketSender__

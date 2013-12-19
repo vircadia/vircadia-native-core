@@ -12,6 +12,7 @@
 
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
+#include <Octree.h>
 
 #include "Particle.h"
 
@@ -136,6 +137,8 @@ int Particle::expectedEditMessageBytes() {
 int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
     int bytesRead = 0;
     if (bytesLeftToRead >= expectedBytes()) {
+        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+
         const unsigned char* dataAt = data;
 
         // id
@@ -154,11 +157,13 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
         dataAt += sizeof(_lastUpdated);
         bytesRead += sizeof(_lastUpdated);
+        _lastUpdated -= clockSkew;
 
         // _lastEdited
         memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
         dataAt += sizeof(_lastEdited);
         bytesRead += sizeof(_lastEdited);
+        _lastEdited -= clockSkew;
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -357,7 +362,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
                 sizeOut += sizeof(details[i].creatorTokenID);
             }
 
-            // radius
+            // lastEdited
             memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
             copyAt += sizeof(details[i].lastEdited);
             sizeOut += sizeof(details[i].lastEdited);
@@ -418,6 +423,38 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
     }
 
     return success;
+}
+
+// adjust any internal timestamps to fix clock skew for this server
+void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { 
+    unsigned char* dataAt = codeColorBuffer;
+    int octets = numberOfThreeBitSectionsInCode(dataAt);
+    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+    dataAt += lengthOfOctcode;
+
+    // id
+    uint32_t id;
+    memcpy(&id, dataAt, sizeof(id));
+    dataAt += sizeof(id);
+    // special case for handling "new" particles
+    if (id == NEW_PARTICLE) {
+        // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
+        // we want to send back to the creator as an map to the actual id
+        dataAt += sizeof(uint32_t);
+    }
+
+    // lastEdited
+    uint64_t lastEditedInLocalTime;
+    memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
+    uint64_t lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
+    const bool wantDebug = false;
+    if (wantDebug) {    
+        qDebug("Particle::adjustEditPacketForClockSkew()...\n");
+        qDebug("     lastEditedInLocalTime: %llu\n", lastEditedInLocalTime);
+        qDebug("                 clockSkew: %d\n", clockSkew);
+        qDebug("    lastEditedInServerTime: %llu\n", lastEditedInServerTime);
+    }
 }
 
 

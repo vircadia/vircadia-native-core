@@ -44,7 +44,7 @@ public:
 
     virtual void update();    
 
-    void storeParticle(const Particle& particle);
+    void storeParticle(const Particle& particle, Node* senderNode = NULL);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
     const Particle* findParticleByID(uint32_t id);
 
