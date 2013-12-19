@@ -404,7 +404,7 @@ void Particle::update() {
     float velocityScalar = glm::length(getVelocity());
     const float STILL_MOVING = 0.05 / TREE_SCALE;
     bool isStillMoving = (velocityScalar > STILL_MOVING);
-    const float REALLY_OLD = 300.0f; // 300 seconds
+    const float REALLY_OLD = 30.0f; // 30 seconds
     bool isReallyOld = (getLifetime() > REALLY_OLD);
     bool isInHand = getInHand();
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
