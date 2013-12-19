@@ -152,9 +152,7 @@ public slots:
     float getDamping() const { return _particle->getDamping(); }
     float getRadius() const { return _particle->getRadius(); }
     bool getShouldDie() { return _particle->getShouldDie(); }
-    //float getCreated() const { return ((float)_particle->getCreated() / (float)USECS_PER_SECOND); }
     float getLifetime() const { return _particle->getLifetime(); }
-    
     
     void setPosition(glm::vec3 value) { _particle->setPosition(value); }
     void setVelocity(glm::vec3 value) { _particle->setVelocity(value); }
