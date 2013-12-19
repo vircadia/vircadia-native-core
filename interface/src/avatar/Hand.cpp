@@ -17,7 +17,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-//#define DEBUG_HAND
+#define DEBUG_HAND
 
 using namespace std;
 
