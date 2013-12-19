@@ -1285,7 +1285,8 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
-bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius, 
+                        glm::vec3& penetration, void** penetratedObject) const {
     return _box.findSpherePenetration(center, radius, penetration);
 }
 

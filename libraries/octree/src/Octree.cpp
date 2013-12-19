@@ -583,7 +583,7 @@ public:
     float radius;
     glm::vec3& penetration;
     bool found;
-    OctreeElement* penetratedElement;
+    void* penetratedObject; /// the type is defined by the type of Octree, the caller is assumed to know the type
 };
 
 bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
@@ -599,23 +599,22 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     }
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
-        if (element->findSpherePenetration(args->center, args->radius, elementPenetration)) {
+        if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)TREE_SCALE);
             args->found = true;
-            args->penetratedElement = element;
         }
     }
     return false;
 }
 
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
-                    OctreeElement** penetratedElement) {
+                    void** penetratedObject) {
                     
     SphereArgs args = { center / (float)TREE_SCALE, radius / TREE_SCALE, penetration, false, NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     recurseTreeWithOperation(findSpherePenetrationOp, &args);
-    if (penetratedElement) {
-        *penetratedElement = args.penetratedElement;
+    if (penetratedObject) {
+        *penetratedObject = args.penetratedObject;
     }
     return args.found;
 }
