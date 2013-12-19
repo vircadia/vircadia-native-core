@@ -128,7 +128,7 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
-    bool wantDebug = false;
+    const bool wantDebug = false;
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
@@ -145,8 +145,8 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
                 _particles[i].copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
-                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s and %s than server particle by %d, "
-                            "particle.isNewlyCreated()=%s\n", 
+                    printf(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
+                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                             (localOlder ? "OLDER" : "NEWER"),               
                             difference, debug::valueOf(particle.isNewlyCreated()) );
