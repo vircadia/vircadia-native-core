@@ -4237,15 +4237,15 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
                         const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
                         
     // Attempt to identify the sender from it's address.
-    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
-    if (voxelServer) {
-        QUuid nodeUUID = voxelServer->getUUID();
+    Node* serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+    if (serverNode) {
+        QUuid nodeUUID = serverNode->getUUID();
         
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(messageData, messageLength, wasStatsPacket);
+            stats.trackIncomingOctreePacket(messageData, messageLength, wasStatsPacket, serverNode->getClockSkewUsec());
         }
         _voxelSceneStatsLock.unlock();
     }

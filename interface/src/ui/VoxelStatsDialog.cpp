@@ -345,11 +345,10 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                             QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
                             QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
 
-                            float clockSkewInMS = (float)node->getClockSkewUsec() / (float)USECS_PER_MSEC;
-                            float adjustedFlightTime = stats.getIncomingFlightTimeAverage() + clockSkewInMS;
-                            QString incomingFlightTimeString = locale.toString((int)adjustedFlightTime);
+                            int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
+                            QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
-                            QString incomingClockSkewString = locale.toString((int)clockSkewInMS);
+                            QString incomingClockSkewString = locale.toString(clockSkewInMS);
                 
                             serverDetails << "<br/>" << "Incoming Packets: " <<
                                 incomingPacketsString.toLocal8Bit().constData() << 
