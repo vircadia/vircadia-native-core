@@ -56,7 +56,7 @@ static const uint64_t USECS_PER_SECOND = 1000 * 1000;
 
 uint64_t usecTimestamp(const timeval *time);
 uint64_t usecTimestampNow();
-extern int usecTimestampNowAdjust;
+void usecTimestampNowForceClockSkew(int clockSkew);
 
 float randFloat();
 int randIntInRange (int min, int max);

@@ -409,11 +409,15 @@ void Particle::update() {
     bool isInHand = getInHand();
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
-
-printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
-    timeElapsed, getLifetime(), getEditedAgo(), debug::valueOf(isInHand), debug::valueOf(isStillMoving), 
-    debug::valueOf(isReallyOld), debug::valueOf(shouldDie));
     
+    bool wantDebug = false;
+    if (wantDebug) {
+        printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
+            "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
+            timeElapsed, getLifetime(), getEditedAgo(), debug::valueOf(isInHand), debug::valueOf(isStillMoving), 
+            debug::valueOf(isReallyOld), debug::valueOf(shouldDie));
+    }
+        
     runScript(); // allow the javascript to alter our state
     
     // If the ball is in hand, it doesn't move or have gravity effect it

@@ -31,10 +31,14 @@ uint64_t usecTimestamp(const timeval *time) {
 }
 
 int usecTimestampNowAdjust = 0;
+void usecTimestampNowForceClockSkew(int clockSkew) {
+    ::usecTimestampNowAdjust = clockSkew;
+}
+
 uint64_t usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000 + now.tv_usec) + usecTimestampNowAdjust;
+    return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
 }
 
 float randFloat () {

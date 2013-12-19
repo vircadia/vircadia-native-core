@@ -28,11 +28,12 @@ int main(int argc, const char * argv[]) {
     // Debug option to demonstrate that the client's local time does not 
     // need to be in sync with any other network node. This forces clock 
     // skew for the individual client
-    const char* TIME_ADJUST = "--usecTimestampNowAdjust";
-    const char* timeAdjustOption = getCmdOption(argc, argv, TIME_ADJUST);
-    if (timeAdjustOption) {
-        ::usecTimestampNowAdjust = atoi(timeAdjustOption);
-        qDebug("timeAdjustOption=%s usecTimestampNowAdjust=%d\n", timeAdjustOption, ::usecTimestampNowAdjust);
+    const char* CLOCK_SKEW = "--clockSkew";
+    const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
+    if (clockSkewOption) {
+        int clockSkew = atoi(clockSkewOption);
+        usecTimestampNowForceClockSkew(clockSkew);
+        qDebug("clockSkewOption=%s clockSkew=%d\n", clockSkewOption, clockSkew);
     }
     
     int exitCode;
