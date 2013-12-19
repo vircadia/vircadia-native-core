@@ -42,8 +42,8 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
         _id = id;
     }
     uint64_t now = usecTimestampNow();
-    _edited = now;
-    _lastSimulated = now;
+    _lastEdited = now;
+    _lastUpdated = now;
     _created = now; // will get updated as appropriate in setLifetime()
     
     _position = position;
@@ -67,7 +67,10 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
         success = packetData->appendValue(getLifetime());
     }
     if (success) {
-        success = packetData->appendValue(getEditedAgo());
+        success = packetData->appendValue(getLastUpdated());
+    }
+    if (success) {
+        success = packetData->appendValue(getLastEdited());
     }
     if (success) {
         success = packetData->appendValue(getRadius());
@@ -103,7 +106,8 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // lifetime
-                + sizeof(float) // edited ago
+                + sizeof(uint64_t) // last updated
+                + sizeof(uint64_t) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -117,6 +121,7 @@ int Particle::expectedBytes() {
 
 int Particle::expectedEditMessageBytes() {
     int expectedBytes = sizeof(uint32_t) // id
+                + sizeof(uint64_t) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -145,12 +150,15 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += sizeof(lifetime);
         setLifetime(lifetime);
 
-        // edited ago
-        float editedAgo;
-        memcpy(&editedAgo, dataAt, sizeof(editedAgo));
-        dataAt += sizeof(editedAgo);
-        bytesRead += sizeof(editedAgo);
-        setEditedAgo(editedAgo);
+        // _lastUpdated
+        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
+        dataAt += sizeof(_lastUpdated);
+        bytesRead += sizeof(_lastUpdated);
+
+        // _lastEdited
+        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
+        dataAt += sizeof(_lastEdited);
+        bytesRead += sizeof(_lastEdited);
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -204,7 +212,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 
 
 Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes) {
-    Particle newParticle; // id and _lastSimulated will get set here...
+    Particle newParticle; // id and _lastUpdated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
 
@@ -240,8 +248,10 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         newParticle._newlyCreated = false;
     } 
 
-    // clearly we just edited it
-    newParticle.setEditedAgo(0);
+    // lastEdited
+    memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
+    dataAt += sizeof(newParticle._lastEdited);
+    processedBytes += sizeof(newParticle._lastEdited);
         
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
@@ -348,6 +358,11 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             }
 
             // radius
+            memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
+            copyAt += sizeof(details[i].lastEdited);
+            sizeOut += sizeof(details[i].lastEdited);
+
+            // radius
             memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));
             copyAt += sizeof(details[i].radius);
             sizeOut += sizeof(details[i].radius);
@@ -409,7 +424,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 void Particle::update() {
 
     uint64_t now = usecTimestampNow();
-    uint64_t elapsed = now - _lastSimulated;
+    int elapsed = now - _lastUpdated; // making this signed slightly improves clock skew behavior
     float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
     
     
@@ -423,7 +438,7 @@ void Particle::update() {
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
     
-    bool wantDebug = false;
+    const bool wantDebug = false;
     if (wantDebug) {
         printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
             "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
@@ -452,7 +467,7 @@ void Particle::update() {
         //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
     }
     
-    _lastSimulated = now;
+    _lastUpdated = now;
 }
 
 void Particle::runScript() {
@@ -486,11 +501,6 @@ void Particle::runScript() {
 void Particle::setLifetime(float lifetime) {
     uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;
     _created = usecTimestampNow() - lifetimeInUsecs; 
-}
-
-void Particle::setEditedAgo(float editedAgo) {
-    uint64_t editedAgoInUsecs = editedAgo * USECS_PER_SECOND;
-    _edited = usecTimestampNow() - editedAgoInUsecs; 
 }
 
 void Particle::copyChangedProperties(const Particle& other) {

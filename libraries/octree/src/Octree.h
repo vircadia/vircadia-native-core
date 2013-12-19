@@ -221,7 +221,7 @@ public:
                              OctreeElement*& node, float& distance, BoxFace& face);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
-                                OctreeElement** penetratedElement = NULL);
+                                void** penetratedObject = NULL);
                                 
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
