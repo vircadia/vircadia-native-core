@@ -7,11 +7,12 @@ set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-qt5_use_modules(${TARGET_NAME} Network)
+qt5_use_modules(${TARGET_NAME} Network Widgets)
 
 # include GLM
 include(${MACRO_DIR}/IncludeGLM.cmake)
