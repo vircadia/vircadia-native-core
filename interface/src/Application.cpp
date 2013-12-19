@@ -1321,7 +1321,9 @@ void Application::timer() {
     static AudioInjector testInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/throw.raw"));
     
     if (testInjector.size()) {
-        testInjector.injectViaThread(&_audio);
+        testInjector.setPosition(_myAvatar.getHead().getPosition());
+        testInjector.setOrientation(_myAvatar.getOrientation());
+        testInjector.injectViaThread();
     }
     
     // give the MyAvatar object position to the Profile so it can propagate to the data-server

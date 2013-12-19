@@ -13,6 +13,9 @@
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
 
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 class AbstractAudioInterface;
 class QNetworkReply;
 
@@ -22,13 +25,19 @@ public:
     AudioInjector(const QUrl& sampleURL);
     
     int size() const { return _sampleByteArray.size(); }
+    
+    void setPosition(const glm::vec3& position) { _position = position; }
+    void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
 public slots:
     void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
     
 private:
     QByteArray _sampleByteArray;
+    int _currentSendPosition;
     QThread _thread;
     QUrl _sourceURL;
+    glm::vec3 _position;
+    glm::quat _orientation;
     
 private slots:
     void startDownload();
