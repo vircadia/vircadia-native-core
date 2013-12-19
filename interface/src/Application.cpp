@@ -1251,12 +1251,10 @@ void Application::sendPingPackets() {
     const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER, 
                                 NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
 
-    uint64_t currentTime = usecTimestampNow();
-    unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];
-    int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
-    
-    memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
-    getInstance()->controlledBroadcastToNodes(pingPacket, sizeof(pingPacket),
+    unsigned char pingPacket[MAX_PACKET_SIZE];
+    int length = NodeList::getInstance()->fillPingPacket(pingPacket);
+
+    getInstance()->controlledBroadcastToNodes(pingPacket, length,
                                               nodesToPing, sizeof(nodesToPing));
 }
 

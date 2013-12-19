@@ -52,7 +52,9 @@ static const float METER            = 1.0f;
 static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
-static const uint64_t USECS_PER_SECOND = 1000 * 1000;
+static const uint64_t USECS_PER_MSEC = 1000;
+static const uint64_t MSECS_PER_SECOND = 1000;
+static const uint64_t USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 uint64_t usecTimestamp(const timeval *time);
 uint64_t usecTimestampNow();

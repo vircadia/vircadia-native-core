@@ -34,16 +34,16 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
         _labels[i] = NULL;
     }
 
-    this->setWindowTitle("Voxel Statistics");
+    this->setWindowTitle("Octree Server Statistics");
 
     // Create layouter
     _form = new QFormLayout();
     this->QDialog::setLayout(_form);
 
     // Setup stat items
-    _serverVoxels = AddStatItem("Voxels on Servers");
-    _localVoxels = AddStatItem("Local Voxels");
-    _localVoxelsMemory = AddStatItem("Voxels Memory");
+    _serverVoxels = AddStatItem("Elements on Servers");
+    _localVoxels = AddStatItem("Local Elements");
+    _localVoxelsMemory = AddStatItem("Elements Memory");
     _voxelsRendered = AddStatItem("Voxels Rendered");
     _sendingMode = AddStatItem("Sending Mode");
     
@@ -136,7 +136,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_localVoxelsMemory];
     statsValue.str("");
     statsValue << 
-        "Nodes RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
+        "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
         "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (voxels->hasVoxelMemoryUsageGPU()) {
@@ -344,15 +344,26 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
                             QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
                             QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
-                            QString incomingFlightTimeString = locale.toString(stats.getIncomingFlightTimeAverage());
+
+                            float clockSkewInMS = (float)node->getClockSkewUsec() / (float)USECS_PER_MSEC;
+                            float adjustedFlightTime = stats.getIncomingFlightTimeAverage() + clockSkewInMS;
+                            QString incomingFlightTimeString = locale.toString((int)adjustedFlightTime);
+                            QString incomingPingTimeString = locale.toString(node->getPingMs());
+                            QString incomingClockSkewString = locale.toString((int)clockSkewInMS);
                 
                             serverDetails << "<br/>" << "Incoming Packets: " <<
                                 incomingPacketsString.toLocal8Bit().constData() << 
                                 " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
                                 " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
 
-                            serverDetails << "<br/>" << 
+                            serverDetails << "<br/>" <<
                                 " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
+
+                            serverDetails << "<br/>" << 
+                                " Average Ping Time: " << incomingPingTimeString.toLocal8Bit().constData() << " msecs";
+
+                            serverDetails << "<br/>" << 
+                                " Average Clock Skew: " << incomingClockSkewString.toLocal8Bit().constData() << " msecs";
                     
                             serverDetails << "<br/>" << "Incoming" <<
                                 " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
