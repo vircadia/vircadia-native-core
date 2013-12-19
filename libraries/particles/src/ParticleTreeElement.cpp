@@ -86,7 +86,9 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     }
 }
 
-bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
+bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius, 
+                                    glm::vec3& penetration, void** penetratedObject) const {
+                                    
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         glm::vec3 particleCenter = _particles[i].getPosition();
@@ -96,8 +98,19 @@ bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float r
         if (particleCenter == center && particleRadius == radius) {
             return false;
         }
+
+        // We've considered making "inHand" particles not collide, if we want to do that,
+        // we should change this setting... but now, we do allow inHand particles to collide
+        const bool IN_HAND_PARTICLES_DONT_COLLIDE = false;
+        if (IN_HAND_PARTICLES_DONT_COLLIDE) {
+            // don't penetrate if the particle is "inHand" -- they don't collide
+            if (_particles[i].getInHand()) {
+                return false;
+            }
+        }
         
         if (findSphereSpherePenetration(center, radius, particleCenter, particleRadius, penetration)) {
+            *penetratedObject = (void*)&_particles[i];
             return true;
         }
     }
@@ -119,19 +132,24 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
-            bool changedOnServer = _particles[i].getEditedAgo() > particle.getEditedAgo();
-            if (changedOnServer) {
+            int difference = _particles[i].getLastUpdated() - particle.getLastUpdated();
+            bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
+            bool localOlder = _particles[i].getLastUpdated() < particle.getLastUpdated();
+            if (changedOnServer || localOlder) {                
                 if (wantDebug) {
-                    printf("local particle [id:%d] %s, particle.isNewlyCreated()=%s\n", 
-                                particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                                debug::valueOf(particle.isNewlyCreated()) );
+                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
+                            particle.getID(), (changedOnServer ? "CHANGED" : "same"),
+                            (localOlder ? "OLDER" : "NEWER"),               
+                            difference, debug::valueOf(particle.isNewlyCreated()) );
                 }
                 _particles[i].copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
-                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s particle.isNewlyCreated()=%s\n", 
-                                particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                                debug::valueOf(particle.isNewlyCreated()) );
+                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s and %s than server particle by %d, "
+                            "particle.isNewlyCreated()=%s\n", 
+                            particle.getID(), (changedOnServer ? "CHANGED" : "same"),
+                            (localOlder ? "OLDER" : "NEWER"),               
+                            difference, debug::valueOf(particle.isNewlyCreated()) );
                 }
             }
             return true;
@@ -151,6 +169,18 @@ const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) cons
         }
     }
     return closestParticle;    
+}
+
+const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
+    const Particle* foundParticle = NULL;
+    uint16_t numberOfParticles = _particles.size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if (_particles[i].getID() == id) {
+            foundParticle = &_particles[i];
+            break;
+        }
+    }
+    return foundParticle;    
 }
 
 

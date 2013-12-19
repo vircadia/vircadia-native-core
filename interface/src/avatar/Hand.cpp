@@ -77,6 +77,8 @@ void Hand::reset() {
 }
 
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
+    Application* app = Application::getInstance();
+    ParticleTree* particles = app->getParticles()->getTree();
     bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     int handID = palm.getSixenseID();
 
@@ -85,14 +87,14 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
 
     glm::vec3 targetPosition = (ballFromHand ? palm.getPosition() : fingerTipPosition) / (float)TREE_SCALE;
     float targetRadius = CATCH_RADIUS / (float)TREE_SCALE;
-    const Particle* closestParticle = Application::getInstance()->getParticles()
-                                                ->getTree()->findClosestParticle(targetPosition, targetRadius);
 
+    // If I don't currently have a ball in my hand, then I can catch this closest particle
+    if (!ballAlreadyInHand && grabButtonPressed) {
 
-    if (closestParticle) {
-        // If I don't currently have a ball in my hand, then I can catch this closest particle
-        if (!ballAlreadyInHand && grabButtonPressed) {
-            ParticleEditHandle* caughtParticle = Application::getInstance()->newParticleEditHandle(closestParticle->getID());
+        const Particle* closestParticle = particles->findClosestParticle(targetPosition, targetRadius);
+
+        if (closestParticle) {
+            ParticleEditHandle* caughtParticle = app->newParticleEditHandle(closestParticle->getID());
             glm::vec3 newPosition = targetPosition;
             glm::vec3 newVelocity = NO_VELOCITY;
             
@@ -117,10 +119,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             _ballParticleEditHandles[handID] = caughtParticle;
             caughtParticle = NULL;
             //  Play a catch sound!
-            Application::getInstance()->getAudio()->startDrumSound(1.0,
-                                                                   300,
-                                                                   0.5,
-                                                                   0.05);
+            app->getAudio()->startDrumSound(1.0, 300, 0.5, 0.05);
         }
     }
     
@@ -155,20 +154,17 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                 qDebug("Created New Ball\n");
 #endif
                 glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
-                _ballParticleEditHandles[handID] = Application::getInstance()->makeParticle(
-                                                                    ballPosition / (float)TREE_SCALE,
-                                                                     TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                                     TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
-                                                                     NO_VELOCITY / (float)TREE_SCALE,
-                                                                     TOY_BALL_GRAVITY / (float) TREE_SCALE,
-                                                                     TOY_BALL_DAMPING,
-                                                                     IN_HAND,
-                                                                     TOY_BALL_UPDATE_SCRIPT);
+                _ballParticleEditHandles[handID] = app->makeParticle(
+                                                            ballPosition / (float)TREE_SCALE,
+                                                            TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                            TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
+                                                            NO_VELOCITY / (float)TREE_SCALE,
+                                                            TOY_BALL_GRAVITY / (float) TREE_SCALE,
+                                                            TOY_BALL_DAMPING,
+                                                            IN_HAND,
+                                                            TOY_BALL_UPDATE_SCRIPT);
                 // Play a new ball sound
-                Application::getInstance()->getAudio()->startDrumSound(1.0,
-                                                                       2000,
-                                                                       0.5,
-                                                                       0.02);
+                app->getAudio()->startDrumSound(1.0, 2000, 0.5, 0.02);
 
             }
         } else {
@@ -176,10 +172,16 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
 #ifdef DEBUG_HAND
             //qDebug("Ball in hand\n");
 #endif
+
+            uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
+            const Particle* particleInHand = particles->findParticleByID(particleInHandID);
+            xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
+                                                    : TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]];
+
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
+                                                         colorForParticleInHand, 
                                                          NO_VELOCITY / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
@@ -201,9 +203,14 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
 #ifdef DEBUG_HAND
             qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
 #endif
+            uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
+            const Particle* particleInHand = particles->findParticleByID(particleInHandID);
+            xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
+                                                    : TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]];
+
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
+                                                         colorForParticleInHand,
                                                          ballVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
@@ -216,12 +223,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             _ballParticleEditHandles[handID] = NULL;
             
             // Play a throw sound
-            Application::getInstance()->getAudio()->startDrumSound(1.0,
-                                                                   3000,
-                                                                   0.5,
-                                                                   0.02);
-
-
+            app->getAudio()->startDrumSound(1.0, 3000, 0.5, 0.02);
         }
     }
     
@@ -474,30 +476,27 @@ void Hand::calculateGeometry() {
     }
 }
 
-void Hand::render( bool isMine) {
+void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
-    
-    
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-            for (int i = 0; i < getNumPalms(); i++) {
-                PalmData& palm = getPalms()[i];
-                if (!palm.isActive()) {
-                    continue;
-                }
-                glm::vec3 position = palm.getPosition();
-                glPushMatrix();
-                glTranslatef(position.x, position.y, position.z);
-                glColor3f(0.0f, 1.0f, 0.0f);
-                glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
-                glPopMatrix();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        for (int i = 0; i < getNumPalms(); i++) {
+            PalmData& palm = getPalms()[i];
+            if (!palm.isActive()) {
+                continue;
             }
+            glm::vec3 position = palm.getPosition();
+            glPushMatrix();
+            glTranslatef(position.x, position.y, position.z);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
+            glPopMatrix();
         }
+    }
 
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
-        renderLeapHands();
+        renderLeapHands(isMine);
     }
 
     if (isMine) {
@@ -520,7 +519,7 @@ void Hand::render( bool isMine) {
     
 }
 
-void Hand::renderLeapHands() {
+void Hand::renderLeapHands(bool isMine) {
 
     const float alpha = 1.0f;
     const float TARGET_ALPHA = 0.5f;
@@ -532,7 +531,7 @@ void Hand::renderLeapHands() {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
+    if (isMine && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
             if (!palm.isActive()) {
@@ -541,8 +540,8 @@ void Hand::renderLeapHands() {
             glm::vec3 targetPosition = ballFromHand ? palm.getPosition() : palm.getTipPosition();
             glPushMatrix();
         
-            const Particle* closestParticle = Application::getInstance()->getParticles()
-                                                        ->getTree()->findClosestParticle(targetPosition / (float)TREE_SCALE, 
+            ParticleTree* particles = Application::getInstance()->getParticles()->getTree();
+            const Particle* closestParticle = particles->findClosestParticle(targetPosition / (float)TREE_SCALE,
                                                                                          CATCH_RADIUS / (float)TREE_SCALE);
                                                                                          
             // If we are hitting a particle then draw the target green, otherwise yellow

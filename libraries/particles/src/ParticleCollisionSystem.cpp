@@ -73,8 +73,7 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
-    OctreeElement* penetratedVoxel;
-    if (_voxels->findSpherePenetration(center, radius, penetration, &penetratedVoxel)) {
+    if (_voxels->findSpherePenetration(center, radius, penetration)) {
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
@@ -88,11 +87,29 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
-    OctreeElement* penetratedElement;
-    if (_particles->findSpherePenetration(center, radius, penetration, &penetratedElement)) {
+    Particle* penetratedParticle;
+    if (_particles->findSpherePenetration(center, radius, penetration, (void**)&penetratedParticle)) {
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
-        applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        
+        // apply a hard collision to both particles of half the penetration each
+        
+        float particleShare, penetratedParticleShare;
+        if (particle->getInHand() && penetratedParticle->getInHand()) {
+            particleShare = 0.5f;
+            penetratedParticleShare = -0.5f;
+        } else if (particle->getInHand()) {
+            particleShare = 0.f;
+            penetratedParticleShare = -1.f;
+        } else if (penetratedParticle->getInHand()) {
+            particleShare = -1.f;
+            penetratedParticleShare = 0.f;
+        } else {
+            particleShare = 0.5f;
+            penetratedParticleShare = -0.5f;
+        }
+        applyHardCollision(particle, penetration * particleShare, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        applyHardCollision(penetratedParticle, penetration * penetratedParticleShare, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
 }
 
@@ -172,7 +189,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::vec3& penetration, 
                                                  float elasticity, float damping, const glm::vec3& addedVelocity) {
     //
-    //  Update the avatar in response to a hard collision.  Position will be reset exactly
+    //  Update the particle in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
     //  if elasticity = 1.0, collision is inelastic.
@@ -197,6 +214,9 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
             velocity *= 0.f;
         }
     }
+printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
+    particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
+    
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
                            particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
