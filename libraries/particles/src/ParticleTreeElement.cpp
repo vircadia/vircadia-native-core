@@ -119,20 +119,14 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
-            bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
+            bool changedOnServer = _particles[i].getEditedAgo() > particle.getEditedAgo();
             if (changedOnServer) {
                 if (wantDebug) {
                     printf("local particle [id:%d] %s, particle.isNewlyCreated()=%s\n", 
                                 particle.getID(), (changedOnServer ? "CHANGED" : "same"),
                                 debug::valueOf(particle.isNewlyCreated()) );
                 }
-
-                float actualLifetime = particle.getLifetime();
-                if (!particle.isNewlyCreated()) {
-                    actualLifetime = _particles[i].getLifetime();
-                }
-                _particles[i] = particle;
-                _particles[i].setLifetime(actualLifetime);
+                _particles[i].copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
                     printf(">>> NO CHANGE <<< -- local particle [id:%d] %s particle.isNewlyCreated()=%s\n", 

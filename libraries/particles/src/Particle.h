@@ -25,7 +25,6 @@ const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 class ParticleDetail {
 public:
     uint32_t id;
-    uint64_t lastEdited;
     glm::vec3 position;
     float radius;
     rgbColor color;
@@ -70,8 +69,8 @@ public:
 
     /// lifetime of the particle in seconds
     float getLifetime() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    
-    uint64_t getLastEdited() const { return _lastEdited; }
+    /// seconds since last edited
+    float getEditedAgo() const { return (float)(usecTimestampNow() - _edited) / (float)USECS_PER_SECOND; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
     QString getUpdateScript() const { return _updateScript; }
@@ -93,7 +92,6 @@ public:
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
     void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
-    void setLifetime(float lifetime);    
     
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -105,19 +103,24 @@ public:
     void update();
 
     void debugDump() const;
+    
+    // similar to an assignment, but it handles no breaking lifetime and editedAgo
+    void copyChangedProperties(const Particle& other);
+    
 protected:
     void runScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
     static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
     static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
     static void xColorFromScriptValue(const QScriptValue &object, xColor& color);
+
+    void setLifetime(float lifetime);    
+    void setEditedAgo(float editedAgo);    
     
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
     glm::vec3 _velocity;
-    uint64_t _created;
-    uint64_t _lastEdited;
     uint32_t _id;
     static uint32_t _nextID;
     bool _shouldDie;
@@ -128,8 +131,11 @@ protected:
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;
-    
+
+    // these are never included in wire time    
     uint64_t _lastSimulated;
+    uint64_t _created;
+    uint64_t _edited;
     
 };
 
