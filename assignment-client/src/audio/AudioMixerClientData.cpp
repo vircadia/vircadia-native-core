@@ -94,11 +94,10 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
             audioBuffer->shiftReadPosition(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             audioBuffer->setWillBeAddedToMix(false);
-        } else if (audioBuffer->isStarved()) {
-            // this was previously the kill for injected audio from a client
-            // fix when that is added back
-            // delete audioBuffer;
-            // _ringBuffers.erase(_ringBuffers.begin() + i);
+        } else if (audioBuffer->hasStarted() && audioBuffer->isStarved()) {
+            // this is an empty audio buffer that has starved, safe to delete
+            delete audioBuffer;
+            _ringBuffers.erase(_ringBuffers.begin() + i);
         }
     }
 }
