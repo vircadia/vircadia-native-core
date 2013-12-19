@@ -210,12 +210,12 @@ Menu::Menu() :
     
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::DecreaseVoxelSize,
-                                  Qt::Key_Minus,
+                                  QKeySequence::ZoomOut,
                                   appInstance,
                                   SLOT(decreaseVoxelSize()));
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::IncreaseVoxelSize,
-                                  Qt::Key_Plus,
+                                  QKeySequence::ZoomIn,
                                   appInstance,
                                   SLOT(increaseVoxelSize()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ResetSwatchColors, 0, this, SLOT(resetSwatchColors()));
@@ -237,12 +237,12 @@ Menu::Menu() :
     
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
-                                  QKeySequence::ZoomIn,
+                                  Qt::Key_Plus,
                                   appInstance->getAvatar(),
                                   SLOT(increaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
-                                  QKeySequence::ZoomOut,
+                                  Qt::Key_Minus,
                                   appInstance->getAvatar(),
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
