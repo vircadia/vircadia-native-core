@@ -33,6 +33,8 @@ public:
     bool willBeAddedToMix() const { return _willBeAddedToMix; }
     void setWillBeAddedToMix(bool willBeAddedToMix) { _willBeAddedToMix = willBeAddedToMix; }
     
+    bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
+    
     PositionalAudioRingBuffer::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
@@ -46,6 +48,7 @@ protected:
     glm::vec3 _position;
     glm::quat _orientation;
     bool _willBeAddedToMix;
+    bool _shouldLoopbackForNode;
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */

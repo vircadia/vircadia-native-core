@@ -19,7 +19,8 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
-    _willBeAddedToMix(false)
+    _willBeAddedToMix(false),
+    _shouldLoopbackForNode(false)
 {
     
 }

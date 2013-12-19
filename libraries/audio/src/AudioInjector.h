@@ -31,6 +31,7 @@ public:
     void setPosition(const glm::vec3& position) { _position = position; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
     void setVolume(float volume) { _volume = std::max(fabsf(volume), 1.0f); }
+    void setShouldLoopback(bool shouldLoopback) { _shouldLoopback = shouldLoopback; }
 public slots:
     void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
     
@@ -42,7 +43,7 @@ private:
     glm::vec3 _position;
     glm::quat _orientation;
     float _volume;
-    bool _shouldLoopback;
+    uchar _shouldLoopback;
     
 private slots:
     void startDownload();

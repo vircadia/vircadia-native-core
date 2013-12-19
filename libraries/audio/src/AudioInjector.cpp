@@ -95,6 +95,10 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
         memcpy(currentPacketPosition, rfcStreamUUID, rfcStreamUUID.size());
         currentPacketPosition += rfcStreamUUID.size();
         
+        // pack the flag for loopback
+        memcpy(currentPacketPosition, &_shouldLoopback, sizeof(_shouldLoopback));
+        currentPacketPosition += sizeof(_shouldLoopback);
+        
         // pack the position for injected audio
         memcpy(currentPacketPosition, &_position, sizeof(_position));
         currentPacketPosition += sizeof(_position);

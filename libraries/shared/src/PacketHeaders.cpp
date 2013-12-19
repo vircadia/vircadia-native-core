@@ -18,7 +18,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
         case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
             return 2;
-
+            
         case PACKET_TYPE_HEAD_DATA:
             return 12;
         

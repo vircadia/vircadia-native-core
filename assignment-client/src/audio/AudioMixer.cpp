@@ -200,8 +200,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
                 
                 if ((*otherNode != *node
-                     || otherNodeBuffer->getType() != PositionalAudioRingBuffer::Microphone
-                     || nodeRingBuffer->shouldLoopbackForNode())
+                    || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
