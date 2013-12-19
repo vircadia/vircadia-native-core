@@ -438,7 +438,7 @@ void Particle::update() {
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
     
-    bool wantDebug = true;
+    bool wantDebug = false;
     if (wantDebug) {
         printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
             "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 

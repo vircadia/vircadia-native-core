@@ -214,8 +214,11 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
             velocity *= 0.f;
         }
     }
-printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
-    particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
+    const bool wantDebug = false;
+    if (wantDebug) {
+        printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
+            particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
+    }
     
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,

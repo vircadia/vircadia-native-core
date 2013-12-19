@@ -111,7 +111,6 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
 }
 
 const Particle* ParticleTree::findClosestParticle(glm::vec3 position, float targetRadius) {
-    // First, look for the existing particle in the tree..
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     lockForRead();
     recurseTreeWithOperation(findNearPointOperation, &args);
@@ -133,7 +132,6 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
 
     // if already found, stop looking
     if (args->found) {
-        printf("ParticleTree::findByIDOperation(id[%d]) already found, ending search...\n",args->id);
         return false;
     }
     
@@ -142,20 +140,15 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
     if (foundParticle) {
         args->foundParticle = foundParticle;
         args->found = true;
-        printf("ParticleTree::findByIDOperation(id[%d]) FOUND IT particle=%p...\n",args->id, foundParticle);
         return false;
     }
         
     // keep looking
-    printf("ParticleTree::findByIDOperation(id[%d]) keep looking\n",args->id);
     return true;
 }
 
 
 const Particle* ParticleTree::findParticleByID(uint32_t id) {
-
-printf("ParticleTree::findParticleByID(id[%d])\n",id);
-    // First, look for the existing particle in the tree..
     FindByIDArgs args = { id, false, NULL };
     lockForRead();
     recurseTreeWithOperation(findByIDOperation, &args);
