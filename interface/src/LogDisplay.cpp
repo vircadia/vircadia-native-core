@@ -6,12 +6,13 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "LogDisplay.h"
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
+#include <QStringList>
+
+#include "LogDisplay.h"
 #include "Util.h"
 
 using namespace std;
@@ -91,6 +92,7 @@ void LogDisplay::setCharacterSize(unsigned width, unsigned height) {
 void LogDisplay::addMessage(const char* ptr) {
 
     pthread_mutex_lock(& _mutex);
+    emit logReceived(ptr);
 
     // T-pipe, if requested
     if (_stream != 0l) {
@@ -118,7 +120,7 @@ void LogDisplay::addMessage(const char* ptr) {
             _writePos = _chars;
         }
 
-        if (++_writtenInLine >= _lineLength || c == '\0') {
+        if (c == '\0') {
 
             // new line? store its start to the line buffer and mark next line as empty
             ++_lastLinePos;
@@ -148,11 +150,22 @@ void LogDisplay::addMessage(const char* ptr) {
 
             // remember start position in character buffer for next line and reset character count
             _writeLineStartPos = _writePos;
-            _writtenInLine = 0;
         }
     }
 
     pthread_mutex_unlock(& _mutex);
+}
+
+QStringList LogDisplay::getLogData() {
+    // wait for adding new log data whilr iterating over _lines
+    pthread_mutex_lock(& _mutex);
+    QStringList list;
+    int i = 0;
+    while (_lines[i] != *_lastLinePos) {
+        list.append(_lines[i++]);
+    }
+    pthread_mutex_unlock(& _mutex);
+    return list;
 }
 
 //

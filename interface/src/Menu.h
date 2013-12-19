@@ -76,10 +76,10 @@ public:
     virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
     virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString actionName,
-                                           const QKEYSEQUENCE& shortcut = 0,
+                                           const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QACTION_MENUROLE role = NO_ROLE);
+                                           QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     
 public slots:
@@ -146,7 +146,6 @@ private:
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
-    
     QMenu* _activeScriptsMenu;
 };
 

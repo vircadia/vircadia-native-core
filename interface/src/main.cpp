@@ -19,10 +19,22 @@
 
 #include <QDebug>
 #include <QDir>
+#include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
+    
+    // Debug option to demonstrate that the client's local time does not 
+    // need to be in sync with any other network node. This forces clock 
+    // skew for the individual client
+    const char* CLOCK_SKEW = "--clockSkew";
+    const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
+    if (clockSkewOption) {
+        int clockSkew = atoi(clockSkewOption);
+        usecTimestampNowForceClockSkew(clockSkew);
+        qDebug("clockSkewOption=%s clockSkew=%d\n", clockSkewOption, clockSkew);
+    }
     
     int exitCode;
     {

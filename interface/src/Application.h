@@ -18,6 +18,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QPointer>
 
 #include <NetworkPacket.h>
 #include <NodeList.h>
@@ -67,8 +68,11 @@
 #include "ui/VoxelStatsDialog.h"
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
+#include "ui/LogDialog.h"
 #include "ParticleTreeRenderer.h"
 #include "ParticleEditHandle.h"
+#include "ControllerScriptingInterface.h"
+
 
 class QAction;
 class QActionGroup;
@@ -222,7 +226,7 @@ public slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void loadScript();
-    
+    void toggleLogDialog();
     
 private slots:
     
@@ -503,6 +507,8 @@ private:
     
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
+    ControllerScriptingInterface _controllerScriptingInterface;
+    QPointer<LogDialog> _logDialog;
 };
 
 #endif /* defined(__interface__Application__) */
