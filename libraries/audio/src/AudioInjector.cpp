@@ -30,7 +30,7 @@ AudioInjector::AudioInjector(const QUrl& sampleURL) :
 	_position(0,0,0),
     _orientation(),
     _volume(1.0f),
-    _shouldLoopback(false)
+    _shouldLoopback(true)
 {
     // we want to live on our own thread
     moveToThread(&_thread);
