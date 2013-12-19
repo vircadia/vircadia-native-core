@@ -458,8 +458,30 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
             _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
             
+            // add the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL from each QByteArray
+            // in our _localInjectionByteArrays QVector to the _localInjectedSamples
+            
             // add to the output samples whatever is in the _localAudioOutput byte array
             // that lets this user hear sound effects and loopback (if enabled)
+            
+            for (int b = 0; b < _localInjectionByteArrays.size(); b++) {
+                QByteArray audioByteArray = _localInjectionByteArrays.at(b);
+                
+                int16_t* byteArraySamples = (int16_t*) audioByteArray.data();
+                
+                for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                    _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + byteArraySamples[i],
+                                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                }
+                
+                // pull out the bytes we just read for outputs
+                audioByteArray.remove(0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                
+                if (audioByteArray.size() == 0) {
+                    // if there isn't anything left to inject from this byte array, remove it from the vector
+                    _localInjectionByteArrays.remove(b);
+                }
+            }
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
@@ -694,6 +716,11 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundDuration = duration;
     _drumSoundDecay = decay;
     _drumSoundSample = 0;
+}
+
+void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
+    // add this byte array to our QVector
+    _localInjectionByteArrays.append(audioByteArray);
 }
 
 void Audio::renderToolIcon(int screenHeight) {
