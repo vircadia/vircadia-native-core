@@ -424,7 +424,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 void Particle::update() {
 
     uint64_t now = usecTimestampNow();
-    uint64_t elapsed = now - _lastUpdated;
+    int elapsed = now - _lastUpdated; // making this signed slightly improves clock skew behavior
     float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
     
     
@@ -438,7 +438,7 @@ void Particle::update() {
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
     
-    bool wantDebug = false;
+    const bool wantDebug = false;
     if (wantDebug) {
         printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
             "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
