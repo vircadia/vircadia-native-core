@@ -22,6 +22,8 @@
 const char ASSIGNMENT_CLIENT_TARGET_NAME[] = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
+int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
+
 AssignmentClient::AssignmentClient(int &argc, char **argv,
                                    Assignment::Type requestAssignmentType,
                                    const HifiSockAddr& customAssignmentServerSocket,
@@ -31,7 +33,6 @@ AssignmentClient::AssignmentClient(int &argc, char **argv,
     _currentAssignment(NULL)
 {
     // register meta type is required for queued invoke method on Assignment subclasses
-    qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
     
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);

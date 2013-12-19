@@ -38,6 +38,7 @@
 #include <QFileDialog>
 #include <QDesktopServices>
 
+#include <AudioInjector.h>
 #include <NodeTypes.h>
 #include <Logging.h>
 #include <OctalCode.h>
@@ -1316,6 +1317,12 @@ void Application::timer() {
     
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    static AudioInjector testInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/throw.raw"));
+    
+    if (testInjector.size()) {
+        testInjector.injectViaThread(&_audio);
+    }
     
     // give the MyAvatar object position to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());

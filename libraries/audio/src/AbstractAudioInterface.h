@@ -23,4 +23,6 @@ public slots:
     virtual void handleAudioByteArray(const QByteArray& audioByteArray) = 0;
 };
 
+Q_DECLARE_METATYPE(AbstractAudioInterface*)
+
 #endif /* defined(__hifi__AbstractAudioInterface__) */
