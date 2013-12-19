@@ -10,9 +10,12 @@
 #ifndef __hifi__AbstractMenuInterface__
 #define __hifi__AbstractMenuInterface__
 
-#include <QMenuBar>
-//#include <QHash>
-//#include <QKeySequence>
+#include <QAction>
+
+class QMenu;
+class QString;
+class QObject;
+class QKeySequence;
 
 class AbstractMenuInterface {
 public:

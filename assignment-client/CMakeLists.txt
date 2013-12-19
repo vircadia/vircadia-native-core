@@ -9,11 +9,12 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
 find_package(Qt5Network REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 setup_hifi_project(${TARGET_NAME} TRUE)
 
-qt5_use_modules(${TARGET_NAME} Network)
+qt5_use_modules(${TARGET_NAME} Network Widgets)
 
 # include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)
@@ -30,6 +31,7 @@ link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particle-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxel-server ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 #testing
 
 include_directories(${ROOT_DIR}/externals/civetweb/include)

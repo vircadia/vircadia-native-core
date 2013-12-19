@@ -36,15 +36,16 @@ Particle::~Particle() {
 void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
                     float damping, bool inHand, QString updateScript, uint32_t id) {
     if (id == NEW_PARTICLE) {
-        _created = usecTimestampNow();
         _id = _nextID;
         _nextID++;
     } else {
         _id = id;
     }
-    _lastUpdated = usecTimestampNow();
-    _lastEdited = _lastUpdated;
-
+    uint64_t now = usecTimestampNow();
+    _edited = now;
+    _lastSimulated = now;
+    _created = now; // will get updated as appropriate in setLifetime()
+    
     _position = position;
     _radius = radius;
     memcpy(_color, color, sizeof(_color));
@@ -63,13 +64,10 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     //printf("Particle::appendParticleData()... getID()=%d\n", getID());
 
     if (success) {
-        success = packetData->appendValue(getCreated());
+        success = packetData->appendValue(getLifetime());
     }
     if (success) {
-        success = packetData->appendValue(getLastUpdated());
-    }
-    if (success) {
-        success = packetData->appendValue(getLastEdited());
+        success = packetData->appendValue(getEditedAgo());
     }
     if (success) {
         success = packetData->appendValue(getRadius());
@@ -103,9 +101,30 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 }
 
 int Particle::expectedBytes() {
-    int expectedBytes = sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(float) + 
-                        sizeof(glm::vec3) + sizeof(rgbColor) + sizeof(glm::vec3) +
-                        sizeof(glm::vec3) + sizeof(float) + sizeof(bool);
+    int expectedBytes = sizeof(uint32_t) // id
+                + sizeof(float) // lifetime
+                + sizeof(float) // edited ago
+                + sizeof(float) // radius
+                + sizeof(glm::vec3) // position
+                + sizeof(rgbColor) // color
+                + sizeof(glm::vec3) // velocity
+                + sizeof(glm::vec3) // gravity
+                + sizeof(float) // damping
+                + sizeof(bool); // inhand
+                // potentially more...
+    return expectedBytes;
+}
+
+int Particle::expectedEditMessageBytes() {
+    int expectedBytes = sizeof(uint32_t) // id
+                + sizeof(float) // radius
+                + sizeof(glm::vec3) // position
+                + sizeof(rgbColor) // color
+                + sizeof(glm::vec3) // velocity
+                + sizeof(glm::vec3) // gravity
+                + sizeof(float) // damping
+                + sizeof(bool); // inhand
+                // potentially more...
     return expectedBytes;
 }
 
@@ -119,20 +138,19 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
 
-        // created
-        memcpy(&_created, dataAt, sizeof(_created));
-        dataAt += sizeof(_created);
-        bytesRead += sizeof(_created);
+        // lifetime
+        float lifetime;
+        memcpy(&lifetime, dataAt, sizeof(lifetime));
+        dataAt += sizeof(lifetime);
+        bytesRead += sizeof(lifetime);
+        setLifetime(lifetime);
 
-        // lastupdated
-        memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
-        dataAt += sizeof(_lastUpdated);
-        bytesRead += sizeof(_lastUpdated);
-
-        // _lastEdited
-        memcpy(&_lastEdited, dataAt, sizeof(_lastEdited));
-        dataAt += sizeof(_lastEdited);
-        bytesRead += sizeof(_lastEdited);
+        // edited ago
+        float editedAgo;
+        memcpy(&editedAgo, dataAt, sizeof(editedAgo));
+        dataAt += sizeof(editedAgo);
+        bytesRead += sizeof(editedAgo);
+        setEditedAgo(editedAgo);
 
         // radius
         memcpy(&_radius, dataAt, sizeof(_radius));
@@ -186,7 +204,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 
 
 Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes) {
-    Particle newParticle; // id and lastUpdated will get set here...
+    Particle newParticle; // id and _lastSimulated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
 
@@ -214,26 +232,17 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         processedBytes += sizeof(creatorTokenID);
         newParticle.setCreatorTokenID(creatorTokenID);
         newParticle._newlyCreated = true;
+        
+        newParticle.setLifetime(0); // this guy is new!
+
     } else {
         newParticle._id = editID;
         newParticle._newlyCreated = false;
     } 
 
-    // created
-    memcpy(&newParticle._created, dataAt, sizeof(newParticle._created));
-    dataAt += sizeof(newParticle._created);
-    processedBytes += sizeof(newParticle._created);
-
-    // lastUpdated
-    memcpy(&newParticle._lastUpdated, dataAt, sizeof(newParticle._lastUpdated));
-    dataAt += sizeof(newParticle._lastUpdated);
-    processedBytes += sizeof(newParticle._lastUpdated);
-
-    // lastEdited
-    memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
-    dataAt += sizeof(newParticle._lastEdited);
-    processedBytes += sizeof(newParticle._lastEdited);
-    
+    // clearly we just edited it
+    newParticle.setEditedAgo(0);
+        
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
     dataAt += sizeof(newParticle._radius);
@@ -291,9 +300,8 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
 void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
-    printf(" created:%llu\n", _created);
-    printf(" last updated:%llu\n", _lastUpdated);
-    printf(" last edited:%llu\n", _lastEdited);
+    printf(" lifetime:%f\n", getLifetime());
+    printf(" edited ago:%f\n", getEditedAgo());
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
     printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
@@ -313,7 +321,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-        int lenfthOfEditData = lengthOfOctcode + expectedBytes();
+        int lenfthOfEditData = lengthOfOctcode + expectedEditMessageBytes();
         
         // make sure we have room to copy this particle
         if (sizeOut + lenfthOfEditData > sizeIn) {
@@ -325,7 +333,6 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             sizeOut += lengthOfOctcode;
             
             // Now add our edit content details...
-            uint64_t created = usecTimestampNow();
             
             // id
             memcpy(copyAt, &details[i].id, sizeof(details[i].id));
@@ -338,25 +345,8 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
                 memcpy(copyAt, &details[i].creatorTokenID, sizeof(details[i].creatorTokenID));
                 copyAt += sizeof(details[i].creatorTokenID);
                 sizeOut += sizeof(details[i].creatorTokenID);
-            } else {
-                created = 0;
             }
 
-            // created
-            memcpy(copyAt, &created, sizeof(created));
-            copyAt += sizeof(created);
-            sizeOut += sizeof(created);
-            
-            // lastUpdated
-            memcpy(copyAt, &details[i].lastUpdated, sizeof(details[i].lastUpdated));
-            copyAt += sizeof(details[i].lastUpdated);
-            sizeOut += sizeof(details[i].lastUpdated);
-            
-            // lastEdited
-            memcpy(copyAt, &details[i].lastEdited, sizeof(details[i].lastEdited));
-            copyAt += sizeof(details[i].lastEdited);
-            sizeOut += sizeof(details[i].lastEdited);
-            
             // radius
             memcpy(copyAt, &details[i].radius, sizeof(details[i].radius));
             copyAt += sizeof(details[i].radius);
@@ -405,7 +395,6 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             if (wantDebugging) {            
                 printf("encodeParticleEditMessageDetails()....\n");
                 printf("Particle id  :%u\n", details[i].id);
-                printf(" last updated:%llu\n", details[i].lastUpdated);
                 printf(" nextID:%u\n", _nextID);
             }
         }
@@ -418,21 +407,30 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
 
 void Particle::update() {
+
     uint64_t now = usecTimestampNow();
-    uint64_t elapsed = now - _lastUpdated;
-    uint64_t USECS_PER_SECOND = 1000 * 1000;
+    uint64_t elapsed = now - _lastSimulated;
     float timeElapsed = (float)((float)elapsed/(float)USECS_PER_SECOND);
+    
     
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float velocityScalar = glm::length(getVelocity());
     const float STILL_MOVING = 0.05 / TREE_SCALE;
     bool isStillMoving = (velocityScalar > STILL_MOVING);
-    const uint64_t REALLY_OLD = 30 * 1000 * 1000;
+    const float REALLY_OLD = 30.0f; // 30 seconds
     bool isReallyOld = (getLifetime() > REALLY_OLD);
     bool isInHand = getInHand();
     bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
     setShouldDie(shouldDie);
-
+    
+    bool wantDebug = false;
+    if (wantDebug) {
+        printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
+            "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
+            timeElapsed, getLifetime(), getEditedAgo(), debug::valueOf(isInHand), debug::valueOf(isStillMoving), 
+            debug::valueOf(isReallyOld), debug::valueOf(shouldDie));
+    }
+        
     runScript(); // allow the javascript to alter our state
     
     // If the ball is in hand, it doesn't move or have gravity effect it
@@ -454,7 +452,7 @@ void Particle::update() {
         //printf("applying damping to Particle timeElapsed=%f\n",timeElapsed);
     }
     
-    _lastUpdated = now;
+    _lastSimulated = now;
 }
 
 void Particle::runScript() {
@@ -483,4 +481,20 @@ void Particle::runScript() {
             qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
         }
     }
+}
+
+void Particle::setLifetime(float lifetime) {
+    uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;
+    _created = usecTimestampNow() - lifetimeInUsecs; 
+}
+
+void Particle::setEditedAgo(float editedAgo) {
+    uint64_t editedAgoInUsecs = editedAgo * USECS_PER_SECOND;
+    _edited = usecTimestampNow() - editedAgoInUsecs; 
+}
+
+void Particle::copyChangedProperties(const Particle& other) {
+    float lifetime = getLifetime();
+    *this = other;
+    setLifetime(lifetime);
 }

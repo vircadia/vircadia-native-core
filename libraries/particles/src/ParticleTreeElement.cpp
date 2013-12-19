@@ -119,33 +119,19 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
-            int difference = _particles[i].getLastUpdated() - particle.getLastUpdated();
-            
-            bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
-            bool localOlder = _particles[i].getLastUpdated() < particle.getLastUpdated();
-            
-            if (changedOnServer || localOlder) {
-
+            bool changedOnServer = _particles[i].getEditedAgo() > particle.getEditedAgo();
+            if (changedOnServer) {
                 if (wantDebug) {
-                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
+                    printf("local particle [id:%d] %s, particle.isNewlyCreated()=%s\n", 
                                 particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                                (localOlder ? "OLDER" : "NEWER"),               
-                                difference, debug::valueOf(particle.isNewlyCreated()) );
+                                debug::valueOf(particle.isNewlyCreated()) );
                 }
-
-                uint64_t actuallyCreated = particle.getCreated();
-                if (!particle.isNewlyCreated()) {
-                    actuallyCreated = _particles[i].getCreated();
-                }
-                _particles[i] = particle;
-                _particles[i].setCreated(actuallyCreated);
+                _particles[i].copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
-                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s and %s than server particle by %d, "
-                                "particle.isNewlyCreated()=%s\n", 
+                    printf(">>> NO CHANGE <<< -- local particle [id:%d] %s particle.isNewlyCreated()=%s\n", 
                                 particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                                (localOlder ? "OLDER" : "NEWER"),               
-                                difference, debug::valueOf(particle.isNewlyCreated()) );
+                                debug::valueOf(particle.isNewlyCreated()) );
                 }
             }
             return true;
