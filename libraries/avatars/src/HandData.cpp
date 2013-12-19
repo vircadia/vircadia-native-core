@@ -169,6 +169,9 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         palm.setRawNormal(handNormal);
         palm.setActive(true);
         
+        //  For received data, set the sixense controller ID to match the order initialized and sent - 0 Left, 1 Right
+        palm.setSixenseID(handIndex);
+        
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
             if (fingerIndex < palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
