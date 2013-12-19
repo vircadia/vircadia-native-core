@@ -42,6 +42,7 @@ private:
     glm::vec3 _position;
     glm::quat _orientation;
     float _volume;
+    bool _shouldLoopback;
     
 private slots:
     void startDownload();
