@@ -30,10 +30,11 @@ uint64_t usecTimestamp(const timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
+int usecTimestampNowAdjust = 0;
 uint64_t usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000 + now.tv_usec);
+    return (now.tv_sec * 1000000 + now.tv_usec) + usecTimestampNowAdjust;
 }
 
 float randFloat () {

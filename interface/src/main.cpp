@@ -19,10 +19,21 @@
 
 #include <QDebug>
 #include <QDir>
+#include <SharedUtil.h>
 
 int main(int argc, const char * argv[]) {
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
+    
+    // Debug option to demonstrate that the client's local time does not 
+    // need to be in sync with any other network node. This forces clock 
+    // skew for the individual client
+    const char* TIME_ADJUST = "--usecTimestampNowAdjust";
+    const char* timeAdjustOption = getCmdOption(argc, argv, TIME_ADJUST);
+    if (timeAdjustOption) {
+        ::usecTimestampNowAdjust = atoi(timeAdjustOption);
+        qDebug("timeAdjustOption=%s usecTimestampNowAdjust=%d\n", timeAdjustOption, ::usecTimestampNowAdjust);
+    }
     
     int exitCode;
     {
