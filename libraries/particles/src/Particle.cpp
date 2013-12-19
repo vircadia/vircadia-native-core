@@ -115,6 +115,19 @@ int Particle::expectedBytes() {
     return expectedBytes;
 }
 
+int Particle::expectedEditMessageBytes() {
+    int expectedBytes = sizeof(uint32_t) // id
+                + sizeof(float) // radius
+                + sizeof(glm::vec3) // position
+                + sizeof(rgbColor) // color
+                + sizeof(glm::vec3) // velocity
+                + sizeof(glm::vec3) // gravity
+                + sizeof(float) // damping
+                + sizeof(bool); // inhand
+                // potentially more...
+    return expectedBytes;
+}
+
 int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
     int bytesRead = 0;
     if (bytesLeftToRead >= expectedBytes()) {
@@ -308,7 +321,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-        int lenfthOfEditData = lengthOfOctcode + expectedBytes();
+        int lenfthOfEditData = lengthOfOctcode + expectedEditMessageBytes();
         
         // make sure we have room to copy this particle
         if (sizeOut + lenfthOfEditData > sizeIn) {

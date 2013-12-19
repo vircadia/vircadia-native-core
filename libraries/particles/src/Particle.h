@@ -96,6 +96,7 @@ public:
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
+    static int expectedEditMessageBytes();
 
     static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
