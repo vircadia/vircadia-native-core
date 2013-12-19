@@ -10,9 +10,13 @@
 #ifndef __hifi__AbstractAudioInterface__
 #define __hifi__AbstractAudioInterface__
 
+#include <QtCore/QObject>
+
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
+    AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
+    
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) = 0;
     virtual void startDrumSound(float volume, float frequency, float duration, float decay) = 0;
 public slots:

@@ -18,7 +18,6 @@ class AudioInjector : public QObject {
     Q_OBJECT
 public:
     AudioInjector(const QUrl& sampleURL, QObject* parent = 0);
-    ~AudioInjector();
     
     void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
     
