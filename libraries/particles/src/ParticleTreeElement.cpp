@@ -128,7 +128,7 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
-    const bool wantDebug = false;
+    const bool wantDebug = true;
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
@@ -230,7 +230,7 @@ bool ParticleTreeElement::collapseChildren() {
 }
 
 
-void ParticleTreeElement::storeParticle(const Particle& particle) {
+void ParticleTreeElement::storeParticle(const Particle& particle, Node* senderNode) {
     _particles.push_back(particle);
     markWithChangedTime();
 }

@@ -106,6 +106,8 @@ public:
 
     static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
+                        
+    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
     void update();
 

@@ -89,7 +89,7 @@ public:
     
 
 protected:
-    void storeParticle(const Particle& particle);
+    void storeParticle(const Particle& particle, Node* senderNode = NULL);
 
     ParticleTree* _myTree;
     std::vector<Particle> _particles;

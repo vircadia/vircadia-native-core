@@ -37,6 +37,11 @@ void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, const P
     }
 }
 
+void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { 
+    Particle::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
+} 
+
+
 void ParticleEditPacketSender::queueParticleEditMessages(PACKET_TYPE type, int numberOfDetails, ParticleDetail* details) {
     if (!_shouldSend) {
         return; // bail early
