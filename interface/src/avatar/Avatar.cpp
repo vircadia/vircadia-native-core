@@ -338,8 +338,6 @@ void Avatar::render(bool forceRenderHead) {
     }
 }
 
-
-
 // returns true if the Leap controls any of the avatar's hands.
 bool Avatar::updateLeapHandPositions() {
     bool returnValue = false;
@@ -442,8 +440,6 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     }
     return glm::angleAxis(angle * proportion, axis);
 }
-
-
 
 void Avatar::renderBody(bool forceRenderHead) {
 

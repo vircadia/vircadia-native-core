@@ -220,11 +220,11 @@ void DomainServer::readAvailableDatagrams() {
                 }
             } else if (packetData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
                 
-                qDebug("Received a request for assignment.\n");
-                
                 if (_assignmentQueue.size() > 0) {
                     // construct the requested assignment from the packet data
                     Assignment requestAssignment(packetData, receivedBytes);
+                    
+                    qDebug("Received a request for assignment type %i from %s.\n", requestAssignment.getType() ,qPrintable(senderSockAddr.getAddress().toString()));
                     
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
@@ -243,6 +243,8 @@ void DomainServer::readAvailableDatagrams() {
                         }
                     }
                     
+                } else {
+                    qDebug("Received an invalid assignment request from %s.\n", qPrintable(senderSockAddr.getAddress().toString()));
                 }
             }
         }
