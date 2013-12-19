@@ -798,7 +798,8 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket) {
+void OctreeSceneStats::trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, 
+                                    bool wasStatsPacket, int nodeClockSkewUsec) {
     _incomingPacket++;
     _incomingBytes += messageLength;
     if (!wasStatsPacket) {
@@ -820,7 +821,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(unsigned char* messageData, ssi
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-    int flightTime = arrivedAt - sentAt;
+    int flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
     const int USECS_PER_MSEC = 1000;
     float flightTimeMsecs = flightTime / USECS_PER_MSEC;
     _incomingFlightTimeAverage.updateAverage(flightTimeMsecs);

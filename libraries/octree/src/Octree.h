@@ -156,6 +156,7 @@ public:
     bool includeExistsBits;
     OctreeElement* destinationNode;
     QUuid sourceUUID;
+    Node* sourceNode;
     bool wantImportProgress;
     
     ReadBitstreamToTreeParams(
@@ -163,11 +164,13 @@ public:
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElement* destinationNode = NULL,
         QUuid sourceUUID = QUuid(),
+        Node* sourceNode = NULL,
         bool wantImportProgress = false) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationNode(destinationNode),
             sourceUUID(sourceUUID),
+            sourceNode(sourceNode),
             wantImportProgress(wantImportProgress)
     {}
 };
