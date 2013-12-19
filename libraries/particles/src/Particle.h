@@ -104,7 +104,7 @@ public:
 
     void debugDump() const;
     
-    // similar to an assignment, but it handles no breaking lifetime and editedAgo
+    // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const Particle& other);
     
 protected:
