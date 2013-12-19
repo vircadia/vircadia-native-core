@@ -118,7 +118,7 @@ void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *pac
             uint64_t othersReplyTime = *(uint64_t*)(dataAt);
             uint64_t now = usecTimestampNow();
             int pingTime = now - ourOriginalTime;
-            int oneWayFlightTime = pingTime/2; // half of the ping is our one way flight
+            int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
             
             // The other node's expected time should be our original time plus the one way flight time
             // anything other than that is clock skew

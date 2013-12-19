@@ -128,7 +128,7 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
-    const bool wantDebug = true;
+    const bool wantDebug = false;
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         if (_particles[i].getID() == particle.getID()) {
