@@ -995,12 +995,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     deleteVoxelUnderCursor();
                 }
                 break;
+            
             case Qt::Key_Plus:
-                _myAvatar.increaseSize();
+                increaseVoxelSize();
                 break;
+            
             case Qt::Key_Minus:
-                _myAvatar.decreaseSize();
+                decreaseVoxelSize();
                 break;
+                
+            case QKeySequence::ZoomIn:
+                break;
+                _myAvatar.increaseSize();
+                
+            case QKeySequence::ZoomOut:
+                break;
+                _myAvatar.decreaseSize();
+
 
             case Qt::Key_1:
             case Qt::Key_2:
