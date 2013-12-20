@@ -17,8 +17,6 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-#define DEBUG_HAND
-
 using namespace std;
 
 const float FINGERTIP_VOXEL_SIZE = 0.05;
@@ -111,9 +109,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             glm::vec3 newVelocity = NO_VELOCITY;
             
             // update the particle with it's new state...
-#ifdef DEBUG_HAND
-            qDebug("Caught!\n");
-#endif
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
@@ -153,9 +148,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     if ((palm.getControllerButtons() & NEW_BALL_BUTTON) && (_toyBallInHand[handID] == false)) {
         _toyBallInHand[handID] = true;
         //  Create a particle on the particle server
-#ifdef DEBUG_HAND
-        qDebug("Created New Ball\n");
-#endif
         glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
         _ballParticleEditHandles[handID] = app->makeParticle(
                                                              ballPosition / (float)TREE_SCALE,
@@ -201,9 +193,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             ballVelocity = avatarRotation * ballVelocity;
             ballVelocity *= THROWN_VELOCITY_SCALING;
 
-#ifdef DEBUG_HAND
-            qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
-#endif
             uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
             const Particle* particleInHand = particles->findParticleByID(particleInHandID);
             xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
