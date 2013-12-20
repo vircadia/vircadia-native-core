@@ -29,13 +29,7 @@ class Qt5 < Formula
   sha1 '07ef1ca133db4a5168d8a716e99d145432832a24'
   head 'git://gitorious.org/qt/qt5.git', :branch => 'stable',
     :using => Qt5HeadDownloadStrategy
-
-  bottle do
-    sha1 '38ae6b107af1e34635cf9e6efc69e630518cc0a6' => :mavericks
-    sha1 '7623e90ae623360a1f6ca282ca8003ae8ee04c55' => :mountain_lion
-    sha1 '1f58eab10d42880b444c6c151e2075227574fa8d' => :lion
-  end
-
+    
   keg_only "Qt 5 conflicts Qt 4 (which is currently much more widely used)."
 
   option :universal
