@@ -59,8 +59,8 @@ const float HEAD_RATE_MAX = 50.f;
 const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES = 9;
-const float chatMessageScale = 0.0015;
-const float chatMessageHeight = 0.4f;
+const float CHAT_MESSAGE_SCALE = 0.0015;
+const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
     QByteArray message;
@@ -303,7 +303,7 @@ void Avatar::render(bool forceRenderHead) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = getPosition() + getBodyUpDirection() * chatMessageHeight * _scale;
+        glm::vec3 chatPosition = getHead().getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -313,7 +313,7 @@ void Avatar::render(bool forceRenderHead) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
+        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);

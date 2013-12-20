@@ -474,7 +474,7 @@ void MyAvatar::render(bool forceRenderHead) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = getPosition() + getBodyUpDirection() * chatMessageHeight * _scale;
+        glm::vec3 chatPosition = getHead().getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -484,7 +484,7 @@ void MyAvatar::render(bool forceRenderHead) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
+        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
