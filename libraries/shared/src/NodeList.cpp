@@ -112,9 +112,33 @@ void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *pac
         if (node->getPublicSocket() == nodeAddress ||
             node->getLocalSocket() == nodeAddress) {
 
-            int pingTime = usecTimestampNow() - *(uint64_t*)(packetData + numBytesForPacketHeader(packetData));
+            unsigned char* dataAt = packetData + numBytesForPacketHeader(packetData);
+            uint64_t ourOriginalTime = *(uint64_t*)(dataAt);
+            dataAt += sizeof(ourOriginalTime);
+            uint64_t othersReplyTime = *(uint64_t*)(dataAt);
+            uint64_t now = usecTimestampNow();
+            int pingTime = now - ourOriginalTime;
+            int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+            
+            // The other node's expected time should be our original time plus the one way flight time
+            // anything other than that is clock skew
+            uint64_t othersExprectedReply = ourOriginalTime + oneWayFlightTime;
+            int clockSkew = othersReplyTime - othersExprectedReply;
             
             node->setPingMs(pingTime / 1000);
+            node->setClockSkewUsec(clockSkew);
+            
+            const bool wantDebug = false;
+            if (wantDebug) { 
+                qDebug() << "PING_REPLY from node " << *node << "\n" <<
+                    "                     now: " << now << "\n" <<
+                    "                 ourTime: " << ourOriginalTime << "\n" <<
+                    "                pingTime: " << pingTime << "\n" <<
+                    "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+                    "         othersReplyTime: " << othersReplyTime << "\n" <<
+                    "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+                    "               clockSkew: " << clockSkew << "\n";
+            }
             break;
         }
     }
@@ -131,9 +155,11 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char
             break;
         }
         case PACKET_TYPE_PING: {
-            // send it right back
-            populateTypeAndVersion(packetData, PACKET_TYPE_PING_REPLY);
-            _nodeSocket.writeDatagram((char*) packetData, dataBytes, senderSockAddr.getAddress(), senderSockAddr.getPort());
+            // send back a reply
+            unsigned char replyPacket[MAX_PACKET_SIZE];
+            int replyPacketLength = fillPingReplyPacket(packetData, replyPacket);
+            _nodeSocket.writeDatagram((char*)replyPacket, replyPacketLength, 
+                            senderSockAddr.getAddress(), senderSockAddr.getPort());
             break;
         }
         case PACKET_TYPE_PING_REPLY: {
@@ -616,21 +642,42 @@ void NodeList::sendAssignment(Assignment& assignment) {
                               assignmentServerSocket->getPort());
 }
 
+int NodeList::fillPingPacket(unsigned char* buffer) {
+    int numHeaderBytes = populateTypeAndVersion(buffer, PACKET_TYPE_PING);
+    uint64_t currentTime = usecTimestampNow();
+    memcpy(buffer + numHeaderBytes, &currentTime, sizeof(currentTime));
+    return numHeaderBytes + sizeof(currentTime);
+}
+
+int NodeList::fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer) {
+    int numHeaderBytesOriginal = numBytesForPacketHeader(pingBuffer);
+    uint64_t timeFromOriginalPing = *(uint64_t*)(pingBuffer + numHeaderBytesOriginal);
+
+    int numHeaderBytesReply = populateTypeAndVersion(replyBuffer, PACKET_TYPE_PING_REPLY);
+    int length = numHeaderBytesReply;
+    uint64_t ourReplyTime = usecTimestampNow();
+
+    unsigned char* dataAt = replyBuffer + numHeaderBytesReply;
+    memcpy(dataAt, &timeFromOriginalPing, sizeof(timeFromOriginalPing));
+    dataAt += sizeof(timeFromOriginalPing);
+    length += sizeof(timeFromOriginalPing);
+
+    memcpy(dataAt, &ourReplyTime, sizeof(ourReplyTime));
+    dataAt += sizeof(ourReplyTime);
+    length += sizeof(ourReplyTime);
+    
+    return length;
+}
+
+
 void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
-    
-    uint64_t currentTime = 0;
-    
-    // setup a ping packet to send to this node
-    unsigned char pingPacket[numBytesForPacketHeader((uchar*) &PACKET_TYPE_PING) + sizeof(currentTime)];
-    int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
-    
-    currentTime = usecTimestampNow();
-    memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
+    unsigned char pingPacket[MAX_PACKET_SIZE];
+    int pingPacketLength = fillPingPacket(pingPacket);
     
     // send the ping packet to the local and public sockets for this node
-    _nodeSocket.writeDatagram((char*) pingPacket, sizeof(pingPacket),
+    _nodeSocket.writeDatagram((char*) pingPacket, pingPacketLength,
                               node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
-    _nodeSocket.writeDatagram((char*) pingPacket, sizeof(pingPacket),
+    _nodeSocket.writeDatagram((char*) pingPacket, pingPacketLength,
                               node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
 }
 

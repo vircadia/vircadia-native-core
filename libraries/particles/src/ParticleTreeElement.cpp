@@ -230,7 +230,7 @@ bool ParticleTreeElement::collapseChildren() {
 }
 
 
-void ParticleTreeElement::storeParticle(const Particle& particle) {
+void ParticleTreeElement::storeParticle(const Particle& particle, Node* senderNode) {
     _particles.push_back(particle);
     markWithChangedTime();
 }

@@ -43,7 +43,7 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
     
     /// process incoming data
-    virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
     /// initialize and GPU/rendering related resources
     void init();

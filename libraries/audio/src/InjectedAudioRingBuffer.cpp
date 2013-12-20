@@ -32,6 +32,12 @@ int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes
     // push past the UUID for this node and the stream identifier
     currentBuffer += (NUM_BYTES_RFC4122_UUID * 2);
     
+    // pull the loopback flag and set our boolean
+    uchar shouldLoopback;
+    memcpy(&shouldLoopback, currentBuffer, sizeof(shouldLoopback));
+    currentBuffer += sizeof(shouldLoopback);
+    _shouldLoopbackForNode = (shouldLoopback == 1);
+    
     // use parsePositionalData in parent PostionalAudioRingBuffer class to pull common positional data
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
@@ -41,6 +47,8 @@ int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes
     
     unsigned int attenuationByte = *(currentBuffer++);
     _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
+    
+    qDebug() << "Copying" << numBytes - (currentBuffer - sourceBuffer) << "for injected ring buffer\n";
     
     currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     

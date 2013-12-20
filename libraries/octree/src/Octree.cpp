@@ -1342,7 +1342,7 @@ bool Octree::readFromSVOFile(const char* fileName) {
             fileOk = true; // assume the file is ok
         }
         if (fileOk) {
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, wantImportProgress);
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, NULL, wantImportProgress);
             readBitstreamToTree(dataAt, dataLength, args);
         }
         delete[] entireFile;
@@ -1481,7 +1481,7 @@ void Octree::copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinat
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, NULL, wantImportProgress);
         readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
     }
 }

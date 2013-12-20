@@ -32,7 +32,8 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _activeSocket(NULL),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
-    _isAlive(true)
+    _isAlive(true),
+    _clockSkewUsec(0)
 {
     pthread_mutex_init(&_mutex, 0);
 }
