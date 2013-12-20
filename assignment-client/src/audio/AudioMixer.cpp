@@ -53,8 +53,6 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float) SAMPLE_RATE) * 1000 * 1000);
-
 const char AUDIO_MIXER_LOGGING_TARGET_NAME[] = "audio-mixer";
 
 void attachNewBufferToNode(Node *newNode) {
@@ -202,8 +200,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
                 
                 if ((*otherNode != *node
-                     || otherNodeBuffer->getType() != PositionalAudioRingBuffer::Microphone
-                     || nodeRingBuffer->shouldLoopbackForNode())
+                    || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }

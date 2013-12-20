@@ -25,6 +25,9 @@ const int NETWORK_BUFFER_LENGTH_SAMPLES_STEREO = NETWORK_BUFFER_LENGTH_BYTES_STE
 const int NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL = 512;
 const int NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL / sizeof(int16_t);
 
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                                                        / (float) SAMPLE_RATE) * 1000 * 1000);
+
 const short RING_BUFFER_LENGTH_FRAMES = 10;
 
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
