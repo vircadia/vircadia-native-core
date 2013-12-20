@@ -44,6 +44,9 @@ public:
     void read(Bitstream& in);
     void write(Bitstream& out) const;
 
+    void readDelta(const MetavoxelData& reference, Bitstream& in);
+    void writeDelta(const MetavoxelData& reference, Bitstream& out) const;
+
 private:
    
     QHash<AttributePointer, MetavoxelNode*> _roots;
@@ -74,6 +77,9 @@ public:
 
     void read(const AttributePointer& attribute, Bitstream& in);
     void write(const AttributePointer& attribute, Bitstream& out) const;
+
+    void readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in);
+    void writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const;
 
     void destroy(const AttributePointer& attribute);
 

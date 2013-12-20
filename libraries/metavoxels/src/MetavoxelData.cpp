@@ -98,6 +98,12 @@ void MetavoxelData::write(Bitstream& out) const {
     }
 }
 
+void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
+}
+
+void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
+}
+
 MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) {
     _attributeValue = attributeValue.copy();
     for (int i = 0; i < CHILD_COUNT; i++) {
@@ -179,6 +185,53 @@ void MetavoxelNode::write(const AttributePointer& attribute, Bitstream& out) con
     if (!leaf) {
         for (int i = 0; i < CHILD_COUNT; i++) {
             _children[i]->write(attribute, out);
+        }
+    }
+}
+
+void MetavoxelNode::readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in) {
+    bool different;
+    in >> different;
+    if (!different) {
+        return;
+    } 
+    bool leaf;
+    in >> leaf;
+    attribute->readDelta(in, _attributeValue, reference._attributeValue, leaf);
+    if (leaf) {
+        clearChildren(attribute);
+        
+    } else {
+        if (reference.isLeaf()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->read(attribute, in);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->readDelta(attribute, *reference._children[i], in);
+            }
+        }  
+    }
+}
+
+void MetavoxelNode::writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const {
+    if (this == &reference) {
+        out << false;
+        return;
+    }
+    out << true;
+    bool leaf = isLeaf();
+    out << leaf;
+    attribute->writeDelta(out, _attributeValue, reference._attributeValue, leaf);
+    if (!leaf) {
+        if (reference.isLeaf()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->write(attribute, out);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->writeDelta(attribute, *reference._children[i], out);
+            }
         }
     }
 }

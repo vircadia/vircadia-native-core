@@ -141,6 +141,9 @@ public:
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const = 0;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const = 0;
 
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
+
     virtual bool equal(void* first, void* second) const = 0;
 
     /// Merges the value of a parent and its children.
