@@ -53,7 +53,9 @@ Hand::Hand(Avatar* owningAvatar) :
     _collisionDuration(0),
     _pitchUpdate(0),
     _grabDelta(0, 0, 0),
-    _grabDeltaVelocity(0, 0, 0)
+    _grabDeltaVelocity(0, 0, 0),
+    _throwInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
+    _catchInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
 {
     for (int i = 0; i < MAX_HANDS; i++) {
         _toyBallInHand[i] = false;
@@ -61,6 +63,10 @@ Hand::Hand(Avatar* owningAvatar) :
         _whichBallColor[i] = 0;
     }
     _lastControllerButtons = 0;
+    
+    // the throw and catch sounds should not loopback, we'll play them locally
+    _throwInjector.setShouldLoopback(false);
+    _catchInjector.setShouldLoopback(false);
 }
 
 void Hand::init() {
@@ -119,7 +125,10 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             _ballParticleEditHandles[handID] = caughtParticle;
             caughtParticle = NULL;
             //  Play a catch sound!
-            app->getAudio()->startDrumSound(1.0, 300, 0.5, 0.05);
+            _catchInjector.setPosition(targetPosition);
+            
+            // inject the catch sound to the mixer and play it locally
+            _catchInjector.injectViaThread(app->getAudio());
         }
     }
     
@@ -222,8 +231,11 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             delete _ballParticleEditHandles[handID];
             _ballParticleEditHandles[handID] = NULL;
             
-            // Play a throw sound
-            app->getAudio()->startDrumSound(1.0, 3000, 0.5, 0.02);
+            // move the throw injector to inject from the position of the ball
+            _throwInjector.setPosition(ballPosition);
+            
+            // inject the throw sound and play it locally
+            _throwInjector.injectViaThread(app->getAudio());
         }
     }
     
