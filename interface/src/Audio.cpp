@@ -42,7 +42,7 @@ static const int ICON_LEFT = 20;
 static const int BOTTOM_PADDING = 110;
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
-    QObject(parent),
+    AbstractAudioInterface(parent),
     _audioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
@@ -458,8 +458,36 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
             _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
             
+            // add the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL from each QByteArray
+            // in our _localInjectionByteArrays QVector to the _localInjectedSamples
+            
             // add to the output samples whatever is in the _localAudioOutput byte array
             // that lets this user hear sound effects and loopback (if enabled)
+            
+            for (int b = 0; b < _localInjectionByteArrays.size(); b++) {
+                QByteArray audioByteArray = _localInjectionByteArrays.at(b);
+                
+                int16_t* byteArraySamples = (int16_t*) audioByteArray.data();
+                
+                int samplesToRead = MIN(audioByteArray.size() / sizeof(int16_t),
+                                        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                
+                for (int i = 0; i < samplesToRead; i++) {
+                    _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + byteArraySamples[i],
+                                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                }
+                
+                if (samplesToRead < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                    // there isn't anything left to inject from this byte array, remove it from the vector
+                    _localInjectionByteArrays.remove(b);
+                } else {
+                    // pull out the bytes we just read for outputs
+                    audioByteArray.remove(0, samplesToRead * sizeof(int16_t));
+                    
+                    // still data left to read - replace the byte array in the QVector with the smaller one
+                    _localInjectionByteArrays.replace(b, audioByteArray);
+                }
+            }
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
@@ -694,6 +722,11 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundDuration = duration;
     _drumSoundDecay = decay;
     _drumSoundSample = 0;
+}
+
+void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
+    // add this byte array to our QVector
+    _localInjectionByteArrays.append(audioByteArray);
 }
 
 void Audio::renderToolIcon(int screenHeight) {

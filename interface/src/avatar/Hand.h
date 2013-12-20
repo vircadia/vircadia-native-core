@@ -17,6 +17,7 @@
 #include <SharedUtil.h>
 
 #include <AvatarData.h>
+#include <AudioInjector.h>
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 
@@ -110,7 +111,9 @@ private:
     
     glm::vec3 _grabDelta;
     glm::vec3 _grabDeltaVelocity;
-
+    
+    AudioInjector _throwInjector;
+    AudioInjector _catchInjector;
 };
 
 #endif

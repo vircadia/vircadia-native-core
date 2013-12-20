@@ -38,6 +38,7 @@
 #include <QFileDialog>
 #include <QDesktopServices>
 
+#include <AudioInjector.h>
 #include <NodeTypes.h>
 #include <Logging.h>
 #include <OctalCode.h>

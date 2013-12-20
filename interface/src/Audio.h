@@ -15,6 +15,7 @@
 #include "InterfaceConfig.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QVector>
 #include <QtMultimedia/QAudioFormat>
 
 #include <AbstractAudioInterface.h>
@@ -31,7 +32,7 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-class Audio : public QObject, public AbstractAudioInterface {
+class Audio : public AbstractAudioInterface {
     Q_OBJECT
 public:
     // setup for audio I/O
@@ -51,7 +52,7 @@ public:
     
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     virtual void startDrumSound(float volume, float frequency, float duration, float decay);
-
+    
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
@@ -65,14 +66,17 @@ public slots:
     void handleAudioInput();
     void reset();
     
+    virtual void handleAudioByteArray(const QByteArray& audioByteArray);
+    
 private:
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
-    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
     int _numInputCallbackBytes;
+    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    QVector<QByteArray> _localInjectionByteArrays;
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
