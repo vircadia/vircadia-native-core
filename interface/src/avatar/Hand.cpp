@@ -17,8 +17,6 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-//#define DEBUG_HAND
-
 using namespace std;
 
 const float FINGERTIP_VOXEL_SIZE = 0.05;
@@ -31,7 +29,7 @@ const float NO_DAMPING = 0.f;
 const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
-const float CATCH_RADIUS = 0.2f;
+const float CATCH_RADIUS = 0.3f;
 const xColor TOY_BALL_ON_SERVER_COLOR[] = 
     {
         { 255, 0, 0 },
@@ -87,14 +85,20 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     ParticleTree* particles = app->getParticles()->getTree();
     bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     int handID = palm.getSixenseID();
-
-    bool grabButtonPressed = (palm.getControllerButtons() & BUTTON_FWD);
+    
+    const int NEW_BALL_BUTTON = BUTTON_3;
+    
+    float trigger = palm.getTrigger();
+    bool grabButtonPressed = ((palm.getControllerButtons() & BUTTON_FWD) ||
+                              (palm.getControllerButtons() & BUTTON_3) ||
+                              (trigger > 0.f));
+    
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
     glm::vec3 targetPosition = (ballFromHand ? palm.getPosition() : fingerTipPosition) / (float)TREE_SCALE;
     float targetRadius = CATCH_RADIUS / (float)TREE_SCALE;
 
-    // If I don't currently have a ball in my hand, then I can catch this closest particle
+    // If I don't currently have a ball in my hand, then try to catch closest one
     if (!ballAlreadyInHand && grabButtonPressed) {
 
         const Particle* closestParticle = particles->findClosestParticle(targetPosition, targetRadius);
@@ -105,9 +109,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             glm::vec3 newVelocity = NO_VELOCITY;
             
             // update the particle with it's new state...
-#ifdef DEBUG_HAND
-            qDebug("Caught!\n");
-#endif
             caughtParticle->updateParticle(newPosition,
                                             closestParticle->getRadius(),
                                             closestParticle->getXColor(),
@@ -129,6 +130,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             
             // inject the catch sound to the mixer and play it locally
             _catchInjector.injectViaThread(app->getAudio());
+            app->getAudio()->startDrumSound(1.0, 300, 0.75, 0.015);
         }
     }
     
@@ -142,46 +144,28 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         }
     }
 
-    // Is the controller button being held down....
-    if (palm.getControllerButtons() & BUTTON_FWD) {
+    //  If '3' is pressed, and not holding a ball, make a new one
+    if ((palm.getControllerButtons() & NEW_BALL_BUTTON) && (_toyBallInHand[handID] == false)) {
+        _toyBallInHand[handID] = true;
+        //  Create a particle on the particle server
+        glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
+        _ballParticleEditHandles[handID] = app->makeParticle(
+                                                             ballPosition / (float)TREE_SCALE,
+                                                             TOY_BALL_RADIUS / (float) TREE_SCALE,
+                                                             TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
+                                                             NO_VELOCITY / (float)TREE_SCALE,
+                                                             TOY_BALL_GRAVITY / (float) TREE_SCALE,
+                                                             TOY_BALL_DAMPING,
+                                                             IN_HAND,
+                                                             TOY_BALL_UPDATE_SCRIPT);
+        // Play a new ball sound
+        app->getAudio()->startDrumSound(1.0, 2000, 0.5, 0.02);
+    }
+
+    if (grabButtonPressed) {
         // If we don't currently have a ball in hand, then create it...
-        if (!_toyBallInHand[handID]) {
-            //  Test for whether close enough to catch and catch....
-            
-            // isCaught is also used as "creating" a new ball... for now, this section is the
-            // create new ball portion of the code...
-            bool isCaught = false;
-
-            // If we didn't catch something, then create a new ball....
-            if (!isCaught) {
-                _toyBallInHand[handID] = true;
-                
-                // create the ball, call MakeParticle, and use the resulting ParticleEditHandle to
-                // manage the newly created particle.
-                //  Create a particle on the particle server
-#ifdef DEBUG_HAND
-                qDebug("Created New Ball\n");
-#endif
-                glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
-                _ballParticleEditHandles[handID] = app->makeParticle(
-                                                            ballPosition / (float)TREE_SCALE,
-                                                            TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                            TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
-                                                            NO_VELOCITY / (float)TREE_SCALE,
-                                                            TOY_BALL_GRAVITY / (float) TREE_SCALE,
-                                                            TOY_BALL_DAMPING,
-                                                            IN_HAND,
-                                                            TOY_BALL_UPDATE_SCRIPT);
-                // Play a new ball sound
-                app->getAudio()->startDrumSound(1.0, 2000, 0.5, 0.02);
-
-            }
-        } else {
-            //  Ball is in hand
-#ifdef DEBUG_HAND
-            //qDebug("Ball in hand\n");
-#endif
-
+        if (_toyBallInHand[handID]) {
+            // Update ball that is in hand
             uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
             const Particle* particleInHand = particles->findParticleByID(particleInHandID);
             xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
@@ -209,9 +193,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             ballVelocity = avatarRotation * ballVelocity;
             ballVelocity *= THROWN_VELOCITY_SCALING;
 
-#ifdef DEBUG_HAND
-            qDebug("Threw ball, v = %.3f\n", glm::length(ballVelocity));
-#endif
             uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
             const Particle* particleInHand = particles->findParticleByID(particleInHandID);
             xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
@@ -376,6 +357,7 @@ void Hand::updateCollisions() {
                     //  Check for palm collisions
                     glm::vec3 myPalmPosition = palm.getPosition();
                     float palmCollisionDistance = 0.1f;
+                    bool wasColliding = palm.getIsCollidingWithPalm();
                     palm.setIsCollidingWithPalm(false);
                     //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
                     for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
@@ -386,14 +368,21 @@ void Hand::updateCollisions() {
                         glm::vec3 otherPalmPosition = otherPalm.getPosition();
                         if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
                             palm.setIsCollidingWithPalm(true);
+                            if (!wasColliding) {
                             const float PALM_COLLIDE_VOLUME = 1.f;
-                            const float PALM_COLLIDE_FREQUENCY = 150.f;
-                            const float PALM_COLLIDE_DURATION_MAX = 2.f;
-                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.005f;
+                            const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                            const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
                             Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
                                                                                    PALM_COLLIDE_FREQUENCY,
                                                                                    PALM_COLLIDE_DURATION_MAX,
                                                                                    PALM_COLLIDE_DECAY_PER_SAMPLE);
+                            //  If the other person's palm is in motion, move mine downward to show I was hit
+                            const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                                if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
+                                    // add slapback here
+                                }
+                            }
 
                             
                         }

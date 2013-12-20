@@ -76,6 +76,7 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     if (_voxels->findSpherePenetration(center, radius, penetration)) {
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+        //qDebug("voxel collision\n");
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
 }
@@ -91,7 +92,6 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&penetratedParticle)) {
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
-        
         // apply a hard collision to both particles of half the penetration each
         
         float particleShare, penetratedParticleShare;
