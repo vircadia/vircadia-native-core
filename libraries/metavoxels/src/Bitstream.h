@@ -10,6 +10,8 @@
 #define __interface__Bitstream__
 
 #include <QHash>
+#include <QMetaType>
+#include <QSharedPointer>
 #include <QVariant>
 
 class QByteArray;
@@ -17,8 +19,11 @@ class QDataStream;
 class QMetaObject;
 class QObject;
 
+class Attribute;
 class Bitstream;
 class TypeStreamer;
+
+typedef QSharedPointer<Attribute> AttributePointer;
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -87,10 +92,12 @@ class Bitstream {
 public:
 
     /// Registers a metaobject under its name so that instances of it can be streamed.
-    static void registerMetaObject(const QByteArray& name, const QMetaObject* metaObject);
+    /// \return zero; the function only returns a value so that it can be used in static initialization
+    static int registerMetaObject(const char* className, const QMetaObject* metaObject);
 
     /// Registers a streamer for the specified Qt-registered type.
-    static void registerTypeStreamer(int type, TypeStreamer* streamer);
+    /// \return zero; the function only returns a value so that it can be used in static initialization
+    static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
     /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
     Bitstream(QDataStream& underlying);
@@ -108,11 +115,14 @@ public:
     /// Flushes any unwritten bits to the underlying stream.
     void flush();
 
+    /// Returns a reference to the attribute streamer.
+    RepeatedValueStreamer<AttributePointer>& getAttributeStreamer() { return _attributeStreamer; }
+
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
     
-    Bitstream& operator<<(qint32 value);
-    Bitstream& operator>>(qint32& value);
+    Bitstream& operator<<(int value);
+    Bitstream& operator>>(int& value);
     
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);
@@ -120,8 +130,14 @@ public:
     Bitstream& operator<<(const QString& string);
     Bitstream& operator>>(QString& string);
     
+    Bitstream& operator<<(const QVariant& value);
+    Bitstream& operator>>(QVariant& value);
+    
     Bitstream& operator<<(QObject* object);
     Bitstream& operator>>(QObject*& object);
+    
+    Bitstream& operator<<(const AttributePointer& attribute);
+    Bitstream& operator>>(AttributePointer& attribute);
     
 private:
    
@@ -130,10 +146,14 @@ private:
     int _position;
 
     RepeatedValueStreamer<QByteArray> _classNameStreamer;
+    RepeatedValueStreamer<AttributePointer> _attributeStreamer;
 
-    static QHash<QByteArray, const QMetaObject*> _metaObjects;
-    static QHash<int, TypeStreamer*> _typeStreamers;
+    static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
+    static QHash<int, TypeStreamer*>& getTypeStreamers();
 };
+
+/// Macro for registering streamable meta-objects.
+#define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
 /// Interface for objects that can write values to and read values from bitstreams.
 class TypeStreamer {
@@ -144,11 +164,15 @@ public:
 };
 
 /// A streamer that works with Bitstream's operators.
-template<class T> class SimpleTypeStreamer {
+template<class T> class SimpleTypeStreamer : public TypeStreamer {
 public:
     
     virtual void write(Bitstream& out, const QVariant& value) const { out << value.value<T>(); }
     virtual QVariant read(Bitstream& in) const { T value; in >> value; return QVariant::fromValue(value); }
 };
+
+/// Macro for registering simple type streamers.
+#define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
+    Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
 
 #endif /* defined(__interface__Bitstream__) */

@@ -65,17 +65,35 @@ AttributeValue MetavoxelData::getAttributeValue(const MetavoxelPath& path, const
 }
 
 void MetavoxelData::read(Bitstream& in) {
+    // save the old roots and clear
+    QHash<AttributePointer, MetavoxelNode*> oldRoots = _roots;
+    _roots.clear();
+    
+    // read in the new roots, reusing old ones where appropriate
     qint32 rootCount;
     in >> rootCount;
     for (int i = 0; i < rootCount; i++) {
-        
-    } 
+        AttributePointer attribute;
+        in.getAttributeStreamer() >> attribute;
+        MetavoxelNode* root = oldRoots.take(attribute);
+        if (!root) {
+            root = new MetavoxelNode(attribute);
+        }
+        _roots.insert(attribute, root);
+        root->read(attribute, in);
+    }
+    
+    // clear out the remaining old roots
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = oldRoots.constBegin(); it != oldRoots.constEnd(); it++) {
+        it.value()->destroy(it.key());
+        delete it.value();
+    }
 }
 
 void MetavoxelData::write(Bitstream& out) const {
     out << (qint32)_roots.size();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        
+        out.getAttributeStreamer() << it.key();
         it.value()->write(it.key(), out);
     }
 }

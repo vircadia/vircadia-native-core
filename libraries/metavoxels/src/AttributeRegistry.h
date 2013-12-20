@@ -32,7 +32,7 @@ class AttributeRegistry {
 public:
     
     /// Returns a pointer to the singleton registry instance.
-    static AttributeRegistry* getInstance() { return &_instance; }
+    static AttributeRegistry* getInstance();
     
     AttributeRegistry();
     
@@ -64,8 +64,6 @@ public:
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
-
-    static AttributeRegistry _instance;
 
     QHash<QString, AttributePointer> _attributes;
     AttributePointer _guideAttribute;
@@ -170,7 +168,7 @@ public:
 
     virtual void* getDefaultValue() const { return encodeInline(_defaultValue); }
 
-private:
+protected:
     
     T _defaultValue;
 };
@@ -211,9 +209,12 @@ template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(vo
 
 /// Provides appropriate averaging for RGBA values.
 class QRgbAttribute : public InlineAttribute<QRgb> {
+    Q_OBJECT
+    Q_PROPERTY(int defaultValue MEMBER _defaultValue)
+
 public:
     
-    QRgbAttribute(const QString& name, QRgb defaultValue = QRgb());
+    Q_INVOKABLE QRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
     virtual bool merge(void*& parent, void* children[]) const;
     

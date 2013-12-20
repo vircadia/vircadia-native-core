@@ -12,21 +12,30 @@
 #include <QMetaProperty>
 #include <QtDebug>
 
+#include "AttributeRegistry.h"
 #include "Bitstream.h"
 
-QHash<QByteArray, const QMetaObject*> Bitstream::_metaObjects;
-QHash<int, TypeStreamer*> Bitstream::_typeStreamers;
+REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
+REGISTER_SIMPLE_TYPE_STREAMER(QString)
+REGISTER_SIMPLE_TYPE_STREAMER(bool)
+REGISTER_SIMPLE_TYPE_STREAMER(int)
 
-void Bitstream::registerMetaObject(const QByteArray& name, const QMetaObject* metaObject) {
-    _metaObjects.insert(name, metaObject);
+int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
+    getMetaObjects().insert(className, metaObject);
+    return 0;
 }
 
-void Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
-    _typeStreamers.insert(type, streamer);
+int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
+    getTypeStreamers().insert(type, streamer);
+    return 0;
 }
 
 Bitstream::Bitstream(QDataStream& underlying) :
-    _underlying(underlying), _byte(0), _position(0), _classNameStreamer(*this) {
+    _underlying(underlying),
+    _byte(0),
+    _position(0),
+    _classNameStreamer(*this),
+    _attributeStreamer(*this) {
 }
 
 const int BITS_IN_BYTE = 8;
@@ -94,37 +103,63 @@ Bitstream& Bitstream::operator>>(bool& value) {
     return *this;
 }
 
-Bitstream& Bitstream::operator<<(qint32 value) {
+Bitstream& Bitstream::operator<<(int value) {
     return write(&value, 32);
 }
 
-Bitstream& Bitstream::operator>>(qint32& value) {
-    return read(&value, 32);
+Bitstream& Bitstream::operator>>(int& value) {
+    qint32 sizedValue;
+    read(&sizedValue, 32);
+    value = sizedValue;
+    return *this;
 }
 
 Bitstream& Bitstream::operator<<(const QByteArray& string) {
-    *this << (qint32)string.size();
+    *this << string.size();
     return write(string.constData(), string.size() * BITS_IN_BYTE);
 }
 
 Bitstream& Bitstream::operator>>(QByteArray& string) {
-    qint32 size;
+    int size;
     *this >> size;
     return read(string.data(), size * BITS_IN_BYTE);
 }
 
 Bitstream& Bitstream::operator<<(const QString& string) {
-    *this << (qint32)string.size();    
+    *this << string.size();    
     return write(string.constData(), string.size() * sizeof(QChar) * BITS_IN_BYTE);
 }
 
 Bitstream& Bitstream::operator>>(QString& string) {
-    qint32 size;
+    int size;
     *this >> size;
     return read(string.data(), size * sizeof(QChar) * BITS_IN_BYTE);
 }
 
+Bitstream& Bitstream::operator<<(const QVariant& value) {
+    *this << value.userType();
+    TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    if (streamer) {
+        streamer->write(*this, value);
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QVariant& value) {
+    int type;
+    *this >> type;
+    TypeStreamer* streamer = getTypeStreamers().value(type);
+    if (streamer) {
+        value = streamer->read(*this);
+    }
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(QObject* object) {
+    if (!object) {
+        _classNameStreamer << QByteArray();
+        return *this;
+    }
     const QMetaObject* metaObject = object->metaObject();
     _classNameStreamer << QByteArray::fromRawData(metaObject->className(), strlen(metaObject->className()));
     for (int i = 0; i < metaObject->propertyCount(); i++) {
@@ -132,7 +167,7 @@ Bitstream& Bitstream::operator<<(QObject* object) {
         if (!property.isStored(object)) {
             continue;
         }
-        TypeStreamer* streamer = _typeStreamers.value(property.userType());
+        TypeStreamer* streamer = getTypeStreamers().value(property.userType());
         if (streamer) {
             streamer->write(*this, property.read(object));
         }
@@ -143,7 +178,11 @@ Bitstream& Bitstream::operator<<(QObject* object) {
 Bitstream& Bitstream::operator>>(QObject*& object) {
     QByteArray className;
     _classNameStreamer >> className;
-    const QMetaObject* metaObject = _metaObjects.value(className);
+    if (className.isEmpty()) {
+        object = NULL;
+        return *this;
+    }
+    const QMetaObject* metaObject = getMetaObjects().value(className);
     if (metaObject) {
         object = metaObject->newInstance();
         for (int i = 0; i < metaObject->propertyCount(); i++) {
@@ -151,7 +190,7 @@ Bitstream& Bitstream::operator>>(QObject*& object) {
             if (!property.isStored(object)) {
                 continue;
             }
-            TypeStreamer* streamer = _typeStreamers.value(property.userType());
+            TypeStreamer* streamer = getTypeStreamers().value(property.userType());
             if (streamer) {
                 property.write(object, streamer->read(*this));    
             }
@@ -160,6 +199,27 @@ Bitstream& Bitstream::operator>>(QObject*& object) {
         qDebug() << "Unknown class name: " << className << "\n";
     }
     return *this;
+}
+
+Bitstream& Bitstream::operator<<(const AttributePointer& attribute) {
+    return *this << (QObject*)attribute.data();
+}
+
+Bitstream& Bitstream::operator>>(AttributePointer& attribute) {
+    QObject* object;
+    *this >> object;
+    attribute = AttributeRegistry::getInstance()->registerAttribute(static_cast<Attribute*>(object));
+    return *this;
+}
+
+QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
+    static QHash<QByteArray, const QMetaObject*> metaObjects;
+    return metaObjects;
+}
+
+QHash<int, TypeStreamer*>& Bitstream::getTypeStreamers() {
+    static QHash<int, TypeStreamer*> typeStreamers;
+    return typeStreamers;
 }
 
 IDStreamer::IDStreamer(Bitstream& stream) :
