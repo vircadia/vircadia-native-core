@@ -208,7 +208,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          TOY_BALL_UPDATE_SCRIPT);
 
             // after releasing the ball, we free our ParticleEditHandle so we can't edit it further
-            // note: deleting the edit handle doesn't effect the act    ual particle
+            // note: deleting the edit handle doesn't effect the actual particle
             delete _ballParticleEditHandles[handID];
             _ballParticleEditHandles[handID] = NULL;
             
