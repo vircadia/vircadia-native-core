@@ -115,6 +115,9 @@ public:
     /// Flushes any unwritten bits to the underlying stream.
     void flush();
 
+    /// Resets to the initial state.
+    void reset();
+
     /// Returns a reference to the attribute streamer.
     RepeatedValueStreamer<AttributePointer>& getAttributeStreamer() { return _attributeStreamer; }
 

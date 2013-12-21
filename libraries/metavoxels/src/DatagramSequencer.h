@@ -14,6 +14,8 @@
 #include <QByteArray>
 #include <QSet>
 
+#include "Bitstream.h"
+
 /// Performs simple datagram sequencing, packet fragmentation and reassembly.
 class DatagramSequencer : public QObject {
     Q_OBJECT
@@ -22,8 +24,15 @@ public:
     
     DatagramSequencer();
     
-    void sendPacket(const QByteArray& packet);
+    /// Starts a new packet for transmission.
+    /// \return a reference to the Bitstream to use for writing to the packet
+    Bitstream& startPacket();
     
+    /// Sends the packet currently being written. 
+    void endPacket();
+    
+    /// Processes a datagram received from the other party, emitting readyToRead when the entire packet
+    /// has been successfully assembled.
     void receivedDatagram(const QByteArray& datagram);
 
 signals:
@@ -32,9 +41,20 @@ signals:
     void readyToWrite(const QByteArray& datagram);    
     
     /// Emitted when a packet is available to read.
-    void readyToRead(const QByteArray& packet);
+    void readyToRead(Bitstream& input);
     
 private:
+    
+    /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
+    /// readyToWrite) as necessary.
+    void sendPacket(const QByteArray& packet);
+    
+    /// Handles the acknowledgement of a sent packet.
+    void packetAcknowledged(int packetNumber);
+    
+    QByteArray _outgoingPacketData;
+    QDataStream _outgoingPacketStream;
+    Bitstream _outputStream;
     
     QBuffer _datagramBuffer;
     QDataStream _datagramStream;
@@ -42,10 +62,16 @@ private:
     int _outgoingPacketNumber;
     QByteArray _outgoingDatagram;
     
+    int _lastAcknowledgedPacketNumber;
+    
     int _incomingPacketNumber;
     QByteArray _incomingPacketData;
+    QDataStream _incomingPacketStream;
+    Bitstream _inputStream;
     QSet<int> _offsetsReceived;
     int _remainingBytes;
+    
+    int _lastReceivedPacketNumber;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

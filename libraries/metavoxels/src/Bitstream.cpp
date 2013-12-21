@@ -20,6 +20,25 @@ REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(bool)
 REGISTER_SIMPLE_TYPE_STREAMER(int)
 
+IDStreamer::IDStreamer(Bitstream& stream) :
+    _stream(stream),
+    _bits(1) {
+}
+
+IDStreamer& IDStreamer::operator<<(int value) {
+    _stream.write(&value, _bits);
+    if (value == (1 << _bits) - 1) {
+        _bits++;
+    }
+}
+
+IDStreamer& IDStreamer::operator>>(int& value) {
+    _stream.read(&value, _bits);
+    if (value == (1 << _bits) - 1) {
+        _bits++;
+    }
+}
+
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
     return 0;
@@ -79,9 +98,13 @@ Bitstream& Bitstream::read(void* data, int bits, int offset) {
 void Bitstream::flush() {
     if (_position != 0) {
         _underlying << _byte;
-        _byte = 0;
-        _position = 0;
+        reset();
     }
+}
+
+void Bitstream::reset() {
+    _byte = 0;
+    _position = 0;
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -222,21 +245,3 @@ QHash<int, TypeStreamer*>& Bitstream::getTypeStreamers() {
     return typeStreamers;
 }
 
-IDStreamer::IDStreamer(Bitstream& stream) :
-    _stream(stream),
-    _bits(1) {
-}
-
-IDStreamer& IDStreamer::operator<<(int value) {
-    _stream.write(&value, _bits);
-    if (value == (1 << _bits) - 1) {
-        _bits++;
-    }
-}
-
-IDStreamer& IDStreamer::operator>>(int& value) {
-    _stream.read(&value, _bits);
-    if (value == (1 << _bits) - 1) {
-        _bits++;
-    }
-}

@@ -4375,6 +4375,8 @@ void* Application::networkReceive(void* args) {
                         app->_voxelProcessor.queueReceivedPacket(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                     }
+                    case PACKET_TYPE_METAVOXEL_DATA:
+                        break;
                     case PACKET_TYPE_BULK_AVATAR_DATA:
                         NodeList::getInstance()->processBulkNodeData(senderSockAddr,
                                                                      app->_incomingPacket,
