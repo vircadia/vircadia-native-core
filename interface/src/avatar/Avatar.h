@@ -58,8 +58,8 @@ const float BODY_BALL_RADIUS_RIGHT_TOES = 0.025;
 
 extern const bool usingBigSphereCollisionTest;
 
-extern const float chatMessageScale;
-extern const float chatMessageHeight;
+extern const float CHAT_MESSAGE_SCALE;
+extern const float CHAT_MESSAGE_HEIGHT;
 
 enum AvatarBodyBallID {
 	BODY_BALL_NULL = -1,
