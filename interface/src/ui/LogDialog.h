@@ -11,6 +11,9 @@
 
 #include <QDialog>
 #include <QPlainTextEdit>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QCheckBox>
 
 class LogDialog : public QDialog {
     Q_OBJECT
@@ -22,14 +25,25 @@ public:
 public slots:
     void appendLogLine(QString logLine);
 
+private slots:
+    void handleSearchButton();
+    void handleRevealButton();
+    void handleExtraDebuggingCheckbox(const int);
+    void handleSeachTextChanged(QString);
+
 protected:
-    void resizeEvent(QResizeEvent* e);
-    void showEvent(QShowEvent* e);
+    void resizeEvent(QResizeEvent*);
+    void showEvent(QShowEvent*);
 
 private:
+    QPushButton* _searchButton;
+    QLineEdit* _searchTextBox;
+    QCheckBox* _extraDebuggingBox;
+    QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
     pthread_mutex_t _mutex;
 
+    void initControls();
 };
 
 #endif

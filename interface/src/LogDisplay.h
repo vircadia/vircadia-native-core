@@ -44,7 +44,7 @@ public:
     static unsigned const LINE_BUFFER_SIZE         = 256;   // number of lines that are buffered
     static unsigned const MAX_MESSAGE_LENGTH       = 512;   // maximum number of characters for a message
 
-    QStringList getLogData();
+    QStringList getLogData(QString);
 
 signals:
     void logReceived(QString message);

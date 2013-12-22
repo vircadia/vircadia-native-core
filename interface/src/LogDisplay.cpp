@@ -156,13 +156,16 @@ void LogDisplay::addMessage(const char* ptr) {
     pthread_mutex_unlock(& _mutex);
 }
 
-QStringList LogDisplay::getLogData() {
+QStringList LogDisplay::getLogData(QString searchText) {
     // wait for adding new log data whilr iterating over _lines
     pthread_mutex_lock(& _mutex);
     QStringList list;
     int i = 0;
     while (_lines[i] != *_lastLinePos) {
-        list.append(_lines[i++]);
+        if (searchText.isEmpty() || QString(_lines[i]).contains(searchText, Qt::CaseInsensitive)) {
+            list.append(_lines[i]);
+        }
+        i++;
     }
     pthread_mutex_unlock(& _mutex);
     return list;
