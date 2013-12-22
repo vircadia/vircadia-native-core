@@ -15,11 +15,13 @@
 #include <QPushButton>
 #include <QCheckBox>
 
+#include "AbstractLoggerInterface.h"
+
 class LogDialog : public QDialog {
     Q_OBJECT
 
 public:
-    LogDialog(QWidget* parent);
+    LogDialog(QWidget*, AbstractLoggerInterface*);
     ~LogDialog();
 
 public slots:
@@ -29,7 +31,7 @@ private slots:
     void handleSearchButton();
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(const int);
-    void handleSeachTextChanged(QString);
+    void handleSearchTextChanged(const QString);
 
 protected:
     void resizeEvent(QResizeEvent*);
@@ -42,6 +44,8 @@ private:
     QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
     pthread_mutex_t _mutex;
+
+    AbstractLoggerInterface* _logger;
 
     void initControls();
 };

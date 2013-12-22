@@ -497,8 +497,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
 
-
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel, 
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V, 
                 this,

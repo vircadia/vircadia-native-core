@@ -12,9 +12,9 @@ QPlainTextEdit {
 QLineEdit {
     padding-left: 7px;
     background-color: #CCCCCC;
-	border-width: 0;
-	border-top-right-radius: 9px;
-	border-bottom-right-radius: 9px;
+    border-width: 0;
+    border-top-right-radius: 9px;
+    border-bottom-right-radius: 9px;
     color: #333333;
     font-size: 12px;
 }
@@ -39,8 +39,8 @@ QPushButton#revealLogButton {
     padding-left: 10px;
     background-color: #333333;
     color: #BBBBBB;
-	border-width: 0;
-	border-radius: 9px;
+    border-width: 0;
+    border-radius: 9px;
     font-size: 11px;
 }
 

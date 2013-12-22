@@ -12,7 +12,6 @@
 
 #include "SharedUtil.h"
 #include "ui/LogDialog.h"
-#include "LogDisplay.h"
 
 const int TOP_BAR_HEIGHT = 46;
 const int INITIAL_WIDTH = 720;
@@ -27,11 +26,12 @@ const int CHECKBOX_WIDTH = 140;
 const int REVEAL_BUTTON_WIDTH = 122;
 const float INITIAL_HEIGHT_RATIO = 0.6f;
 
-int cursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
-int blockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
+int qTextCursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
+int qTextBlockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
 
-LogDialog::LogDialog(QWidget* parent) : QDialog(parent, Qt::Dialog) {
+LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog(parent, Qt::Dialog) {
 
+    _logger = logger;
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
@@ -72,10 +72,13 @@ void LogDialog::initControls() {
     _searchTextBox->setGeometry(left, ELEMENT_MARGIN, SEARCH_TEXT_WIDTH, ELEMENT_HEIGHT);
     left += SEARCH_TEXT_WIDTH + CHECKBOX_MARGIN;
     _searchTextBox->show();
-    connect(_searchTextBox, SIGNAL(textChanged(QString)), SLOT(handleSeachTextChanged(QString)));
+    connect(_searchTextBox, SIGNAL(textChanged(QString)), SLOT(handleSearchTextChanged(QString)));
 
     _extraDebuggingBox = new QCheckBox("Extra debugging", this);
     _extraDebuggingBox->setGeometry(left, ELEMENT_MARGIN, CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    if (_logger->extraDebugging()) {
+        _extraDebuggingBox->setCheckState(Qt::Checked);
+    }
     _extraDebuggingBox->show();
     connect(_extraDebuggingBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
 
@@ -91,22 +94,12 @@ void LogDialog::initControls() {
 
 }
 
-void LogDialog::showEvent(QShowEvent *e)  {
-    _searchTextBox->clear();
-    _searchTextBox->setText("");
-
-/*    pthread_mutex_lock(& _mutex);
-    QStringList _logData = LogDisplay::instance.getLogData("");
-
-    connect(&LogDisplay::instance, &LogDisplay::logReceived, this, &LogDialog::appendLogLine);
-    for(int i = 0; i < _logData.size(); ++i) {
-        appendLogLine(_logData[i]);
-    }
-
-    pthread_mutex_unlock(& _mutex);*/
+void LogDialog::showEvent(QShowEvent*)  {
+    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)));
+    handleSearchTextChanged("");
 }
 
-void LogDialog::resizeEvent(QResizeEvent *e) {
+void LogDialog::resizeEvent(QResizeEvent*) {
     _logTextBox->setGeometry(0, TOP_BAR_HEIGHT, width(), height() - TOP_BAR_HEIGHT);
     _revealLogButton->setGeometry(width() - ELEMENT_MARGIN - REVEAL_BUTTON_WIDTH,
                                   ELEMENT_MARGIN,
@@ -117,7 +110,9 @@ void LogDialog::resizeEvent(QResizeEvent *e) {
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
         pthread_mutex_lock(& _mutex);
-        _logTextBox->appendPlainText(logLine.simplified());
+
+        QString line = logLine.replace(QRegExp("node"), "<b>node</b>");
+        _logTextBox->appendHtml(line);
         pthread_mutex_unlock(& _mutex);
         _logTextBox->ensureCursorVisible();
     }
@@ -131,22 +126,16 @@ void LogDialog::handleRevealButton() {
 
 }
 
-void LogDialog::handleExtraDebuggingCheckbox(int state) {
-
+void LogDialog::handleExtraDebuggingCheckbox(const int state) {
+    _logger->setExtraDebugging(state != 0);
 }
 
-void LogDialog::handleSeachTextChanged(QString searchText) {
-
-    if (searchText.isEmpty()) {
-        connect(&LogDisplay::instance, &LogDisplay::logReceived, this, &LogDialog::appendLogLine);
-    } else {
-        disconnect(&LogDisplay::instance, &LogDisplay::logReceived, this, &LogDialog::appendLogLine);
-    }
+void LogDialog::handleSearchTextChanged(const QString searchText) {
 
     _logTextBox->clear();
     pthread_mutex_lock(& _mutex);
-    QStringList _logData = LogDisplay::instance.getLogData(searchText);
-    for(int i = 0; i < _logData.size(); ++i) {
+    QStringList _logData = _logger->getLogData(searchText);
+    for (int i = 0; i < _logData.size(); ++i) {
         appendLogLine(_logData[i]);
     }
 
