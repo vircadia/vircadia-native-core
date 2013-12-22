@@ -214,7 +214,6 @@ protected:
     float _pelvisToHeadLength;
     float _scale;
     float _height;
-    Balls* _balls;
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;

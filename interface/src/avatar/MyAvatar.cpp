@@ -111,18 +111,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // calculate speed
     _speed = glm::length(_velocity);
     
-    // update balls
-    if (_balls) {
-        _balls->moveOrigin(_position);
-        glm::vec3 lookAt = _head.getLookAtPosition();
-        if (glm::length(lookAt) > EPSILON) {
-            _balls->moveOrigin(lookAt);
-        } else {
-            _balls->moveOrigin(_position);
-        }
-        _balls->simulate(deltaTime);
-    }
-    
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
         _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
@@ -455,17 +443,9 @@ void MyAvatar::render(bool forceRenderHead) {
         
     // render body
     renderBody(forceRenderHead);
-
-    //  Render the balls
-    if (_balls) {
-        glPushMatrix();
-        _balls->render();
-        glPopMatrix();
-    }
     
     //renderDebugBodyPoints();
 
-    
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
