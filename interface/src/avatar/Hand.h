@@ -21,7 +21,6 @@
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 
-#include "Balls.h"
 #include "InterfaceConfig.h"
 #include "ParticleSystem.h"
 #include "world.h"

@@ -15,7 +15,6 @@
 
 #include <AvatarData.h>
 
-#include "Balls.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
