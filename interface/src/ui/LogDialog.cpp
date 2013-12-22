@@ -110,9 +110,7 @@ void LogDialog::resizeEvent(QResizeEvent*) {
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
         pthread_mutex_lock(& _mutex);
-
-        QString line = logLine.replace(QRegExp("node"), "<b>node</b>");
-        _logTextBox->appendHtml(line);
+        _logTextBox->appendHtml(logLine.simplified());
         pthread_mutex_unlock(& _mutex);
         _logTextBox->ensureCursorVisible();
     }

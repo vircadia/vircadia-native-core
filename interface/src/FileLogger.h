@@ -22,6 +22,8 @@ public:
 
 private:
     QStringList _lines;
+    QString _fileName;
+    QMutex _mutex;
 
 };
 
