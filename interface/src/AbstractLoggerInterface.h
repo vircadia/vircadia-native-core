@@ -22,6 +22,7 @@ public:
 
     virtual void addMessage(QString) = 0;
     virtual QStringList getLogData(QString) = 0;
+    virtual void locateLog() = 0;
 
 signals:
     void logReceived(QString message);
@@ -30,4 +31,4 @@ private:
     bool _extraDebugging = false;
 };
 
-#endif /* defined(__hifi__AbstractAudioInterface__) */
+#endif /* defined(__interface__AbstractLoggerInterface__) */

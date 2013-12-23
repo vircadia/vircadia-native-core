@@ -141,15 +141,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _logger(new FileLogger())
 {
     _applicationStartupTime = startup_time;
 
     switchToResourcesParentIfRequired();
     QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
-
-    _logger = new FileLogger();
 
     qInstallMessageHandler(messageHandler);
 
@@ -269,7 +268,8 @@ Application::~Application() {
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
-    
+
+    delete _logger;
     delete _settings;
     delete _followMode;
     delete _glWidget;

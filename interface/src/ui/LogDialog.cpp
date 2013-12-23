@@ -121,7 +121,7 @@ void LogDialog::handleSearchButton() {
 }
 
 void LogDialog::handleRevealButton() {
-
+    _logger->locateLog();
 }
 
 void LogDialog::handleExtraDebuggingCheckbox(const int state) {

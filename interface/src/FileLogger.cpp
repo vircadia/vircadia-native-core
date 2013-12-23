@@ -8,13 +8,23 @@
 
 #include "FileLogger.h"
 #include "HifiSockAddr.h"
+#include <FileUtils.h>
 #include <QDateTime>
 #include <QFile>
+#include <QDir>
+#include <QDesktopServices>
 
 FileLogger::FileLogger() : _lines(NULL) {
     QHostAddress clientAddress = QHostAddress(getHostOrderLocalAddress());
     QDateTime now = QDateTime::currentDateTime();
-    _fileName = QString("hifi-log_%1_%2.txt").arg(clientAddress.toString(), now.toString("yyyy-MM-dd_hh.mm.ss"));
+
+    _fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    QDir logDir(_fileName);
+    if (!logDir.exists(_fileName)) {
+        logDir.mkdir(_fileName);
+    }
+
+    _fileName.append(QString("/hifi-log_%1_%2.txt").arg(clientAddress.toString(), now.toString("yyyy-MM-dd_hh.mm.ss")));
     setExtraDebugging(false);
 }
 
@@ -41,10 +51,13 @@ void FileLogger::addMessage(QString message) {
     _lines.append(message);
 
     QFile file(_fileName);
-
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream out(&file);
         out <<  message;
     }
     _mutex.unlock();
+}
+
+void FileLogger::locateLog() {
+    FileUtils::LocateFile(_fileName);
 }

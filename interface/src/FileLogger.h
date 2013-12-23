@@ -19,6 +19,7 @@ public:
 
     virtual void addMessage(QString);
     virtual QStringList getLogData(QString);
+    virtual void locateLog();
 
 private:
     QStringList _lines;
