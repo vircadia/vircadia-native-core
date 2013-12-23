@@ -18,11 +18,9 @@ DatagramSequencer::DatagramSequencer() :
     _datagramStream(&_datagramBuffer),
     _outgoingPacketNumber(0),
     _outgoingDatagram(MAX_DATAGRAM_SIZE, 0),
-    _lastAcknowledgedPacketNumber(0),
     _incomingPacketNumber(0),
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
-    _inputStream(_incomingPacketStream),
-    _lastReceivedPacketNumber(0) {
+    _inputStream(_incomingPacketStream) {
 
     _datagramStream.setByteOrder(QDataStream::LittleEndian);
 }
@@ -40,6 +38,11 @@ private:
 };
 
 Bitstream& DatagramSequencer::startPacket() {
+    // start with the list of acknowledgements
+    _outgoingPacketStream << (quint32)_receivedPacketNumbers.size();
+    foreach (int packetNumber, _receivedPacketNumbers) {
+        _outgoingPacketStream << (quint32)packetNumber;
+    }
     return _outputStream;
 }
 
@@ -62,9 +65,9 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         return;
     }
     
-    // read the acknowledgement, size and offset
-    quint32 acknowledgedPacketNumber, packetSize, offset;
-    _datagramStream >> acknowledgedPacketNumber >> packetSize >> offset;
+    // read the size and offset
+    quint32 packetSize, offset;
+    _datagramStream >> packetSize >> offset;
     
     // if it's greater, reset
     if (sequenceNumber > _incomingPacketNumber) {
@@ -73,11 +76,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _offsetsReceived.clear();
         _offsetsReceived.insert(offset);
         _remainingBytes = packetSize;
-            
-        // handle new acknowledgement, if any
-        if (_lastAcknowledgedPacketNumber != acknowledgedPacketNumber) {
-            packetAcknowledged(_lastAcknowledgedPacketNumber = acknowledgedPacketNumber); 
-        }
+         
     } else {
         // make sure it's not a duplicate
         if (_offsetsReceived.contains(offset)) {
@@ -90,13 +89,35 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     memcpy(_incomingPacketData.data() + offset, datagram.constData() + _datagramBuffer.pos(), _datagramBuffer.bytesAvailable());
     
     // see if we're done
-    if ((_remainingBytes -= _datagramBuffer.bytesAvailable()) == 0) {
-        _lastReceivedPacketNumber = _incomingPacketNumber;    
-        
-        emit readyToRead(_inputStream);
-        _incomingPacketStream.device()->seek(0);
-        _inputStream.reset();
-    }    
+    if ((_remainingBytes -= _datagramBuffer.bytesAvailable()) > 0) {
+        return;
+    }
+    _receivedPacketNumbers.append(_incomingPacketNumber);    
+    
+    // read the list of acknowledged packets
+    quint32 acknowledgementCount;
+    _incomingPacketStream >> acknowledgementCount;
+    for (int i = 0; i < acknowledgementCount; i++) {
+        quint32 packetNumber;
+        _incomingPacketStream >> packetNumber;
+        for (QList<SendRecord>::iterator it = _sendRecords.begin(); it != _sendRecords.end(); ) {
+            if (it->packetNumber == packetNumber) {
+                sendRecordAcknowledged(*it);
+                it = _sendRecords.erase(_sendRecords.begin(), ++it);
+            } else {
+                it++;
+            }
+        }
+    }
+    
+    emit readyToRead(_inputStream);
+    _incomingPacketStream.device()->seek(0);
+    _inputStream.reset();
+}
+
+void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
+    // stop acknowledging the recorded packets
+    
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {
@@ -106,9 +127,12 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     // increment the packet number
     _outgoingPacketNumber++;
     
-    // write the sequence number, acknowledgement, and size, which are the same between all fragments
+    // record the send
+    SendRecord record = { _outgoingPacketNumber, _receivedPacketNumbers };
+    _sendRecords.append(record);
+    
+    // write the sequence number and size, which are the same between all fragments
     _datagramStream << (quint32)_outgoingPacketNumber;
-    _datagramStream << (quint32)_lastReceivedPacketNumber;
     _datagramStream << (quint32)packet.size();
     int initialPosition = _datagramBuffer.pos();
     

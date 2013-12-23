@@ -12,6 +12,7 @@
 #include <QBuffer>
 #include <QDataStream>
 #include <QByteArray>
+#include <QList>
 #include <QSet>
 
 #include "Bitstream.h"
@@ -45,12 +46,23 @@ signals:
     
 private:
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        QList<int> acknowledgedPacketNumbers;
+    };
+    
+    /// Notes that the described send was acknowledged by the other party.
+    void sendRecordAcknowledged(const SendRecord& record);
+    
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
     void sendPacket(const QByteArray& packet);
     
     /// Handles the acknowledgement of a sent packet.
     void packetAcknowledged(int packetNumber);
+    
+    QList<SendRecord> _sendRecords;
     
     QByteArray _outgoingPacketData;
     QDataStream _outgoingPacketStream;
@@ -62,8 +74,6 @@ private:
     int _outgoingPacketNumber;
     QByteArray _outgoingDatagram;
     
-    int _lastAcknowledgedPacketNumber;
-    
     int _incomingPacketNumber;
     QByteArray _incomingPacketData;
     QDataStream _incomingPacketStream;
@@ -71,7 +81,7 @@ private:
     QSet<int> _offsetsReceived;
     int _remainingBytes;
     
-    int _lastReceivedPacketNumber;
+    QList<int> _receivedPacketNumbers;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */
