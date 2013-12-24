@@ -21,7 +21,7 @@ public:
     inline void setExtraDebugging(bool debugging) { _extraDebugging = debugging; };
 
     virtual void addMessage(QString) = 0;
-    virtual QStringList getLogData(QString) = 0;
+    virtual QStringList getLogData() = 0;
     virtual void locateLog() = 0;
 
 signals:

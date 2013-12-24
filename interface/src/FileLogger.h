@@ -18,11 +18,11 @@ public:
     FileLogger();
 
     virtual void addMessage(QString);
-    virtual QStringList getLogData(QString);
+    virtual QStringList getLogData() { return _logData; };
     virtual void locateLog();
 
 private:
-    QStringList _lines;
+    QStringList _logData;
     QString _fileName;
     QMutex _mutex;
 

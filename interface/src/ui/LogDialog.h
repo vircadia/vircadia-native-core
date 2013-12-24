@@ -14,8 +14,24 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QSyntaxHighlighter>
 
 #include "AbstractLoggerInterface.h"
+
+class KeywordHighlighter : public QSyntaxHighlighter {
+    Q_OBJECT
+
+public:
+    KeywordHighlighter(QTextDocument *parent = 0);
+    QString keyword;
+
+protected:
+    void highlightBlock(const QString &text);
+
+private:
+    QTextCharFormat keywordFormat;
+    
+};
 
 class LogDialog : public QDialog {
     Q_OBJECT
@@ -44,10 +60,13 @@ private:
     QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
     pthread_mutex_t _mutex;
+    QString _searchTerm;
+    KeywordHighlighter* _highlighter;
 
     AbstractLoggerInterface* _logger;
 
     void initControls();
+    void showLogData();
 };
 
 #endif

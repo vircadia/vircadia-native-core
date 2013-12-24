@@ -25,6 +25,7 @@ const int CHECKBOX_MARGIN = 12;
 const int CHECKBOX_WIDTH = 140;
 const int REVEAL_BUTTON_WIDTH = 122;
 const float INITIAL_HEIGHT_RATIO = 0.6f;
+const QString HIGHLIGHT_COLOR = "#3366CC";
 
 int qTextCursorMeta = qRegisterMetaType<QTextCursor>("QTextCursor");
 int qTextBlockMeta = qRegisterMetaType<QTextBlock>("QTextBlock");
@@ -91,12 +92,13 @@ void LogDialog::initControls() {
     _logTextBox = new QPlainTextEdit(this);
     _logTextBox->setReadOnly(true);
     _logTextBox->show();
+    _highlighter = new KeywordHighlighter(_logTextBox->document());
 
 }
 
 void LogDialog::showEvent(QShowEvent*)  {
     connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)));
-    handleSearchTextChanged("");
+    showLogData();
 }
 
 void LogDialog::resizeEvent(QResizeEvent*) {
@@ -110,7 +112,9 @@ void LogDialog::resizeEvent(QResizeEvent*) {
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
         pthread_mutex_lock(& _mutex);
-        _logTextBox->appendHtml(logLine.simplified());
+        if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
+            _logTextBox->appendPlainText(logLine.simplified());
+        }
         pthread_mutex_unlock(& _mutex);
         _logTextBox->ensureCursorVisible();
     }
@@ -129,13 +133,37 @@ void LogDialog::handleExtraDebuggingCheckbox(const int state) {
 }
 
 void LogDialog::handleSearchTextChanged(const QString searchText) {
+    _searchTerm = searchText;
+    _highlighter->keyword = searchText;
+    showLogData();
+}
 
+void LogDialog::showLogData() {
     _logTextBox->clear();
     pthread_mutex_lock(& _mutex);
-    QStringList _logData = _logger->getLogData(searchText);
+    QStringList _logData = _logger->getLogData();
     for (int i = 0; i < _logData.size(); ++i) {
         appendLogLine(_logData[i]);
     }
 
     pthread_mutex_unlock(& _mutex);
+}
+
+KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {
+    keywordFormat.setForeground(QColor(HIGHLIGHT_COLOR));
+}
+
+void KeywordHighlighter::highlightBlock(const QString &text) {
+
+    if (keyword.isNull() || keyword.isEmpty()) {
+        return;
+    }
+
+    int index = text.indexOf(keyword, 0, Qt::CaseInsensitive);
+    int length = keyword.length();
+
+    while (index >= 0) {
+        setFormat(index, length, keywordFormat);
+        index = text.indexOf(keyword, index + length, Qt::CaseInsensitive);
+    }
 }
