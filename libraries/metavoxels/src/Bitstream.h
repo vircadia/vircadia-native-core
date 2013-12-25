@@ -47,7 +47,10 @@ private:
 template<class T> class RepeatedValueStreamer {
 public:
     
-    RepeatedValueStreamer(Bitstream& stream) : _stream(stream), _idStreamer(stream), _lastNewID(0) { }
+    RepeatedValueStreamer(Bitstream& stream) : _stream(stream), _idStreamer(stream),
+        _lastPersistentID(0), _lastTransientOffset(0) { }
+    
+    QHash<T, int> getAndResetTransientOffsets();
     
     RepeatedValueStreamer& operator<<(T value);
     RepeatedValueStreamer& operator>>(T& value);
@@ -56,17 +59,31 @@ private:
     
     Bitstream& _stream;
     IDStreamer _idStreamer;
-    int _lastNewID;
-    QHash<T, int> _ids;
+    int _lastPersistentID;
+    int _lastTransientOffset;
+    QHash<T, int> _persistentIDs;
+    QHash<T, int> _transientOffsets;
     QHash<int, T> _values;
 };
 
+template<class T> inline QHash<T, int> RepeatedValueStreamer<T>::getAndResetTransientOffsets() {
+    QHash<T, int> transientOffsets;
+    _transientOffsets.swap(transientOffsets);
+    _lastTransientOffset = 0;
+    return transientOffsets;
+}
+
 template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::operator<<(T value) {
-    int& id = _ids[value];
+    int id = _persistentIDs.value(value);
     if (id == 0) {
-        _idStreamer << (id = ++_lastNewID);    
-        _stream << value;
-        
+        int& offset = _transientOffsets[value];
+        if (offset == 0) {
+            _idStreamer << (_lastPersistentID + (offset = ++_lastTransientOffset));
+            _stream << value;
+            
+        } else {
+            _idStreamer << (_lastPersistentID + offset);
+        }
     } else {
         _idStreamer << id;
     }
@@ -90,6 +107,12 @@ template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::ope
 /// A stream for bit-aligned data.
 class Bitstream {
 public:
+
+    class WriteMappings {
+    public:
+        QHash<QByteArray, int> classNameOffsets;
+        QHash<AttributePointer, int> attributeOffsets;
+    };
 
     /// Registers a metaobject under its name so that instances of it can be streamed.
     /// \return zero; the function only returns a value so that it can be used in static initialization
@@ -120,6 +143,9 @@ public:
 
     /// Returns a reference to the attribute streamer.
     RepeatedValueStreamer<AttributePointer>& getAttributeStreamer() { return _attributeStreamer; }
+
+    /// Returns the set of transient mappings gathered during writing and resets them.
+    WriteMappings getAndResetWriteMappings();
 
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);

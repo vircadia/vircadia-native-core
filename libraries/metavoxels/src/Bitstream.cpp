@@ -107,6 +107,12 @@ void Bitstream::reset() {
     _position = 0;
 }
 
+Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {
+    WriteMappings mappings = { _classNameStreamer.getAndResetTransientOffsets(),
+        _attributeStreamer.getAndResetTransientOffsets() };
+    return mappings;
+}
+
 Bitstream& Bitstream::operator<<(bool value) {
     if (value) {
         _byte |= (1 << _position);

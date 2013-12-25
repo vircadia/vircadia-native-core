@@ -100,14 +100,16 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     for (int i = 0; i < acknowledgementCount; i++) {
         quint32 packetNumber;
         _incomingPacketStream >> packetNumber;
-        for (QList<SendRecord>::iterator it = _sendRecords.begin(); it != _sendRecords.end(); ) {
-            if (it->packetNumber == packetNumber) {
-                sendRecordAcknowledged(*it);
-                it = _sendRecords.erase(_sendRecords.begin(), ++it);
-            } else {
-                it++;
-            }
+        if (_sendRecords.isEmpty()) {
+            continue;
         }
+        int index = packetNumber - _sendRecords.first().packetNumber;
+        if (index >= _sendRecords.size()) {
+            continue;
+        }
+        QList<SendRecord>::iterator it = _sendRecords.begin() + index;
+        sendRecordAcknowledged(*it);
+        _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
     emit readyToRead(_inputStream);
@@ -116,7 +118,13 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
 }
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
-    // stop acknowledging the recorded packets
+    // stop acknowledging the recorded packets (TODO: replace with interpolation search?)
+    QList<int>::iterator it = qBinaryFind(_receivedPacketNumbers.begin(), _receivedPacketNumbers.end(),
+        record.lastReceivedPacketNumber);
+    if (it != _receivedPacketNumbers.end()) {
+        _receivedPacketNumbers.erase(it + 1);
+    }
+    
     
 }
 
@@ -128,7 +136,8 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     _outgoingPacketNumber++;
     
     // record the send
-    SendRecord record = { _outgoingPacketNumber, _receivedPacketNumbers };
+    SendRecord record = { _outgoingPacketNumber, _receivedPacketNumbers.isEmpty() ? 0 : _receivedPacketNumbers.last(),
+        _outputStream.getAndResetWriteMappings() };
     _sendRecords.append(record);
     
     // write the sequence number and size, which are the same between all fragments

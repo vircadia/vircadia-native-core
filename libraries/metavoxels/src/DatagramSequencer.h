@@ -49,7 +49,8 @@ private:
     class SendRecord {
     public:
         int packetNumber;
-        QList<int> acknowledgedPacketNumbers;
+        int lastReceivedPacketNumber;
+        Bitstream::WriteMappings mappings;
     };
     
     /// Notes that the described send was acknowledged by the other party.
