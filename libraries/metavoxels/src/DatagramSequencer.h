@@ -53,6 +53,12 @@ private:
         Bitstream::WriteMappings mappings;
     };
     
+    class ReceiveRecord {
+    public:
+        int packetNumber;
+        Bitstream::ReadMappings mappings;
+    };
+    
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
@@ -64,6 +70,7 @@ private:
     void packetAcknowledged(int packetNumber);
     
     QList<SendRecord> _sendRecords;
+    QList<ReceiveRecord> _receiveRecords;
     
     QByteArray _outgoingPacketData;
     QDataStream _outgoingPacketStream;

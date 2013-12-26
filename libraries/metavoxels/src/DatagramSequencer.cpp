@@ -115,6 +115,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     emit readyToRead(_inputStream);
     _incomingPacketStream.device()->seek(0);
     _inputStream.reset();
+    
+    // record the receipt
+    ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings() };
+    _receiveRecords.append(record);
 }
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
@@ -124,8 +128,7 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     if (it != _receivedPacketNumbers.end()) {
         _receivedPacketNumbers.erase(it + 1);
     }
-    
-    
+    _outputStream.persistWriteMappings(record.mappings);
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {

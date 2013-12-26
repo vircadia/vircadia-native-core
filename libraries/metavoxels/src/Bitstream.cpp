@@ -25,6 +25,13 @@ IDStreamer::IDStreamer(Bitstream& stream) :
     _bits(1) {
 }
 
+void IDStreamer::setBitsFromValue(int value) {
+    _bits = 1;
+    while (value >= (1 << _bits) - 1) {
+        _bits++;
+    }
+}
+
 IDStreamer& IDStreamer::operator<<(int value) {
     _stream.write(&value, _bits);
     if (value == (1 << _bits) - 1) {
@@ -53,7 +60,7 @@ Bitstream::Bitstream(QDataStream& underlying) :
     _underlying(underlying),
     _byte(0),
     _position(0),
-    _classNameStreamer(*this),
+    _metaObjectStreamer(*this),
     _attributeStreamer(*this) {
 }
 
@@ -108,9 +115,25 @@ void Bitstream::reset() {
 }
 
 Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {
-    WriteMappings mappings = { _classNameStreamer.getAndResetTransientOffsets(),
+    WriteMappings mappings = { _metaObjectStreamer.getAndResetTransientOffsets(),
         _attributeStreamer.getAndResetTransientOffsets() };
     return mappings;
+}
+
+void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
+    _metaObjectStreamer.persistTransientOffsets(mappings.metaObjectOffsets);
+    _attributeStreamer.persistTransientOffsets(mappings.attributeOffsets);
+}
+
+Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
+    ReadMappings mappings = { _metaObjectStreamer.getAndResetTransientValues(),
+        _attributeStreamer.getAndResetTransientValues() };
+    return mappings;
+}
+
+void Bitstream::persistReadMappings(const ReadMappings& mappings) {
+    _metaObjectStreamer.persistTransientValues(mappings.metaObjectValues);
+    _attributeStreamer.persistTransientValues(mappings.attributeValues);
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -186,11 +209,11 @@ Bitstream& Bitstream::operator>>(QVariant& value) {
 
 Bitstream& Bitstream::operator<<(QObject* object) {
     if (!object) {
-        _classNameStreamer << QByteArray();
+        _metaObjectStreamer << NULL;
         return *this;
     }
     const QMetaObject* metaObject = object->metaObject();
-    _classNameStreamer << QByteArray::fromRawData(metaObject->className(), strlen(metaObject->className()));
+    _metaObjectStreamer << metaObject;
     for (int i = 0; i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
         if (!property.isStored(object)) {
@@ -205,26 +228,40 @@ Bitstream& Bitstream::operator<<(QObject* object) {
 }
 
 Bitstream& Bitstream::operator>>(QObject*& object) {
-    QByteArray className;
-    _classNameStreamer >> className;
-    if (className.isEmpty()) {
+    const QMetaObject* metaObject;
+    _metaObjectStreamer >> metaObject;
+    if (!metaObject) {
         object = NULL;
         return *this;
     }
-    const QMetaObject* metaObject = getMetaObjects().value(className);
-    if (metaObject) {
-        object = metaObject->newInstance();
-        for (int i = 0; i < metaObject->propertyCount(); i++) {
-            QMetaProperty property = metaObject->property(i);
-            if (!property.isStored(object)) {
-                continue;
-            }
-            TypeStreamer* streamer = getTypeStreamers().value(property.userType());
-            if (streamer) {
-                property.write(object, streamer->read(*this));    
-            }
+    object = metaObject->newInstance();
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored(object)) {
+            continue;
         }
-    } else {
+        TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        if (streamer) {
+            property.write(object, streamer->read(*this));    
+        }
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QMetaObject* metaObject) {
+    return *this << (metaObject ? QByteArray::fromRawData(
+        metaObject->className(), strlen(metaObject->className())) : QByteArray());
+}
+
+Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
+    QByteArray className;
+    *this >> className;
+    if (className.isEmpty()) {
+        metaObject = NULL;
+        return *this;
+    }
+    metaObject = getMetaObjects().value(className);
+    if (!metaObject) {
         qDebug() << "Unknown class name: " << className << "\n";
     }
     return *this;
