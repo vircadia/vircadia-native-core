@@ -21,7 +21,6 @@
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 
-#include "Balls.h"
 #include "InterfaceConfig.h"
 #include "ParticleSystem.h"
 #include "world.h"
@@ -65,6 +64,7 @@ public:
     // Get the drag distance to move
     glm::vec3 getAndResetGrabDelta();
     glm::vec3 getAndResetGrabDeltaVelocity();
+    glm::quat getAndResetGrabRotation();
 
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
@@ -111,6 +111,8 @@ private:
     
     glm::vec3 _grabDelta;
     glm::vec3 _grabDeltaVelocity;
+    glm::quat _grabStartRotation;
+    glm::quat _grabCurrentRotation;
     
     AudioInjector _throwInjector;
     AudioInjector _catchInjector;
