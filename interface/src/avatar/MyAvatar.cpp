@@ -267,11 +267,12 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     _velocity += _hand.getAndResetGrabDeltaVelocity();
     glm::quat deltaRotation = _hand.getAndResetGrabRotation();
-    glm::vec3 euler = safeEulerAngles(deltaRotation);
+    const float GRAB_CONTROLLER_TURN_SCALING = 0.5f;
+    glm::vec3 euler = safeEulerAngles(deltaRotation) * GRAB_CONTROLLER_TURN_SCALING;
     //  Adjust body yaw by yaw from controller
-    setOrientation(glm::angleAxis(euler.y, glm::vec3(0, 1, 0)) * getOrientation());
+    setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
     //  Adjust head pitch from controller
-    getHead().setMousePitch(getHead().getMousePitch() + euler.x);
+    getHead().setMousePitch(getHead().getMousePitch() - euler.x);
     
     _position += _velocity * deltaTime;
     
