@@ -52,6 +52,8 @@ Hand::Hand(Avatar* owningAvatar) :
     _pitchUpdate(0),
     _grabDelta(0, 0, 0),
     _grabDeltaVelocity(0, 0, 0),
+    _grabStartRotation(0, 0, 0, 1),
+    _grabCurrentRotation(0, 0, 0, 1),
     _throwInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
     _catchInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
 {
@@ -227,7 +229,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
 }
 
 glm::vec3 Hand::getAndResetGrabDelta() {
-    const float HAND_GRAB_SCALE_DISTANCE = 5.f;
+    const float HAND_GRAB_SCALE_DISTANCE = 2.f;
     glm::vec3 delta = _grabDelta * _owningAvatar->getScale() * HAND_GRAB_SCALE_DISTANCE;
     _grabDelta = glm::vec3(0,0,0);
     glm::quat avatarRotation = _owningAvatar->getOrientation();
@@ -241,6 +243,11 @@ glm::vec3 Hand::getAndResetGrabDeltaVelocity() {
     glm::quat avatarRotation = _owningAvatar->getOrientation();
     return avatarRotation * -delta;
     
+}
+glm::quat Hand::getAndResetGrabRotation() {
+    glm::quat diff = _grabCurrentRotation * glm::inverse(_grabStartRotation);
+    _grabStartRotation = _grabCurrentRotation;
+    return diff;
 }
 
 void Hand::simulate(float deltaTime, bool isMine) {
@@ -275,9 +282,15 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 
                 if (palm.getControllerButtons() & BUTTON_4) {
                     _grabDelta +=  palm.getRawVelocity() * deltaTime;
+                    _grabCurrentRotation = palm.getRawRotation();
                 }
                 if ((palm.getLastControllerButtons() & BUTTON_4) && !(palm.getControllerButtons() & BUTTON_4)) {
+                    // Just ending grab, capture velocity
                     _grabDeltaVelocity = palm.getRawVelocity();
+                }
+                if (!(palm.getLastControllerButtons() & BUTTON_4) && (palm.getControllerButtons() & BUTTON_4)) {
+                    // Just starting grab, capture starting rotation
+                    _grabStartRotation = palm.getRawRotation();
                 }
                 
                 if (palm.getControllerButtons() & BUTTON_1) {
