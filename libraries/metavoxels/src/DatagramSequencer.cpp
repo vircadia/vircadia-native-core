@@ -39,9 +39,9 @@ private:
 
 Bitstream& DatagramSequencer::startPacket() {
     // start with the list of acknowledgements
-    _outgoingPacketStream << (quint32)_receivedPacketNumbers.size();
-    foreach (int packetNumber, _receivedPacketNumbers) {
-        _outgoingPacketStream << (quint32)packetNumber;
+    _outgoingPacketStream << (quint32)_receiveRecords.size();
+    foreach (const ReceiveRecord& record, _receiveRecords) {
+        _outgoingPacketStream << (quint32)record.packetNumber;
     }
     return _outputStream;
 }
@@ -92,8 +92,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     if ((_remainingBytes -= _datagramBuffer.bytesAvailable()) > 0) {
         return;
     }
-    _receivedPacketNumbers.append(_incomingPacketNumber);    
-    
+
     // read the list of acknowledged packets
     quint32 acknowledgementCount;
     _incomingPacketStream >> acknowledgementCount;
@@ -123,10 +122,11 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // stop acknowledging the recorded packets (TODO: replace with interpolation search?)
-    QList<int>::iterator it = qBinaryFind(_receivedPacketNumbers.begin(), _receivedPacketNumbers.end(),
-        record.lastReceivedPacketNumber);
-    if (it != _receivedPacketNumbers.end()) {
-        _receivedPacketNumbers.erase(it + 1);
+    ReceiveRecord compare = { record.lastReceivedPacketNumber };
+    QList<ReceiveRecord>::iterator it = qBinaryFind(_receiveRecords.begin(), _receiveRecords.end(), compare);
+    if (it != _receiveRecords.end()) {
+        _inputStream.persistReadMappings(it->mappings);
+        _receiveRecords.erase(it + 1);
     }
     _outputStream.persistWriteMappings(record.mappings);
 }
@@ -139,7 +139,7 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     _outgoingPacketNumber++;
     
     // record the send
-    SendRecord record = { _outgoingPacketNumber, _receivedPacketNumbers.isEmpty() ? 0 : _receivedPacketNumbers.last(),
+    SendRecord record = { _outgoingPacketNumber, _receiveRecords.isEmpty() ? 0 : _receiveRecords.last().packetNumber,
         _outputStream.getAndResetWriteMappings() };
     _sendRecords.append(record);
     
@@ -164,6 +164,3 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     } while(offset < packet.size());
 }
 
-void DatagramSequencer::packetAcknowledged(int packetNumber) {
-    
-}

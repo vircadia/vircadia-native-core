@@ -57,6 +57,8 @@ private:
     public:
         int packetNumber;
         Bitstream::ReadMappings mappings;
+    
+        bool operator<(const ReceiveRecord& other) const { return packetNumber < other.packetNumber; }
     };
     
     /// Notes that the described send was acknowledged by the other party.
@@ -65,9 +67,6 @@ private:
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
     void sendPacket(const QByteArray& packet);
-    
-    /// Handles the acknowledgement of a sent packet.
-    void packetAcknowledged(int packetNumber);
     
     QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
@@ -88,8 +87,6 @@ private:
     Bitstream _inputStream;
     QSet<int> _offsetsReceived;
     int _remainingBytes;
-    
-    QList<int> _receivedPacketNumbers;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */
