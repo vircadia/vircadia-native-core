@@ -478,13 +478,10 @@ void Application::paintGL() {
             _mirrorCamera.update(1.0f/_fps);
             
             // set the bounds of rear mirror view
-            float mirrorX = _mirrorViewRect.x();
-            float mirrorY = _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height();
-            float mirrorW = _mirrorViewRect.width();
-            float mirrorH = _mirrorViewRect.height();
-            
-            glViewport(mirrorX, mirrorY, mirrorW, mirrorH);
-            glScissor(mirrorX, mirrorY, mirrorW, mirrorH);
+            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
+            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
             bool updateViewFrustum = false;
             updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
             glEnable(GL_SCISSOR_TEST);

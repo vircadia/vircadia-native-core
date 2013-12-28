@@ -2,8 +2,8 @@
 //  TV3DManager.cpp
 //  hifi
 //
-//  Created by Stephen Birarda on 5/9/13.
-//  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 12/24/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
 #include <QOpenGLFramebufferObject>
