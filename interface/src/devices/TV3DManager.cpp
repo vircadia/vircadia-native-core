@@ -36,6 +36,8 @@ void TV3DManager::connect() {
 }
 
 
+// The basic strategy of this stereoscopic rendering is explained here:
+//    http://www.orthostereo.com/geometryopengl.html
 void TV3DManager::setFrustum(Camera& whichCamera) {
     const double DTR = 0.0174532925; // degree to radians
     const double IOD = 0.05; //intraocular distance
