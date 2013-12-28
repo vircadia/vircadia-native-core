@@ -255,10 +255,12 @@ private slots:
     void resetSensors();
 
 
-private:
-    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+public:
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
+
+private:
+    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
