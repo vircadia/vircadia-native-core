@@ -27,6 +27,12 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
+    Application* app = Application::getInstance();
+    int width = app->getGLWidget()->width();
+    int height = app->getGLWidget()->height();
+    Camera& camera = *app->getCamera();
+
+    configureCamera(camera, width, height);
 }
 
 
