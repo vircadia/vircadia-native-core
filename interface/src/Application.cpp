@@ -510,18 +510,13 @@ void Application::paintGL() {
                 _myAvatar.getSkeletonModel().setTranslation(_myAvatar.getHead().getFaceModel().getTranslation() -
                     neckPosition);
                 
-                //displaySide(_mirrorCamera, true);
-                displaySide(whichCamera);
-
+                displaySide(_mirrorCamera, true);
                 
                 // restore absolute translations
                 _myAvatar.getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
                 _myAvatar.getHead().getFaceModel().setTranslation(absoluteFaceTranslation);
-                
             } else {
-                //displaySide(_mirrorCamera, true);
-                displaySide(whichCamera);
-
+                displaySide(_mirrorCamera, true);
             }
             glPopMatrix();
             

@@ -254,13 +254,10 @@ private slots:
     void shrinkMirrorView();
     void resetSensors();
 
-
-public:
-    void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
-
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+    void updateProjectionMatrix();
+    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
