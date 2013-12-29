@@ -118,18 +118,12 @@ Avatar::Avatar(Node* owningNode) :
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
     _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
     
-    if (BALLS_ON) {
-        _balls = new Balls(100);
-    } else {
-        _balls = NULL;
-    }
 }
 
 
 Avatar::~Avatar() {
     _headData = NULL;
     _handData = NULL;
-    delete _balls;
 }
 
 void Avatar::deleteOrDeleteLater() {
@@ -179,18 +173,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
-    
-    // update balls
-    if (_balls) {
-        _balls->moveOrigin(_position);
-        glm::vec3 lookAt = _head.getLookAtPosition();
-        if (glm::length(lookAt) > EPSILON) {
-            _balls->moveOrigin(lookAt);
-        } else {
-            _balls->moveOrigin(_position);
-        }
-        _balls->simulate(deltaTime);
-    }
     
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
@@ -288,13 +270,7 @@ void Avatar::render(bool forceRenderHead) {
         }
     }
     
-    //  Render the balls
-    if (_balls) {
-        glPushMatrix();
-        _balls->render();
-        glPopMatrix();
-    }
-    
+   
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
