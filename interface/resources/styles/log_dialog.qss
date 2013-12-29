@@ -10,6 +10,7 @@ QPlainTextEdit {
 }
 
 QLineEdit {
+    font-family: Inconsolata, Lucida Console, Andale Mono, Monaco;
     padding-left: 7px;
     background-color: #CCCCCC;
     border-width: 0;
@@ -42,6 +43,10 @@ QPushButton#revealLogButton {
     border-width: 0;
     border-radius: 9px;
     font-size: 11px;
+}
+
+QCheckBox {
+    font-family: Helvetica, Arial, sans-serif;
 }
 
 QCheckBox::indicator:unchecked {
