@@ -51,7 +51,6 @@
 #include "Application.h"
 #include "DataServerClient.h"
 #include "InterfaceVersion.h"
-#include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
 #include "Util.h"
