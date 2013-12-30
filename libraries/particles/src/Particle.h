@@ -83,7 +83,7 @@ public:
     float getEditedAgo() const { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
-    QString getUpdateScript() const { return _script; }
+    QString getScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
 
@@ -100,7 +100,7 @@ public:
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
-    void setUpdateScript(QString updateScript) { _script = updateScript; }
+    void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     
     bool appendParticleData(OctreePacketData* packetData) const;
@@ -191,6 +191,7 @@ public slots:
     void setColor(xColor value) { _particle->setColor(value); }
     void setRadius(float value) { _particle->setRadius(value); }
     void setShouldDie(bool value) { _particle->setShouldDie(value); }
+    void setScript(const QString& script) { _particle->setScript(script); }
 
 signals:
     void update();

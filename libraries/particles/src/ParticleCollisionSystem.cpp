@@ -227,7 +227,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
+                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getScript());
 }
 
 
