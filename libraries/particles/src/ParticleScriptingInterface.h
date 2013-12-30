@@ -27,10 +27,13 @@ public slots:
     /// queues the creation of a Particle which will be sent by calling process on the PacketSender
     /// returns the creatorTokenID for the newly created particle
     unsigned int queueParticleAdd(glm::vec3 position, float radius, 
-            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString updateScript);
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script);
+
+    void queueParticleEdit(unsigned int particleID, glm::vec3 position, float radius, 
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script);
 
 private:
-    void queueParticleAdd(PACKET_TYPE addPacketType, ParticleDetail& addParticleDetails);
+    void queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails);
     
     uint32_t _nextCreatorTokenID;
 };

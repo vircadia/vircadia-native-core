@@ -23,6 +23,9 @@
 #include "ScriptEngine.h"
 
 int ScriptEngine::_scriptNumber = 1;
+VoxelScriptingInterface ScriptEngine::_voxelScriptingInterface;
+ParticleScriptingInterface ScriptEngine::_particleScriptingInterface;
+
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu,
@@ -43,6 +46,15 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
     }
     _menu = menu;
     _controllerScriptingInterface = controllerScriptingInterface;
+
+    // hook up our interfaces
+    if (!Particle::getVoxelsScriptingInterface()) {
+        Particle::setVoxelsScriptingInterface(getVoxelScriptingInterface());
+    }
+    
+    if (!Particle::getParticlesScriptingInterface()) {
+        Particle::setParticlesScriptingInterface(getParticleScriptingInterface());
+    }
 }
 
 ScriptEngine::~ScriptEngine() {

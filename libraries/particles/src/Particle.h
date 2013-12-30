@@ -19,6 +19,10 @@
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
+class VoxelScriptingInterface;
+class ParticleScriptingInterface;
+
+
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 
@@ -117,7 +121,19 @@ public:
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const Particle& other);
     
+    static VoxelScriptingInterface* getVoxelsScriptingInterface() { return _voxelScriptingInterface; }
+    static ParticleScriptingInterface* getParticlesScriptingInterface() { return _particlesScriptingInterface; }
+
+    static void setVoxelsScriptingInterface(VoxelScriptingInterface* interface) 
+                    { _voxelScriptingInterface = interface; }
+                    
+    static void setParticlesScriptingInterface(ParticleScriptingInterface* interface) 
+                    { _particlesScriptingInterface = interface; }
+    
 protected:
+    static VoxelScriptingInterface* _voxelScriptingInterface;
+    static ParticleScriptingInterface* _particlesScriptingInterface;
+
     void runUpdateScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
     static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);

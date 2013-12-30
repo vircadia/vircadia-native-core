@@ -58,8 +58,8 @@ protected:
 
 
 private:
-    VoxelScriptingInterface _voxelScriptingInterface;
-    ParticleScriptingInterface _particleScriptingInterface;
+    static VoxelScriptingInterface _voxelScriptingInterface;
+    static ParticleScriptingInterface _particleScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;

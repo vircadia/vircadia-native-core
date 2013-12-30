@@ -10,12 +10,12 @@
 
 
 
-void ParticleScriptingInterface::queueParticleAdd(PACKET_TYPE addPacketType, ParticleDetail& addParticleDetails) {
-    getParticlePacketSender()->queueParticleEditMessages(addPacketType, 1, &addParticleDetails);
+void ParticleScriptingInterface::queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails) {
+    getParticlePacketSender()->queueParticleEditMessages(packetType, 1, &particleDetails);
 }
 
 unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
-            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script) {
 
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = _nextCreatorTokenID;
@@ -25,10 +25,24 @@ unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, fl
     uint64_t now = usecTimestampNow();
     ParticleDetail addParticleDetail = { NEW_PARTICLE, now,
                                         position, radius, {color.red, color.green, color.blue }, velocity, 
-                                        gravity, damping, inHand, updateScript, creatorTokenID };
+                                        gravity, damping, inHand, script, creatorTokenID };
     
     // queue the packet
-    queueParticleAdd(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, addParticleDetail);
+    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, addParticleDetail);
     
     return creatorTokenID;
+}
+
+
+void ParticleScriptingInterface::queueParticleEdit(unsigned int particleID, glm::vec3 position, float radius, 
+            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script) {
+
+    // setup a ParticleDetail struct with the data
+    uint64_t now = usecTimestampNow();
+    ParticleDetail editParticleDetail = { particleID, now,
+                                        position, radius, {color.red, color.green, color.blue }, velocity, 
+                                        gravity, damping, inHand, script, UNKNOWN_TOKEN };
+    
+    // queue the packet
+    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, editParticleDetail);
 }

@@ -14,9 +14,14 @@
 #include <SharedUtil.h> // usecTimestampNow()
 #include <Octree.h>
 
+#include <VoxelScriptingInterface.h>
+#include "ParticleScriptingInterface.h"
+
 #include "Particle.h"
 
 uint32_t Particle::_nextID = 0;
+VoxelScriptingInterface* Particle::_voxelScriptingInterface = NULL;
+ParticleScriptingInterface* Particle::_particlesScriptingInterface = NULL;
 
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
@@ -321,6 +326,7 @@ void Particle::debugDump() const {
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
     printf(" gravity:%f,%f,%f\n", _gravity.x, _gravity.y, _gravity.z);
+    printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
 }
 
 bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
@@ -548,11 +554,33 @@ void Particle::collisionWithParticle(unsigned int otherID) {
         
         QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
         engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
-    
+
+
+        if (getVoxelsScriptingInterface()) {
+            QScriptValue voxelScripterValue =  engine.newQObject(getVoxelsScriptingInterface());
+            engine.globalObject().setProperty("Voxels", voxelScripterValue);
+        }
+
+        if (getParticlesScriptingInterface()) {
+            QScriptValue particleScripterValue =  engine.newQObject(getParticlesScriptingInterface());
+            engine.globalObject().setProperty("Particles", particleScripterValue);
+            printf("has Particles...\n");
+        } else {
+            printf("no Particles...\n");
+        }
+        
         QScriptValue result = engine.evaluate(_script);
         
         particleScriptable.emitCollisionWithParticle(otherID);
-    
+
+        if (getVoxelsScriptingInterface()) {
+            getVoxelsScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        }
+
+        if (getParticlesScriptingInterface()) {
+            getParticlesScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        }
+
         if (engine.hasUncaughtException()) {
             int line = engine.uncaughtExceptionLineNumber();
             qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
