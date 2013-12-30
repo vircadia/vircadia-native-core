@@ -90,6 +90,11 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     glm::vec3 penetration;
     Particle* penetratedParticle;
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&penetratedParticle)) {
+    
+        // let the particles run their collision scripts if they have them
+        particle->collisionWithParticle(penetratedParticle->getID());
+        penetratedParticle->collisionWithParticle(particle->getID());
+
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
         // apply a hard collision to both particles of half the penetration each

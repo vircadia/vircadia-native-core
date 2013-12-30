@@ -79,7 +79,7 @@ public:
     float getEditedAgo() const { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
-    QString getUpdateScript() const { return _updateScript; }
+    QString getUpdateScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
 
@@ -96,7 +96,7 @@ public:
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
-    void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
+    void setUpdateScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     
     bool appendParticleData(OctreePacketData* packetData) const;
@@ -110,6 +110,7 @@ public:
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
     void update();
+    void collisionWithParticle(unsigned int otherID);
 
     void debugDump() const;
     
@@ -117,7 +118,7 @@ public:
     void copyChangedProperties(const Particle& other);
     
 protected:
-    void runScript();
+    void runUpdateScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
     static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
     static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
@@ -134,7 +135,7 @@ protected:
     bool _shouldDie;
     glm::vec3 _gravity;
     float _damping;
-    QString _updateScript;
+    QString _script;
     bool _inHand;
 
     uint32_t _creatorTokenID;
@@ -152,7 +153,12 @@ class ParticleScriptObject  : public QObject {
 public:
     ParticleScriptObject(Particle* particle) { _particle = particle; }
 
+    void emitUpdate() { emit update(); }
+    void emitCollisionWithParticle(uint32_t otherID) { emit collisionWithParticle(otherID); }
+    void emitCollisionWithVoxel() { emit collisionWithVoxel(); }
+
 public slots:
+    unsigned int getID() const { return _particle->getID(); }
     glm::vec3 getPosition() const { return _particle->getPosition(); }
     glm::vec3 getVelocity() const { return _particle->getVelocity(); }
     xColor getColor() const { return _particle->getXColor(); }
@@ -169,6 +175,11 @@ public slots:
     void setColor(xColor value) { _particle->setColor(value); }
     void setRadius(float value) { _particle->setRadius(value); }
     void setShouldDie(bool value) { _particle->setShouldDie(value); }
+
+signals:
+    void update();
+    void collisionWithVoxel();
+    void collisionWithParticle(unsigned int otherID);
 
 private:
     Particle* _particle;

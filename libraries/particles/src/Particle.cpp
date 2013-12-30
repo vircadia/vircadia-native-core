@@ -53,8 +53,9 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _velocity = velocity;
     _damping = damping;
     _gravity = gravity;
-    _updateScript = updateScript;
+    _script = updateScript;
     _inHand = inHand;
+    _shouldDie = false;
 }
 
 
@@ -95,10 +96,10 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
         success = packetData->appendValue(getInHand());
     }
     if (success) {
-        uint16_t scriptLength = _updateScript.size() + 1; // include NULL
+        uint16_t scriptLength = _script.size() + 1; // include NULL
         success = packetData->appendValue(scriptLength);
         if (success) {
-            success = packetData->appendRawData((const unsigned char*)qPrintable(_updateScript), scriptLength);
+            success = packetData->appendRawData((const unsigned char*)qPrintable(_script), scriptLength);
         }
     }
     return success;
@@ -206,7 +207,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(scriptLength);
         bytesRead += sizeof(scriptLength);
         QString tempString((const char*)dataAt);
-        _updateScript = tempString;
+        _script = tempString;
         dataAt += scriptLength;
         bytesRead += scriptLength;
         
@@ -299,7 +300,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += sizeof(scriptLength);
     processedBytes += sizeof(scriptLength);
     QString tempString((const char*)dataAt);
-    newParticle._updateScript = tempString;
+    newParticle._script = tempString;
     dataAt += scriptLength;
     processedBytes += scriptLength;
 
@@ -472,7 +473,7 @@ void Particle::update() {
     const float REALLY_OLD = 30.0f; // 30 seconds
     bool isReallyOld = (getLifetime() > REALLY_OLD);
     bool isInHand = getInHand();
-    bool shouldDie = !isInHand && !isStillMoving && isReallyOld;
+    bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
     setShouldDie(shouldDie);
     
     const bool wantDebug = false;
@@ -483,7 +484,7 @@ void Particle::update() {
             debug::valueOf(isReallyOld), debug::valueOf(shouldDie));
     }
         
-    runScript(); // allow the javascript to alter our state
+    runUpdateScript(); // allow the javascript to alter our state
     
     // If the ball is in hand, it doesn't move or have gravity effect it
     if (!isInHand) {
@@ -507,11 +508,9 @@ void Particle::update() {
     _lastUpdated = now;
 }
 
-void Particle::runScript() {
-    if (!_updateScript.isEmpty()) {
-    
-        //qDebug() << "Script: " << _updateScript << "\n";
-        
+void Particle::runUpdateScript() {
+    if (!_script.isEmpty()) {
+
         QScriptEngine engine;
     
         // register meta-type for glm::vec3 and rgbColor conversions
@@ -524,9 +523,9 @@ void Particle::runScript() {
         QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
         engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
     
-        //qDebug() << "Downloaded script:" << _updateScript << "\n";
-        QScriptValue result = engine.evaluate(_updateScript);
-        //qDebug() << "Evaluated script.\n";
+        QScriptValue result = engine.evaluate(_script);
+        
+        particleScriptable.emitUpdate();
     
         if (engine.hasUncaughtException()) {
             int line = engine.uncaughtExceptionLineNumber();
@@ -534,6 +533,33 @@ void Particle::runScript() {
         }
     }
 }
+
+void Particle::collisionWithParticle(unsigned int otherID) {
+    if (!_script.isEmpty()) {
+
+        QScriptEngine engine;
+    
+        // register meta-type for glm::vec3 and rgbColor conversions
+        registerMetaTypes(&engine);
+    
+        ParticleScriptObject particleScriptable(this);
+        QScriptValue particleValue = engine.newQObject(&particleScriptable);
+        engine.globalObject().setProperty("Particle", particleValue);
+        
+        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
+        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
+    
+        QScriptValue result = engine.evaluate(_script);
+        
+        particleScriptable.emitCollisionWithParticle(otherID);
+    
+        if (engine.hasUncaughtException()) {
+            int line = engine.uncaughtExceptionLineNumber();
+            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        }
+    }
+}
+
 
 void Particle::setLifetime(float lifetime) {
     uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;
