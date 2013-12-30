@@ -23,7 +23,7 @@ class DatagramSequencer : public QObject {
 
 public:
     
-    DatagramSequencer();
+    DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -77,6 +77,7 @@ private:
     
     QBuffer _datagramBuffer;
     QDataStream _datagramStream;
+    int _datagramHeaderSize;
     
     int _outgoingPacketNumber;
     QByteArray _outgoingDatagram;

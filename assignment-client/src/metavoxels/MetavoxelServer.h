@@ -25,7 +25,9 @@ class MetavoxelServer : public ThreadedAssignment {
 public:
     
     MetavoxelServer(const unsigned char* dataBuffer, int numBytes);
-    
+
+    void removeSession(const QUuid& sessionId);
+
     virtual void run();
     
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);

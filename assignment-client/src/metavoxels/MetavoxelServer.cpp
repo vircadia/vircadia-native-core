@@ -11,11 +11,17 @@
 #include <Logging.h>
 #include <PacketHeaders.h>
 
+#include <MetavoxelUtil.h>
+
 #include "MetavoxelServer.h"
 #include "Session.h"
 
 MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes) {
+}
+
+void MetavoxelServer::removeSession(const QUuid& sessionId) {
+    delete _sessions.take(sessionId);
 }
 
 void MetavoxelServer::run() {
@@ -51,22 +57,17 @@ void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const Hif
 }
 
 void MetavoxelServer::processData(const QByteArray& data, const HifiSockAddr& sender) {
-    // get the header size
-    int headerSize = numBytesForPacketHeader((unsigned char*)data.constData());
-    
     // read the session id
-    const int UUID_BYTES = 16;
-    if (data.size() < headerSize + UUID_BYTES) {
-        qWarning() << "Metavoxel data too short [size=" << data.size() << ", sender=" << sender << "]\n";
+    int headerPlusIDSize;
+    QUuid sessionID = readSessionID(data, sender, headerPlusIDSize);
+    if (sessionID.isNull()) {
         return;
     }
-    QUuid sessionId = QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
     
     // forward to session, creating if necessary
-    Session*& session = _sessions[sessionId];
+    Session*& session = _sessions[sessionID];
     if (!session) {
-        session = new Session(this);
+        session = new Session(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize));
     }
-    session->receivedData(QByteArray::fromRawData(data.constData() + headerSize + UUID_BYTES,
-        data.size() - headerSize - UUID_BYTES), sender);
+    session->receivedData(data, sender);
 }

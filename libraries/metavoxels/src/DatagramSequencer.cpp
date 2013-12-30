@@ -12,10 +12,11 @@
 
 const int MAX_DATAGRAM_SIZE = 1500;
 
-DatagramSequencer::DatagramSequencer() :
+DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
     _outputStream(_outgoingPacketStream),
     _datagramStream(&_datagramBuffer),
+    _datagramHeaderSize(datagramHeader.size()),
     _outgoingPacketNumber(0),
     _outgoingDatagram(MAX_DATAGRAM_SIZE, 0),
     _incomingPacketNumber(0),
@@ -23,6 +24,7 @@ DatagramSequencer::DatagramSequencer() :
     _inputStream(_incomingPacketStream) {
 
     _datagramStream.setByteOrder(QDataStream::LittleEndian);
+    memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
 }
 
 /// Simple RAII-style object to keep a device open when in scope.
@@ -53,7 +55,7 @@ void DatagramSequencer::endPacket() {
 }
 
 void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
-    _datagramBuffer.setBuffer(const_cast<QByteArray*>(&datagram));
+    _datagramBuffer.setData(datagram.constData() + _datagramHeaderSize, datagram.size() - _datagramHeaderSize);
     QIODeviceOpener opener(&_datagramBuffer, QIODevice::ReadOnly);
      
     // read the sequence number
@@ -144,6 +146,7 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     _sendRecords.append(record);
     
     // write the sequence number and size, which are the same between all fragments
+    _datagramBuffer.seek(_datagramHeaderSize);
     _datagramStream << (quint32)_outgoingPacketNumber;
     _datagramStream << (quint32)packet.size();
     int initialPosition = _datagramBuffer.pos();

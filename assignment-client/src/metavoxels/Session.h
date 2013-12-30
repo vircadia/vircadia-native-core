@@ -9,9 +9,13 @@
 #ifndef __hifi__Session__
 #define __hifi__Session__
 
+#include <QTimer>
+#include <QUuid>
+
+#include <HifiSockAddr.h>
+
 #include <DatagramSequencer.h>
 
-class HifiSockAddr;
 class MetavoxelServer;
 
 /// Contains the state of a single client session.
@@ -20,11 +24,13 @@ class Session : public QObject {
     
 public:
     
-    Session(MetavoxelServer* server);
+    Session(MetavoxelServer* server, const QUuid& sessionId, const QByteArray& datagramHeader);
 
     void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
 private slots:
+
+    void timedOut();
 
     void sendData(const QByteArray& data);
 
@@ -33,7 +39,12 @@ private slots:
 private:
     
     MetavoxelServer* _server;
+    QUuid _sessionId;
+    
+    QTimer _timeoutTimer;
     DatagramSequencer _sequencer;
+    
+    HifiSockAddr _sender;
 };
 
 #endif /* defined(__hifi__Session__) */

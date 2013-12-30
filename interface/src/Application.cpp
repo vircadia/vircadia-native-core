@@ -4376,6 +4376,8 @@ void* Application::networkReceive(void* args) {
                         break;
                     }
                     case PACKET_TYPE_METAVOXEL_DATA:
+                        app->_metavoxels.processData(QByteArray((const char*)app->_incomingPacket, bytesReceived),
+                            senderSockAddr);
                         break;
                     case PACKET_TYPE_BULK_AVATAR_DATA:
                         NodeList::getInstance()->processBulkNodeData(senderSockAddr,
