@@ -4455,8 +4455,8 @@ void Application::loadScript() {
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
-    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 
     QThread* workerThread = new QThread(this);
 

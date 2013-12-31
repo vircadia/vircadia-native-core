@@ -1,20 +1,20 @@
 //
-//  ParticleScriptingInterface.cpp
+//  ParticlesScriptingInterface.cpp
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 12/6/13
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "ParticleScriptingInterface.h"
+#include "ParticlesScriptingInterface.h"
 
 
 
-void ParticleScriptingInterface::queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails) {
+void ParticlesScriptingInterface::queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails) {
     getParticlePacketSender()->queueParticleEditMessages(packetType, 1, &particleDetails);
 }
 
-unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
+unsigned int ParticlesScriptingInterface::queueParticleAdd(glm::vec3 position, float radius, 
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script) {
 
     // The application will keep track of creatorTokenID
@@ -34,7 +34,7 @@ unsigned int ParticleScriptingInterface::queueParticleAdd(glm::vec3 position, fl
 }
 
 
-void ParticleScriptingInterface::queueParticleEdit(unsigned int particleID, glm::vec3 position, float radius, 
+void ParticlesScriptingInterface::queueParticleEdit(unsigned int particleID, glm::vec3 position, float radius, 
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script) {
 
     // setup a ParticleDetail struct with the data

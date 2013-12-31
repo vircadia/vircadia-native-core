@@ -16,8 +16,8 @@
 #include <QtCore/QUrl>
 
 #include <AbstractMenuInterface.h>
-#include <ParticleScriptingInterface.h>
-#include <VoxelScriptingInterface.h>
+#include <ParticlesScriptingInterface.h>
+#include <VoxelsScriptingInterface.h>
 #include "AbstractControllerScriptingInterface.h"
 
 const QString NO_SCRIPT("");
@@ -31,11 +31,11 @@ public:
 
     ~ScriptEngine();
     
-    /// Access the VoxelScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    VoxelScriptingInterface* getVoxelScriptingInterface() { return &_voxelScriptingInterface; }
+    /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
+    VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
 
-    /// Access the ParticleScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    ParticleScriptingInterface* getParticleScriptingInterface() { return &_particleScriptingInterface; }
+    /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
+    ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents);
@@ -58,8 +58,8 @@ protected:
 
 
 private:
-    static VoxelScriptingInterface _voxelScriptingInterface;
-    static ParticleScriptingInterface _particleScriptingInterface;
+    static VoxelsScriptingInterface _voxelsScriptingInterface;
+    static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;

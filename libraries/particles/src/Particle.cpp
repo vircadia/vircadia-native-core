@@ -14,14 +14,14 @@
 #include <SharedUtil.h> // usecTimestampNow()
 #include <Octree.h>
 
-#include <VoxelScriptingInterface.h>
-#include "ParticleScriptingInterface.h"
+#include <VoxelsScriptingInterface.h>
+#include "ParticlesScriptingInterface.h"
 
 #include "Particle.h"
 
 uint32_t Particle::_nextID = 0;
-VoxelScriptingInterface* Particle::_voxelScriptingInterface = NULL;
-ParticleScriptingInterface* Particle::_particlesScriptingInterface = NULL;
+VoxelsScriptingInterface* Particle::_voxelsScriptingInterface = NULL;
+ParticlesScriptingInterface* Particle::_particlesScriptingInterface = NULL;
 
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 

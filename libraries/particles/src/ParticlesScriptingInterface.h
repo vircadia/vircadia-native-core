@@ -1,13 +1,13 @@
 //
-//  ParticleScriptingInterface.h
+//  ParticlesScriptingInterface.h
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 12/6/13
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#ifndef __hifi__ParticleScriptingInterface__
-#define __hifi__ParticleScriptingInterface__
+#ifndef __hifi__ParticlesScriptingInterface__
+#define __hifi__ParticlesScriptingInterface__
 
 #include <QtCore/QObject>
 
@@ -16,7 +16,7 @@
 #include "ParticleEditPacketSender.h"
 
 /// handles scripting of Particle commands from JS passed to assigned clients
-class ParticleScriptingInterface : public OctreeScriptingInterface {
+class ParticlesScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
@@ -38,4 +38,4 @@ private:
     uint32_t _nextCreatorTokenID;
 };
 
-#endif /* defined(__hifi__ParticleScriptingInterface__) */
+#endif /* defined(__hifi__ParticlesScriptingInterface__) */

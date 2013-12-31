@@ -1,5 +1,5 @@
 //
-//  Agent.cpp
+//  ScriptEngine.cpp
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
@@ -23,8 +23,8 @@
 #include "ScriptEngine.h"
 
 int ScriptEngine::_scriptNumber = 1;
-VoxelScriptingInterface ScriptEngine::_voxelScriptingInterface;
-ParticleScriptingInterface ScriptEngine::_particleScriptingInterface;
+VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
+ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
@@ -49,11 +49,11 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
 
     // hook up our interfaces
     if (!Particle::getVoxelsScriptingInterface()) {
-        Particle::setVoxelsScriptingInterface(getVoxelScriptingInterface());
+        Particle::setVoxelsScriptingInterface(getVoxelsScriptingInterface());
     }
     
     if (!Particle::getParticlesScriptingInterface()) {
-        Particle::setParticlesScriptingInterface(getParticleScriptingInterface());
+        Particle::setParticlesScriptingInterface(getParticlesScriptingInterface());
     }
 }
 
@@ -86,8 +86,8 @@ void ScriptEngine::run() {
     _isRunning = true;
     QScriptEngine engine;
     
-    _voxelScriptingInterface.init();
-    _particleScriptingInterface.init();
+    _voxelsScriptingInterface.init();
+    _particlesScriptingInterface.init();
     
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&engine);
@@ -95,10 +95,10 @@ void ScriptEngine::run() {
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
     
-    QScriptValue voxelScripterValue =  engine.newQObject(&_voxelScriptingInterface);
+    QScriptValue voxelScripterValue =  engine.newQObject(&_voxelsScriptingInterface);
     engine.globalObject().setProperty("Voxels", voxelScripterValue);
 
-    QScriptValue particleScripterValue =  engine.newQObject(&_particleScriptingInterface);
+    QScriptValue particleScripterValue =  engine.newQObject(&_particlesScriptingInterface);
     engine.globalObject().setProperty("Particles", particleScripterValue);
     
     if (_controllerScriptingInterface) {
@@ -112,8 +112,8 @@ void ScriptEngine::run() {
     const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
     
     // let the VoxelPacketSender know how frequently we plan to call it
-    _voxelScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-    _particleScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
 
     //qDebug() << "Script:\n" << _scriptContents << "\n";
     
@@ -147,29 +147,29 @@ void ScriptEngine::run() {
         }
         
         bool willSendVisualDataCallBack = false;
-        if (_voxelScriptingInterface.getVoxelPacketSender()->serversExist()) {            
+        if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {            
             // allow the scripter's call back to setup visual data
             willSendVisualDataCallBack = true;
             
             // release the queue of edit voxel messages.
-            _voxelScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
+            _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
             
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_voxelScriptingInterface.getVoxelPacketSender()->isThreaded()) {
-                _voxelScriptingInterface.getVoxelPacketSender()->process();
+            if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
+                _voxelsScriptingInterface.getVoxelPacketSender()->process();
             }
         }
 
-        if (_particleScriptingInterface.getParticlePacketSender()->serversExist()) {
+        if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
             // allow the scripter's call back to setup visual data
             willSendVisualDataCallBack = true;
             
             // release the queue of edit voxel messages.
-            _particleScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+            _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
             
             // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_particleScriptingInterface.getParticlePacketSender()->isThreaded()) {
-                _particleScriptingInterface.getParticlePacketSender()->process();
+            if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
+                _particlesScriptingInterface.getParticlePacketSender()->process();
             }
         }
         
