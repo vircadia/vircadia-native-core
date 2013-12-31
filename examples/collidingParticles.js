@@ -1,3 +1,16 @@
+//
+//  collidingParticles.js
+//  hifi
+//
+//  Created by Brad Hefta-Gaub on 12/31/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//
+//  This is an example script that creates a couple particles, and sends them on a collision course.
+//  One of the particles has a script that when it collides with another particle, it swaps colors with that particle.
+//  The other particle has a script that when it collides with another particle it set's it's script to a suicide script.
+//
+//
+
 var currentIteration = 0;
 var NUM_ITERATIONS_BEFORE_SEND = 15; // every 1/4th seconds send another
  
@@ -17,11 +30,6 @@ var gravity = {
 var damping = 0.1;
 
 var scriptA = " " +
-             //" function update() { " +
-             //"   print('update()\\n'); " +
-             //"   var color = { red: 255, green: 127 + (Math.random() * 128), blue: 0 };" +
-             //"   Particle.setColor(color); " +
-             //" } " +
              " function collisionWithParticle(other) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
@@ -33,40 +41,16 @@ var scriptA = " " +
              "   Particle.setColor(otherColor); " +
              "   other.setColor(myColor); " +
              " } " +
-             " function collisionWithVoxel(voxel) { " +
-             "   print('collisionWithVoxel(voxel)... '); " +
-             "   print('myID=' + Particle.getID() + '\\n'); " +
-             "   var voxelColor = voxel.getColor();" +
-             "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " +
-             "   var myColor = Particle.getColor();" +
-             "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " +
-             "   Particle.setColor(voxelColor); " +
-             " } " +
              " Particle.collisionWithParticle.connect(collisionWithParticle); " +
-             " Particle.collisionWithVoxel.connect(collisionWithVoxel); " +
              " ";
 
 var scriptB = " " +
              " function collisionWithParticle(other) { " +
              "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
              "   print('myID=' + Particle.getID() + '\\n'); " +
-             "   var myPosition = Particle.getPosition();" +
-             "   var myRadius = Particle.getRadius();" +
-             "   var myColor = Particle.getColor();" +
-             "   Voxels.queueDestructiveVoxelAdd(myPosition.x, myPosition.y, myPosition.z, myRadius, myColor.red, myColor.green, myColor.blue);  " +
              "   Particle.setScript('Particle.setShouldDie(true);'); " +
              " } " +
-             " function collisionWithVoxel(voxel) { " +
-             "   print('collisionWithVoxel(voxel)... '); " +
-             "   print('myID=' + Particle.getID() + '\\n'); " +
-             "   var voxelColor = voxel.getColor();" +
-             "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " +
-             "   var myColor = Particle.getColor();" +
-             "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " +
-             "   Particle.setColor(voxelColor); " +
-             " } " +
              " Particle.collisionWithParticle.connect(collisionWithParticle); " +
-             " Particle.collisionWithVoxel.connect(collisionWithVoxel); " +
              " ";
 
 var color = {  

@@ -1,3 +1,18 @@
+//
+//  gun.js
+//  hifi
+//
+//  Created by Brad Hefta-Gaub on 12/31/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//
+//  This is an example script that turns the hydra controllers into a particle gun.
+//  It reads the controller, watches for trigger pulls, and launches particles.
+//  The particles it creates have a script that when they collide with Voxels, the
+//  particle will change it's color to match the voxel it hits, and then delete the
+//  voxel.
+//
+//
+
 // initialize our triggers
 var triggerPulled = new Array();
 var numberOfTriggers = Controller.getNumberOfTriggers();
@@ -9,9 +24,6 @@ function checkController() {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-    //print("numberOfTriggers:" + numberOfTriggers + "\n");
-    //print("numberOfSpatialControls:" + numberOfSpatialControls + "\n");
-    //print("controllersPerTrigger:" + controllersPerTrigger + "\n");
     
     // this is expected for hydras
     if (numberOfTriggers == 2 && controllersPerTrigger == 2) {
@@ -71,6 +83,8 @@ function checkController() {
                 var color = {  red: 128, green: 128, blue: 128 };
                 var damping = 0; // no damping
                 var inHand = false;
+
+                // This is the script for the particles that this gun shoots.
                 var script = 
                          " function collisionWithVoxel(voxel) { " +
                          "   print('collisionWithVoxel(voxel)... '); " +
