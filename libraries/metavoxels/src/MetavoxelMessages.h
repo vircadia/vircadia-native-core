@@ -13,9 +13,11 @@
 
 /// A message containing the position of a client.
 class ClientPositionMessage {
+    STREAMABLE
+    
 public:
     
-    int test;
+    STREAM int test;
 };
 
 DECLARE_STREAMABLE_METATYPE(ClientPositionMessage)

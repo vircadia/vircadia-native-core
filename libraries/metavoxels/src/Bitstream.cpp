@@ -40,6 +40,7 @@ IDStreamer& IDStreamer::operator<<(int value) {
 }
 
 IDStreamer& IDStreamer::operator>>(int& value) {
+    value = 0;
     _stream.read(&value, _bits);
     if (value == (1 << _bits) - 1) {
         _bits++;
@@ -93,7 +94,8 @@ Bitstream& Bitstream::read(void* data, int bits, int offset) {
             _underlying >> _byte;
         }
         int bitsToRead = qMin(BITS_IN_BYTE - _position, qMin(BITS_IN_BYTE - offset, bits));
-        *dest |= ((_byte >> _position) & ((1 << bitsToRead) - 1)) << offset;
+        int mask = ((1 << bitsToRead) - 1) << offset;
+        *dest = (*dest & ~mask) | (((_byte >> _position) << offset) & mask);
         _position = (_position + bitsToRead) & LAST_BIT_POSITION;
         if ((offset += bitsToRead) == BITS_IN_BYTE) {
             dest++;
@@ -166,7 +168,7 @@ Bitstream& Bitstream::operator<<(int value) {
 }
 
 Bitstream& Bitstream::operator>>(int& value) {
-    qint32 sizedValue;
+    qint32 sizedValue = 0;
     read(&sizedValue, 32);
     value = sizedValue;
     return *this;
@@ -180,6 +182,7 @@ Bitstream& Bitstream::operator<<(const QByteArray& string) {
 Bitstream& Bitstream::operator>>(QByteArray& string) {
     int size;
     *this >> size;
+    string.resize(size);
     return read(string.data(), size * BITS_IN_BYTE);
 }
 
@@ -191,6 +194,7 @@ Bitstream& Bitstream::operator<<(const QString& string) {
 Bitstream& Bitstream::operator>>(QString& string) {
     int size;
     *this >> size;
+    string.resize(size);
     return read(string.data(), size * sizeof(QChar) * BITS_IN_BYTE);
 }
 

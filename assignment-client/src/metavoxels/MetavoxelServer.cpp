@@ -8,6 +8,7 @@
 
 #include <PacketHeaders.h>
 
+#include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 
 #include "MetavoxelServer.h"
@@ -88,7 +89,9 @@ void MetavoxelSession::sendData(const QByteArray& data) {
 }
 
 void MetavoxelSession::readPacket(Bitstream& in) {
-    qDebug("got packet from client!\n");
+    QVariant msg;
+    in >> msg;
+    qDebug() << msg.value<ClientPositionMessage>().test << "\n";
 
     Bitstream& out = _sequencer.startPacket();
     _sequencer.endPacket();

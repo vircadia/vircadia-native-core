@@ -13,6 +13,7 @@
 #include <QMetaType>
 #include <QSharedPointer>
 #include <QVariant>
+#include <QtDebug>
 
 class QByteArray;
 class QDataStream;
@@ -278,10 +279,12 @@ public:
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
     Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
 
-/// Declares the metatype and the streaming operators.
+/// Declares the metatype and the streaming operators.  The last line
+/// ensures that the generated file will be included in the link phase. 
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
-    Bitstream& operator>>(Bitstream& in, X& obj);
+    Bitstream& operator>>(Bitstream& in, X& obj); \
+    static const int* _TypePtr##X = &X::Type;
 
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
@@ -289,5 +292,11 @@ template<class T> int registerStreamableMetaType() {
     Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
     return type;
 }
+
+/// Flags a class as streamable (use as you would Q_OBJECT).
+#define STREAMABLE public: static const int Type; private:
+
+/// Flags a field or base class as streaming.
+#define STREAM
 
 #endif /* defined(__interface__Bitstream__) */

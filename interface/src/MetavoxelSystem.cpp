@@ -12,6 +12,7 @@
 
 #include <SharedUtil.h>
 
+#include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 
 #include "Application.h"
@@ -193,6 +194,8 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
 
 void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
+    ClientPositionMessage msg = { 55 };
+    out << QVariant::fromValue(msg);
     _sequencer.endPacket();
 }
 
