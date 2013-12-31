@@ -57,7 +57,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     if (!isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples)) {
-        //qDebug() << "Starved and do not have minimum samples to start. Buffer held back.\n";
+        qDebug() << "Starved and do not have minimum samples to start. Buffer held back.\n";
         return false;
     } else if (samplesAvailable() < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
         qDebug() << "Do not have number of samples needed for interval. Buffer starved.\n";
