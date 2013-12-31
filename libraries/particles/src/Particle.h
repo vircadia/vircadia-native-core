@@ -115,6 +115,7 @@ public:
 
     void update();
     void collisionWithParticle(Particle* other);
+    void collisionWithVoxel(VoxelDetail* voxel);
 
     void debugDump() const;
     
@@ -171,7 +172,7 @@ public:
 
     void emitUpdate() { emit update(); }
     void emitCollisionWithParticle(QObject* other) { emit collisionWithParticle(other); }
-    void emitCollisionWithVoxel() { emit collisionWithVoxel(); }
+    void emitCollisionWithVoxel(QObject* voxel) { emit collisionWithVoxel(voxel); }
 
 public slots:
     unsigned int getID() const { return _particle->getID(); }
@@ -195,7 +196,7 @@ public slots:
 
 signals:
     void update();
-    void collisionWithVoxel();
+    void collisionWithVoxel(QObject* voxel);
     void collisionWithParticle(QObject* other);
 
 private:

@@ -586,6 +586,53 @@ void Particle::collisionWithParticle(Particle* other) {
     }
 }
 
+void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
+    if (!_script.isEmpty()) {
+
+        QScriptEngine engine;
+    
+        // register meta-type for glm::vec3 and rgbColor conversions
+        registerMetaTypes(&engine);
+    
+        ParticleScriptObject particleScriptable(this);
+        QScriptValue particleValue = engine.newQObject(&particleScriptable);
+        engine.globalObject().setProperty("Particle", particleValue);
+        
+        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
+        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
+
+
+        if (getVoxelsScriptingInterface()) {
+            QScriptValue voxelScripterValue =  engine.newQObject(getVoxelsScriptingInterface());
+            engine.globalObject().setProperty("Voxels", voxelScripterValue);
+        }
+
+        if (getParticlesScriptingInterface()) {
+            QScriptValue particleScripterValue =  engine.newQObject(getParticlesScriptingInterface());
+            engine.globalObject().setProperty("Particles", particleScripterValue);
+        }
+        
+        QScriptValue result = engine.evaluate(_script);
+        
+        VoxelDetailScriptObject voxelDetailsScriptable(voxelDetails);
+        particleScriptable.emitCollisionWithVoxel(&voxelDetailsScriptable);
+
+        if (getVoxelsScriptingInterface()) {
+            getVoxelsScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        }
+
+        if (getParticlesScriptingInterface()) {
+            getParticlesScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        }
+
+        if (engine.hasUncaughtException()) {
+            int line = engine.uncaughtExceptionLineNumber();
+            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        }
+    }
+}
+
+
 
 void Particle::setLifetime(float lifetime) {
     uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;

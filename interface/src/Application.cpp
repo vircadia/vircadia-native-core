@@ -1518,10 +1518,21 @@ void Application::shootParticle() {
     glm::vec3 velocity = lookingAt - position;
     glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
     float damping = DEFAULT_DAMPING * 0.01f;
-    QString updateScript("");
+    QString script(
+                 " function collisionWithVoxel(voxel) { " 
+                 "   print('collisionWithVoxel(voxel)... '); " 
+                 "   print('myID=' + Particle.getID() + '\\n'); " 
+                 "   var voxelColor = voxel.getColor();" 
+                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " 
+                 "   var myColor = Particle.getColor();" 
+                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " 
+                 "   Particle.setColor(voxelColor); " 
+                 " } " 
+                 " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
+
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, script);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just

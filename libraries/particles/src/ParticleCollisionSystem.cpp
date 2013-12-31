@@ -73,11 +73,17 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
-    if (_voxels->findSpherePenetration(center, radius, penetration)) {
+    VoxelDetail* voxelDetails = NULL;
+    if (_voxels->findSpherePenetration(center, radius, penetration, (void**)&voxelDetails)) {
+
+        // let the particles run their collision scripts if they have them
+        particle->collisionWithVoxel(voxelDetails);
+
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
-        //qDebug("voxel collision\n");
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        
+        delete voxelDetails; // cleanup returned details
     }
 }
 

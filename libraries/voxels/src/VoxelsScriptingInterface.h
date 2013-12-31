@@ -56,4 +56,18 @@ private:
     void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
 };
 
+class VoxelDetailScriptObject  : public QObject {
+    Q_OBJECT
+public:
+    VoxelDetailScriptObject(VoxelDetail* voxelDetail) { _voxelDetail = voxelDetail; }
+
+public slots:
+    glm::vec3 getPosition() const { return glm::vec3(_voxelDetail->x, _voxelDetail->y, _voxelDetail->z); }
+    xColor getColor() const { return { _voxelDetail->red, _voxelDetail->green, _voxelDetail->blue }; }
+    float getScale() const { return _voxelDetail->s; }
+
+private:
+    VoxelDetail* _voxelDetail;
+};
+
 #endif /* defined(__hifi__VoxelsScriptingInterface__) */
