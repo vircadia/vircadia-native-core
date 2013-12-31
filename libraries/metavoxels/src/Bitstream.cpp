@@ -52,6 +52,7 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
 }
 
 int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
+    streamer->setType(type);
     getTypeStreamers().insert(type, streamer);
     return 0;
 }
@@ -61,6 +62,7 @@ Bitstream::Bitstream(QDataStream& underlying) :
     _byte(0),
     _position(0),
     _metaObjectStreamer(*this),
+    _typeStreamerStreamer(*this),
     _attributeStreamer(*this) {
 }
 
@@ -116,23 +118,27 @@ void Bitstream::reset() {
 
 Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {
     WriteMappings mappings = { _metaObjectStreamer.getAndResetTransientOffsets(),
+        _typeStreamerStreamer.getAndResetTransientOffsets(),
         _attributeStreamer.getAndResetTransientOffsets() };
     return mappings;
 }
 
 void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     _metaObjectStreamer.persistTransientOffsets(mappings.metaObjectOffsets);
+    _typeStreamerStreamer.persistTransientOffsets(mappings.typeStreamerOffsets);
     _attributeStreamer.persistTransientOffsets(mappings.attributeOffsets);
 }
 
 Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
     ReadMappings mappings = { _metaObjectStreamer.getAndResetTransientValues(),
+        _typeStreamerStreamer.getAndResetTransientValues(),
         _attributeStreamer.getAndResetTransientValues() };
     return mappings;
 }
 
 void Bitstream::persistReadMappings(const ReadMappings& mappings) {
     _metaObjectStreamer.persistTransientValues(mappings.metaObjectValues);
+    _typeStreamerStreamer.persistTransientValues(mappings.typeStreamerValues);
     _attributeStreamer.persistTransientValues(mappings.attributeValues);
 }
 
@@ -189,25 +195,26 @@ Bitstream& Bitstream::operator>>(QString& string) {
 }
 
 Bitstream& Bitstream::operator<<(const QVariant& value) {
-    *this << value.userType();
-    TypeStreamer* streamer = getTypeStreamers().value(value.userType());
+    const TypeStreamer* streamer = getTypeStreamers().value(value.userType());
     if (streamer) {
+        _typeStreamerStreamer << streamer;
         streamer->write(*this, value);
+    } else {
+        qWarning() << "Non-streamable type: " << value.typeName() << "\n";
     }
     return *this;
 }
 
 Bitstream& Bitstream::operator>>(QVariant& value) {
-    int type;
-    *this >> type;
-    TypeStreamer* streamer = getTypeStreamers().value(type);
+    const TypeStreamer* streamer;
+    _typeStreamerStreamer >> streamer;
     if (streamer) {
         value = streamer->read(*this);
     }
     return *this;
 }
 
-Bitstream& Bitstream::operator<<(QObject* object) {
+Bitstream& Bitstream::operator<<(const QObject* object) {
     if (!object) {
         _metaObjectStreamer << NULL;
         return *this;
@@ -219,7 +226,7 @@ Bitstream& Bitstream::operator<<(QObject* object) {
         if (!property.isStored(object)) {
             continue;
         }
-        TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
         if (streamer) {
             streamer->write(*this, property.read(object));
         }
@@ -240,7 +247,7 @@ Bitstream& Bitstream::operator>>(QObject*& object) {
         if (!property.isStored(object)) {
             continue;
         }
-        TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
         if (streamer) {
             property.write(object, streamer->read(*this));    
         }
@@ -262,7 +269,22 @@ Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
     }
     metaObject = getMetaObjects().value(className);
     if (!metaObject) {
-        qDebug() << "Unknown class name: " << className << "\n";
+        qWarning() << "Unknown class name: " << className << "\n";
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const TypeStreamer* streamer) {
+    const char* typeName = QMetaType::typeName(streamer->getType());
+    return *this << QByteArray::fromRawData(typeName, strlen(typeName));
+}
+
+Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
+    QByteArray typeName;
+    *this >> typeName;
+    streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
+    if (!streamer) {
+        qWarning() << "Unknown type name: " << typeName << "\n";
     }
     return *this;
 }
@@ -283,8 +305,8 @@ QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
     return metaObjects;
 }
 
-QHash<int, TypeStreamer*>& Bitstream::getTypeStreamers() {
-    static QHash<int, TypeStreamer*> typeStreamers;
+QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
+    static QHash<int, const TypeStreamer*> typeStreamers;
     return typeStreamers;
 }
 

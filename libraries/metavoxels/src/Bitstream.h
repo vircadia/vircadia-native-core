@@ -154,12 +154,14 @@ public:
     class WriteMappings {
     public:
         QHash<const QMetaObject*, int> metaObjectOffsets;
+        QHash<const TypeStreamer*, int> typeStreamerOffsets;
         QHash<AttributePointer, int> attributeOffsets;
     };
 
     class ReadMappings {
     public:
         QHash<int, const QMetaObject*> metaObjectValues;
+        QHash<int, const TypeStreamer*> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
     };
 
@@ -220,11 +222,14 @@ public:
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
     
-    Bitstream& operator<<(QObject* object);
+    Bitstream& operator<<(const QObject* object);
     Bitstream& operator>>(QObject*& object);
     
     Bitstream& operator<<(const QMetaObject* metaObject);
     Bitstream& operator>>(const QMetaObject*& metaObject);
+    
+    Bitstream& operator<<(const TypeStreamer* streamer);
+    Bitstream& operator>>(const TypeStreamer*& streamer);
     
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
@@ -236,10 +241,11 @@ private:
     int _position;
 
     RepeatedValueStreamer<const QMetaObject*> _metaObjectStreamer;
+    RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
-    static QHash<int, TypeStreamer*>& getTypeStreamers();
+    static QHash<int, const TypeStreamer*>& getTypeStreamers();
 };
 
 /// Macro for registering streamable meta-objects.
@@ -249,8 +255,15 @@ private:
 class TypeStreamer {
 public:
     
+    void setType(int type) { _type = type; }
+    int getType() const { return _type; }
+    
     virtual void write(Bitstream& out, const QVariant& value) const = 0;
     virtual QVariant read(Bitstream& in) const = 0;
+
+private:
+    
+    int _type;
 };
 
 /// A streamer that works with Bitstream's operators.
@@ -264,5 +277,17 @@ public:
 /// Macro for registering simple type streamers.
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
     Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
+
+/// Declares the metatype and the streaming operators.
+#define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
+    Bitstream& operator<<(Bitstream& out, const X& obj); \
+    Bitstream& operator>>(Bitstream& in, X& obj);
+
+/// Registers a streamable type and its streamer.
+template<class T> int registerStreamableMetaType() {
+    int type = qRegisterMetaType<T>();
+    Bitstream::registerTypeStreamer(type, new SimpleTypeStreamer<T>());
+    return type;
+}
 
 #endif /* defined(__interface__Bitstream__) */
