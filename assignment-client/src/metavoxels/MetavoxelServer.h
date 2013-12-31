@@ -10,13 +10,16 @@
 #define __hifi__MetavoxelServer__
 
 #include <QHash>
+#include <QTimer>
 #include <QUuid>
 
+#include <HifiSockAddr.h>
 #include <ThreadedAssignment.h>
 
+#include <DatagramSequencer.h>
 #include <MetavoxelData.h>
 
-class Session;
+class MetavoxelSession;
 
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
 class MetavoxelServer : public ThreadedAssignment {
@@ -38,7 +41,36 @@ private:
     
     MetavoxelData _data;
     
-    QHash<QUuid, Session*> _sessions;
+    QHash<QUuid, MetavoxelSession*> _sessions;
+};
+
+/// Contains the state of a single client session.
+class MetavoxelSession : public QObject {
+    Q_OBJECT
+    
+public:
+    
+    MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId, const QByteArray& datagramHeader);
+
+    void receivedData(const QByteArray& data, const HifiSockAddr& sender);
+
+private slots:
+
+    void timedOut();
+
+    void sendData(const QByteArray& data);
+
+    void readPacket(Bitstream& in);    
+    
+private:
+    
+    MetavoxelServer* _server;
+    QUuid _sessionId;
+    
+    QTimer _timeoutTimer;
+    DatagramSequencer _sequencer;
+    
+    HifiSockAddr _sender;
 };
 
 #endif /* defined(__hifi__MetavoxelServer__) */

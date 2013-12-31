@@ -8,6 +8,8 @@
 
 #include <cstring>
 
+#include <QtDebug>
+
 #include "DatagramSequencer.h"
 
 const int MAX_DATAGRAM_SIZE = 1500;
@@ -15,15 +17,21 @@ const int MAX_DATAGRAM_SIZE = 1500;
 DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
     _outputStream(_outgoingPacketStream),
-    _datagramStream(&_datagramBuffer),
+    _incomingDatagramStream(&_incomingDatagramBuffer),
     _datagramHeaderSize(datagramHeader.size()),
     _outgoingPacketNumber(0),
     _outgoingDatagram(MAX_DATAGRAM_SIZE, 0),
+    _outgoingDatagramBuffer(&_outgoingDatagram),
+    _outgoingDatagramStream(&_outgoingDatagramBuffer),
     _incomingPacketNumber(0),
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
     _inputStream(_incomingPacketStream) {
 
-    _datagramStream.setByteOrder(QDataStream::LittleEndian);
+    _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
+    _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
+    _incomingPacketStream.setByteOrder(QDataStream::LittleEndian);
+    _outgoingDatagramStream.setByteOrder(QDataStream::LittleEndian);
+
     memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
 }
 
@@ -55,12 +63,12 @@ void DatagramSequencer::endPacket() {
 }
 
 void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
-    _datagramBuffer.setData(datagram.constData() + _datagramHeaderSize, datagram.size() - _datagramHeaderSize);
-    QIODeviceOpener opener(&_datagramBuffer, QIODevice::ReadOnly);
-     
+    _incomingDatagramBuffer.setData(datagram.constData() + _datagramHeaderSize, datagram.size() - _datagramHeaderSize);
+    QIODeviceOpener opener(&_incomingDatagramBuffer, QIODevice::ReadOnly);
+    
     // read the sequence number
     quint32 sequenceNumber;
-    _datagramStream >> sequenceNumber;
+    _incomingDatagramStream >> sequenceNumber;
     
     // if it's less than the last, ignore
     if (sequenceNumber < _incomingPacketNumber) {
@@ -69,7 +77,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     
     // read the size and offset
     quint32 packetSize, offset;
-    _datagramStream >> packetSize >> offset;
+    _incomingDatagramStream >> packetSize >> offset;
     
     // if it's greater, reset
     if (sequenceNumber > _incomingPacketNumber) {
@@ -88,13 +96,14 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     }
     
     // copy in the data
-    memcpy(_incomingPacketData.data() + offset, datagram.constData() + _datagramBuffer.pos(), _datagramBuffer.bytesAvailable());
+    memcpy(_incomingPacketData.data() + offset, _incomingDatagramBuffer.data().constData() + _incomingDatagramBuffer.pos(),
+        _incomingDatagramBuffer.bytesAvailable());
     
     // see if we're done
-    if ((_remainingBytes -= _datagramBuffer.bytesAvailable()) > 0) {
+    if ((_remainingBytes -= _incomingDatagramBuffer.bytesAvailable()) > 0) {
         return;
     }
-
+    
     // read the list of acknowledged packets
     quint32 acknowledgementCount;
     _incomingPacketStream >> acknowledgementCount;
@@ -105,7 +114,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
             continue;
         }
         int index = packetNumber - _sendRecords.first().packetNumber;
-        if (index >= _sendRecords.size()) {
+        if (index < 0 || index >= _sendRecords.size()) {
             continue;
         }
         QList<SendRecord>::iterator it = _sendRecords.begin() + index;
@@ -128,14 +137,13 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     QList<ReceiveRecord>::iterator it = qBinaryFind(_receiveRecords.begin(), _receiveRecords.end(), compare);
     if (it != _receiveRecords.end()) {
         _inputStream.persistReadMappings(it->mappings);
-        _receiveRecords.erase(it + 1);
+        _receiveRecords.erase(_receiveRecords.begin(), it + 1);
     }
     _outputStream.persistWriteMappings(record.mappings);
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {
-    _datagramBuffer.setBuffer(&_outgoingDatagram);
-    QIODeviceOpener opener(&_datagramBuffer, QIODevice::WriteOnly);
+    QIODeviceOpener opener(&_outgoingDatagramBuffer, QIODevice::WriteOnly);
     
     // increment the packet number
     _outgoingPacketNumber++;
@@ -146,21 +154,21 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     _sendRecords.append(record);
     
     // write the sequence number and size, which are the same between all fragments
-    _datagramBuffer.seek(_datagramHeaderSize);
-    _datagramStream << (quint32)_outgoingPacketNumber;
-    _datagramStream << (quint32)packet.size();
-    int initialPosition = _datagramBuffer.pos();
+    _outgoingDatagramBuffer.seek(_datagramHeaderSize);
+    _outgoingDatagramStream << (quint32)_outgoingPacketNumber;
+    _outgoingDatagramStream << (quint32)packet.size();
+    int initialPosition = _outgoingDatagramBuffer.pos();
     
     // break the packet into MTU-sized datagrams
     int offset = 0;
     do {
-        _datagramBuffer.seek(initialPosition);
-        _datagramStream << (quint32)offset;
+        _outgoingDatagramBuffer.seek(initialPosition);
+        _outgoingDatagramStream << (quint32)offset;
         
-        int payloadSize = qMin((int)(_outgoingDatagram.size() - _datagramBuffer.pos()), packet.size() - offset);
-        memcpy(_outgoingDatagram.data() + _datagramBuffer.pos(), packet.constData() + offset, payloadSize);
+        int payloadSize = qMin((int)(_outgoingDatagram.size() - _outgoingDatagramBuffer.pos()), packet.size() - offset);
+        memcpy(_outgoingDatagram.data() + _outgoingDatagramBuffer.pos(), packet.constData() + offset, payloadSize);
         
-        emit readyToWrite(QByteArray::fromRawData(_outgoingDatagram.constData(), _datagramBuffer.pos() + payloadSize));
+        emit readyToWrite(QByteArray::fromRawData(_outgoingDatagram.constData(), _outgoingDatagramBuffer.pos() + payloadSize));
         
         offset += payloadSize;
         

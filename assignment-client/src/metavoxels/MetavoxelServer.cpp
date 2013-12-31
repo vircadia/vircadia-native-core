@@ -6,15 +6,11 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QTimer>
-
-#include <Logging.h>
 #include <PacketHeaders.h>
 
 #include <MetavoxelUtil.h>
 
 #include "MetavoxelServer.h"
-#include "Session.h"
 
 MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes) {
@@ -25,23 +21,7 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
 }
 
 void MetavoxelServer::run() {
-    // change the logging target name while the metavoxel server is running
-    Logging::setTargetName("metavoxel-server");
-    
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NODE_TYPE_METAVOXEL_SERVER);
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    init("metavoxel-server", NODE_TYPE_METAVOXEL_SERVER);
 }
     
 void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
@@ -65,9 +45,51 @@ void MetavoxelServer::processData(const QByteArray& data, const HifiSockAddr& se
     }
     
     // forward to session, creating if necessary
-    Session*& session = _sessions[sessionID];
+    MetavoxelSession*& session = _sessions[sessionID];
     if (!session) {
-        session = new Session(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize));
+        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize));
     }
     session->receivedData(data, sender);
+}
+
+MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId, const QByteArray& datagramHeader) :
+    QObject(server),
+    _server(server),
+    _sessionId(sessionId),
+    _sequencer(datagramHeader) {
+    
+    const int TIMEOUT_INTERVAL = 30 * 1000;
+    _timeoutTimer.setInterval(TIMEOUT_INTERVAL);
+    _timeoutTimer.setSingleShot(true);
+    connect(&_timeoutTimer, SIGNAL(timeout()), SLOT(timedOut()));
+    
+    connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
+    connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
+}
+
+void MetavoxelSession::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
+    // reset the timeout timer
+    _timeoutTimer.start();
+
+    // save the most recent sender
+    _sender = sender;
+    
+    // process through sequencer
+    _sequencer.receivedDatagram(data);
+}
+
+void MetavoxelSession::timedOut() {
+    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]\n";
+    _server->removeSession(_sessionId);
+}
+
+void MetavoxelSession::sendData(const QByteArray& data) {
+    NodeList::getInstance()->getNodeSocket().writeDatagram(data, _sender.getAddress(), _sender.getPort());
+}
+
+void MetavoxelSession::readPacket(Bitstream& in) {
+    qDebug("got packet from client!\n");
+
+    Bitstream& out = _sequencer.startPacket();
+    _sequencer.endPacket();
 }

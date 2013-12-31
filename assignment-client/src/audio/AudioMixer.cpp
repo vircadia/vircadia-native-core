@@ -239,29 +239,14 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
 
 void AudioMixer::run() {
     
+    init(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
+    
     NodeList* nodeList = NodeList::getInstance();
-    
-    // change the logging target name while this is running
-    Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
-    
-    nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);
     
     const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
     nodeList->setNodeTypesOfInterest(AUDIO_MIXER_NODE_TYPES_OF_INTEREST, sizeof(AUDIO_MIXER_NODE_TYPES_OF_INTEREST));
     
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     int nextFrame = 0;
     timeval startTime;

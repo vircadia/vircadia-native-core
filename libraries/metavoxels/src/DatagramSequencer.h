@@ -75,12 +75,14 @@ private:
     QDataStream _outgoingPacketStream;
     Bitstream _outputStream;
     
-    QBuffer _datagramBuffer;
-    QDataStream _datagramStream;
+    QBuffer _incomingDatagramBuffer;
+    QDataStream _incomingDatagramStream;
     int _datagramHeaderSize;
     
     int _outgoingPacketNumber;
     QByteArray _outgoingDatagram;
+    QBuffer _outgoingDatagramBuffer;
+    QDataStream _outgoingDatagramStream;
     
     int _incomingPacketNumber;
     QByteArray _incomingPacketData;

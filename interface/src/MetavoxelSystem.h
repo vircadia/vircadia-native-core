@@ -88,6 +88,8 @@ public:
 
     const QUuid& getSessionID() const { return _sessionID; }
 
+    void simulate(float deltaTime);
+
     void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
 private slots:

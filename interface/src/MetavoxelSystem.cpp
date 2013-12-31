@@ -57,6 +57,11 @@ void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& se
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
+    // simulate the clients
+    foreach (MetavoxelClient* client, _clients) {
+        client->simulate(deltaTime);
+    }
+
     _points.clear();
     _data.guide(_pointVisitor);
     
@@ -114,7 +119,7 @@ void MetavoxelSystem::render() {
 void MetavoxelSystem::nodeAdded(Node* node) {
     if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
         QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
-            Q_ARG(const HifiSockAddr&, node->getPublicSocket()));
+            Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
     }
 }
 
@@ -186,6 +191,11 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
 }
 
+void MetavoxelClient::simulate(float deltaTime) {
+    Bitstream& out = _sequencer.startPacket();
+    _sequencer.endPacket();
+}
+
 void MetavoxelClient::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
     // save the most recent sender
     _address = sender;
@@ -199,4 +209,5 @@ void MetavoxelClient::sendData(const QByteArray& data) {
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
+    qDebug("got packet from server!\n");
 }
