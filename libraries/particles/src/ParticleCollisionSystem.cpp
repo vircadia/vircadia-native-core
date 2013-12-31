@@ -67,10 +67,10 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
-    glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
-    float radius = particle->getRadius() * (float)TREE_SCALE;
-    const float VOXEL_ELASTICITY = 1.4f;
-    const float VOXEL_DAMPING = 0.0;
+    glm::vec3 center = particle->getPosition() * static_cast<float>(TREE_SCALE);
+    float radius = particle->getRadius() * static_cast<float>(TREE_SCALE);
+    const float VOXEL_ELASTICITY = 0.4f;    // fraction of momentum conserved at collision
+    const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     if (_voxels->findSpherePenetration(center, radius, penetration)) {
@@ -82,10 +82,10 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
 }
 
 void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
-    glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
-    float radius = particle->getRadius() * (float)TREE_SCALE;
+    glm::vec3 center = particle->getPosition() * static_cast<float>(TREE_SCALE);
+    float radius = particle->getRadius() * static_cast<float>(TREE_SCALE);
     const float VOXEL_ELASTICITY = 1.4f;
-    const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     Particle* penetratedParticle;
@@ -121,10 +121,10 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     }
 
     //printf("updateCollisionWithAvatars()...\n");
-    glm::vec3 center = particle->getPosition() * (float)TREE_SCALE;
-    float radius = particle->getRadius() * (float)TREE_SCALE;
+    glm::vec3 center = particle->getPosition() * static_cast<float>(TREE_SCALE);
+    float radius = particle->getRadius() * static_cast<float>(TREE_SCALE);
     const float VOXEL_ELASTICITY = 1.4f;
-    const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     const PalmData* collidingPalm = NULL;
@@ -145,7 +145,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
             glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
             if (collidingPalm) {
-                glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)TREE_SCALE;
+                glm::vec3 palmVelocity = collidingPalm->getVelocity() / static_cast<float>(TREE_SCALE);
                 //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
                 addedVelocity = palmVelocity;
             }
@@ -159,7 +159,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            AvatarData* avatar = (AvatarData*)node->getLinkedData();
+            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
             //printf("updateCollisionWithAvatars()...avatar=%p\n", avatar);
             
             // check hands...
@@ -173,7 +173,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
                 glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
                 if (collidingPalm) {
-                    glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)TREE_SCALE;
+                    glm::vec3 palmVelocity = collidingPalm->getVelocity() / static_cast<float>(TREE_SCALE);
                     //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
                     addedVelocity = palmVelocity;
                 }
@@ -192,21 +192,22 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     //  Update the particle in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
-    //  if elasticity = 1.0, collision is inelastic.
-    //  if elasticity > 1.0, collision is elastic. 
+    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
+    //  if elasticity = 1.0, collision is 100% elastic. 
     //  
     glm::vec3 position = particle->getPosition();
     glm::vec3 velocity = particle->getVelocity();
 
-    position -= penetration;
-    static float HALTING_VELOCITY = 0.2f / (float) TREE_SCALE;
-    // cancel out the velocity component in the direction of penetration
-    float penetrationLength = glm::length(penetration);
     const float EPSILON = 0.0f;
+    float velocityDotPenetration = glm::dot(velocity, penetration);
+    if (velocityDotPenetration > EPSILON) {
+        position -= penetration;
+        static float HALTING_VELOCITY = 0.2f / static_cast<float>(TREE_SCALE);
+        // cancel out the velocity component in the direction of penetration
 
-    if (penetrationLength > EPSILON) {
+        float penetrationLength = glm::length(penetration);
         glm::vec3 direction = penetration / penetrationLength;
-        velocity -= glm::dot(velocity, direction) * direction * elasticity;
+        velocity -= (glm::dot(velocity, direction) * (1.0f + elasticity)) * direction;
         velocity += addedVelocity;
         velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if (glm::length(velocity) < HALTING_VELOCITY) {
@@ -222,9 +223,10 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
+                        particle->getGravity(), particle->getDamping(), particle->getInHand(), 
+                        particle->getUpdateScript());
 }
-
+    
 
 void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency) {
                                 
@@ -233,12 +235,12 @@ void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm
     const float COLLISION_LOUDNESS = 1.f;
     const float DURATION_SCALING = 0.004f;
     const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = particle->getVelocity() * (float)TREE_SCALE;
+    glm::vec3 velocity = particle->getVelocity() * static_cast<float>(TREE_SCALE);
 
     /*
     // how do we want to handle this??
     //
-     glm::vec3 gravity = particle->getGravity() * (float)TREE_SCALE;
+     glm::vec3 gravity = particle->getGravity() * static_cast<float>(TREE_SCALE);
     
     if (glm::length(gravity) > EPSILON) {
         //  If gravity is on, remove the effect of gravity on velocity for this
