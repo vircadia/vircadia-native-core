@@ -114,7 +114,7 @@ public:
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
     void update();
-    void collisionWithParticle(unsigned int otherID);
+    void collisionWithParticle(Particle* other);
 
     void debugDump() const;
     
@@ -170,7 +170,7 @@ public:
     ParticleScriptObject(Particle* particle) { _particle = particle; }
 
     void emitUpdate() { emit update(); }
-    void emitCollisionWithParticle(uint32_t otherID) { emit collisionWithParticle(otherID); }
+    void emitCollisionWithParticle(QObject* other) { emit collisionWithParticle(other); }
     void emitCollisionWithVoxel() { emit collisionWithVoxel(); }
 
 public slots:
@@ -196,7 +196,7 @@ public slots:
 signals:
     void update();
     void collisionWithVoxel();
-    void collisionWithParticle(unsigned int otherID);
+    void collisionWithParticle(QObject* other);
 
 private:
     Particle* _particle;

@@ -540,7 +540,7 @@ void Particle::runUpdateScript() {
     }
 }
 
-void Particle::collisionWithParticle(unsigned int otherID) {
+void Particle::collisionWithParticle(Particle* other) {
     if (!_script.isEmpty()) {
 
         QScriptEngine engine;
@@ -564,14 +564,12 @@ void Particle::collisionWithParticle(unsigned int otherID) {
         if (getParticlesScriptingInterface()) {
             QScriptValue particleScripterValue =  engine.newQObject(getParticlesScriptingInterface());
             engine.globalObject().setProperty("Particles", particleScripterValue);
-            printf("has Particles...\n");
-        } else {
-            printf("no Particles...\n");
         }
         
         QScriptValue result = engine.evaluate(_script);
         
-        particleScriptable.emitCollisionWithParticle(otherID);
+        ParticleScriptObject otherParticleScriptable(other);
+        particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
 
         if (getVoxelsScriptingInterface()) {
             getVoxelsScriptingInterface()->getPacketSender()->releaseQueuedMessages();

@@ -92,8 +92,8 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&penetratedParticle)) {
     
         // let the particles run their collision scripts if they have them
-        particle->collisionWithParticle(penetratedParticle->getID());
-        penetratedParticle->collisionWithParticle(particle->getID());
+        particle->collisionWithParticle(penetratedParticle);
+        penetratedParticle->collisionWithParticle(particle);
 
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
