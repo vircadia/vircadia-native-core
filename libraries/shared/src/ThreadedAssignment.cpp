@@ -26,7 +26,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     }
 }
 
-void ThreadedAssignment::init(const char* targetName, NODE_TYPE nodeType) {
+void ThreadedAssignment::commonInit(const char* targetName, NODE_TYPE nodeType) {
     // change the logging target name while the assignment is running
     Logging::setTargetName(targetName);
     

@@ -5,7 +5,8 @@ macro(AUTO_MTC TARGET ROOT_DIR)
     
     file(GLOB INCLUDE_FILES src/*.h)
     
-    add_custom_command(OUTPUT ${TARGET}_automtc.cpp COMMAND mtc -o ${TARGET}_automtc.cpp ${INCLUDE_FILES} DEPENDS mtc)
+    add_custom_command(OUTPUT ${TARGET}_automtc.cpp COMMAND mtc -o ${TARGET}_automtc.cpp
+        ${INCLUDE_FILES} DEPENDS mtc ${INCLUDE_FILES})
     
     find_package(Qt5Core REQUIRED)
     

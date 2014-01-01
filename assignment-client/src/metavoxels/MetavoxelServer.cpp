@@ -22,7 +22,7 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
 }
 
 void MetavoxelServer::run() {
-    init("metavoxel-server", NODE_TYPE_METAVOXEL_SERVER);
+    commonInit("metavoxel-server", NODE_TYPE_METAVOXEL_SERVER);
 }
     
 void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
@@ -91,7 +91,8 @@ void MetavoxelSession::sendData(const QByteArray& data) {
 void MetavoxelSession::readPacket(Bitstream& in) {
     QVariant msg;
     in >> msg;
-    qDebug() << msg.value<ClientPositionMessage>().test << "\n";
+    glm::vec3 position = msg.value<ClientStateMessage>().position;
+    qDebug() << position.x << " " << position.y << " " << position.z << "\n";
 
     Bitstream& out = _sequencer.startPacket();
     _sequencer.endPacket();

@@ -239,7 +239,7 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
 
 void AudioMixer::run() {
     
-    init(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
+    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
     
     NodeList* nodeList = NodeList::getInstance();
     

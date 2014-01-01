@@ -168,10 +168,26 @@ Bitstream& Bitstream::operator<<(int value) {
 }
 
 Bitstream& Bitstream::operator>>(int& value) {
-    qint32 sizedValue = 0;
+    qint32 sizedValue;
     read(&sizedValue, 32);
     value = sizedValue;
     return *this;
+}
+
+Bitstream& Bitstream::operator<<(float value) {
+    return write(&value, 32);
+}
+
+Bitstream& Bitstream::operator>>(float& value) {
+    return read(&value, 32);
+}
+
+Bitstream& Bitstream::operator<<(const glm::vec3& value) {
+    return *this << value.x << value.y << value.z;
+}
+
+Bitstream& Bitstream::operator>>(glm::vec3& value) {
+    return *this >> value.x >> value.y >> value.z;
 }
 
 Bitstream& Bitstream::operator<<(const QByteArray& string) {

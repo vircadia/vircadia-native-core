@@ -23,7 +23,7 @@ public slots:
     
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) = 0;
 protected:
-    void init(const char* targetName, NODE_TYPE nodeType);
+    void commonInit(const char* targetName, NODE_TYPE nodeType);
     bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();

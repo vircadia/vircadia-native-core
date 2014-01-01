@@ -15,6 +15,8 @@
 #include <QVariant>
 #include <QtDebug>
 
+#include <glm/glm.hpp>
+
 class QByteArray;
 class QDataStream;
 class QMetaObject;
@@ -213,6 +215,12 @@ public:
     
     Bitstream& operator<<(int value);
     Bitstream& operator>>(int& value);
+    
+    Bitstream& operator<<(float value);
+    Bitstream& operator>>(float& value);
+    
+    Bitstream& operator<<(const glm::vec3& value);
+    Bitstream& operator>>(glm::vec3& value);
     
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);

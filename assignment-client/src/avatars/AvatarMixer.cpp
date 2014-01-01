@@ -162,7 +162,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
 }
 
 void AvatarMixer::run() {
-    init(AVATAR_MIXER_LOGGING_NAME, NODE_TYPE_AVATAR_MIXER);
+    commonInit(AVATAR_MIXER_LOGGING_NAME, NODE_TYPE_AVATAR_MIXER);
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);

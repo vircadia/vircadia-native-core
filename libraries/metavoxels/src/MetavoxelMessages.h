@@ -11,15 +11,15 @@
 
 #include "Bitstream.h"
 
-/// A message containing the position of a client.
-class ClientPositionMessage {
+/// A message containing the state of a client.
+class ClientStateMessage {
     STREAMABLE
     
 public:
     
-    STREAM int test;
+    STREAM glm::vec3 position;
 };
 
-DECLARE_STREAMABLE_METATYPE(ClientPositionMessage)
+DECLARE_STREAMABLE_METATYPE(ClientStateMessage)
 
 #endif /* defined(__interface__MetavoxelMessages__) */
