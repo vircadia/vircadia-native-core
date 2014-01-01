@@ -231,6 +231,9 @@ public:
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
     
+    Bitstream& operator<<(const QVariantList& value);
+    Bitstream& operator>>(QVariantList& value);
+    
     Bitstream& operator<<(const QObject* object);
     Bitstream& operator>>(QObject*& object);
     
@@ -287,8 +290,8 @@ public:
 #define REGISTER_SIMPLE_TYPE_STREAMER(x) static int x##Streamer = \
     Bitstream::registerTypeStreamer(QMetaType::type(#x), new SimpleTypeStreamer<x>());
 
-/// Declares the metatype and the streaming operators.  The last line
-/// ensures that the generated file will be included in the link phase. 
+/// Declares the metatype and the streaming operators.  The last lines
+/// ensure that the generated file will be included in the link phase. 
 #define STRINGIFY(x) #x
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \

@@ -236,6 +236,27 @@ Bitstream& Bitstream::operator>>(QVariant& value) {
     return *this;
 }
 
+Bitstream& Bitstream::operator<<(const QVariantList& value) {
+    *this << value.size();
+    foreach (const QVariant& entry, value) {
+        *this << entry;
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QVariantList& value) {
+    int size;
+    *this >> size;
+    value.clear();
+    value.reserve(size);
+    for (int i = 0; i < size; i++) {
+        QVariant entry;
+        *this >> entry;
+        value.append(entry);
+    }
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(const QObject* object) {
     if (!object) {
         _metaObjectStreamer << NULL;
