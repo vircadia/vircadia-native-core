@@ -32,12 +32,12 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
         // PACKET_TYPE_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
             case NODE_TYPE_VOXEL_SERVER:
-                _scriptEngine.getVoxelScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());
                 break;
             case NODE_TYPE_PARTICLE_SERVER:
-                _scriptEngine.getParticleScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
+                _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                 (unsigned char*) dataByteArray.data(),
                                                                                 dataByteArray.size());
                 break;

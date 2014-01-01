@@ -18,9 +18,6 @@
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
-#include <VoxelScriptingInterface.h>
-#include <ParticleScriptingInterface.h>
-
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 public:
