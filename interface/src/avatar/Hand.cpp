@@ -260,7 +260,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                             NO_GRAVITY,
                                             NO_DAMPING,
                                             IN_HAND, // we just grabbed it!
-                                            closestParticle->getUpdateScript());
+                                            closestParticle->getScript());
             
                                             
             // now tell our hand about us having caught it...
