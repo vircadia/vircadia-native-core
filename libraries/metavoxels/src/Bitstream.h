@@ -289,10 +289,12 @@ public:
 
 /// Declares the metatype and the streaming operators.  The last line
 /// ensures that the generated file will be included in the link phase. 
+#define STRINGIFY(x) #x
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
     Bitstream& operator<<(Bitstream& out, const X& obj); \
     Bitstream& operator>>(Bitstream& in, X& obj); \
-    static const int* _TypePtr##X = &X::Type;
+    static const int* _TypePtr##X = &X::Type; \
+    _Pragma(STRINGIFY(unused(_TypePtr##X))) 
 
 /// Registers a streamable type and its streamer.
 template<class T> int registerStreamableMetaType() {
