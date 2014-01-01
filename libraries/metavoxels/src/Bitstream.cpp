@@ -37,6 +37,7 @@ IDStreamer& IDStreamer::operator<<(int value) {
     if (value == (1 << _bits) - 1) {
         _bits++;
     }
+    return *this;
 }
 
 IDStreamer& IDStreamer::operator>>(int& value) {
@@ -45,6 +46,7 @@ IDStreamer& IDStreamer::operator>>(int& value) {
     if (value == (1 << _bits) - 1) {
         _bits++;
     }
+    return *this;
 }
 
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {

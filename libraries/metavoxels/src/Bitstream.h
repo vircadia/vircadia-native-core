@@ -19,7 +19,7 @@
 
 class QByteArray;
 class QDataStream;
-class QMetaObject;
+struct QMetaObject;
 class QObject;
 
 class Attribute;
