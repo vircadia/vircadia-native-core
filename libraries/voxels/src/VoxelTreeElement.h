@@ -44,6 +44,9 @@ public:
     virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     virtual void calculateAverageFromChildren();
     virtual bool collapseChildren();
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
+                        glm::vec3& penetration, void** penetratedObject) const;
+
 
 
     glBufferIndex getBufferIndex() const { return _glBufferIndex; }
@@ -87,5 +90,6 @@ protected:
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
 };
+
 
 #endif /* defined(__hifi__VoxelTreeElement__) */

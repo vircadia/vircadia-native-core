@@ -1519,10 +1519,21 @@ void Application::shootParticle() {
     glm::vec3 velocity = lookingAt - position;
     glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
     float damping = DEFAULT_DAMPING * 0.01f;
-    QString updateScript("");
+    QString script(
+                 " function collisionWithVoxel(voxel) { " 
+                 "   print('collisionWithVoxel(voxel)... '); " 
+                 "   print('myID=' + Particle.getID() + '\\n'); " 
+                 "   var voxelColor = voxel.getColor();" 
+                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " 
+                 "   var myColor = Particle.getColor();" 
+                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " 
+                 "   Particle.setColor(voxelColor); " 
+                 " } " 
+                 " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
+
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, script);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -4451,8 +4462,8 @@ void Application::loadScript() {
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
-    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 
     QThread* workerThread = new QThread(this);
 
