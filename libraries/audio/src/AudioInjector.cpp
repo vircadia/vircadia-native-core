@@ -19,7 +19,6 @@
 int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
 
 AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions) :
-    _thread(NULL),
     _sound(sound),
     _volume(injectorOptions.volume),
     _shouldLoopback(injectorOptions.shouldLoopback),
@@ -27,24 +26,7 @@ AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions)
     _orientation(injectorOptions.orientation),
     _loopbackAudioInterface(injectorOptions.loopbackAudioInterface)
 {
-    _thread = new QThread();
     
-    // we want to live on our own thread
-    moveToThread(_thread);
-}
-
-void AudioInjector::threadSound(Sound* sound, AudioInjectorOptions injectorOptions) {
-    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
-    
-    // start injecting when the injector thread starts
-    connect(injector->_thread, SIGNAL(started()), injector, SLOT(injectAudio()));
-    
-    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
-    connect(injector, SIGNAL(finished()), injector, SLOT(deleteLater()));
-    connect(injector, SIGNAL(finished()), injector->_thread, SLOT(quit()));
-    connect(injector->_thread, SIGNAL(finished()), injector->_thread, SLOT(deleteLater()));
-    
-    injector->_thread->start();
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;

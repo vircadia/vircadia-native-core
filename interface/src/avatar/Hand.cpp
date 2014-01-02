@@ -130,8 +130,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             injectorOptions.position = targetPosition;
             injectorOptions.shouldLoopback = false;
             injectorOptions.loopbackAudioInterface = app->getAudio();
-            
-            AudioInjector::threadSound(&_catchSound, injectorOptions);
+    
+            AudioScriptingInterface::playSound(&_catchSound, injectorOptions);
         }
     }
     
@@ -220,7 +220,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             injectorOptions.shouldLoopback = false;
             injectorOptions.loopbackAudioInterface = app->getAudio();
             
-            AudioInjector::threadSound(&_throwSound, injectorOptions);
+            AudioScriptingInterface::playSound(&_throwSound, injectorOptions);
         }
     }
     

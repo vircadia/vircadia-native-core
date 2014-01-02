@@ -18,6 +18,7 @@
 #include "Sound.h"
 
 class AbstractAudioInterface;
+class AudioScriptingInterface;
 
 struct AudioInjectorOptions {
     AudioInjectorOptions() : position(glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -36,11 +37,10 @@ struct AudioInjectorOptions {
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
-    static void threadSound(Sound* sound, AudioInjectorOptions injectorOptions = AudioInjectorOptions());
+    friend AudioScriptingInterface;
 private:
     AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
-    
-    QThread* _thread;
+
     Sound* _sound;
     float _volume;
     uchar _shouldLoopback;
