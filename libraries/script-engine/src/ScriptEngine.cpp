@@ -20,12 +20,20 @@
 #include <UUID.h>
 #include <VoxelConstants.h>
 
+#include <Sound.h>
+
 #include "ScriptEngine.h"
 
 int ScriptEngine::_scriptNumber = 1;
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 
+static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
+    QUrl soundURL = QUrl(context->argument(0).toString());
+    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL), QScriptEngine::ScriptOwnership);
+    
+    return soundScriptValue;
+}
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu,
@@ -100,6 +108,10 @@ void ScriptEngine::run() {
 
     QScriptValue particleScripterValue =  engine.newQObject(&_particlesScriptingInterface);
     engine.globalObject().setProperty("Particles", particleScripterValue);
+    
+    QScriptValue soundConstructorValue = engine.newFunction(soundConstructor);
+    QScriptValue soundMetaObject = engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
+    engine.globalObject().setProperty("Sound", soundMetaObject);
     
     if (_controllerScriptingInterface) {
         QScriptValue controllerScripterValue =  engine.newQObject(_controllerScriptingInterface);

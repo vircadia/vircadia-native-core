@@ -12,7 +12,9 @@
 
 #include "Sound.h"
 
-Sound::Sound(const QUrl& sampleURL) {
+Sound::Sound(const QUrl& sampleURL, QObject* parent) :
+    QObject(parent)
+{
     // assume we have a QApplication or QCoreApplication instance and use the
     // QNetworkAccess manager to grab the raw audio file at the given URL
     
