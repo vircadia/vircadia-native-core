@@ -40,7 +40,7 @@ public:
 private:
     AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
     
-    QThread _thread;
+    QThread* _thread;
     Sound* _sound;
     float _volume;
     uchar _shouldLoopback;
