@@ -51,7 +51,6 @@
 #include "Application.h"
 #include "DataServerClient.h"
 #include "InterfaceVersion.h"
-#include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
 #include "Util.h"
@@ -89,7 +88,7 @@ const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
-    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
+    Application::getInstance()->getLogger()->addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -142,7 +141,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _logger(new FileLogger())
 {
     _applicationStartupTime = startup_time;
 
@@ -268,7 +268,8 @@ Application::~Application() {
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
-    
+
+    delete _logger;
     delete _settings;
     delete _followMode;
     delete _glWidget;
@@ -1357,7 +1358,7 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing 
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing 
     // details normally.
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "Application::idle()");
     
     timeval check;
@@ -2694,7 +2695,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
         return;
     }
     
-    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool wantExtraDebugging = getLogger()->extraDebugging();
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
@@ -3377,11 +3378,6 @@ void Application::displayOverlay() {
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
         renderCoverageMap();
-    }
-    
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
-        LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
     }
 
     //  Show chat entry field
@@ -4385,7 +4381,7 @@ void* Application::networkReceive(void* args) {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
                             
-                        bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+                        bool wantExtraDebugging = app->getLogger()->extraDebugging();
                         if (wantExtraDebugging && app->_incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
                             int numBytesPacketHeader = numBytesForPacketHeader(app->_incomingPacket);
                             unsigned char* dataAt = app->_incomingPacket + numBytesPacketHeader;
@@ -4510,7 +4506,7 @@ void Application::loadScript() {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget);
+        _logDialog = new LogDialog(_glWidget, getLogger());
         _logDialog->show();
     } else {
         _logDialog->close();
