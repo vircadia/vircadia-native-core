@@ -111,18 +111,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // calculate speed
     _speed = glm::length(_velocity);
     
-    // update balls
-    if (_balls) {
-        _balls->moveOrigin(_position);
-        glm::vec3 lookAt = _head.getLookAtPosition();
-        if (glm::length(lookAt) > EPSILON) {
-            _balls->moveOrigin(lookAt);
-        } else {
-            _balls->moveOrigin(_position);
-        }
-        _balls->simulate(deltaTime);
-    }
-    
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
         _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
@@ -270,14 +258,21 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     updateChatCircle(deltaTime);
-    
-    //  Get any position or velocity update from Grab controller
+        
+    //  Get any position, velocity, or rotation update from Grab Drag controller
     glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
     if (glm::length(moveFromGrab) > EPSILON) {
         _position += moveFromGrab;
         _velocity = glm::vec3(0, 0, 0);
     }
     _velocity += _hand.getAndResetGrabDeltaVelocity();
+    glm::quat deltaRotation = _hand.getAndResetGrabRotation();
+    const float GRAB_CONTROLLER_TURN_SCALING = 0.5f;
+    glm::vec3 euler = safeEulerAngles(deltaRotation) * GRAB_CONTROLLER_TURN_SCALING;
+    //  Adjust body yaw by yaw from controller
+    setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
+    //  Adjust head pitch from controller
+    getHead().setMousePitch(getHead().getMousePitch() - euler.x);
     
     _position += _velocity * deltaTime;
     
@@ -455,17 +450,9 @@ void MyAvatar::render(bool forceRenderHead) {
         
     // render body
     renderBody(forceRenderHead);
-
-    //  Render the balls
-    if (_balls) {
-        glPushMatrix();
-        _balls->render();
-        glPopMatrix();
-    }
     
     //renderDebugBodyPoints();
 
-    
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
@@ -474,7 +461,7 @@ void MyAvatar::render(bool forceRenderHead) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = getPosition() + getBodyUpDirection() * chatMessageHeight * _scale;
+        glm::vec3 chatPosition = getHead().getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -484,7 +471,7 @@ void MyAvatar::render(bool forceRenderHead) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
+        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
@@ -759,9 +746,15 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
                 pointDirection = glm::normalize(projectedVector);
             }
         }
-        const float FAR_AWAY_POINT = TREE_SCALE;
-        _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = _mouseRayOrigin + pointDirection * FAR_AWAY_POINT;
-        pointing = true;
+        glm::vec3 shoulderPosition;
+        if (_skeletonModel.getRightShoulderPosition(shoulderPosition)) {
+            glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
+            const float ARM_RETRACTION = 0.75f;
+            float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
+            _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = shoulderPosition +
+                glm::normalize(farVector) * retractedLength;
+            pointing = true;    
+        }
     }
     
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it

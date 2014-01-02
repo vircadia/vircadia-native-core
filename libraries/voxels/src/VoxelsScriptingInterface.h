@@ -1,13 +1,13 @@
 //
-//  VoxelScriptingInterface.h
+//  VoxelsScriptingInterface.h
 //  hifi
 //
 //  Created by Stephen Birarda on 9/17/13.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#ifndef __hifi__VoxelScriptingInterface__
-#define __hifi__VoxelScriptingInterface__
+#ifndef __hifi__VoxelsScriptingInterface__
+#define __hifi__VoxelsScriptingInterface__
 
 #include <QtCore/QObject>
 
@@ -16,7 +16,7 @@
 #include "VoxelEditPacketSender.h"
 
 /// handles scripting of voxel commands from JS passed to assigned clients
-class VoxelScriptingInterface : public OctreeScriptingInterface {
+class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
@@ -56,4 +56,18 @@ private:
     void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
 };
 
-#endif /* defined(__hifi__VoxelScriptingInterface__) */
+class VoxelDetailScriptObject  : public QObject {
+    Q_OBJECT
+public:
+    VoxelDetailScriptObject(VoxelDetail* voxelDetail) { _voxelDetail = voxelDetail; }
+
+public slots:
+    glm::vec3 getPosition() const { return glm::vec3(_voxelDetail->x, _voxelDetail->y, _voxelDetail->z); }
+    xColor getColor() const { xColor color = { _voxelDetail->red, _voxelDetail->green, _voxelDetail->blue }; return color; }
+    float getScale() const { return _voxelDetail->s; }
+
+private:
+    VoxelDetail* _voxelDetail;
+};
+
+#endif /* defined(__hifi__VoxelsScriptingInterface__) */

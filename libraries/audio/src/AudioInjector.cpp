@@ -2,15 +2,9 @@
 //  AudioInjector.cpp
 //  hifi
 //
-//  Created by Stephen Birarda on 12/19/2013.
+//  Created by Stephen Birarda on 1/2/2014.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
-
-#include <sys/time.h>
-
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -24,58 +18,53 @@
 
 int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
 
-AudioInjector::AudioInjector(const QUrl& sampleURL) :
-    _currentSendPosition(0),
-    _sourceURL(sampleURL),
-	_position(0,0,0),
-    _orientation(),
-    _volume(1.0f),
-    _shouldLoopback(true)
+AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions) :
+    _thread(NULL),
+    _sound(sound),
+    _volume(injectorOptions.volume),
+    _shouldLoopback(injectorOptions.shouldLoopback),
+    _position(injectorOptions.position),
+    _orientation(injectorOptions.orientation),
+    _loopbackAudioInterface(injectorOptions.loopbackAudioInterface)
 {
+    _thread = new QThread();
+    
     // we want to live on our own thread
-    moveToThread(&_thread);
-    connect(&_thread, SIGNAL(started()), this, SLOT(startDownload()));
-    _thread.start();
+    moveToThread(_thread);
 }
 
-void AudioInjector::startDownload() {
-    // assume we have a QApplication or QCoreApplication instance and use the
-    // QNetworkAccess manager to grab the raw audio file at the given URL
+void AudioInjector::threadSound(Sound* sound, AudioInjectorOptions injectorOptions) {
+    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
     
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)),
-            this, SLOT(replyFinished(QNetworkReply*)));
+    // start injecting when the injector thread starts
+    connect(injector->_thread, SIGNAL(started()), injector, SLOT(injectAudio()));
     
-    manager->get(QNetworkRequest(_sourceURL));
+    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
+    connect(injector, SIGNAL(finished()), injector, SLOT(deleteLater()));
+    connect(injector, SIGNAL(finished()), injector->_thread, SLOT(quit()));
+    connect(injector->_thread, SIGNAL(finished()), injector->_thread, SLOT(deleteLater()));
+    
+    injector->_thread->start();
 }
 
-void AudioInjector::replyFinished(QNetworkReply* reply) {
-    // replace our samples array with the downloaded data
-    _sampleByteArray = reply->readAll();
-}
+const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectViaThread(AbstractAudioInterface* localAudioInterface) {
-    // use Qt::AutoConnection so that this is called on our thread, if appropriate
-    QMetaObject::invokeMethod(this, "injectAudio", Qt::AutoConnection, Q_ARG(AbstractAudioInterface*, localAudioInterface));
-}
-
-void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
+void AudioInjector::injectAudio() {
+    
+    QByteArray soundByteArray = _sound->getByteArray();
     
     // make sure we actually have samples downloaded to inject
-    if (_sampleByteArray.size()) {
+    if (soundByteArray.size()) {
         // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (localAudioInterface) {
+        if (_loopbackAudioInterface) {
             // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(localAudioInterface, "handleAudioByteArray",
+            QMetaObject::invokeMethod(_loopbackAudioInterface, "handleAudioByteArray",
                                       Qt::AutoConnection,
-                                      Q_ARG(QByteArray, _sampleByteArray));
+                                      Q_ARG(QByteArray, soundByteArray));
             
         }
         
         NodeList* nodeList = NodeList::getInstance();
-        
-        // reset the current send position to the beginning
-        _currentSendPosition = 0;
         
         // setup the packet for injected audio
         unsigned char injectedAudioPacket[MAX_PACKET_SIZE];
@@ -121,14 +110,16 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
         gettimeofday(&startTime, NULL);
         int nextFrame = 0;
         
+        int currentSendPosition = 0;
+        
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
-        while (_currentSendPosition < _sampleByteArray.size()) {
+        while (currentSendPosition < soundByteArray.size()) {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
-                                       _sampleByteArray.size() - _currentSendPosition);
+                                       soundByteArray.size() - currentSendPosition);
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-            memcpy(currentPacketPosition, _sampleByteArray.data() + _currentSendPosition,
+            memcpy(currentPacketPosition, soundByteArray.data() + currentSendPosition,
                    bytesToCopy);
             
             
@@ -143,11 +134,11 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
                                                         audioMixer->getActiveSocket()->getPort());
             }
             
-            _currentSendPosition += bytesToCopy;
+            currentSendPosition += bytesToCopy;
             
             // send two packets before the first sleep so the mixer can start playback right away
             
-            if (_currentSendPosition != bytesToCopy && _currentSendPosition < _sampleByteArray.size()) {
+            if (currentSendPosition != bytesToCopy && currentSendPosition < soundByteArray.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
                 int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
@@ -157,6 +148,7 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
                 }
             }
         }
-        
     }
+    
+    emit finished();
 }

@@ -28,6 +28,8 @@ public:
     
 protected:
     
+    void applyHandPosition(int jointIndex, const glm::vec3& position);
+    
     void applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
         const QVector<int>& fingertipJointIndices, PalmData& palm);
     

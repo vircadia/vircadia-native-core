@@ -59,8 +59,8 @@ const float HEAD_RATE_MAX = 50.f;
 const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES = 9;
-const float chatMessageScale = 0.0015;
-const float chatMessageHeight = 0.4f;
+const float CHAT_MESSAGE_SCALE = 0.0015;
+const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
     QByteArray message;
@@ -118,18 +118,12 @@ Avatar::Avatar(Node* owningNode) :
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
     _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
     
-    if (BALLS_ON) {
-        _balls = new Balls(100);
-    } else {
-        _balls = NULL;
-    }
 }
 
 
 Avatar::~Avatar() {
     _headData = NULL;
     _handData = NULL;
-    delete _balls;
 }
 
 void Avatar::deleteOrDeleteLater() {
@@ -180,18 +174,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
-    // update balls
-    if (_balls) {
-        _balls->moveOrigin(_position);
-        glm::vec3 lookAt = _head.getLookAtPosition();
-        if (glm::length(lookAt) > EPSILON) {
-            _balls->moveOrigin(lookAt);
-        } else {
-            _balls->moveOrigin(_position);
-        }
-        _balls->simulate(deltaTime);
-    }
-    
     // update torso rotation based on head lean
     _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
                                                                                     _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
@@ -208,12 +190,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
     
-    
+
     // if this is not my avatar, then hand position comes from transmitted data
     _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
-    
-    //update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime, enableHandMovement);
     
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
@@ -243,18 +222,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayOrigin = origin;
     _mouseRayDirection = direction;
-}
-
-void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
-    // reset hand and arm positions according to hand movement
-    enableHandMovement |= updateLeapHandPositions();
-    
-    //constrain right arm length and re-adjust elbow position as it bends
-    // NOTE - the following must be called on all avatars - not just _isMine
-    if (enableHandMovement) {
-        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_RIGHT_FINGERTIPS);
-        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_LEFT_FINGERTIPS);
-    }
 }
 
 static TextRenderer* textRenderer() {
@@ -288,13 +255,7 @@ void Avatar::render(bool forceRenderHead) {
         }
     }
     
-    //  Render the balls
-    if (_balls) {
-        glPushMatrix();
-        _balls->render();
-        glPopMatrix();
-    }
-    
+   
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
@@ -303,7 +264,7 @@ void Avatar::render(bool forceRenderHead) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = getPosition() + getBodyUpDirection() * chatMessageHeight * _scale;
+        glm::vec3 chatPosition = getHead().getEyePosition() + getBodyUpDirection() * CHAT_MESSAGE_HEIGHT * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -313,7 +274,7 @@ void Avatar::render(bool forceRenderHead) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
+        glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
@@ -336,93 +297,6 @@ void Avatar::render(bool forceRenderHead) {
         
         glPopMatrix();
     }
-}
-
-// returns true if the Leap controls any of the avatar's hands.
-bool Avatar::updateLeapHandPositions() {
-    bool returnValue = false;
-    // If there are leap-interaction hands visible, see if we can use them as the endpoints for IK
-    if (getHand().getPalms().size() > 0) {
-        PalmData const* leftLeapHand = NULL;
-        PalmData const* rightLeapHand = NULL;
-        // Look through all of the palms available (there may be more than two), and pick
-        // the leftmost and rightmost. If there's only one, we'll use a heuristic below
-        // to decode whether it's the left or right.
-        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-            PalmData& palm = getHand().getPalms()[i];
-            if (palm.isActive()) {
-                if (!rightLeapHand || !leftLeapHand) {
-                    rightLeapHand = leftLeapHand = &palm;
-                }
-                else if (palm.getRawPosition().x > rightLeapHand->getRawPosition().x) {
-                    rightLeapHand = &palm;
-                }
-                else if (palm.getRawPosition().x < leftLeapHand->getRawPosition().x) {
-                    leftLeapHand = &palm;
-                }
-            }
-        }
-        // If there's only one palm visible. Decide if it's the left or right
-        if (leftLeapHand == rightLeapHand && leftLeapHand) {
-            if (leftLeapHand->getRawPosition().x > 0) {
-                leftLeapHand = NULL;
-            }
-            else {
-                rightLeapHand = NULL;
-            }
-        }
-        if (leftLeapHand) {
-            _skeleton.joint[ AVATAR_JOINT_LEFT_FINGERTIPS ].position = leftLeapHand->getPosition();
-            returnValue = true;
-        }
-        if (rightLeapHand) {
-            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = rightLeapHand->getPosition();
-            returnValue = true;
-        }
-    }
-    return returnValue;
-}
-
-void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID) {
-    Skeleton::AvatarJoint& fingerJoint = _skeleton.joint[fingerTipJointID];
-    Skeleton::AvatarJoint& wristJoint = _skeleton.joint[fingerJoint.parent];
-    Skeleton::AvatarJoint& elbowJoint = _skeleton.joint[wristJoint.parent];
-    Skeleton::AvatarJoint& shoulderJoint = _skeleton.joint[elbowJoint.parent];
-    
-    // determine the arm vector
-    glm::vec3 armVector = fingerJoint.position;
-    armVector -= shoulderJoint.position;
-    
-    // test to see if right hand is being dragged beyond maximum arm length
-    float distance = glm::length(armVector);
-    
-    // don't let right hand get dragged beyond maximum arm length...
-    float armLength = _skeletonModel.isActive() ?
-        _skeletonModel.getRightArmLength() : _skeleton.getArmLength();
-    const float ARM_RETRACTION = 0.75f;
-    float retractedArmLength = armLength * ARM_RETRACTION;
-    if (distance > retractedArmLength) {
-        // reset right hand to be constrained to maximum arm length
-        fingerJoint.position = shoulderJoint.position;
-        glm::vec3 armNormal = armVector / distance;
-        armVector = armNormal * retractedArmLength;
-        distance = retractedArmLength;
-        glm::vec3 constrainedPosition = shoulderJoint.position;
-        constrainedPosition += armVector;
-        fingerJoint.position = constrainedPosition;
-    }
-    
-    // set elbow position
-    glm::vec3 newElbowPosition = shoulderJoint.position + armVector * ONE_HALF;
-    
-    glm::vec3 perpendicular = glm::cross(getBodyRightDirection(),  armVector);
-    
-    newElbowPosition += perpendicular * (1.0f - (_maxArmLength / distance)) * ONE_HALF;
-    elbowJoint.position = newElbowPosition;
-    
-    // set wrist position
-    const float wristPosRatio = 0.7f;
-    wristJoint.position = elbowJoint.position + (fingerJoint.position - elbowJoint.position) * wristPosRatio;
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {

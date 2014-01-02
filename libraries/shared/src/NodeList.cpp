@@ -294,9 +294,9 @@ void NodeList::clear() {
         Node* node = nodeBucket[i % NODES_PER_BUCKET];
         
         node->lock();
-        delete node;
+        notifyHooksOfKilledNode(&*node);
         
-        node = NULL;
+        delete node;
     }
     
     _numNodes = 0;

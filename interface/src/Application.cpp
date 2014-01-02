@@ -51,12 +51,12 @@
 #include "Application.h"
 #include "DataServerClient.h"
 #include "InterfaceVersion.h"
-#include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
 #include "Util.h"
 #include "devices/LeapManager.h"
 #include "devices/OculusManager.h"
+#include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
@@ -88,7 +88,7 @@ const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
-    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
+    Application::getInstance()->getLogger()->addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -141,7 +141,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _logger(new FileLogger())
 {
     _applicationStartupTime = startup_time;
 
@@ -267,7 +268,8 @@ Application::~Application() {
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
-    
+
+    delete _logger;
     delete _settings;
     delete _followMode;
     delete _glWidget;
@@ -439,7 +441,10 @@ void Application::paintGL() {
 
     if (OculusManager::isConnected()) {
         OculusManager::display(whichCamera);
-        
+    } else if (TV3DManager::isConnected()) {
+        _glowEffect.prepare(); 
+        TV3DManager::display(whichCamera);
+        _glowEffect.render();
     } else {
         _glowEffect.prepare(); 
         
@@ -474,8 +479,10 @@ void Application::paintGL() {
             _mirrorCamera.update(1.0f/_fps);
             
             // set the bounds of rear mirror view
-            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
-            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
+            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
+            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
             bool updateViewFrustum = false;
             updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
             glEnable(GL_SCISSOR_TEST);
@@ -506,7 +513,6 @@ void Application::paintGL() {
                 // restore absolute translations
                 _myAvatar.getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
                 _myAvatar.getHead().getFaceModel().setTranslation(absoluteFaceTranslation);
-                
             } else {
                 displaySide(_mirrorCamera, true);
             }
@@ -531,7 +537,8 @@ void Application::paintGL() {
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera, width, height);
-        
+    } else if (TV3DManager::isConnected()) {
+        TV3DManager::configureCamera(camera, width, height);
     } else {
         camera.setAspectRatio((float)width / height);
         camera.setFieldOfView(Menu::getInstance()->getFieldOfView());
@@ -910,7 +917,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_J:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-                
+                    if (TV3DManager::isConnected()) {
+                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                    }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -920,6 +929,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_M:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
+                    if (TV3DManager::isConnected()) {
+                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                    }
                 
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
@@ -1346,7 +1358,7 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing 
     // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing 
     // details normally.
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "Application::idle()");
     
     timeval check;
@@ -1518,10 +1530,21 @@ void Application::shootParticle() {
     glm::vec3 velocity = lookingAt - position;
     glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
     float damping = DEFAULT_DAMPING * 0.01f;
-    QString updateScript("");
+    QString script(
+                 " function collisionWithVoxel(voxel) { " 
+                 "   print('collisionWithVoxel(voxel)... '); " 
+                 "   print('myID=' + Particle.getID() + '\\n'); " 
+                 "   var voxelColor = voxel.getColor();" 
+                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " 
+                 "   var myColor = Particle.getColor();" 
+                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " 
+                 "   Particle.setColor(voxelColor); " 
+                 " } " 
+                 " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
+
     
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color, 
-                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, updateScript);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, script);
                             
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -1824,6 +1847,13 @@ void Application::init() {
     
     OculusManager::connect();
     if (OculusManager::isConnected()) {
+        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
+                                  "trigger",
+                                  Qt::QueuedConnection);
+    }
+
+    TV3DManager::connect();
+    if (TV3DManager::isConnected()) {
         QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
                                   "trigger",
                                   Qt::QueuedConnection);
@@ -2415,7 +2445,7 @@ void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
-    if (!OculusManager::isConnected()) {        
+    if (!OculusManager::isConnected() && !TV3DManager::isConnected()) {        
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 _myCamera.setMode(CAMERA_MODE_MIRROR);
@@ -2665,7 +2695,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
         return;
     }
     
-    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool wantExtraDebugging = getLogger()->extraDebugging();
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
@@ -3349,11 +3379,6 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
         renderCoverageMap();
     }
-    
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
-        LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
-    }
 
     //  Show chat entry field
     if (_chatEntryOn) {
@@ -3800,7 +3825,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         return;
     }
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-        "Application::displaySide() ... Avatars...");
+        "Application::renderAvatars()");
 
     if (!selfAvatarOnly) {
         //  Render avatars of other nodes
@@ -4089,7 +4114,7 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
-    
+
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
@@ -4356,7 +4381,7 @@ void* Application::networkReceive(void* args) {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
                             
-                        bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+                        bool wantExtraDebugging = app->getLogger()->extraDebugging();
                         if (wantExtraDebugging && app->_incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
                             int numBytesPacketHeader = numBytesForPacketHeader(app->_incomingPacket);
                             unsigned char* dataAt = app->_incomingPacket + numBytesPacketHeader;
@@ -4459,8 +4484,8 @@ void Application::loadScript() {
     
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
-    scriptEngine->getVoxelScriptingInterface()->setPacketSender(&_voxelEditSender);
-    scriptEngine->getParticleScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 
     QThread* workerThread = new QThread(this);
 
@@ -4485,7 +4510,7 @@ void Application::loadScript() {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget);
+        _logDialog = new LogDialog(_glWidget, getLogger());
         _logDialog->show();
     } else {
         _logDialog->close();

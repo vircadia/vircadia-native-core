@@ -178,12 +178,12 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
+    const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString ExportVoxels = "Export Voxels";
-    const QString ExtraDebugging = "Extra Debugging";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";

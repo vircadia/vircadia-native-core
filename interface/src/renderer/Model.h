@@ -63,7 +63,7 @@ public:
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
     
-    /// Returns the index of the last free ancestor or the indexed joint, or -1 if not found.
+    /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
     
     /// Returns the position of the head joint.
@@ -95,7 +95,11 @@ public:
     /// \return whether or not the left hand joint was found
     bool setLeftHandRotation(const glm::quat& rotation);
     
-    /// Returns the extended length from the left hand to its first free ancestor.
+    /// Gets the position of the left shoulder.
+    /// \return whether or not the left shoulder joint was found
+    bool getLeftShoulderPosition(glm::vec3& position) const;
+    
+    /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
     
     /// Sets the position of the right hand using inverse kinematics.
@@ -110,6 +114,10 @@ public:
     /// Sets the rotation of the right hand.
     /// \return whether or not the right hand joint was found
     bool setRightHandRotation(const glm::quat& rotation);
+    
+    /// Gets the position of the right shoulder.
+    /// \return whether or not the right shoulder joint was found
+    bool getRightShoulderPosition(glm::vec3& position) const;
     
     /// Returns the extended length from the right hand to its first free ancestor.
     float getRightArmLength() const;
