@@ -2,7 +2,7 @@
 //  AudioInjector.h
 //  hifi
 //
-//  Created by Stephen Birarda on 12/19/2013.
+//  Created by Stephen Birarda on 1/2/2014.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
@@ -11,22 +11,15 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QThread>
-#include <QtCore/QUrl>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-class AbstractAudioInterface;
-class QNetworkReply;
-
-const uchar MAX_INJECTOR_VOLUME = 0xFF;
+#include "Sound.h"
 
 class AudioInjector : public QObject {
-    Q_OBJECT
 public:
-    AudioInjector(const QUrl& sampleURL);
-    
-    int size() const { return _sampleByteArray.size(); }
+    AudioInjector(Sound* sound);
     
     void setPosition(const glm::vec3& position) { _position = position; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
@@ -34,20 +27,14 @@ public:
     void setShouldLoopback(bool shouldLoopback) { _shouldLoopback = shouldLoopback; }
 public slots:
     void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
-    
 private:
-    QByteArray _sampleByteArray;
-    int _currentSendPosition;
     QThread _thread;
-    QUrl _sourceURL;
-    glm::vec3 _position;
-    glm::quat _orientation;
+    Sound* _sound;
     float _volume;
     uchar _shouldLoopback;
-    
+    glm::vec3 _position;
+    glm::quat _orientation;
 private slots:
-    void startDownload();
-    void replyFinished(QNetworkReply* reply);
     void injectAudio(AbstractAudioInterface* localAudioInterface);
 };
 
