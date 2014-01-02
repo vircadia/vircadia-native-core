@@ -22,7 +22,6 @@
 #include <ParticleEditHandle.h>
 
 #include "InterfaceConfig.h"
-#include "ParticleSystem.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "VoxelSystem.h"
