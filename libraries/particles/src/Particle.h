@@ -19,6 +19,10 @@
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
+class VoxelsScriptingInterface;
+class ParticlesScriptingInterface;
+
+
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 
@@ -79,7 +83,7 @@ public:
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
-    QString getUpdateScript() const { return _updateScript; }
+    QString getScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
 
@@ -96,7 +100,7 @@ public:
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
-    void setUpdateScript(QString updateScript) { _updateScript = updateScript; }
+    void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
     
     bool appendParticleData(OctreePacketData* packetData) const;
@@ -110,14 +114,28 @@ public:
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
     void update();
+    void collisionWithParticle(Particle* other);
+    void collisionWithVoxel(VoxelDetail* voxel);
 
     void debugDump() const;
     
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const Particle& other);
     
+    static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return _voxelsScriptingInterface; }
+    static ParticlesScriptingInterface* getParticlesScriptingInterface() { return _particlesScriptingInterface; }
+
+    static void setVoxelsScriptingInterface(VoxelsScriptingInterface* interface) 
+                    { _voxelsScriptingInterface = interface; }
+                    
+    static void setParticlesScriptingInterface(ParticlesScriptingInterface* interface) 
+                    { _particlesScriptingInterface = interface; }
+    
 protected:
-    void runScript();
+    static VoxelsScriptingInterface* _voxelsScriptingInterface;
+    static ParticlesScriptingInterface* _particlesScriptingInterface;
+
+    void runUpdateScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
     static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
     static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
@@ -134,7 +152,7 @@ protected:
     bool _shouldDie;
     glm::vec3 _gravity;
     float _damping;
-    QString _updateScript;
+    QString _script;
     bool _inHand;
 
     uint32_t _creatorTokenID;
@@ -152,7 +170,12 @@ class ParticleScriptObject  : public QObject {
 public:
     ParticleScriptObject(Particle* particle) { _particle = particle; }
 
+    void emitUpdate() { emit update(); }
+    void emitCollisionWithParticle(QObject* other) { emit collisionWithParticle(other); }
+    void emitCollisionWithVoxel(QObject* voxel) { emit collisionWithVoxel(voxel); }
+
 public slots:
+    unsigned int getID() const { return _particle->getID(); }
     glm::vec3 getPosition() const { return _particle->getPosition(); }
     glm::vec3 getVelocity() const { return _particle->getVelocity(); }
     xColor getColor() const { return _particle->getXColor(); }
@@ -169,6 +192,12 @@ public slots:
     void setColor(xColor value) { _particle->setColor(value); }
     void setRadius(float value) { _particle->setRadius(value); }
     void setShouldDie(bool value) { _particle->setShouldDie(value); }
+    void setScript(const QString& script) { _particle->setScript(script); }
+
+signals:
+    void update();
+    void collisionWithVoxel(QObject* voxel);
+    void collisionWithParticle(QObject* other);
 
 private:
     Particle* _particle;

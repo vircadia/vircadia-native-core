@@ -178,6 +178,7 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
+    const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString EchoServerAudio = "Echo Server Audio";
