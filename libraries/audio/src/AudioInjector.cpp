@@ -18,23 +18,20 @@
 
 int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
 
-AudioInjector::AudioInjector(Sound* sound, const glm::vec3 position, float volume,
-                             const glm::quat orientation, bool shouldLoopback,
-                             AbstractAudioInterface* loopbackAudioInterface) :
+AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions) :
     _sound(sound),
-    _volume(volume),
-    _shouldLoopback(shouldLoopback),
-    _position(position),
-    _orientation(orientation),
-    _loopbackAudioInterface(loopbackAudioInterface)
+    _volume(injectorOptions.volume),
+    _shouldLoopback(injectorOptions.shouldLoopback),
+    _position(injectorOptions.position),
+    _orientation(injectorOptions.orientation),
+    _loopbackAudioInterface(injectorOptions.loopbackAudioInterface)
 {
     // we want to live on our own thread
     moveToThread(&_thread);
 }
 
-void AudioInjector::threadSound(Sound* sound, const glm::vec3 position, float volume,
-                                const glm::quat orientation, bool shouldLoopback, AbstractAudioInterface* audioInterface) {
-    AudioInjector injector(sound, position, volume, orientation, shouldLoopback, audioInterface);
+void AudioInjector::threadSound(Sound* sound, AudioInjectorOptions injectorOptions) {
+    AudioInjector injector(sound, injectorOptions);
     
     // start injecting when the injector thread starts
     connect(&injector._thread, SIGNAL(started()), &injector, SLOT(injectAudio()));

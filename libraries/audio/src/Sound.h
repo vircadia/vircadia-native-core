@@ -14,6 +14,7 @@
 class QNetworkReply;
 
 class Sound : public QObject {
+    Q_OBJECT
 public:
     Sound(const QUrl& sampleURL);
     

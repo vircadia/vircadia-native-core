@@ -19,17 +19,26 @@
 
 class AbstractAudioInterface;
 
+struct AudioInjectorOptions {
+    AudioInjectorOptions() : position(glm::vec3(0.0f, 0.0f, 0.0f)),
+        volume(1.0f),
+        orientation(glm::quat()),
+        shouldLoopback(true),
+        loopbackAudioInterface(NULL) {};
+    
+    glm::vec3 position;
+    float volume;
+    const glm::quat orientation;
+    bool shouldLoopback;
+    AbstractAudioInterface* loopbackAudioInterface;
+};
+
 class AudioInjector : public QObject {
+    Q_OBJECT
 public:
-    static void threadSound(Sound* sound,
-                            const glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
-                            float volume = 1.0f,
-                            const glm::quat orientation = glm::quat(),
-                            bool shouldLoopback = true,
-                            AbstractAudioInterface* loopbackAudioInterface = NULL);
+    static void threadSound(Sound* sound, AudioInjectorOptions injectorOptions = AudioInjectorOptions());
 private:
-    AudioInjector(Sound* sound, const glm::vec3 position, float volume,
-                  const glm::quat orientation, bool shouldLoopback, AbstractAudioInterface* loopbackAudioInterface);
+    AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
     
     QThread _thread;
     Sound* _sound;
