@@ -458,9 +458,9 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     const bool wantDebug = false;
     if (wantDebug) {    
         qDebug("Particle::adjustEditPacketForClockSkew()...\n");
-        qDebug("     lastEditedInLocalTime: %llu\n", lastEditedInLocalTime);
-        qDebug("                 clockSkew: %d\n", clockSkew);
-        qDebug("    lastEditedInServerTime: %llu\n", lastEditedInServerTime);
+        qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime << "\n";
+        qDebug() << "                 clockSkew: " << clockSkew << "\n";
+        qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime << "\n";
     }
 }
 
@@ -481,14 +481,6 @@ void Particle::update() {
     bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
     setShouldDie(shouldDie);
     
-    const bool wantDebug = false;
-    if (wantDebug) {
-        printf("Particle::update()... timeElapsed: %f lifeTime:%f editedAgo:%f "
-            "isInHand:%s isStillMoveing:%s isReallyOld:%s shouldDie:%s\n", 
-            timeElapsed, getLifetime(), getEditedAgo(), debug::valueOf(isInHand), debug::valueOf(isStillMoving), 
-            debug::valueOf(isReallyOld), debug::valueOf(shouldDie));
-    }
-        
     runUpdateScript(); // allow the javascript to alter our state
     
     // If the ball is in hand, it doesn't move or have gravity effect it
