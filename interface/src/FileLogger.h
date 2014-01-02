@@ -10,6 +10,7 @@
 #define hifi_FileLogger_h
 
 #include "AbstractLoggerInterface.h"
+#include <QMutex>
 
 class FileLogger : public AbstractLoggerInterface {
     Q_OBJECT
