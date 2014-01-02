@@ -232,10 +232,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     
     const int NEW_BALL_BUTTON = BUTTON_3;
     
-    float trigger = palm.getTrigger();
     bool grabButtonPressed = ((palm.getControllerButtons() & BUTTON_FWD) ||
-                              (palm.getControllerButtons() & BUTTON_3) ||
-                              (trigger > 0.f));
+                              (palm.getControllerButtons() & BUTTON_3));
     
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
