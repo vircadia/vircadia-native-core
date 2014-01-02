@@ -127,12 +127,12 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             //printf(">>>>>>> caught... handID:%d particle ID:%d _toyBallInHand[handID] = true\n", handID, closestParticle->getID());
             _ballParticleEditHandles[handID] = caughtParticle;
             caughtParticle = NULL;
-            //  Play a catch sound!
+            
+            // set the position of the catch sound to the new position of the ball
             _catchInjector.setPosition(targetPosition);
             
             // inject the catch sound to the mixer and play it locally
             _catchInjector.injectViaThread(app->getAudio());
-            app->getAudio()->startDrumSound(1.0, 300, 0.75, 0.015);
         }
     }
     
