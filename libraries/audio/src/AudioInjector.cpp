@@ -18,36 +18,46 @@
 
 int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
 
-AudioInjector::AudioInjector(Sound* sound) :
+AudioInjector::AudioInjector(Sound* sound, const glm::vec3 position, float volume,
+                             const glm::quat orientation, bool shouldLoopback,
+                             AbstractAudioInterface* loopbackAudioInterface) :
     _sound(sound),
-    _volume(1.0f),
-    _shouldLoopback(true),
-    _position(0.0f, 0.0f, 0.0f),
-    _orientation()
+    _volume(volume),
+    _shouldLoopback(shouldLoopback),
+    _position(position),
+    _orientation(orientation),
+    _loopbackAudioInterface(loopbackAudioInterface)
 {
     // we want to live on our own thread
     moveToThread(&_thread);
-    connect(&_thread, SIGNAL(started()), this, SLOT(startDownload()));
-    _thread.start();
 }
 
-void AudioInjector::injectViaThread(AbstractAudioInterface* localAudioInterface) {
-    // use Qt::AutoConnection so that this is called on our thread, if appropriate
-    QMetaObject::invokeMethod(this, "injectAudio", Qt::AutoConnection, Q_ARG(AbstractAudioInterface*, localAudioInterface));
+void AudioInjector::threadSound(Sound* sound, const glm::vec3 position, float volume,
+                                const glm::quat orientation, bool shouldLoopback, AbstractAudioInterface* audioInterface) {
+    AudioInjector injector(sound, position, volume, orientation, shouldLoopback, audioInterface);
+    
+    // start injecting when the injector thread starts
+    connect(&injector._thread, SIGNAL(started()), &injector, SLOT(injectAudio()));
+    
+    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
+    connect(&injector, SIGNAL(finished()), &injector._thread, SLOT(quit()));
+    connect(&injector, SIGNAL(finished()), &injector, SLOT(deleteLater()));
+    
+    injector._thread.start();
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
+void AudioInjector::injectAudio() {
     
     QByteArray soundByteArray = _sound->getByteArray();
     
     // make sure we actually have samples downloaded to inject
     if (soundByteArray.size()) {
         // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (localAudioInterface) {
+        if (_loopbackAudioInterface) {
             // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(localAudioInterface, "handleAudioByteArray",
+            QMetaObject::invokeMethod(_loopbackAudioInterface, "handleAudioByteArray",
                                       Qt::AutoConnection,
                                       Q_ARG(QByteArray, soundByteArray));
             
@@ -137,6 +147,7 @@ void AudioInjector::injectAudio(AbstractAudioInterface* localAudioInterface) {
                 }
             }
         }
-        
     }
+    
+    emit finished();
 }

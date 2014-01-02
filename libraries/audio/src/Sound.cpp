@@ -24,6 +24,6 @@ Sound::Sound(const QUrl& sampleURL) {
 }
 
 void Sound::replyFinished(QNetworkReply* reply) {
-    // replace our samples array with the downloaded data
-    _sampleByteArray = reply->readAll();
+    // replace our byte array with the downloaded data
+    _byteArray = reply->readAll();
 }
