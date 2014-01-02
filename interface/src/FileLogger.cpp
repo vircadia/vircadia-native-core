@@ -15,6 +15,7 @@
 #include <QDesktopServices>
 
 FileLogger::FileLogger() : _logData(NULL) {
+    setExtraDebugging(false);
     _fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     QDir logDir(_fileName);
     if (!logDir.exists(_fileName)) {

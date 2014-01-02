@@ -28,7 +28,7 @@ signals:
     void logReceived(QString message);
 
 private:
-    bool _extraDebugging = false;
+    bool _extraDebugging;
 };
 
 #endif /* defined(__interface__AbstractLoggerInterface__) */
