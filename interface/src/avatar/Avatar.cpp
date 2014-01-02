@@ -190,10 +190,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
     
-
-    // if this is not my avatar, then hand position comes from transmitted data
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
-    
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));

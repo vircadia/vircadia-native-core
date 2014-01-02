@@ -751,14 +751,10 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
             glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
             const float ARM_RETRACTION = 0.75f;
             float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
-            _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = shoulderPosition +
-                glm::normalize(farVector) * retractedLength;
+            setHandPosition(shoulderPosition + glm::normalize(farVector) * retractedLength);
             pointing = true;    
         }
     }
-    
-    //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
-    setHandPosition(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
     
     if (_mousePressed) {
         _handState = HAND_STATE_GRASPING;
