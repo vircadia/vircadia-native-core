@@ -114,8 +114,8 @@ private:
     glm::quat _grabStartRotation;
     glm::quat _grabCurrentRotation;
     
-    AudioInjector _throwInjector;
-    AudioInjector _catchInjector;
+    Sound _throwSound;
+    Sound _catchSound;
 };
 
 #endif
