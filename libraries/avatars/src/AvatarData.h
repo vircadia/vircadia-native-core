@@ -41,6 +41,8 @@ enum KeyState
     DELETE_KEY_DOWN
 };
 
+const glm::vec3 vec3Zero(0.0f);
+
 class JointData;
 
 class AvatarData : public NodeData {
@@ -103,6 +105,17 @@ public:
 
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
+
+    virtual const glm::vec3& getVelocity() const { return vec3Zero; }
+
+    /// Checks for penetration between the described sphere and the avatar.
+    /// \param penetratorCenter the center of the penetration test sphere
+    /// \param penetratorRadius the radius of the penetration test sphere
+    /// \param penetration[out] the vector in which to store the penetration
+    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
+    /// \return whether or not the sphere penetrated
+    virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
+        glm::vec3& penetration, int skeletonSkipIndex = -1) { return false; }
     
 protected:
     QUuid _uuid;

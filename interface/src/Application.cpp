@@ -56,6 +56,7 @@
 #include "Util.h"
 #include "devices/LeapManager.h"
 #include "devices/OculusManager.h"
+#include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
@@ -440,7 +441,10 @@ void Application::paintGL() {
 
     if (OculusManager::isConnected()) {
         OculusManager::display(whichCamera);
-        
+    } else if (TV3DManager::isConnected()) {
+        _glowEffect.prepare(); 
+        TV3DManager::display(whichCamera);
+        _glowEffect.render();
     } else {
         _glowEffect.prepare(); 
         
@@ -475,8 +479,10 @@ void Application::paintGL() {
             _mirrorCamera.update(1.0f/_fps);
             
             // set the bounds of rear mirror view
-            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
-            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
+            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
+            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), 
+                        _mirrorViewRect.width(), _mirrorViewRect.height());
             bool updateViewFrustum = false;
             updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
             glEnable(GL_SCISSOR_TEST);
@@ -507,7 +513,6 @@ void Application::paintGL() {
                 // restore absolute translations
                 _myAvatar.getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
                 _myAvatar.getHead().getFaceModel().setTranslation(absoluteFaceTranslation);
-                
             } else {
                 displaySide(_mirrorCamera, true);
             }
@@ -532,7 +537,8 @@ void Application::paintGL() {
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera, width, height);
-        
+    } else if (TV3DManager::isConnected()) {
+        TV3DManager::configureCamera(camera, width, height);
     } else {
         camera.setAspectRatio((float)width / height);
         camera.setFieldOfView(Menu::getInstance()->getFieldOfView());
@@ -911,7 +917,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_J:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-                
+                    if (TV3DManager::isConnected()) {
+                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                    }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -921,6 +929,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_M:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
+                    if (TV3DManager::isConnected()) {
+                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                    }
                 
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
@@ -1840,6 +1851,13 @@ void Application::init() {
                                   "trigger",
                                   Qt::QueuedConnection);
     }
+
+    TV3DManager::connect();
+    if (TV3DManager::isConnected()) {
+        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
+                                  "trigger",
+                                  Qt::QueuedConnection);
+    }
     
     LeapManager::initialize();
     
@@ -2427,7 +2445,7 @@ void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
-    if (!OculusManager::isConnected()) {        
+    if (!OculusManager::isConnected() && !TV3DManager::isConnected()) {        
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 _myCamera.setMode(CAMERA_MODE_MIRROR);
@@ -3807,7 +3825,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         return;
     }
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-        "Application::displaySide() ... Avatars...");
+        "Application::renderAvatars()");
 
     if (!selfAvatarOnly) {
         //  Render avatars of other nodes
@@ -4096,7 +4114,7 @@ void Application::resetSensors() {
     if (OculusManager::isConnected()) {
         OculusManager::reset();
     }
-    
+
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

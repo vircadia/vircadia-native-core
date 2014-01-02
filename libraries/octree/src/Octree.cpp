@@ -572,7 +572,7 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElement*& node, float& distance, BoxFace& face) {
-    RayArgs args = { origin / (float)TREE_SCALE, direction, node, distance, face };
+    RayArgs args = { origin / static_cast<float>(TREE_SCALE), direction, node, distance, face };
     recurseTreeWithOperation(findRayIntersectionOp, &args);
     return args.found;
 }
@@ -600,7 +600,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
-            args->penetration = addPenetrations(args->penetration, elementPenetration * (float)TREE_SCALE);
+            args->penetration = addPenetrations(args->penetration, elementPenetration * static_cast<float>(TREE_SCALE));
             args->found = true;
         }
     }
@@ -610,7 +610,12 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
                     void** penetratedObject) {
                     
-    SphereArgs args = { center / (float)TREE_SCALE, radius / TREE_SCALE, penetration, false, NULL };
+    SphereArgs args = { 
+        center / static_cast<float>(TREE_SCALE), 
+        radius / static_cast<float>(TREE_SCALE), 
+        penetration, 
+        false, 
+        NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     recurseTreeWithOperation(findSpherePenetrationOp, &args);
     if (penetratedObject) {
@@ -642,7 +647,7 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     if (node->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
-            args->penetration = addPenetrations(args->penetration, nodePenetration * (float)TREE_SCALE);
+            args->penetration = addPenetrations(args->penetration, nodePenetration * static_cast<float>(TREE_SCALE));
             args->found = true;
         }
     }
@@ -650,7 +655,11 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    CapsuleArgs args = { start / (float)TREE_SCALE, end / (float)TREE_SCALE, radius / TREE_SCALE, penetration };
+    CapsuleArgs args = { 
+        start / static_cast<float>(TREE_SCALE), 
+        end / static_cast<float>(TREE_SCALE), 
+        radius / static_cast<float>(TREE_SCALE), 
+        penetration };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
     return args.found;
@@ -719,8 +728,8 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
 
-    // if includeColor and childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some reason
-    // couldn't be written... so reset them here... This isn't true for the non-color included case
+    // if includeColor and childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some 
+    // reason couldn't be written... so reset them here... This isn't true for the non-color included case
     if (params.includeColor && childBytesWritten == 2) {
         childBytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
@@ -887,9 +896,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
 
     // At any given point in writing the bitstream, the largest minimum we might need to flesh out the current level
-    // is 1 byte for child colors + 3*NUMBER_OF_CHILDREN bytes for the actual colors + 1 byte for child trees. There could be sub trees
-    // below this point, which might take many more bytes, but that's ok, because we can always mark our subtrees as
-    // not existing and stop the packet at this point, then start up with a new packet for the remaining sub trees.
+    // is 1 byte for child colors + 3*NUMBER_OF_CHILDREN bytes for the actual colors + 1 byte for child trees. 
+    // There could be sub trees below this point, which might take many more bytes, but that's ok, because we can 
+    // always mark our subtrees as not existing and stop the packet at this point, then start up with a new packet 
+    // for the remaining sub trees.
     unsigned char childrenExistInTreeBits = 0;
     unsigned char childrenExistInPacketBits = 0;
     unsigned char childrenColoredBits = 0;
@@ -943,7 +953,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
         if (params.stats && childNode) {
             params.stats->traversed(childNode);
         }
-    
     }
 
     // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
@@ -1066,7 +1075,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
                                 params.stats->skippedNoChange(childNode);
                             }
                         }
-                        
                     }
                 }
             }

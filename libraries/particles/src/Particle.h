@@ -79,8 +79,8 @@ public:
     uint64_t getLastEdited() const { return _lastEdited; }
 
     /// lifetime of the particle in seconds
-    float getLifetime() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    float getEditedAgo() const { return (float)(usecTimestampNow() - _lastEdited) / (float)USECS_PER_SECOND; }
+    float getLifetime() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
+    float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
     bool getShouldDie() const { return _shouldDie; }
     QString getScript() const { return _script; }

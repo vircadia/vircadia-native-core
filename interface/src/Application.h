@@ -256,7 +256,6 @@ private slots:
     void shrinkMirrorView();
     void resetSensors();
 
-
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
