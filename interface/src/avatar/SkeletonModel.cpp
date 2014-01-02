@@ -42,7 +42,7 @@ void SkeletonModel::simulate(float deltaTime) {
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE);
         } else {
-            setRightHandPosition(_owningAvatar->getHandPosition());
+            applyHandPosition(geometry.rightHandJointIndex, _owningAvatar->getHandPosition());
         }
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
     
@@ -123,6 +123,29 @@ public:
 
 bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
+}
+
+void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position) {
+    if (jointIndex == -1) {
+        return;
+    }
+    setJointPosition(jointIndex, position);
+    
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    glm::vec3 handPosition, elbowPosition;
+    getJointPosition(jointIndex, handPosition);
+    getJointPosition(geometry.joints.at(jointIndex).parentIndex, elbowPosition);
+    glm::vec3 forearmVector = handPosition - elbowPosition;
+    float forearmLength = glm::length(forearmVector);
+    if (forearmLength < EPSILON) {
+        return;
+    }
+    glm::quat handRotation;
+    getJointRotation(jointIndex, handRotation, true);
+    
+    // align hand with forearm
+    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    applyRotationDelta(jointIndex, rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector), false);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
