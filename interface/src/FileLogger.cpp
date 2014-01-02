@@ -14,7 +14,7 @@
 #include <QDir>
 #include <QDesktopServices>
 
-FileLogger::FileLogger() : _logData(NULL), _mutex() {
+FileLogger::FileLogger() : _logData(NULL) {
     setExtraDebugging(false);
     _fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     QDir logDir(_fileName);
@@ -28,7 +28,7 @@ FileLogger::FileLogger() : _logData(NULL), _mutex() {
 }
 
 void FileLogger::addMessage(QString message) {
-    _mutex.lock();
+    QMutexLocker locker(&_mutex);
     emit logReceived(message);
     _logData.append(message);
 
@@ -37,7 +37,6 @@ void FileLogger::addMessage(QString message) {
         QTextStream out(&file);
         out <<  message;
     }
-    _mutex.unlock();
 }
 
 void FileLogger::locateLog() {
