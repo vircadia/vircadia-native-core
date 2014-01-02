@@ -119,8 +119,8 @@ private:
     glm::quat _grabStartRotation;
     glm::quat _grabCurrentRotation;
     
-    AudioInjector _throwInjector;
-    AudioInjector _catchInjector;
+    Sound _throwSound;
+    Sound _catchSound;
     
     glm::vec3 _bballPosition[NUM_BBALLS];
     glm::vec3 _bballVelocity[NUM_BBALLS];

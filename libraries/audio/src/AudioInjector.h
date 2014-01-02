@@ -2,7 +2,7 @@
 //  AudioInjector.h
 //  hifi
 //
-//  Created by Stephen Birarda on 12/19/2013.
+//  Created by Stephen Birarda on 1/2/2014.
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
@@ -11,44 +11,46 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QThread>
-#include <QtCore/QUrl>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-class AbstractAudioInterface;
-class QNetworkReply;
+#include "Sound.h"
 
-const uchar MAX_INJECTOR_VOLUME = 0xFF;
+class AbstractAudioInterface;
+
+struct AudioInjectorOptions {
+    AudioInjectorOptions() : position(glm::vec3(0.0f, 0.0f, 0.0f)),
+        volume(1.0f),
+        orientation(glm::quat()),
+        shouldLoopback(true),
+        loopbackAudioInterface(NULL) {};
+    
+    glm::vec3 position;
+    float volume;
+    const glm::quat orientation;
+    bool shouldLoopback;
+    AbstractAudioInterface* loopbackAudioInterface;
+};
 
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
-    AudioInjector(const QUrl& sampleURL);
-    
-    int size() const { return _sampleByteArray.size(); }
-    
-    void setPosition(const glm::vec3& position) { _position = position; }
-    void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
-    void setVolume(float volume) { _volume = std::max(fabsf(volume), 1.0f); }
-    void setShouldLoopback(bool shouldLoopback) { _shouldLoopback = shouldLoopback; }
-public slots:
-    void injectViaThread(AbstractAudioInterface* localAudioInterface = NULL);
-    
+    static void threadSound(Sound* sound, AudioInjectorOptions injectorOptions = AudioInjectorOptions());
 private:
-    QByteArray _sampleByteArray;
-    int _currentSendPosition;
-    QThread _thread;
-    QUrl _sourceURL;
-    glm::vec3 _position;
-    glm::quat _orientation;
+    AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
+    
+    QThread* _thread;
+    Sound* _sound;
     float _volume;
     uchar _shouldLoopback;
-    
+    glm::vec3 _position;
+    glm::quat _orientation;
+    AbstractAudioInterface* _loopbackAudioInterface;
 private slots:
-    void startDownload();
-    void replyFinished(QNetworkReply* reply);
-    void injectAudio(AbstractAudioInterface* localAudioInterface);
+    void injectAudio();
+signals:
+    void finished();
 };
 
 #endif /* defined(__hifi__AudioInjector__) */

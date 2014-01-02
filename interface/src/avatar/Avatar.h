@@ -227,8 +227,6 @@ protected:
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    bool updateLeapHandPositions();
-    void updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID);
     void setScale(const float scale);
 
 
@@ -249,7 +247,6 @@ private:
     void renderBody(bool forceRenderHead);
     void initializeBodyBalls();
     void resetBodyBalls();
-    void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
 };
 
 #endif

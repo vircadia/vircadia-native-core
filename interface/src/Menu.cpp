@@ -232,6 +232,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0, false);
+    
     
     QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
     
@@ -497,8 +499,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
 
-
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel, 
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V, 
                 this,

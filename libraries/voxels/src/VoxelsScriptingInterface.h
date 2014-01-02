@@ -63,7 +63,7 @@ public:
 
 public slots:
     glm::vec3 getPosition() const { return glm::vec3(_voxelDetail->x, _voxelDetail->y, _voxelDetail->z); }
-    xColor getColor() const { return { _voxelDetail->red, _voxelDetail->green, _voxelDetail->blue }; }
+    xColor getColor() const { xColor color = { _voxelDetail->red, _voxelDetail->green, _voxelDetail->blue }; return color; }
     float getScale() const { return _voxelDetail->s; }
 
 private:
