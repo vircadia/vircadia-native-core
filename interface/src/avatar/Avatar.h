@@ -15,7 +15,6 @@
 
 #include <AvatarData.h>
 
-#include "Balls.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -58,8 +57,8 @@ const float BODY_BALL_RADIUS_RIGHT_TOES = 0.025;
 
 extern const bool usingBigSphereCollisionTest;
 
-extern const float chatMessageScale;
-extern const float chatMessageHeight;
+extern const float CHAT_MESSAGE_SCALE;
+extern const float CHAT_MESSAGE_HEIGHT;
 
 enum AvatarBodyBallID {
 	BODY_BALL_NULL = -1,
@@ -214,7 +213,6 @@ protected:
     float _pelvisToHeadLength;
     float _scale;
     float _height;
-    Balls* _balls;
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;

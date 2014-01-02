@@ -73,11 +73,17 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
-    if (_voxels->findSpherePenetration(center, radius, penetration)) {
+    VoxelDetail* voxelDetails = NULL;
+    if (_voxels->findSpherePenetration(center, radius, penetration, (void**)&voxelDetails)) {
+
+        // let the particles run their collision scripts if they have them
+        particle->collisionWithVoxel(voxelDetails);
+
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
-        //qDebug("voxel collision\n");
         applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+        
+        delete voxelDetails; // cleanup returned details
     }
 }
 
@@ -90,6 +96,11 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
     glm::vec3 penetration;
     Particle* penetratedParticle;
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&penetratedParticle)) {
+    
+        // let the particles run their collision scripts if they have them
+        particle->collisionWithParticle(penetratedParticle);
+        penetratedParticle->collisionWithParticle(particle);
+
         penetration /= (float)TREE_SCALE;
         updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
         // apply a hard collision to both particles of half the penetration each
@@ -222,7 +233,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getUpdateScript());
+                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getScript());
 }
 
 
