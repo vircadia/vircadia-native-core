@@ -133,12 +133,17 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     if (_selfAvatar) {
         AvatarData* avatar = (AvatarData*)_selfAvatar;
         //printf("updateCollisionWithAvatars()..._selfAvatar=%p\n", avatar);
-        
+
         // check hands...
         const HandData* handData = avatar->getHandData();
 
-        // if the particle penetrates the hand, then apply a hard collision
+        // TODO: combine hand and collision check into one.  Note: would need to supply
+        // CollisionInfo class rather than just vec3 (penetration) so we can get back
+        // added velocity.
+
         if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
+            // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
+            // apply a hard collision when ball collides with hand
             penetration /= (float)TREE_SCALE;
             updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
     
@@ -151,6 +156,12 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             }
 
             applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
+        } else if (avatar->findSpherePenetration(center, radius, penetration)) {
+            // apply hard collision when particle collides with avatar
+            penetration /= (float)TREE_SCALE;
+            updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+            glm::vec3 addedVelocity = avatar->getVelocity();
+            applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
         }
     }
 
@@ -159,14 +170,15 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
             AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
             //printf("updateCollisionWithAvatars()...avatar=%p\n", avatar);
             
             // check hands...
             const HandData* handData = avatar->getHandData();
 
-            // if the particle penetrates the hand, then apply a hard collision
             if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
+                // apply a hard collision when ball collides with hand
                 penetration /= (float)TREE_SCALE;
                 updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
 
@@ -180,6 +192,11 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
                 applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
 
+            } else if (avatar->findSpherePenetration(center, radius, penetration)) {
+                penetration /= (float)TREE_SCALE;
+                updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+                glm::vec3 addedVelocity = avatar->getVelocity();
+                applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
             }
         }
     }
