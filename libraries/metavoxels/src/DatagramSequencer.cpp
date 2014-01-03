@@ -140,6 +140,9 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
         _receiveRecords.erase(_receiveRecords.begin(), it + 1);
     }
     _outputStream.persistWriteMappings(record.mappings);
+    
+    // notify any listeners
+    emit sendAcknowledged(record.packetNumber);
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {

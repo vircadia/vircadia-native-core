@@ -194,7 +194,7 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
 
 void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
-    ClientStateMessage state = { glm::vec3(0.5f, 0.5f, 1.0f) };
+    ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
 }

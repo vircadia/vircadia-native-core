@@ -10,6 +10,7 @@
 #define __hifi__MetavoxelServer__
 
 #include <QHash>
+#include <QList>
 #include <QTimer>
 #include <QUuid>
 
@@ -35,11 +36,18 @@ public:
     
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 
+private slots:
+    
+    void sendDeltas();    
+    
 private:
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
     MetavoxelData _data;
+    
+    QTimer _sendTimer;
+    qint64 _lastSend;
     
     QHash<QUuid, MetavoxelSession*> _sessions;
 };
@@ -54,6 +62,8 @@ public:
 
     void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
+    void sendDelta();
+
 private slots:
 
     void timedOut();
@@ -62,7 +72,16 @@ private slots:
 
     void readPacket(Bitstream& in);    
     
+    void clearSendRecordsBefore(int packetNumber);
+    
 private:
+    
+    void handleMessage(const QVariant& message);
+    
+    class SendRecord {
+    public:
+        int packetNumber;
+    };
     
     MetavoxelServer* _server;
     QUuid _sessionId;
@@ -71,6 +90,10 @@ private:
     DatagramSequencer _sequencer;
     
     HifiSockAddr _sender;
+    
+    glm::vec3 _position;
+    
+    QList<SendRecord> _sendRecords;
 };
 
 #endif /* defined(__hifi__MetavoxelServer__) */

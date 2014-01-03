@@ -25,6 +25,9 @@ public:
     
     DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
     
+    /// Returns the packet number of the last packet sent.
+    int getOutgoingPacketNumber() const { return _outgoingPacketNumber; }
+    
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
     Bitstream& startPacket();
@@ -43,6 +46,9 @@ signals:
     
     /// Emitted when a packet is available to read.
     void readyToRead(Bitstream& input);
+    
+    /// Emitted when a sent packet has been acknowledged by the remote side. 
+    void sendAcknowledged(int packetNumber);
     
 private:
     
