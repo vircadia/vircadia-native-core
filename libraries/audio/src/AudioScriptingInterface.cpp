@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <QtCore/qdebug.h>
-
 #include "AudioScriptingInterface.h"
 
 void AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {

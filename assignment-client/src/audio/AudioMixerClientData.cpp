@@ -9,8 +9,6 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-#include <QDebug>
-
 #include "InjectedAudioRingBuffer.h"
 
 #include "AudioMixerClientData.h"
