@@ -17,7 +17,6 @@
 
 using namespace std;
 
-const bool  USING_PHYSICAL_MOHAWK    =  true;
 const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
@@ -73,7 +72,6 @@ Head::Head(Avatar* owningAvatar) :
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
-    _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -86,9 +84,7 @@ Head::Head(Avatar* owningAvatar) :
     _videoFace(this),
     _faceModel(this)
 {
-    if (USING_PHYSICAL_MOHAWK) {    
-        resetHairPhysics();
-    }
+  
 }
 
 void Head::init() {
@@ -111,29 +107,10 @@ void Head::reset() {
     _yaw = _pitch = _roll = 0.0f;
     _mousePitch = 0.0f;
     _leanForward = _leanSideways = 0.0f;
-    
-    if (USING_PHYSICAL_MOHAWK) {
-        resetHairPhysics();
-    }
-    
     _faceModel.reset();
 }
 
-void Head::resetHairPhysics() {
-    for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
-            _hairTuft[t].setSpringForce  (HAIR_SPRING_FORCE);
-            _hairTuft[t].setTorqueForce  (HAIR_TORQUE_FORCE);
-            _hairTuft[t].setGravityForce (HAIR_GRAVITY_FORCE * _gravity);
-            _hairTuft[t].setDrag         (HAIR_DRAG);
-            _hairTuft[t].setLength       (_scale * HAIR_LENGTH   );
-            _hairTuft[t].setThickness    (_scale * HAIR_THICKNESS);
-            _hairTuft[t].setBaseDirection(getUpDirection());
-            _hairTuft[t].reset();
-        }
-    }
-}
 
 
 void Head::simulate(float deltaTime, bool isMine) {
@@ -240,11 +217,6 @@ void Head::simulate(float deltaTime, bool isMine) {
             glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
-    // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
-    if (USING_PHYSICAL_MOHAWK) {
-        updateHairPhysics(deltaTime);
-    }
-    
     _faceModel.simulate(deltaTime);
     
     calculateGeometry();
@@ -304,7 +276,6 @@ void Head::render(float alpha, bool renderAvatarBalls) {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
         
-        renderMohawk();
         renderHeadSphere();
         renderEyeBalls();
         renderEars();
@@ -326,16 +297,6 @@ void Head::setScale (float scale) {
         return;
     }
     _scale = scale;
-
-    createMohawk();
-
-    if (USING_PHYSICAL_MOHAWK) {
-        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-    
-            _hairTuft[t].setLength   (_scale * HAIR_LENGTH   );
-            _hairTuft[t].setThickness(_scale * HAIR_THICKNESS);
-        }
-    }
 }
 
 void Head::setMousePitch(float mousePitch) {
@@ -343,79 +304,7 @@ void Head::setMousePitch(float mousePitch) {
     _mousePitch = glm::clamp(mousePitch, -MAX_PITCH, MAX_PITCH);
 }
 
-void Head::createMohawk() {
-    srand(time(NULL));
-    float height = _scale * (0.08f + randFloat() * 0.05f);
-    float variance = 0.03 + randFloat() * 0.03f;
-    const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
-    _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
-    glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
-    _mohawkColors[0] = basicColor;
-    
-    for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
-        _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
-                                           height * cosf(i * RAD_PER_TRIANGLE - PIf / 2.f)
-                                           + (randFloat()  - 0.5f) * variance,
-                                           height * sinf(i * RAD_PER_TRIANGLE - PIf / 2.f)
-                                           + (randFloat() - 0.5f) * variance);
-        _mohawkColors[i] = randFloat() * basicColor;
 
-    }
-}
-
-void Head::renderMohawk() {
-    
-    if (!_mohawkInitialized) {
-        createMohawk();
-        _mohawkInitialized = true;
-    }
-    
-    if (USING_PHYSICAL_MOHAWK) {
-        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-
-            glm::vec3 baseAxis   = _hairTuft[t].getMidPosition() - _hairTuft[t].getBasePosition();
-            glm::vec3 midAxis    = _hairTuft[t].getEndPosition() - _hairTuft[t].getMidPosition();
-            glm::vec3 viewVector = _hairTuft[t].getBasePosition() - Application::getInstance()->getCamera()->getPosition();
-            
-            glm::vec3 basePerpendicular = glm::normalize(glm::cross(baseAxis, viewVector));
-            glm::vec3 midPerpendicular  = glm::normalize(glm::cross(midAxis,  viewVector));
-
-            glm::vec3 base1 = _hairTuft[t].getBasePosition() - basePerpendicular * _hairTuft[t].getThickness() * ONE_HALF;
-            glm::vec3 base2 = _hairTuft[t].getBasePosition() + basePerpendicular * _hairTuft[t].getThickness() * ONE_HALF;
-            glm::vec3 mid1  = _hairTuft[t].getMidPosition()  - midPerpendicular  * _hairTuft[t].getThickness() * ONE_HALF * ONE_HALF;
-            glm::vec3 mid2  = _hairTuft[t].getMidPosition()  + midPerpendicular  * _hairTuft[t].getThickness() * ONE_HALF * ONE_HALF;
-            
-            glColor3f(_mohawkColors[t].x, _mohawkColors[t].y, _mohawkColors[t].z);
-
-            glBegin(GL_TRIANGLES);             
-            glVertex3f(base1.x,  base1.y,  base1.z ); 
-            glVertex3f(base2.x,  base2.y,  base2.z ); 
-            glVertex3f(mid1.x,   mid1.y,   mid1.z  ); 
-            glVertex3f(base2.x,  base2.y,  base2.z ); 
-            glVertex3f(mid1.x,   mid1.y,   mid1.z  ); 
-            glVertex3f(mid2.x,   mid2.y,   mid2.z  ); 
-            glVertex3f(mid1.x,   mid1.y,   mid1.z  ); 
-            glVertex3f(mid2.x,   mid2.y,   mid2.z  ); 
-            glVertex3f(_hairTuft[t].getEndPosition().x, _hairTuft[t].getEndPosition().y, _hairTuft[t].getEndPosition().z  ); 
-            glEnd();
-        }
-    } else {
-        glPushMatrix();
-        glTranslatef(_position.x, _position.y, _position.z);
-        glRotatef(_bodyRotation.y + _yaw, 0, 1, 0);
-        glRotatef(-_roll, 0, 0, 1);
-        glRotatef(-_pitch - _bodyRotation.x, 1, 0, 0);
-       
-        glBegin(GL_TRIANGLE_FAN);
-        for (int i = 0; i < MOHAWK_TRIANGLES; i++) {
-            glColor3f(_mohawkColors[i].x, _mohawkColors[i].y, _mohawkColors[i].z);
-            glVertex3fv(&_mohawkTriangleFan[i].x);
-            glNormal3fv(&_mohawkColors[i].x);
-        }
-        glEnd();
-        glPopMatrix();
-    } 
-}
 
 glm::quat Head::getOrientation() const {
     return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
@@ -750,19 +639,4 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     Application::getInstance()->getGlowEffect()->end();
 }
 
-void Head::updateHairPhysics(float deltaTime) {
-
-    glm::quat orientation = getOrientation();
-    glm::vec3 up    = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-        float fraction = (float)t / (float)(NUM_HAIR_TUFTS - 1);
-        float angle = -20.0f + 40.0f * fraction;
-        float radian = angle * PI_OVER_180;
-        glm::vec3 baseDirection = front * sinf(radian) + up * cosf(radian);
-        _hairTuft[t].setBasePosition (_position + _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f * baseDirection);
-        _hairTuft[t].setBaseDirection(baseDirection);
-        _hairTuft[t].update(deltaTime);     
-    }
-}
 
