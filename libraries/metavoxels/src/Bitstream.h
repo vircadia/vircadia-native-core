@@ -231,8 +231,8 @@ public:
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
     
-    Bitstream& operator<<(const QVariantList& value);
-    Bitstream& operator>>(QVariantList& value);
+    template<class T> Bitstream& operator<<(const QList<T>& list);
+    template<class T> Bitstream& operator>>(QList<T>& list);
     
     Bitstream& operator<<(const QObject* object);
     Bitstream& operator>>(QObject*& object);
@@ -259,6 +259,27 @@ private:
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
 };
+
+template<class T> inline Bitstream& Bitstream::operator<<(const QList<T>& list) {
+    *this << list.size();
+    foreach (const T& entry, list) {
+        *this << entry;
+    }
+    return *this;
+}
+
+template<class T> inline Bitstream& Bitstream::operator>>(QList<T>& list) {
+    int size;
+    *this >> size;
+    list.clear();
+    list.reserve(size);
+    for (int i = 0; i < size; i++) {
+        T entry;
+        *this >> entry;
+        list.append(entry);
+    }
+    return *this;
+}
 
 /// Macro for registering streamable meta-objects.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);

@@ -72,7 +72,7 @@ private slots:
 
     void readPacket(Bitstream& in);    
     
-    void clearSendRecordsBefore(int packetNumber);
+    void clearSendRecordsBefore(int index);
     
 private:
     
@@ -81,6 +81,7 @@ private:
     class SendRecord {
     public:
         int packetNumber;
+        MetavoxelData data;
     };
     
     MetavoxelServer* _server;

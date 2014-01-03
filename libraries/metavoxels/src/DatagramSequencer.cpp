@@ -119,6 +119,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         }
         QList<SendRecord>::iterator it = _sendRecords.begin() + index;
         sendRecordAcknowledged(*it);
+        emit sendAcknowledged(index);
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
@@ -137,12 +138,10 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     QList<ReceiveRecord>::iterator it = qBinaryFind(_receiveRecords.begin(), _receiveRecords.end(), compare);
     if (it != _receiveRecords.end()) {
         _inputStream.persistReadMappings(it->mappings);
+        emit receiveAcknowledged(it - _receiveRecords.begin());
         _receiveRecords.erase(_receiveRecords.begin(), it + 1);
     }
     _outputStream.persistWriteMappings(record.mappings);
-    
-    // notify any listeners
-    emit sendAcknowledged(record.packetNumber);
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {

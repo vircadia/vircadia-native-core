@@ -9,6 +9,7 @@
 #ifndef __interface__MetavoxelSystem__
 #define __interface__MetavoxelSystem__
 
+#include <QList>
 #include <QOpenGLBuffer>
 #include <QScriptEngine>
 #include <QVector>
@@ -98,12 +99,24 @@ private slots:
 
     void readPacket(Bitstream& in);
     
+    void clearReceiveRecordsBefore(int index);
+    
 private:
+    
+    void handleMessage(const QVariant& message);
+    
+    class ReceiveRecord {
+    public:
+        int packetNumber;
+        MetavoxelData data;
+    };
     
     HifiSockAddr _address;
     QUuid _sessionID;
     
     DatagramSequencer _sequencer;
+    
+    QList<ReceiveRecord> _receiveRecords;
 };
 
 #endif /* defined(__interface__MetavoxelSystem__) */

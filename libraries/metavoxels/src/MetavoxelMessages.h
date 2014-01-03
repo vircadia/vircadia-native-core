@@ -22,4 +22,11 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(ClientStateMessage)
 
+/// A message preceding metavoxel delta information.  The actual delta will follow it in the stream.
+class MetavoxelDeltaMessage {
+    STREAMABLE
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
+
 #endif /* defined(__interface__MetavoxelMessages__) */

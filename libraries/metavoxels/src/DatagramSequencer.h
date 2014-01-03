@@ -28,6 +28,9 @@ public:
     /// Returns the packet number of the last packet sent.
     int getOutgoingPacketNumber() const { return _outgoingPacketNumber; }
     
+    /// Returns the packet number of the last packet received (or the packet currently being assembled).
+    int getIncomingPacketNumber() const { return _incomingPacketNumber; }
+    
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
     Bitstream& startPacket();
@@ -47,8 +50,13 @@ signals:
     /// Emitted when a packet is available to read.
     void readyToRead(Bitstream& input);
     
-    /// Emitted when a sent packet has been acknowledged by the remote side. 
-    void sendAcknowledged(int packetNumber);
+    /// Emitted when a sent packet has been acknowledged by the remote side.
+    /// \param index the index of the packet in our list of send records
+    void sendAcknowledged(int index);
+    
+    /// Emitted when our acknowledgement of a received packet has been acknowledged by the remote side.
+    /// \param index the index of the packet in our list of receive records
+    void receiveAcknowledged(int index);
     
 private:
     

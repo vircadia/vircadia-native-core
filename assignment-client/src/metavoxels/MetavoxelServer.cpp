@@ -132,15 +132,8 @@ void MetavoxelSession::readPacket(Bitstream& in) {
     handleMessage(message);
 }
 
-void MetavoxelSession::clearSendRecordsBefore(int packetNumber) {
-    if (_sendRecords.isEmpty()) {
-        return;
-    }
-    int index = packetNumber - _sendRecords.first().packetNumber;
-    if (index <= 0 || index >= _sendRecords.size()) {
-        return;
-    }
-    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index);
+void MetavoxelSession::clearSendRecordsBefore(int index) {
+    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
 }
 
 void MetavoxelSession::handleMessage(const QVariant& message) {
@@ -148,7 +141,10 @@ void MetavoxelSession::handleMessage(const QVariant& message) {
     if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
         _position = state.position;
+    
+    } else if (userType == MetavoxelDeltaMessage::Type) {
         
+       
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
             handleMessage(element);

@@ -190,6 +190,11 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
+    connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
+    
+    // insert the baseline receive record
+    ReceiveRecord record = { 0 };
+    _receiveRecords.append(record);
 }
 
 void MetavoxelClient::simulate(float deltaTime) {
@@ -212,5 +217,27 @@ void MetavoxelClient::sendData(const QByteArray& data) {
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
-    qDebug("got packet from server!\n");
+    QVariant message;
+    in >> message;
+    handleMessage(message);
+    
+    // record the receipt
+    ReceiveRecord record = { _sequencer.getIncomingPacketNumber() };
+    _receiveRecords.append(record);
+}
+
+void MetavoxelClient::clearReceiveRecordsBefore(int index) {
+    _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
+}
+
+void MetavoxelClient::handleMessage(const QVariant& message) {
+    int userType = message.userType();
+    if (userType == MetavoxelDeltaMessage::Type) {
+        
+        
+    } else if (userType == QMetaType::QVariantList) {
+        foreach (const QVariant& element, message.toList()) {
+            handleMessage(element);
+        }
+    }
 }

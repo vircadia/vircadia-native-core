@@ -17,6 +17,7 @@
 
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
+REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
 REGISTER_SIMPLE_TYPE_STREAMER(bool)
 REGISTER_SIMPLE_TYPE_STREAMER(int)
 
@@ -232,27 +233,6 @@ Bitstream& Bitstream::operator>>(QVariant& value) {
     _typeStreamerStreamer >> streamer;
     if (streamer) {
         value = streamer->read(*this);
-    }
-    return *this;
-}
-
-Bitstream& Bitstream::operator<<(const QVariantList& value) {
-    *this << value.size();
-    foreach (const QVariant& entry, value) {
-        *this << entry;
-    }
-    return *this;
-}
-
-Bitstream& Bitstream::operator>>(QVariantList& value) {
-    int size;
-    *this >> size;
-    value.clear();
-    value.reserve(size);
-    for (int i = 0; i < size; i++) {
-        QVariant entry;
-        *this >> entry;
-        value.append(entry);
     }
     return *this;
 }
