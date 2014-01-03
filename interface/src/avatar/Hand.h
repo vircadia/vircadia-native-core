@@ -21,6 +21,7 @@
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 
+#include "BuckyBalls.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
@@ -29,9 +30,6 @@
 
 class Avatar;
 class ProgramObject;
-
-const int NUM_BBALLS = 200;
-
 
 class Hand : public HandData {
 public:
@@ -87,6 +85,8 @@ private:
     float _collisionAge;
     float _collisionDuration;
     
+    BuckyBalls _buckyBalls;
+    
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
@@ -100,10 +100,6 @@ private:
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
     
     void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
-    void grabBuckyBalls(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
-
-    void simulateBuckyBalls(float deltaTime);
-    void renderBuckyBalls();
     
     #define MAX_HANDS 2
     bool _toyBallInHand[MAX_HANDS];
@@ -120,14 +116,6 @@ private:
     
     Sound _throwSound;
     Sound _catchSound;
-    
-    glm::vec3 _bballPosition[NUM_BBALLS];
-    glm::vec3 _bballVelocity[NUM_BBALLS];
-    glm::vec3 _bballColor[NUM_BBALLS];
-    float _bballRadius[NUM_BBALLS];
-    float _bballColliding[NUM_BBALLS];
-    int _bballElement[NUM_BBALLS];
-    int _bballIsGrabbed[2];
     
 };
 
