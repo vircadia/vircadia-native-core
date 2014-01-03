@@ -801,7 +801,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
     float radius = _collisionRadius;
-    const float VOXEL_ELASTICITY = 1.4f;
+    const float VOXEL_ELASTICITY = 0.4f;
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
