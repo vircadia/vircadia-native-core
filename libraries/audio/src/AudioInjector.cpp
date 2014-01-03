@@ -63,7 +63,7 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += rfcStreamUUID.size();
         
         // pack the flag for loopback
-        bool loopbackFlag = _options.shouldLoopback();
+        bool loopbackFlag = (_options.getLoopbackAudioInterface() == NULL);
         memcpy(currentPacketPosition, &loopbackFlag, sizeof(loopbackFlag));
         currentPacketPosition += sizeof(loopbackFlag);
         
