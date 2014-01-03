@@ -9,6 +9,8 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
+#include <QDebug>
+
 #include "InjectedAudioRingBuffer.h"
 
 #include "AudioMixerClientData.h"
@@ -94,7 +96,8 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
             audioBuffer->shiftReadPosition(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             audioBuffer->setWillBeAddedToMix(false);
-        } else if (audioBuffer->hasStarted() && audioBuffer->isStarved()) {
+        } else if (audioBuffer->getType() == PositionalAudioRingBuffer::Injector
+                   && audioBuffer->hasStarted() && audioBuffer->isStarved()) {
             // this is an empty audio buffer that has starved, safe to delete
             delete audioBuffer;
             _ringBuffers.erase(_ringBuffers.begin() + i);

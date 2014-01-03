@@ -127,7 +127,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // use the threadSound static method to inject the catch sound
             // pass an AudioInjectorOptions struct to set position and disable loopback
             AudioInjectorOptions injectorOptions;
-            injectorOptions.position = targetPosition;
+            injectorOptions.position = newPosition;
             injectorOptions.shouldLoopback = false;
             injectorOptions.loopbackAudioInterface = app->getAudio();
     
@@ -216,7 +216,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // use the threadSound static method to inject the throw sound
             // pass an AudioInjectorOptions struct to set position and disable loopback
             AudioInjectorOptions injectorOptions;
-            injectorOptions.position = targetPosition;
+            injectorOptions.position = ballPosition;
             injectorOptions.shouldLoopback = false;
             injectorOptions.loopbackAudioInterface = app->getAudio();
             

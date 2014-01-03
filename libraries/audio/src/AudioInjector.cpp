@@ -20,11 +20,7 @@ int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("Abstr
 
 AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions) :
     _sound(sound),
-    _volume(injectorOptions.volume),
-    _shouldLoopback(injectorOptions.shouldLoopback),
-    _position(injectorOptions.position),
-    _orientation(injectorOptions.orientation),
-    _loopbackAudioInterface(injectorOptions.loopbackAudioInterface)
+    _options(injectorOptions)
 {
     
 }
@@ -38,9 +34,9 @@ void AudioInjector::injectAudio() {
     // make sure we actually have samples downloaded to inject
     if (soundByteArray.size()) {
         // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (_loopbackAudioInterface) {
+        if (_options.loopbackAudioInterface) {
             // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(_loopbackAudioInterface, "handleAudioByteArray",
+            QMetaObject::invokeMethod(_options.loopbackAudioInterface, "handleAudioByteArray",
                                       Qt::AutoConnection,
                                       Q_ARG(QByteArray, soundByteArray));
             
@@ -67,16 +63,16 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += rfcStreamUUID.size();
         
         // pack the flag for loopback
-        memcpy(currentPacketPosition, &_shouldLoopback, sizeof(_shouldLoopback));
-        currentPacketPosition += sizeof(_shouldLoopback);
+        memcpy(currentPacketPosition, &_options.shouldLoopback, sizeof(_options.shouldLoopback));
+        currentPacketPosition += sizeof(_options.shouldLoopback);
         
         // pack the position for injected audio
-        memcpy(currentPacketPosition, &_position, sizeof(_position));
-        currentPacketPosition += sizeof(_position);
+        memcpy(currentPacketPosition, &_options.position, sizeof(_options.position));
+        currentPacketPosition += sizeof(_options.position);
         
         // pack our orientation for injected audio
-        memcpy(currentPacketPosition, &_orientation, sizeof(_orientation));
-        currentPacketPosition += sizeof(_orientation);
+        memcpy(currentPacketPosition, &_options.orientation, sizeof(_options.orientation));
+        currentPacketPosition += sizeof(_options.orientation);
         
         // pack zero for radius
         float radius = 0;
@@ -84,7 +80,7 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += sizeof(radius);
         
         // pack 255 for attenuation byte
-        uchar volume = MAX_INJECTOR_VOLUME * _volume;
+        uchar volume = MAX_INJECTOR_VOLUME * _options.volume;
         memcpy(currentPacketPosition, &volume, sizeof(volume));
         currentPacketPosition += sizeof(volume);
         

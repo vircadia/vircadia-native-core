@@ -16,8 +16,10 @@
 #include <QtCore/QUrl>
 
 #include <AbstractMenuInterface.h>
+#include <AudioScriptingInterface.h>
 #include <ParticlesScriptingInterface.h>
 #include <VoxelsScriptingInterface.h>
+
 #include "AbstractControllerScriptingInterface.h"
 
 const QString NO_SCRIPT("");
@@ -61,6 +63,7 @@ private:
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
+    AudioScriptingInterface _audioScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;
     AbstractMenuInterface* _menu;

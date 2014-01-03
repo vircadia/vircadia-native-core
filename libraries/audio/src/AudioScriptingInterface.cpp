@@ -6,9 +6,12 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/qdebug.h>
+
 #include "AudioScriptingInterface.h"
 
 void AudioScriptingInterface::playSound(Sound* sound, AudioInjectorOptions injectorOptions) {
+    
     AudioInjector* injector = new AudioInjector(sound, injectorOptions);
     
     QThread* injectorThread = new QThread();

@@ -12,9 +12,12 @@
 #include "AudioInjector.h"
 #include "Sound.h"
 
+const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
+
 class AudioScriptingInterface : public QObject {
+    Q_OBJECT
 public slots:
-    static void playSound(Sound* sound, AudioInjectorOptions injectorOptions = AudioInjectorOptions());
+    static void playSound(Sound* sound, AudioInjectorOptions injectorOptions = DEFAULT_INJECTOR_OPTIONS);
 
 };
 #endif /* defined(__hifi__AudioScriptingInterface__) */

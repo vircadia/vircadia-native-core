@@ -113,6 +113,9 @@ void ScriptEngine::run() {
     QScriptValue soundMetaObject = engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
     engine.globalObject().setProperty("Sound", soundMetaObject);
     
+    QScriptValue audioScriptingInterfaceValue = engine.newQObject(&_audioScriptingInterface);
+    engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
+    
     if (_controllerScriptingInterface) {
         QScriptValue controllerScripterValue =  engine.newQObject(_controllerScriptingInterface);
         engine.globalObject().setProperty("Controller", controllerScripterValue);

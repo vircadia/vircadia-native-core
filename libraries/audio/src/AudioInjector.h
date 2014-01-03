@@ -15,24 +15,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "AudioInjectorOptions.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
 class AudioScriptingInterface;
-
-struct AudioInjectorOptions {
-    AudioInjectorOptions() : position(glm::vec3(0.0f, 0.0f, 0.0f)),
-        volume(1.0f),
-        orientation(glm::quat()),
-        shouldLoopback(true),
-        loopbackAudioInterface(NULL) {};
-    
-    glm::vec3 position;
-    float volume;
-    const glm::quat orientation;
-    bool shouldLoopback;
-    AbstractAudioInterface* loopbackAudioInterface;
-};
 
 class AudioInjector : public QObject {
     Q_OBJECT
@@ -42,11 +29,7 @@ private:
     AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
 
     Sound* _sound;
-    float _volume;
-    uchar _shouldLoopback;
-    glm::vec3 _position;
-    glm::quat _orientation;
-    AbstractAudioInterface* _loopbackAudioInterface;
+    AudioInjectorOptions _options;
 private slots:
     void injectAudio();
 signals:
