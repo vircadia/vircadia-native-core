@@ -14,6 +14,8 @@ void AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions
     
     QThread* injectorThread = new QThread();
     
+    injector->moveToThread(injectorThread);
+    
     // start injecting when the injector thread starts
     connect(injectorThread, SIGNAL(started()), injector, SLOT(injectAudio()));
     
