@@ -24,13 +24,11 @@ class AudioScriptingInterface;
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
-    friend AudioScriptingInterface;
-private:
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
-
+private:
     Sound* _sound;
     AudioInjectorOptions _options;
-private slots:
+public slots:
     void injectAudio();
 signals:
     void finished();
