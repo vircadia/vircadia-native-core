@@ -13,7 +13,6 @@ AudioInjectorOptions::AudioInjectorOptions(QObject* parent) :
     _position(0.0f, 0.0f, 0.0f),
     _volume(1.0f),
     _orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
-    _shouldLoopback(true),
     _loopbackAudioInterface(NULL)
 {
     
@@ -23,6 +22,5 @@ AudioInjectorOptions::AudioInjectorOptions(const AudioInjectorOptions& other) {
     _position = other._position;
     _volume = other._volume;
     _orientation = other._orientation;
-    _shouldLoopback = other._shouldLoopback;
     _loopbackAudioInterface = other._loopbackAudioInterface;
 }

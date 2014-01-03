@@ -128,7 +128,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // pass an AudioInjectorOptions struct to set position and disable loopback
             AudioInjectorOptions injectorOptions;
             injectorOptions.setPosition(newPosition);
-            injectorOptions.setShouldLoopback(false);
             injectorOptions.setLoopbackAudioInterface(app->getAudio());
     
             AudioScriptingInterface::playSound(&_catchSound, &injectorOptions);
@@ -217,7 +216,6 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             // pass an AudioInjectorOptions struct to set position and disable loopback
             AudioInjectorOptions injectorOptions;
             injectorOptions.setPosition(ballPosition);
-            injectorOptions.setShouldLoopback(false);
             injectorOptions.setLoopbackAudioInterface(app->getAudio());
             
             AudioScriptingInterface::playSound(&_throwSound, &injectorOptions);

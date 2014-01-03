@@ -35,9 +35,6 @@ public:
     const glm::quat& getOrientation() const { return _orientation; }
     void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
     
-    bool shouldLoopback() const { return _shouldLoopback; }
-    void setShouldLoopback(bool shouldLoopback) { _shouldLoopback = shouldLoopback; }
-    
     AbstractAudioInterface* getLoopbackAudioInterface() const { return _loopbackAudioInterface; }
     void setLoopbackAudioInterface(AbstractAudioInterface* loopbackAudioInterface)
         { _loopbackAudioInterface = loopbackAudioInterface; }
@@ -45,7 +42,6 @@ private:
     glm::vec3 _position;
     float _volume;
     glm::quat _orientation;
-    bool _shouldLoopback;
     AbstractAudioInterface* _loopbackAudioInterface;
 };
 
