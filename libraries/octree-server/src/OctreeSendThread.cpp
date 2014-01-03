@@ -128,11 +128,9 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++; 
             if (debug) {
-                qDebug("Adding stats to packet at %llu [%llu]: sequence: %d size:%d [%llu] wasted bytes:%d [%llu]\n",
-                    now,
-                    _totalPackets,
-                    sequence, nodeData->getPacketLength(), _totalBytes,
-                    thisWastedBytes, _totalWastedBytes);
+                qDebug() << "Adding stats to packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence << 
+                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
             }
             
             // actually send it
@@ -153,11 +151,9 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             _totalBytes += statsMessageLength;
             _totalPackets++;
             if (debug) {
-                qDebug("Sending separate stats packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
-                    now,
-                    _totalPackets,
-                    statsMessageLength, _totalBytes,
-                    thisWastedBytes, _totalWastedBytes);
+                qDebug() << "Sending separate stats packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence << 
+                        " size: " << statsMessageLength << " [" << _totalBytes <<
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
             }
 
             trueBytesSent += statsMessageLength;
@@ -175,11 +171,9 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet at %llu [%llu]: sequence: %d size:%d [%llu] wasted bytes:%d [%llu]\n",
-                    now,
-                    _totalPackets,
-                    sequence, nodeData->getPacketLength(), _totalBytes,
-                    thisWastedBytes, _totalWastedBytes);
+                qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence << 
+                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
             }
         }
         nodeData->stats.markAsSent();
@@ -197,11 +191,9 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet at %llu [%llu]: sequence:%d size:%d [%llu] wasted bytes:%d [%llu]\n",
-                    now,
-                    _totalPackets,
-                    sequence, nodeData->getPacketLength(), _totalBytes,
-                    thisWastedBytes, _totalWastedBytes);
+                qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence << 
+                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
             }
         }
     }
@@ -327,8 +319,13 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
         if (_myServer->wantsDebugSending()) {
-            qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
-                    usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
+            qDebug() << "Scene completed at " << usecTimestampNow() 
+                << "encodeTime:" << encodeTime 
+                << " sleepTime:" << sleepTime 
+                << " elapsed:" << elapsedTime 
+                << " Packets:" << _totalPackets 
+                << " Bytes:" << _totalBytes 
+                << " Wasted:" << _totalWastedBytes << "\n";
         }
         
         // start tracking our stats
@@ -341,8 +338,10 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         }
 
         if (_myServer->wantsDebugSending()) {
-            qDebug("Scene started at %llu Packets:%llu Bytes:%llu Wasted:%llu\n", 
-                    usecTimestampNow(),_totalPackets,_totalBytes,_totalWastedBytes);
+            qDebug() << "Scene started at " << usecTimestampNow() 
+                << " Packets:" << _totalPackets 
+                << " Bytes:" << _totalBytes 
+                << " Wasted:" << _totalWastedBytes << "\n";
         }
 
         ::startSceneSleepTime = _usleepTime;

@@ -68,9 +68,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         uint64_t lockWaitTime = 0;
         
         if (_myServer->wantsDebugReceiving()) {
-            printf("PROCESSING THREAD: got '%c' packet - %d command from client "
-                   "receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                    packetType, _receivedPacketCount, packetLength, sequence, transitTime);
+            qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount 
+                    << " command from client receivedBytes=" << packetLength 
+                    << " sequence=" << sequence << " transitTime=" << transitTime << " usecs\n";
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* editData = (unsigned char*)&packetData[atByte];
