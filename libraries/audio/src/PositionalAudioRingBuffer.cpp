@@ -66,6 +66,10 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     } else {
         // good buffer, add this to the mix
         _isStarved = false;
+        
+        // since we've read data from ring buffer at least once - we've started
+        _hasStarted = true;
+        
         return true;
     }
     

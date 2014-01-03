@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
 #include <NodeList.h>
@@ -18,33 +18,11 @@
 
 int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
 
-AudioInjector::AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions) :
-    _thread(NULL),
+AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
-    _volume(injectorOptions.volume),
-    _shouldLoopback(injectorOptions.shouldLoopback),
-    _position(injectorOptions.position),
-    _orientation(injectorOptions.orientation),
-    _loopbackAudioInterface(injectorOptions.loopbackAudioInterface)
+    _options(injectorOptions)
 {
-    _thread = new QThread();
     
-    // we want to live on our own thread
-    moveToThread(_thread);
-}
-
-void AudioInjector::threadSound(Sound* sound, AudioInjectorOptions injectorOptions) {
-    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
-    
-    // start injecting when the injector thread starts
-    connect(injector->_thread, SIGNAL(started()), injector, SLOT(injectAudio()));
-    
-    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
-    connect(injector, SIGNAL(finished()), injector, SLOT(deleteLater()));
-    connect(injector, SIGNAL(finished()), injector->_thread, SLOT(quit()));
-    connect(injector->_thread, SIGNAL(finished()), injector->_thread, SLOT(deleteLater()));
-    
-    injector->_thread->start();
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -56,9 +34,9 @@ void AudioInjector::injectAudio() {
     // make sure we actually have samples downloaded to inject
     if (soundByteArray.size()) {
         // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (_loopbackAudioInterface) {
+        if (_options.getLoopbackAudioInterface()) {
             // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(_loopbackAudioInterface, "handleAudioByteArray",
+            QMetaObject::invokeMethod(_options.getLoopbackAudioInterface(), "handleAudioByteArray",
                                       Qt::AutoConnection,
                                       Q_ARG(QByteArray, soundByteArray));
             
@@ -85,16 +63,17 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += rfcStreamUUID.size();
         
         // pack the flag for loopback
-        memcpy(currentPacketPosition, &_shouldLoopback, sizeof(_shouldLoopback));
-        currentPacketPosition += sizeof(_shouldLoopback);
+        bool loopbackFlag = _options.shouldLoopback();
+        memcpy(currentPacketPosition, &loopbackFlag, sizeof(loopbackFlag));
+        currentPacketPosition += sizeof(loopbackFlag);
         
         // pack the position for injected audio
-        memcpy(currentPacketPosition, &_position, sizeof(_position));
-        currentPacketPosition += sizeof(_position);
+        memcpy(currentPacketPosition, &_options.getPosition(), sizeof(_options.getPosition()));
+        currentPacketPosition += sizeof(_options.getPosition());
         
         // pack our orientation for injected audio
-        memcpy(currentPacketPosition, &_orientation, sizeof(_orientation));
-        currentPacketPosition += sizeof(_orientation);
+        memcpy(currentPacketPosition, &_options.getOrientation(), sizeof(_options.getOrientation()));
+        currentPacketPosition += sizeof(_options.getOrientation());
         
         // pack zero for radius
         float radius = 0;
@@ -102,7 +81,7 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += sizeof(radius);
         
         // pack 255 for attenuation byte
-        uchar volume = MAX_INJECTOR_VOLUME * _volume;
+        uchar volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         memcpy(currentPacketPosition, &volume, sizeof(volume));
         currentPacketPosition += sizeof(volume);
         
