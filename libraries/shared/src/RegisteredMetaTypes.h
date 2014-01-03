@@ -12,6 +12,7 @@
 #define hifi_RegisteredMetaTypes_h
 
 #include <glm/glm.hpp>
+
 #include <QtScript/QScriptEngine>
 
 #include "SharedUtil.h"

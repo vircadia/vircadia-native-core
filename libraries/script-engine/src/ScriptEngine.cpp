@@ -90,6 +90,8 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
+Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+
 void ScriptEngine::run() {
     _isRunning = true;
     QScriptEngine engine;
@@ -109,9 +111,13 @@ void ScriptEngine::run() {
     QScriptValue particleScripterValue =  engine.newQObject(&_particlesScriptingInterface);
     engine.globalObject().setProperty("Particles", particleScripterValue);
     
+    
     QScriptValue soundConstructorValue = engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
     engine.globalObject().setProperty("Sound", soundMetaObject);
+    
+    QScriptValue injectionOptionValue = engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
+    engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
     
     QScriptValue audioScriptingInterfaceValue = engine.newQObject(&_audioScriptingInterface);
     engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);

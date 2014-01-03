@@ -10,9 +10,9 @@
 
 #include "AudioScriptingInterface.h"
 
-void AudioScriptingInterface::playSound(Sound* sound, AudioInjectorOptions injectorOptions) {
+void AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
     
-    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
+    AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
     
     QThread* injectorThread = new QThread();
     

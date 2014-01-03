@@ -26,7 +26,7 @@ class AudioInjector : public QObject {
 public:
     friend AudioScriptingInterface;
 private:
-    AudioInjector(Sound* sound, AudioInjectorOptions injectorOptions);
+    AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
 
     Sound* _sound;
     AudioInjectorOptions _options;
