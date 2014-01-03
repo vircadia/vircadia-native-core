@@ -675,27 +675,6 @@ void* animateVoxels(void* args) {
                 ::voxelEditPacketSender->process();
             }
             processesPerAnimate++;
-            
-            if (::shouldShowPacketsPerSecond) {
-                float lifetimeSeconds = ::voxelEditPacketSender->getLifetimeInSeconds();
-                int targetPPS = ::voxelEditPacketSender->getPacketsPerSecond();
-                float lifetimePPS = ::voxelEditPacketSender->getLifetimePPS();
-                float lifetimeBPS = ::voxelEditPacketSender->getLifetimeBPS();
-                uint64_t totalPacketsSent = ::voxelEditPacketSender->getLifetimePacketsSent();
-                uint64_t totalBytesSent = ::voxelEditPacketSender->getLifetimeBytesSent();
-                
-                float lifetimePPSQueued = ::voxelEditPacketSender->getLifetimePPSQueued();
-                float lifetimeBPSQueued = ::voxelEditPacketSender->getLifetimeBPSQueued();
-                uint64_t totalPacketsQueued = ::voxelEditPacketSender->getLifetimePacketsQueued();
-                uint64_t totalBytesQueued = ::voxelEditPacketSender->getLifetimeBytesQueued();
-                
-                uint64_t packetsPending = ::voxelEditPacketSender->packetsToSendCount();
-                
-                printf("lifetime=%f secs packetsSent=%lld, bytesSent=%lld targetPPS=%d pps=%f bps=%f\n",
-                       lifetimeSeconds, totalPacketsSent, totalBytesSent, targetPPS, lifetimePPS, lifetimeBPS);
-                printf("packetsPending=%lld packetsQueued=%lld, bytesQueued=%lld ppsQueued=%f bpsQueued=%f\n",
-                       packetsPending, totalPacketsQueued, totalBytesQueued, lifetimePPSQueued, lifetimeBPSQueued);
-            }
         }
         // dynamically sleep until we need to fire off the next set of voxels
         uint64_t usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);

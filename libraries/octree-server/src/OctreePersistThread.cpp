@@ -51,12 +51,12 @@ bool OctreePersistThread::process() {
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
 
         double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() / (double)OctreeElement::getGetChildAtIndexCalls();
-        qDebug("getChildAtIndexCalls=%llu getChildAtIndexTime=%llu perGet=%lf \n",
-            OctreeElement::getGetChildAtIndexTime(), OctreeElement::getGetChildAtIndexCalls(), usecPerGet);
+        qDebug() << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls() 
+                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet << " \n";
             
         double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() / (double)OctreeElement::getSetChildAtIndexCalls();
-        qDebug("setChildAtIndexCalls=%llu setChildAtIndexTime=%llu perSet=%lf\n",
-            OctreeElement::getSetChildAtIndexTime(), OctreeElement::getSetChildAtIndexCalls(), usecPerSet);
+        qDebug() << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls() 
+                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perset=" << usecPerSet << " \n";
 
         _initialLoadComplete = true;
         _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
