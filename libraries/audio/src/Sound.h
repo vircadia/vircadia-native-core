@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__Sound__
@@ -16,7 +16,7 @@ class QNetworkReply;
 class Sound : public QObject {
     Q_OBJECT
 public:
-    Sound(const QUrl& sampleURL);
+    Sound(const QUrl& sampleURL, QObject* parent = 0);
     
     const QByteArray& getByteArray() { return _byteArray; }
 private:

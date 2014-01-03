@@ -62,7 +62,7 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
         vertices->push_back(InputVertex(azimuth, altitude, computeStarColor(STAR_COLORIZATION)));
     }
     
-    qDebug("Took %llu msec to generate stars.\n", (usecTimestampNow() - usecTimestamp(&startTime)) / 1000);
+    qDebug() << "Total time to generate stars: " << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << " msec\n";
 }
 
 // computeStarColor

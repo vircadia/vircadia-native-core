@@ -17,7 +17,7 @@
 #include <SharedUtil.h>
 
 #include <AvatarData.h>
-#include <AudioInjector.h>
+#include <AudioScriptingInterface.h>
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 

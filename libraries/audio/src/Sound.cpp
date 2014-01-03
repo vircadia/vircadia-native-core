@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 1/2/2014.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
 #include <QtNetwork/QNetworkAccessManager>
@@ -12,7 +12,9 @@
 
 #include "Sound.h"
 
-Sound::Sound(const QUrl& sampleURL) {
+Sound::Sound(const QUrl& sampleURL, QObject* parent) :
+    QObject(parent)
+{
     // assume we have a QApplication or QCoreApplication instance and use the
     // QNetworkAccess manager to grab the raw audio file at the given URL
     

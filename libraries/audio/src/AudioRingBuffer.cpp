@@ -107,8 +107,6 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         _isStarved = true;
     }
     
-    _hasStarted = true;
-    
     if (_endOfLastWrite + samplesToCopy <= _buffer + _sampleCapacity) {
         memcpy(_endOfLastWrite, data, samplesToCopy * sizeof(int16_t));
     } else {
