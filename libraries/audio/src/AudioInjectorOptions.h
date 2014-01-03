@@ -22,6 +22,7 @@ class AudioInjectorOptions : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(float volume READ getVolume WRITE setVolume)
 public:
     AudioInjectorOptions(QObject* parent = 0);
     AudioInjectorOptions(const AudioInjectorOptions& other);
