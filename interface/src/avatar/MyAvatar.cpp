@@ -578,7 +578,13 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     } else {
         //  Render the body's voxels and head
         _skeletonModel.render(1.0f);
-        _head.render(1.0f, false);
+        
+        //  Render head so long as the camera isn't inside it
+        const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
+        Camera* myCamera = Application::getInstance()->getCamera();
+        if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
+            _head.render(1.0f, false);
+        }
     }
     _hand.render(true);
 }
