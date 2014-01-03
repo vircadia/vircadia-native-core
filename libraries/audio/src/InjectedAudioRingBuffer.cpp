@@ -48,8 +48,6 @@ int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes
     unsigned int attenuationByte = *(currentBuffer++);
     _attenuationRatio = attenuationByte / (float) MAX_INJECTOR_VOLUME;
     
-    qDebug() << "Copying" << numBytes - (currentBuffer - sourceBuffer) << "for injected ring buffer\n";
-    
     currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
     return currentBuffer - sourceBuffer;
