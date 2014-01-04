@@ -154,6 +154,44 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
         newPenetration - (currentDirection * directionalComponent);
 }
 
+bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& center, float radius, float& distance) {
+    glm::vec3 relativeOrigin = origin - center;
+    float b = glm::dot(direction, relativeOrigin);
+    float c = glm::dot(relativeOrigin, relativeOrigin) - radius * radius;
+    if (c < 0.0f) {
+        distance = 0.0f;
+        return true; // starts inside the sphere
+    }
+    float radicand = b * b - c;
+    if (radicand < 0.0f) {
+        return false; // doesn't hit the sphere
+    }
+    float t = -b - sqrtf(radicand);
+    if (t < 0.0f) {
+        return false; // doesn't hit the sphere
+    }
+    distance = t;
+    return true;
+}
+
+bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& start, const glm::vec3& end, float radius, float& distance) {
+    float minDistance = FLT_MAX;
+    float sphereDistance;
+    if (findRaySphereIntersection(origin, direction, start, radius, sphereDistance)) {
+        minDistance = qMin(minDistance, sphereDistance);
+    }
+    if (findRaySphereIntersection(origin, direction, end, radius, sphereDistance)) {
+        minDistance = qMin(minDistance, sphereDistance);
+    }
+    if (minDistance < FLT_MAX) {
+        distance = minDistance;
+        return true;
+    }
+    return false;
+}
+
 // Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?
 // from: http://ptspts.blogspot.com/2010/06/how-to-determine-if-two-line-segments.html
 bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2) {

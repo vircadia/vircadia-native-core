@@ -69,6 +69,8 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
 
+    void orbit(const glm::vec3& position, int deltaX, int deltaY);
+
 private:
     bool _mousePressed;
     float _bodyPitchDelta;
