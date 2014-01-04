@@ -327,7 +327,9 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         }
         int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
-        qDebug("packetsJustSent=%d packetsSentThisInterval=%d\n", packetsJustSent, packetsSentThisInterval);
+        if (forceDebugging) {
+            qDebug("packetsJustSent=%d packetsSentThisInterval=%d\n", packetsJustSent, packetsSentThisInterval);
+        }
 
         if (forceDebugging || _myServer->wantsDebugSending()) {
             qDebug() << "Scene completed at " << usecTimestampNow()
