@@ -81,9 +81,9 @@ const int MIRROR_VIEW_TOP_PADDING = 5;
 const int MIRROR_VIEW_LEFT_PADDING = 10;
 const int MIRROR_VIEW_WIDTH = 265;
 const int MIRROR_VIEW_HEIGHT = 215;
-const float MIRROR_FULLSCREEN_DISTANCE = 0.2f;
-const float MIRROR_REARVIEW_DISTANCE = 0.3f;
-const float MIRROR_REARVIEW_BODY_DISTANCE = 1.f;
+const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
+const float MIRROR_REARVIEW_DISTANCE = 0.65f;
+const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {

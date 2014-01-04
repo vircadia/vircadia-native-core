@@ -19,6 +19,7 @@
 
 using namespace std;
 
+const float FINGERTIP_COLLISION_RADIUS = 0.01;
 const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
@@ -39,6 +40,7 @@ const xColor TOY_BALL_ON_SERVER_COLOR[] =
         { 0, 255, 255 },
         { 255, 0, 255 },
     };
+
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
@@ -86,10 +88,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     
     const int NEW_BALL_BUTTON = BUTTON_3;
     
-    float trigger = palm.getTrigger();
     bool grabButtonPressed = ((palm.getControllerButtons() & BUTTON_FWD) ||
-                              (palm.getControllerButtons() & BUTTON_3) ||
-                              (trigger > 0.f));
+                              (palm.getControllerButtons() & BUTTON_3));
     
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
@@ -256,6 +256,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
         _collisionAge += deltaTime;
     }
     
+    if (isMine) {
+        _buckyBalls.simulate(deltaTime);
+    }
+    
     const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
@@ -279,6 +283,8 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 
                 simulateToyBall(palm, fingerTipPosition, deltaTime);
+                
+                _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
                 
                 if (palm.getControllerButtons() & BUTTON_4) {
                     _grabDelta +=  palm.getRawVelocity() * deltaTime;
@@ -453,7 +459,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.010f;
+                    const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
@@ -493,6 +499,11 @@ void Hand::calculateGeometry() {
 void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
+    
+    if (isMine) {
+        _buckyBalls.render();
+    }
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
         for (int i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];

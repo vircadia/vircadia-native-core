@@ -17,7 +17,6 @@
 
 #include <VoxelConstants.h>
 
-#include "BendyLine.h"
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "VideoFace.h"
@@ -31,9 +30,6 @@ enum eyeContactTargets {
     MOUTH
 };
 
-const int MOHAWK_TRIANGLES = 50;
-const int NUM_HAIR_TUFTS = 4;
-
 class Avatar;
 class ProgramObject;
 
@@ -45,8 +41,6 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(float alpha, bool renderAvatarBalls);
-    void renderMohawk();
-
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
@@ -123,10 +117,7 @@ private:
     glm::vec3 _bodyRotation;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
-    BendyLine _hairTuft[NUM_HAIR_TUFTS];
-    bool _mohawkInitialized;
-    glm::vec3 _mohawkTriangleFan[MOHAWK_TRIANGLES];
-    glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
+    //BendyLine _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlinkVelocity;
@@ -146,7 +137,6 @@ private:
     static int _eyePositionLocation;
     
     // private methods
-    void createMohawk();
     void renderHeadSphere();
     void renderEyeBalls();
     void renderEyeBrows();
@@ -155,8 +145,6 @@ private:
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry();
-    void resetHairPhysics();
-    void updateHairPhysics(float deltaTime);
 
     friend class FaceModel;
 };
