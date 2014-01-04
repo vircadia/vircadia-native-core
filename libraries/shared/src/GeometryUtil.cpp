@@ -157,12 +157,12 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
 bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& center, float radius, float& distance) {
     glm::vec3 relativeOrigin = origin - center;
-    float b = glm::dot(direction, relativeOrigin);
     float c = glm::dot(relativeOrigin, relativeOrigin) - radius * radius;
     if (c < 0.0f) {
         distance = 0.0f;
         return true; // starts inside the sphere
     }
+    float b = glm::dot(direction, relativeOrigin);
     float radicand = b * b - c;
     if (radicand < 0.0f) {
         return false; // doesn't hit the sphere
@@ -177,19 +177,53 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
 
 bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& start, const glm::vec3& end, float radius, float& distance) {
-    float minDistance = FLT_MAX;
-    float sphereDistance;
-    if (findRaySphereIntersection(origin, direction, start, radius, sphereDistance)) {
-        minDistance = qMin(minDistance, sphereDistance);
+    if (start == end) {
+        return findRaySphereIntersection(origin, direction, start, radius, distance); // handle degenerate case
     }
-    if (findRaySphereIntersection(origin, direction, end, radius, sphereDistance)) {
-        minDistance = qMin(minDistance, sphereDistance);
+    glm::vec3 relativeOrigin = origin - start;
+    glm::vec3 relativeEnd = end - start;
+    float capsuleLength = glm::length(relativeEnd);
+    relativeEnd /= capsuleLength;
+    float originProjection = glm::dot(relativeEnd, relativeOrigin);
+    glm::vec3 constant = relativeOrigin - relativeEnd * originProjection;
+    float c = glm::dot(constant, constant) - radius * radius;
+    if (c < 0.0f) { // starts inside cylinder
+        if (originProjection < 0.0f) { // below start
+            return findRaySphereIntersection(origin, direction, start, radius, distance); 
+            
+        } else if (originProjection > capsuleLength) { // above end
+            return findRaySphereIntersection(origin, direction, end, radius, distance); 
+        
+        } else { // between start and end
+            distance = 0.0f;
+            return true; 
+        }
     }
-    if (minDistance < FLT_MAX) {
-        distance = minDistance;
-        return true;
+    glm::vec3 coefficient = direction - relativeEnd * glm::dot(relativeEnd, direction);
+    float a = glm::dot(coefficient, coefficient);
+    if (a == 0.0f) {
+        return false; // parallel to enclosing cylinder
     }
-    return false;
+    float b = 2.0f * glm::dot(constant, coefficient);
+    float divisor = 2.0f * a;
+    float radicand = b * b - 4.0f * a * c;
+    if (radicand < 0.0f) {
+        return false; // doesn't hit the enclosing cylinder
+    }
+    float t = (-b - sqrtf(radicand)) / (2.0f * a);
+    if (t < 0.0f) {
+        return false; // doesn't hit the enclosing cylinder
+    }
+    glm::vec3 intersection = relativeOrigin + direction * t;
+    float intersectionProjection = glm::dot(relativeEnd, intersection);
+    if (intersectionProjection < 0.0f) { // below start
+        return findRaySphereIntersection(origin, direction, start, radius, distance);
+        
+    } else if (intersectionProjection > capsuleLength) { // above end
+        return findRaySphereIntersection(origin, direction, end, radius, distance);
+    } 
+    distance = t; // between start and end
+    return true;
 }
 
 // Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?
