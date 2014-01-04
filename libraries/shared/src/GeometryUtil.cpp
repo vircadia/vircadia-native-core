@@ -205,7 +205,6 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
         return false; // parallel to enclosing cylinder
     }
     float b = 2.0f * glm::dot(constant, coefficient);
-    float divisor = 2.0f * a;
     float radicand = b * b - 4.0f * a * c;
     if (radicand < 0.0f) {
         return false; // doesn't hit the enclosing cylinder
