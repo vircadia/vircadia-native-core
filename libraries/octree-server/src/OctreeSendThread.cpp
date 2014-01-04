@@ -129,7 +129,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             _totalPackets++; 
             if (debug) {
                 qDebug() << "Adding stats to packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence << 
-                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        " statsMessageLength: " << statsMessageLength << 
+                        " original size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
             }
             
@@ -211,6 +212,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+	bool forceDebugging = false;
 
     int truePacketsSent = 0;
     int trueBytesSent = 0;
@@ -231,16 +233,19 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     // then let's just send that waiting packet.    
     if (!nodeData->getCurrentPacketFormatMatches()) {
         if (nodeData->isPacketWaiting()) {
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                printf("wantColor=%s wantCompression=%s SENDING PARTIAL PACKET! currentPacketIsColor=%s currentPacketIsCompressed=%s\n", 
+            if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                qDebug("about to call handlePacketSend() .... line: %d -- format change "
+                		"wantColor=%s wantCompression=%s SENDING PARTIAL PACKET! currentPacketIsColor=%s "
+                		"currentPacketIsCompressed=%s\n", 
+                        __LINE__, 
                         debug::valueOf(wantColor), debug::valueOf(wantCompression),
                         debug::valueOf(nodeData->getCurrentPacketIsColor()), 
                         debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
             }
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         } else {
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                printf("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s\n", 
+            if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                qDebug("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s\n", 
                         debug::valueOf(wantColor), debug::valueOf(wantCompression),
                         debug::valueOf(nodeData->getCurrentPacketIsColor()), 
                         debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
@@ -252,7 +257,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
         }
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+            qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n", __LINE__,
                 debug::valueOf(wantCompression), targetSize);
         }
             
@@ -260,7 +265,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     }
     
     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-        printf("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
+        qDebug("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
                 debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()), 
                 debug::valueOf(wantCompression), debug::valueOf(nodeData->getCurrentPacketIsCompressed()),
                 debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
@@ -268,8 +273,8 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
-    if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-        printf("packetDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
+    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+        qDebug("packetDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
                 debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()), 
                 debug::valueOf(nodeData->getViewSent())
             );
@@ -279,17 +284,17 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
         uint64_t now = usecTimestampNow();
-        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            printf("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
+	    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+            qDebug("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
                    debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
             if (nodeData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
                 if (viewFrustumChanged) {
-                    printf("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
+                    qDebug("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
                 } else {
-                    printf("elapsed time to send scene = %f seconds", elapsedSceneSend);
+                    qDebug("elapsed time to send scene = %f seconds", elapsedSceneSend);
                 }
-                printf(" [occlusionCulling:%s, wantDelta:%s, wantColor:%s ]\n", 
+                qDebug(" [occlusionCulling:%s, wantDelta:%s, wantColor:%s ]\n", 
                        debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta), 
                        debug::valueOf(wantColor));
             }
@@ -316,9 +321,15 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         
         unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
         unsigned long elapsedTime = nodeData->stats.getElapsedTime();
-        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-        if (_myServer->wantsDebugSending()) {
+		if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+			qDebug("about to call handlePacketSend() .... line: %d -- completed scene \n", __LINE__ );
+		}
+		int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        packetsSentThisInterval += packetsJustSent;
+        qDebug("packetsJustSent=%d packetsSentThisInterval=%d\n", packetsJustSent, packetsSentThisInterval);
+
+        if (forceDebugging || _myServer->wantsDebugSending()) {
             qDebug() << "Scene completed at " << usecTimestampNow() 
                 << "encodeTime:" << encodeTime 
                 << " sleepTime:" << sleepTime 
@@ -337,7 +348,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             nodeData->nodeBag.deleteAll();
         }
 
-        if (_myServer->wantsDebugSending()) {
+        if (forceDebugging || _myServer->wantsDebugSending()) {
             qDebug() << "Scene started at " << usecTimestampNow() 
                 << " Packets:" << _totalPackets 
                 << " Bytes:" << _totalBytes 
@@ -369,15 +380,16 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
         
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                 truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
                 nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
         }
         
         int extraPackingAttempts = 0;
+		bool completedScene = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
             if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                     truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
                     nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
             }
@@ -408,7 +420,12 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                 _myServer->getOctree()->lockForRead();
                 nodeData->stats.encodeStarted();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
-                
+
+				// If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've 
+				// sent the entire scene. We want to know this below so we'll actually write this content into 
+				// the packet and send it
+				completedScene = nodeData->nodeBag.isEmpty();
+
                 // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
                 if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
                     if (_packetData.hasContent() && bytesWritten == 0 && 
@@ -435,11 +452,12 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             
             // If the last node didn't fit, but we're in compressed mode, then we actually want to see if we can fit a
             // little bit more in this packet. To do this we 
-            
+
+
             // We only consider sending anything if there is something in the _packetData to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
-            if (lastNodeDidntFit) {
+            if (completedScene || lastNodeDidntFit) {
                 if (_packetData.hasContent()) {
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
@@ -450,14 +468,17 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                     
                     if (writtenSize > nodeData->getAvailable()) {
                         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                            printf("writtenSize[%d] > available[%d] too big, sending packet as is.\n",
-                                writtenSize, nodeData->getAvailable());
                         }
+						if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                            qDebug("about to call handlePacketSend() .... line: %d -- "
+                            		"writtenSize[%d] > available[%d] too big, sending packet as is.\n",
+	                                __LINE__, writtenSize, nodeData->getAvailable());
+						}
                         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     }
 
-                    if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                        printf("calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d\n",
+                    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d\n",
                                 nodeData->getAvailable(), _packetData.getFinalizedSize(), 
                                 _packetData.getUncompressedSize(), _packetData.getTargetSize());
                     }
@@ -465,7 +486,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                     extraPackingAttempts = 0;
                 }
                 
-                // If we're not running compressed, the we know we can just send now. Or if we're running compressed, but
+                // If we're not running compressed, then we know we can just send now. Or if we're running compressed, but
                 // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
                 
@@ -477,6 +498,9 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                 
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
+                	if (forceDebugging) {
+						qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE\n", __LINE__);
+					}
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     if (wantCompression) {
                         targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
@@ -491,7 +515,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
                 if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                    printf("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+                    qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
                         debug::valueOf(nodeData->getWantCompression()), targetSize);
                 }
                 _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
@@ -521,15 +545,21 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
                 int elapsedsec = (end - start)/1000000;
-                printf("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets %d nodes still to send\n",
-                        elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                qDebug("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] "
+                		"to generate %d bytes in %d packets %d nodes still to send\n",
+                        elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls, 
+                        trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             } else {
-                printf("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
-                        elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                qDebug("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
+                		"to generate %d bytes in %d packets, %d nodes still to send\n",
+                        elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, 
+                        trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
         } else if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            printf("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
-                    elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+            qDebug("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
+            		"to generate %d bytes in %d packets, %d nodes still to send\n",
+                    elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, 
+                    trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }
         
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all 
@@ -544,9 +574,11 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         }
 
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
-                truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
-                nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
+            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d "
+            		"server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                	truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, 
+                	_myServer->getPacketsPerClientPerInterval(), nodeData->getMaxOctreePacketsPerSecond(), 
+                	clientMaxPacketsPerInterval);
         }
         
     } // end if bag wasn't empty, and so we sent stuff...
