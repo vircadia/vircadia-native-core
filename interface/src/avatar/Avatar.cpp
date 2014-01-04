@@ -190,10 +190,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
     
-
-    // if this is not my avatar, then hand position comes from transmitted data
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
-    
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -340,8 +336,24 @@ void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {
     }
 }
 
+bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    float minDistance = FLT_MAX;
+    float modelDistance;
+    if (_skeletonModel.findRayIntersection(origin, direction, modelDistance)) {
+        minDistance = qMin(minDistance, modelDistance);
+    }
+    if (_head.getFaceModel().findRayIntersection(origin, direction, modelDistance)) {
+        minDistance = qMin(minDistance, modelDistance);
+    }
+    if (minDistance < FLT_MAX) {
+        distance = minDistance;
+        return true;
+    }
+    return false;
+}
+
 bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex) {
+        glm::vec3& penetration, int skeletonSkipIndex) const {
     bool didPenetrate = false;
     glm::vec3 totalPenetration;
     glm::vec3 skeletonPenetration;

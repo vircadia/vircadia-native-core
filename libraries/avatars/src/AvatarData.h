@@ -115,7 +115,7 @@ public:
     /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
     virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex = -1) { return false; }
+        glm::vec3& penetration, int skeletonSkipIndex = -1) const { return false; }
     
 protected:
     QUuid _uuid;

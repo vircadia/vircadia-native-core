@@ -546,6 +546,35 @@ glm::vec4 Model::computeAverageColor() const {
     return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
+bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    const glm::vec3 relativeOrigin = origin - _translation;
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    float minDistance = FLT_MAX;
+    float radiusScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointStates.size(); i++) {
+        const FBXJoint& joint = geometry.joints[i];
+        glm::vec3 end = extractTranslation(_jointStates[i].transform);
+        float endRadius = joint.boneRadius * radiusScale;
+        glm::vec3 start = end;
+        float startRadius = joint.boneRadius * radiusScale;
+        if (joint.parentIndex != -1) {
+            start = extractTranslation(_jointStates[joint.parentIndex].transform);
+            startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
+        }
+        // for now, use average of start and end radii
+        float capsuleDistance;
+        if (findRayCapsuleIntersection(relativeOrigin, direction, start, end,
+                (startRadius + endRadius) / 2.0f, capsuleDistance)) {
+            minDistance = qMin(minDistance, capsuleDistance);
+        }
+    }
+    if (minDistance < FLT_MAX) {
+        distance = minDistance;
+        return true;
+    }
+    return false;
+}
+
 bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, float boneScale, int skipIndex) const {
     const glm::vec3 relativeCenter = penetratorCenter - _translation;
