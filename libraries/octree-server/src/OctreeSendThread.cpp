@@ -451,8 +451,8 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             }
 
             // If the last node didn't fit, but we're in compressed mode, then we actually want to see if we can fit a
-            // little bit more in this packet. To do this we
-
+            // little bit more in this packet. To do this we write into the packet, but don't send it yet, we'll
+            // keep attempting to write in compressed mode to add more compressed segments
 
             // We only consider sending anything if there is something in the _packetData to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
@@ -496,9 +496,9 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
-                if (forceDebugging) {
-                    qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE\n", __LINE__);
-                }
+                    if (forceDebugging) {
+                        qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE\n", __LINE__);
+                    }
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     if (wantCompression) {
                         targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
