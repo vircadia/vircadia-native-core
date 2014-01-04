@@ -26,11 +26,11 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0;
+const float YAW_MAG = 500.0f;
 const float PITCH_MAG = 100.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE = 200.0f; // pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const bool USING_HEAD_LEAN = false;
@@ -779,7 +779,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
     glm::vec3 up = getBodyUpDirection();
     float radius = _collisionRadius;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
-    const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
+    const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
@@ -794,8 +794,8 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
     float radius = _collisionRadius;
-    const float VOXEL_ELASTICITY = 1.4f;
-    const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_ELASTICITY = 0.4f;
+    const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
