@@ -467,9 +467,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
 
                     if (writtenSize > nodeData->getAvailable()) {
-                        if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                        }
-                    if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                        if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
                             qDebug("about to call handlePacketSend() .... line: %d -- "
                                    "writtenSize[%d] > available[%d] too big, sending packet as is.\n",
                                     __LINE__, writtenSize, nodeData->getAvailable());
