@@ -1105,8 +1105,23 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 
     if (activeWindow() == _window) {
+        int deltaX = event->x() - _mouseX;
+        int deltaY = event->y() - _mouseY;
+        
         _mouseX = event->x();
         _mouseY = event->y();
+
+        // orbit behavior
+        if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
+            if (_lookatTargetAvatar) {
+                _myAvatar.orbit(_lookatTargetAvatar->getPosition(), deltaX, deltaY);
+                return;
+            }
+            if (_isHoverVoxel) {
+                _myAvatar.orbit(glm::vec3(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z) * (float)TREE_SCALE, deltaX, deltaY);
+                return;
+            }
+        }
 
         // detect drag
         glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
@@ -1151,7 +1166,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
             }
             
             if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
-                _pieMenu.mousePressEvent(_mouseX, _mouseY);
+                // disable for now
+                // _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
@@ -1952,7 +1968,9 @@ void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, cons
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
     
-    _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
+    if (!_mousePressed) {
+        _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
+    }
 }
         
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
@@ -1961,17 +1979,15 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* avatar = (Avatar *) node->getLinkedData();
-            glm::vec3 headPosition = avatar->getHead().getPosition();
+            Avatar* avatar = (Avatar*)node->getLinkedData();
             float distance;
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
-                    HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
+            if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
                 // rescale to compensate for head embiggening
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
                     (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
                 
                 _lookatIndicatorScale = avatar->getHead().getScale();
-                _lookatOtherPosition = headPosition;
+                _lookatOtherPosition = avatar->getHead().getPosition();
                 nodeUUID = avatar->getOwningNode()->getUUID();
                 return avatar;
             }
@@ -2213,7 +2229,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled, 
         // and make sure the tree is not already busy... because otherwise you'll have to wait.
-        if (!_voxels.treeIsBusy()) {
+        if (!(_voxels.treeIsBusy() || _mousePressed)) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
                 _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
