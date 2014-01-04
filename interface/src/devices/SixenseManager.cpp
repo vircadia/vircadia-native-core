@@ -102,7 +102,7 @@ void SixenseManager::update(float deltaTime) {
         FingerData finger(palm, &hand);
         finger.setActive(true);
         finger.setRawRootPosition(position);
-        const float FINGER_LENGTH = 300.0f;   //  Millimeters
+        const float FINGER_LENGTH = 150.0f;   //  Millimeters
         const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
         finger.setRawTipPosition(position + rotation * FINGER_VECTOR);
