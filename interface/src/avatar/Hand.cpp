@@ -19,6 +19,7 @@
 
 using namespace std;
 
+const float FINGERTIP_COLLISION_RADIUS = 0.01;
 const float FINGERTIP_VOXEL_SIZE = 0.05;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
@@ -40,6 +41,7 @@ const xColor TOY_BALL_ON_SERVER_COLOR[] =
         { 255, 0, 255 },
     };
 
+
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
 
@@ -54,8 +56,8 @@ Hand::Hand(Avatar* owningAvatar) :
     _grabDeltaVelocity(0, 0, 0),
     _grabStartRotation(0, 0, 0, 1),
     _grabCurrentRotation(0, 0, 0, 1),
-    _throwInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
-    _catchInjector(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
+    _throwSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
+    _catchSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
 {
     for (int i = 0; i < MAX_HANDS; i++) {
         _toyBallInHand[i] = false;
@@ -63,10 +65,6 @@ Hand::Hand(Avatar* owningAvatar) :
         _whichBallColor[i] = 0;
     }
     _lastControllerButtons = 0;
-    
-    // the throw and catch sounds should not loopback, we'll play them locally
-    _throwInjector.setShouldLoopback(false);
-    _catchInjector.setShouldLoopback(false);
 }
 
 void Hand::init() {
@@ -90,10 +88,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     
     const int NEW_BALL_BUTTON = BUTTON_3;
     
-    float trigger = palm.getTrigger();
     bool grabButtonPressed = ((palm.getControllerButtons() & BUTTON_FWD) ||
-                              (palm.getControllerButtons() & BUTTON_3) ||
-                              (trigger > 0.f));
+                              (palm.getControllerButtons() & BUTTON_3));
     
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
@@ -128,11 +124,13 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             _ballParticleEditHandles[handID] = caughtParticle;
             caughtParticle = NULL;
             
-            // set the position of the catch sound to the new position of the ball
-            _catchInjector.setPosition(targetPosition);
-            
-            // inject the catch sound to the mixer and play it locally
-            _catchInjector.injectViaThread(app->getAudio());
+            // use the threadSound static method to inject the catch sound
+            // pass an AudioInjectorOptions struct to set position and disable loopback
+            AudioInjectorOptions injectorOptions;
+            injectorOptions.setPosition(newPosition);
+            injectorOptions.setLoopbackAudioInterface(app->getAudio());
+    
+            AudioScriptingInterface::playSound(&_catchSound, &injectorOptions);
         }
     }
     
@@ -214,11 +212,13 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             delete _ballParticleEditHandles[handID];
             _ballParticleEditHandles[handID] = NULL;
             
-            // move the throw injector to inject from the position of the ball
-            _throwInjector.setPosition(ballPosition);
+            // use the threadSound static method to inject the throw sound
+            // pass an AudioInjectorOptions struct to set position and disable loopback
+            AudioInjectorOptions injectorOptions;
+            injectorOptions.setPosition(ballPosition);
+            injectorOptions.setLoopbackAudioInterface(app->getAudio());
             
-            // inject the throw sound and play it locally
-            _throwInjector.injectViaThread(app->getAudio());
+            AudioScriptingInterface::playSound(&_throwSound, &injectorOptions);
         }
     }
     
@@ -256,6 +256,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
         _collisionAge += deltaTime;
     }
     
+    if (isMine) {
+        _buckyBalls.simulate(deltaTime);
+    }
+    
     const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
@@ -279,6 +283,8 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 
                 simulateToyBall(palm, fingerTipPosition, deltaTime);
+                
+                _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
                 
                 if (palm.getControllerButtons() & BUTTON_4) {
                     _grabDelta +=  palm.getRawVelocity() * deltaTime;
@@ -453,7 +459,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.010f;
+                    const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
@@ -493,6 +499,11 @@ void Hand::calculateGeometry() {
 void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
+    
+    if (isMine) {
+        _buckyBalls.render();
+    }
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
         for (int i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];

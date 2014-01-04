@@ -20,12 +20,20 @@
 #include <UUID.h>
 #include <VoxelConstants.h>
 
+#include <Sound.h>
+
 #include "ScriptEngine.h"
 
 int ScriptEngine::_scriptNumber = 1;
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 
+static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
+    QUrl soundURL = QUrl(context->argument(0).toString());
+    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL), QScriptEngine::ScriptOwnership);
+    
+    return soundScriptValue;
+}
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu,
@@ -82,6 +90,8 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
+Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+
 void ScriptEngine::run() {
     _isRunning = true;
     QScriptEngine engine;
@@ -100,6 +110,17 @@ void ScriptEngine::run() {
 
     QScriptValue particleScripterValue =  engine.newQObject(&_particlesScriptingInterface);
     engine.globalObject().setProperty("Particles", particleScripterValue);
+    
+    
+    QScriptValue soundConstructorValue = engine.newFunction(soundConstructor);
+    QScriptValue soundMetaObject = engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
+    engine.globalObject().setProperty("Sound", soundMetaObject);
+    
+    QScriptValue injectionOptionValue = engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
+    engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    
+    QScriptValue audioScriptingInterfaceValue = engine.newQObject(&_audioScriptingInterface);
+    engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
     
     if (_controllerScriptingInterface) {
         QScriptValue controllerScripterValue =  engine.newQObject(_controllerScriptingInterface);

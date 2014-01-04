@@ -612,7 +612,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                     lockTree();
                     VoxelPacketData packetData(packetIsCompressed);
                     packetData.loadFinalizedContent(dataAt, sectionLength);
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                    if (Application::getInstance()->getLogger()->extraDebugging()) {
                         qDebug("VoxelSystem::parseData() ... Got Packet Section"
                                " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
                                " subsection:%d sectionLength:%d uncompressed:%d\n",
@@ -973,7 +973,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
         // not render these Voxels. We need to think about ways to keep the entire scene intact but maybe lower quality
         // possibly shifting down to lower LOD or something. This debug message is to help identify, if/when/how this
         // state actually occurs.
-        if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+        if (Application::getInstance()->getLogger()->extraDebugging()) {
             qDebug("OHHHH NOOOOOO!!!! updateNodeInArrays() BAILING (_voxelsInWriteArrays >= _maxVoxels)\n");
         }
         return 0;
@@ -1964,7 +1964,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
-    bool extraDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool extraDebugDetails = Application::getInstance()->getLogger()->extraDebugging();
     if (extraDebugDetails) {
         qDebug("hideOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld\n", 
                 args.nodesScanned, args.nodesRemoved, args.nodesInside, 

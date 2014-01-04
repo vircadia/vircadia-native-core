@@ -514,7 +514,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
-            qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+            qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at " << usecTimestampNow() << "\n";
         }
         
         int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());

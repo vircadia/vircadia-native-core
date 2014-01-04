@@ -17,12 +17,12 @@
 #include <SharedUtil.h>
 
 #include <AvatarData.h>
-#include <AudioInjector.h>
+#include <AudioScriptingInterface.h>
 #include <HandData.h>
 #include <ParticleEditHandle.h>
 
+#include "BuckyBalls.h"
 #include "InterfaceConfig.h"
-#include "ParticleSystem.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "VoxelSystem.h"
@@ -30,7 +30,6 @@
 
 class Avatar;
 class ProgramObject;
-
 
 class Hand : public HandData {
 public:
@@ -86,6 +85,8 @@ private:
     float _collisionAge;
     float _collisionDuration;
     
+    BuckyBalls _buckyBalls;
+    
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
@@ -99,7 +100,6 @@ private:
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
     
     void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
-
     
     #define MAX_HANDS 2
     bool _toyBallInHand[MAX_HANDS];
@@ -114,8 +114,9 @@ private:
     glm::quat _grabStartRotation;
     glm::quat _grabCurrentRotation;
     
-    AudioInjector _throwInjector;
-    AudioInjector _catchInjector;
+    Sound _throwSound;
+    Sound _catchSound;
+    
 };
 
 #endif

@@ -13,7 +13,7 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
-#include "Menu.h"
+#include "Application.h"
 #include "VoxelHideShowThread.h"
 
 VoxelHideShowThread::VoxelHideShowThread(VoxelSystem* theSystem) :
@@ -30,10 +30,10 @@ bool VoxelHideShowThread::process() {
     _theSystem->checkForCulling();
     uint64_t end = usecTimestampNow();
     uint64_t elapsed = end - start;
-    
-    bool showExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+
+    bool showExtraDebugging = Application::getInstance()->getLogger()->extraDebugging();
     if (showExtraDebugging && elapsed > USECS_PER_FRAME) {
-        printf("VoxelHideShowThread::process()... checkForCulling took %llu\n", elapsed);
+        qDebug() << "VoxelHideShowThread::process()... checkForCulling took " << elapsed << "\n";
     }
     
     if (isStillRunning()) {

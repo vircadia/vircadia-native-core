@@ -69,6 +69,7 @@
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
+#include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ParticleEditHandle.h"
 #include "ControllerScriptingInterface.h"
@@ -201,7 +202,8 @@ public:
     
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
-    
+    FileLogger* getLogger() { return _logger; }
+
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
@@ -508,6 +510,8 @@ private:
     std::vector<Avatar*> _avatarFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
+
+    FileLogger* _logger;
 };
 
 #endif /* defined(__interface__Application__) */

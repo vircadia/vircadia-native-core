@@ -565,7 +565,13 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     } else {
         //  Render the body's voxels and head
         _skeletonModel.render(1.0f);
-        _head.render(1.0f, false);
+        
+        //  Render head so long as the camera isn't inside it
+        const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
+        Camera* myCamera = Application::getInstance()->getCamera();
+        if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
+            _head.render(1.0f, false);
+        }
     }
     _hand.render(true);
 }
@@ -746,9 +752,15 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
                 pointDirection = glm::normalize(projectedVector);
             }
         }
-        const float FAR_AWAY_POINT = TREE_SCALE;
-        _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = _mouseRayOrigin + pointDirection * FAR_AWAY_POINT;
-        pointing = true;
+        glm::vec3 shoulderPosition;
+        if (_skeletonModel.getRightShoulderPosition(shoulderPosition)) {
+            glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
+            const float ARM_RETRACTION = 0.75f;
+            float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
+            _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = shoulderPosition +
+                glm::normalize(farVector) * retractedLength;
+            pointing = true;    
+        }
     }
     
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it

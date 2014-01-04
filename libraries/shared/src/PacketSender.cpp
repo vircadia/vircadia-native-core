@@ -41,11 +41,9 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
     _totalPacketsQueued(0),
     _totalBytesQueued(0)
 {
-    //printf("PacketSender[%p] created... \n", this);
 }
 
 PacketSender::~PacketSender() {
-    //printf("PacketSender::~PacketSender[%p] destroyed... \n", this);
 }
 
 
@@ -139,11 +137,6 @@ bool PacketSender::nonThreadedProcess() {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
     const float ZERO_RESET_CALLS_PER_SECOND = 1; // used in guard against divide by zero
     
-    bool wantDebugging = false;
-    if (wantDebugging) {
-        printf("\n\nPacketSender::nonThreadedProcess() _packets.size()=%ld\n",_packets.size());
-    }
-    
     // keep track of our process call times, so we have a reliable account of how often our caller calls us
     uint64_t elapsedSinceLastCall = now - _lastProcessCallTime;
     _lastProcessCallTime = now;
@@ -153,24 +146,10 @@ bool PacketSender::nonThreadedProcess() {
     const int TRUST_AVERAGE_AFTER = AVERAGE_CALL_TIME_SAMPLES * 2;
     if (_usecsPerProcessCallHint == 0 || _averageProcessCallTime.getSampleCount() > TRUST_AVERAGE_AFTER) {
         averageCallTime = _averageProcessCallTime.getAverage();
-
-        if (wantDebugging) {
-            printf("averageCallTime = _averageProcessCallTime.getAverage() =%f\n",averageCallTime);
-        }
-
     } else {
         averageCallTime = _usecsPerProcessCallHint;
-
-        if (wantDebugging) {
-            printf("averageCallTime = _usecsPerProcessCallHint =%f\n",averageCallTime);
-        }
-
     }
 
-    if (wantDebugging) {
-        printf("elapsedSinceLastCall=%llu averageCallTime=%f\n",elapsedSinceLastCall, averageCallTime);
-    }
-    
     if (_packets.size() == 0) {
         // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
         return isStillRunning(); 
@@ -202,25 +181,15 @@ bool PacketSender::nonThreadedProcess() {
     // packets per second send rate.
     float callsPerSecond = USECS_PER_SECOND / averageCallTime;
 
-    if (wantDebugging) {
-        printf("PacketSender::process() USECS_PER_SECOND=%llu averageCallTime=%f callsPerSecond=%f\n",
-            USECS_PER_SECOND, averageCallTime, callsPerSecond );
-    }    
-
     // theoretically we could get called less than 1 time per second... but since we're using floats, it really shouldn't be
     // possible to get 0 calls per second, but we will guard agains that here, just in case.
     if (callsPerSecond == 0) {
         callsPerSecond = ZERO_RESET_CALLS_PER_SECOND;
-        qDebug("PacketSender::nonThreadedProcess() UNEXPECTED:callsPerSecond==0, assuming ZERO_RESET_CALLS_PER_SECOND\n");
     }
     
     // This is the average number of packets per call...
     averagePacketsPerCall = _packetsPerSecond / callsPerSecond;
     packetsToSendThisCall = averagePacketsPerCall;
-    if (wantDebugging) {
-        printf("PacketSender::process() averageCallTime=%f averagePacketsPerCall=%f packetsToSendThisCall=%d\n",
-            averageCallTime, averagePacketsPerCall, packetsToSendThisCall);
-    }    
     
     // if we get called more than 1 per second, we want to mostly divide the packets evenly across the calls...
     // but we want to track the remainder and make sure over the course of a second, we are sending the target PPS
@@ -252,83 +221,33 @@ bool PacketSender::nonThreadedProcess() {
     // than 5 times per second) This gives us sufficient smoothing in our packet adjustments
     float callIntervalsPerReset = fmax(callsPerSecond, MIN_CALL_INTERVALS_PER_RESET);
 
-    if (wantDebugging) {
-        printf("about to check interval... callsPerSecond=%f elapsedSinceLastPPSCheck=%llu checkInterval=%f\n",
-            callsPerSecond, elapsedSinceLastCheck, (averageCallTime * CALL_INTERVALS_TO_CHECK));
-    }
-
     if  (elapsedSinceLastCheck > (averageCallTime * CALL_INTERVALS_TO_CHECK)) {
-
-        if (wantDebugging) {
-            printf(">>>>>>>>>>>>>>>  check interval... _packetsOverCheckInterval=%d elapsedSinceLastPPSCheck=%llu\n",
-                _packetsOverCheckInterval, elapsedSinceLastCheck);
-        }
-        
         float ppsOverCheckInterval = (float)_packetsOverCheckInterval;
         float ppsExpectedForCheckInterval = (float)_packetsPerSecond * ((float)elapsedSinceLastCheck / (float)USECS_PER_SECOND);
 
-        if (wantDebugging) {
-            printf(">>>>>>>>>>>>>>>  check interval... ppsOverCheckInterval=%f ppsExpectedForCheckInterval=%f\n",
-                ppsOverCheckInterval, ppsExpectedForCheckInterval);
-        }
-                
         if (ppsOverCheckInterval < ppsExpectedForCheckInterval) {
             int adjust = ppsExpectedForCheckInterval - ppsOverCheckInterval;
             packetsToSendThisCall += adjust;
-            if (wantDebugging) {
-                qDebug("Lower pps [%f] than expected [%f] over check interval [%llu], adjusting UP by %d.\n",
-                        ppsOverCheckInterval, ppsExpectedForCheckInterval, elapsedSinceLastCheck, adjust);
-            }
         } else if (ppsOverCheckInterval > ppsExpectedForCheckInterval) {
             int adjust = ppsOverCheckInterval - ppsExpectedForCheckInterval;
             packetsToSendThisCall -= adjust;
-            if (wantDebugging) {
-                qDebug("Higher pps [%f] than expected [%f] over check interval [%llu], adjusting DOWN by %d.\n",
-                        ppsOverCheckInterval, ppsExpectedForCheckInterval, elapsedSinceLastCheck, adjust);
-            }
-        } else {
-            if (wantDebugging) {
-                qDebug("pps [%f] is expected [%f] over check interval [%llu], NO ADJUSTMENT.\n",
-                        ppsOverCheckInterval, ppsExpectedForCheckInterval, elapsedSinceLastCheck);
-            }
         }
         
         // now, do we want to reset the check interval? don't want to completely reset, because we would still have
         // a rounding error. instead, we check to see that we've passed the reset interval (which is much larger than
         // the check interval), and on those reset intervals we take the second half average and keep that for the next
         // interval window...
-        if (wantDebugging) {
-            printf(">>>>>>>>>>> RESET >>>>>>>>>>>>>>> Should we reset? callsPerSecond=%f elapsedSinceLastPPSCheck=%llu resetInterval=%f\n",
-                callsPerSecond, elapsedSinceLastCheck, (averageCallTime * callIntervalsPerReset));
-        }
-        
         if (elapsedSinceLastCheck > (averageCallTime * callIntervalsPerReset)) {
-
-            if (wantDebugging) {
-                printf(">>>>>>>>>>> RESET >>>>>>>>>>>>>>> elapsedSinceLastCheck/2=%llu _packetsOverCheckInterval/2=%d\n",
-                    (elapsedSinceLastCheck / 2), (_packetsOverCheckInterval / 2));
-            }
-
             // Keep average packets and time for "second half" of check interval
             _lastPPSCheck += (elapsedSinceLastCheck / 2);
             _packetsOverCheckInterval = (_packetsOverCheckInterval / 2);
 
             elapsedSinceLastCheck = now - _lastPPSCheck;
-
-            if (wantDebugging) {
-                printf(">>>>>>>>>>> RESET >>>>>>>>>>>>>>> NEW _lastPPSCheck=%llu elapsedSinceLastCheck=%llu  _packetsOverCheckInterval=%d\n",
-                    _lastPPSCheck, elapsedSinceLastCheck, _packetsOverCheckInterval);
-            }
         }
     }
     
     int packetsLeft = _packets.size();
 
-    if (wantDebugging) {
-        printf("packetsSentThisCall=%d packetsToSendThisCall=%d packetsLeft=%d\n",
-            packetsSentThisCall, packetsToSendThisCall, packetsLeft);
-    }
-    
     // Now that we know how many packets to send this call to process, just send them.
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
@@ -347,10 +266,6 @@ bool PacketSender::nonThreadedProcess() {
         _totalPacketsSent++;
         _totalBytesSent += temporary.getLength();
 
-        if (wantDebugging) {
-            printf("nodeSocket->send()... packetsSentThisCall=%d _packetsOverCheckInterval=%d\n",
-                packetsSentThisCall, _packetsOverCheckInterval);
-        }
         if (_notify) {
             _notify->packetSentNotification(temporary.getLength());
         }

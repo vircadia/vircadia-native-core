@@ -11,25 +11,62 @@
 
 #include <QDialog>
 #include <QPlainTextEdit>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QCheckBox>
+#include <QSyntaxHighlighter>
+
+#include "AbstractLoggerInterface.h"
+
+class KeywordHighlighter : public QSyntaxHighlighter {
+    Q_OBJECT
+
+public:
+    KeywordHighlighter(QTextDocument *parent = 0);
+    QString keyword;
+
+protected:
+    void highlightBlock(const QString &text);
+
+private:
+    QTextCharFormat keywordFormat;
+    
+};
 
 class LogDialog : public QDialog {
     Q_OBJECT
 
 public:
-    LogDialog(QWidget* parent);
+    LogDialog(QWidget*, AbstractLoggerInterface*);
     ~LogDialog();
 
 public slots:
     void appendLogLine(QString logLine);
 
+private slots:
+    void handleSearchButton();
+    void handleRevealButton();
+    void handleExtraDebuggingCheckbox(const int);
+    void handleSearchTextChanged(const QString);
+
 protected:
-    void resizeEvent(QResizeEvent* e);
-    void showEvent(QShowEvent* e);
+    void resizeEvent(QResizeEvent*);
+    void showEvent(QShowEvent*);
 
 private:
+    QPushButton* _searchButton;
+    QLineEdit* _searchTextBox;
+    QCheckBox* _extraDebuggingBox;
+    QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
     pthread_mutex_t _mutex;
+    QString _searchTerm;
+    KeywordHighlighter* _highlighter;
 
+    AbstractLoggerInterface* _logger;
+
+    void initControls();
+    void showLogData();
 };
 
 #endif
