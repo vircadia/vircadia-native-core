@@ -79,7 +79,7 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
 
-        penetration /= (float)TREE_SCALE;
+        penetration /= static_cast<float>(TREE_SCALE);
         updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
         applyHardCollision(particle, penetration, ELASTICITY, DAMPING);
         
@@ -101,7 +101,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particle) {
         particle->collisionWithParticle(penetratedParticle);
         penetratedParticle->collisionWithParticle(particle);
 
-        penetration /= (float)TREE_SCALE;
+        penetration /= static_cast<float>(TREE_SCALE);
         updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
         
         // apply a hard collision to both particles of half the penetration each
@@ -156,7 +156,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
             // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
             // apply a hard collision when ball collides with hand
-            penetration /= (float)TREE_SCALE;
+            penetration /= static_cast<float>(TREE_SCALE);
             updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
     
             // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
@@ -167,11 +167,11 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 addedVelocity = palmVelocity;
             }
 
-            applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
+            applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
         } else if (avatar->findSpherePenetration(center, radius, penetration)) {
             // apply hard collision when particle collides with avatar
-            penetration /= (float)TREE_SCALE;
-            updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+            penetration /= static_cast<float>(TREE_SCALE);
+            updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
             glm::vec3 addedVelocity = avatar->getVelocity();
             applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
         }
@@ -191,7 +191,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
             if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
                 // apply a hard collision when ball collides with hand
-                penetration /= (float)TREE_SCALE;
+                penetration /= static_cast<float>(TREE_SCALE);
                 updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
 
                 // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
@@ -205,10 +205,10 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
 
             } else if (avatar->findSpherePenetration(center, radius, penetration)) {
-                penetration /= (float)TREE_SCALE;
-                updateCollisionSound(particle, penetration, VOXEL_COLLISION_FREQUENCY);
+                penetration /= static_cast<float>(TREE_SCALE);
+                updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
                 glm::vec3 addedVelocity = avatar->getVelocity();
-                applyHardCollision(particle, penetration, VOXEL_ELASTICITY, VOXEL_DAMPING, addedVelocity);
+                applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
             }
         }
     }
