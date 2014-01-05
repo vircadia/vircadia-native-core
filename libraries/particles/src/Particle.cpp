@@ -509,33 +509,35 @@ void Particle::update() {
 
 void Particle::runUpdateScript() {
     if (!_script.isEmpty()) {
+        ScriptEngine engine(_script); // no menu or controller interface...
 
-        QScriptEngine engine;
+        if (_voxelEditSender) {
+            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
+        }
+        if (_particleEditSender) {
+            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
+        }
 
-        // register meta-type for glm::vec3 and rgbColor conversions
-        registerMetaTypes(&engine);
-
+        // Add the Particle object
         ParticleScriptObject particleScriptable(this);
-        QScriptValue particleValue = engine.newQObject(&particleScriptable);
-        engine.globalObject().setProperty("Particle", particleValue);
+        engine.registerGlobalObject("Particle", &particleScriptable);
 
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
-
-        QScriptValue result = engine.evaluate(_script);
+        // init and evaluate the script, but return so we can emit the collision
+        engine.evaluate();
 
         particleScriptable.emitUpdate();
 
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        if (_voxelEditSender) {
+            _voxelEditSender->releaseQueuedMessages();
+        }
+        if (_particleEditSender) {
+            _particleEditSender->releaseQueuedMessages();
         }
     }
 }
 
 void Particle::collisionWithParticle(Particle* other) {
     if (!_script.isEmpty()) {
-
         ScriptEngine engine(_script); // no menu or controller interface...
 
         if (_voxelEditSender) {
