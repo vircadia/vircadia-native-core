@@ -74,15 +74,13 @@ int VoxelImporter::exec() {
         reset();
     } else {
         _importDialog.reset();
-
-        if (_importDialog.getImportIntoClipboard()) {
-            VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
-
-            voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->getRoot(),
-                                                Application::getInstance()->getClipboard(),
-                                                true);
-            voxelSystem->changeTree(Application::getInstance()->getClipboard());
-        }
+        
+        VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+        
+        voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->getRoot(),
+                                            Application::getInstance()->getClipboard(),
+                                            true);
+        voxelSystem->changeTree(Application::getInstance()->getClipboard());
     }
 
     return ret;
@@ -93,23 +91,6 @@ int VoxelImporter::preImport() {
 
     if (!QFileInfo(filename).isFile()) {
         return 0;
-    }
-
-    if (_importDialog.getWantPreview()) {
-        _filename = filename;
-
-        if (_nextTask) {
-            delete _nextTask;
-        }
-
-        _nextTask = new ImportTask(_filename);
-        connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
-
-        if (_currentTask != NULL) {
-            _voxelTree.cancelImport();
-        } else {
-            launchTask();
-        }
     }
 
     return 1;
