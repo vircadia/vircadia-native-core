@@ -7,39 +7,43 @@
 //
 //
 
-#include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <Octree.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
-#include <Octree.h>
-
 #include <VoxelsScriptingInterface.h>
-#include "ParticlesScriptingInterface.h"
 
+// This is not ideal, but adding script-engine as a linked library, will cause a circular reference
+// I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
+// headers, but not link to each other, this is essentially what this construct is doing, but would be
+// better to add includes to the include path, but not link
+#include "../../script-engine/src/ScriptEngine.h"
+
+#include "ParticlesScriptingInterface.h"
 #include "Particle.h"
 
 uint32_t Particle::_nextID = 0;
-VoxelsScriptingInterface* Particle::_voxelsScriptingInterface = NULL;
-ParticlesScriptingInterface* Particle::_particlesScriptingInterface = NULL;
+VoxelEditPacketSender* Particle::_voxelEditSender = NULL;
+ParticleEditPacketSender* Particle::_particleEditSender = NULL;
 
 
-Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
+Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
                     float damping, bool inHand, QString updateScript, uint32_t id) {
-                    
+
     init(position, radius, color, velocity, gravity, damping, inHand, updateScript, id);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
-    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0), 
+    init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0),
             DEFAULT_GRAVITY, DEFAULT_DAMPING, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
 Particle::~Particle() {
 }
 
-void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity, 
+void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
                     float damping, bool inHand, QString updateScript, uint32_t id) {
     if (id == NEW_PARTICLE) {
         _id = _nextID;
@@ -51,7 +55,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _lastEdited = now;
     _lastUpdated = now;
     _created = now; // will get updated as appropriate in setLifetime()
-    
+
     _position = position;
     _radius = radius;
     memcpy(_color, color, sizeof(_color));
@@ -215,7 +219,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         _script = tempString;
         dataAt += scriptLength;
         bytesRead += scriptLength;
-        
+
         //printf("Particle::readParticleDataFromBuffer()... "); debugDump();
     }
     return bytesRead;
@@ -227,11 +231,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     unsigned char* dataAt = data;
     processedBytes = 0;
 
-    // the first part of the data is our octcode...    
+    // the first part of the data is our octcode...
     int octets = numberOfThreeBitSectionsInCode(data);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-    
-    // we don't actually do anything with this octcode... 
+
+    // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
     processedBytes += lengthOfOctcode;
 
@@ -240,7 +244,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     memcpy(&editID, dataAt, sizeof(editID));
     dataAt += sizeof(editID);
     processedBytes += sizeof(editID);
-    
+
     // special case for handling "new" particles
     if (editID == NEW_PARTICLE) {
         // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
@@ -251,19 +255,19 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         processedBytes += sizeof(creatorTokenID);
         newParticle.setCreatorTokenID(creatorTokenID);
         newParticle._newlyCreated = true;
-        
+
         newParticle.setLifetime(0); // this guy is new!
 
     } else {
         newParticle._id = editID;
         newParticle._newlyCreated = false;
-    } 
+    }
 
     // lastEdited
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
     dataAt += sizeof(newParticle._lastEdited);
     processedBytes += sizeof(newParticle._lastEdited);
-        
+
     // radius
     memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
     dataAt += sizeof(newParticle._radius);
@@ -283,12 +287,12 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     memcpy(&newParticle._velocity, dataAt, sizeof(newParticle._velocity));
     dataAt += sizeof(newParticle._velocity);
     processedBytes += sizeof(newParticle._velocity);
-    
+
     // gravity
     memcpy(&newParticle._gravity, dataAt, sizeof(newParticle._gravity));
     dataAt += sizeof(newParticle._gravity);
     processedBytes += sizeof(newParticle._gravity);
-    
+
     // damping
     memcpy(&newParticle._damping, dataAt, sizeof(newParticle._damping));
     dataAt += sizeof(newParticle._damping);
@@ -311,11 +315,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
     const bool wantDebugging = false;
     if (wantDebugging) {
-        printf("Particle::fromEditPacket()...\n"); 
+        printf("Particle::fromEditPacket()...\n");
         printf("   Particle id in packet:%u\n", editID);
         newParticle.debugDump();
     }
-    
+
     return newParticle;
 }
 
@@ -329,7 +333,7 @@ void Particle::debugDump() const {
     printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
 }
 
-bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best
@@ -338,13 +342,13 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 
     for (int i = 0; i < count && success; i++) {
         // get the octal code for the particle
-        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y, 
+        unsigned char* octcode = pointToOctalCode(details[i].position.x, details[i].position.y,
                                                     details[i].position.z, details[i].radius);
 
         int octets = numberOfThreeBitSectionsInCode(octcode);
         int lengthOfOctcode = bytesRequiredForCodeLength(octets);
         int lenfthOfEditData = lengthOfOctcode + expectedEditMessageBytes();
-        
+
         // make sure we have room to copy this particle
         if (sizeOut + lenfthOfEditData > sizeIn) {
             success = false;
@@ -353,9 +357,9 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             memcpy(copyAt, octcode, lengthOfOctcode);
             copyAt += lengthOfOctcode;
             sizeOut += lengthOfOctcode;
-            
+
             // Now add our edit content details...
-            
+
             // id
             memcpy(copyAt, &details[i].id, sizeof(details[i].id));
             copyAt += sizeof(details[i].id);
@@ -419,7 +423,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             sizeOut += scriptLength;
 
             bool wantDebugging = false;
-            if (wantDebugging) {            
+            if (wantDebugging) {
                 printf("encodeParticleEditMessageDetails()....\n");
                 printf("Particle id  :%u\n", details[i].id);
                 printf(" nextID:%u\n", _nextID);
@@ -433,7 +437,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { 
+void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
     unsigned char* dataAt = codeColorBuffer;
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
@@ -456,7 +460,7 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     uint64_t lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
-    if (wantDebug) {    
+    if (wantDebug) {
         qDebug("Particle::adjustEditPacketForClockSkew()...\n");
         qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime << "\n";
         qDebug() << "                 clockSkew: " << clockSkew << "\n";
@@ -470,7 +474,7 @@ void Particle::update() {
     float elapsed = static_cast<float>(now - _lastUpdated);
     _lastUpdated = now;
     float timeElapsed = elapsed / static_cast<float>(USECS_PER_SECOND);
-    
+
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float velocityScalar = glm::length(getVelocity());
     const float STILL_MOVING = 0.05f / static_cast<float>(TREE_SCALE);
@@ -480,13 +484,13 @@ void Particle::update() {
     bool isInHand = getInHand();
     bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
     setShouldDie(shouldDie);
-    
+
     runUpdateScript(); // allow the javascript to alter our state
-    
+
     // If the ball is in hand, it doesn't move or have gravity effect it
     if (!isInHand) {
         _position += _velocity * timeElapsed;
-    
+
         // handle bounces off the ground...
         if (_position.y <= 0) {
             _velocity = _velocity * glm::vec3(1,-1,1);
@@ -505,72 +509,59 @@ void Particle::update() {
 
 void Particle::runUpdateScript() {
     if (!_script.isEmpty()) {
+        ScriptEngine engine(_script); // no menu or controller interface...
 
-        QScriptEngine engine;
-    
-        // register meta-type for glm::vec3 and rgbColor conversions
-        registerMetaTypes(&engine);
-    
+        if (_voxelEditSender) {
+            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
+        }
+        if (_particleEditSender) {
+            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
+        }
+
+        // Add the Particle object
         ParticleScriptObject particleScriptable(this);
-        QScriptValue particleValue = engine.newQObject(&particleScriptable);
-        engine.globalObject().setProperty("Particle", particleValue);
-        
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
-    
-        QScriptValue result = engine.evaluate(_script);
-        
+        engine.registerGlobalObject("Particle", &particleScriptable);
+
+        // init and evaluate the script, but return so we can emit the collision
+        engine.evaluate();
+
         particleScriptable.emitUpdate();
-    
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+
+        if (_voxelEditSender) {
+            _voxelEditSender->releaseQueuedMessages();
+        }
+        if (_particleEditSender) {
+            _particleEditSender->releaseQueuedMessages();
         }
     }
 }
 
 void Particle::collisionWithParticle(Particle* other) {
     if (!_script.isEmpty()) {
+        ScriptEngine engine(_script); // no menu or controller interface...
 
-        QScriptEngine engine;
-    
-        // register meta-type for glm::vec3 and rgbColor conversions
-        registerMetaTypes(&engine);
-    
+        if (_voxelEditSender) {
+            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
+        }
+        if (_particleEditSender) {
+            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
+        }
+
+        // Add the Particle object
         ParticleScriptObject particleScriptable(this);
-        QScriptValue particleValue = engine.newQObject(&particleScriptable);
-        engine.globalObject().setProperty("Particle", particleValue);
-        
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
+        engine.registerGlobalObject("Particle", &particleScriptable);
 
+        // init and evaluate the script, but return so we can emit the collision
+        engine.evaluate();
 
-        if (getVoxelsScriptingInterface()) {
-            QScriptValue voxelScripterValue =  engine.newQObject(getVoxelsScriptingInterface());
-            engine.globalObject().setProperty("Voxels", voxelScripterValue);
-        }
-
-        if (getParticlesScriptingInterface()) {
-            QScriptValue particleScripterValue =  engine.newQObject(getParticlesScriptingInterface());
-            engine.globalObject().setProperty("Particles", particleScripterValue);
-        }
-        
-        QScriptValue result = engine.evaluate(_script);
-        
         ParticleScriptObject otherParticleScriptable(other);
         particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
 
-        if (getVoxelsScriptingInterface()) {
-            getVoxelsScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        if (_voxelEditSender) {
+            _voxelEditSender->releaseQueuedMessages();
         }
-
-        if (getParticlesScriptingInterface()) {
-            getParticlesScriptingInterface()->getPacketSender()->releaseQueuedMessages();
-        }
-
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        if (_particleEditSender) {
+            _particleEditSender->releaseQueuedMessages();
         }
     }
 }
@@ -578,45 +569,32 @@ void Particle::collisionWithParticle(Particle* other) {
 void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
     if (!_script.isEmpty()) {
 
-        QScriptEngine engine;
-    
-        // register meta-type for glm::vec3 and rgbColor conversions
-        registerMetaTypes(&engine);
-    
+        ScriptEngine engine(_script); // no menu or controller interface...
+
+        // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
+        // we can use the same ones as our context.
+        if (_voxelEditSender) {
+            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
+        }
+        if (_particleEditSender) {
+            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
+        }
+
+        // Add the Particle object
         ParticleScriptObject particleScriptable(this);
-        QScriptValue particleValue = engine.newQObject(&particleScriptable);
-        engine.globalObject().setProperty("Particle", particleValue);
-        
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", TREE_SCALE);
+        engine.registerGlobalObject("Particle", &particleScriptable);
 
+        // init and evaluate the script, but return so we can emit the collision
+        engine.evaluate();
 
-        if (getVoxelsScriptingInterface()) {
-            QScriptValue voxelScripterValue =  engine.newQObject(getVoxelsScriptingInterface());
-            engine.globalObject().setProperty("Voxels", voxelScripterValue);
-        }
-
-        if (getParticlesScriptingInterface()) {
-            QScriptValue particleScripterValue =  engine.newQObject(getParticlesScriptingInterface());
-            engine.globalObject().setProperty("Particles", particleScripterValue);
-        }
-        
-        QScriptValue result = engine.evaluate(_script);
-        
         VoxelDetailScriptObject voxelDetailsScriptable(voxelDetails);
         particleScriptable.emitCollisionWithVoxel(&voxelDetailsScriptable);
 
-        if (getVoxelsScriptingInterface()) {
-            getVoxelsScriptingInterface()->getPacketSender()->releaseQueuedMessages();
+        if (_voxelEditSender) {
+            _voxelEditSender->releaseQueuedMessages();
         }
-
-        if (getParticlesScriptingInterface()) {
-            getParticlesScriptingInterface()->getPacketSender()->releaseQueuedMessages();
-        }
-
-        if (engine.hasUncaughtException()) {
-            int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        if (_particleEditSender) {
+            _particleEditSender->releaseQueuedMessages();
         }
     }
 }
@@ -625,7 +603,7 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 
 void Particle::setLifetime(float lifetime) {
     uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;
-    _created = usecTimestampNow() - lifetimeInUsecs; 
+    _created = usecTimestampNow() - lifetimeInUsecs;
 }
 
 void Particle::copyChangedProperties(const Particle& other) {
