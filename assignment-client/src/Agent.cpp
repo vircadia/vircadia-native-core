@@ -18,6 +18,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <ParticlesScriptingInterface.h>
 
 #include "Agent.h"
 
