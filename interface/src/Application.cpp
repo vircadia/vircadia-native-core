@@ -1561,8 +1561,8 @@ void Application::shootParticle() {
                  "   Particle.setColor(voxelColor); "
                  "   var voxelAt = voxel.getPosition();"
                  "   var voxelScale = voxel.getScale();"
-                 "   Voxels.queueVoxelDelete(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  "
-                 "   print('Voxels.queueVoxelDelete(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); "
+                 "   Voxels.eraseVoxel(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  "
+                 "   print('Voxels.eraseVoxel(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); "
                  " } "
                  " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
 
