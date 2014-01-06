@@ -112,7 +112,7 @@ void MetavoxelSession::receivedData(const QByteArray& data, const HifiSockAddr& 
 void MetavoxelSession::sendDelta() {
     Bitstream& out = _sequencer.startPacket();
     out << QVariant::fromValue(MetavoxelDeltaMessage());
-    _server->getData()->writeDelta(*_sendRecords.first().data, out);
+    writeDelta(_server->getData(), _sendRecords.first().data, out);
     _sequencer.endPacket();
     
     // record the send

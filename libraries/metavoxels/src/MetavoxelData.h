@@ -23,13 +23,10 @@
 
 class QScriptContext;
 
-class MetavoxelData;
 class MetavoxelNode;
 class MetavoxelPath;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
-
-typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData : public QSharedData {
@@ -63,6 +60,12 @@ private:
     
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
+
+typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
+
+void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out);
+
+void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in);
 
 /// A single node within a metavoxel layer.
 class MetavoxelNode {

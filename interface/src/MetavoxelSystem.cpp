@@ -234,7 +234,7 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        _data->readDelta(*_receiveRecords.first().data, in);
+        readDelta(_data, _receiveRecords.first().data, in);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
