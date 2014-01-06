@@ -43,7 +43,7 @@ void Sound::replyFinished(QNetworkReply* reply) {
 
     for (int i = 1; i < numSourceSamples; i += 2) {
         if (i + 1 >= numSourceSamples) {
-            destinationSamples[(i - 1) / 2] = (rawAudioByteArray[i - 1] / 2) + (rawAudioByteArray[i] / 2);
+            destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
         } else {
             destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 4);
         }
