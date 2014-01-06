@@ -1,0 +1,39 @@
+/*
+*  import_dialog.qss
+*  hifi
+*
+*  Created by Stojce on 1/5/2014.
+*  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+*/
+
+QSidebar, QTreeView {
+    border: 1px solid #E5E5E5;
+}
+
+QTreeView {
+    border-left: none;
+}
+
+QSplitter::handle, QDialog {
+    background-color: white;
+}
+
+QPushButton {
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 18px;
+    padding: 14px 0px;
+    width: 107px;
+}
+
+QPushButton#importButton {
+    background: #333333;
+    color: #FFFFFF;
+}
+
+QPushButton#cancelButton {
+    color: #333333;
+    background: #FFFFFF;
+}
+
+

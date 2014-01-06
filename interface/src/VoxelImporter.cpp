@@ -34,7 +34,6 @@ VoxelImporter::VoxelImporter(QWidget* parent)
 }
 
 void VoxelImporter::init() {
-    _importDialog.init();
 }
 
 VoxelImporter::~VoxelImporter() {
