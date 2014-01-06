@@ -190,7 +190,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     applicationInfo.beginGroup("INFO");
 
     setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
+    setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
 
