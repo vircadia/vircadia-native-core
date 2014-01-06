@@ -156,8 +156,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i\n", BUILD_VERSION);
-
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -193,6 +191,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
 
     _settings = new QSettings(this);
 
@@ -4175,7 +4175,7 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
-    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
+    QString buildVersion = " (build " + applicationVersion() + ")";
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
         title += _profile.getUsername();
