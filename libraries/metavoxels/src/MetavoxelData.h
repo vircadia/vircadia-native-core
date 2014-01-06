@@ -10,7 +10,9 @@
 #define __interface__MetavoxelData__
 
 #include <QBitArray>
+#include <QExplicitlySharedDataPointer>
 #include <QHash>
+#include <QSharedData>
 #include <QScriptString>
 #include <QScriptValue>
 #include <QVector>
@@ -21,16 +23,23 @@
 
 class QScriptContext;
 
+class MetavoxelData;
 class MetavoxelNode;
 class MetavoxelPath;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 
+typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
+
 /// The base metavoxel representation shared between server and client.
-class MetavoxelData {
+class MetavoxelData : public QSharedData {
 public:
 
+    MetavoxelData();
+    MetavoxelData(const MetavoxelData& other);
     ~MetavoxelData();
+
+    MetavoxelData& operator=(const MetavoxelData& other);
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
@@ -49,6 +58,9 @@ public:
 
 private:
    
+    void incrementRootReferenceCounts();
+    void decrementRootReferenceCounts();
+    
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
 
@@ -81,6 +93,13 @@ public:
     void readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in);
     void writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const;
 
+    /// Increments the node's reference count.
+    void incrementReferenceCount() { _referenceCount++; }
+
+    /// Decrements the node's reference count.  If the resulting reference count is zero, destroys the node
+    /// and calls delete this.
+    void decrementReferenceCount(const AttributePointer& attribute);
+
     void destroy(const AttributePointer& attribute);
 
 private:
@@ -88,6 +107,7 @@ private:
     
     void clearChildren(const AttributePointer& attribute);
     
+    int _referenceCount;
     void* _attributeValue;
     MetavoxelNode* _children[CHILD_COUNT];
 };

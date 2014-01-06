@@ -103,18 +103,20 @@ private slots:
     
 private:
     
-    void handleMessage(const QVariant& message);
+    void handleMessage(const QVariant& message, Bitstream& in);
     
     class ReceiveRecord {
     public:
         int packetNumber;
-        MetavoxelData data;
+        MetavoxelDataPointer data;
     };
     
     HifiSockAddr _address;
     QUuid _sessionID;
     
     DatagramSequencer _sequencer;
+    
+    MetavoxelDataPointer _data;
     
     QList<ReceiveRecord> _receiveRecords;
 };

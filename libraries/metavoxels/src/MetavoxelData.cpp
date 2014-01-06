@@ -11,11 +11,22 @@
 
 #include "MetavoxelData.h"
 
+MetavoxelData::MetavoxelData() {
+}
+
+MetavoxelData::MetavoxelData(const MetavoxelData& other) : _roots(other._roots) {
+    incrementRootReferenceCounts();
+}
+
 MetavoxelData::~MetavoxelData() {
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        it.value()->destroy(it.key());
-        delete it.value();
-    }
+    decrementRootReferenceCounts();
+}
+
+MetavoxelData& MetavoxelData::operator=(const MetavoxelData& other) {
+    decrementRootReferenceCounts();
+    _roots = other._roots;
+    incrementRootReferenceCounts();
+    return *this;
 }
 
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {
@@ -43,8 +54,7 @@ void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const Attribute
         node = new MetavoxelNode(attributeValue.getAttribute());
     }
     if (node->setAttributeValue(path, 0, attributeValue) && attributeValue.isDefault()) {
-        node->destroy(attributeValue.getAttribute());
-        delete node;
+        node->decrementReferenceCount(attributeValue.getAttribute());
         _roots.remove(attributeValue.getAttribute());
     }
 }
@@ -85,8 +95,7 @@ void MetavoxelData::read(Bitstream& in) {
     
     // clear out the remaining old roots
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = oldRoots.constBegin(); it != oldRoots.constEnd(); it++) {
-        it.value()->destroy(it.key());
-        delete it.value();
+        it.value()->decrementReferenceCount(it.key());
     }
 }
 
@@ -104,7 +113,19 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
 void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
 }
 
-MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) {
+void MetavoxelData::incrementRootReferenceCounts() {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->incrementReferenceCount();
+    }
+}
+
+void MetavoxelData::decrementRootReferenceCounts() {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->decrementReferenceCount(it.key());
+    }
+}
+
+MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceCount(1) {
     _attributeValue = attributeValue.copy();
     for (int i = 0; i < CHILD_COUNT; i++) {
         _children[i] = NULL;
@@ -236,12 +257,18 @@ void MetavoxelNode::writeDelta(const AttributePointer& attribute, const Metavoxe
     }
 }
 
+void MetavoxelNode::decrementReferenceCount(const AttributePointer& attribute) {
+    if (--_referenceCount == 0) {
+        destroy(attribute);
+        delete this;
+    }
+}
+
 void MetavoxelNode::destroy(const AttributePointer& attribute) {
     attribute->destroy(_attributeValue);
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
-            _children[i]->destroy(attribute);
-            delete _children[i];
+            _children[i]->decrementReferenceCount(attribute);
         }
     }
 }
@@ -249,8 +276,7 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
 void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
-            _children[i]->destroy(attribute);
-            delete _children[i];
+            _children[i]->decrementReferenceCount(attribute);
             _children[i] = NULL;
         }
     }

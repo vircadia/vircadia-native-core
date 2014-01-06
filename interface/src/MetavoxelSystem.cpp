@@ -186,14 +186,15 @@ static QByteArray createDatagramHeader(const QUuid& sessionID) {
 MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     _address(address),
     _sessionID(QUuid::createUuid()),
-    _sequencer(createDatagramHeader(_sessionID)) {
+    _sequencer(createDatagramHeader(_sessionID)),
+    _data(new MetavoxelData()) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
     connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
     
     // insert the baseline receive record
-    ReceiveRecord record = { 0 };
+    ReceiveRecord record = { 0, _data };
     _receiveRecords.append(record);
 }
 
@@ -219,10 +220,10 @@ void MetavoxelClient::sendData(const QByteArray& data) {
 void MetavoxelClient::readPacket(Bitstream& in) {
     QVariant message;
     in >> message;
-    handleMessage(message);
+    handleMessage(message, in);
     
     // record the receipt
-    ReceiveRecord record = { _sequencer.getIncomingPacketNumber() };
+    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data };
     _receiveRecords.append(record);
 }
 
@@ -230,14 +231,14 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
     _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
 
-void MetavoxelClient::handleMessage(const QVariant& message) {
+void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        
+        _data->readDelta(*_receiveRecords.first().data, in);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
-            handleMessage(element);
+            handleMessage(element, in);
         }
     }
 }

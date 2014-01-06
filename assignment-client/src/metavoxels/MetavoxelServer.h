@@ -30,6 +30,8 @@ public:
     
     MetavoxelServer(const unsigned char* dataBuffer, int numBytes);
 
+    const MetavoxelDataPointer& getData() const { return _data; }
+
     void removeSession(const QUuid& sessionId);
 
     virtual void run();
@@ -44,12 +46,12 @@ private:
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
-    MetavoxelData _data;
-    
     QTimer _sendTimer;
     qint64 _lastSend;
     
     QHash<QUuid, MetavoxelSession*> _sessions;
+    
+    MetavoxelDataPointer _data;
 };
 
 /// Contains the state of a single client session.
@@ -76,12 +78,12 @@ private slots:
     
 private:
     
-    void handleMessage(const QVariant& message);
+    void handleMessage(const QVariant& message, Bitstream& in);
     
     class SendRecord {
     public:
         int packetNumber;
-        MetavoxelData data;
+        MetavoxelDataPointer data;
     };
     
     MetavoxelServer* _server;
