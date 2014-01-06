@@ -6,12 +6,27 @@
 *  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 */
 
+* {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+QLabel {
+    font-size: 16px;
+}
+
 QSidebar, QTreeView {
     border: 1px solid #E5E5E5;
+    font-size: 14px;
 }
 
 QTreeView {
     border-left: none;
+}
+
+QSidebar::item {
+    margin-top: 10px;
+    padding-top: 5px;
+    padding-bottom: 0;
 }
 
 QSplitter::handle, QDialog {
@@ -36,4 +51,26 @@ QPushButton#cancelButton {
     background: #FFFFFF;
 }
 
+QTreeView QHeaderView:section {
+    border-left: none;
+    border-top: none;
+    border-bottom: 1px solid #E5E5E5;
+    border-right: 1px solid #E5E5E5;
+    background: white;
+    color: #666666;
+    padding: 10px 20px;
+    font-size: 22px;
+    font-weight: bold;
+}
 
+QTreeView::item {
+    padding: 5px 0;
+}
+
+QListView::item:selected,
+QListView::item:selected:active,
+QTreeView::item:selected,
+QTreeView::item:selected:active {
+    background: #BDE4E3;
+    color: #333333;
+}

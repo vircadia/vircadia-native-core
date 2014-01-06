@@ -12,7 +12,15 @@
 #include <QFileDialog>
 #include <QPushButton>
 #include <QLabel>
+#include <QFileIconProvider>
+
 #include <SharedUtil.h>
+
+class HiFiIconProvider : public QFileIconProvider {
+public:
+    virtual QIcon icon(IconType type) const;
+    virtual QIcon icon(const QFileInfo &info) const;
+};
 
 class ImportDialog : public QFileDialog {
     Q_OBJECT
@@ -41,7 +49,6 @@ private:
     QString _currentFile;
     QPushButton _importButton;
     QPushButton _cancelButton;
-    QLabel _importLabel;
     QLabel _infoLabel;
     
     void setLayout();
