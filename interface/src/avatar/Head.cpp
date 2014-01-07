@@ -222,8 +222,9 @@ void Head::simulate(float deltaTime, bool isMine) {
     calculateGeometry();
     
     // the blend face may have custom eye meshes
-    _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
-
+    if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
+        _leftEyePosition = _rightEyePosition = getPosition();
+    }
 }
 
 void Head::calculateGeometry() {
