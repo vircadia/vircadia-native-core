@@ -27,6 +27,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
 #include <QWheelEvent>
@@ -37,6 +38,8 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QXmlStreamReader>
+#include <QXmlStreamAttributes>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -191,6 +194,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    checkVersion();
     
     qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
 
@@ -4535,4 +4540,40 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->close();
     }
+}
+
+void Application::loadLatestVersionDetails() {
+    QUrl url("https://a-tower.below92.com/version.xml");
+    QNetworkAccessManager *downloadXML = new QNetworkAccessManager(this);
+    QNetworkRequest request(url);
+    connect(downloadXML, SIGNAL(finished(QNetworkReply*)), this, SLOT(parseVersionXml(QNetworkReply*)));
+    downloadXML->get(request);
+    
+}
+
+void Application::parseVersionXml(QNetworkReply *reply) {
+    QXmlStreamReader xml(reply);
+    while (!xml.atEnd() && !xml.hasError()) {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            if (xml.name() == "Version") {
+                xml.readNext();
+                _latestVersion = xml.text().toString();
+                qDebug("################ Version found %s\n", _latestVersion.toStdString().c_str());
+            }
+        }
+        
+    }
+}
+
+void Application::checkVersion() {
+    loadLatestVersionDetails();
+    
+    // This is a very rudimentary check, if this version is not equal to latest then you need to get it
+    // unless you're coming from the future.
+    
+    //if (applicationVersion() != 0 && applicationVersion() != this->_latestVersion) {
+    
+    //}
 }

@@ -60,6 +60,7 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
 find_package(Qt5WebKit REQUIRED)
 find_package(Qt5WebKitWidgets REQUIRED)
+find_package(Qt5Xml REQUIRED)
 
 if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
@@ -136,7 +137,7 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml)
 
 # include headers for interface and InterfaceConfig.
 include_directories(

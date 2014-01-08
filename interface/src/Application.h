@@ -212,6 +212,11 @@ public:
     /// set a voxel which is to be rendered with a highlight
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
+    
+    // Get XML with version information and parse it
+    // Display dialog when version is not the latest and allow for new version download from link
+    void loadLatestVersionDetails();
+    void checkVersion();
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -255,6 +260,8 @@ private slots:
     void restoreMirrorView();
     void shrinkMirrorView();
     void resetSensors();
+    
+    void parseVersionXml(QNetworkReply *reply);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -512,6 +519,8 @@ private:
     QPointer<LogDialog> _logDialog;
 
     FileLogger* _logger;
+    
+    QString _latestVersion;
 };
 
 #endif /* defined(__interface__Application__) */
