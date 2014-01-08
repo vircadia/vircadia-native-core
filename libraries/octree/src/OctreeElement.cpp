@@ -54,7 +54,7 @@ void OctreeElement::init(unsigned char * octalCode) {
         memcpy(_octalCode.buffer, octalCode, octalCodeLength);
         delete[] octalCode;
     }
-    
+
     // set up the _children union
     _childBitmask = 0;
     _childrenExternal = false;
@@ -64,7 +64,7 @@ void OctreeElement::init(unsigned char * octalCode) {
     _singleChildrenCount++;
 #endif
     _childrenCount[0]++;
-    
+
     // default pointers to child nodes to NULL
 #ifdef HAS_AUDIT_CHILDREN
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -81,7 +81,7 @@ void OctreeElement::init(unsigned char * octalCode) {
 #ifdef SIMPLE_EXTERNAL_CHILDREN
     _children.single = NULL;
 #endif
-    
+
     _isDirty = true;
     _shouldRender = false;
     _sourceUUIDKey = 0;
@@ -100,13 +100,13 @@ OctreeElement::~OctreeElement() {
         _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
         delete[] _octalCode.pointer;
     }
-    
+
     // delete all of this node's children, this also takes care of all population tracking data
     deleteAllChildren();
 }
 
-void OctreeElement::markWithChangedTime() { 
-    _lastChanged = usecTimestampNow(); 
+void OctreeElement::markWithChangedTime() {
+    _lastChanged = usecTimestampNow();
     notifyUpdateHooks(); // if the node has changed, notify our hooks
 }
 
@@ -121,7 +121,7 @@ void OctreeElement::handleSubtreeChanged(Octree* myTree) {
     if (myTree->getShouldReaverage()) {
         calculateAverageFromChildren();
     }
-    
+
     markWithChangedTime();
 }
 
@@ -184,10 +184,10 @@ void OctreeElement::setShouldRender(bool shouldRender) {
 
 void OctreeElement::calculateAABox() {
     glm::vec3 corner;
-    
+
     // copy corner into box
     copyFirstVertexForCode(getOctalCode(),(float*)&corner);
-    
+
     // this tells you the "size" of the voxel
     float voxelScale = 1 / powf(2, numberOfThreeBitSectionsInCode(getOctalCode()));
     _box.setBox(corner,voxelScale);
@@ -201,7 +201,7 @@ void OctreeElement::deleteChildAtIndex(int childIndex) {
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
         markWithChangedTime();
-        
+
         // after deleting the child, check to see if we're a leaf
         if (isLeaf()) {
             _voxelNodeLeafCount++;
@@ -219,13 +219,13 @@ OctreeElement* OctreeElement::removeChildAtIndex(int childIndex) {
         setChildAtIndex(childIndex, NULL);
         _isDirty = true;
         markWithChangedTime();
-        
+
         // after removing the child, check to see if we're a leaf
         if (isLeaf()) {
             _voxelNodeLeafCount++;
         }
     }
-    
+
 #ifdef HAS_AUDIT_CHILDREN
     auditChildren("removeChildAtIndex()");
 #endif // def HAS_AUDIT_CHILDREN
@@ -238,12 +238,12 @@ void OctreeElement::auditChildren(const char* label) const {
     for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
         OctreeElement* testChildNew = getChildAtIndex(childIndex);
         OctreeElement* testChildOld = _childrenArray[childIndex];
-        
+
         if (testChildNew != testChildOld) {
             auditFailed = true;
         }
     }
-    
+
     const bool alwaysReport = false; // set this to true to get additional debugging
     if (alwaysReport || auditFailed) {
         qDebug("%s... auditChildren() %s <<<< \n", label, (auditFailed ? "FAILED" : "PASSED"));
@@ -309,7 +309,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                 return NULL;
             }
         } break;
-        
+
         default : {
             return _children.external[childIndex];
         } break;
@@ -320,11 +320,11 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
     OctreeElement* result = NULL;
     int childCount = getChildCount();
-    
+
 #ifdef HAS_AUDIT_CHILDREN
     const char* caseStr = NULL;
 #endif
-    
+
     switch (childCount) {
         case 0:
 #ifdef HAS_AUDIT_CHILDREN
@@ -424,7 +424,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
             caseStr, result,_childrenArray[childIndex]);
     }
 #endif // def HAS_AUDIT_CHILDREN
-    return result; 
+    return result;
 #endif
 }
 
@@ -435,7 +435,7 @@ void OctreeElement::storeTwoChildren(OctreeElement* childOne, OctreeElement* chi
 
     const int64_t minOffset = std::numeric_limits<int32_t>::min();
     const int64_t maxOffset = std::numeric_limits<int32_t>::max();
-    
+
     bool forceExternal = true;
     if (!forceExternal && isBetween(offsetOne, maxOffset, minOffset) && isBetween(offsetTwo, maxOffset, minOffset)) {
         // if previously external, then clean it up...
@@ -455,7 +455,7 @@ void OctreeElement::storeTwoChildren(OctreeElement* childOne, OctreeElement* chi
         _twoChildrenOffsetCount++;
     } else {
         // encode in array
-        
+
         // if not previously external, then allocate appropriately
         if (!_childrenExternal) {
             _childrenExternal = true;
@@ -516,7 +516,7 @@ void OctreeElement::encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int
     const uint64_t ENCODE_BITS = 21;
     const uint64_t ENCODE_MASK = 0xFFFFF;
     const uint64_t ENCODE_MASK_SIGN = 0x100000;
-    
+
     uint64_t offsetEncodedOne, offsetEncodedTwo, offsetEncodedThree;
     if (offsetOne < 0) {
         offsetEncodedOne = ((-offsetOne & ENCODE_MASK) | ENCODE_MASK_SIGN);
@@ -544,13 +544,13 @@ void OctreeElement::storeThreeChildren(OctreeElement* childOne, OctreeElement* c
     int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
     int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
-    
+
     const int64_t minOffset = -1048576; // what can fit in 20 bits // std::numeric_limits<int16_t>::min();
     const int64_t maxOffset = 1048576; // what can fit in 20 bits  // std::numeric_limits<int16_t>::max();
-    
+
     bool forceExternal = true;
     if (!forceExternal &&
-            isBetween(offsetOne, maxOffset, minOffset) && 
+            isBetween(offsetOne, maxOffset, minOffset) &&
             isBetween(offsetTwo, maxOffset, minOffset) &&
             isBetween(offsetThree, maxOffset, minOffset)) {
         // if previously external, then clean it up...
@@ -566,7 +566,7 @@ void OctreeElement::storeThreeChildren(OctreeElement* childOne, OctreeElement* c
         _threeChildrenOffsetCount++;
     } else {
         // encode in array
-        
+
         // if not previously external, then allocate appropriately
         if (!_childrenExternal) {
             _childrenExternal = true;
@@ -609,13 +609,13 @@ void OctreeElement::checkStoreFourChildren(OctreeElement* childOne, OctreeElemen
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
     int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
     int64_t offsetFour = (uint8_t*)childFour - (uint8_t*)this;
-    
+
     const int64_t minOffset = std::numeric_limits<int16_t>::min();
     const int64_t maxOffset = std::numeric_limits<int16_t>::max();
-    
+
     bool forceExternal = true;
     if (!forceExternal &&
-            isBetween(offsetOne, maxOffset, minOffset) && 
+            isBetween(offsetOne, maxOffset, minOffset) &&
             isBetween(offsetTwo, maxOffset, minOffset) &&
             isBetween(offsetThree, maxOffset, minOffset) &&
             isBetween(offsetFour, maxOffset, minOffset)
@@ -671,10 +671,10 @@ void OctreeElement::deleteAllChildren() {
             _externalChildrenCount--;
             _childrenCount[childCount]--;
         } break;
-        
-        
+
+
     }
-    
+
     // If we had externally stored children, clean them too.
     if (_childrenExternal && _children.external) {
         delete[] _children.external;
@@ -734,7 +734,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         _children.external[childIndex] = child;
 
         _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
-        
+
     } else if (previousChildCount == 2 && newChildCount == 1) {
         assert(child == NULL); // we are removing a child, so this must be true!
         OctreeElement* previousFirstChild = _children.external[firstIndex];
@@ -757,7 +757,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
 
     // Here's how we store things...
     // If we have 0 or 1 children, then we just store them in the _children.single;
-    // If we have 2 children, 
+    // If we have 2 children,
     //     then if we can we store them as 32 bit signed offsets from our own this pointer,
     //     _children.offsetsTwoChildren[0]-[1]
     //     these are 32 bit offsets
@@ -770,7 +770,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         clearAtBit(_childBitmask, childIndex);
     }
     int newChildCount = getChildCount();
-    
+
     // track our population data
     if (previousChildCount != newChildCount) {
         _childrenCount[previousChildCount]--;
@@ -781,7 +781,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
     if (previousChildCount == 0 && newChildCount == 0) {
         // nothing to do...
     } else if ((previousChildCount == 0 || previousChildCount == 1) && newChildCount == 1) {
-        // If we had 0 children, and we're setting our first child or if we had 1 child, or we're resetting the same child, 
+        // If we had 0 children, and we're setting our first child or if we had 1 child, or we're resetting the same child,
         // then we can just store it in _children.single
         _children.single = child;
     } else if (previousChildCount == 1 && newChildCount == 0) {
@@ -803,21 +803,21 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         }
 
         _singleChildrenCount--;
-        storeTwoChildren(childOne, childTwo);        
+        storeTwoChildren(childOne, childTwo);
     } else if (previousChildCount == 2 && newChildCount == 1) {
         // If we had 2 children, and we're removing one, then we know we can go down to single mode
         //assert(child == NULL); // this is the only logical case
-        
+
         int indexTwo = getNthBit(previousChildMask, 2);
         bool keepChildOne = indexTwo == childIndex;
 
         OctreeElement* childOne;
         OctreeElement* childTwo;
 
-        retrieveTwoChildren(childOne, childTwo);        
+        retrieveTwoChildren(childOne, childTwo);
 
         _singleChildrenCount++;
-        
+
         if (keepChildOne) {
             _children.single = childOne;
         } else {
@@ -825,14 +825,14 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         }
     } else if (previousChildCount == 2 && newChildCount == 2) {
         // If we had 2 children, and still have 2, then we know we are resetting one of our existing children
-        
+
         int indexOne = getNthBit(previousChildMask, 1);
         bool replaceChildOne = indexOne == childIndex;
 
-        // Get the existing two children out of their encoding...        
+        // Get the existing two children out of their encoding...
         OctreeElement* childOne;
         OctreeElement* childTwo;
-        retrieveTwoChildren(childOne, childTwo);        
+        retrieveTwoChildren(childOne, childTwo);
 
         if (replaceChildOne) {
             childOne = child;
@@ -841,7 +841,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         }
 
         storeTwoChildren(childOne, childTwo);
-            
+
     } else if (previousChildCount == 2 && newChildCount == 3) {
         // If we had 2 children, and now have 3, then we know we are going to an external case...
 
@@ -850,8 +850,8 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         OctreeElement* childTwo;
         OctreeElement* childThree;
 
-        // Get the existing two children out of their encoding...        
-        retrieveTwoChildren(childOne, childTwo);        
+        // Get the existing two children out of their encoding...
+        retrieveTwoChildren(childOne, childTwo);
 
         // determine order of the existing children
         int indexOne = getNthBit(previousChildMask, 1);
@@ -870,7 +870,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         storeThreeChildren(childOne, childTwo, childThree);
     } else if (previousChildCount == 3 && newChildCount == 2) {
         // If we had 3 children, and now have 2, then we know we are going from an external case to a potential internal case
-        
+
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
@@ -882,8 +882,8 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         OctreeElement* childTwo;
         OctreeElement* childThree;
 
-        // Get the existing two children out of their encoding...        
-        retrieveThreeChildren(childOne, childTwo, childThree);        
+        // Get the existing two children out of their encoding...
+        retrieveThreeChildren(childOne, childTwo, childThree);
 
         if (removeChildOne) {
             childOne = childTwo;
@@ -894,10 +894,10 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
             // removing child three, nothing to do.
         }
 
-        storeTwoChildren(childOne, childTwo);        
+        storeTwoChildren(childOne, childTwo);
     } else if (previousChildCount == 3 && newChildCount == 3) {
         // If we had 3 children, and now have 3, then we need to determine which item we're replacing...
-        
+
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
@@ -909,8 +909,8 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         OctreeElement* childTwo;
         OctreeElement* childThree;
 
-        // Get the existing two children out of their encoding...        
-        retrieveThreeChildren(childOne, childTwo, childThree);        
+        // Get the existing two children out of their encoding...
+        retrieveThreeChildren(childOne, childTwo, childThree);
 
         if (replaceChildOne) {
             childOne = child;
@@ -930,8 +930,8 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         OctreeElement* childThree;
         OctreeElement* childFour;
 
-        // Get the existing two children out of their encoding...        
-        retrieveThreeChildren(childOne, childTwo, childThree);        
+        // Get the existing two children out of their encoding...
+        retrieveThreeChildren(childOne, childTwo, childThree);
 
         // determine order of the existing children
         int indexOne = getNthBit(previousChildMask, 1);
@@ -959,9 +959,9 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         const int newChildCount = 4;
         _children.external = new OctreeElement*[newChildCount];
         memset(_children.external, 0, sizeof(OctreeElement*) * newChildCount);
-        
+
         _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
-        
+
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
         _children.external[2] = childThree;
@@ -970,7 +970,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
     } else if (previousChildCount == 4 && newChildCount == 3) {
         // If we had 4 children, and now have 3, then we know we are going from an external case to a potential internal case
         //assert(_children.external && _childrenExternal && previousChildCount == 4);
-        
+
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
@@ -1008,7 +1008,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
     } else if (previousChildCount == newChildCount) {
         //assert(_children.external && _childrenExternal && previousChildCount >= 4);
         //assert(previousChildCount == newChildCount);
-        
+
         // 4 or more children, one item being replaced, we know we're stored externally, we just need to find the one
         // that needs to be replaced and replace it.
         for (int ordinal = 1; ordinal <= 8; ordinal++) {
@@ -1024,12 +1024,12 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         // Growing case... previous must be 4 or greater
         //assert(_children.external && _childrenExternal && previousChildCount >= 4);
         //assert(previousChildCount == newChildCount-1);
-        
+
         // 4 or more children, one item being added, we know we're stored externally, we just figure out where to insert
         // this child pointer into our external list
         OctreeElement** newExternalList = new OctreeElement*[newChildCount];
         memset(newExternalList, 0, sizeof(OctreeElement*) * newChildCount);
-        
+
         int copiedCount = 0;
         for (int ordinal = 1; ordinal <= newChildCount; ordinal++) {
             int index = getNthBit(previousChildMask, ordinal);
@@ -1037,10 +1037,10 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
                 newExternalList[ordinal - 1] = _children.external[ordinal - 1];
                 copiedCount++;
             } else {
-                
+
                 // insert our new child here...
                 newExternalList[ordinal - 1] = child;
-                
+
                 // if we didn't copy all of our previous children, then we need to
                 if (copiedCount < previousChildCount) {
                     // our child needs to be inserted before this index, and everything else pushed out...
@@ -1060,10 +1060,10 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         //assert(_children.external && _childrenExternal && previousChildCount >= 4);
         //assert(previousChildCount == newChildCount+1);
 
-        // 4 or more children, one item being removed, we know we're stored externally, we just figure out which 
+        // 4 or more children, one item being removed, we know we're stored externally, we just figure out which
         // item to remove from our external list
         OctreeElement** newExternalList = new OctreeElement*[newChildCount];
-        
+
         for (int ordinal = 1; ordinal <= previousChildCount; ordinal++) {
             int index = getNthBit(previousChildMask, ordinal);
             //assert(index != -1);
@@ -1090,7 +1090,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
     if (getChildCount() == 4 && _childrenExternal && _children.external) {
         checkStoreFourChildren(_children.external[0], _children.external[1], _children.external[2], _children.external[3]);
     }
-    
+
 
 #ifdef HAS_AUDIT_CHILDREN
     _childrenArray[childIndex] = child;
@@ -1104,11 +1104,11 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
 OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
     OctreeElement* childAt = getChildAtIndex(childIndex);
     if (!childAt) {
-        // before adding a child, see if we're currently a leaf 
+        // before adding a child, see if we're currently a leaf
         if (isLeaf()) {
             _voxelNodeLeafCount--;
         }
-    
+
         unsigned char* newChildCode = childOctalCode(getOctalCode(), childIndex);
         childAt = createNewElement(newChildCode);
         setChildAtIndex(childIndex, childAt);
@@ -1133,11 +1133,15 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
             if (!childToDelete->isLeaf()) {
                 // delete all it's children
                 for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-                    deleteApproved = childToDelete->safeDeepDeleteChildAtIndex(i,recursionCount+1);
-                    if (!deleteApproved) {
-                        break; // no point in continuing...
+                    if (childToDelete->getChildAtIndex(i)) {
+                        deleteApproved = childToDelete->safeDeepDeleteChildAtIndex(i,recursionCount+1);
+                        if (!deleteApproved) {
+                            break; // no point in continuing...
+                        }
                     }
                 }
+            } else {
+                deleteApproved = true; // because we got here after checking that delete was approved
             }
             if (deleteApproved) {
                 deleteChildAtIndex(childIndex);
@@ -1155,14 +1159,14 @@ void OctreeElement::printDebugDetails(const char* label) const {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElement* childAt = getChildAtIndex(i);
         if (childAt) {
-            setAtBit(childBits,i);            
+            setAtBit(childBits,i);
         }
     }
 
     qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
         debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
-        
+
     outputBits(childBits, false);
     qDebug("\n octalCode=");
     printOctalCode(getOctalCode());
@@ -1188,10 +1192,10 @@ ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) c
 // There are two types of nodes for which we want to "render"
 // 1) Leaves that are in the LOD
 // 2) Non-leaves are more complicated though... usually you don't want to render them, but if their children
-//    wouldn't be rendered, then you do want to render them. But sometimes they have some children that ARE 
+//    wouldn't be rendered, then you do want to render them. But sometimes they have some children that ARE
 //    in the LOD, and others that are not. In this case we want to render the parent, and none of the children.
 //
-//    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest" 
+//    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest"
 //    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
 bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
@@ -1285,7 +1289,7 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
-bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius, 
+bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
     return _box.findSpherePenetration(center, radius, penetration);
 }
@@ -1307,7 +1311,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     }
     // otherwise, we need to find which of our children we should recurse
     glm::vec3 ourCenter = _box.calcCenter();
-    
+
     int childIndex = CHILD_UNKNOWN;
     // left half
     if (x > ourCenter.x) {
@@ -1352,13 +1356,13 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
             }
         }
     }
-    
+
     // Now, check if we have a child at that location
     child = getChildAtIndex(childIndex);
     if (!child) {
         child = addChildAtIndex(childIndex);
     }
-    
+
     // Now that we have the child to recurse down, let it answer the original question...
     return child->getOrCreateChildElementAt(x, y, z, s);
 }
