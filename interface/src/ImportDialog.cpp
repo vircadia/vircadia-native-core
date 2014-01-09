@@ -91,7 +91,7 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
     }
     
     QFileInfo iconFile = QFileInfo("resources/icons/" + ext + ".svg");
-        qDebug() << "Icon type: " << iconFile.filePath();
+    qDebug() << "Icon type: " << iconFile.filePath();
     if (iconFile.exists()) {
         return QIcon(iconFile.filePath());
     }
@@ -113,12 +113,14 @@ _infoLabel(INFO_LABEL_TEXT) {
     _importLabel->setText(IMPORT_INFO);
 
     QGridLayout* gridLayout = (QGridLayout*) layout();
-    gridLayout->addWidget(&_infoLabel, 2, 0, Qt::AlignLeft);
-    gridLayout->addWidget(&_cancelButton, 2, 1, Qt::AlignRight);
-    gridLayout->addWidget(&_importButton, 2, 2, Qt::AlignRight);
+    gridLayout->addWidget(&_infoLabel, 2, 0);
+    gridLayout->addWidget(&_cancelButton, 2, 1);
+    gridLayout->addWidget(&_importButton, 2, 2);
 
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
+    
+    resize(QSize(790, 477));
 }
 
 ImportDialog::~ImportDialog() {

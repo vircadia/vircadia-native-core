@@ -6,12 +6,29 @@
 *  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 */
 
-* {
-    font-family: Helvetica, Arial, sans-serif;
-}
-
 QLabel {
     font-size: 16px;
+    color: #333333;
+}
+
+QPushButton {
+    
+    margin-top: 30px;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 18px;
+    padding: 14px 0px;
+    width: 107px;
+}
+
+QPushButton#importButton {
+    background: #333333;
+    color: #FFFFFF;
+}
+
+QPushButton#cancelButton {
+    color: #333333;
+    background: #FFFFFF;
 }
 
 QSidebar, QTreeView {
@@ -33,22 +50,8 @@ QSplitter::handle, QDialog {
     background-color: white;
 }
 
-QPushButton {
-    border-width: 0;
-    border-radius: 9px;
-    font-size: 18px;
-    padding: 14px 0px;
-    width: 107px;
-}
-
-QPushButton#importButton {
-    background: #333333;
-    color: #FFFFFF;
-}
-
-QPushButton#cancelButton {
-    color: #333333;
-    background: #FFFFFF;
+QTreeView QHeaderView {
+    background: white;
 }
 
 QTreeView QHeaderView:section {
@@ -59,12 +62,14 @@ QTreeView QHeaderView:section {
     background: white;
     color: #666666;
     padding: 10px 20px;
-    font-size: 22px;
-    font-weight: bold;
 }
 
 QTreeView::item {
-    padding: 5px 0;
+    height: 30px;
+}
+
+QListView::item::icon {
+    height: 30px;
 }
 
 QListView::item:selected,
@@ -73,4 +78,6 @@ QTreeView::item:selected,
 QTreeView::item:selected:active {
     background: #BDE4E3;
     color: #333333;
+    padding: 0;
+    margin: 0;
 }
