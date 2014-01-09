@@ -86,9 +86,6 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
-//const char* LOCAL_VOXEL_CACHE = "/Users/brad/local_voxel_cache.svo";
-
-
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
     Application::getInstance()->getLogger()->addMessage(message.toLocal8Bit().constData());
