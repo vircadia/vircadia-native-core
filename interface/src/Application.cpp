@@ -86,6 +86,8 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
+const char* LOCAL_VOXEL_CACHE = "/Users/brad/local_voxel_cache.svo";
+
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -143,7 +145,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false),
-        _logger(new FileLogger())
+        _logger(new FileLogger()),
+        _persistThread(NULL)
 {
     _applicationStartupTime = startup_time;
 
@@ -250,6 +253,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+
+    _persistThread = new OctreePersistThread(_voxels.getTree(), LOCAL_VOXEL_CACHE);
+
+    if (_persistThread) {
+        _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
+        connect(_persistThread, SIGNAL(loadCompleted()), &_voxels, SLOT(localVoxelCacheLoaded()));
+        _persistThread->initialize(true);
+    }
 }
 
 Application::~Application() {
@@ -1436,6 +1447,8 @@ void Application::terminate() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
+    _persistThread->terminate();
+    _persistThread = NULL;
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
@@ -2400,6 +2413,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
+        _persistThread->threadRoutine();
     }
 }
 
@@ -4535,4 +4549,9 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->close();
     }
+}
+
+
+void Application::initAvatarAndViewFrustum() {
+    updateAvatar(0.f);
 }
