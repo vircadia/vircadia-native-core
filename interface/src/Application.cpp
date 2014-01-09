@@ -40,6 +40,7 @@
 #include <QDesktopServices>
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
+#include <QMessageBox>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -194,6 +195,18 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    #ifdef Q_WS_X11
+    _operatingSystem = "ubuntu";
+    #endif
+    
+    #ifdef Q_WS_WIN
+    _operatingSystem = "win";
+    #endif
+    
+    #ifdef Q_WS_MACX
+    _operatingSystem = "mac";
+    #endif
     
     checkVersion();
     
@@ -1419,6 +1432,7 @@ void Application::idle() {
         }
     }
 }
+
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
@@ -4542,7 +4556,7 @@ void Application::toggleLogDialog() {
     }
 }
 
-void Application::loadLatestVersionDetails() {
+void Application::checkVersion() {
     QUrl url("https://a-tower.below92.com/version.xml");
     QNetworkAccessManager *downloadXML = new QNetworkAccessManager(this);
     QNetworkRequest request(url);
@@ -4552,28 +4566,56 @@ void Application::loadLatestVersionDetails() {
 }
 
 void Application::parseVersionXml(QNetworkReply *reply) {
+    QString _releaseDate;
+    QString _releaseNotes;
+    QString _downloadLink;
+    
     QXmlStreamReader xml(reply);
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
         if (token == QXmlStreamReader::StartElement) {
+            
+            if (xml.name() == "ReleaseDate") {
+                xml.readNext();
+                _releaseDate = xml.text().toString();
+            }
+            
+            if (xml.name() == "ReleaseNotes") {
+                xml.readNext();
+                _releaseNotes = xml.text().toString();
+            }
+            
             if (xml.name() == "Version") {
                 xml.readNext();
                 _latestVersion = xml.text().toString();
-                qDebug("################ Version found %s\n", _latestVersion.toStdString().c_str());
             }
         }
         
     }
+    
+    if (applicationVersion() != _latestVersion) {
+        
+    }
+    
+    displayUpdateDialog();
 }
 
-void Application::checkVersion() {
-    loadLatestVersionDetails();
+void Application::displayUpdateDialog() {
+    int _windowWidth = 500;
+    int _windowHeigth = 300;
+    QString _windowTitle = "Newer build available";
     
-    // This is a very rudimentary check, if this version is not equal to latest then you need to get it
-    // unless you're coming from the future.
+    QPushButton *download = new QPushButton("Download");
+    QPushButton *ignore = new QPushButton("Ignore this version");
+    QPushButton *close = new QPushButton("Close");
     
-    //if (applicationVersion() != 0 && applicationVersion() != this->_latestVersion) {
+    QWidget *updateDialog = new QWidget;
+    updateDialog->setFixedWidth(_windowWidth);
+    updateDialog->setFixedHeight(_windowHeigth);
+    updateDialog->setWindowTitle(_windowTitle);
     
-    //}
+    updateDialog->show();
+    
+    
 }

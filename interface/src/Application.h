@@ -69,6 +69,7 @@
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
+#include "ui/UpdateDialog.h"
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ParticleEditHandle.h"
@@ -215,8 +216,8 @@ public:
     
     // Get XML with version information and parse it
     // Display dialog when version is not the latest and allow for new version download from link
-    void loadLatestVersionDetails();
     void checkVersion();
+    void displayUpdateDialog();
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -521,6 +522,7 @@ private:
     FileLogger* _logger;
     
     QString _latestVersion;
+    QString _operatingSystem;
 };
 
 #endif /* defined(__interface__Application__) */
