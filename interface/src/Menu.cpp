@@ -249,7 +249,7 @@ Menu::Menu() :
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
-                                  0,
+                                  Qt::Key_Equal,
                                   appInstance->getAvatar(),
                                   SLOT(resetSize()));
 
