@@ -4568,7 +4568,7 @@ void Application::checkVersion() {
 void Application::parseVersionXml(QNetworkReply *reply) {
     QString _releaseDate;
     QString _releaseNotes;
-    QString _downloadLink;
+    QUrl *_downloadLink;
     
     QXmlStreamReader xml(reply);
     while (!xml.atEnd() && !xml.hasError()) {
@@ -4598,24 +4598,9 @@ void Application::parseVersionXml(QNetworkReply *reply) {
         
     }
     
-    displayUpdateDialog();
-}
-
-void Application::displayUpdateDialog() {
-    int _windowWidth = 500;
-    int _windowHeigth = 300;
-    QString _windowTitle = "Newer build available";
+    _downloadLink = new QUrl("http://www.google.com");
     
-    QPushButton *download = new QPushButton("Download");
-    QPushButton *ignore = new QPushButton("Ignore this version");
-    QPushButton *close = new QPushButton("Close");
-    
-    QWidget *updateDialog = new QWidget;
-    updateDialog->setFixedWidth(_windowWidth);
-    updateDialog->setFixedHeight(_windowHeigth);
-    updateDialog->setWindowTitle(_windowTitle);
-    
-    updateDialog->show();
-    
+    UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes, _downloadLink, _latestVersion, applicationVersion());
+    _updateDialog->show();
     
 }

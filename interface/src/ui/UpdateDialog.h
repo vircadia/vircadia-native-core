@@ -12,6 +12,7 @@
 #include <QDialog>
 #include <QPushButton>
 #include <QLabel>
+#include <QFrame>
 
 #include <iostream>
 
@@ -19,8 +20,7 @@ class UpdateDialog : public QDialog {
     Q_OBJECT
     
 public:
-    UpdateDialog(QWidget*, QString releaseNotes, QString downloadURL);
-    ~UpdateDialog();
+    UpdateDialog(QWidget*, QString releaseNotes, QUrl *downloadURL, QString latestVersion, QString currentVersion);
     
 private:
     QLabel *_updateRequired;
@@ -28,10 +28,11 @@ private:
     QPushButton *_downloadButton;
     QPushButton *_skipButton;
     QPushButton *_closeButton;
+    QFrame *_titleBackground;
     
 private slots:
     void handleDownload();
-    void handleIgnore();
+    void handleSkip();
     void handleClose();
 };
 
