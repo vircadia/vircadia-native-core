@@ -38,7 +38,7 @@ struct VoxelShaderVBOData
 
 
 class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook,
-                    public NodeListHook, public DomainChangeListener {
+                    public NodeListHook {
     Q_OBJECT
 
     friend class VoxelHideShowThread;
@@ -114,7 +114,6 @@ public:
     virtual void elementUpdated(OctreeElement* element);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
-    virtual void domainChanged(QString domain);
 
     bool treeIsBusy() const { return _treeIsBusy; }
 

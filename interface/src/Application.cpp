@@ -86,7 +86,7 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
-const char* LOCAL_VOXEL_CACHE = "/Users/brad/local_voxel_cache.svo";
+//const char* LOCAL_VOXEL_CACHE = "/Users/brad/local_voxel_cache.svo";
 
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
@@ -181,7 +181,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addHook(&_voxels);
     nodeList->addHook(this);
     nodeList->addDomainListener(this);
-    nodeList->addDomainListener(&_voxels);
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -254,13 +253,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
 
-    _persistThread = new OctreePersistThread(_voxels.getTree(), LOCAL_VOXEL_CACHE);
-
-    if (_persistThread) {
-        _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
-        connect(_persistThread, SIGNAL(loadCompleted()), &_voxels, SLOT(localVoxelCacheLoaded()));
-        _persistThread->initialize(true);
-    }
 }
 
 Application::~Application() {
@@ -1950,6 +1942,9 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+
+
+    updateLocalOctreeCache(true);
 }
 
 void Application::closeMirrorView() {
@@ -4215,6 +4210,10 @@ void Application::domainChanged(QString domain) {
     _voxelServerJurisdictions.clear();
     _octreeServerSceneStats.clear();
     _particleServerJurisdictions.clear();
+
+    // reset our persist thread
+    qDebug() << "domainChanged()... domain=" << domain << " swapping persist cache\n";
+    updateLocalOctreeCache();
 }
 
 void Application::nodeAdded(Node* node) {
@@ -4554,4 +4553,43 @@ void Application::toggleLogDialog() {
 
 void Application::initAvatarAndViewFrustum() {
     updateAvatar(0.f);
+}
+
+QString Application::getLocalVoxelCacheFileName() {
+    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    QDir logDir(fileName);
+    if (!logDir.exists(fileName)) {
+        logDir.mkdir(fileName);
+    }
+
+    fileName.append(QString("/hifi.voxelscache."));
+    fileName.append(_profile.getLastDomain());
+    fileName.append(QString(".svo"));
+
+    return fileName;
+}
+
+
+void Application::updateLocalOctreeCache(bool firstTime) {
+    // only do this if we've already got a persistThread or we're told this is the first time
+    if (firstTime || _persistThread) {
+
+        if (_persistThread) {
+            _persistThread->terminate();
+            _persistThread = NULL;
+        }
+
+        QString localVoxelCacheFileName = getLocalVoxelCacheFileName();
+        const int LOCAL_CACHE_PERSIST_INTERVAL = 1000 * 10; // every 10 seconds
+        _persistThread = new OctreePersistThread(_voxels.getTree(),
+                                        localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
+
+        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName << "\n";
+
+        if (_persistThread) {
+            _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
+            connect(_persistThread, SIGNAL(loadCompleted()), &_voxels, SLOT(localVoxelCacheLoaded()));
+            _persistThread->initialize(true);
+        }
+    }
 }

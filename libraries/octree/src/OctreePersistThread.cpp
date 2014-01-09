@@ -14,7 +14,7 @@
 
 #include "OctreePersistThread.h"
 
-OctreePersistThread::OctreePersistThread(Octree* tree, const char* filename, int persistInterval) :
+OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
@@ -26,14 +26,14 @@ bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
         uint64_t loadStarted = usecTimestampNow();
-        qDebug("loading Octrees from file: %s...\n", _filename);
+        qDebug() << "loading Octrees from file: " << _filename << "...\n";
 
         bool persistantFileRead;
 
         _tree->lockForWrite();
         {
             PerformanceWarning warn(true, "Loading Octree File", true);
-            persistantFileRead = _tree->readFromSVOFile(_filename);
+            persistantFileRead = _tree->readFromSVOFile(_filename.toLocal8Bit().constData());
         }
         _tree->unlock();
 
@@ -60,9 +60,7 @@ bool OctreePersistThread::process() {
         _initialLoadComplete = true;
         _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
 
-qDebug() << "about to emit loadCompleted();\n";
         emit loadCompleted();
-qDebug() << "after emit loadCompleted();\n";
     }
 
     if (isStillRunning()) {
@@ -83,8 +81,8 @@ qDebug() << "after emit loadCompleted();\n";
             // check the dirty bit and persist here...
             _lastCheck = usecTimestampNow();
             if (_tree->isDirty()) {
-                qDebug("saving Octrees to file %s...\n",_filename);
-                _tree->writeToSVOFile(_filename);
+                qDebug() << "saving Octrees to file " << _filename << "...\n";
+                _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
                 _tree->clearDirtyBit(); // tree is clean after saving
                 qDebug("DONE saving Octrees to file...\n");
             }

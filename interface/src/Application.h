@@ -515,6 +515,9 @@ private:
     FileLogger* _logger;
 
     OctreePersistThread* _persistThread;
+
+    QString getLocalVoxelCacheFileName();
+    void updateLocalOctreeCache(bool firstTime = false);
 };
 
 #endif /* defined(__interface__Application__) */

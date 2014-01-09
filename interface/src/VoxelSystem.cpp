@@ -117,7 +117,6 @@ void VoxelSystem::elementDeleted(OctreeElement* element) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     if (voxel->getVoxelSystem() == this) {
         if (_voxelsInWriteArrays != 0) {
-qDebug() << "elementDeleted()... about to call forceRemoveNodeFromArrays()\n";
             forceRemoveNodeFromArrays(voxel);
         } else {
             if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
@@ -706,6 +705,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     bool extraDebugging = Application::getInstance()->getLogger()->extraDebugging();
     if (extraDebugging) {
         qDebug("setupNewVoxelsForDrawing()... _voxelsUpdated=%lu...\n",_voxelsUpdated);
+        _viewFrustum->printDebugDetails();
     }
 }
 
@@ -2712,11 +2712,6 @@ void VoxelSystem::nodeKilled(Node* node) {
     }
 }
 
-void VoxelSystem::domainChanged(QString domain) {
-    killLocalVoxels();
-}
-
-
 unsigned long VoxelSystem::getFreeMemoryGPU() {
     // We can't ask all GPUs how much memory they have in use, but we can ask them about how much is free.
     // So, we can record the free memory before we create our VBOs and the free memory after, and get a basic
@@ -2787,7 +2782,9 @@ void VoxelSystem::localVoxelCacheLoaded() {
     // Make sure that the application has properly set up the view frustum for our loaded state
     Application::getInstance()->initAvatarAndViewFrustum();
 
-    _tree->setDirtyBit();
+    _tree->setDirtyBit(); // make sure the tree thinks it's dirty
+    _setupNewVoxelsForDrawingLastFinished = 0; // don't allow the setupNewVoxelsForDrawing() shortcuts
+    _writeRenderFullVBO = true; // this will disable individual node updates, was reset by killLocalVoxels()
     setupNewVoxelsForDrawing();
     _inhideOutOfView = false; // reenable hideOutOfView behavior
 }
@@ -2796,6 +2793,8 @@ void VoxelSystem::beginLoadingLocalVoxelCache() {
     qDebug() << "beginLoadingLocalVoxelCache()\n";
     _writeRenderFullVBO = true; // this will disable individual node updates
     _inhideOutOfView = true; // this will disable hidOutOfView which we want to do until local cache is loaded
+    killLocalVoxels();
+    qDebug() << "DONE beginLoadingLocalVoxelCache()\n";
 }
 
 

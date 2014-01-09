@@ -11,6 +11,7 @@
 #ifndef __Octree_server__OctreePersistThread__
 #define __Octree_server__OctreePersistThread__
 
+#include <QString>
 #include <GenericThread.h>
 #include "Octree.h"
 
@@ -20,7 +21,7 @@ class OctreePersistThread : public GenericThread {
 public:
     static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
-    OctreePersistThread(Octree* tree, const char* filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
 
@@ -35,7 +36,7 @@ protected:
     virtual bool process();
 private:
     Octree* _tree;
-    const char* _filename;
+    QString _filename;
     int _persistInterval;
     bool _initialLoadComplete;
 
