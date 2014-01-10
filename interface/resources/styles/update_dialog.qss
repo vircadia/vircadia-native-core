@@ -1,6 +1,12 @@
 QPushButton {
     background-color: #333333;
     border-width: 0;
-    border-top-left-radius: 9px;
-    border-bottom-left-radius: 9px;
+    border-radius: 9px;
+    border-radius: 9px;
+    font-family: Arial;
+    font-size: 18px;
+    font-weight: 100;
+    color: #b7b7b7;
+    width: 120px;
+    height: 40px;
 }

@@ -4588,20 +4588,44 @@ void Application::parseVersionXml(QNetworkReply *reply) {
             
             if (xml.name() == "Version") {
                 xml.readNext();
-                QString latestVersion = xml.text().toString();
-                _latestVersion = &latestVersion;
+                _latestVersion = new QString(xml.text().toString());
             }
         }
         
     }
-    
-    if (applicationVersion() != _latestVersion) {
+    if (!shouldSkipVersion() && applicationVersion() != _latestVersion) {
         
     }
     
     _downloadLink = new QUrl("http://www.google.com");
     
-    UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes, _downloadLink, _latestVersion, applicationVersion());
+    UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes, _downloadLink);
     _updateDialog->exec();
     
+}
+
+QFile *Application::loadSkipFile() {
+    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    fileName.append(QString("/hifi.skipversion"));
+    QFile *file = new QFile(fileName);
+    file->open(QIODevice::ReadWrite);
+    return file;
+}
+
+bool Application::shouldSkipVersion() {
+    QFile *skipFile = loadSkipFile();
+    QByteArray skipFileContents = skipFile->readAll();
+    QString *skipVersion = new QString(skipFileContents);
+    skipFile->close();
+    if (*skipVersion == *_latestVersion ) {
+        return true;
+    }
+    return false;
+}
+
+void Application::skipVersion() {
+    QFile *skipFile = loadSkipFile();
+    skipFile->seek(0);
+    skipFile->write(_latestVersion->toStdString().c_str());
+    skipFile->close();
 }

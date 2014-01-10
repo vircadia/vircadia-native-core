@@ -216,8 +216,14 @@ public:
     
     // Get XML with version information and parse it
     // Display dialog when version is not the latest and allow for new version download from link
+    QFile *loadSkipFile();
     void checkVersion();
     void displayUpdateDialog();
+    bool shouldSkipVersion();
+    void skipVersion();
+    
+    QString *_latestVersion;
+    QString *_operatingSystem;
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -520,9 +526,6 @@ private:
     QPointer<LogDialog> _logDialog;
 
     FileLogger* _logger;
-    
-    QString *_latestVersion;
-    QString _operatingSystem;
 };
 
 #endif /* defined(__interface__Application__) */

@@ -6,30 +6,32 @@
 //  Copyright (c) 2013, 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QApplication>
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
 
+#include "Application.h"
 #include "SharedUtil.h"
 #include "UpdateDialog.h"
 
-const int buttonWidth = 120;
+const int buttonWidth = 125;
 const int buttonHeight = 40;
-const int buttonMargin = 15;
-const int leftStartingPosition = 345;
+const int buttonMargin = 100;
+const int leftStartingPosition = 275;
 const int dialogWidth = 750;
 const int dialogHeigth = 300;
 
 const QString dialogTitle = "Update Required";
 
-UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *downloadURL, QString *latestVersion, QString currentVersion) : QDialog(parent, Qt::Dialog) {
+UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *downloadURL) : QDialog(parent, Qt::Dialog) {
     
+    Application* application = Application::getInstance();
     _downloadURL = downloadURL;
-    _latestVersion = latestVersion;
     
     const QString updateRequired = QString("You are currently running build %1, the latest build released is %2.\n \
                                             Please download and install the most recent release to access the latest \
-                                            features and bug fixes.").arg(currentVersion, *latestVersion);
+                                            features and bug fixes.").arg(application->applicationVersion(), *application->_latestVersion);
     
     int leftPosition = leftStartingPosition;
     setWindowTitle(dialogTitle);
@@ -70,13 +72,15 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *download
 }
 
 void UpdateDialog::handleDownload() {
+    Application* application = Application::getInstance();
     QDesktopServices::openUrl((*_downloadURL));
-    close();
+    application->quit();
 }
 
 void UpdateDialog::handleSkip() {
-    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    fileName.append(QString("/hifi.skipversion"));
+    Application* application = Application::getInstance();
+    application->skipVersion();
+    close();
 }
 
 void UpdateDialog::handleClose() {
