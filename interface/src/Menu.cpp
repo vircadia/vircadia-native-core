@@ -824,6 +824,10 @@ void Menu::editPreferences() {
     leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
     form->addRow("Lean Scale:", leanScale);
     
+    QDoubleSpinBox* avatarScale = new QDoubleSpinBox();
+    avatarScale->setValue(applicationInstance->getAvatar()->getScale());
+    form->addRow("Avatar Scale:", avatarScale);
+    
     QSpinBox* audioJitterBufferSamples = new QSpinBox();
     audioJitterBufferSamples->setMaximum(10000);
     audioJitterBufferSamples->setMinimum(-10000);
@@ -887,6 +891,7 @@ void Menu::editPreferences() {
         _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
         
         applicationInstance->getAvatar()->setLeanScale(leanScale->value());
+        applicationInstance->getAvatar()->setNewScale(avatarScale->value());
         
         _audioJitterBufferSamples = audioJitterBufferSamples->value();
         

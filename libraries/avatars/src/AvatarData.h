@@ -32,6 +32,9 @@ const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5;
 
+static const float MAX_SCALE = 1000.f;
+static const float MIN_SCALE = .005f;
+
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
 enum KeyState
@@ -80,7 +83,7 @@ public:
     
     //  Scale
     float getNewScale() const { return _newScale; }
-    void setNewScale(float newScale) { _newScale = newScale; }
+    void setNewScale(float);
     
     //  Hand State
     void setHandState(char s) { _handState = s; }

@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QCheckBox>
 #include <QSyntaxHighlighter>
+#include <pthread.h>
 
 #include "AbstractLoggerInterface.h"
 
