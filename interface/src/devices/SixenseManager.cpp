@@ -100,9 +100,9 @@ void SixenseManager::update(float deltaTime) {
         palm->setRawVelocity(rawVelocity);   //  meters/sec
         palm->setRawPosition(position);
         
-        // use the velocity to determine whether there's any movement
+        // use the velocity to determine whether there's any movement (if the hand isn't new)
         const float MOVEMENT_SPEED_THRESHOLD = 0.05f;
-        if (glm::length(rawVelocity) > MOVEMENT_SPEED_THRESHOLD) {
+        if (glm::length(rawVelocity) > MOVEMENT_SPEED_THRESHOLD && foundHand) {
             _lastMovement = usecTimestampNow();
         }
         
