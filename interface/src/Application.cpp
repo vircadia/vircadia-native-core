@@ -55,7 +55,6 @@
 #include "Menu.h"
 #include "Swatch.h"
 #include "Util.h"
-#include "devices/LeapManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -1418,7 +1417,6 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
 
-    LeapManager::terminate();
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
     _settings->sync();
@@ -1884,8 +1882,6 @@ void Application::init() {
                                   "trigger",
                                   Qt::QueuedConnection);
     }
-
-    LeapManager::initialize();
 
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeUpdated, NULL);
@@ -2369,9 +2365,6 @@ void Application::updateHandAndTouch(float deltaTime) {
 void Application::updateLeap(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateLeap()");
-
-    LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
-    LeapManager::nextFrame();
 }
 
 void Application::updateSixense(float deltaTime) {
@@ -3663,11 +3656,6 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-
-    // Leap data
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)LeapManager::statusString().c_str());
-
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
         char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
@@ -4139,7 +4127,6 @@ void Application::resetSensors() {
     }
     _webcam.reset();
     _faceshift.reset();
-    LeapManager::reset();
 
     if (OculusManager::isConnected()) {
         OculusManager::reset();
