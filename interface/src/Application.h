@@ -224,6 +224,7 @@ public:
     
     QString *_latestVersion;
     QString *_operatingSystem;
+    QUrl *_downloadURL;
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);

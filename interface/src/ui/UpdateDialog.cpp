@@ -24,10 +24,9 @@ const int dialogHeigth = 300;
 
 const QString dialogTitle = "Update Required";
 
-UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *downloadURL) : QDialog(parent, Qt::Dialog) {
+UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(parent, Qt::Dialog) {
     
     Application* application = Application::getInstance();
-    _downloadURL = downloadURL;
     
     const QString updateRequired = QString("You are currently running build %1, the latest build released is %2.\n \
                                             Please download and install the most recent release to access the latest \
@@ -73,7 +72,7 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *download
 
 void UpdateDialog::handleDownload() {
     Application* application = Application::getInstance();
-    QDesktopServices::openUrl((*_downloadURL));
+    QDesktopServices::openUrl(*application->_downloadURL);
     application->quit();
 }
 

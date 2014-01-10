@@ -89,6 +89,8 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
+const QString CHECK_VERSION_URL = "http://www.google.com";
+
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -196,20 +198,21 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
     #ifdef Q_WS_X11
-    _operatingSystem = "ubuntu";
+    _operatingSystem = new QString("ubuntu");
     #endif
     
     #ifdef Q_WS_WIN
-    _operatingSystem = "win";
+    _operatingSystem = new QString("win");
     #endif
     
     #ifdef Q_WS_MACX
-    _operatingSystem = "mac";
+    _operatingSystem = new QString("mac");
     #endif
     
     checkVersion();
     
     qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
+    qDebug("[OS] %s", _operatingSystem->toStdString().c_str());
 
     _settings = new QSettings(this);
 
@@ -4555,40 +4558,33 @@ void Application::checkVersion() {
 void Application::parseVersionXml(QNetworkReply *reply) {
     QString _releaseDate;
     QString _releaseNotes;
-    QUrl *_downloadLink;
     
     QXmlStreamReader xml(reply);
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
         if (token == QXmlStreamReader::StartElement) {
-            
             if (xml.name() == "ReleaseDate") {
                 xml.readNext();
                 _releaseDate = xml.text().toString();
             }
-            
             if (xml.name() == "ReleaseNotes") {
                 xml.readNext();
                 _releaseNotes = xml.text().toString();
             }
-            
             if (xml.name() == "Version") {
                 xml.readNext();
                 _latestVersion = new QString(xml.text().toString());
             }
         }
-        
     }
+    
+    _downloadURL = new QUrl(CHECK_VERSION_URL);
+    
     if (!shouldSkipVersion() && applicationVersion() != _latestVersion) {
-        
+        UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes);
+        _updateDialog->exec();
     }
-    
-    _downloadLink = new QUrl("http://www.google.com");
-    
-    UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes, _downloadLink);
-    _updateDialog->exec();
-    
 }
 
 QFile *Application::loadSkipFile() {

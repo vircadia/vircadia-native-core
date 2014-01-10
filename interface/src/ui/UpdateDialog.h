@@ -20,7 +20,7 @@ class UpdateDialog : public QDialog {
     Q_OBJECT
     
 public:
-    UpdateDialog(QWidget*, QString releaseNotes, QUrl *downloadURL);
+    UpdateDialog(QWidget*, QString releaseNotes);
     
 private:
     QLabel *_updateRequired;
