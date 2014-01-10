@@ -200,7 +200,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // Compute instantaneous acceleration
     float forwardAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
     const float ACCELERATION_PITCH_DECAY = 0.4f;
-    const float ACCELERATION_YAW_DECAY = 0.4f;
     const float ACCELERATION_PULL_THRESHOLD = 0.2f;
     const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
     const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
