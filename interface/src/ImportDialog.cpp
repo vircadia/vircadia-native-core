@@ -12,16 +12,17 @@
 #include <QSplitter>
 #include <QFile>
 #include <QFileInfo>
-#include <QMetaEnum>
-
 #include <QDir>
 
 #include <QApplication>
 #include <QStyle>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import");
-const QString IMPORT_INFO = QObject::tr("<b>Import</b> .svo, .schematic, or .png as voxels");
+const QString IMPORT_INFO = QObject::tr("<b>Import</b> %1 as voxels");
 const QString CANCEL_BUTTON_NAME = QObject::tr("Cancel");
 const QString IMPORT_FILE_TYPES = QObject::tr("Sparse Voxel Octree Files, "
                                               "Square PNG, "
@@ -69,10 +70,8 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
             typeString = "file";
             break;
     }
-    
-    QIcon ico = QIcon("resources/icons/" + typeString + ".svg");
-    ico.pixmap(QSize(50, 50));
-    return ico;
+
+    return QIcon ("resources/icons/" + typeString + ".svg");
 }
 
 QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
@@ -90,8 +89,7 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
         return QIcon("resources/icons/folder.svg");
     }
     
-    QFileInfo iconFile = QFileInfo("resources/icons/" + ext + ".svg");
-    qDebug() << "Icon type: " << iconFile.filePath();
+    QFileInfo iconFile("resources/icons/" + ext + ".svg");
     if (iconFile.exists()) {
         return QIcon(iconFile.filePath());
     }
@@ -99,31 +97,74 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
     return QIcon("resources/icons/file.svg");
 }
 
-ImportDialog::ImportDialog(QWidget *parent) : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, IMPORT_FILE_TYPES),
+ImportDialog::ImportDialog(QWidget *parent) : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
 _importButton(IMPORT_BUTTON_NAME, this),
-_cancelButton(CANCEL_BUTTON_NAME, this),
-_infoLabel(INFO_LABEL_TEXT) {
+_cancelButton(CANCEL_BUTTON_NAME, this) {
     
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
 
+    switchToResourcesParentIfRequired();
+    QFile config("resources/config/config.json");
+    config.open(QFile::ReadOnly | QFile::Text);
+    QJsonDocument document = QJsonDocument::fromJson(config.readAll());
+    if (!document.isNull() && !document.isEmpty()) {
+
+        QString importFormatsInfo;
+        QStringList importFormatsFilterList;
+        QHash<QString, QString> iconsMap;
+
+        QJsonObject config = document.object();
+        if (!config.isEmpty()) {
+            QJsonArray fileFormats = config["importFormats"].toArray();
+            int ff = 0;
+            foreach (const QJsonValue& fileFormat, fileFormats) {
+                QJsonObject fileFormatObject = fileFormat.toObject();
+
+                QString ext(fileFormatObject["extension"].toString());
+                QString description(fileFormatObject.value("description").toString());
+                QString icon(fileFormatObject.value("icon").toString());
+
+                if (ff > 0) {
+                    importFormatsInfo.append(",");
+                }
+
+                if (ff == fileFormats.count() - 1) {
+                    importFormatsInfo.append(" or");
+                }
+
+                importFormatsFilterList.append(QString("%1 (*.%2)").arg(description, ext));
+                importFormatsInfo.append(" .").append(ext);
+                iconsMap[ext] = icon;
+                ff++;
+            }
+        }
+
+        // set custom file icons
+        setIconProvider(new HiFiIconProvider(iconsMap));
+
+        setNameFilters(importFormatsFilterList);
+
+        setLabelText(QFileDialog::LookIn, QString(IMPORT_INFO).arg(importFormatsInfo));
+        setLabelText(QFileDialog::FileName, INFO_LABEL_TEXT);
+
+    }
     setLayout();
-    QLabel* _importLabel = findChild<QLabel*>("lookInLabel");
-    _importLabel->setText(IMPORT_INFO);
 
     QGridLayout* gridLayout = (QGridLayout*) layout();
-    gridLayout->addWidget(&_infoLabel, 2, 0);
     gridLayout->addWidget(&_cancelButton, 2, 1);
     gridLayout->addWidget(&_importButton, 2, 2);
 
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
+    connect(&_cancelButton, SIGNAL(pressed()), SLOT(close()));
     
-    resize(QSize(790, 477));
+    
 }
 
 ImportDialog::~ImportDialog() {
+    deleteLater();
 }
 
 void ImportDialog::import() {
@@ -153,7 +194,7 @@ void ImportDialog::saveCurrentFile(QString filename) {
 
 void ImportDialog::setLayout() {
     
-    // set ObjectName used in qss
+    // set ObjectName used in qss for styling
     _importButton.setObjectName("importButton");
     _cancelButton.setObjectName("cancelButton");
     
@@ -186,9 +227,6 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("fileNameEdit");
     widget->hide();
     
-    widget = findChild<QWidget*>("fileNameLabel");
-    widget->hide();
-    
     widget = findChild<QWidget*>("fileTypeCombo");
     widget->hide();
     
@@ -208,8 +246,9 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("treeView");
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
-    // set custom file icons
-    setIconProvider(new HiFiIconProvider());
+    // remove reference to treeView
+//    widget = NULL;
+//    widget->deleteLater();
     
     switchToResourcesParentIfRequired();
     QFile styleSheet("resources/styles/import_dialog.qss");

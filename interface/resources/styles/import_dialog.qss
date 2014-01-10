@@ -42,7 +42,6 @@ QTreeView {
 
 QSidebar::item {
     margin-top: 10px;
-    padding-top: 5px;
     padding-bottom: 0;
 }
 
@@ -65,10 +64,6 @@ QTreeView QHeaderView:section {
 }
 
 QTreeView::item {
-    height: 30px;
-}
-
-QListView::item::icon {
     height: 30px;
 }
 
