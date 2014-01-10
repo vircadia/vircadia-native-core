@@ -15,7 +15,7 @@
 
 using namespace std;
 
-SixenseManager::SixenseManager() : _lastMovement(usecTimestampNow()) {
+SixenseManager::SixenseManager() : _lastMovement(0) {
 #ifdef HAVE_SIXENSE
     sixenseInit();
 #endif
