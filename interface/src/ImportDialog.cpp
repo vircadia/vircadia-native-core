@@ -39,7 +39,6 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
     
     // types
     // Computer, Desktop, Trashcan, Network, Drive, Folder, File
-
     QString typeString;
     
     switch (type) {
@@ -89,11 +88,10 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
         return QIcon("resources/icons/folder.svg");
     }
     
-    QFileInfo iconFile("resources/icons/" + ext + ".svg");
+    QFileInfo iconFile("resources/icons/" + iconsMap[ext]);
     if (iconFile.exists()) {
         return QIcon(iconFile.filePath());
     }
-    
     return QIcon("resources/icons/file.svg");
 }
 
