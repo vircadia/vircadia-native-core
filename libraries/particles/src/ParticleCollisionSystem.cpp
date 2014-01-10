@@ -90,8 +90,8 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
 void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) {
     glm::vec3 center = particleA->getPosition() * (float)TREE_SCALE;
     float radius = particleA->getRadius() * (float)TREE_SCALE;
-    const float ELASTICITY = 0.4f;
-    const float DAMPING = 0.0f;
+    //const float ELASTICITY = 0.4f;
+    //const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     Particle* particleB;
