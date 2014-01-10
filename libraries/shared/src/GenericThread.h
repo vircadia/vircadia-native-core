@@ -11,22 +11,25 @@
 #ifndef __shared__GenericThread__
 #define __shared__GenericThread__
 
+#include <QtCore/QObject>
+
 #include <pthread.h>
 
 /// A basic generic "thread" class. Handles a single thread of control within the application. Can operate in non-threaded
 /// mode but caller must regularly call threadRoutine() method.
-class GenericThread {
+class GenericThread : public QObject {
+    Q_OBJECT
 public:
     GenericThread();
     virtual ~GenericThread();
 
-    /// Call to start the thread. 
+    /// Call to start the thread.
     /// \param bool isThreaded true by default. false for non-threaded mode and caller must call threadRoutine() regularly.
     void initialize(bool isThreaded = true);
 
     /// Call to stop the thread
     void terminate();
-    
+
     /// If you're running in non-threaded mode, you must call this regularly
     void* threadRoutine();
 
@@ -42,7 +45,7 @@ protected:
 
     /// Unlocks all the resources of the thread.
     void unlock() { pthread_mutex_unlock(&_mutex); }
-    
+
     bool isStillRunning() const { return !_stopThread; }
 
 private:
