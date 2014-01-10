@@ -11,11 +11,22 @@
 
 #include "MetavoxelData.h"
 
+MetavoxelData::MetavoxelData() {
+}
+
+MetavoxelData::MetavoxelData(const MetavoxelData& other) : _roots(other._roots) {
+    incrementRootReferenceCounts();
+}
+
 MetavoxelData::~MetavoxelData() {
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        it.value()->destroy(it.key());
-        delete it.value();
-    }
+    decrementRootReferenceCounts();
+}
+
+MetavoxelData& MetavoxelData::operator=(const MetavoxelData& other) {
+    decrementRootReferenceCounts();
+    _roots = other._roots;
+    incrementRootReferenceCounts();
+    return *this;
 }
 
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {
@@ -43,8 +54,7 @@ void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const Attribute
         node = new MetavoxelNode(attributeValue.getAttribute());
     }
     if (node->setAttributeValue(path, 0, attributeValue) && attributeValue.isDefault()) {
-        node->destroy(attributeValue.getAttribute());
-        delete node;
+        node->decrementReferenceCount(attributeValue.getAttribute());
         _roots.remove(attributeValue.getAttribute());
     }
 }
@@ -64,7 +74,76 @@ AttributeValue MetavoxelData::getAttributeValue(const MetavoxelPath& path, const
     return node->getAttributeValue(attribute);
 }
 
-MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) {
+void MetavoxelData::read(Bitstream& in) {
+    // save the old roots and clear
+    QHash<AttributePointer, MetavoxelNode*> oldRoots = _roots;
+    _roots.clear();
+    
+    // read in the new roots, reusing old ones where appropriate
+    qint32 rootCount;
+    in >> rootCount;
+    for (int i = 0; i < rootCount; i++) {
+        AttributePointer attribute;
+        in.getAttributeStreamer() >> attribute;
+        MetavoxelNode* root = oldRoots.take(attribute);
+        if (!root) {
+            root = new MetavoxelNode(attribute);
+        }
+        _roots.insert(attribute, root);
+        root->read(attribute, in);
+    }
+    
+    // clear out the remaining old roots
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = oldRoots.constBegin(); it != oldRoots.constEnd(); it++) {
+        it.value()->decrementReferenceCount(it.key());
+    }
+}
+
+void MetavoxelData::write(Bitstream& out) const {
+    out << (qint32)_roots.size();
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        out.getAttributeStreamer() << it.key();
+        it.value()->write(it.key(), out);
+    }
+}
+
+void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
+}
+
+void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
+}
+
+void MetavoxelData::incrementRootReferenceCounts() {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->incrementReferenceCount();
+    }
+}
+
+void MetavoxelData::decrementRootReferenceCounts() {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
+        it.value()->decrementReferenceCount(it.key());
+    }
+}
+
+void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out) {
+    if (data == reference) {
+        out << false;
+        return;
+    }
+    out << true;
+    data->writeDelta(*reference, out);
+}
+
+void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in) {
+    bool changed;
+    in >> changed;
+    if (changed) {
+        data.detach();
+        data->readDelta(*reference, in);
+    }
+}
+
+MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceCount(1) {
     _attributeValue = attributeValue.copy();
     for (int i = 0; i < CHILD_COUNT; i++) {
         _children[i] = NULL;
@@ -118,12 +197,96 @@ bool MetavoxelNode::isLeaf() const {
     return true;
 }
 
+void MetavoxelNode::read(const AttributePointer& attribute, Bitstream& in) {
+    bool leaf;
+    in >> leaf;
+    attribute->read(in, _attributeValue, leaf);
+    if (leaf) {
+        clearChildren(attribute);
+        
+    } else {
+        void* childValues[CHILD_COUNT];
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            if (!_children[i]) {
+                _children[i] = new MetavoxelNode(attribute);
+            }
+            _children[i]->read(attribute, in);
+            childValues[i] = _children[i]->_attributeValue;
+        }
+        attribute->merge(_attributeValue, childValues);
+    }
+}
+
+void MetavoxelNode::write(const AttributePointer& attribute, Bitstream& out) const {
+    bool leaf = isLeaf();
+    out << leaf;
+    attribute->write(out, _attributeValue, leaf);
+    if (!leaf) {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            _children[i]->write(attribute, out);
+        }
+    }
+}
+
+void MetavoxelNode::readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in) {
+    bool different;
+    in >> different;
+    if (!different) {
+        return;
+    } 
+    bool leaf;
+    in >> leaf;
+    attribute->readDelta(in, _attributeValue, reference._attributeValue, leaf);
+    if (leaf) {
+        clearChildren(attribute);
+        
+    } else {
+        if (reference.isLeaf()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->read(attribute, in);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->readDelta(attribute, *reference._children[i], in);
+            }
+        }  
+    }
+}
+
+void MetavoxelNode::writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const {
+    if (this == &reference) {
+        out << false;
+        return;
+    }
+    out << true;
+    bool leaf = isLeaf();
+    out << leaf;
+    attribute->writeDelta(out, _attributeValue, reference._attributeValue, leaf);
+    if (!leaf) {
+        if (reference.isLeaf()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->write(attribute, out);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i]->writeDelta(attribute, *reference._children[i], out);
+            }
+        }
+    }
+}
+
+void MetavoxelNode::decrementReferenceCount(const AttributePointer& attribute) {
+    if (--_referenceCount == 0) {
+        destroy(attribute);
+        delete this;
+    }
+}
+
 void MetavoxelNode::destroy(const AttributePointer& attribute) {
     attribute->destroy(_attributeValue);
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
-            _children[i]->destroy(attribute);
-            delete _children[i];
+            _children[i]->decrementReferenceCount(attribute);
         }
     }
 }
@@ -131,8 +294,7 @@ void MetavoxelNode::destroy(const AttributePointer& attribute) {
 void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
-            _children[i]->destroy(attribute);
-            delete _children[i];
+            _children[i]->decrementReferenceCount(attribute);
             _children[i] = NULL;
         }
     }

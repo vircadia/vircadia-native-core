@@ -208,8 +208,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER,
-                                        NODE_TYPE_PARTICLE_SERVER};
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
+        NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
     QTimer* silentNodeTimer = new QTimer(this);
@@ -1281,7 +1281,7 @@ void Application::wheelEvent(QWheelEvent* event) {
 void Application::sendPingPackets() {
 
     const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
-                                NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+        NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_METAVOXEL_SERVER};
 
     unsigned char pingPacket[MAX_PACKET_SIZE];
     int length = NodeList::getInstance()->fillPingPacket(pingPacket);
@@ -4411,6 +4411,10 @@ void* Application::networkReceive(void* args) {
                         app->_voxelProcessor.queueReceivedPacket(senderSockAddr, app->_incomingPacket, bytesReceived);
                         break;
                     }
+                    case PACKET_TYPE_METAVOXEL_DATA:
+                        app->_metavoxels.processData(QByteArray((const char*)app->_incomingPacket, bytesReceived),
+                            senderSockAddr);
+                        break;
                     case PACKET_TYPE_BULK_AVATAR_DATA:
                         NodeList::getInstance()->processBulkNodeData(senderSockAddr,
                                                                      app->_incomingPacket,
