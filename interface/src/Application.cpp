@@ -4588,7 +4588,8 @@ void Application::parseVersionXml(QNetworkReply *reply) {
             
             if (xml.name() == "Version") {
                 xml.readNext();
-                *_latestVersion = xml.text().toString();
+                QString latestVersion = xml.text().toString();
+                _latestVersion = &latestVersion;
             }
         }
         

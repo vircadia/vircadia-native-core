@@ -42,9 +42,11 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QUrl *download
     }
     _releaseNotes = new QLabel(this);
     _releaseNotes->setText(releaseNotes);
+    _releaseNotes->setObjectName("releaseNotes");
     
     _updateRequired = new QLabel(this);
     _updateRequired->setText(updateRequired);
+    _updateRequired->setObjectName("updateRequired");
     
     _downloadButton = new QPushButton("Download", this);
     _downloadButton->setObjectName("downloadButton");
