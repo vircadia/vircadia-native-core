@@ -4588,7 +4588,7 @@ void Application::parseVersionXml(QNetworkReply *reply) {
             
             if (xml.name() == "Version") {
                 xml.readNext();
-                _latestVersion = xml.text().toString();
+                *_latestVersion = xml.text().toString();
             }
         }
         
@@ -4601,6 +4601,6 @@ void Application::parseVersionXml(QNetworkReply *reply) {
     _downloadLink = new QUrl("http://www.google.com");
     
     UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes, _downloadLink, _latestVersion, applicationVersion());
-    _updateDialog->show();
+    _updateDialog->exec();
     
 }

@@ -521,7 +521,7 @@ private:
 
     FileLogger* _logger;
     
-    QString _latestVersion;
+    QString *_latestVersion;
     QString _operatingSystem;
 };
 
