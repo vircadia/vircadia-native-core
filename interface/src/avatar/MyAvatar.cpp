@@ -210,8 +210,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         // you start moving, but don't do this with an HMD like the Oculus.
         if (!OculusManager::isConnected()) {
             if (forwardAcceleration > ACCELERATION_PULL_THRESHOLD) {
-                _head.setPitch(_head.getPitch() * (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime));
-                _head.setYaw(_head.getYaw() * (1.f - forwardAcceleration * ACCELERATION_YAW_DECAY * deltaTime));
+                _head.setMousePitch(_head.getMousePitch() * qMax(0.0f,
+                    (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime)));
             }
         } else if (fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
                    && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
