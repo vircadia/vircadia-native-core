@@ -54,6 +54,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     
     _position = position;
     _radius = radius;
+    _mass = 1.0f;
     memcpy(_color, color, sizeof(_color));
     _velocity = velocity;
     _damping = damping;
@@ -63,6 +64,11 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _shouldDie = false;
 }
 
+void Particle::setMass(float value) {
+    if (value > 0.0f) {
+        _mass = value;
+    }
+}
 
 bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
