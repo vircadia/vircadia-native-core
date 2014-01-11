@@ -12,7 +12,7 @@
 #define __shared_NetworkPacket__
 
 #include <stdlib.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h> // not available on windows, apparently not needed on mac
 #include <ifaddrs.h>
 
 #include "HifiSockAddr.h"
@@ -43,7 +43,7 @@ public:
 
 private:
     void copyContents(const HifiSockAddr& sockAddr, const unsigned char*  packetData, ssize_t packetLength);
-    
+
     HifiSockAddr _sockAddr;
     ssize_t _packetLength;
     unsigned char _packetData[MAX_PACKET_SIZE];
