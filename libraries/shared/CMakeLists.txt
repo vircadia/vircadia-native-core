@@ -24,10 +24,6 @@ set(EXTERNAL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 if (WIN32)
     # include headers for external libraries and InterfaceConfig.
     include_directories(${EXTERNAL_ROOT_DIR})
-else (WIN32)
-    find_package(CURL REQUIRED)
-    include_directories(${CURL_INCLUDE_DIRS})
-    target_link_libraries(${TARGET_NAME} ${CURL_LIBRARY})
 endif (WIN32)
 
 # link required libraries on UNIX
