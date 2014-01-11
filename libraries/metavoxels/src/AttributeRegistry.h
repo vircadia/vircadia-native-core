@@ -32,7 +32,7 @@ class AttributeRegistry {
 public:
     
     /// Returns a pointer to the singleton registry instance.
-    static AttributeRegistry* getInstance() { return &_instance; }
+    static AttributeRegistry* getInstance();
     
     AttributeRegistry();
     
@@ -64,8 +64,6 @@ public:
 private:
 
     static QScriptValue getAttribute(QScriptContext* context, QScriptEngine* engine);
-
-    static AttributeRegistry _instance;
 
     QHash<QString, AttributePointer> _attributes;
     AttributePointer _guideAttribute;
@@ -140,8 +138,11 @@ public:
     virtual void* create(void* copy) const = 0;
     virtual void destroy(void* value) const = 0;
 
-    virtual bool read(Bitstream& in, void*& value) const = 0;
-    virtual bool write(Bitstream& out, void* value) const = 0;
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const = 0;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const = 0;
+
+    virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
+    virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
     virtual bool equal(void* first, void* second) const = 0;
 
@@ -163,17 +164,30 @@ public:
     virtual void* create(void* copy) const { void* value; new (&value) T(*(T*)&copy); return value; }
     virtual void destroy(void* value) const { ((T*)&value)->~T(); }
     
-    virtual bool read(Bitstream& in, void*& value) const { value = getDefaultValue(); in.read(&value, bits); return false; }
-    virtual bool write(Bitstream& out, void* value) const { out.write(&value, bits); return false; }
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
     virtual bool equal(void* first, void* second) const { return decodeInline<T>(first) == decodeInline<T>(second); }
 
     virtual void* getDefaultValue() const { return encodeInline(_defaultValue); }
 
-private:
+protected:
     
     T _defaultValue;
 };
+
+template<class T, int bits> inline void InlineAttribute<T, bits>::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        value = getDefaultValue();
+        in.read(&value, bits);
+    }
+}
+
+template<class T, int bits> inline void InlineAttribute<T, bits>::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        out.write(&value, bits);
+    }
+}
 
 /// Provides merging using the =, ==, += and /= operators.
 template<class T, int bits = 32> class SimpleInlineAttribute : public InlineAttribute<T, bits> {
@@ -198,9 +212,12 @@ template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(vo
 
 /// Provides appropriate averaging for RGBA values.
 class QRgbAttribute : public InlineAttribute<QRgb> {
+    Q_OBJECT
+    Q_PROPERTY(int defaultValue MEMBER _defaultValue)
+
 public:
     
-    QRgbAttribute(const QString& name, QRgb defaultValue = QRgb());
+    Q_INVOKABLE QRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
     
     virtual bool merge(void*& parent, void* children[]) const;
     
@@ -216,8 +233,8 @@ public:
     virtual void* create(void* copy) const { new T(*static_cast<T*>(copy)); }
     virtual void destroy(void* value) const { delete static_cast<T*>(value); }
     
-    virtual bool read(Bitstream& in, void*& value) const { in >> *static_cast<T*>(value); return true; }
-    virtual bool write(Bitstream& out, void* value) const { out << *static_cast<T*>(value); return true; }
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
     virtual bool equal(void* first, void* second) const { return *static_cast<T*>(first) == *static_cast<T*>(second); }
 
@@ -227,6 +244,18 @@ private:
     
     T _defaultValue;
 }; 
+
+template<class T> inline void PointerAttribute<T>::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        in.read(value, sizeof(T) * 8);
+    }
+}
+
+template<class T> inline void PointerAttribute<T>::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        out.write(value, sizeof(T) * 8);
+    }
+}
 
 /// Provides merging using the =, ==, += and /= operators.
 template<class T> class SimplePointerAttribute : public PointerAttribute<T> {

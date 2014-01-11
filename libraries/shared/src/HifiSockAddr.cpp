@@ -11,6 +11,8 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
+static int hifiSockAddrMetaTypeId = qMetaTypeId<HifiSockAddr>();
+
 HifiSockAddr::HifiSockAddr() :
     _address(),
     _port(0)

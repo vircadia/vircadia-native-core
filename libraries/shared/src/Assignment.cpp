@@ -29,6 +29,8 @@ Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
             return Assignment::VoxelServerType;
         case NODE_TYPE_PARTICLE_SERVER:
             return Assignment::ParticleServerType;
+        case NODE_TYPE_METAVOXEL_SERVER:
+            return Assignment::MetavoxelServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -180,6 +182,8 @@ const char* Assignment::getTypeName() const {
             return "voxel-server";
         case Assignment::ParticleServerType:
             return "particle-server";
+        case Assignment::MetavoxelServerType:
+            return "metavoxel-server";
         default:
             return "unknown";
     }
