@@ -27,7 +27,7 @@ VoxelTreeElement* VoxelTree::createNewElement(unsigned char * octalCode) const {
     if (_rootNode) {
         voxelSystem = ((VoxelTreeElement*)_rootNode)->getVoxelSystem();
     }
-    VoxelTreeElement* newElement = new VoxelTreeElement(octalCode); 
+    VoxelTreeElement* newElement = new VoxelTreeElement(octalCode);
     newElement->setVoxelSystem(voxelSystem);
     return newElement;
 }
@@ -43,7 +43,7 @@ VoxelTreeElement* VoxelTree::getVoxelAt(float x, float y, float z, float s) cons
 
 void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
-                            
+
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
 
     //int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(voxelData)) + BYTES_PER_COLOR;
@@ -66,139 +66,6 @@ void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, r
         createVoxel(pointAt.x, pointAt.y, pointAt.z, unitSize, color[0], color[1], color[2], destructive);
     }
 }
-
-void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float voxelSize,
-                             bool solid, creationMode mode, bool destructive, bool debug) {
-
-    bool wantColorRandomizer = (mode == RANDOM);
-    bool wantNaturalSurface  = (mode == NATURAL);
-    bool wantNaturalColor    = (mode == NATURAL);
-
-    // About the color of the sphere... we're going to make this sphere be a mixture of two colors
-    // in NATURAL mode, those colors will be green dominant and blue dominant. In GRADIENT mode we
-    // will randomly pick which color family red, green, or blue to be dominant. In RANDOM mode we
-    // ignore these dominant colors and make every voxel a completely random color.
-    unsigned char r1, g1, b1, r2, g2, b2;
-
-    if (wantNaturalColor) {
-        r1 = r2 = b2 = g1 = 0;
-        b1 = g2 = 255;
-    } else if (!wantColorRandomizer) {
-        unsigned char dominantColor1 = randIntInRange(1, 3); //1=r, 2=g, 3=b dominant
-        unsigned char dominantColor2 = randIntInRange(1, 3);
-
-        if (dominantColor1 == dominantColor2) {
-            dominantColor2 = dominantColor1 + 1 % 3;
-        }
-
-        r1 = (dominantColor1 == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-        g1 = (dominantColor1 == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-        b1 = (dominantColor1 == 3) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-        r2 = (dominantColor2 == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-        g2 = (dominantColor2 == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-        b2 = (dominantColor2 == 3) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-    }
-
-    // We initialize our rgb to be either "grey" in case of randomized surface, or
-    // the average of the gradient, in the case of the gradient sphere.
-    unsigned char red   = wantColorRandomizer ? 128 : (r1 + r2) / 2; // average of the colors
-    unsigned char green = wantColorRandomizer ? 128 : (g1 + g2) / 2;
-    unsigned char blue  = wantColorRandomizer ? 128 : (b1 + b2) / 2;
-
-    // I want to do something smart like make these inside circles with bigger voxels, but this doesn't seem to work.
-    float thisVoxelSize = voxelSize; // radius / 2.0f;
-    float thisRadius = 0.0;
-    if (!solid) {
-        thisRadius = radius; // just the outer surface
-        thisVoxelSize = voxelSize;
-    }
-
-    // If you also iterate form the interior of the sphere to the radius, making
-    // larger and larger spheres you'd end up with a solid sphere. And lots of voxels!
-    bool lastLayer = false;
-    while (!lastLayer) {
-        lastLayer = (thisRadius + (voxelSize * 2.0) >= radius);
-
-        // We want to make sure that as we "sweep" through our angles we use a delta angle that voxelSize
-        // small enough to not skip any voxels we can calculate theta from our desired arc length
-        //      lenArc = ndeg/360deg * 2pi*R  --->  lenArc = theta/2pi * 2pi*R
-        //      lenArc = theta*R ---> theta = lenArc/R ---> theta = g/r
-        float angleDelta = (thisVoxelSize / thisRadius);
-
-        if (debug) {
-            int percentComplete = 100 * (thisRadius/radius);
-            qDebug("percentComplete=%d\n",percentComplete);
-        }
-
-        for (float theta=0.0; theta <= 2 * M_PI; theta += angleDelta) {
-            for (float phi=0.0; phi <= M_PI; phi += angleDelta) {
-                bool naturalSurfaceRendered = false;
-                float x = xc + thisRadius * cos(theta) * sin(phi);
-                float y = yc + thisRadius * sin(theta) * sin(phi);
-                float z = zc + thisRadius * cos(phi);
-
-                // if we're on the outer radius, then we do a couple of things differently.
-                // 1) If we're in NATURAL mode we will actually draw voxels from our surface outward (from the surface) up
-                //    some random height. This will give our sphere some contours.
-                // 2) In all modes, we will use our "outer" color to draw the voxels. Otherwise we will use the average color
-                if (lastLayer) {
-                    if (false && debug) {
-                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f\n",
-                                 theta, phi, thisRadius,radius);
-                    }
-                    switch (mode) {
-                    case RANDOM: {
-                        red   = randomColorValue(165);
-                        green = randomColorValue(165);
-                        blue  = randomColorValue(165);
-                    } break;
-                    case GRADIENT: {
-                        float gradient = (phi / M_PI);
-                        red   = r1 + ((r2 - r1) * gradient);
-                        green = g1 + ((g2 - g1) * gradient);
-                        blue  = b1 + ((b2 - b1) * gradient);
-                    } break;
-                    case NATURAL: {
-                        glm::vec3 position = glm::vec3(theta,phi,radius);
-                        float perlin = glm::perlin(position) + .25f * glm::perlin(position * 4.f)
-                                + .125f * glm::perlin(position * 16.f);
-                        float gradient = (1.0f + perlin)/ 2.0f;
-                        red   = (unsigned char)std::min(255, std::max(0, (int)(r1 + ((r2 - r1) * gradient))));
-                        green = (unsigned char)std::min(255, std::max(0, (int)(g1 + ((g2 - g1) * gradient))));
-                        blue  = (unsigned char)std::min(255, std::max(0, (int)(b1 + ((b2 - b1) * gradient))));
-                        if (debug) {
-                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)\n",perlin, gradient, red, green, blue);
-                        }
-                        } break;
-                    }
-                    if (wantNaturalSurface) {
-                        // for natural surfaces, we will render up to 16 voxel's above the surface of the sphere
-                        glm::vec3 position = glm::vec3(theta,phi,radius);
-                        float perlin = glm::perlin(position) + .25f * glm::perlin(position * 4.f)
-                                + .125f * glm::perlin(position * 16.f);
-                        float gradient = (1.0f + perlin)/ 2.0f;
-
-                        int height = (4 * gradient)+1; // make it at least 4 thick, so we get some averaging
-                        float subVoxelScale = thisVoxelSize;
-                        for (int i = 0; i < height; i++) {
-                            x = xc + (thisRadius + i * subVoxelScale) * cos(theta) * sin(phi);
-                            y = yc + (thisRadius + i * subVoxelScale) * sin(theta) * sin(phi);
-                            z = zc + (thisRadius + i * subVoxelScale) * cos(phi);
-                            this->createVoxel(x, y, z, subVoxelScale, red, green, blue, destructive);
-                        }
-                        naturalSurfaceRendered = true;
-                    }
-                }
-                if (!naturalSurfaceRendered) {
-                    this->createVoxel(x, y, z, thisVoxelSize, red, green, blue, destructive);
-                }
-            }
-        }
-        thisRadius += thisVoxelSize;
-        thisVoxelSize = std::max(voxelSize, thisVoxelSize / 2.0f);
-    }
-}
-
 
 class NodeChunkArgs {
 public:
@@ -343,7 +210,7 @@ void VoxelTree::nudgeLeaf(VoxelTreeElement* element, void* extraData) {
     // get voxel position/size
     VoxelPositionSize unNudgedDetails;
     voxelDetailsForCode(octalCode, unNudgedDetails);
-    
+
     VoxelDetail voxelDetails;
     voxelDetails.x = unNudgedDetails.x;
     voxelDetails.y = unNudgedDetails.y;
@@ -660,7 +527,7 @@ int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* pack
         case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE: {
             bool destructive = (packetType == PACKET_TYPE_VOXEL_SET_DESTRUCTIVE);
             int octets = numberOfThreeBitSectionsInCode(editData, maxLength);
-            
+
             if (octets == OVERFLOWED_OCTCODE_BUFFER) {
                 printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
                 printf("bailing processing of packet!\n");
@@ -676,12 +543,12 @@ int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* pack
                 printf("bailing processing of packet!\n");
                 return processedBytes;
             }
-            
+
             readCodeColorBufferToTree(editData, destructive);
-            
+
             return voxelDataSize;
         } break;
-            
+
         case PACKET_TYPE_VOXEL_ERASE:
             processRemoveOctreeElementsBitstream((unsigned char*)packetData, packetLength);
             return maxLength;

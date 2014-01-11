@@ -2392,12 +2392,6 @@ void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize,
     setupNewVoxelsForDrawing();
 };
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid,
-                               creationMode mode, bool destructive, bool debug) {
-    _tree->createSphere(r, xc, yc, zc, s, solid, mode, destructive, debug);
-    setupNewVoxelsForDrawing();
-};
-
 void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
     destination->setupNewVoxelsForDrawing();

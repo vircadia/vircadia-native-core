@@ -29,7 +29,7 @@ void addLandscape(VoxelTree * tree) {
 void voxelTutorial(VoxelTree * tree) {
     printf("adding scene...\n");
 
-    // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
+    // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...
     float voxelSize = 0.5f / TREE_SCALE;
 
     // Here's an example of how to create a voxel.
@@ -40,7 +40,7 @@ void voxelTutorial(VoxelTree * tree) {
     VoxelTreeElement* node = tree->getVoxelAt(0, 0, 0, voxelSize);
     if (node) {
         // and how to access it's color
-        printf("corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
+        printf("corner point 0,0,0 exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     }
 
@@ -60,7 +60,7 @@ void voxelTutorial(VoxelTree * tree) {
 void processSplitSVOFile(const char* splitSVOFile,const char* splitJurisdictionRoot,const char*  splitJurisdictionEndNodes) {
     char outputFileName[512];
 
-    printf("splitSVOFile: %s Jurisdictions Root: %s EndNodes: %s\n", 
+    printf("splitSVOFile: %s Jurisdictions Root: %s EndNodes: %s\n",
             splitSVOFile, splitJurisdictionRoot, splitJurisdictionEndNodes);
 
     VoxelTree rootSVO;
@@ -90,7 +90,7 @@ void processSplitSVOFile(const char* splitSVOFile,const char* splitJurisdictionR
         // for regions that don't contain anything even if they're not in the
         // jurisdiction of the server
         // This hack assumes the end nodes for demo dinner since it only guarantees
-        // nodes in the 8 child voxels of the main root voxel 
+        // nodes in the 8 child voxels of the main root voxel
         const float verySmall = 0.015625;
         endNodeTree.createVoxel(0.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
         endNodeTree.createVoxel(1.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
@@ -105,9 +105,9 @@ void processSplitSVOFile(const char* splitSVOFile,const char* splitJurisdictionR
         // import our endNode content into it...
         endNodeTree.deleteOctalCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
 
-        VoxelTreeElement* endNode = rootSVO.getVoxelAt(endNodeDetails.x, 
-                                                endNodeDetails.y, 
-                                                endNodeDetails.z, 
+        VoxelTreeElement* endNode = rootSVO.getVoxelAt(endNodeDetails.x,
+                                                endNodeDetails.y,
+                                                endNodeDetails.z,
                                                 endNodeDetails.s);
 
         rootSVO.copySubTreeIntoNewTree(endNode, &endNodeTree, false);
@@ -115,10 +115,10 @@ void processSplitSVOFile(const char* splitSVOFile,const char* splitJurisdictionR
         sprintf(outputFileName, "splitENDNODE%d%s", i, splitSVOFile);
         printf("outputFile: %s\n", outputFileName);
         endNodeTree.writeToSVOFile(outputFileName);
-    
+
         // Delete the voxel for the EndNode from the root tree...
         rootSVO.deleteOctalCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
-    
+
         // create a small voxel in center of each EndNode, this will is a hack
         // to work around a bug in voxel server that will send Voxel not exists
         // for regions that don't contain anything even if they're not in the
@@ -127,9 +127,9 @@ void processSplitSVOFile(const char* splitSVOFile,const char* splitJurisdictionR
         float y = endNodeDetails.y + endNodeDetails.s * 0.5;
         float z = endNodeDetails.z + endNodeDetails.s * 0.5;
         float s = endNodeDetails.s * verySmall;
-    
+
         rootSVO.createVoxel(x, y, z, s, 1, 1, 1, true);
-    
+
     }
 
     sprintf(outputFileName, "splitROOT%s", splitSVOFile);
@@ -145,7 +145,7 @@ public:
     unsigned long outCount;
     unsigned long inCount;
     unsigned long originalCount;
-    
+
 };
 
 bool copyAndFillOperation(OctreeElement* element, void* extraData) {
@@ -170,20 +170,20 @@ bool copyAndFillOperation(OctreeElement* element, void* extraData) {
 
         args->destinationTree->createVoxel(x, y, z, s, red, green, blue, destructive);
         args->outCount++;
-        
+
         sprintf(outputMessage,"Completed: %d%% (%lu of %lu) - Creating voxel %lu at [%f,%f,%f,%f]",
             percentDone,args->inCount,args->originalCount,args->outCount,x,y,z,s);
         printf("%s",outputMessage);
         for (int b = 0; b < strlen(outputMessage); b++) {
             printf("\b");
         }
-        
+
         // and create same sized leafs from this leaf voxel down to zero in the destination tree
         for (float yFill = y-s; yFill >= 0.0f; yFill -= s) {
             args->destinationTree->createVoxel(x, yFill, z, s, red, green, blue, destructive);
 
             args->outCount++;
-        
+
         sprintf(outputMessage,"Completed: %d%% (%lu of %lu) - Creating fill voxel %lu at [%f,%f,%f,%f]",
             percentDone,args->inCount,args->originalCount,args->outCount,x,y,z,s);
             printf("%s",outputMessage);
@@ -208,13 +208,13 @@ void processFillSVOFile(const char* fillSVOFile) {
     originalSVO.reaverageOctreeElements();
     qDebug("Original Voxels reAveraged\n");
     qDebug("Nodes after reaveraging %lu nodes\n", originalSVO.getOctreeElementsCount());
-    
+
     copyAndFillArgs args;
     args.destinationTree = &filledSVO;
     args.inCount = 0;
     args.outCount = 0;
     args.originalCount = originalSVO.getOctreeElementsCount();
-    
+
     printf("Begin processing...\n");
     originalSVO.recurseTreeWithOperation(copyAndFillOperation, &args);
     printf("DONE processing...\n");
@@ -242,10 +242,10 @@ int main(int argc, const char * argv[])
     VoxelTree myTree;
 
     qInstallMessageHandler(sharedMessageHandler);
-    
+
     unitTest(&myTree);
-    
-    
+
+
     const char* GET_OCTCODE = "--getOctCode";
     const char* octcodeParams = getCmdOption(argc, argv, GET_OCTCODE);
     if (octcodeParams) {
@@ -280,7 +280,7 @@ int main(int argc, const char * argv[])
         }
         return 0;
     }
-    
+
     const char* DECODE_OCTCODE = "--decodeOctCode";
     const char* decodeParam = getCmdOption(argc, argv, DECODE_OCTCODE);
     if (decodeParam) {
@@ -290,7 +290,7 @@ int main(int argc, const char * argv[])
 
         VoxelPositionSize details;
         voxelDetailsForCode(octalCodeToDecode, details);
-        
+
         delete[] octalCodeToDecode;
 
         qDebug() << "octal code to decode: " << decodeParamsString << "\n";
@@ -300,8 +300,8 @@ int main(int argc, const char * argv[])
         qDebug() << "    z:" << details.z << "[" << details.z * TREE_SCALE << "]" << "\n";
         qDebug() << "    s:" << details.s << "[" << details.s * TREE_SCALE << "]" << "\n";
         return 0;
-    }    
-    
+    }
+
 
     // Handles taking and SVO and splitting it into multiple SVOs based on
     // jurisdiction details
@@ -324,7 +324,7 @@ int main(int argc, const char * argv[])
         processFillSVOFile(fillSVOFile);
         return 0;
     }
-    
+
     const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
     bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
 
@@ -332,7 +332,7 @@ int main(int argc, const char * argv[])
         printf("You asked us not to create a scene file, so we will not.\n");
     } else {
         printf("Creating Scene File...\n");
-    
+
         const char* RUN_TUTORIAL = "--runTutorial";
         if (cmdOptionExists(argc, argv, RUN_TUTORIAL)) {
             voxelTutorial(&myTree);
@@ -341,11 +341,6 @@ int main(int argc, const char * argv[])
         const char* ADD_CORNERS_AND_AXIS_LINES = "--addCornersAndAxisLines";
         if (cmdOptionExists(argc, argv, ADD_CORNERS_AND_AXIS_LINES)) {
             addCornersAndAxisLines(&myTree);
-        }
-
-        const char* ADD_SPHERE_SCENE = "--addSphereScene";
-        if (cmdOptionExists(argc, argv, ADD_SPHERE_SCENE)) {
-            addSphereScene(&myTree);
         }
 
         const char* ADD_SURFACE_SCENE = "--addSurfaceScene";
@@ -366,7 +361,7 @@ void unitTest(VoxelTree * tree) {
     printf("unit tests...\n");
     unsigned long nodeCount;
 
-    // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
+    // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...
     float voxelSize = 0.5f / TREE_SCALE;
 
     // Here's an example of how to create a voxel.
@@ -374,12 +369,12 @@ void unitTest(VoxelTree * tree) {
     tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
     printf("Nodes at line %d... %ld nodes\n", __LINE__, tree->getOctreeElementsCount());
 
-    
+
     // Here's an example of how to test if a voxel exists
     node = tree->getVoxelAt(0, 0, 0, voxelSize);
     if (node) {
         // and how to access it's color
-        printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
+        printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     }
 
@@ -402,7 +397,7 @@ void unitTest(VoxelTree * tree) {
 
     tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
     if ((node = tree->getVoxelAt(0, 0, 0, voxelSize))) {
-        printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
+        printf("CORRECT - corner point 0,0,0 exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
         printf("FAIL corner point 0,0,0 does not exists...\n");
@@ -412,7 +407,7 @@ void unitTest(VoxelTree * tree) {
 
     tree->createVoxel(voxelSize, 0, 0, voxelSize, 255, 255 ,0);
     if ((node = tree->getVoxelAt(voxelSize, 0, 0, voxelSize))) {
-        printf("CORRECT - corner point voxelSize,0,0 exists... color is (%d,%d,%d) \n", 
+        printf("CORRECT - corner point voxelSize,0,0 exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
         printf("FAIL corner point voxelSize,0,0 does not exists...\n");
@@ -422,7 +417,7 @@ void unitTest(VoxelTree * tree) {
 
     tree->createVoxel(0, 0, voxelSize, voxelSize, 255, 0 ,0);
     if ((node = tree->getVoxelAt(0, 0, voxelSize, voxelSize))) {
-        printf("CORRECT - corner point 0, 0, voxelSize exists... color is (%d,%d,%d) \n", 
+        printf("CORRECT - corner point 0, 0, voxelSize exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
         printf("FAILED corner point 0, 0, voxelSize does not exists...\n");
@@ -432,7 +427,7 @@ void unitTest(VoxelTree * tree) {
 
     tree->createVoxel(voxelSize, 0, voxelSize, voxelSize, 0, 0 ,255);
     if ((node = tree->getVoxelAt(voxelSize, 0, voxelSize, voxelSize))) {
-        printf("CORRECT - corner point voxelSize, 0, voxelSize exists... color is (%d,%d,%d) \n", 
+        printf("CORRECT - corner point voxelSize, 0, voxelSize exists... color is (%d,%d,%d) \n",
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     } else {
         printf("corner point voxelSize, 0, voxelSize does not exists...\n");
@@ -449,7 +444,7 @@ void unitTest(VoxelTree * tree) {
 
     nodeCount = tree->getOctreeElementsCount();
     printf("Nodes before writing file: %ld nodes\n", nodeCount);
-    
+
     tree->writeToSVOFile("voxels.svo");
 
     printf("erasing the tree...\n");
@@ -468,7 +463,7 @@ void unitTest(VoxelTree * tree) {
     } else {
         printf("corner point voxelSize, 0, voxelSize does not exists...\n");
     }
-    
+
     tree->readFromSVOFile("voxels.svo");
 
     // this should exist... we just loaded it...
@@ -477,9 +472,9 @@ void unitTest(VoxelTree * tree) {
     } else {
         printf("corner point voxelSize, 0, voxelSize does not exists...\n");
     }
-    
+
     nodeCount = tree->getOctreeElementsCount();
     printf("Nodes after loading file: %ld nodes\n", nodeCount);
-    
-    
+
+
 }

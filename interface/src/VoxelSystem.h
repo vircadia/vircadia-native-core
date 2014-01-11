@@ -98,8 +98,6 @@ public:
     void createVoxel(float x, float y, float z, float s,
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
-    void createSphere(float r,float xc, float yc, float zc, float s, bool solid,
-                      creationMode mode, bool destructive = false, bool debug = false);
 
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
