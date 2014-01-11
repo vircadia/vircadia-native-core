@@ -53,7 +53,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     currentBuffer += sizeof(_orientation);
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
-    if (std::isnan(_orientation.x)) {
+    if (isnan_(_orientation.x)) {
         reset();
         return 0;
     }
