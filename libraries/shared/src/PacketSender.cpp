@@ -57,6 +57,11 @@ void PacketSender::queuePacketForSending(const HifiSockAddr& address, unsigned c
     _totalBytesQueued += packetLength;
 }
 
+void PacketSender::setPacketsPerSecond(int packetsPerSecond) {
+    _packetsPerSecond = std::max(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond);
+}
+
+
 bool PacketSender::process() {
     if (isThreaded()) {
         return threadedProcess();
