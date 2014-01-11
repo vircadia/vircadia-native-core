@@ -9,7 +9,15 @@
 #include <cstring>
 #include <cstdio>
 #include <iostream>
+#include <ctime>
 //#include <netdb.h> // not available on windows, apparently not needed on mac
+
+#ifdef _WIN32
+#include <process.h>
+#define getpid _getpid
+#define getppid _getpid // hack to build
+#define pid_t int // hack to build
+#endif
 
 #include <QtNetwork/QHostInfo>
 
