@@ -10,12 +10,7 @@
 #include <QStandardPaths>
 #include <QGridLayout>
 #include <QSplitter>
-#include <QFile>
-#include <QFileInfo>
-#include <QDir>
-
 #include <QApplication>
-#include <QStyle>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -24,10 +19,6 @@ const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import");
 const QString IMPORT_INFO = QObject::tr("<b>Import</b> %1 as voxels");
 const QString CANCEL_BUTTON_NAME = QObject::tr("Cancel");
-const QString IMPORT_FILE_TYPES = QObject::tr("Sparse Voxel Octree Files, "
-                                              "Square PNG, "
-                                              "Schematic Files "
-                                              "(*.svo *.png *.schematic)");
 const QString INFO_LABEL_TEXT = QObject::tr("This will load selected file into Hifi and\n"
                                             "allow you to place it with Command V");
 
@@ -88,59 +79,16 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
     return QIcon("resources/icons/file.svg");
 }
 
-ImportDialog::ImportDialog(QWidget *parent) : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
-_importButton(IMPORT_BUTTON_NAME, this),
-_cancelButton(CANCEL_BUTTON_NAME, this) {
+ImportDialog::ImportDialog(QWidget *parent) :
+    QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
+    _importButton(IMPORT_BUTTON_NAME, this),
+    _cancelButton(CANCEL_BUTTON_NAME, this) {
     
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
 
-    switchToResourcesParentIfRequired();
-    QFile config("resources/config/config.json");
-    config.open(QFile::ReadOnly | QFile::Text);
-    QJsonDocument document = QJsonDocument::fromJson(config.readAll());
-    if (!document.isNull() && !document.isEmpty()) {
-
-        QString importFormatsInfo;
-        QStringList importFormatsFilterList;
-        QHash<QString, QString> iconsMap;
-
-        QJsonObject config = document.object();
-        if (!config.isEmpty()) {
-            QJsonArray fileFormats = config["importFormats"].toArray();
-            int ff = 0;
-            foreach (const QJsonValue& fileFormat, fileFormats) {
-                QJsonObject fileFormatObject = fileFormat.toObject();
-
-                QString ext(fileFormatObject["extension"].toString());
-                QString description(fileFormatObject.value("description").toString());
-                QString icon(fileFormatObject.value("icon").toString());
-
-                if (ff > 0) {
-                    importFormatsInfo.append(",");
-                }
-
-                if (ff == fileFormats.count() - 1) {
-                    importFormatsInfo.append(" or");
-                }
-
-                importFormatsFilterList.append(QString("%1 (*.%2)").arg(description, ext));
-                importFormatsInfo.append(" .").append(ext);
-                iconsMap[ext] = icon;
-                ff++;
-            }
-        }
-
-        // set custom file icons
-        setIconProvider(new HiFiIconProvider(iconsMap));
-
-        setNameFilters(importFormatsFilterList);
-
-        setLabelText(QFileDialog::LookIn, QString(IMPORT_INFO).arg(importFormatsInfo));
-        setLabelText(QFileDialog::FileName, INFO_LABEL_TEXT);
-
-    }
+    setImportTypes();
     setLayout();
 
     QGridLayout* gridLayout = (QGridLayout*) layout();
@@ -150,7 +98,6 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
     connect(&_cancelButton, SIGNAL(pressed()), SLOT(close()));
-
 }
 
 ImportDialog::~ImportDialog() {
@@ -183,7 +130,7 @@ void ImportDialog::saveCurrentFile(QString filename) {
         _currentFile = filename;
         _importButton.setEnabled(true);
     } else {
-        _currentFile = "";
+        _currentFile.clear();
         _importButton.setEnabled(false);
     }
 }
@@ -198,7 +145,7 @@ void ImportDialog::setLayout() {
     _importButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     _cancelButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     
-    // hide unused embeded widgets in QFileDialog
+    // hide unused embedded widgets in QFileDialog
     QWidget* widget = findChild<QWidget*>("lookInCombo");
     widget->hide();
     
@@ -252,4 +199,53 @@ void ImportDialog::setLayout() {
         setStyleSheet(styleSheet.readAll());
     }
     
+}
+
+void ImportDialog::setImportTypes() {
+
+    switchToResourcesParentIfRequired();
+    QFile config("resources/config/config.json");
+    config.open(QFile::ReadOnly | QFile::Text);
+    QJsonDocument document = QJsonDocument::fromJson(config.readAll());
+    if (!document.isNull() && !document.isEmpty()) {
+
+        QString importFormatsInfo;
+        QStringList importFormatsFilterList;
+        QHash<QString, QString> iconsMap;
+
+        QJsonObject configObject = document.object();
+        if (!configObject.isEmpty()) {
+            QJsonArray fileFormats = configObject["importFormats"].toArray();
+            int ff = 0;
+            foreach (const QJsonValue& fileFormat, fileFormats) {
+                QJsonObject fileFormatObject = fileFormat.toObject();
+
+                QString ext(fileFormatObject["extension"].toString());
+                QString description(fileFormatObject.value("description").toString());
+                QString icon(fileFormatObject.value("icon").toString());
+
+                if (ff > 0) {
+                    importFormatsInfo.append(",");
+                }
+
+                // set ' or' on last import type text
+                if (ff == fileFormats.count() - 1) {
+                    importFormatsInfo.append(" or");
+                }
+
+                importFormatsFilterList.append(QString("%1 (*.%2)").arg(description, ext));
+                importFormatsInfo.append(" .").append(ext);
+                iconsMap[ext] = icon;
+                ff++;
+            }
+        }
+
+        // set custom file icons
+        setIconProvider(new HiFiIconProvider(iconsMap));
+        
+        setNameFilters(importFormatsFilterList);
+
+        setLabelText(QFileDialog::LookIn, QString(IMPORT_INFO).arg(importFormatsInfo));
+        setLabelText(QFileDialog::FileName, INFO_LABEL_TEXT);
+    }
 }

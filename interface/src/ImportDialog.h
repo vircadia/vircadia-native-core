@@ -54,6 +54,7 @@ private:
     QPushButton _cancelButton;
     
     void setLayout();
+    void setImportTypes();
 };
 
 #endif /* defined(__hifi__ImportDialog__) */
