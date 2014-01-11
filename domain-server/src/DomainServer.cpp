@@ -64,7 +64,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
 
-    char documentRoot[documentRootString.size() + 1];
+    char* documentRoot = new char[documentRootString.size() + 1];
     strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
 
     // list of options. Last element must be NULL.
@@ -105,6 +105,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
 
     connect(this, SIGNAL(aboutToQuit()), SLOT(cleanup()));
+
+    delete[] documentRoot;
 }
 
 void DomainServer::readAvailableDatagrams() {
