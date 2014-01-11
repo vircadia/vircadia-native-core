@@ -13,8 +13,7 @@
 
 #include <QtCore/QObject>
 #include <QMutex>
-
-#include <pthread.h>
+#include <QThread>
 
 /// A basic generic "thread" class. Handles a single thread of control within the application. Can operate in non-threaded
 /// mode but caller must regularly call threadRoutine() method.
@@ -31,13 +30,17 @@ public:
     /// Call to stop the thread
     void terminate();
 
-    /// If you're running in non-threaded mode, you must call this regularly
-    void* threadRoutine();
-
     /// Override this function to do whatever your class actually does, return false to exit thread early.
     virtual bool process() = 0;
 
     bool isThreaded() const { return _isThreaded; }
+
+public slots:
+    /// If you're running in non-threaded mode, you must call this regularly
+    void threadRoutine();
+
+signals:
+    void finished();
 
 protected:
 
@@ -54,9 +57,7 @@ private:
 
     bool _stopThread;
     bool _isThreaded;
-    pthread_t _thread;
+    QThread* _thread;
 };
-
-extern "C" void* GenericThreadEntry(void* arg);
 
 #endif // __shared__GenericThread__
