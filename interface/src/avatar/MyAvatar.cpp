@@ -919,7 +919,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
 
     // compute the accumulated centers
     glm::vec3 center = _position;
-    for (int i = 0; i < sortedAvatars.size(); i++) {
+    for (size_t i = 0; i < sortedAvatars.size(); i++) {
         SortedAvatar& sortedAvatar = sortedAvatars[i];
         sortedAvatar.accumulatedCenter = (center += sortedAvatar.avatar->getPosition()) / (i + 2.0f);
     }
