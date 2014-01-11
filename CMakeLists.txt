@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(hifi)
 
+IF (WIN32)
+add_definitions( -DNOMINMAX )
+ENDIF(WIN32)
+
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 # set our Base SDK to 10.8

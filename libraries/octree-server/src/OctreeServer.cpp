@@ -6,9 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#ifdef _WIN32
-#define NOMINMAX // this is required as long as we have civetweb because it includes windows.h, this also must be before QTimer
-#endif
 #include "civetweb.h"
 
 #include <QtCore/QTimer>
