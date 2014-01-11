@@ -37,6 +37,10 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int num
 
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
+    
+    // make sure that the output from the child process appears in our output
+    assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
+    
     assignmentClient->start(applicationFilePath(), _childArguments);
     
     // link the child processes' finished slot to our childProcessFinished slot
