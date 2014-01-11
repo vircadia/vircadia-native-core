@@ -125,7 +125,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookingAwayFromOrigin(true),
         _lookatTargetAvatar(NULL),
         _lookatIndicatorScale(1.0f),
-        _perfStatsOn(false),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _stopNetworkReceiveThread(false),
@@ -207,7 +206,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER,
         NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
@@ -3655,20 +3654,6 @@ void Application::displayStats() {
     }
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    if (_perfStatsOn) {
-        // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
-        char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
-        int lines = PerfStat::DumpStats(perfStatLinesArray);
-
-        for (int line=0; line < lines; line++) {
-            statsVerticalOffset += PELS_PER_LINE;
-            drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
-            delete perfStatLinesArray[line]; // we're responsible for cleanup
-            perfStatLinesArray[line]=NULL;
-        }
-        delete []perfStatLinesArray; // we're responsible for cleanup
-    }
 }
 
 void Application::renderThrustAtVoxel(const glm::vec3& thrust) {

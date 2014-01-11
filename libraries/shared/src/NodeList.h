@@ -9,7 +9,11 @@
 #ifndef __hifi__NodeList__
 #define __hifi__NodeList__
 
+#ifdef _WIN32
+#include "Syssocket.h"
+#else
 #include <netinet/in.h>
+#endif
 #include <stdint.h>
 #include <iterator>
 

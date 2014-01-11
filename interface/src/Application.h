@@ -452,8 +452,6 @@ private:
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
-    bool _perfStatsOn; //  Do we want to display perfStats?
-
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
 

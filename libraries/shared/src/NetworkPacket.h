@@ -13,7 +13,7 @@
 
 #include <stdlib.h>
 //#include <arpa/inet.h> // not available on windows, apparently not needed on mac
-#include <ifaddrs.h>
+//#include <ifaddrs.h>
 
 #include "HifiSockAddr.h"
 
