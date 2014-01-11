@@ -46,7 +46,7 @@ ViewFrustum::ViewFrustum() :
     _nearBottomRight(0,0,0)
 {
 }
-    
+
 void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
     _orientation = orientationAsQuaternion;
     _right       = glm::vec3(orientationAsQuaternion * glm::vec4(IDENTITY_RIGHT, 0.0f));
@@ -60,7 +60,7 @@ void ViewFrustum::setOrientation(const glm::quat& orientationAsQuaternion) {
 // Description: this will calculate the view frustum bounds for a given position
 //                 and direction
 //
-// Notes on how/why this works: 
+// Notes on how/why this works:
 //     http://www.lighthouse3d.com/tutorials/view-frustum-culling/view-frustums-shape/
 //
 void ViewFrustum::calculate() {
@@ -68,13 +68,13 @@ void ViewFrustum::calculate() {
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    
+
     // start with the corners of the near frustum window
     glm::vec3 topLeft(left, top, -nearVal);
     glm::vec3 topRight(right, top, -nearVal);
     glm::vec3 bottomLeft(left, bottom, -nearVal);
     glm::vec3 bottomRight(right, bottom, -nearVal);
-    
+
     // find the intersections of the rays through the corners with the clip planes in view space,
     // then transform them to world space
     glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, -_direction)) *
@@ -95,25 +95,25 @@ void ViewFrustum::calculate() {
         (-nearClipPlane.w / glm::dot(bottomLeft, glm::vec3(nearClipPlane))), 1.0f));
     _nearBottomRight = glm::vec3(worldMatrix * glm::vec4(bottomRight *
         (-nearClipPlane.w / glm::dot(bottomRight, glm::vec3(nearClipPlane))), 1.0f));
-    
+
     // compute the offset position and axes in world space
     _offsetPosition = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     _offsetDirection = glm::vec3(worldMatrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
     _offsetUp = glm::vec3(worldMatrix * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
     _offsetRight = glm::vec3(worldMatrix * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
-    
+
     // compute the six planes
-    // The planes are defined such that the normal points towards the inside of the view frustum. 
-    // Testing if an object is inside the view frustum is performed by computing on which side of 
+    // The planes are defined such that the normal points towards the inside of the view frustum.
+    // Testing if an object is inside the view frustum is performed by computing on which side of
     // the plane the object resides. This can be done computing the signed distance from the point
-    // to the plane. If it is on the side that the normal is pointing, i.e. the signed distance 
-    // is positive, then it is on the right side of the respective plane. If an object is on the 
+    // to the plane. If it is on the side that the normal is pointing, i.e. the signed distance
+    // is positive, then it is on the right side of the respective plane. If an object is on the
     // right side of all six planes then the object is inside the frustum.
 
     // the function set3Points assumes that the points are given in counter clockwise order, assume you
     // are inside the frustum, facing the plane. Start with any point, and go counter clockwise for
     // three consecutive points
-    
+
     _planes[TOP_PLANE   ].set3Points(_nearTopRight,_nearTopLeft,_farTopLeft);
     _planes[BOTTOM_PLANE].set3Points(_nearBottomLeft,_nearBottomRight,_farBottomRight);
     _planes[LEFT_PLANE  ].set3Points(_nearBottomLeft,_farBottomLeft,_farTopLeft);
@@ -129,7 +129,7 @@ void ViewFrustum::calculate() {
 
     // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
     _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
-    
+
     // Set up our keyhole bounding box...
     glm::vec3 corner = _position - _keyholeRadius;
     _keyholeBoundingBox = AABox(corner,(_keyholeRadius * 2.0f));
@@ -151,14 +151,14 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
 ViewFrustum::location ViewFrustum::pointInKeyhole(const glm::vec3& point) const {
 
     ViewFrustum::location result = INTERSECT;
-    
+
     float distance = glm::distance(point, _position);
     if (distance > _keyholeRadius) {
         result = OUTSIDE;
     } else if (distance < _keyholeRadius) {
         result = INSIDE;
     }
-    
+
     return result;
 }
 
@@ -167,14 +167,14 @@ ViewFrustum::location ViewFrustum::pointInKeyhole(const glm::vec3& point) const 
 // If the distance plus the radius of sphere A is less than the radius of sphere B then, sphere A is inside of sphere B
 ViewFrustum::location ViewFrustum::sphereInKeyhole(const glm::vec3& center, float radius) const {
     ViewFrustum::location result = INTERSECT;
-    
+
     float distance = glm::distance(center, _position);
     if (distance > (radius + _keyholeRadius)) {
         result = OUTSIDE;
     } else if ((distance + radius) < _keyholeRadius) {
         result = INSIDE;
     }
-    
+
     return result;
 }
 
@@ -194,7 +194,7 @@ ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
     bool intersects = box.findSpherePenetration(_position, _keyholeRadius, penetration);
 
     ViewFrustum::location result = OUTSIDE;
-    
+
     // if the box intersects the sphere, then it may also be inside... calculate further
     if (intersects) {
         result = INTERSECT;
@@ -208,12 +208,12 @@ ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
                 break;
             }
         }
-        
+
         if (allPointsInside) {
             result = INSIDE;
         }
     }
-    
+
     return result;
 }
 
@@ -262,7 +262,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
             regularResult =  INTERSECT;
         }
     }
-        
+
     return regularResult;
 }
 
@@ -287,7 +287,7 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
 
         const glm::vec3& boxVertexN = box.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
-        
+
         if (planeToBoxVertexPDistance < 0) {
             // This is outside the regular frustum, so just return the value from checking the keyhole
             return keyholeResult;
@@ -312,7 +312,7 @@ bool testMatches(float lhs, float rhs, float epsilon = EPSILON) {
 }
 
 bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
-    bool result = 
+    bool result =
            testMatches(compareTo._position, _position) &&
            testMatches(compareTo._direction, _direction) &&
            testMatches(compareTo._up, _up) &&
@@ -327,42 +327,42 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
 
     if (!result && debug) {
         qDebug("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
-        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n",
             (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
             _position.x, _position.y, _position.z );
-        qDebug("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n",
             (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
             compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
             _direction.x, _direction.y, _direction.z );
-        qDebug("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n",
             (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
             compareTo._up.x, compareTo._up.y, compareTo._up.z,
             _up.x, _up.y, _up.z );
-        qDebug("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n",
             (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
             compareTo._right.x, compareTo._right.y, compareTo._right.z,
             _right.x, _right.y, _right.z );
-        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
+        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n",
             (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
             compareTo._fieldOfView, _fieldOfView);
-        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
+        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n",
             (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
             compareTo._aspectRatio, _aspectRatio);
-        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
+        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n",
             (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
             compareTo._nearClip, _nearClip);
-        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
+        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n",
             (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
-        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n", 
+        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n",
             (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
             compareTo._focalLength, _focalLength);
-        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n",
             (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
             _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
-        qDebug("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
+        qDebug("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n",
             (testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
                 compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
@@ -391,15 +391,15 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     if (isNaN(angleOrientation)) {
         angleOrientation = 0.0f;
     }
-    
+
     glm::quat dQEyeOffsetOrientation = _eyeOffsetOrientation * glm::inverse(compareTo._eyeOffsetOrientation);
-    float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation 
+    float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation
                                             ? 0.0f : glm::angle(dQEyeOffsetOrientation);
     if (isNaN(angleEyeOffsetOrientation)) {
         angleOrientation = 0.0f;
     }
 
-    bool result = 
+    bool result =
            testMatches(0, positionDistance, POSITION_SIMILAR_ENOUGH) &&
            testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) &&
            testMatches(compareTo._fieldOfView, _fieldOfView) &&
@@ -413,45 +413,45 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
 
     if (!result && debug) {
         qDebug("ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
-        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n",
             (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
             _position.x, _position.y, _position.z );
 
-        qDebug("%s -- positionDistance=%f\n", 
+        qDebug("%s -- positionDistance=%f\n",
             (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             positionDistance);
 
-        qDebug("%s -- angleOrientation=%f\n", 
+        qDebug("%s -- angleOrientation=%f\n",
             (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             angleOrientation);
-        
-        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
+
+        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n",
             (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
             compareTo._fieldOfView, _fieldOfView);
-        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
+        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n",
             (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
             compareTo._aspectRatio, _aspectRatio);
-        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
+        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n",
             (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
             compareTo._nearClip, _nearClip);
-        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
+        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n",
             (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
-        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n", 
+        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n",
             (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
             compareTo._focalLength, _focalLength);
 
-        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n",
             (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
             _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
 
-        qDebug("%s -- eyeOffsetpositionDistance=%f\n", 
+        qDebug("%s -- eyeOffsetpositionDistance=%f\n",
             (testMatches(0,eyeOffsetpositionDistance, EYEOFFSET_POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             eyeOffsetpositionDistance);
 
-        qDebug("%s -- angleEyeOffsetOrientation=%f\n", 
+        qDebug("%s -- angleEyeOffsetOrientation=%f\n",
             (testMatches(0, angleEyeOffsetOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
             angleEyeOffsetOrientation);
     }
@@ -463,12 +463,12 @@ void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3&
     direction = glm::normalize(origin - (_position + _orientation * _eyeOffsetPosition));
 }
 
-void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
+void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearValue, float& farValue,
                                         glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     // compute our dimensions the usual way
     float hheight = _nearClip * tanf(_fieldOfView * 0.5f * PI_OVER_180);
     float hwidth = _aspectRatio * hheight;
-    
+
     // get our frustum corners in view space
     glm::mat4 eyeMatrix = glm::mat4_cast(glm::inverse(_eyeOffsetOrientation)) * glm::translate(-_eyeOffsetPosition);
     glm::vec4 corners[8];
@@ -481,27 +481,27 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
     corners[5] = eyeMatrix * glm::vec4(hwidth * farScale, -hheight * farScale, -_farClip, 1.0f);
     corners[6] = eyeMatrix * glm::vec4(hwidth * farScale, hheight * farScale, -_farClip, 1.0f);
     corners[7] = eyeMatrix * glm::vec4(-hwidth * farScale, hheight * farScale, -_farClip, 1.0f);
-    
+
     // find the minimum and maximum z values, which will be our near and far clip distances
-    near = FLT_MAX;
-    far = -FLT_MAX;
+    nearValue = FLT_MAX;
+    farValue = -FLT_MAX;
     for (int i = 0; i < 8; i++) {
-        near = min(near, -corners[i].z);
-        far = max(far, -corners[i].z);
+        nearValue = min(nearValue, -corners[i].z);
+        farValue = max(farValue, -corners[i].z);
     }
-    
+
     // make sure the near clip isn't too small to be valid
     const float MIN_NEAR = 0.01f;
-    near = max(MIN_NEAR, near);
-    
+    nearValue = max(MIN_NEAR, nearValue);
+
     // get the near/far normal and use it to find the clip planes
     glm::vec4 normal = eyeMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
     nearClipPlane = glm::vec4(-normal.x, -normal.y, -normal.z, glm::dot(normal, corners[0]));
     farClipPlane = glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, corners[4]));
-    
-    // compute the focal proportion (zero is near clip, one is far clip) 
+
+    // compute the focal proportion (zero is near clip, one is far clip)
     float focalProportion = (_focalLength - _nearClip) / (_farClip - _nearClip);
-    
+
     // get the extents at Z = -near
     left = FLT_MAX;
     right = -FLT_MAX;
@@ -509,7 +509,7 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
     top = -FLT_MAX;
     for (int i = 0; i < 4; i++) {
         glm::vec4 corner = glm::mix(corners[i], corners[i + 4], focalProportion);
-        glm::vec4 intersection = corner * (-near / corner.z);
+        glm::vec4 intersection = corner * (-nearValue / corner.z);
         left = min(left, intersection.x);
         right = max(right, intersection.x);
         bottom = min(bottom, intersection.y);
@@ -539,12 +539,12 @@ glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
     glm::vec4 pointVec4 = glm::vec4(point,1);
     glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
     pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
-    
+
     // what happens with w is 0???
     float x = projectedPointVec4.x / projectedPointVec4.w;
     float y = projectedPointVec4.y / projectedPointVec4.w;
     glm::vec2 projectedPoint(x,y);
-    
+
     // if the point is out of view we also need to flip the signs of x and y
     if (!pointInView) {
         projectedPoint.x = -x;
@@ -563,7 +563,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 //0
     {0}, // inside
     {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
-    {4, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR,  TOP_LEFT_NEAR, TOP_LEFT_FAR  },  // left 
+    {4, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR,  TOP_LEFT_NEAR, TOP_LEFT_FAR  },  // left
     {0}, // n/a
 
 //4
@@ -611,8 +611,8 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // back, right
 //34
     {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back, left
-    
-    
+
+
     {0}, // n/a
 //36
     {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR}, // back, bottom
@@ -624,7 +624,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 
 // 40
     {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR}, // back, top
-    
+
     {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // back, top, right
 //42
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
@@ -642,9 +642,9 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
                + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
-    
+
     OctreeProjectedPolygon projectedPolygon(vertexCount);
-    
+
     bool pointInView = true;
     bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
     bool anyPointsInView = false; // assume the worst!
@@ -658,7 +658,7 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
             anyPointsInView = anyPointsInView || pointInView;
             projectedPolygon.setVertex(i, projectedPoint);
         }
-        
+
         /***
         // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
         // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
@@ -667,20 +667,20 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const 
              (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
              (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
              (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
-             
+
             CoverageRegion::_clippedPolygons++;
-             
+
             glm::vec2* clippedVertices;
             int        clippedVertexCount;
             PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
-            
+
             // Now reset the vertices of our projectedPolygon object
             projectedPolygon.setVertexCount(clippedVertexCount);
             for(int i = 0; i < clippedVertexCount; i++) {
                 projectedPolygon.setVertex(i, clippedVertices[i]);
             }
             delete[] clippedVertices;
-            
+
             lookUp += PROJECTION_CLIPPED;
         }
         ***/
@@ -706,26 +706,26 @@ glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
     glm::vec3 furthestPoint;
     if (_position.x < center.x) {
         // we are to the right of the center, so the left edge is furthest
-        furthestPoint.x = topFarLeft.x; 
+        furthestPoint.x = topFarLeft.x;
     } else {
         // we are to the left of the center, so the right edge is furthest (at center ok too)
-        furthestPoint.x = bottomNearRight.x; 
+        furthestPoint.x = bottomNearRight.x;
     }
 
     if (_position.y < center.y) {
         // we are below of the center, so the top edge is furthest
-        furthestPoint.y = topFarLeft.y; 
+        furthestPoint.y = topFarLeft.y;
     } else {
         // we are above the center, so the lower edge is furthest (at center ok too)
-        furthestPoint.y = bottomNearRight.y; 
+        furthestPoint.y = bottomNearRight.y;
     }
 
     if (_position.z < center.z) {
         // we are to the near side of the center, so the far side edge is furthest
-        furthestPoint.z = topFarLeft.z; 
+        furthestPoint.z = topFarLeft.z;
     } else {
         // we are to the far side of the center, so the near side edge is furthest (at center ok too)
-        furthestPoint.z = bottomNearRight.z; 
+        furthestPoint.z = bottomNearRight.z;
     }
 
     return furthestPoint;
