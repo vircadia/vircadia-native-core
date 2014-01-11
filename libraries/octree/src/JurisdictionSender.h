@@ -12,6 +12,7 @@
 #define __shared__JurisdictionSender__
 
 #include <queue>
+#include <QMutex>
 
 #include <PacketSender.h>
 #include <ReceivedPacketProcessor.h>
@@ -38,14 +39,14 @@ protected:
     virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
     /// Locks all the resources of the thread.
-    void lockRequestingNodes() { pthread_mutex_lock(&_requestingNodeMutex); }
+    void lockRequestingNodes() { _requestingNodeMutex.lock(); }
 
     /// Unlocks all the resources of the thread.
-    void unlockRequestingNodes() { pthread_mutex_unlock(&_requestingNodeMutex); }
-    
+    void unlockRequestingNodes() { _requestingNodeMutex.unlock(); }
+
 
 private:
-    pthread_mutex_t _requestingNodeMutex;
+    QMutex _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
     std::queue<QUuid> _nodesRequestingJurisdictions;
     NODE_TYPE _nodeType;

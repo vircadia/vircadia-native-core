@@ -72,12 +72,12 @@ public:
     OctreeSceneStats* stats;
     CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
-    
+
     // output hints from the encode process
     typedef enum {
-        UNKNOWN, 
-        DIDNT_FIT, 
-        NULL_NODE, 
+        UNKNOWN,
+        DIDNT_FIT,
+        NULL_NODE,
         TOO_DEEP,
         OUT_OF_JURISDICTION,
         LOD_SKIP,
@@ -87,14 +87,14 @@ public:
         OCCLUDED
     } reason;
     reason stopReason;
-    
+
     EncodeBitstreamParams(
-        int maxEncodeLevel = INT_MAX, 
+        int maxEncodeLevel = INT_MAX,
         const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool includeColor = WANT_COLOR, 
+        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
-        int  chopLevels = 0, 
-        bool deltaViewFrustum = false, 
+        int  chopLevels = 0,
+        bool deltaViewFrustum = false,
         const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM,
         bool wantOcclusionCulling = NO_OCCLUSION_CULLING,
         CoverageMap* map = IGNORE_COVERAGE_MAP,
@@ -122,13 +122,13 @@ public:
             jurisdictionMap(jurisdictionMap),
             stopReason(UNKNOWN)
     {}
-    
+
     void displayStopReason() {
         printf("StopReason: ");
         switch (stopReason) {
             default:
             case UNKNOWN: printf("UNKNOWN\n"); break;
-            
+
             case DIDNT_FIT: printf("DIDNT_FIT\n"); break;
             case NULL_NODE: printf("NULL_NODE\n"); break;
             case TOO_DEEP: printf("TOO_DEEP\n"); break;
@@ -158,9 +158,9 @@ public:
     QUuid sourceUUID;
     Node* sourceNode;
     bool wantImportProgress;
-    
+
     ReadBitstreamToTreeParams(
-        bool includeColor = WANT_COLOR, 
+        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElement* destinationNode = NULL,
         QUuid sourceUUID = QUuid(),
@@ -180,7 +180,7 @@ class Octree : public QObject {
 public:
     Octree(bool shouldReaverage = false);
     ~Octree();
-    
+
     /// Your tree class must implement this to create the correct element type
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
 
@@ -209,8 +209,8 @@ public:
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
-                                    
-    void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation, 
+
+    void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
                                                 const glm::vec3& point, void* extraData=NULL);
 
     int encodeTreeBitstream(OctreeElement* node, OctreePacketData* packetData, OctreeElementBag& bag,
@@ -223,9 +223,9 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              OctreeElement*& node, float& distance, BoxFace& face);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration, 
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
                                 void** penetratedObject = NULL);
-                                
+
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
@@ -237,7 +237,7 @@ public:
     // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
-    
+
     // Octree does not currently handle its own locking, caller must use these to lock/unlock
     void lockForRead() { lock.lockForRead(); }
     void tryLockForRead() { lock.tryLockForRead(); }
@@ -249,13 +249,13 @@ public:
 
     void copySubTreeIntoNewTree(OctreeElement* startNode, Octree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(Octree* sourceTree, OctreeElement* destinationNode);
-    
+
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation, 
+    void recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
-            
-    void recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation, 
+
+    void recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation,
                 const glm::vec3& point, void* extraData, int recursionCount = 0);
 
 signals:
@@ -269,7 +269,7 @@ public slots:
 protected:
     void deleteOctalCodeFromTreeRecursion(OctreeElement* node, void* extraData);
 
-    int encodeTreeBitstreamRecursion(OctreeElement* node, 
+    int encodeTreeBitstreamRecursion(OctreeElement* node,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
@@ -277,20 +277,20 @@ protected:
 
     OctreeElement* nodeForOctalCode(OctreeElement* ancestorNode, const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const;
     OctreeElement* createMissingNode(OctreeElement* lastParentNode, const unsigned char* codeToReach);
-    int readNodeData(OctreeElement *destinationNode, const unsigned char* nodeData, 
+    int readNodeData(OctreeElement *destinationNode, const unsigned char* nodeData,
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
-    
+
     OctreeElement* _rootNode;
-    
+
     bool _isDirty;
     bool _shouldReaverage;
     bool _stopImport;
 
-    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and 
+    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and
     /// descendants of them can not be deleted.
     std::set<const unsigned char*>  _codesBeingEncoded;
     /// mutex lock to protect the encoding set
-    pthread_mutex_t _encodeSetLock;
+    QMutex _encodeSetLock;
 
     /// Called to indicate that a OctreeElement is in the process of being encoded.
     void startEncoding(OctreeElement* node);
@@ -299,11 +299,11 @@ protected:
     /// Is the Octal Code currently being deleted?
     bool isEncoding(const unsigned char* codeBuffer);
 
-    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and 
+    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and
     /// descendants of them can not be encoded.
     std::set<const unsigned char*> _codesBeingDeleted;
     /// mutex lock to protect the deleting set
-    pthread_mutex_t _deleteSetLock;
+    QMutex _deleteSetLock;
 
     /// Called to indicate that an octal code is in the process of being deleted.
     void startDeleting(const unsigned char* code);
@@ -313,13 +313,13 @@ protected:
     /// instead queued for later delete
     std::set<const unsigned char*> _codesPendingDelete;
     /// mutex lock to protect the deleting set
-    pthread_mutex_t _deletePendingSetLock;
+    QMutex _deletePendingSetLock;
 
     /// Adds an Octal Code to the set of codes that needs to be deleted
     void queueForLaterDelete(const unsigned char* codeBuffer);
     /// flushes out any Octal Codes that had to be queued
     void emptyDeleteQueue();
-    
+
     QReadWriteLock lock;
 };
 

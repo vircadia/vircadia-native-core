@@ -260,8 +260,8 @@ private:
     GLuint _vboIndicesFront;
     GLuint _vboIndicesBack;
 
-    pthread_mutex_t _bufferWriteLock;
-    pthread_mutex_t _treeLock;
+    QMutex _bufferWriteLock;
+    QMutex _treeLock;
 
     ViewFrustum _lastKnownViewFrustum;
     ViewFrustum _lastStableViewFrustum;
@@ -287,7 +287,7 @@ private:
 
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
-    pthread_mutex_t _freeIndexLock;
+    QMutex _freeIndexLock;
 
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();

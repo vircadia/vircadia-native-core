@@ -22,11 +22,9 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NODE_TYPE type, Pac
     _jurisdictionMap(map)
 {
     _nodeType = type;
-    pthread_mutex_init(&_requestingNodeMutex, 0);
 }
 
 JurisdictionSender::~JurisdictionSender() {
-    pthread_mutex_destroy(&_requestingNodeMutex);
 }
 
 

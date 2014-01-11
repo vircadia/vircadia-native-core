@@ -12,6 +12,7 @@
 #define __shared__GenericThread__
 
 #include <QtCore/QObject>
+#include <QMutex>
 
 #include <pthread.h>
 
@@ -41,15 +42,15 @@ public:
 protected:
 
     /// Locks all the resources of the thread.
-    void lock() { pthread_mutex_lock(&_mutex); }
+    void lock() { _mutex.lock(); }
 
     /// Unlocks all the resources of the thread.
-    void unlock() { pthread_mutex_unlock(&_mutex); }
+    void unlock() { _mutex.unlock(); }
 
     bool isStillRunning() const { return !_stopThread; }
 
 private:
-    pthread_mutex_t _mutex;
+    QMutex _mutex;
 
     bool _stopThread;
     bool _isThreaded;

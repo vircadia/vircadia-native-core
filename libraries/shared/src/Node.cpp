@@ -7,7 +7,6 @@
 //
 
 #include <cstring>
-#include <pthread.h>
 #include <stdio.h>
 
 #ifdef _WIN32
@@ -35,7 +34,6 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _isAlive(true),
     _clockSkewUsec(0)
 {
-    pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
@@ -44,8 +42,6 @@ Node::~Node() {
     }
     
     delete _bytesReceivedMovingAverage;
-    
-    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types
