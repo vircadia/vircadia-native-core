@@ -202,25 +202,12 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         // display voxel file load time
         if (theServer->isInitialLoadComplete()) {
-            time_t* loadCompleted = theServer->getLoadCompleted();
-            if (loadCompleted) {
-                tm* voxelsLoadedAtLocal = localtime(loadCompleted);
-                const int MAX_TIME_LENGTH = 128;
-                char buffer[MAX_TIME_LENGTH];
-                strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
-                mg_printf(connection, "%s File Loaded At: %s", theServer->getMyServerName(), buffer);
-
-                // Convert now to tm struct for UTC
-                tm* voxelsLoadedAtUTM = gmtime(theServer->getLoadCompleted());
-                if (gmtm != NULL) {
-                    strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
-                    mg_printf(connection, " [%s UTM] ", buffer);
-                }
+            if (theServer->isPersistEnabled()) {
+                mg_printf(connection, "%s File Persist Enabled...\r\n", theServer->getMyServerName());
             } else {
                 mg_printf(connection, "%s File Persist Disabled...\r\n", theServer->getMyServerName());
             }
             mg_printf(connection, "%s", "\r\n");
-
 
             uint64_t msecsElapsed = theServer->getLoadElapsedTime() / USECS_PER_MSEC;;
             float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;

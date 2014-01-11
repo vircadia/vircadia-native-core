@@ -37,7 +37,6 @@ bool OctreePersistThread::process() {
         }
         _tree->unlock();
 
-        _loadCompleted = time(0);
         uint64_t loadDone = usecTimestampNow();
         _loadTimeUSecs = loadDone - loadStarted;
 
