@@ -12,7 +12,8 @@
 #include <netinet/in.h>
 #include <stdint.h>
 #include <iterator>
-#include <unistd.h>
+
+//#include <unistd.h> // not on windows, not needed for mac or windows
 
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
@@ -62,81 +63,81 @@ class NodeList : public QObject {
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
-    
+
     typedef NodeListIterator iterator;
-  
+
     NodeListIterator begin() const;
     NodeListIterator end() const;
-    
+
     NODE_TYPE getOwnerType() const { return _ownerType; }
     void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
 
     const QString& getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const QString& domainHostname);
-    
+
     const QHostAddress& getDomainIP() const { return _domainSockAddr.getAddress(); }
     void setDomainIPToLocalhost() { _domainSockAddr.setAddress(QHostAddress(INADDR_LOOPBACK)); }
-    
+
     void setDomainSockAddr(const HifiSockAddr& domainSockAddr) { _domainSockAddr = domainSockAddr; }
-    
+
     unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
-    
+
     const QUuid& getOwnerUUID() const { return _ownerUUID; }
     void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
-    
+
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
-    
+
     void(*linkedDataCreateCallback)(Node *);
-    
+
     int size() { return _numNodes; }
     int getNumAliveNodes() const;
-    
+
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
-    
+
     void clear();
     void reset();
-    
+
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
-    
+
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
-    
+
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
-    
+
     int fillPingPacket(unsigned char* buffer);
     int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
-    
+
     void sendKillNode(const char* nodeTypes, int numNodeTypes);
-    
+
     Node* nodeWithAddress(const HifiSockAddr& senderSockAddr);
     Node* nodeWithUUID(const QUuid& nodeUUID);
-    
+
     Node* addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     void killNode(Node* node, bool mustLockNode = true);
-    
+
     void processNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, size_t dataBytes);
     void processBulkNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, int numTotalBytes);
-   
+
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
-    
+
     unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
-    
+
     Node* soloNodeOfType(char nodeType);
-    
+
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
-    
+
     friend class NodeListIterator;
-    
+
     void addHook(NodeListHook* hook);
     void removeHook(NodeListHook* hook);
     void notifyHooksOfAddedNode(Node* node);
     void notifyHooksOfKilledNode(Node* node);
-    
+
     void addDomainListener(DomainChangeListener* listener);
     void removeDomainListener(DomainChangeListener* listener);
-    
+
     const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
 public slots:
     void sendDomainServerCheckIn();
@@ -144,19 +145,19 @@ public slots:
     void removeSilentNodes();
 private:
     static NodeList* _sharedInstance;
-    
+
     NodeList(char ownerType, unsigned short int socketListenPort);
     ~NodeList();
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    
+
     void addNodeToList(Node* newNode);
-    
+
     void sendSTUNRequest();
     void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
-    
+
     void processKillNode(unsigned char* packetData, size_t dataBytes);
-    
+
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;
     Node** _nodeBuckets[MAX_NUM_NODES / NODES_PER_BUCKET];
@@ -170,13 +171,13 @@ private:
     HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
-    
+
     void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
     void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
-    
+
     std::vector<NodeListHook*> _hooks;
     std::vector<DomainChangeListener*> _domainListeners;
-    
+
     void resetDomainData(char domainField[], const char* domainData);
     void notifyDomainChanged();
     void domainLookup();
@@ -185,22 +186,22 @@ private:
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {
 public:
     NodeListIterator(const NodeList* nodeList, int nodeIndex);
-    
+
     int getNodeIndex() { return _nodeIndex; }
-    
+
 	NodeListIterator& operator=(const NodeListIterator& otherValue);
-    
+
     bool operator==(const NodeListIterator& otherValue);
 	bool operator!= (const NodeListIterator& otherValue);
-    
+
     Node& operator*();
     Node* operator->();
-    
+
 	NodeListIterator& operator++();
     NodeListIterator operator++(int);
 private:
     void skipDeadAndStopIncrement();
-    
+
     const NodeList* _nodeList;
     int _nodeIndex;
 };

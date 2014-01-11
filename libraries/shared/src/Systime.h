@@ -2,19 +2,24 @@
 #define __Systime__
 
 #ifdef _WIN32
+
 #ifdef _WINSOCK2API_
 #define _timeval_
 #endif
+
 #ifndef _timeval_
 #define _timeval_
 /*
  * Structure returned by gettimeofday(2) system call,
  * and used in other calls.
  */
+
+#if 0 // not needed for VC2010
 struct timeval {
 	long	tv_sec;		/* seconds */
 	long	tv_usec;	/* and microseconds */
 };
+#endif
 
 #endif _timeval_
 
