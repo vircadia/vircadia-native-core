@@ -140,6 +140,17 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
+# let the source know that we have LibVPX
+if (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
+    add_definitions(-DHAVE_LIBVPX)
+    include_directories(SYSTEM ${LIBVPX_INCLUDE_DIRS})
+    if (APPLE OR UNIX)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBVPX_INCLUDE_DIRS}")
+    endif (APPLE OR UNIX)
+    target_link_libraries(${TARGET_NAME} ${LIBVPX_LIBRARIES})
+endif (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
+
+
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
@@ -154,7 +165,6 @@ include_directories(
   SYSTEM
   ${FACESHIFT_INCLUDE_DIRS}
   ${GLM_INCLUDE_DIRS}
-  ${LIBVPX_INCLUDE_DIRS}
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
@@ -167,7 +177,6 @@ endif (APPLE OR UNIX)
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
-  ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES}
   ${ZLIB_LIBRARIES}
