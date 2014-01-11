@@ -71,15 +71,10 @@ QTreeView QHeaderView:section {
 }
 
 QTreeView::item {
-    height: 30px;
+    padding: 7px 0;
 }
 
-QListView::item:selected,
-QListView::item:selected:active,
-QTreeView::item:selected,
-QTreeView::item:selected:active {
+QTreeView::item:selected {
     background: #BDE4E3;
     color: #333333;
-    padding: 0;
-    margin: 0;
 }

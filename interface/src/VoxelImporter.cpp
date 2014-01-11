@@ -28,7 +28,6 @@ VoxelImporter::VoxelImporter(QWidget* parent)
       _currentTask(NULL),
       _nextTask(NULL) {
 
-    connect(&_importDialog, SIGNAL(previewToggled(bool)), SLOT(preImport()));
     connect(&_importDialog, SIGNAL(currentChanged(QString)), SLOT(preImport()));
     connect(&_importDialog, SIGNAL(accepted()), SLOT(import()));
 }

@@ -22,6 +22,7 @@ public:
     HiFiIconProvider(const QHash<QString, QString> map) { iconsMap = map; };
     virtual QIcon icon(IconType type) const;
     virtual QIcon icon(const QFileInfo &info) const;
+    virtual QString type(const QFileInfo &info) const;
     QHash<QString, QString> iconsMap;
 };
 

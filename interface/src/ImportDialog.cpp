@@ -72,17 +72,28 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
     }
     
     QFileInfo iconFile("resources/icons/" + iconsMap[ext]);
-    if (iconFile.exists()) {
+    if (iconFile.exists() && iconFile.isFile()) {
         return QIcon(iconFile.filePath());
     }
     
     return QIcon("resources/icons/file.svg");
 }
 
+QString HiFiIconProvider::type(const QFileInfo &info) const {
+    if (info.isFile()) {
+        if (info.suffix().size() > 4) {
+            return info.suffix().at(0).toUpper() + info.suffix().mid(1);
+        }
+        return info.suffix().toUpper();
+    }
+
+    return QFileIconProvider::type(info);
+}
+
 ImportDialog::ImportDialog(QWidget *parent) :
-    QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
-    _importButton(IMPORT_BUTTON_NAME, this),
-    _cancelButton(CANCEL_BUTTON_NAME, this) {
+QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
+_importButton(IMPORT_BUTTON_NAME, this),
+_cancelButton(CANCEL_BUTTON_NAME, this) {
     
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
@@ -96,8 +107,8 @@ ImportDialog::ImportDialog(QWidget *parent) :
     gridLayout->addWidget(&_importButton, 2, 2);
 
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
-    connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
     connect(&_cancelButton, SIGNAL(pressed()), SLOT(close()));
+    connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
 }
 
 ImportDialog::~ImportDialog() {
@@ -210,7 +221,7 @@ void ImportDialog::setImportTypes() {
     if (!document.isNull() && !document.isEmpty()) {
 
         QString importFormatsInfo;
-        QStringList importFormatsFilterList;
+        QString importFormatsFilterList;
         QHash<QString, QString> iconsMap;
 
         QJsonObject configObject = document.object();
@@ -233,7 +244,7 @@ void ImportDialog::setImportTypes() {
                     importFormatsInfo.append(" or");
                 }
 
-                importFormatsFilterList.append(QString("%1 (*.%2)").arg(description, ext));
+                importFormatsFilterList.append(QString("*.%1 ").arg(ext));
                 importFormatsInfo.append(" .").append(ext);
                 iconsMap[ext] = icon;
                 ff++;
@@ -242,8 +253,7 @@ void ImportDialog::setImportTypes() {
 
         // set custom file icons
         setIconProvider(new HiFiIconProvider(iconsMap));
-        
-        setNameFilters(importFormatsFilterList);
+        setNameFilter(importFormatsFilterList);
 
         setLabelText(QFileDialog::LookIn, QString(IMPORT_INFO).arg(importFormatsInfo));
         setLabelText(QFileDialog::FileName, INFO_LABEL_TEXT);
