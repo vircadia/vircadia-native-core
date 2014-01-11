@@ -8,13 +8,15 @@
 
 #include <PacketHeaders.h>
 
-#include "Agent.h"
-#include "audio/AudioMixer.h"
-#include "avatars/AvatarMixer.h"
-#include <VoxelServer.h>
 #include <ParticleServer.h>
 
+#include <VoxelServer.h>
+
+#include "Agent.h"
 #include "AssignmentFactory.h"
+#include "audio/AudioMixer.h"
+#include "avatars/AvatarMixer.h"
+#include "metavoxels/MetavoxelServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
     int headerBytes = numBytesForPacketHeader(dataBuffer);
@@ -33,6 +35,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dat
             return new VoxelServer(dataBuffer, numBytes);
         case Assignment::ParticleServerType:
             return new ParticleServer(dataBuffer, numBytes);
+        case Assignment::MetavoxelServerType:
+            return new MetavoxelServer(dataBuffer, numBytes);
         default:
             return NULL;
     }

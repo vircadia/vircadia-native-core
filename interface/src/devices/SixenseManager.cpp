@@ -13,7 +13,9 @@
 #include "Application.h"
 #include "SixenseManager.h"
 
-SixenseManager::SixenseManager() {
+using namespace std;
+
+SixenseManager::SixenseManager() : _lastMovement(0) {
 #ifdef HAVE_SIXENSE
     sixenseInit();
 #endif
@@ -98,6 +100,12 @@ void SixenseManager::update(float deltaTime) {
         palm->setRawVelocity(rawVelocity);   //  meters/sec
         palm->setRawPosition(position);
         
+        // use the velocity to determine whether there's any movement (if the hand isn't new)
+        const float MOVEMENT_SPEED_THRESHOLD = 0.05f;
+        if (glm::length(rawVelocity) > MOVEMENT_SPEED_THRESHOLD && foundHand) {
+            _lastMovement = usecTimestampNow();
+        }
+        
         // initialize the "finger" based on the direction
         FingerData finger(palm, &hand);
         finger.setActive(true);
@@ -117,6 +125,14 @@ void SixenseManager::update(float deltaTime) {
         palm->getFingers().push_back(finger);
         palm->getFingers().push_back(finger);
         palm->getFingers().push_back(finger);
+    }
+    
+    // if the controllers haven't been moved in a while, disable
+    const int MOVEMENT_DISABLE_DURATION = 30 * 1000 * 1000;
+    if (usecTimestampNow() - _lastMovement > MOVEMENT_DISABLE_DURATION) {
+        for (vector<PalmData>::iterator it = hand.getPalms().begin(); it != hand.getPalms().end(); it++) {
+            it->setActive(false);
+        }
     }
 #endif
 }

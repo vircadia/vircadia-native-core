@@ -13,39 +13,45 @@
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
 
-bool findSpherePenetration(const glm::vec3& penetratorToPenetratee, const glm::vec3& direction,
-                           float combinedRadius, glm::vec3& penetration);
+/// Computes the penetration between a point and a sphere (centered at the origin)
+/// \param point the point location relative to sphere center (origin)
+/// \param defaultDirection the direction of the pentration when the point is near the origin
+/// \param sphereRadius the radius of the sphere
+/// \param penetration the displacement that would move the point out of penetration with the sphere
+/// \return true if point is inside sphere, otherwise false
+bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, 
+                           float sphereRadius, glm::vec3& penetration);
 
-bool findSpherePointPenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-                                const glm::vec3& penetrateeLocation, glm::vec3& penetration);
+bool findSpherePointPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                                const glm::vec3& point, glm::vec3& penetration);
 
-bool findPointSpherePenetration(const glm::vec3& penetratorLocation, const glm::vec3& penetrateeCenter,
-    float penetrateeRadius, glm::vec3& penetration);
+bool findPointSpherePenetration(const glm::vec3& point, const glm::vec3& sphereCenter,
+    float sphereRadius, glm::vec3& penetration);
 
-bool findSphereSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-                                 const glm::vec3& penetrateeCenter, float penetrateeRadius, glm::vec3& penetration);
+bool findSphereSpherePenetration(const glm::vec3& firstCenter, float firstRadius,
+                                 const glm::vec3& secondCenter, float secondRadius, glm::vec3& penetration);
                      
-bool findSphereSegmentPenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-                                  const glm::vec3& penetrateeStart, const glm::vec3& penetrateeEnd, glm::vec3& penetration);
+bool findSphereSegmentPenetration(const glm::vec3& sphereCenter, float sphereRadius,
+                                  const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& penetration);
 
-bool findSphereCapsulePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, const glm::vec3& penetrateeStart,
-                                  const glm::vec3& penetrateeEnd, float penetrateeRadius, glm::vec3& penetration);
+bool findSphereCapsulePenetration(const glm::vec3& sphereCenter, float sphereRadius, const glm::vec3& capsuleStart,
+                                  const glm::vec3& capsuleEnd, float capsuleRadius, glm::vec3& penetration);
 
-bool findPointCapsuleConePenetration(const glm::vec3& penetratorLocation, const glm::vec3& penetrateeStart,
-    const glm::vec3& penetrateeEnd, float penetrateeStartRadius, float penetrateeEndRadius, glm::vec3& penetration);
+bool findPointCapsuleConePenetration(const glm::vec3& point, const glm::vec3& capsuleStart,
+    const glm::vec3& capsuleEnd, float startRadius, float endRadius, glm::vec3& penetration);
     
-bool findSphereCapsuleConePenetration(const glm::vec3& penetratorCenter,
-    float penetratorRadius, const glm::vec3& penetrateeStart, const glm::vec3& penetrateeEnd,
-    float penetrateeStartRadius, float penetrateeEndRadius, glm::vec3& penetration);
+bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+    const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd,
+    float startRadius, float endRadius, glm::vec3& penetration);
                                   
-bool findSpherePlanePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, 
-                                const glm::vec4& penetrateePlane, glm::vec3& penetration);
+bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+                                const glm::vec4& plane, glm::vec3& penetration);
                                   
-bool findCapsuleSpherePenetration(const glm::vec3& penetratorStart, const glm::vec3& penetratorEnd, float penetratorRadius,
-                                  const glm::vec3& penetrateeCenter, float penetrateeRadius, glm::vec3& penetration);
+bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
+                                  const glm::vec3& sphereCenter, float sphereRadius, glm::vec3& penetration);
 
-bool findCapsulePlanePenetration(const glm::vec3& penetratorStart, const glm::vec3& penetratorEnd, float penetratorRadius,
-                                 const glm::vec4& penetrateePlane, glm::vec3& penetration);
+bool findCapsulePlanePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
+                                 const glm::vec4& plane, glm::vec3& penetration);
 
 glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& newPenetration);
 
