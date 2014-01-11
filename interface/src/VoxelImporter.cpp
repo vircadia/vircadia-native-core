@@ -21,6 +21,9 @@ private:
     QString _filename;
 };
 
+const QString SETTINGS_GROUP_NAME = "VoxelImport";
+const QString IMPORT_DIALOG_SETTINGS_KEY = "ImportDialogSettings";
+
 VoxelImporter::VoxelImporter(QWidget* parent)
     : QObject(parent),
       _voxelTree(true),
@@ -32,7 +35,16 @@ VoxelImporter::VoxelImporter(QWidget* parent)
     connect(&_importDialog, SIGNAL(accepted()), SLOT(import()));
 }
 
-void VoxelImporter::init() {
+void VoxelImporter::saveSettings(QSettings* settings) {
+    settings->beginGroup(SETTINGS_GROUP_NAME);
+    settings->setValue(IMPORT_DIALOG_SETTINGS_KEY, _importDialog.saveState());
+    settings->endGroup();
+}
+
+void VoxelImporter::init(QSettings* settings) {
+    settings->beginGroup(SETTINGS_GROUP_NAME);
+    _importDialog.restoreState(settings->value(IMPORT_DIALOG_SETTINGS_KEY).toByteArray());
+    settings->endGroup();
 }
 
 VoxelImporter::~VoxelImporter() {

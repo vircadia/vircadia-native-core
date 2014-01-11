@@ -47,10 +47,6 @@ QTreeView {
     border-left: none;
 }
 
-QSidebar::item {
-    margin-top: 10px;
-    padding-bottom: 0;
-}
 
 QSplitter::handle, QDialog {
     background-color: white;
@@ -70,10 +66,12 @@ QTreeView QHeaderView:section {
     padding: 10px 20px;
 }
 
+QSidebar::item,
 QTreeView::item {
     padding: 7px 0;
 }
 
+QSidebar::item:selected,
 QTreeView::item:selected {
     background: #BDE4E3;
     color: #333333;

@@ -1418,6 +1418,7 @@ void Application::terminate() {
     // close(serial_fd);
 
     Menu::getInstance()->saveSettings();
+    _voxelImporter.saveSettings(_settings);
     _rearMirrorTools->saveSettings(_settings);
     _settings->sync();
 
@@ -1846,7 +1847,7 @@ void Application::init() {
     _sharedVoxelSystem.changeTree(&_clipboard);
     delete tmpTree;
 
-    _voxelImporter.init();
+    _voxelImporter.init(_settings);
 
     _environment.init();
 
