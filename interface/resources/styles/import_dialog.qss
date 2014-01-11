@@ -69,7 +69,7 @@ QTreeView QHeaderView:section {
 
 QSidebar::item,
 QTreeView::item {
-    padding: 7px 0;
+    padding: 3px 0;
 }
 
 QSidebar::item:selected,
