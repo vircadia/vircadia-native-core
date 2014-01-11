@@ -11,6 +11,10 @@ QLabel {
     color: #333333;
 }
 
+QLabel#fileNameLabel {
+    padding: 10px;
+}
+
 QPushButton {
     
     margin-top: 30px;
@@ -46,7 +50,6 @@ QSidebar, QTreeView {
 QTreeView {
     border-left: none;
 }
-
 
 QSplitter::handle, QDialog {
     background-color: white;
