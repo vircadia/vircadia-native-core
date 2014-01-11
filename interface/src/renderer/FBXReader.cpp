@@ -548,17 +548,18 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& childMap,
-        QHash<QString, FBXModel>& models, QVector<QString>& modelIDs) {
-    if (models.contains(parentID)) {
+        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
+    if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
+        remainingModels.remove(parentID);
     }
     int parentIndex = modelIDs.size() - 1;
     foreach (const QString& childID, childMap.values(parentID)) {
-        if (models.contains(childID)) {
+        if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
             if (model.parentIndex == -1) {
                 model.parentIndex = parentIndex;
-                appendModelIDs(childID, childMap, models, modelIDs);
+                appendModelIDs(childID, childMap, models, remainingModels, modelIDs);
             }
         }
     }
@@ -1101,8 +1102,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
-    if (!models.isEmpty()) {
-        QString top = models.constBegin().key();
+    QSet<QString> remainingModels;
+    for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
+        remainingModels.insert(model.key());
+    }
+    while (!remainingModels.isEmpty()) {
+        QString top = *remainingModels.constBegin();
         forever {
             foreach (const QString& name, parentMap.values(top)) {
                 if (models.contains(name)) {
@@ -1115,7 +1120,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             
             outerContinue: ;
         }
-        appendModelIDs(top, childMap, models, modelIDs);
+        appendModelIDs(top, childMap, models, remainingModels, modelIDs);
     }
     
     // convert the models to joints

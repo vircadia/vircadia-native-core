@@ -22,6 +22,10 @@ public:
 public slots:
     
     void setFilter(bool filter);
+
+private:
+    
+    uint64_t _lastMovement;
 };
 
 #endif /* defined(__interface__SixenseManager__) */
