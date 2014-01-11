@@ -95,6 +95,7 @@ void Faceshift::reset() {
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
         float jawOpen, std::vector<float>& coefficients) const {
     coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
+    qFill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[_leftBlinkIndex] = leftBlink;
     coefficients[_rightBlinkIndex] = rightBlink;
     coefficients[_browUpCenterIndex] = browUp;

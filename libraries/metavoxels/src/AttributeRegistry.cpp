@@ -11,7 +11,12 @@
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
 
-AttributeRegistry AttributeRegistry::_instance;
+REGISTER_META_OBJECT(QRgbAttribute)
+
+AttributeRegistry* AttributeRegistry::getInstance() {
+    static AttributeRegistry registry;
+    return &registry;
+}
 
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new PolymorphicAttribute("guide", PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
@@ -36,7 +41,7 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
 }
 
 QScriptValue AttributeRegistry::getAttribute(QScriptContext* context, QScriptEngine* engine) {
-    return engine->newQObject(_instance.getAttribute(context->argument(0).toString()).data(), QScriptEngine::QtOwnership,
+    return engine->newQObject(getInstance()->getAttribute(context->argument(0).toString()).data(), QScriptEngine::QtOwnership,
         QScriptEngine::PreferExistingWrapperObject);
 }
 

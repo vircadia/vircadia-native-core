@@ -21,6 +21,8 @@
 
 class VoxelsScriptingInterface;
 class ParticlesScriptingInterface;
+class VoxelEditPacketSender;
+class ParticleEditPacketSender;
 
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
@@ -48,19 +50,19 @@ const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 
 class Particle  {
-    
+
 public:
     Particle();
-    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND, 
+    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
+            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND,
             QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
-    
+
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes); 
-    
+    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes);
+
     virtual ~Particle();
-    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, 
-            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND, 
+    virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
+            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, bool inHand = NOT_IN_HAND,
             QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
     const glm::vec3& getPosition() const { return _position; }
@@ -72,7 +74,7 @@ public:
     const glm::vec3& getGravity() const { return _gravity; }
     bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
-    
+
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
     uint64_t getLastUpdated() const { return _lastUpdated; }
 
@@ -92,9 +94,9 @@ public:
     void setVelocity(const glm::vec3& value) { _velocity = value; }
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red; 
-            _color[GREEN_INDEX] = value.green; 
-            _color[BLUE_INDEX] = value.blue; 
+            _color[RED_INDEX] = value.red;
+            _color[GREEN_INDEX] = value.green;
+            _color[BLUE_INDEX] = value.blue;
     }
     void setRadius(float value) { _radius = value; }
     void setMass(float value); 
@@ -104,15 +106,15 @@ public:
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; }
     void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
-    
+
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
     static int expectedEditMessageBytes();
 
-    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details, 
+    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
-                        
+
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
     void update();
@@ -120,22 +122,23 @@ public:
     void collisionWithVoxel(VoxelDetail* voxel);
 
     void debugDump() const;
-    
+
     // similar to assignment/copy, but it handles keeping lifetime accurate
     void copyChangedProperties(const Particle& other);
-    
-    static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return _voxelsScriptingInterface; }
-    static ParticlesScriptingInterface* getParticlesScriptingInterface() { return _particlesScriptingInterface; }
 
-    static void setVoxelsScriptingInterface(VoxelsScriptingInterface* interface) 
-                    { _voxelsScriptingInterface = interface; }
-                    
-    static void setParticlesScriptingInterface(ParticlesScriptingInterface* interface) 
-                    { _particlesScriptingInterface = interface; }
-    
+    static VoxelEditPacketSender* getVoxelEditPacketSender() { return _voxelEditSender; }
+    static ParticleEditPacketSender* getParticleEditPacketSender() { return _particleEditSender; }
+
+    static void setVoxelEditPacketSender(VoxelEditPacketSender* interface)
+                    { _voxelEditSender = interface; }
+
+    static void setParticleEditPacketSender(ParticleEditPacketSender* interface)
+                    { _particleEditSender = interface; }
+
+
 protected:
-    static VoxelsScriptingInterface* _voxelsScriptingInterface;
-    static ParticlesScriptingInterface* _particlesScriptingInterface;
+    static VoxelEditPacketSender* _voxelEditSender;
+    static ParticleEditPacketSender* _particleEditSender;
 
     void runUpdateScript();
     static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
@@ -143,8 +146,8 @@ protected:
     static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
     static void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 
-    void setLifetime(float lifetime);    
-    
+    void setLifetime(float lifetime);
+
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
@@ -187,7 +190,7 @@ public slots:
     float getRadius() const { return _particle->getRadius(); }
     bool getShouldDie() { return _particle->getShouldDie(); }
     float getLifetime() const { return _particle->getLifetime(); }
-    
+
     void setPosition(glm::vec3 value) { _particle->setPosition(value); }
     void setVelocity(glm::vec3 value) { _particle->setVelocity(value); }
     void setGravity(glm::vec3 value) { _particle->setGravity(value); }

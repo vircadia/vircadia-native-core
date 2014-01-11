@@ -10,7 +10,7 @@
 #define __interface__Application__
 
 #include <map>
-#include <pthread.h> 
+#include <pthread.h>
 #include <time.h>
 
 #include <QApplication>
@@ -37,6 +37,7 @@
 #include "Cloud.h"
 #include "Environment.h"
 #include "GLCanvas.h"
+#include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "PieMenu.h"
 #include "Stars.h"
@@ -59,7 +60,6 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/MetavoxelSystem.h"
 #include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
 #include "renderer/VoxelShader.h"
@@ -108,14 +108,14 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
-    void storeSizeAndPosition();    
+    void storeSizeAndPosition();
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
-    
+
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
@@ -123,27 +123,27 @@ public:
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
-    
+
     void updateWindowTitle();
 
     void wheelEvent(QWheelEvent* event);
 
     void shootParticle(); // shoots a particle in the direction you're looking
     ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
-    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
+    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
             glm::vec3 gravity, float damping, bool inHand, QString updateScript);
-    
+
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,
                    unsigned char green,
                    unsigned char blue,
                    bool isDestructive);
-    
+
     void removeVoxel(glm::vec3 position, float scale);
-        
+
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
-    
+
     QGLWidget* getGLWidget() { return _glWidget; }
     MyAvatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
@@ -166,24 +166,24 @@ public:
     NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
     void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
-    
+
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
-    
+
     Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
-    
+
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
-    
+
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
-    
+
     void setupWorldLight();
 
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
-    
+
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
@@ -197,9 +197,9 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
-    
+
     virtual void domainChanged(QString domain);
-    
+
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
@@ -208,7 +208,7 @@ public:
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
-    
+
     /// set a voxel which is to be rendered with a highlight
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
@@ -222,25 +222,26 @@ public slots:
     void pasteVoxels();
     void nudgeVoxels();
     void deleteVoxels();
-    
+
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void loadScript();
     void toggleLogDialog();
-    
+    void initAvatarAndViewFrustum();
+
 private slots:
-    
+
     void timer();
     void idle();
     void terminate();
-    
+
     void setFullscreen(bool fullscreen);
-    
+
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
-    
+
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
 
@@ -250,7 +251,7 @@ private slots:
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void toggleFollowMode();
-    
+
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
@@ -265,17 +266,17 @@ private:
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
-    
+
     void initDisplay();
     void init();
-    
+
     void update(float deltaTime);
 
     // Various helper functions called during update()
     void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
     void updateFaceshift();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
-    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
             float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
             float& distance, BoxFace& face);
@@ -298,32 +299,32 @@ private:
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
-    
+
     void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderFollowIndicator();
     void renderHighlightVoxel(VoxelDetail voxel);
-    
+
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
-    
+
     glm::vec3 getSunDirection();
-    
+
     void updateShadowMap();
     void displayOverlay();
     void displayStats();
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
-   
+
     void checkBandwidthMeterClick();
-     
+
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-            
+
     void setMenuShortcutsEnabled(bool enabled);
-    
+
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
@@ -333,18 +334,18 @@ private:
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
-    
+
     QAction* _followMode;
-    
+
     BandwidthMeter _bandwidthMeter;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
     bool _displayLevels;
-    
+
     glm::vec3 _gravity;
-    
+
     // Frame Rate Measurement
     int _frameCount;
     float _fps;
@@ -354,55 +355,55 @@ private:
     bool _justStarted;
 
     Stars _stars;
-    
+
     Cloud _cloud;
-    
+
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter _voxelImporter;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
-    
+
     ParticleTreeRenderer _particles;
     ParticleCollisionSystem _particleCollisionSystem;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
-    
+
     MetavoxelSystem _metavoxels;
-    
+
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
 
     Oscilloscope _audioScope;
 
     VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
-    
+
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
     Profile _profile;                    // The data-server linked profile for this user
-    
+
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
-    
+
     Webcam _webcam;                    // The webcam interface
-    
+
     Faceshift _faceshift;
-    
+
     SixenseManager _sixenseManager;
-    
+
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
-    
+
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
-    
+
     glm::mat4 _shadowMatrix;
-    
+
     Environment _environment;
-    
+
     int _headMouseX, _headMouseY;
-    
+
     int _mouseX;
     int _mouseY;
     int _mouseDragStartedX;
@@ -420,7 +421,7 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
     float _yawFromTouch;
     float _pitchFromTouch;
-    
+
     VoxelDetail _mouseVoxelDragging;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
@@ -428,7 +429,7 @@ private:
     bool _isHoverVoxel;
     bool _isHoverVoxelSounding;
     nodeColor _hoverVoxelOriginalColor;
-    
+
     VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     bool _mouseVoxelScaleInitialized;
@@ -437,7 +438,7 @@ private:
 
     VoxelDetail _highlightVoxel;
     bool _isHighlightVoxel;
-    
+
     VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
     bool _nudgeStarted;
     bool _lookingAlongX;
@@ -447,46 +448,46 @@ private:
     Avatar* _lookatTargetAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
-    
+
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
-    
-    bool _perfStatsOn; //  Do we want to display perfStats? 
-    
-    ChatEntry _chatEntry; // chat entry field 
-    bool _chatEntryOn;    // Whether to show the chat entry 
-    
+
+    bool _perfStatsOn; //  Do we want to display perfStats?
+
+    ChatEntry _chatEntry; // chat entry field
+    bool _chatEntryOn;    // Whether to show the chat entry
+
     GeometryCache _geometryCache;
     TextureCache _textureCache;
-    
+
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
     VoxelShader _voxelShader;
     PointShader _pointShader;
-    
+
     #ifndef _WIN32
     Audio _audio;
     #endif
-    
+
     bool _enableNetworkThread;
     pthread_t _networkReceiveThread;
     bool _stopNetworkReceiveThread;
-    
+
     bool _enableProcessVoxelsThread;
     VoxelPacketProcessor _voxelProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
-    
+
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
-    
+
     int _recentMaxPackets; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon;
-    
+
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
@@ -496,22 +497,27 @@ private:
     bool _pasteMode;
 
     PieMenu _pieMenu;
-    
+
     int parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
     void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
                                   const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
-    
+
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
     NodeToVoxelSceneStats _octreeServerSceneStats;
     QReadWriteLock _voxelSceneStatsLock;
-    
+
     std::vector<VoxelFade> _voxelFades;
     std::vector<Avatar*> _avatarFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 
     FileLogger* _logger;
+
+    OctreePersistThread* _persistThread;
+
+    QString getLocalVoxelCacheFileName();
+    void updateLocalOctreeCache(bool firstTime = false);
 };
 
 #endif /* defined(__interface__Application__) */

@@ -200,7 +200,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // Compute instantaneous acceleration
     float forwardAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
     const float ACCELERATION_PITCH_DECAY = 0.4f;
-    const float ACCELERATION_YAW_DECAY = 0.4f;
     const float ACCELERATION_PULL_THRESHOLD = 0.2f;
     const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
     const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
@@ -210,8 +209,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         // you start moving, but don't do this with an HMD like the Oculus.
         if (!OculusManager::isConnected()) {
             if (forwardAcceleration > ACCELERATION_PULL_THRESHOLD) {
-                _head.setPitch(_head.getPitch() * (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime));
-                _head.setYaw(_head.getYaw() * (1.f - forwardAcceleration * ACCELERATION_YAW_DECAY * deltaTime));
+                _head.setMousePitch(_head.getMousePitch() * qMax(0.0f,
+                    (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime)));
             }
         } else if (fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
                    && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
@@ -282,7 +281,9 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
-    _skeletonModel.getHeadPosition(headPosition);
+    if (!_skeletonModel.getHeadPosition(headPosition)) {
+        headPosition = _position;
+    }
     _head.setPosition(headPosition);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
@@ -542,6 +543,16 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
+    glm::vec3 vector = getPosition() - position;
+    glm::quat orientation = getOrientation();
+    glm::vec3 up = orientation * IDENTITY_UP;
+    const float ANGULAR_SCALE = 0.5f;
+    glm::quat rotation = glm::angleAxis(deltaX * -ANGULAR_SCALE, up);
+    const float LINEAR_SCALE = 0.01f;
+    setPosition(position + rotation * vector + up * (deltaY * LINEAR_SCALE * _scale));
+    setOrientation(rotation * orientation);
+}
 
 float MyAvatar::getAbsoluteHeadYaw() const {
     return glm::yaw(_head.getOrientation());
@@ -757,14 +768,10 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
             glm::vec3 farVector = _mouseRayOrigin + pointDirection * (float)TREE_SCALE - shoulderPosition;
             const float ARM_RETRACTION = 0.75f;
             float retractedLength = _skeletonModel.getRightArmLength() * ARM_RETRACTION;
-            _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = shoulderPosition +
-                glm::normalize(farVector) * retractedLength;
+            setHandPosition(shoulderPosition + glm::normalize(farVector) * retractedLength);
             pointing = true;    
         }
     }
-    
-    //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
-    setHandPosition(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
     
     if (_mousePressed) {
         _handState = HAND_STATE_GRASPING;
@@ -919,8 +926,9 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // remove members whose accumulated circles are too far away to influence us
     const float CIRCUMFERENCE_PER_MEMBER = 0.5f;
     const float CIRCLE_INFLUENCE_SCALE = 2.0f;
+    const float MIN_RADIUS = 0.3f;
     for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
-        float radius = (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO;
+        float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO);
         if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
             sortedAvatars.remove(i);
         } else {
@@ -931,7 +939,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
         return;
     }
     center = sortedAvatars.last().accumulatedCenter;
-    float radius = (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / PI_TIMES_TWO;
+    float radius = qMax(MIN_RADIUS, (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / PI_TIMES_TWO);
     
     // compute the average up vector
     glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;

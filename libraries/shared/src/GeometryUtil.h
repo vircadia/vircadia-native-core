@@ -55,6 +55,12 @@ bool findCapsulePlanePenetration(const glm::vec3& capsuleStart, const glm::vec3&
 
 glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& newPenetration);
 
+bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    const glm::vec3& center, float radius, float& distance);
+
+bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    const glm::vec3& start, const glm::vec3& end, float radius, float& distance);
+
 bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
 int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);

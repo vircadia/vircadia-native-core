@@ -57,7 +57,7 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += rfcSessionUUID.size();
         
         // pick a random UUID to use for this stream
-        QUuid randomStreamUUID;
+        QUuid randomStreamUUID = QUuid::createUuid();
         QByteArray rfcStreamUUID = randomStreamUUID.toRfc4122();
         memcpy(currentPacketPosition, rfcStreamUUID, rfcStreamUUID.size());
         currentPacketPosition += rfcStreamUUID.size();

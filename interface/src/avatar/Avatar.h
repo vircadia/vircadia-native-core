@@ -24,8 +24,6 @@
 #include "devices/SerialInterface.h"
 #include "devices/Transmitter.h"
 
-static const float MAX_SCALE = 1000.f;
-static const float MIN_SCALE = .005f;
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
@@ -160,6 +158,8 @@ public:
 
     void getSkinColors(glm::vec3& lighter, glm::vec3& darker);
 
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
@@ -167,7 +167,7 @@ public:
     /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex = -1);
+        glm::vec3& penetration, int skeletonSkipIndex = -1) const;
 
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 

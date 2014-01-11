@@ -17,8 +17,9 @@
 
 #include <AbstractMenuInterface.h>
 #include <AudioScriptingInterface.h>
-#include <ParticlesScriptingInterface.h>
 #include <VoxelsScriptingInterface.h>
+
+class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
 
@@ -27,12 +28,12 @@ const QString NO_SCRIPT("");
 class ScriptEngine : public QObject {
     Q_OBJECT
 public:
-    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false, 
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
                     const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL,
                     AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
-    
+
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
 
@@ -44,11 +45,15 @@ public:
 
     void setupMenuItems();
     void cleanMenuItems();
-    
+
+    void registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
+
 public slots:
-    void run();
+    void init();
+    void run(); /// runs continuously until Agent.stop() is called
     void stop();
-    
+    void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
+
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
@@ -57,7 +62,8 @@ protected:
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
-
+    bool _isInitialized;
+    QScriptEngine _engine;
 
 private:
     static VoxelsScriptingInterface _voxelsScriptingInterface;

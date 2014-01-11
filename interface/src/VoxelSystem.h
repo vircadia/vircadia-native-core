@@ -18,6 +18,7 @@
 #include <NodeData.h>
 #include <ViewFrustum.h>
 #include <VoxelTree.h>
+#include <OctreePersistThread.h>
 
 #include "Camera.h"
 #include "Util.h"
@@ -36,8 +37,8 @@ struct VoxelShaderVBOData
 };
 
 
-class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook, 
-                    public NodeListHook, public DomainChangeListener {
+class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook,
+                    public NodeListHook {
     Q_OBJECT
 
     friend class VoxelHideShowThread;
@@ -48,9 +49,9 @@ public:
 
     void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
     const QUuid&  getDataSourceUUID() const { return _dataSourceUUID; }
-    
+
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    
+
     virtual void init();
     void simulate(float deltaTime) { }
     void render(bool texture);
@@ -85,19 +86,19 @@ public:
     virtual void hideOutOfView(bool forceFullFrustum = false);
     bool hasViewChanged();
     bool isViewChanging();
-    
+
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
-    
+
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
     void deleteVoxelAt(float x, float y, float z, float s);
     VoxelTreeElement* getVoxelAt(float x, float y, float z, float s) const;
-    void createVoxel(float x, float y, float z, float s, 
+    void createVoxel(float x, float y, float z, float s,
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
-    void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
+    void createSphere(float r,float xc, float yc, float zc, float s, bool solid,
                       creationMode mode, bool destructive = false, bool debug = false);
 
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
@@ -113,19 +114,18 @@ public:
     virtual void elementUpdated(OctreeElement* element);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
-    virtual void domainChanged(QString domain);
-    
+
     bool treeIsBusy() const { return _treeIsBusy; }
-                        
+
     VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
-    
+
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);
 
 public slots:
     void collectStatsForTreesAndVBOs();
-    
+
     // Methods that recurse tree
     void showAllLocalVoxels();
     void randomizeVoxelColors();
@@ -141,24 +141,27 @@ public slots:
     void clearAllNodesBufferIndex();
 
     void cancelImport();
-    
+
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
     void setVoxelsAsPoints(bool voxelsAsPoints);
-        
+
+    void localVoxelCacheLoaded();
+    void beginLoadingLocalVoxelCache();
+
 protected:
-    float _treeScale; 
-    int _maxVoxels;      
+    float _treeScale;
+    int _maxVoxels;
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();
     static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
     void checkForCulling();
-    
+
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
-    
+
     virtual void updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
@@ -170,7 +173,7 @@ private:
     // disallow copying of VoxelSystem objects
     VoxelSystem(const VoxelSystem&);
     VoxelSystem& operator= (const VoxelSystem&);
-    
+
     bool _initialized;
     int  _callsToTreesToArrays;
     OctreeElementBag _removedVoxels;
@@ -223,10 +226,10 @@ private:
     unsigned long _voxelsInReadArrays;
     unsigned long _voxelsInWriteArrays;
     unsigned long _abandonedVBOSlots;
-    
+
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
-    
+
     int _setupNewVoxelsForDrawingLastElapsed;
     uint64_t _setupNewVoxelsForDrawingLastFinished;
     uint64_t _lastViewCulling;
@@ -234,7 +237,7 @@ private:
     uint64_t _lastAudit;
     int _lastViewCullingElapsed;
     bool _hasRecentlyChanged;
-    
+
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
@@ -246,7 +249,7 @@ private:
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
     VoxelShaderVBOData* _writeVoxelShaderData;
     VoxelShaderVBOData* _readVoxelShaderData;
-    
+
     GLuint _vboVerticesID;
     GLuint _vboColorsID;
 
@@ -269,11 +272,11 @@ private:
 
     void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
-    int newTreeToArrays(VoxelTreeElement *currentNode);
+    int newTreeToArrays(VoxelTreeElement* currentNode);
     void cleanupRemovedVoxels();
 
     void copyWrittenDataToReadArrays(bool fullVBOs);
-    
+
     void updateFullVBOs(); // all voxels in the VBO
     void updatePartialVBOs(); // multiple segments, only dirty voxels
 
@@ -281,7 +284,7 @@ private:
 
     static ProgramObject _perlinModulateProgram;
     static ProgramObject _shadowMapProgram;
-    
+
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
     pthread_mutex_t _freeIndexLock;
@@ -289,22 +292,22 @@ private:
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();
     glBufferIndex getNextBufferIndex();
-    
+
     bool _falseColorizeBySource;
     QUuid _dataSourceUUID;
-    
+
     int _voxelServerCount;
     unsigned long _memoryUsageRAM;
     unsigned long _memoryUsageVBO;
     unsigned long _initialMemoryUsageGPU;
     bool _hasMemoryUsageGPU;
-    
+
     bool _inSetupNewVoxelsForDrawing;
     bool _useFastVoxelPipeline;
-    
+
     bool _inhideOutOfView;
     bool _treeIsBusy; // is the tree mutex locked? if so, it's busy, and if you can avoid it, don't access the tree
-    
+
     void lockTree();
     void unlockTree();
 };

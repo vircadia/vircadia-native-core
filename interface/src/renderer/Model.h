@@ -125,6 +125,8 @@ public:
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
 

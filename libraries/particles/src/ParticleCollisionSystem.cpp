@@ -19,12 +19,12 @@
 #include "ParticleEditPacketSender.h"
 #include "ParticleTree.h"
 
-ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender, 
+ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender,
     ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
     init(packetSender, particles, voxels, audio, selfAvatar);
 }
 
-void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender, 
+void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender,
     ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
     _packetSender = packetSender;
     _particles = particles;
@@ -67,8 +67,8 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
-    glm::vec3 center = particle->getPosition() * static_cast<float>(TREE_SCALE);
-    float radius = particle->getRadius() * static_cast<float>(TREE_SCALE);
+    glm::vec3 center = particle->getPosition() * (float)(TREE_SCALE);
+    float radius = particle->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.4f;
     const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
@@ -79,17 +79,17 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
 
-        penetration /= static_cast<float>(TREE_SCALE);
+        penetration /= (float)(TREE_SCALE);
         updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
         applyHardCollision(particle, penetration, ELASTICITY, DAMPING);
-        
+
         delete voxelDetails; // cleanup returned details
     }
 }
 
 void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) {
-    glm::vec3 center = particleA->getPosition() * (float)TREE_SCALE;
-    float radius = particleA->getRadius() * (float)TREE_SCALE;
+    glm::vec3 center = particleA->getPosition() * (float)(TREE_SCALE);
+    float radius = particleA->getRadius() * (float)(TREE_SCALE);
     //const float ELASTICITY = 0.4f;
     //const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
@@ -128,7 +128,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(), particleB->getXColor(), particleB->getVelocity(),
                            particleB->getGravity(), particleB->getDamping(), particleB->getInHand(), particleB->getScript());
 
-            penetration /= (float)TREE_SCALE;
+            penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
         }
     }
@@ -142,14 +142,14 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     }
 
     //printf("updateCollisionWithAvatars()...\n");
-    glm::vec3 center = particle->getPosition() * static_cast<float>(TREE_SCALE);
-    float radius = particle->getRadius() * static_cast<float>(TREE_SCALE);
+    glm::vec3 center = particle->getPosition() * (float)(TREE_SCALE);
+    float radius = particle->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.4f;
     const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     const PalmData* collidingPalm = NULL;
-    
+
     // first check the selfAvatar if set...
     if (_selfAvatar) {
         AvatarData* avatar = (AvatarData*)_selfAvatar;
@@ -165,13 +165,13 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
             // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
             // apply a hard collision when ball collides with hand
-            penetration /= static_cast<float>(TREE_SCALE);
+            penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
-    
+
             // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
             glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
             if (collidingPalm) {
-                glm::vec3 palmVelocity = collidingPalm->getVelocity() / static_cast<float>(TREE_SCALE);
+                glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)(TREE_SCALE);
                 //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
                 addedVelocity = palmVelocity;
             }
@@ -179,7 +179,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
         } else if (avatar->findSpherePenetration(center, radius, penetration)) {
             // apply hard collision when particle collides with avatar
-            penetration /= static_cast<float>(TREE_SCALE);
+            penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
             glm::vec3 addedVelocity = avatar->getVelocity();
             applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
@@ -194,19 +194,19 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
             AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
             //printf("updateCollisionWithAvatars()...avatar=%p\n", avatar);
-            
+
             // check hands...
             const HandData* handData = avatar->getHandData();
 
             if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
                 // apply a hard collision when ball collides with hand
-                penetration /= static_cast<float>(TREE_SCALE);
+                penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
 
                 // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
                 glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
                 if (collidingPalm) {
-                    glm::vec3 palmVelocity = collidingPalm->getVelocity() / static_cast<float>(TREE_SCALE);
+                    glm::vec3 palmVelocity = collidingPalm->getVelocity() / (float)(TREE_SCALE);
                     //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
                     addedVelocity = palmVelocity;
                 }
@@ -214,7 +214,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
 
             } else if (avatar->findSpherePenetration(center, radius, penetration)) {
-                penetration /= static_cast<float>(TREE_SCALE);
+                penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
                 glm::vec3 addedVelocity = avatar->getVelocity();
                 applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
@@ -224,15 +224,15 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 }
 
 
-void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::vec3& penetration, 
+void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::vec3& penetration,
                                                  float elasticity, float damping, const glm::vec3& addedVelocity) {
     //
     //  Update the particle in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
     //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
-    //  if elasticity = 1.0, collision is 100% elastic. 
-    //  
+    //  if elasticity = 1.0, collision is 100% elastic.
+    //
     glm::vec3 position = particle->getPosition();
     glm::vec3 velocity = particle->getVelocity();
 
@@ -240,7 +240,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     float velocityDotPenetration = glm::dot(velocity, penetration);
     if (velocityDotPenetration > EPSILON) {
         position -= penetration;
-        static float HALTING_VELOCITY = 0.2f / static_cast<float>(TREE_SCALE);
+        static float HALTING_VELOCITY = 0.2f / (float)(TREE_SCALE);
         // cancel out the velocity component in the direction of penetration
 
         float penetrationLength = glm::length(penetration);
@@ -258,36 +258,36 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
         printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
             particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
     }
-    
+
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
                            particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getScript());
 }
-    
+
 
 void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency) {
-                                
+
     //  consider whether to have the collision make a sound
     const float AUDIBLE_COLLISION_THRESHOLD = 0.1f;
     const float COLLISION_LOUDNESS = 1.f;
     const float DURATION_SCALING = 0.004f;
     const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = particle->getVelocity() * static_cast<float>(TREE_SCALE);
+    glm::vec3 velocity = particle->getVelocity() * (float)(TREE_SCALE);
 
     /*
     // how do we want to handle this??
     //
-     glm::vec3 gravity = particle->getGravity() * static_cast<float>(TREE_SCALE);
-    
+     glm::vec3 gravity = particle->getGravity() * (float)(TREE_SCALE);
+
     if (glm::length(gravity) > EPSILON) {
         //  If gravity is on, remove the effect of gravity on velocity for this
-        //  frame, so that we are not constantly colliding with the surface 
+        //  frame, so that we are not constantly colliding with the surface
         velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
     }
     */
     float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
     float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
-    
+
     if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
         //  Volume is proportional to collision velocity
         //  Base frequency is modified upward by the angle of the collision
