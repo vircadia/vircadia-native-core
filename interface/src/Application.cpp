@@ -55,7 +55,6 @@
 #include "Menu.h"
 #include "Swatch.h"
 #include "Util.h"
-#include "devices/LeapManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
 #include "renderer/ProgramObject.h"
@@ -85,7 +84,6 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
-
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -143,7 +141,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false),
-        _logger(new FileLogger())
+        _logger(new FileLogger()),
+        _persistThread(NULL)
 {
     _applicationStartupTime = startup_time;
 
@@ -178,7 +177,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addHook(&_voxels);
     nodeList->addHook(this);
     nodeList->addDomainListener(this);
-    nodeList->addDomainListener(&_voxels);
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -250,6 +248,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+
 }
 
 Application::~Application() {
@@ -1418,7 +1417,6 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
 
-    LeapManager::terminate();
     Menu::getInstance()->saveSettings();
     _rearMirrorTools->saveSettings(_settings);
     _settings->sync();
@@ -1436,6 +1434,8 @@ void Application::terminate() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
+    _persistThread->terminate();
+    _persistThread = NULL;
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
@@ -1883,8 +1883,6 @@ void Application::init() {
                                   Qt::QueuedConnection);
     }
 
-    LeapManager::initialize();
-
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeUpdated, NULL);
 
@@ -1937,6 +1935,9 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+
+
+    updateLocalOctreeCache(true);
 }
 
 void Application::closeMirrorView() {
@@ -2364,9 +2365,6 @@ void Application::updateHandAndTouch(float deltaTime) {
 void Application::updateLeap(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateLeap()");
-
-    LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
-    LeapManager::nextFrame();
 }
 
 void Application::updateSixense(float deltaTime) {
@@ -2400,6 +2398,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
+        _persistThread->threadRoutine();
     }
 }
 
@@ -3657,11 +3656,6 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-
-    // Leap data
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)LeapManager::statusString().c_str());
-
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
         char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
@@ -4133,7 +4127,6 @@ void Application::resetSensors() {
     }
     _webcam.reset();
     _faceshift.reset();
-    LeapManager::reset();
 
     if (OculusManager::isConnected()) {
         OculusManager::reset();
@@ -4201,6 +4194,10 @@ void Application::domainChanged(QString domain) {
     _voxelServerJurisdictions.clear();
     _octreeServerSceneStats.clear();
     _particleServerJurisdictions.clear();
+
+    // reset our persist thread
+    qDebug() << "domainChanged()... domain=" << domain << " swapping persist cache\n";
+    updateLocalOctreeCache();
 }
 
 void Application::nodeAdded(Node* node) {
@@ -4538,5 +4535,49 @@ void Application::toggleLogDialog() {
         _logDialog->show();
     } else {
         _logDialog->close();
+    }
+}
+
+
+void Application::initAvatarAndViewFrustum() {
+    updateAvatar(0.f);
+}
+
+QString Application::getLocalVoxelCacheFileName() {
+    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    QDir logDir(fileName);
+    if (!logDir.exists(fileName)) {
+        logDir.mkdir(fileName);
+    }
+
+    fileName.append(QString("/hifi.voxelscache."));
+    fileName.append(_profile.getLastDomain());
+    fileName.append(QString(".svo"));
+
+    return fileName;
+}
+
+
+void Application::updateLocalOctreeCache(bool firstTime) {
+    // only do this if we've already got a persistThread or we're told this is the first time
+    if (firstTime || _persistThread) {
+
+        if (_persistThread) {
+            _persistThread->terminate();
+            _persistThread = NULL;
+        }
+
+        QString localVoxelCacheFileName = getLocalVoxelCacheFileName();
+        const int LOCAL_CACHE_PERSIST_INTERVAL = 1000 * 10; // every 10 seconds
+        _persistThread = new OctreePersistThread(_voxels.getTree(),
+                                        localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
+
+        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName << "\n";
+
+        if (_persistThread) {
+            _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
+            connect(_persistThread, SIGNAL(loadCompleted()), &_voxels, SLOT(localVoxelCacheLoaded()));
+            _persistThread->initialize(true);
+        }
     }
 }
