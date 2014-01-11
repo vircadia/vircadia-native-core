@@ -63,23 +63,23 @@ find_package(Qt5WebKitWidgets REQUIRED)
 if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
-  
+  SET(MACOSX_BUNDLE_ICON_FILE interface.icns)
+
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-  
+
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/interface.icns)
-  
+
   # grab the directories in resources and put them in the right spot in Resources
   file(GLOB RESOURCE_SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_CURRENT_SOURCE_DIR}/resources/*)
   foreach(DIR ${RESOURCE_SUBDIRS})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources/${DIR})
       FILE(GLOB DIR_CONTENTS resources/${DIR}/*)
       SET_SOURCE_FILES_PROPERTIES(${DIR_CONTENTS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/${DIR})
-    
+
       SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${DIR_CONTENTS})
-    endif()    
-  endforeach()  
+    endif()
+  endforeach()
 endif (APPLE)
 
 # create the executable, make it a bundle on OS X
@@ -114,7 +114,9 @@ find_package(ZLIB)
 if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     add_definitions(-DHAVE_OPENNI)
     include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
+    if (APPLE OR UNIX)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
+    endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
@@ -122,7 +124,9 @@ endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     add_definitions(-DHAVE_SIXENSE)
     include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
+    if (APPLE OR UNIX)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
+    endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
@@ -130,7 +134,9 @@ endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     add_definitions(-DHAVE_LIBOVR)
     include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+    if (APPLE OR UNIX)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
+    endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
@@ -146,21 +152,24 @@ include_directories(
 # use system flag so warnings are supressed
 include_directories(
   SYSTEM
-  ${FACESHIFT_INCLUDE_DIRS} 
-  ${GLM_INCLUDE_DIRS} 
+  ${FACESHIFT_INCLUDE_DIRS}
+  ${GLM_INCLUDE_DIRS}
   ${LIBVPX_INCLUDE_DIRS}
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
 )
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
+if (APPLE OR UNIX)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
+endif (APPLE OR UNIX)
+
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
-  ${OPENCV_LIBRARIES} 
+  ${OPENCV_LIBRARIES}
   ${ZLIB_LIBRARIES}
 )
 
@@ -176,17 +185,17 @@ if (APPLE)
     find_library(IOKit IOKit)
     find_library(QTKit QTKit)
     find_library(QuartzCore QuartzCore)
-    
+
     include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
-    
+
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
         ${CoreAudio}
-        ${CoreServices} 
+        ${CoreServices}
         ${Carbon}
-        ${Foundation} 
-        ${GLUT} 
+        ${Foundation}
+        ${GLUT}
         ${OpenGL}
         ${IOKit}
         ${QTKit}
@@ -203,7 +212,7 @@ endif (APPLE)
 # link target to external libraries
 if (WIN32)
     target_link_libraries(
-        ${TARGET_NAME} 
+        ${TARGET_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
@@ -211,7 +220,7 @@ if (WIN32)
     )
 else (WIN32)
   # link required libraries on UNIX
-  if (UNIX AND NOT APPLE) 
+  if (UNIX AND NOT APPLE)
       find_package(Threads REQUIRED)
 
       target_link_libraries(
@@ -223,7 +232,7 @@ else (WIN32)
 endif (WIN32)
 
 # install command for OS X bundle
-INSTALL(TARGETS ${TARGET_NAME} 
+INSTALL(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
     RUNTIME DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
 )
