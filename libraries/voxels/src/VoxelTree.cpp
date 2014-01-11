@@ -6,9 +6,11 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <algorithm>
+
 #include <glm/gtc/noise.hpp>
 
-//#include <QtCore/QDebug>
+#include <QtCore/QDebug>
 #include <QImage>
 #include <QRgb>
 
@@ -83,13 +85,13 @@ float findNewLeafSize(const glm::vec3& nudgeAmount, float leafSize) {
 
     float newLeafSize = leafSize;
     if (newLeafSizeX) {
-        newLeafSize = fmin(newLeafSize, newLeafSizeX);
+        newLeafSize = std::min(newLeafSize, newLeafSizeX);
     }
     if (newLeafSizeY) {
-        newLeafSize = fmin(newLeafSize, newLeafSizeY);
+        newLeafSize = std::min(newLeafSize, newLeafSizeY);
     }
     if (newLeafSizeZ) {
-        newLeafSize = fmin(newLeafSize, newLeafSizeZ);
+        newLeafSize = std::min(newLeafSize, newLeafSizeZ);
     }
     return newLeafSize;
 }

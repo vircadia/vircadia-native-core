@@ -7,6 +7,7 @@
 //
 //
 
+#include <algorithm>
 #include <AbstractAudioInterface.h>
 #include <VoxelTree.h>
 #include <AvatarData.h>
@@ -98,7 +99,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
     if (_particles->findSpherePenetration(center, radius, penetration, (void**)&particleB)) {
         // NOTE: 'penetration' is the depth that 'particleA' overlaps 'particleB'.
         // That is, it points from A into B.
-    
+
         // Even if the particles overlap... when the particles are already moving appart
         // we don't want to count this as a collision.
         glm::vec3 relativeVelocity = particleA->getVelocity() - particleB->getVelocity();
@@ -115,7 +116,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             float massA = (particleA->getInHand()) ? MAX_MASS : particleA->getMass();
             float massB = (particleB->getInHand()) ? MAX_MASS : particleB->getMass();
             float totalMass = massA + massB;
-    
+
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
 
             ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
@@ -294,9 +295,9 @@ void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
         _audio->startCollisionSound(
-                    fmin(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
+                    std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
                     frequency * (1.f + velocityTangentToCollision / velocityTowardCollision),
-                    fmin(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
+                    std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
                     1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
     }
 }
