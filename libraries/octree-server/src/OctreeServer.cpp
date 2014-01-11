@@ -6,13 +6,16 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#ifdef _WIN32
+#define NOMINMAX // this is required as long as we have civetweb because it includes windows.h, this also must be before QTimer
+#endif
+#include "civetweb.h"
+
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
 #include <Logging.h>
 #include <UUID.h>
-
-#include "civetweb.h"
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
@@ -61,10 +64,10 @@ OctreeServer::OctreeServer(const unsigned char* dataBuffer, int numBytes) :
     _octreeInboundPacketProcessor = NULL;
     _persistThread = NULL;
     _parsedArgV = NULL;
-    
+
     _started = time(0);
     _startedUSecs = usecTimestampNow();
-    
+
     _theInstance = this;
 }
 
@@ -75,28 +78,28 @@ OctreeServer::~OctreeServer() {
         }
         delete[] _parsedArgV;
     }
-    
+
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
-    
+
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminate();
         delete _octreeInboundPacketProcessor;
     }
-    
+
     if (_persistThread) {
         _persistThread->terminate();
         delete _persistThread;
     }
-    
+
     // tell our NodeList we're done with notifications
     NodeList::getInstance()->removeHook(this);
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-    
+
     qDebug() << "OctreeServer::run()... DONE\n";
 }
 
@@ -106,12 +109,12 @@ void OctreeServer::initMongoose(int port) {
 
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
     QString listenPort = QString("%1").arg(port);
-    
+
 
     // list of options. Last element must be NULL.
     const char* options[] = {
-        "listening_ports", listenPort.toLocal8Bit().constData(), 
-        "document_root", documentRoot.toLocal8Bit().constData(), 
+        "listening_ports", listenPort.toLocal8Bit().constData(),
+        "document_root", documentRoot.toLocal8Bit().constData(),
         NULL };
 
     callbacks.begin_request = civetwebRequestHandler;
@@ -122,7 +125,7 @@ void OctreeServer::initMongoose(int port) {
 
 int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
-    
+
     OctreeServer* theServer = GetInstance();
 
 #ifdef FORCE_CRASH
@@ -147,7 +150,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         theServer->_octreeInboundPacketProcessor->resetStats();
         showStats = true;
     }
-    
+
     if (showStats) {
         uint64_t checkSum;
         // return a 200
@@ -257,7 +260,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         unsigned long nodeCount = OctreeElement::getNodeCount();
         unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
         unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
-        
+
         QLocale locale(QLocale::English);
         const float AS_PERCENT = 100.0;
         mg_printf(connection, "%s", "<b>Current Nodes in scene:</b>\r\n");
@@ -266,7 +269,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "    Internal Nodes: %s nodes (%5.2f%%)\r\n",
             locale.toString((uint)internalNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
             ((float)internalNodeCount / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n", 
+        mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n",
             locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
             ((float)leafNodeCount / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "%s", "\r\n");
@@ -303,7 +306,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
 
         // display inbound packet stats
-        mg_printf(connection, "<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n", 
+        mg_printf(connection, "<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                         theServer->getMyServerName());
         uint64_t averageTransitTimePerPacket = theServer->_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         uint64_t averageProcessTimePerPacket = theServer->_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
@@ -320,15 +323,15 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "          Total Inbound Elements: %s elements\r\n",
             locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
         mg_printf(connection, " Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
-        mg_printf(connection, "     Average Transit Time/Packet: %s usecs\r\n", 
+        mg_printf(connection, "     Average Transit Time/Packet: %s usecs\r\n",
             locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
         mg_printf(connection, "     Average Process Time/Packet: %s usecs\r\n",
             locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "   Average Wait Lock Time/Packet: %s usecs\r\n", 
+        mg_printf(connection, "   Average Wait Lock Time/Packet: %s usecs\r\n",
             locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
         mg_printf(connection, "    Average Process Time/Element: %s usecs\r\n",
             locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "  Average Wait Lock Time/Element: %s usecs\r\n", 
+        mg_printf(connection, "  Average Wait Lock Time/Element: %s usecs\r\n",
             locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
 
 
@@ -339,7 +342,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
             QUuid senderID = i->first;
             SingleSenderStats& senderStats = i->second;
 
-            mg_printf(connection, "\r\n             Stats for sender %d uuid: %s\r\n", senderNumber, 
+            mg_printf(connection, "\r\n             Stats for sender %d uuid: %s\r\n", senderNumber,
                 senderID.toString().toLocal8Bit().constData());
 
             averageTransitTimePerPacket = senderStats.getAverageTransitTimePerPacket();
@@ -357,15 +360,15 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
             mg_printf(connection, "              Total Inbound Elements: %s elements\r\n",
                 locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
             mg_printf(connection, "     Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
-            mg_printf(connection, "         Average Transit Time/Packet: %s usecs\r\n", 
+            mg_printf(connection, "         Average Transit Time/Packet: %s usecs\r\n",
                 locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
             mg_printf(connection, "         Average Process Time/Packet: %s usecs\r\n",
                 locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "       Average Wait Lock Time/Packet: %s usecs\r\n", 
+            mg_printf(connection, "       Average Wait Lock Time/Packet: %s usecs\r\n",
                 locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
             mg_printf(connection, "        Average Process Time/Element: %s usecs\r\n",
                 locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "      Average Wait Lock Time/Element: %s usecs\r\n", 
+            mg_printf(connection, "      Average Wait Lock Time/Element: %s usecs\r\n",
                 locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
 
         }
@@ -391,14 +394,14 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
             memoryScale = GIGABYTES;
         }
 
-        mg_printf(connection, "Element Node Memory Usage:       %8.2f %s\r\n", 
+        mg_printf(connection, "Element Node Memory Usage:       %8.2f %s\r\n",
             OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
-        mg_printf(connection, "Octcode Memory Usage:            %8.2f %s\r\n", 
+        mg_printf(connection, "Octcode Memory Usage:            %8.2f %s\r\n",
             OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
-        mg_printf(connection, "External Children Memory Usage:  %8.2f %s\r\n", 
+        mg_printf(connection, "External Children Memory Usage:  %8.2f %s\r\n",
             OctreeElement::getExternalChildrenMemoryUsage() / memoryScale, memoryScaleLabel);
         mg_printf(connection, "%s", "                                 -----------\r\n");
-        mg_printf(connection, "                         Total:  %8.2f %s\r\n", 
+        mg_printf(connection, "                         Total:  %8.2f %s\r\n",
             OctreeElement::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
 
         mg_printf(connection, "%s", "\r\n");
@@ -406,39 +409,39 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         checkSum = 0;
         for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
             checkSum += OctreeElement::getChildrenCount(i);
-            mg_printf(connection, "    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i, 
+            mg_printf(connection, "    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i,
                 locale.toString((uint)OctreeElement::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
                 ((float)OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
         }
         mg_printf(connection, "%s", "                                ----------------------\r\n");
-        mg_printf(connection, "                    Total:      %s nodes\r\n", 
+        mg_printf(connection, "                    Total:      %s nodes\r\n",
             locale.toString((uint)checkSum).rightJustified(16, ' ').toLocal8Bit().constData());
 
 #ifdef BLENDED_UNION_CHILDREN
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "OctreeElement Children Encoding Statistics...\r\n");
-        
+
         mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
             OctreeElement::getSingleChildrenCount(), ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
-            OctreeElement::getTwoChildrenOffsetCount(), 
+        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
+            OctreeElement::getTwoChildrenOffsetCount(),
             ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
-            OctreeElement::getTwoChildrenExternalCount(), 
+        mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
+            OctreeElement::getTwoChildrenExternalCount(),
             ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
-            OctreeElement::getThreeChildrenOffsetCount(), 
+        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
+            OctreeElement::getThreeChildrenOffsetCount(),
             ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
-            OctreeElement::getThreeChildrenExternalCount(), 
+        mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
+            OctreeElement::getThreeChildrenExternalCount(),
             ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getExternalChildrenCount(), 
+            OctreeElement::getExternalChildrenCount(),
             ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
 
         checkSum = OctreeElement::getSingleChildrenCount() +
-                            OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() + 
-                            OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() + 
+                            OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
+                            OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
                             OctreeElement::getExternalChildrenCount();
 
         mg_printf(connection, "%s", "                                ----------------\r\n");
@@ -449,7 +452,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "In other news....\r\n");
         mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
             OctreeElement::getCouldStoreFourChildrenInternally());
-        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
+        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n",
             OctreeElement::getCouldNotStoreFourChildrenInternally());
 #endif
 
@@ -479,13 +482,13 @@ void OctreeServer::setArguments(int argc, char** argv) {
 }
 
 void OctreeServer::parsePayload() {
-    
+
     if (getNumPayloadBytes() > 0) {
         QString config((const char*) _payload);
-        
+
         // Now, parse the config
         QStringList configList = config.split(" ");
-        
+
         int argCount = configList.size() + 1;
 
         qDebug("OctreeServer::parsePayload()... argCount=%d\n",argCount);
@@ -508,24 +511,24 @@ void OctreeServer::parsePayload() {
 
 void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
-    
+
     PACKET_TYPE packetType = dataByteArray[0];
-    
+
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
             qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at" << usecTimestampNow() << "\n";
         }
-        
+
         int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
-        
+
         // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
         // need to make sure we have it in our nodeList.
         QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
                                                               NUM_BYTES_RFC4122_UUID));
-        
+
         Node* node = nodeList->nodeWithUUID(nodeUUID);
-        
+
         if (node) {
             nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char *) dataByteArray.data(),
                                          dataByteArray.size());
@@ -555,7 +558,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
 void OctreeServer::run() {
     // Before we do anything else, create our tree...
     _tree = createTree();
-    
+
     // change the logging target name while this is running
     Logging::setTargetName(getMyLoggingServerTargetName());
 
@@ -567,7 +570,7 @@ void OctreeServer::run() {
     beforeRun(); // after payload has been processed
 
     qInstallMessageHandler(Logging::verboseMessageHandler);
-    
+
     const char* STATUS_PORT = "--statusPort";
     const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
     if (statusPort) {
@@ -575,7 +578,7 @@ void OctreeServer::run() {
         initMongoose(statusPortNumber);
     }
 
-    
+
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
     if (jurisdictionFile) {
@@ -604,11 +607,11 @@ void OctreeServer::run() {
 
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(getMyNodeType());
-    
+
     // we need to ask the DS about agents so we can ping/reply with them
     const char nodeTypesOfInterest[] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
-    
+
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
@@ -616,7 +619,7 @@ void OctreeServer::run() {
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
     srand((unsigned)time(0));
-    
+
     const char* VERBOSE_DEBUG = "--verboseDebug";
     _verboseDebug =  cmdOptionExists(_argc, _argv, VERBOSE_DEBUG);
     qDebug("verboseDebug=%s\n", debug::valueOf(_verboseDebug));
@@ -656,9 +659,9 @@ void OctreeServer::run() {
             _persistThread->initialize(true);
         }
     }
-    
-    // Debug option to demonstrate that the server's local time does not 
-    // need to be in sync with any other network node. This forces clock 
+
+    // Debug option to demonstrate that the server's local time does not
+    // need to be in sync with any other network node. This forces clock
     // skew for the individual server node
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(_argc, _argv, CLOCK_SKEW);
@@ -680,14 +683,14 @@ void OctreeServer::run() {
     }
 
     HifiSockAddr senderSockAddr;
-    
+
     // set up our jurisdiction broadcaster...
     if (_jurisdiction) {
         _jurisdiction->setNodeType(getMyNodeType());
     }
     _jurisdictionSender = new JurisdictionSender(_jurisdiction, getMyNodeType());
     _jurisdictionSender->initialize(true);
-    
+
     // set up our OctreeServerPacketProcessor
     _octreeInboundPacketProcessor = new OctreeInboundPacketProcessor(this);
     _octreeInboundPacketProcessor->initialize(true);
@@ -704,15 +707,15 @@ void OctreeServer::run() {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer << "\n";
-    
+
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
+
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
+
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
