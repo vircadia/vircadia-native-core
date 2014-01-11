@@ -11,6 +11,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
+#include <time.h>
 #include <Logging.h>
 #include <UUID.h>
 

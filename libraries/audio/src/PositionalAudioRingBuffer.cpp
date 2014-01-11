@@ -14,6 +14,12 @@
 
 #include "PositionalAudioRingBuffer.h"
 
+#ifdef _WIN32
+bool isnan_(double value) { return _isnan(value); }
+#else
+bool isnan_(double value) { return std::isnan(value); }
+#endif
+
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
     AudioRingBuffer(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL),
     _type(type),
@@ -22,7 +28,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
     _willBeAddedToMix(false),
     _shouldLoopbackForNode(false)
 {
-    
+
 }
 
 PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
@@ -33,25 +39,25 @@ int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numByt
     currentBuffer += NUM_BYTES_RFC4122_UUID; // the source UUID
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
-    
+
     return currentBuffer - sourceBuffer;
 }
 
 int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer;
-    
+
     memcpy(&_position, currentBuffer, sizeof(_position));
     currentBuffer += sizeof(_position);
 
     memcpy(&_orientation, currentBuffer, sizeof(_orientation));
     currentBuffer += sizeof(_orientation);
-    
+
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (std::isnan(_orientation.x)) {
         reset();
         return 0;
     }
-    
+
     return currentBuffer - sourceBuffer;
 }
 
@@ -66,12 +72,12 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     } else {
         // good buffer, add this to the mix
         _isStarved = false;
-        
+
         // since we've read data from ring buffer at least once - we've started
         _hasStarted = true;
-        
+
         return true;
     }
-    
+
     return false;
 }
