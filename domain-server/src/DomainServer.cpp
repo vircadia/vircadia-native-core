@@ -542,7 +542,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         QStringList multiConfigList = multiConfig.split(";");
 
         // read each config to a payload for a VS assignment
-        for (unsigned int i = 0; i < multiConfigList.size(); i++) {
+        for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
 
             qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
@@ -584,7 +584,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         QStringList multiConfigList = multiConfig.split(";");
 
         // read each config to a payload for a VS assignment
-        for (unsigned int i = 0; i < multiConfigList.size(); i++) {
+        for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
 
             qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
