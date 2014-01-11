@@ -533,9 +533,13 @@ void NodeList::sendDomainServerCheckIn() {
         const int IP_ADDRESS_BYTES = 4;
 
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
+        #ifdef _WIN32
+        const int numPacketBytes = MAX_PACKET_SIZE;
+        #else
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
             NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
             numBytesNodesOfInterest + sizeof(unsigned char);
+        #endif
 
         unsigned char checkInPacket[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
