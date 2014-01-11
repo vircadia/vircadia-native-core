@@ -254,7 +254,11 @@ void AudioMixer::run() {
     gettimeofday(&startTime, NULL);
 
     int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+    #ifdef _WIN32
+    unsigned char clientPacket[MAX_PACKET_SIZE];
+    #else
     unsigned char clientPacket[NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
+    #endif
     populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
 
     while (!_isFinished) {
