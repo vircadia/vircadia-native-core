@@ -49,20 +49,22 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
     if (_lastOctreePacketLength == getPacketLength()) {
-        return memcmp(_lastOctreePacket + OCTREE_PACKET_HEADER_SIZE,
-                _octreePacket+OCTREE_PACKET_HEADER_SIZE , getPacketLength() - OCTREE_PACKET_HEADER_SIZE == 0);
+        if (memcmp(_lastOctreePacket + OCTREE_PACKET_HEADER_SIZE,
+                _octreePacket + OCTREE_PACKET_HEADER_SIZE , getPacketLength() - OCTREE_PACKET_HEADER_SIZE) == 0) {
+            return true;
+        }
     }
     return false;
 }
 
 bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
     bool shouldSuppress = false; // assume we won't suppress
-    
+
     // only consider duplicate packets
     if (packetIsDuplicate()) {
         _duplicatePacketCount++;
 
-        // If this is the first suppressed packet, remember our time...    
+        // If this is the first suppressed packet, remember our time...
         if (_duplicatePacketCount == 1) {
             _firstSuppressedPacket = usecTimestampNow();
         }
@@ -97,8 +99,8 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     _lastOctreePacketLength = getPacketLength();
     memcpy(_lastOctreePacket, _octreePacket, _lastOctreePacketLength);
 
-    // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
-    // the clients requested color state.    
+    // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
+    // the clients requested color state.
     _currentPacketIsColor = getWantColor();
     _currentPacketIsCompressed = getWantCompression();
     OCTREE_PACKET_FLAGS flags = 0;
@@ -152,7 +154,7 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
         _octreePacketAvailableBytes -= bytes;
         _octreePacketAt += bytes;
         _octreePacketWaiting = true;
-    }    
+    }
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
@@ -175,20 +177,20 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     // Also make sure it's got the correct lens details from the camera
     float originalFOV = getCameraFov();
     float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
-    
+
     newestViewFrustum.setFieldOfView(wideFOV); // hack
     newestViewFrustum.setAspectRatio(getCameraAspectRatio());
     newestViewFrustum.setNearClip(getCameraNearClip());
     newestViewFrustum.setFarClip(getCameraFarClip());
     newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
-    
+
     // if there has been a change, then recalculate
     if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
         _currentViewFrustum = newestViewFrustum;
         _currentViewFrustum.calculate();
         currentViewFrustumChanged = true;
     }
-    
+
     // Also check for LOD changes from the client
     if (_lodInitialized) {
         if (_lastClientBoundaryLevelAdjust != getBoundaryLevelAdjust()) {
@@ -205,7 +207,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
         _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
         _lodChanged = false;
     }
-    
+
     // When we first detect that the view stopped changing, we record this.
     // but we don't change it back to false until we've completely sent this
     // scene.
@@ -216,8 +218,8 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     return currentViewFrustumChanged;
 }
 
-void OctreeQueryNode::setViewSent(bool viewSent) { 
-    _viewSent = viewSent; 
+void OctreeQueryNode::setViewSent(bool viewSent) {
+    _viewSent = viewSent;
     if (viewSent) {
         _viewFrustumJustStoppedChanging = false;
         _lodChanged = false;
@@ -226,12 +228,12 @@ void OctreeQueryNode::setViewSent(bool viewSent) {
 
 void OctreeQueryNode::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
-    
+
     if (frustumChanges) {
         // save our currentViewFrustum into our lastKnownViewFrustum
         _lastKnownViewFrustum = _currentViewFrustum;
     }
-    
+
     // save that we know the view has been sent.
     uint64_t now = usecTimestampNow();
     setLastTimeBagEmpty(now); // is this what we want? poor names
@@ -242,7 +244,7 @@ bool OctreeQueryNode::moveShouldDump() const {
     glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
     glm::vec3 newPosition = _currentViewFrustum.getPosition();
 
-    // theoretically we could make this slightly larger but relative to avatar scale.    
+    // theoretically we could make this slightly larger but relative to avatar scale.
     const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
     if (glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP) {
         return true;
