@@ -49,18 +49,10 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
         case QFileIconProvider::Desktop:
             typeString = "desktop";
             break;
+            
         case QFileIconProvider::Trashcan:
-            typeString = "folder";
-            break;
-            
         case QFileIconProvider::Network:
-            typeString = "folder";
-            break;
-            
         case QFileIconProvider::Drive:
-            typeString = "folder";
-            break;
-            
         case QFileIconProvider::Folder:
             typeString = "folder";
             break;
@@ -70,7 +62,7 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
             break;
     }
 
-    return QIcon ("resources/icons/" + typeString + ".svg");
+    return QIcon("resources/icons/" + typeString + ".svg");
 }
 
 QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
@@ -92,6 +84,7 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
     if (iconFile.exists()) {
         return QIcon(iconFile.filePath());
     }
+    
     return QIcon("resources/icons/file.svg");
 }
 
@@ -157,8 +150,7 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
     connect(&_cancelButton, SIGNAL(pressed()), SLOT(close()));
-    
-    
+
 }
 
 ImportDialog::~ImportDialog() {
@@ -183,11 +175,17 @@ int ImportDialog::exec() {
 }
 
 void ImportDialog::reset() {
-    _importButton.setEnabled(true);
+    _importButton.setEnabled(false);
 }
 
 void ImportDialog::saveCurrentFile(QString filename) {
-    _currentFile = filename;
+    if (!filename.isEmpty() && QFileInfo(filename).isFile()) {
+        _currentFile = filename;
+        _importButton.setEnabled(true);
+    } else {
+        _currentFile = "";
+        _importButton.setEnabled(false);
+    }
 }
 
 void ImportDialog::setLayout() {
@@ -196,10 +194,10 @@ void ImportDialog::setLayout() {
     _importButton.setObjectName("importButton");
     _cancelButton.setObjectName("cancelButton");
     
-    // set size policy used in
+    // set fixed size
     _importButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     _cancelButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-
+    
     // hide unused embeded widgets in QFileDialog
     QWidget* widget = findChild<QWidget*>("lookInCombo");
     widget->hide();
@@ -245,8 +243,8 @@ void ImportDialog::setLayout() {
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
     // remove reference to treeView
-//    widget = NULL;
-//    widget->deleteLater();
+    widget = NULL;
+    widget->deleteLater();
     
     switchToResourcesParentIfRequired();
     QFile styleSheet("resources/styles/import_dialog.qss");

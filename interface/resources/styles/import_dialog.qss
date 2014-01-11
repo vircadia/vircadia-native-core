@@ -22,8 +22,15 @@ QPushButton {
 }
 
 QPushButton#importButton {
-    background: #333333;
     color: #FFFFFF;
+}
+
+QPushButton#importButton:enabled {
+    background: #333333;
+}
+
+QPushButton#importButton:!enabled {
+    background: rgba(50, 50, 50, 0.5);
 }
 
 QPushButton#cancelButton {
