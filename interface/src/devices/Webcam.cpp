@@ -8,8 +8,10 @@
 #include <QTimer>
 #include <QtDebug>
 
+#ifdef HAVE_LIBVPX
 #include <vpx_encoder.h>
 #include <vp8cx.h>
+#endif
 
 #ifdef __APPLE__
 #include <UVCCameraControl.hpp>
@@ -76,13 +78,13 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
     if (_enabled) {
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
-        
+
         const int PREVIEW_HEIGHT = 200;
         int previewWidth = _textureSize.width * PREVIEW_HEIGHT / _textureSize.height;
         int top = screenHeight - 600;
         int left = screenWidth - previewWidth - 10;
         if (_colorTextureID != 0) {
-            glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);
             glBegin(GL_QUADS);
                 glTexCoord2f(0, 0);
                 glVertex2f(left, top);
@@ -94,7 +96,7 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
                 glVertex2f(left, top + PREVIEW_HEIGHT);
             glEnd();
         }
-        
+
         if (_depthTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glBegin(GL_QUADS);
@@ -167,7 +169,7 @@ Webcam::~Webcam() {
 
 static glm::vec3 createVec3(const Point2f& pt) {
     return glm::vec3(pt.x, -pt.y, 0.0f);
-} 
+}
 
 static glm::mat3 createMat3(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
     glm::vec3 u = glm::normalize(p1 - p0);
@@ -185,7 +187,7 @@ static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm:
     if (keyPoints.size() < 3) {
         return 0.0f;
     }
-    
+
     // bubblesort the first three points from top (greatest) to bottom (least)
     glm::vec3 i0 = createVec3(keyPoints[0].pt), i1 = createVec3(keyPoints[1].pt), i2 = createVec3(keyPoints[2].pt);
     if (i1.y > i0.y) {
@@ -197,41 +199,41 @@ static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm:
     if (i1.y > i0.y) {
         swap(i0, i1);
     }
-    
+
     // model space LED locations and the distances between them
     const glm::vec3 M0(2.0f, 0.0f, 0.0f), M1(0.0f, 0.0f, 0.0f), M2(0.0f, -4.0f, 0.0f);
     const float R01 = glm::distance(M0, M1), R02 = glm::distance(M0, M2), R12 = glm::distance(M1, M2);
-    
+
     // compute the distances between the image points
     float d01 = glm::distance(i0, i1), d02 = glm::distance(i0, i2), d12 = glm::distance(i1, i2);
-    
+
     // compute the terms of the quadratic
     float a = (R01 + R02 + R12) * (-R01 + R02 + R12) * (R01 - R02 + R12) * (R01 + R02 - R12);
     float b = d01 * d01 * (-R01 * R01 + R02 * R02 + R12 * R12) + d02 * d02 * (R01 * R01 - R02 * R02 + R12 * R12) +
         d12 * d12 * (R01 * R01 + R02 * R02 - R12 * R12);
     float c = (d01 + d02 + d12) * (-d01 + d02 + d12) * (d01 - d02 + d12) * (d01 + d02 - d12);
-    
+
     // compute the scale
     float s = sqrtf((b + sqrtf(b * b - a * c)) / a);
-    
+
     float sigma = (d01 * d01 + d02 * d02 - d12 * d12 <= s * s * (R01 * R01 + R02 * R02 - R12 * R12)) ? 1.0f : -1.0f;
-    
+
     float h1 = sqrtf(s * s * R01 * R01 - d01 * d01);
     float h2 = sigma * sqrtf(s * s * R02 * R02 - d02 * d02);
-    
+
     // now we can compute the 3D locations of the model points in camera-centered coordinates
     glm::vec3 m0 = glm::vec3(i0.x, i0.y, 0.0f) / s;
     glm::vec3 m1 = glm::vec3(i1.x, i1.y, h1) / s;
     glm::vec3 m2 = glm::vec3(i2.x, i2.y, h2) / s;
-    
+
     // from those and the model space locations, we can compute the transform
     glm::mat3 r1 = createMat3(M0, M1, M2);
     glm::mat3 r2 = createMat3(m0, m1, m2);
     glm::mat3 r = r2 * glm::transpose(r1);
-    
+
     position = m0 - r * M0;
     rotation = glm::quat_cast(r);
-    
+
     return s;
 }
 
@@ -251,7 +253,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width,
                 _textureSize.height = colorImage.height, 0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            
+
         } else {
             glBindTexture(GL_TEXTURE_2D, _colorTextureID);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, format,
@@ -261,7 +263,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
         glDeleteTextures(1, &_colorTextureID);
         _colorTextureID = 0;
     }
-    
+
     if (!depth.empty()) {
         IplImage depthImage = depth;
         glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
@@ -340,11 +342,11 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
                 _initialLEDRotation = rotation;
                 _estimatedRotation = glm::vec3();
                 _initialLEDScale = scale;
-            
+
             } else {
                 const float Z_SCALE = 5.0f;
                 position.z += (_initialLEDScale / scale - 1.0f) * Z_SCALE;
-            
+
                 const float POSITION_SMOOTHING = 0.5f;
                 _estimatedPosition = glm::mix(position - _initialLEDPosition, _estimatedPosition, POSITION_SMOOTHING);
                 const float ROTATION_SMOOTHING = 0.5f;
@@ -404,7 +406,10 @@ static SimpleBlobDetector::Params createBlobDetectorParams() {
 }
 
 FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _ledTrackingOn(false),
-    _capture(0), _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(),
+    _capture(0), _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH),
+#ifdef HAVE_LIBVPX
+    _colorCodec(), _depthCodec(),
+#endif
     _frameCount(0), _blobDetector(createBlobDetectorParams()) {
 }
 
@@ -696,13 +701,13 @@ void FrameGrabber::grabFrame() {
     if (_ledTrackingOn) {
         // convert to grayscale
         cvtColor(color, _grayFrame, format == GL_RGB ? CV_RGB2GRAY : CV_BGR2GRAY);
-        
+
         // apply threshold
         threshold(_grayFrame, _grayFrame, 28.0, 255.0, THRESH_BINARY);
-    
+
         // convert back so that we can see
         cvtColor(_grayFrame, color, format == GL_RGB ? CV_GRAY2RGB : CV_GRAY2BGR);
-    
+
         // find the locations of the LEDs, which should show up as blobs
         _blobDetector.detect(_grayFrame, keyPoints);
     }
@@ -753,12 +758,12 @@ void FrameGrabber::grabFrame() {
 
     // increment the frame count that identifies frames
     _frameCount++;
-    
-    QByteArray payload;    
+
+    QByteArray payload;
     if (!_ledTrackingOn && _videoSendMode != NO_VIDEO) {
         // start the payload off with the aspect ratio (zero for full frame)
         payload.append((const char*)&aspectRatio, sizeof(float));
-   
+
         // prepare the image in which we'll store the data
         const int ENCODED_BITS_PER_Y = 8;
         const int ENCODED_BITS_PER_VU = 2;
@@ -767,8 +772,9 @@ void FrameGrabber::grabFrame() {
         _encodedFace.resize(encodedWidth * encodedHeight * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
         vpx_image_t vpxImage;
         vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, encodedWidth, encodedHeight, 1, (unsigned char*)_encodedFace.data());
-        
+
         if (!_depthOnly || depth.empty()) {
+#ifdef HAVE_LIBVPX
             if (_colorCodec.name == 0) {
                 // initialize encoder context
                 vpx_codec_enc_cfg_t codecConfig;
@@ -779,7 +785,7 @@ void FrameGrabber::grabFrame() {
                 codecConfig.g_h = encodedHeight;
                 vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
             }
-
+#endif
             if (_videoSendMode == FACE_VIDEO) {
                 // resize/rotate face into encoding rectangle
                 _faceColor.create(encodedHeight, encodedWidth, CV_8UC3);
@@ -838,8 +844,8 @@ void FrameGrabber::grabFrame() {
             }
 
             // encode the frame
+#ifdef HAVE_LIBVPX
             vpx_codec_encode(&_colorCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
-
             // extract the encoded frame
             vpx_codec_iter_t iterator = 0;
             const vpx_codec_cx_pkt_t* packet;
@@ -850,19 +856,21 @@ void FrameGrabber::grabFrame() {
                     payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
                 }
             }
+#endif
         } else {
             // zero length indicates no color info
             const size_t ZERO_SIZE = 0;
             payload.append((const char*)&ZERO_SIZE, sizeof(size_t));
-            
+
             // we can use more bits for depth
             depthBitrateMultiplier *= 2.0f;
-            
+
             // don't bother reporting the color
             color = Mat();
         }
-        
+
         if (!depth.empty()) {
+#ifdef HAVE_LIBVPX
             if (_depthCodec.name == 0) {
                 // initialize encoder context
                 vpx_codec_enc_cfg_t codecConfig;
@@ -873,7 +881,8 @@ void FrameGrabber::grabFrame() {
                 codecConfig.g_h = encodedHeight;
                 vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
             }
-            
+#endif
+
             // convert with mask
             uchar* yline = vpxImage.planes[0];
             uchar* vline = vpxImage.planes[1];
@@ -909,6 +918,7 @@ void FrameGrabber::grabFrame() {
                 uline += vpxImage.stride[2];
             }
 
+#ifdef HAVE_LIBVPX
             // encode the frame
             vpx_codec_encode(&_depthCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
 
@@ -920,6 +930,7 @@ void FrameGrabber::grabFrame() {
                     payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
                 }
             }
+#endif
         }
     }
 
@@ -988,9 +999,9 @@ void FrameGrabber::configureCapture() {
 #ifdef HAVE_OPENNI
     if (_depthGenerator.IsValid()) {
         return; // don't bother handling LED tracking with depth camera
-    }    
+    }
 #endif
-    
+
 #ifdef __APPLE__
     configureCamera(0x5ac, 0x8510, false, _ledTrackingOn ? 1.0 : 0.975, 0.5, 1.0, 0.5, true, 0.5);
 #else
@@ -1009,6 +1020,7 @@ void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
 }
 
 void FrameGrabber::destroyCodecs() {
+#ifdef HAVE_LIBVPX
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
         _colorCodec.name = 0;
@@ -1017,6 +1029,7 @@ void FrameGrabber::destroyCodecs() {
         vpx_codec_destroy(&_depthCodec);
         _depthCodec.name = 0;
     }
+#endif
 }
 
 Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :

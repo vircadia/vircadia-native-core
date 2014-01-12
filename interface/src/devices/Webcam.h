@@ -22,7 +22,7 @@
 #include <XnCppWrapper.h>
 #endif
 
-#ifdef LIBVPX
+#ifdef HAVE_LIBVPX
 #include <vpx_codec.h>
 #endif
 
@@ -150,7 +150,7 @@ private:
     cv::Mat _grayDepthFrame;
     float _smoothedMidFaceDepth;
 
-#ifdef LIBVPX
+#ifdef HAVE_LIBVPX
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
 #endif
