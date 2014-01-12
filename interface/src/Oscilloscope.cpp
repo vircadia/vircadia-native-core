@@ -10,6 +10,8 @@
 #include <cstring>
 #include <algorithm>
 
+#include <stdint.h>
+
 #include <QtCore/QDebug>
 
 #include "InterfaceConfig.h"

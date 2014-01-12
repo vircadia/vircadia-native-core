@@ -9,6 +9,8 @@
 #include <cstring>
 #include <sys/stat.h>
 
+#include <math.h>
+
 #ifdef __APPLE__
 #include <CoreAudio/AudioHardware.h>
 #endif
@@ -185,7 +187,7 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             // we need to downsample from 48 to 24
             // for now this only supports a mono output - this would be the case for audio input
 
-            for (int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
+            for (unsigned int i = sourceAudioFormat.channelCount(); i < numSourceSamples; i += 2 * sourceAudioFormat.channelCount()) {
                 if (i + (sourceAudioFormat.channelCount()) >= numSourceSamples) {
                     destinationSamples[(i - sourceAudioFormat.channelCount()) / (int) sourceToDestinationFactor] =
                         (sourceSamples[i - sourceAudioFormat.channelCount()] / 2)
@@ -206,11 +208,11 @@ void linearResampling(int16_t* sourceSamples, int16_t* destinationSamples,
             int sampleShift = destinationAudioFormat.channelCount() * dtsSampleRateFactor;
             int destinationToSourceFactor = (1 / sourceToDestinationFactor);
 
-            for (int i = 0; i < numDestinationSamples; i += sampleShift) {
+            for (unsigned int i = 0; i < numDestinationSamples; i += sampleShift) {
                 sourceIndex = (i / destinationToSourceFactor);
 
                 // fill the L/R channels and make the rest silent
-                for (int j = i; j < i + sampleShift; j++) {
+                for (unsigned int j = i; j < i + sampleShift; j++) {
                     if (j % destinationAudioFormat.channelCount() == 0) {
                         // left channel
                         destinationSamples[j] = sourceSamples[sourceIndex];
@@ -293,7 +295,7 @@ void Audio::handleAudioInput() {
     static float inputToNetworkInputRatio = _numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO
         / NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL;
 
-    static int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
+    static unsigned int inputSamplesRequired = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio;
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -325,7 +327,7 @@ void Audio::handleAudioInput() {
 
     while (_inputRingBuffer.samplesAvailable() > inputSamplesRequired) {
 
-        int16_t inputAudioSamples[inputSamplesRequired];
+        int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
         _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
 
         // zero out the monoAudioSamples array and the locally injected audio
@@ -403,6 +405,7 @@ void Audio::handleAudioInput() {
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
+	    delete[] inputAudioSamples;
     }
 }
 
@@ -464,7 +467,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             // add to the output samples whatever is in the _localAudioOutput byte array
             // that lets this user hear sound effects and loopback (if enabled)
 
-            for (unsigned int b = 0; b < _localInjectionByteArrays.size(); b++) {
+            for (int b = 0; b < _localInjectionByteArrays.size(); b++) {
                 QByteArray audioByteArray = _localInjectionByteArrays.at(b);
 
                 int16_t* byteArraySamples = (int16_t*) audioByteArray.data();

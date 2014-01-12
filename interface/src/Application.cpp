@@ -9,6 +9,8 @@
 
 #include <stdlib.h>
 #include <cmath>
+#include <math.h>
+
 
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -320,8 +322,8 @@ void Application::initializeGL() {
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
-    _viewFrustumOffsetCamera.setNearClip(0.1);
-    _viewFrustumOffsetCamera.setFarClip(500.0 * TREE_SCALE);
+    _viewFrustumOffsetCamera.setNearClip(0.1f);
+    _viewFrustumOffsetCamera.setFarClip(500.0f * TREE_SCALE);
 
     initDisplay();
     qDebug( "Initialized Display.\n" );
@@ -1318,7 +1320,7 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
         getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
         *offsetPosition += payloadSize;
 
-    } while (*offsetPosition < data.size());
+    } while (*offsetPosition < (uint32_t)data.size());
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1967,7 +1969,7 @@ void Application::shrinkMirrorView() {
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 50.0f;
-const float HEAD_SPHERE_RADIUS = 0.07;
+const float HEAD_SPHERE_RADIUS = 0.07f;
 
 static QUuid DEFAULT_NODE_ID_REF;
 
@@ -2861,8 +2863,8 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
                     const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
                     _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                    _voxelQuery.setCameraNearClip(0.1);
-                    _voxelQuery.setCameraFarClip(0.1);
+                    _voxelQuery.setCameraNearClip(0.1f);
+                    _voxelQuery.setCameraFarClip(0.1f);
                     if (wantExtraDebugging) {
                         qDebug() << "Using 'minimal' camera position for node " << *node << "\n";
                     }
@@ -3020,9 +3022,9 @@ void Application::setupWorldLight() {
     glm::vec3 sunDirection = getSunDirection();
     GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
     glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+    GLfloat ambient_color[] = { 0.7f, 0.7f, 0.8f };
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+    GLfloat diffuse_color[] = { 0.8f, 0.7f, 0.7f };
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
 
     glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);
@@ -3390,7 +3392,7 @@ void Application::displayOverlay() {
             node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
         }
         sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-        drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
+        drawtext(_glWidget->width() - 150, 20, 0.10f, 0, 1.0f, 0, nodes, 1, 0, 0);
     }
 
     // testing rendering coverage map
@@ -3412,8 +3414,8 @@ void Application::displayOverlay() {
         char frameTimer[10];
         uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
-        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
-        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
+        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
+        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
     }
 
 
@@ -3474,6 +3476,12 @@ void Application::displayOverlay() {
 
     glPopMatrix();
 }
+
+#ifdef WIN32
+double roundf(double value) {
+	return (value > 0.0) ? floor(value + 0.5) : ceil(value - 0.5);
+}
+#endif
 
 void Application::displayStats() {
     int statsVerticalOffset = 8;
@@ -4205,7 +4213,7 @@ void Application::nodeKilled(Node* node) {
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
                 VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
                 fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99;
+                const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
                 _voxelFades.push_back(fade);
             }
@@ -4236,7 +4244,7 @@ void Application::nodeKilled(Node* node) {
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
                 VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
                 fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99;
+                const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
                 _voxelFades.push_back(fade);
             }
@@ -4326,7 +4334,7 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
                 VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
                 fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99;
+                const float slightly_smaller = 0.99f;
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
                 _voxelFades.push_back(fade);
             }
