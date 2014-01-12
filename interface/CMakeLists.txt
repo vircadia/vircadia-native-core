@@ -28,10 +28,10 @@ if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 endif (APPLE)
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
-endif (UNIX)
+endif (UNIX AND NOT APPLE)
 
 if (WIN32)
     #set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
