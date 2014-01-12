@@ -22,7 +22,9 @@
 #include <XnCppWrapper.h>
 #endif
 
+#ifdef LIBVPX
 #include <vpx_codec.h>
+#endif
 
 #include "InterfaceConfig.h"
 
@@ -90,7 +92,7 @@ private:
     float _initialFaceDepth;
     JointVector _joints;
     KeyPointVector _keyPoints;
-    
+
     glm::quat _initialLEDRotation;
     glm::vec3 _initialLEDPosition;
     float _initialLEDScale;
@@ -148,8 +150,10 @@ private:
     cv::Mat _grayDepthFrame;
     float _smoothedMidFaceDepth;
 
+#ifdef LIBVPX
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
+#endif
     int _frameCount;
     cv::Mat _faceColor;
     cv::Mat _faceDepth;
