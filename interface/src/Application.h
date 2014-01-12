@@ -189,8 +189,8 @@ public:
     const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
-        float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);

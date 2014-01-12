@@ -3289,10 +3289,10 @@ void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
         translation.z + _viewMatrixTranslation.z);
 }
 
-void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
-    float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+    float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
 void Application::displayOverlay() {
