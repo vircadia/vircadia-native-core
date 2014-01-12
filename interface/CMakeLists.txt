@@ -34,6 +34,7 @@ if (UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 if (WIN32)
+    add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
     #set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
 
