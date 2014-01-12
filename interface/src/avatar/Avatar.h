@@ -28,30 +28,30 @@ static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
 
-const float BODY_BALL_RADIUS_PELVIS = 0.07;
-const float BODY_BALL_RADIUS_TORSO = 0.065;
-const float BODY_BALL_RADIUS_CHEST = 0.08;
-const float BODY_BALL_RADIUS_NECK_BASE = 0.03;
-const float BODY_BALL_RADIUS_HEAD_BASE = 0.07;
-const float BODY_BALL_RADIUS_LEFT_COLLAR = 0.04;
-const float BODY_BALL_RADIUS_LEFT_SHOULDER = 0.03;
-const float BODY_BALL_RADIUS_LEFT_ELBOW = 0.02;
-const float BODY_BALL_RADIUS_LEFT_WRIST = 0.02;
-const float BODY_BALL_RADIUS_LEFT_FINGERTIPS = 0.01;
-const float BODY_BALL_RADIUS_RIGHT_COLLAR = 0.04;
-const float BODY_BALL_RADIUS_RIGHT_SHOULDER = 0.03;
-const float BODY_BALL_RADIUS_RIGHT_ELBOW = 0.02;
-const float BODY_BALL_RADIUS_RIGHT_WRIST = 0.02;
-const float BODY_BALL_RADIUS_RIGHT_FINGERTIPS = 0.01;
-const float BODY_BALL_RADIUS_LEFT_HIP = 0.04;
-const float BODY_BALL_RADIUS_LEFT_MID_THIGH = 0.03;
-const float BODY_BALL_RADIUS_LEFT_KNEE = 0.025;
-const float BODY_BALL_RADIUS_LEFT_HEEL = 0.025;
-const float BODY_BALL_RADIUS_LEFT_TOES = 0.025;
-const float BODY_BALL_RADIUS_RIGHT_HIP = 0.04;
-const float BODY_BALL_RADIUS_RIGHT_KNEE = 0.025;
-const float BODY_BALL_RADIUS_RIGHT_HEEL = 0.025;
-const float BODY_BALL_RADIUS_RIGHT_TOES = 0.025;
+const float BODY_BALL_RADIUS_PELVIS = 0.07f;
+const float BODY_BALL_RADIUS_TORSO = 0.065f;
+const float BODY_BALL_RADIUS_CHEST = 0.08f;
+const float BODY_BALL_RADIUS_NECK_BASE = 0.03f;
+const float BODY_BALL_RADIUS_HEAD_BASE = 0.07f;
+const float BODY_BALL_RADIUS_LEFT_COLLAR = 0.04f;
+const float BODY_BALL_RADIUS_LEFT_SHOULDER = 0.03f;
+const float BODY_BALL_RADIUS_LEFT_ELBOW = 0.02f;
+const float BODY_BALL_RADIUS_LEFT_WRIST = 0.02f;
+const float BODY_BALL_RADIUS_LEFT_FINGERTIPS = 0.01f;
+const float BODY_BALL_RADIUS_RIGHT_COLLAR = 0.04f;
+const float BODY_BALL_RADIUS_RIGHT_SHOULDER = 0.03f;
+const float BODY_BALL_RADIUS_RIGHT_ELBOW = 0.02f;
+const float BODY_BALL_RADIUS_RIGHT_WRIST = 0.02f;
+const float BODY_BALL_RADIUS_RIGHT_FINGERTIPS = 0.01f;
+const float BODY_BALL_RADIUS_LEFT_HIP = 0.04f;
+const float BODY_BALL_RADIUS_LEFT_MID_THIGH = 0.03f;
+const float BODY_BALL_RADIUS_LEFT_KNEE = 0.025f;
+const float BODY_BALL_RADIUS_LEFT_HEEL = 0.025f;
+const float BODY_BALL_RADIUS_LEFT_TOES = 0.025f;
+const float BODY_BALL_RADIUS_RIGHT_HIP = 0.04f;
+const float BODY_BALL_RADIUS_RIGHT_KNEE = 0.025f;
+const float BODY_BALL_RADIUS_RIGHT_HEEL = 0.025f;
+const float BODY_BALL_RADIUS_RIGHT_TOES = 0.025f;
 
 extern const bool usingBigSphereCollisionTest;
 
@@ -60,12 +60,12 @@ extern const float CHAT_MESSAGE_HEIGHT;
 
 enum AvatarBodyBallID {
 	BODY_BALL_NULL = -1,
-	BODY_BALL_PELVIS,	
-	BODY_BALL_TORSO,	
-	BODY_BALL_CHEST,	
-	BODY_BALL_NECK_BASE,	
-	BODY_BALL_HEAD_BASE,	
-	BODY_BALL_HEAD_TOP,	
+	BODY_BALL_PELVIS,
+	BODY_BALL_TORSO,
+	BODY_BALL_CHEST,
+	BODY_BALL_NECK_BASE,
+	BODY_BALL_HEAD_BASE,
+	BODY_BALL_HEAD_TOP,
 	BODY_BALL_LEFT_COLLAR,
 	BODY_BALL_LEFT_SHOULDER,
 	BODY_BALL_LEFT_ELBOW,
@@ -90,11 +90,11 @@ enum AvatarBodyBallID {
 enum DriveKeys {
     FWD = 0,
     BACK,
-    LEFT, 
-    RIGHT, 
+    LEFT,
+    RIGHT,
     UP,
     DOWN,
-    ROT_LEFT, 
+    ROT_LEFT,
     ROT_RIGHT,
     ROT_UP,
     ROT_DOWN,
@@ -125,14 +125,14 @@ const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
 
 class Avatar : public AvatarData {
     Q_OBJECT
-    
+
 public:
     static void sendAvatarURLsMessage(const QUrl& voxelURL);
-    
+
     Avatar(Node* owningNode = NULL);
     ~Avatar();
     void deleteOrDeleteLater();
-    
+
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
     void follow(Avatar* leadingAvatar);
@@ -172,7 +172,7 @@ public:
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
-    
+
 public slots:
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void goHome();
@@ -187,14 +187,14 @@ protected:
     struct AvatarBall {
         AvatarJointID parentJoint; /// the skeletal joint that serves as a reference for determining the position
         glm::vec3 parentOffset; /// a 3D vector in the frame of reference of the parent skeletal joint
-        AvatarBodyBallID parentBall; /// the ball to which this ball is constrained for spring forces 
+        AvatarBodyBallID parentBall; /// the ball to which this ball is constrained for spring forces
         glm::vec3 position; /// the actual dynamic position of the ball at any given time
-        glm::quat rotation; /// the rotation of the ball           
+        glm::quat rotation; /// the rotation of the ball
         glm::vec3 velocity; /// the velocity of the ball
-        float springLength; /// the ideal length of the spring between this ball and its parentBall 
+        float springLength; /// the ideal length of the spring between this ball and its parentBall
         float jointTightness; /// how tightly the ball position attempts to stay at its ideal position (determined by parentOffset)
         float radius; /// the radius of the ball
-        bool isCollidable; /// whether or not the ball responds to collisions 
+        bool isCollidable; /// whether or not the ball responds to collisions
         float touchForce; /// a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
@@ -234,13 +234,13 @@ private:
     // privatize copy constructor and assignment operator to avoid copying
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
-    
+
     bool _initialized;
     glm::vec3 _handHoldingPosition;
     float _maxArmLength;
     float _pelvisStandingHeight;
-    
-    
+
+
     // private methods...
     glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
     float getBallRenderAlpha(int ball, bool forceRenderHead) const;
