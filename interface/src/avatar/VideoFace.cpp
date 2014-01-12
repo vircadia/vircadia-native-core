@@ -8,8 +8,10 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#ifdef HAVE_LIBVPX
 #include <vpx_decoder.h>
 #include <vp8dx.h>
+#endif
 
 #include <PacketHeaders.h>
 
@@ -38,16 +40,16 @@ VideoFace::VideoFace(Head* owningHead) : _owningHead(owningHead), _renderMode(ME
 VideoFace::~VideoFace() {
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
-        
+
         // delete our texture, since we know that we own it
         if (_colorTextureID != 0) {
             glDeleteTextures(1, &_colorTextureID);
         }
-        
+
     }
     if (_depthCodec.name != 0) {
         vpx_codec_destroy(&_depthCodec);
-        
+
         // delete our texture, since we know that we own it
         if (_depthTextureID != 0) {
             glDeleteTextures(1, &_depthTextureID);
@@ -72,45 +74,45 @@ void VideoFace::clearFrame() {
     _colorTextureID = 0;
     _depthTextureID = 0;
 }
-    
+
 int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     unsigned char* packetPosition = packetData;
 
     int frameCount = *(uint32_t*)packetPosition;
     packetPosition += sizeof(uint32_t);
-    
+
     int frameSize = *(uint32_t*)packetPosition;
     packetPosition += sizeof(uint32_t);
-    
+
     int frameOffset = *(uint32_t*)packetPosition;
     packetPosition += sizeof(uint32_t);
-    
+
     if (frameCount < _frameCount) { // old frame; ignore
-        return dataBytes; 
-    
+        return dataBytes;
+
     } else if (frameCount > _frameCount) { // new frame; reset
         _frameCount = frameCount;
         _frameBytesRemaining = frameSize;
         _arrivingFrame.resize(frameSize);
     }
-    
+
     int payloadSize = dataBytes - (packetPosition - packetData);
     memcpy(_arrivingFrame.data() + frameOffset, packetPosition, payloadSize);
-    
+
     if ((_frameBytesRemaining -= payloadSize) > 0) {
         return dataBytes; // wait for the rest of the frame
     }
-    
+
     if (frameSize == 0) {
         // destroy the codecs, if we have any
         destroyCodecs();
-    
+
         // disables video data
         QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, Mat()),
             Q_ARG(cv::Mat, Mat()), Q_ARG(float, 0.0f));
         return dataBytes;
     }
-    
+
     // the switch between full frame or depth only modes requires us to reinit the codecs
     float aspectRatio = *(const float*)_arrivingFrame.constData();
     size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
@@ -121,7 +123,7 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
         _lastFullFrame = fullFrame;
         _lastDepthOnly = depthOnly;
     }
-    
+
     // read the color data, if non-empty
     Mat color;
     const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
@@ -153,32 +155,32 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
                     uchar* tr = color.ptr(i, j + 1);
                     uchar* bl = color.ptr(i + 1, j);
                     uchar* br = color.ptr(i + 1, j + 1);
-                    
+
                     int v = *vsrc++ - 128;
                     int u = *usrc++ - 128;
-                    
+
                     int redOffset = (RED_V_WEIGHT * v) >> 8;
                     int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
                     int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
-                    
+
                     int ytl = ysrc[0];
                     int ytr = ysrc[1];
                     int ybl = ysrc[image->w];
                     int ybr = ysrc[image->w + 1];
                     ysrc += 2;
-                    
+
                     tl[0] = saturate_cast<uchar>(ytl + redOffset);
                     tl[1] = saturate_cast<uchar>(ytl - greenOffset);
                     tl[2] = saturate_cast<uchar>(ytl + blueOffset);
-                    
+
                     tr[0] = saturate_cast<uchar>(ytr + redOffset);
-                    tr[1] = saturate_cast<uchar>(ytr - greenOffset); 
+                    tr[1] = saturate_cast<uchar>(ytr - greenOffset);
                     tr[2] = saturate_cast<uchar>(ytr + blueOffset);
-                    
+
                     bl[0] = saturate_cast<uchar>(ybl + redOffset);
                     bl[1] = saturate_cast<uchar>(ybl - greenOffset);
                     bl[2] = saturate_cast<uchar>(ybl + blueOffset);
-                    
+
                     br[0] = saturate_cast<uchar>(ybr + redOffset);
                     br[1] = saturate_cast<uchar>(ybr - greenOffset);
                     br[2] = saturate_cast<uchar>(ybr + blueOffset);
@@ -192,7 +194,7 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
         vpx_codec_destroy(&_colorCodec);
         _colorCodec.name = 0;
     }
-    
+
     // read the depth data, if non-empty
     Mat depth;
     const uint8_t* depthData = colorData + colorSize;
@@ -220,7 +222,7 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
                         *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
                         *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
                         *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
-                    
+
                     } else {
                         *depth.ptr(i, j) = ysrc[0];
                         *depth.ptr(i, j + 1) = ysrc[1];
@@ -239,7 +241,7 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
     }
     QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
         Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
-    
+
     return dataBytes;
 }
 
@@ -248,19 +250,19 @@ bool VideoFace::render(float alpha) {
         return false;
     }
     glPushMatrix();
-    
+
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-        
+
     float aspect, xScale, zScale;
     if (_aspectRatio == FULL_FRAME_ASPECT) {
         aspect = _textureSize.width / _textureSize.height;
         const float FULL_FRAME_SCALE = 0.5f;
         xScale = FULL_FRAME_SCALE * _owningHead->getScale();
         zScale = xScale * 0.3f;
-        
+
         glPushMatrix();
         glTranslatef(0.0f, -0.2f, 0.0f);
         glScalef(0.5f * xScale, xScale / aspect, zScale);
@@ -274,12 +276,12 @@ bool VideoFace::render(float alpha) {
         glTranslatef(0.0f, -xScale * 0.75f, -xScale);
     }
     glScalef(xScale, xScale / aspect, zScale);
-    
+
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
-    
+
     Point2f points[4];
     _textureRect.points(points);
-    
+
     if (_depthTextureID != 0) {
         const int VERTEX_WIDTH = 100;
         const int VERTEX_HEIGHT = 100;
@@ -289,14 +291,14 @@ bool VideoFace::render(float alpha) {
         const int QUAD_WIDTH = VERTEX_WIDTH - 1;
         const int QUAD_HEIGHT = VERTEX_HEIGHT - 1;
         const int QUAD_COUNT = QUAD_WIDTH * QUAD_HEIGHT;
-        const int TRIANGLES_PER_QUAD = 2;   
+        const int TRIANGLES_PER_QUAD = 2;
         const int INDICES_PER_TRIANGLE = 3;
         const int INDEX_COUNT = QUAD_COUNT * TRIANGLES_PER_QUAD * INDICES_PER_TRIANGLE;
-        
+
         if (!_initialized) {
             loadProgram(_videoProgram, QString(), "colorTexture", _videoProgramLocations);
             loadProgram(_texturedProgram, "_textured", "permutationNormalTexture", _texturedProgramLocations);
-            
+
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
             float* vertices = new float[BUFFER_ELEMENTS];
@@ -309,17 +311,17 @@ bool VideoFace::render(float alpha) {
             }
             glBufferData(GL_ARRAY_BUFFER, BUFFER_ELEMENTS * sizeof(float), vertices, GL_STATIC_DRAW);
             delete[] vertices;
-            
+
             glGenBuffers(1, &_iboID);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
             int* indices = new int[INDEX_COUNT];
-            int* indexPosition = indices; 
+            int* indexPosition = indices;
             for (int i = 0; i < QUAD_HEIGHT; i++) {
                 for (int j = 0; j < QUAD_WIDTH; j++) {
                     *indexPosition++ = i * VERTEX_WIDTH + j;
                     *indexPosition++ = (i + 1) * VERTEX_WIDTH + j;
                     *indexPosition++ = i * VERTEX_WIDTH + j + 1;
-                    
+
                     *indexPosition++ = i * VERTEX_WIDTH + j + 1;
                     *indexPosition++ = (i + 1) * VERTEX_WIDTH + j;
                     *indexPosition++ = (i + 1) * VERTEX_WIDTH + j + 1;
@@ -334,21 +336,21 @@ bool VideoFace::render(float alpha) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
         }
         glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-        
+
         glActiveTexture(GL_TEXTURE1);
-        
+
         ProgramObject* program = &_videoProgram;
         Locations* locations = &_videoProgramLocations;
         if (_colorTextureID != 0) {
-            glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
-        
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+
         } else {
             glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
             program = &_texturedProgram;
             locations = &_texturedProgramLocations;
         }
         program->bind();
-        program->setUniformValue(locations->texCoordCorner, 
+        program->setUniformValue(locations->texCoordCorner,
             points[0].x / _textureSize.width, points[0].y / _textureSize.height);
         program->setUniformValue(locations->texCoordRight,
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
@@ -356,36 +358,36 @@ bool VideoFace::render(float alpha) {
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
-        
+
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_EQUAL, 1.0f);
-        
+
         if (_renderMode == MESH) {
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTEX_COUNT - 1, INDEX_COUNT, GL_UNSIGNED_INT, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
+
         } else { // _renderMode == POINTS
             glPointSize(5.0f);
             glDrawArrays(GL_POINTS, 0, VERTEX_COUNT);
             glPointSize(1.0f);
         }
-        
+
         glDisable(GL_ALPHA_TEST);
-        
+
         glDisableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         program->release();
-        
+
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
-    
+
     } else {
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         glEnable(GL_TEXTURE_2D);
-        
+
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, -0.5f, 0.0f);    
+        glVertex3f(0.5f, -0.5f, 0.0f);
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
         glVertex3f(0.5f, 0.5f, 0.0f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
@@ -393,19 +395,19 @@ bool VideoFace::render(float alpha) {
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
         glVertex3f(-0.5f, -0.5f, 0.0f);
         glEnd();
-        
+
         glDisable(GL_TEXTURE_2D);
     }
-    
+
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     glPopMatrix();
-    
+
     return true;
 }
 
 void VideoFace::cycleRenderMode() {
-    _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);    
+    _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
 }
 
 void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
@@ -421,7 +423,7 @@ void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspec
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             textureSize = color.size();
             _textureRect = RotatedRect(Point2f(color.cols * 0.5f, color.rows * 0.5f), textureSize, 0.0f);
-        
+
         } else {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
         }
@@ -429,7 +431,7 @@ void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspec
         glDeleteTextures(1, &_colorTextureID);
         _colorTextureID = 0;
     }
-    
+
     if (!depth.empty()) {
         bool generate = (_depthTextureID == 0);
         if (generate) {
@@ -443,7 +445,7 @@ void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspec
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             textureSize = depth.size();
             _textureRect = RotatedRect(Point2f(depth.cols * 0.5f, depth.rows * 0.5f), textureSize, 0.0f);
-            
+
         } else {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth.cols, depth.rows, GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
         }
@@ -452,7 +454,7 @@ void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspec
         _depthTextureID = 0;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     _aspectRatio = aspectRatio;
     _textureSize = textureSize;
 }
@@ -472,12 +474,12 @@ void VideoFace::loadProgram(ProgramObject& program, const QString& suffix, const
     program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face" + suffix + ".vert");
     program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face" + suffix + ".frag");
     program.link();
-    
+
     program.bind();
     program.setUniformValue("depthTexture", 0);
     program.setUniformValue(secondTextureUniform, 1);
     program.release();
-    
+
     locations.texCoordCorner = program.uniformLocation("texCoordCorner");
     locations.texCoordRight = program.uniformLocation("texCoordRight");
     locations.texCoordUp = program.uniformLocation("texCoordUp");

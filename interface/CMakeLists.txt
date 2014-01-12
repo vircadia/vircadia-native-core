@@ -26,14 +26,21 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
-else (APPLE)
-  # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 endif (APPLE)
 
+if (UNIX)
+  # include the right GL headers for UNIX
+  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
+endif (UNIX)
+
 if (WIN32)
-  set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
-  set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+    #set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
+    #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+
+    # this bit of #define GLdouble GLdouble is to fix up a mismatch between windows and the Qt versions of open GL.
+    # this will cause the QT versions to not accidentally define GLdouble as a float.
+    # undeffing NOMINMAX is because the Qt stuff doesn't safely check that that isn't already defined.
+    set(GL_HEADERS "#undef NOMINMAX\n#define GLdouble GLdouble\n#include <GL/glut.h>")
 endif (WIN32)
 
 # set up the external glm library
@@ -222,9 +229,9 @@ endif (APPLE)
 if (WIN32)
     target_link_libraries(
         ${TARGET_NAME}
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
+        #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
+        #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
+        #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
         wsock32.lib
     )
 else (WIN32)

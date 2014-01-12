@@ -13,7 +13,9 @@
 
 #include <opencv2/opencv.hpp>
 
+#ifdef HAVE_LIBVPX
 #include <vpx_codec.h>
+#endif
 
 #include "InterfaceConfig.h"
 
@@ -24,9 +26,9 @@ const float FULL_FRAME_ASPECT = 0.0f;
 
 class VideoFace : public QObject {
     Q_OBJECT
-    
+
 public:
-    
+
     VideoFace(Head* owningHead);
     ~VideoFace();
 
@@ -35,19 +37,19 @@ public:
 
     void setFrameFromWebcam();
     void clearFrame();
-    
+
     int processVideoMessage(unsigned char* packetData, size_t dataBytes);
-    
+
     bool render(float alpha);
-    
+
 public slots:
 
     void cycleRenderMode();
 
 private slots:
 
-    void setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio);    
-        
+    void setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio);
+
 private:
 
     enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };
@@ -62,15 +64,17 @@ private:
     cv::RotatedRect _textureRect;
     float _aspectRatio;
 
+#ifdef HAVE_LIBVPX
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
+#endif
     bool _lastFullFrame;
     bool _lastDepthOnly;
-    
+
     QByteArray _arrivingFrame;
     int _frameCount;
     int _frameBytesRemaining;
-    
+
     struct Locations {
         int texCoordCorner;
         int texCoordRight;
@@ -78,15 +82,15 @@ private:
     };
 
     static void loadProgram(ProgramObject& progam, const QString& suffix, const char* secondTextureUniform, Locations& locations);
-    
+
     static bool _initialized;
 
     static ProgramObject _videoProgram;
     static Locations _videoProgramLocations;
-    
+
     static ProgramObject _texturedProgram;
     static Locations _texturedProgramLocations;
-    
+
     static GLuint _vboID;
     static GLuint _iboID;
 };
