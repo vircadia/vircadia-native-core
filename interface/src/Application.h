@@ -28,9 +28,7 @@
 #include <ScriptEngine.h>
 #include <VoxelQuery.h>
 
-#ifndef _WIN32
 #include "Audio.h"
-#endif
 
 #include "BandwidthMeter.h"
 #include "Camera.h"
@@ -463,9 +461,7 @@ private:
     VoxelShader _voxelShader;
     PointShader _pointShader;
 
-    #ifndef _WIN32
     Audio _audio;
-    #endif
 
     bool _enableNetworkThread;
     pthread_t _networkReceiveThread;
