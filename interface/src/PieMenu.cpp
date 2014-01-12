@@ -66,8 +66,7 @@ void PieMenu::render() {
     float start = M_PI / 2.0f;
     float end   = start + 2.0f * M_PI;
     float step  = 2.0f * M_PI / 100.0f;
-    float distance  = sqrt((_mouseX - _x) * (_mouseX - _x) +
-                           (_mouseY - _y) * (_mouseY - _y));
+    float distance  = sqrt((float)(_mouseX - _x) * (_mouseX - _x) + (_mouseY - _y) * (_mouseY - _y));
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _textureID);
