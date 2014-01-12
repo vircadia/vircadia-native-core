@@ -16,10 +16,7 @@
 class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
-    AssignmentClient(int &argc, char **argv,
-                     Assignment::Type requestAssignmentType = Assignment::AllTypes,
-                     const HifiSockAddr& customAssignmentServerSocket = HifiSockAddr(),
-                     const char* requestAssignmentPool = NULL);
+    AssignmentClient(int &argc, char **argv);
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
