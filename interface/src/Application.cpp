@@ -1121,7 +1121,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 return;
             }
             if (_isHoverVoxel) {
-                _myAvatar.orbit(glm::vec3(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z) * (float)TREE_SCALE, deltaX, deltaY);
+                _myAvatar.orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
                 return;
             }
         }
@@ -1618,10 +1618,9 @@ void Application::makeVoxel(glm::vec3 position,
                         isDestructive);
    }
 
-const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
-    return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
-                     (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
-                     (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
+glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
+    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.f) * TREE_SCALE,
+        (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
 const float NUDGE_PRECISION_MIN = 1 / pow(2.0, 12.0);
@@ -2245,7 +2244,9 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
         if (!(_voxels.treeIsBusy() || _mousePressed)) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+                const float MAX_HOVER_DISTANCE = 100.0f;
+                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face) &&
+                    glm::distance(getMouseVoxelWorldCoordinates(_hoverVoxel), mouseRayOrigin) < MAX_HOVER_DISTANCE;
             }
             if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel &&
                     glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
