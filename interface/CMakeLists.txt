@@ -22,7 +22,7 @@ else ()
   set(BUILD_SEQ "0")
 endif ()
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
+#set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH} )
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -34,19 +34,18 @@ if (UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 if (WIN32)
-	MESSAGE(${CMAKE_PREFIX_PATH})
-	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.0A")
+	#MESSAGE(${CMAKE_PREFIX_PATH})
+	#set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.0A")
+	MESSAGE("interface cmake")
 	MESSAGE(${CMAKE_PREFIX_PATH})
 
     add_definitions( -D_USE_MATH_DEFINES -DWINDOWS_LEAN_AND_MEAN ) # apparently needed to get M_PI and other defines from cmath/math.h
 
-    set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glut)
+    set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/freeglut)
+	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLUT_ROOT_PATH})
+
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
 
-    # this bit of #define GLdouble GLdouble is to fix up a mismatch between windows and the Qt versions of open GL.
-    # this will cause the QT versions to not accidentally define GLdouble as a float.
-    # undeffing NOMINMAX is because the Qt stuff doesn't safely check that that isn't already defined.
-	# need to add #define GL_DOUBLE
     set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glut.h>")
 endif (WIN32)
 
@@ -237,9 +236,10 @@ if (WIN32)
     target_link_libraries(
         ${TARGET_NAME}
         #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
-        #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
+        ${GLUT_ROOT_PATH}/lib/freeglut.lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
         wsock32.lib
+		opengl32.lib
     )
 else (WIN32)
   # link required libraries on UNIX
