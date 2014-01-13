@@ -25,7 +25,12 @@ IF (APPLE)
    ENDIF (DARWIN_VERSION GREATER 12)
 ENDIF(APPLE)
 
+# targets not supported on windows
+if (NOT WIN32)
 add_subdirectory(animation-server)
+endif (NOT WIN32)
+
+# targets on all platforms
 add_subdirectory(assignment-client)
 add_subdirectory(domain-server)
 add_subdirectory(interface)
