@@ -38,3 +38,7 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 if (UNIX AND NOT APPLE)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX AND NOT APPLE)
+
+IF (WIN32)
+	target_link_libraries(${TARGET_NAME} Winmm)
+ENDIF(WIN32)
