@@ -12,25 +12,13 @@
 #define __hifi__windowshacks__
 
 #ifdef WIN32
-
 #undef NOMINMAX
-
-#define GLdouble GLdouble
-#define GL_DOUBLE 0x140A
-
-
-#define GL_VERTEX_PROGRAM_POINT_SIZE_ARB 0x8642
-#define GL_RESCALE_NORMAL 0x803A
-#define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
-#define GL_CLAMP_TO_BORDER 0x812D
 
 #include <cmath>
 inline double roundf(double value) {
 	return (value > 0.0) ? floor(value + 0.5) : ceil(value - 0.5);
 }
 #define round roundf
-
-
 
 #ifdef _MSC_VER
 #ifndef SNPRINTF_FIX
@@ -40,20 +28,18 @@ inline double roundf(double value) {
 
 #define snprintf c99_snprintf
 
-inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
-{
+inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap) {
     int count = -1;
-
-    if (size != 0)
+    if (size != 0) {
         count = _vsnprintf_s(str, size, _TRUNCATE, format, ap);
-    if (count == -1)
+	}
+    if (count == -1) {
         count = _vscprintf(format, ap);
-
+	}
     return count;
 }
 
-inline int c99_snprintf(char* str, size_t size, const char* format, ...)
-{
+inline int c99_snprintf(char* str, size_t size, const char* format, ...) {
     int count;
     va_list ap;
 
@@ -64,11 +50,16 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...)
     return count;
 }
 #endif // SNPRINTF_FIX
-
 #endif // _MSC_VER
 
+
+// OpenGL related hacks, this is temporary
+#define GLdouble GLdouble
+#define GL_DOUBLE 0x140A
+#define GL_VERTEX_PROGRAM_POINT_SIZE_ARB 0x8642
+#define GL_RESCALE_NORMAL 0x803A
+#define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
+#define GL_CLAMP_TO_BORDER 0x812D
+
 #endif // WIN32
-
-
-
 #endif // __hifi__windowshacks__
