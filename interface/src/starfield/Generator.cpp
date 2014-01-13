@@ -15,7 +15,7 @@
 
 using namespace starfield;
 
-const float Generator::STAR_COLORIZATION = 0.1;
+const float Generator::STAR_COLORIZATION = 0.1f;
 
 void Generator::computeStarPositions(InputVertices& destination, unsigned limit, unsigned seed) {
     InputVertices* vertices = & destination;
@@ -31,7 +31,7 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
     
     const unsigned MILKY_WAY_WIDTH = 12.0; // width in degrees of one half of the Milky Way
     const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
-    const float MILKY_WAY_RATIO = 0.4;
+    const float MILKY_WAY_RATIO = 0.4f;
     const unsigned NUM_DEGREES = 360;
     
     for(int star = 0; star < floor(limit * (1 - MILKY_WAY_RATIO)); ++star) {

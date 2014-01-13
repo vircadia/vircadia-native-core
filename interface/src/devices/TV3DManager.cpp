@@ -6,12 +6,20 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
 
-#include "Application.h"
 #include "InterfaceConfig.h"
+
+#ifdef WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
+#include "Application.h"
+
 #include "TV3DManager.h"
 #include "Menu.h"
 

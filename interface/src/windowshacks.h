@@ -30,6 +30,8 @@ inline double roundf(double value) {
 }
 
 
+#define round roundf
+
 #endif // WIN32
 
 
