@@ -2136,7 +2136,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
         
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
         
-        const float MIN_FADE_SCALE = 0.001;
+        const float MIN_FADE_SCALE = 0.001f;
         
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             delete avatar;
