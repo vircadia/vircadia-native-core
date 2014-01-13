@@ -17,7 +17,6 @@
 #include "SharedUtil.h"
 
 #ifdef _WIN32
-#define snprintf _snprintf
 #include "Systime.h"
 #else
 #include <sys/time.h>
