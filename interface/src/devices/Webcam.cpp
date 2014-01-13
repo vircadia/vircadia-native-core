@@ -43,7 +43,8 @@ Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTe
 }
 
 void Webcam::setEnabled(bool enabled) {
-    if (_enabled == enabled) {
+#ifdef HAVE_LIBVPX
+	if (_enabled == enabled) {
         return;
     }
     if ((_enabled = enabled)) {
@@ -59,11 +60,13 @@ void Webcam::setEnabled(bool enabled) {
         QMetaObject::invokeMethod(_grabber, "shutdown");
         _active = false;
     }
+#endif
 }
 
 const float UNINITIALIZED_FACE_DEPTH = 0.0f;
 
 void Webcam::reset() {
+#ifdef HAVE_LIBVPX
     _initialFaceRect = RotatedRect();
     _initialFaceDepth = UNINITIALIZED_FACE_DEPTH;
     _initialLEDPosition = glm::vec3();
@@ -72,10 +75,12 @@ void Webcam::reset() {
         // send a message to the grabber
         QMetaObject::invokeMethod(_grabber, "reset");
     }
+#endif
 }
 
 void Webcam::renderPreview(int screenWidth, int screenHeight) {
-    if (_enabled) {
+#ifdef HAVE_LIBVPX    
+	if (_enabled) {
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
 
@@ -157,14 +162,17 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
         drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
     }
+#endif
 }
 
 Webcam::~Webcam() {
+#ifdef HAVE_LIBVPX
     // stop the grabber thread
     _grabberThread.quit();
     _grabberThread.wait();
 
     delete _grabber;
+#endif
 }
 
 static glm::vec3 createVec3(const Point2f& pt) {
@@ -241,6 +249,7 @@ const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
         const RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints) {
+#ifdef HAVE_LIBVPX
     if (!_enabled) {
         return; // was queued before we shut down; ignore
     }
@@ -391,6 +400,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
 
     // let the grabber know we're ready for the next frame
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
+#endif
 }
 
 static SimpleBlobDetector::Params createBlobDetectorParams() {
@@ -551,6 +561,7 @@ static Point clip(const Point& point, const Rect& bounds) {
 }
 
 void FrameGrabber::grabFrame() {
+#ifdef HAVE_LIBVPX
     if (!(_initialized || init())) {
         return;
     }
@@ -772,9 +783,7 @@ void FrameGrabber::grabFrame() {
         _encodedFace.resize(encodedWidth * encodedHeight * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
         vpx_image_t vpxImage;
         vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, encodedWidth, encodedHeight, 1, (unsigned char*)_encodedFace.data());
-
         if (!_depthOnly || depth.empty()) {
-#ifdef HAVE_LIBVPX
             if (_colorCodec.name == 0) {
                 // initialize encoder context
                 vpx_codec_enc_cfg_t codecConfig;
@@ -785,7 +794,6 @@ void FrameGrabber::grabFrame() {
                 codecConfig.g_h = encodedHeight;
                 vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
             }
-#endif
             if (_videoSendMode == FACE_VIDEO) {
                 // resize/rotate face into encoding rectangle
                 _faceColor.create(encodedHeight, encodedWidth, CV_8UC3);
@@ -844,7 +852,6 @@ void FrameGrabber::grabFrame() {
             }
 
             // encode the frame
-#ifdef HAVE_LIBVPX
             vpx_codec_encode(&_colorCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
             // extract the encoded frame
             vpx_codec_iter_t iterator = 0;
@@ -856,7 +863,6 @@ void FrameGrabber::grabFrame() {
                     payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
                 }
             }
-#endif
         } else {
             // zero length indicates no color info
             const size_t ZERO_SIZE = 0;
@@ -870,7 +876,6 @@ void FrameGrabber::grabFrame() {
         }
 
         if (!depth.empty()) {
-#ifdef HAVE_LIBVPX
             if (_depthCodec.name == 0) {
                 // initialize encoder context
                 vpx_codec_enc_cfg_t codecConfig;
@@ -881,7 +886,6 @@ void FrameGrabber::grabFrame() {
                 codecConfig.g_h = encodedHeight;
                 vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
             }
-#endif
 
             // convert with mask
             uchar* yline = vpxImage.planes[0];
@@ -918,7 +922,6 @@ void FrameGrabber::grabFrame() {
                 uline += vpxImage.stride[2];
             }
 
-#ifdef HAVE_LIBVPX
             // encode the frame
             vpx_codec_encode(&_depthCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
 
@@ -930,7 +933,6 @@ void FrameGrabber::grabFrame() {
                     payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
                 }
             }
-#endif
         }
     }
 
@@ -941,6 +943,7 @@ void FrameGrabber::grabFrame() {
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
         Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
         Q_ARG(JointVector, joints), Q_ARG(KeyPointVector, keyPoints));
+#endif
 }
 
 bool FrameGrabber::init() {

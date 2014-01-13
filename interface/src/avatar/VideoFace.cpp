@@ -32,12 +32,17 @@ GLuint VideoFace::_vboID;
 GLuint VideoFace::_iboID;
 
 VideoFace::VideoFace(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
-        _colorTextureID(0), _depthTextureID(0), _colorCodec(), _depthCodec(), _frameCount(0) {
+        _colorTextureID(0), _depthTextureID(0), 
+#ifdef HAVE_LIBVPX
+		_colorCodec(), _depthCodec(), 
+#endif
+		_frameCount(0) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
 VideoFace::~VideoFace() {
+#ifdef HAVE_LIBVPX
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
 
@@ -55,6 +60,7 @@ VideoFace::~VideoFace() {
             glDeleteTextures(1, &_depthTextureID);
         }
     }
+#endif
 }
 
 void VideoFace::setFrameFromWebcam() {
@@ -76,7 +82,8 @@ void VideoFace::clearFrame() {
 }
 
 int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
-    unsigned char* packetPosition = packetData;
+#ifdef HAVE_LIBVPX
+	unsigned char* packetPosition = packetData;
 
     int frameCount = *(uint32_t*)packetPosition;
     packetPosition += sizeof(uint32_t);
@@ -199,7 +206,8 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
     Mat depth;
     const uint8_t* depthData = colorData + colorSize;
     int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
-    if (depthSize > 0) {
+
+	if (depthSize > 0) {
         if (_depthCodec.name == 0) {
             // initialize decoder context
             vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
@@ -241,11 +249,15 @@ int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) 
     }
     QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
         Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
+#endif
 
     return dataBytes;
 }
 
 bool VideoFace::render(float alpha) {
+#ifndef HAVE_LIBVPX
+	return false;
+#else
     if (!isActive()) {
         return false;
     }
@@ -404,6 +416,7 @@ bool VideoFace::render(float alpha) {
     glPopMatrix();
 
     return true;
+#endif
 }
 
 void VideoFace::cycleRenderMode() {
@@ -460,6 +473,7 @@ void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspec
 }
 
 void VideoFace::destroyCodecs() {
+#ifdef HAVE_LIBVPX
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
         _colorCodec.name = 0;
@@ -468,6 +482,7 @@ void VideoFace::destroyCodecs() {
         vpx_codec_destroy(&_depthCodec);
         _depthCodec.name = 0;
     }
+#endif
 }
 
 void VideoFace::loadProgram(ProgramObject& program, const QString& suffix, const char* secondTextureUniform, Locations& locations) {
