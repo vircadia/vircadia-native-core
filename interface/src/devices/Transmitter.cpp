@@ -6,6 +6,11 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#ifdef WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include <cstring>
 
 #include <glm/glm.hpp>
@@ -115,17 +120,17 @@ void Transmitter::renderLevels(int width, int height) {
     
     // Draw the numeric degree/sec values from the gyros
     sprintf(val, "Pitch Rate %4.1f", _lastRotationRate.x);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     sprintf(val, "Yaw Rate   %4.1f", _lastRotationRate.y);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     sprintf(val, "Roll Rate  %4.1f", _lastRotationRate.z);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     sprintf(val, "Pitch      %4.3f", _estimatedRotation.x);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     sprintf(val, "Yaw        %4.3f", _estimatedRotation.y);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     sprintf(val, "Roll       %4.3f", _estimatedRotation.z);
-    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+    drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
     
     //  Draw the levels as horizontal lines
     const int LEVEL_CENTER = 150;

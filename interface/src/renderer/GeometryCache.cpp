@@ -9,6 +9,11 @@
 
 #include <QNetworkReply>
 
+#ifdef WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include "Application.h"
 #include "GeometryCache.h"
 #include "world.h"

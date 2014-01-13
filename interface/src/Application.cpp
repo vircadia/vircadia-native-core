@@ -5,6 +5,10 @@
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#ifdef WIN32
+#include <Systime.h>
+#endif
+
 #include <sstream>
 
 #include <stdlib.h>
@@ -3477,11 +3481,6 @@ void Application::displayOverlay() {
     glPopMatrix();
 }
 
-#ifdef WIN32
-double roundf(double value) {
-	return (value > 0.0) ? floor(value + 0.5) : ceil(value - 0.5);
-}
-#endif
 
 void Application::displayStats() {
     int statsVerticalOffset = 8;
