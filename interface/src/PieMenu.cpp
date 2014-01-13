@@ -63,9 +63,9 @@ void PieMenu::render() {
         return;
     }
 
-    float start = M_PI / 2.0f;
-    float end   = start + 2.0f * M_PI;
-    float step  = 2.0f * M_PI / 100.0f;
+    float start = (float)M_PI / 2.0f;
+    float end   = start + 2.0f * (float)M_PI;
+    float step  = 2.0f * (float)M_PI / 100.0f;
     float distance  = sqrt((float)(_mouseX - _x) * (_mouseX - _x) + (_mouseY - _y) * (_mouseY - _y));
 
     glEnable(GL_TEXTURE_2D);
@@ -129,7 +129,7 @@ void PieMenu::mousePressEvent(int x, int y) {
 }
 
 void PieMenu::mouseReleaseEvent(int x, int y) {
-    if (0 <= _selectedAction && _selectedAction < _actions.size() && _actions[_selectedAction]) {
+    if (0 <= _selectedAction && _selectedAction < (int)_actions.size() && _actions[_selectedAction]) {
         _actions[_selectedAction]->trigger();
     }
 
