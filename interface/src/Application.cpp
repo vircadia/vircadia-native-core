@@ -2244,9 +2244,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
         if (!(_voxels.treeIsBusy() || _mousePressed)) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-                const float MAX_HOVER_DISTANCE = 100.0f;
-                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face) &&
-                    glm::distance(getMouseVoxelWorldCoordinates(_hoverVoxel), mouseRayOrigin) < MAX_HOVER_DISTANCE;
+                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
             }
             if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel &&
                     glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
