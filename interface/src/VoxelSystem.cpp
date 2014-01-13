@@ -205,7 +205,7 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
 
     // make sure the index isn't already in the free list..., this is a debugging measure only done if you've enabled audits
     if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
-        for (long i = 0; i < _freeIndexes.size(); i++) {
+        for (unsigned long i = 0; i < _freeIndexes.size(); i++) {
             if (_freeIndexes[i] == index) {
                 printf("freeBufferIndex(glBufferIndex index)... index=%ld already in free list!\n", index);
                 inList = true;
@@ -382,7 +382,7 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 
     // populate the indicesArray
     // this will not change given new voxels, so we can set it all up now
-    for (int n = 0; n < _maxVoxels; n++) {
+    for (unsigned long n = 0; n < _maxVoxels; n++) {
         // fill the indices array
         int voxelIndexOffset = n * INDICES_PER_FACE;
         GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
@@ -421,7 +421,7 @@ void VoxelSystem::initVoxelMemory() {
 
         // populate the indicesArray
         // this will not change given new voxels, so we can set it all up now
-        for (int n = 0; n < _maxVoxels; n++) {
+        for (unsigned long n = 0; n < _maxVoxels; n++) {
             indicesArray[n] = n;
         }
 

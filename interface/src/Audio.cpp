@@ -608,7 +608,7 @@ void Audio::render(int screenWidth, int screenHeight) {
 
         char out[40];
         sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10f, 0, 1, 0, out, 1,1,0);
 
         //  Show a red bar with the 'start' point of one frame plus the jitter buffer
 
@@ -616,12 +616,12 @@ void Audio::render(int screenWidth, int screenHeight) {
         int jitterBufferPels = (1.f + (float)getJitterBufferSamples()
                                 / (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
-        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
+        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10f, 0, 1, 0, out, 1, 0, 0);
         sprintf(out, "j %.1f\n", _measuredJitter);
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10f, 0, 1, 0, out, 1, 0, 0);
         } else {
-            drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+            drawtext(startX, bottomY + 12, 0.10f, 0, 1, 0, out, 1, 0, 0);
         }
 
         glBegin(GL_QUADS);
@@ -637,8 +637,8 @@ void Audio::render(int screenWidth, int screenHeight) {
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
-    const float MAX_AUDIBLE_VELOCITY = 6.0;
-    const float MIN_AUDIBLE_VELOCITY = 0.1;
+    const float MAX_AUDIBLE_VELOCITY = 6.0f;
+    const float MIN_AUDIBLE_VELOCITY = 0.1f;
     const int VOLUME_BASELINE = 400;
     const float SOUND_PITCH = 8.f;
 

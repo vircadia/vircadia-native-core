@@ -159,7 +159,7 @@ void Faceshift::readFromSocket() {
 }
 
 float Faceshift::getBlendshapeCoefficient(int index) const {
-    return (index >= 0 && index < _blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+    return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
 void Faceshift::send(const std::string& message) {

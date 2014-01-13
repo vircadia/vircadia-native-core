@@ -762,7 +762,7 @@ void sendFakeEnterEvent() {
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
-const float DIALOG_RATIO_OF_WINDOW = 0.30;
+const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::login() {
     QInputDialog loginDialog(Application::getInstance()->getWindow());

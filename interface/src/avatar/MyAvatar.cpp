@@ -29,14 +29,14 @@ using namespace std;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0f;
 const float PITCH_MAG = 100.0f;
-const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
+const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FORCE = 200.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const bool USING_HEAD_LEAN = false;
-const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
-const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
+const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
+const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
 MyAvatar::MyAvatar(Node* owningNode) :
 	Avatar(owningNode),
@@ -470,7 +470,7 @@ void MyAvatar::render(bool forceRenderHead) {
         glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
 
 
-        glColor3f(0, 0.8, 0);
+        glColor3f(0, 0.8f, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
@@ -617,8 +617,8 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
 
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
-        const float THRUST_INCREASE_RATE = 1.05;
-        const float MAX_THRUST_MULTIPLIER = 75.0;
+        const float THRUST_INCREASE_RATE = 1.05f;
+        const float MAX_THRUST_MULTIPLIER = 75.0f;
         //printf("m = %.3f\n", _thrustMultiplier);
         if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
             _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
@@ -919,7 +919,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
 
     // compute the accumulated centers
     glm::vec3 center = _position;
-    for (size_t i = 0; i < sortedAvatars.size(); i++) {
+    for (int i = 0; i < sortedAvatars.size(); i++) {
         SortedAvatar& sortedAvatar = sortedAvatars[i];
         sortedAvatar.accumulatedCenter = (center += sortedAvatar.avatar->getPosition()) / (i + 2.0f);
     }

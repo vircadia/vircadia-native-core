@@ -149,7 +149,7 @@ public slots:
 
 protected:
     float _treeScale;
-    int _maxVoxels;
+    unsigned long _maxVoxels;
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();

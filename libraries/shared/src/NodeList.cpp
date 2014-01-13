@@ -392,7 +392,7 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 
     const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
 
-    int attributeStartIndex = NUM_BYTES_STUN_HEADER;
+    size_t attributeStartIndex = NUM_BYTES_STUN_HEADER;
 
     if (memcmp(packetData + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
@@ -606,7 +606,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     unsigned char* readPtr = packetData + numBytesForPacketHeader(packetData);
     unsigned char* startPtr = packetData;
 
-    while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
+    while((size_t)(readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         nodeType = *readPtr++;
         QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) readPtr, NUM_BYTES_RFC4122_UUID));
         readPtr += NUM_BYTES_RFC4122_UUID;
@@ -955,7 +955,7 @@ void NodeList::addDomainListener(DomainChangeListener* listener) {
 }
 
 void NodeList::removeDomainListener(DomainChangeListener* listener) {
-    for (int i = 0; i < _domainListeners.size(); i++) {
+    for (size_t i = 0; i < _domainListeners.size(); i++) {
         if (_domainListeners[i] == listener) {
             _domainListeners.erase(_domainListeners.begin() + i);
             return;
@@ -968,7 +968,7 @@ void NodeList::addHook(NodeListHook* hook) {
 }
 
 void NodeList::removeHook(NodeListHook* hook) {
-    for (int i = 0; i < _hooks.size(); i++) {
+    for (size_t i = 0; i < _hooks.size(); i++) {
         if (_hooks[i] == hook) {
             _hooks.erase(_hooks.begin() + i);
             return;
@@ -977,21 +977,21 @@ void NodeList::removeHook(NodeListHook* hook) {
 }
 
 void NodeList::notifyHooksOfAddedNode(Node* node) {
-    for (int i = 0; i < _hooks.size(); i++) {
+    for (size_t i = 0; i < _hooks.size(); i++) {
         //printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
         _hooks[i]->nodeAdded(node);
     }
 }
 
 void NodeList::notifyHooksOfKilledNode(Node* node) {
-    for (int i = 0; i < _hooks.size(); i++) {
+    for (size_t i = 0; i < _hooks.size(); i++) {
         //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
         _hooks[i]->nodeKilled(node);
     }
 }
 
 void NodeList::notifyDomainChanged() {
-    for (int i = 0; i < _domainListeners.size(); i++) {
+    for (size_t i = 0; i < _domainListeners.size(); i++) {
         _domainListeners[i]->domainChanged(_domainHostname);
     }
 }

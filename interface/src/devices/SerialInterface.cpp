@@ -157,17 +157,17 @@ void SerialInterface::renderLevels(int width, int height) {
         
         // Draw the numeric degree/sec values from the gyros
         sprintf(val, "Yaw    %4.1f", _estimatedRotation.y);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         sprintf(val, "Pitch %4.1f", _estimatedRotation.x);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 15, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         sprintf(val, "Roll  %4.1f", _estimatedRotation.z);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 30, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         sprintf(val, "X     %4.3f", _lastAcceleration.x - _gravity.x);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 45, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         sprintf(val, "Y     %4.3f", _lastAcceleration.y - _gravity.y);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 60, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         sprintf(val, "Z     %4.3f", _lastAcceleration.z - _gravity.z);
-        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10, 0, 1.0, 1, val, 0, 1, 0);
+        drawtext(LEVEL_CORNER_X, LEVEL_CORNER_Y + 75, 0.10f, 0, 1.0f, 1, val, 0, 1, 0);
         
         //  Draw the levels as horizontal lines        
         const int LEVEL_CENTER = 150;

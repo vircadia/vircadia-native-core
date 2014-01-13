@@ -372,7 +372,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     unsigned char byte = 0; // we will be adding coding bits here
     int bitInByteNDX = 0; // keep track of where we are in byte as we go
     int byteNDX = 1; // keep track of where we are in buffer of bytes as we go
-    int octetsDone = 0;
+    unsigned int octetsDone = 0;
 
     // Now we actually fill out the voxel code
     while (octetsDone < voxelSizeInOctets) {
@@ -471,7 +471,7 @@ void printVoxelCode(unsigned char* voxelCode) {
     qDebug("voxelSizeInOctets=%d\n",voxelSizeInOctets);
     qDebug("voxelBufferSize=%d\n",voxelBufferSize);
 
-    for(int i=0;i<voxelBufferSize;i++) {
+    for(unsigned int i=0;i<voxelBufferSize;i++) {
         qDebug("i=%d ",i);
         outputBits(voxelCode[i]);
     }
@@ -693,7 +693,7 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
     return sizeof(holder);
 }
 
-char debug::DEADBEEF[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+unsigned char debug::DEADBEEF[] = { 0xDE, 0xAD, 0xBE, 0xEF };
 int debug::DEADBEEF_SIZE = sizeof(DEADBEEF);
 void debug::setDeadBeef(void* memoryVoid, int size) {
     unsigned char* memoryAt = (unsigned char*)memoryVoid;

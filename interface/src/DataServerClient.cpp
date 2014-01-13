@@ -135,7 +135,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
     QStringList valueList = QString(valuesPosition).split(MULTI_KEY_VALUE_SEPARATOR);
 
     // user string was UUID, find matching avatar and associate data
-    for (size_t i = 0; i < keyList.size(); i++) {
+    for (int i = 0; i < keyList.size(); i++) {
         if (valueList[i] != " ") {
             if (keyList[i] == DataServerKey::FaceMeshURL) {
 

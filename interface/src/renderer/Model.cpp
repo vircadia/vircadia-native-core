@@ -164,9 +164,9 @@ void Model::simulate(float deltaTime) {
             memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
             
             // blend in each coefficient
-            for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
                 float coefficient = _blendshapeCoefficients[j];
-                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                     continue;
                 }
                 const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
@@ -345,9 +345,9 @@ bool Model::render(float alpha) {
                 memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
                 
                 // blend in each coefficient
-                for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
                     float coefficient = _blendshapeCoefficients[j];
-                    if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                    if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                         continue;
                     }
                     const float NORMAL_COEFFICIENT_SCALE = 0.01f;

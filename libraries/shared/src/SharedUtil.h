@@ -133,7 +133,7 @@ public:
     static void setDeadBeef(void* memoryVoid, int size);
     static void checkDeadBeef(void* memoryVoid, int size);
 private:
-    static char DEADBEEF[];
+    static unsigned char DEADBEEF[];
     static int DEADBEEF_SIZE;
 };
 

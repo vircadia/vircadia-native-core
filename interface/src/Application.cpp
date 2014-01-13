@@ -1373,6 +1373,7 @@ static glm::vec3 getFaceVector(BoxFace face) {
         case MIN_Z_FACE:
             return glm::vec3(0, 0, -1);
 
+		default: // quiet windows warnings
         case MAX_Z_FACE:
             return glm::vec3(0, 0, 1);
     }

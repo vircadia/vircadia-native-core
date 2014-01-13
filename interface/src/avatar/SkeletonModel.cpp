@@ -73,7 +73,7 @@ bool SkeletonModel::render(float alpha) {
         glm::vec3 skinColor, darkSkinColor;
         _owningAvatar->getSkinColors(skinColor, darkSkinColor);
 
-        for (size_t i = 0; i < _jointStates.size(); i++) {
+        for (int i = 0; i < _jointStates.size(); i++) {
             glPushMatrix();
 
             glm::vec3 position;
@@ -164,7 +164,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     // sort the finger indices by raw x, get the average direction
     QVector<IndexValue> fingerIndices;
     glm::vec3 direction;
-    for (int i = 0; i < palm.getNumFingers(); i++) {
+    for (size_t i = 0; i < palm.getNumFingers(); i++) {
         glm::vec3 fingerVector = palm.getFingers()[i].getTipPosition() - palm.getPosition();
         float length = glm::length(fingerVector);
         if (length > EPSILON) {
@@ -191,7 +191,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
 
     // match them up as best we can
     float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
-    for (size_t i = 0; i < fingerJointIndices.size(); i++) {
+    for (int i = 0; i < fingerJointIndices.size(); i++) {
         int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
         glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
             palm.getFingers()[fingerIndex].getRootPosition();

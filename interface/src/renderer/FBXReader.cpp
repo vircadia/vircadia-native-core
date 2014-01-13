@@ -48,13 +48,13 @@ template<class T> QVariant readBinaryArray(QDataStream& in) {
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
         uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
-        for (int i = 0; i < arrayLength; i++) {
+        for (quint32 i = 0; i < arrayLength; i++) {
             T value;
             uncompressedIn >> value;
             values.append(value);
         }
     } else {
-        for (int i = 0; i < arrayLength; i++) {
+        for (quint32 i = 0; i < arrayLength; i++) {
             T value;
             in >> value;
             values.append(value);
@@ -142,7 +142,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in) {
     }
     node.name = in.device()->read(nameLength);
 
-    for (int i = 0; i < propertyCount; i++) {
+    for (quint32 i = 0; i < propertyCount; i++) {
         node.properties.append(parseBinaryFBXProperty(in));
     }
 
@@ -337,7 +337,7 @@ QVariantHash parseMapping(QIODevice* device) {
         } else if (sections.size() >= 4) {
             QVariantHash heading = properties.value(name).toHash();
             QVariantList contents;
-            for (size_t i = 2; i < sections.size(); i++) {
+            for (int i = 2; i < sections.size(); i++) {
                 contents.append(sections.at(i).trimmed());
             }
             heading.insertMulti(sections.at(1).trimmed(), contents);
