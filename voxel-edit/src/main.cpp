@@ -174,7 +174,7 @@ bool copyAndFillOperation(OctreeElement* element, void* extraData) {
         sprintf(outputMessage,"Completed: %d%% (%lu of %lu) - Creating voxel %lu at [%f,%f,%f,%f]",
             percentDone,args->inCount,args->originalCount,args->outCount,x,y,z,s);
         printf("%s",outputMessage);
-        for (int b = 0; b < strlen(outputMessage); b++) {
+        for (unsigned int b = 0; b < strlen(outputMessage); b++) {
             printf("\b");
         }
 
@@ -187,7 +187,7 @@ bool copyAndFillOperation(OctreeElement* element, void* extraData) {
         sprintf(outputMessage,"Completed: %d%% (%lu of %lu) - Creating fill voxel %lu at [%f,%f,%f,%f]",
             percentDone,args->inCount,args->originalCount,args->outCount,x,y,z,s);
             printf("%s",outputMessage);
-            for (int b = 0; b < strlen(outputMessage); b++) {
+            for (unsigned int b = 0; b < strlen(outputMessage); b++) {
                 printf("\b");
             }
         }
