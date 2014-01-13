@@ -42,11 +42,14 @@ if (WIN32)
     add_definitions( -D_USE_MATH_DEFINES -DWINDOWS_LEAN_AND_MEAN ) # apparently needed to get M_PI and other defines from cmath/math.h
 
     set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/freeglut)
+    set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLUT_ROOT_PATH})
 
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
 
     set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glut.h>")
+    include_directories(SYSTEM ${PTHREADS_ROOT_PATH}/include)
+
 endif (WIN32)
 
 # set up the external glm library
@@ -237,7 +240,7 @@ if (WIN32)
         ${TARGET_NAME}
         #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
         ${GLUT_ROOT_PATH}/lib/freeglut.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
+        ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
         wsock32.lib
 		opengl32.lib
     )
