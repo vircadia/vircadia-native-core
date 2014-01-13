@@ -891,7 +891,7 @@ void Menu::editPreferences() {
         _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
         
         applicationInstance->getAvatar()->setLeanScale(leanScale->value());
-        applicationInstance->getAvatar()->setNewScale(avatarScale->value());
+        applicationInstance->getAvatar()->setClampedTargetScale(avatarScale->value());
         
         _audioJitterBufferSamples = audioJitterBufferSamples->value();
         
