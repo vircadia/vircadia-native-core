@@ -58,7 +58,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
         *rootCode = 0;
     }
     
-    for (int i = 0; i < endNodesIn.size(); i++) {
+    for (size_t i = 0; i < endNodesIn.size(); i++) {
         if (endNodesIn[i]) {
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
             unsigned char* endNodeCode = new unsigned char[bytes];
@@ -84,7 +84,7 @@ void JurisdictionMap::clear() {
         _rootOctalCode = NULL;
     }
     
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         if (_endNodes[i]) {
             delete[] _endNodes[i];
         }
@@ -193,7 +193,7 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nod
     bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
     // if we're under the root, then we can't be under any of the endpoints
     if (isInJurisdiction) {
-        for (int i = 0; i < _endNodes.size(); i++) {
+        for (size_t i = 0; i < _endNodes.size(); i++) {
             bool isUnderEndNode = isAncestorOf(_endNodes[i], nodeOctalCode);
             if (isUnderEndNode) {
                 isInJurisdiction = false;
@@ -236,7 +236,7 @@ void JurisdictionMap::displayDebugDetails() const {
 
     qDebug() << "root:" << rootNodeValue << "\n";
     
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         QString value = octalCodeToHexString(_endNodes[i]);
         qDebug() << "End node[" << i << "]: " << rootNodeValue << "\n";
     }
@@ -253,7 +253,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     settings.setValue("root", rootNodeValue);
     
     settings.beginGroup("endNodes");
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         QString key = QString("endnode%1").arg(i);
         QString value = octalCodeToHexString(_endNodes[i]);
         settings.setValue(key, value);
