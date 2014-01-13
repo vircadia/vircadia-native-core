@@ -53,13 +53,5 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...) {
 #endif // _MSC_VER
 
 
-// OpenGL related hacks, this is temporary
-#define GLdouble GLdouble
-#define GL_DOUBLE 0x140A
-#define GL_VERTEX_PROGRAM_POINT_SIZE_ARB 0x8642
-#define GL_RESCALE_NORMAL 0x803A
-#define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
-#define GL_CLAMP_TO_BORDER 0x812D
-
 #endif // WIN32
 #endif // __hifi__windowshacks__
