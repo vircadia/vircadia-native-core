@@ -74,7 +74,7 @@ void PieMenu::render() {
     glColor3f(1.0f, 1.0f, 1.0f);
 
     if (_radiusIntern < distance) {
-        float angle = atan2((_mouseY - _y), (_mouseX - _x)) - start;
+        float angle = atan2((float)(_mouseY - _y), (float)(_mouseX - _x)) - start;
         angle = (0.0f < angle) ? angle : angle + 2.0f * M_PI;
 
         _selectedAction = floor(angle / (2.0f * M_PI / _actions.size()));

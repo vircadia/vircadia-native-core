@@ -41,7 +41,8 @@ if (WIN32)
     # this bit of #define GLdouble GLdouble is to fix up a mismatch between windows and the Qt versions of open GL.
     # this will cause the QT versions to not accidentally define GLdouble as a float.
     # undeffing NOMINMAX is because the Qt stuff doesn't safely check that that isn't already defined.
-    set(GL_HEADERS "#undef NOMINMAX\n#define GLdouble GLdouble\n#include <GL/glut.h>")
+	# need to add #define GL_DOUBLE
+    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glut.h>")
 endif (WIN32)
 
 # set up the external glm library
