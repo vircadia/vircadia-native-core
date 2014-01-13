@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 project(hifi)
 
 IF (WIN32)
-	add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS )
+	add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS -DTEST)
+	#MESSAGE(${CMAKE_PREFIX_PATH})
+	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.0A")
 ENDIF(WIN32)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
