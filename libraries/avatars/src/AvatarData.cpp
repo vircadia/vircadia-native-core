@@ -29,7 +29,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _newScale(1.0f),
+    _targetScale(1.0f),
     _leaderUUID(),
     _handState(0),
     _keyState(NO_KEY_DOWN),
@@ -76,7 +76,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
 
     // Body scale
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
+    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
     
     // Follow mode info
     memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
@@ -198,7 +198,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
 
     // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
 
     // Follow mode info
     _leaderUUID = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
@@ -296,12 +296,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-void AvatarData::setNewScale(float newScale) {
-    if (newScale > MAX_AVATAR_SCALE) {
-        newScale = MAX_AVATAR_SCALE;
-    } else if (newScale < MIN_AVATAR_SCALE) {
-        newScale = MIN_AVATAR_SCALE;
-    }
-    _newScale = newScale;
-    qDebug() << "Changed scale to " << _newScale << "\n";
+void AvatarData::setClampedTargetScale(float targetScale) {
+    
+    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    
+    _targetScale = targetScale;
+    qDebug() << "Changed scale to " << _targetScale << "\n";
 }

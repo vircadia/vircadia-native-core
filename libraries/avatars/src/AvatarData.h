@@ -82,8 +82,9 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
     
     //  Scale
-    float getNewScale() const { return _newScale; }
-    void setNewScale(float newScale);
+    float getTargetScale() const { return _targetScale; }
+    void setTargetScale(float targetScale) { _targetScale = targetScale; }
+    void setClampedTargetScale(float targetScale);
     
     //  Hand State
     void setHandState(char s) { _handState = s; }
@@ -132,7 +133,7 @@ protected:
     float _bodyRoll;
 
     // Body scale
-    float _newScale;
+    float _targetScale;
 
     // Following mode infos
     QUuid _leaderUUID;
