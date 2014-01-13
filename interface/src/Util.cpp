@@ -26,9 +26,9 @@
 #include "Util.h"
 
 #ifdef _WIN32
-bool isnan(double value) { return _isnan(value); }
+int isnan(double value) { return _isnan(value); }
 #else
-bool isnan(double value) { return std::isnan(value); }
+int isnan(double value) { return std::isnan(value); }
 #endif
 
 using namespace std;
