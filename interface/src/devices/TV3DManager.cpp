@@ -6,15 +6,14 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include "InterfaceConfig.h"
 
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
 
-#include "InterfaceConfig.h"
 
 #ifdef WIN32
-#define WANT_TIMEVAL
 #include <Systime.h>
 #endif
 

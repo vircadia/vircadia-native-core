@@ -6,8 +6,9 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
+#include "InterfaceConfig.h"
+
 #ifdef WIN32
-#define WANT_TIMEVAL
 #include <Systime.h>
 #endif
 
@@ -16,7 +17,6 @@
 #include <glm/glm.hpp>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "OculusManager.h"
 
 ProgramObject OculusManager::_program;
