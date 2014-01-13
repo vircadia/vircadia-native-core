@@ -18,6 +18,7 @@ Profile::Profile(const QString &username) :
     _uuid(),
     _lastDomain(),
     _lastPosition(0.0, 0.0, 0.0),
+    _lastOrientationSend(0),
  	_faceModelURL()
 {
     if (!_username.isEmpty()) {
@@ -69,6 +70,10 @@ void Profile::updateDomain(const QString& domain) {
     }
 }
 
+static QByteArray createByteArray(const glm::vec3& vector) {
+    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
+}
+
 void Profile::updatePosition(const glm::vec3 position) {
     if (_lastPosition != position) {
         
@@ -90,9 +95,26 @@ void Profile::updatePosition(const glm::vec3 position) {
                 gettimeofday(&lastPositionSend, NULL);
                 
                 // send the changed position to the data-server
-                QString positionString = QString("%1,%2,%3").arg(position.x).arg(position.y).arg(position.z);
-                DataServerClient::putValueForKey(DataServerKey::Position, positionString.toLocal8Bit().constData());
+                DataServerClient::putValueForKey(DataServerKey::Position, createByteArray(position).constData());
             }
+    }
+}
+
+void Profile::updateOrientation(const glm::quat& orientation) {
+    glm::vec3 eulerAngles = safeEulerAngles(orientation);
+    if (_lastOrientation == eulerAngles) {
+        return;
+    }
+    const uint64_t DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+    const float DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES = 5.0f;
+    
+    uint64_t now = usecTimestampNow();
+    if (now - _lastOrientationSend >= DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS &&
+            glm::distance(_lastOrientation, eulerAngles) >= DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES) {
+        DataServerClient::putValueForKey(DataServerKey::Orientation, createByteArray(eulerAngles).constData());
+        
+        _lastOrientation = eulerAngles;
+        _lastOrientationSend = now;
     }
 }
 

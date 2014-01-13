@@ -1347,8 +1347,9 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // give the MyAvatar object position to the Profile so it can propagate to the data-server
+    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());
+    _profile.updateOrientation(_myAvatar.getOrientation());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
