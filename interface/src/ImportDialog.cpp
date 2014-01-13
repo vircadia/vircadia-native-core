@@ -98,13 +98,13 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
-
+    
+    QGridLayout* gridLayout = (QGridLayout*) layout();
+    gridLayout->addWidget(&_cancelButton, 2, 1, 2, 1);
+    gridLayout->addWidget(&_importButton, 2, 2, 2, 1);
+    
     setImportTypes();
     setLayout();
-
-    QGridLayout* gridLayout = (QGridLayout*) layout();
-    gridLayout->addWidget(&_cancelButton, 2, 1);
-    gridLayout->addWidget(&_importButton, 2, 2);
 
     connect(&_importButton, SIGNAL(pressed()), SLOT(import()));
     connect(&_cancelButton, SIGNAL(pressed()), SLOT(close()));
