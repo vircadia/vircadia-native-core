@@ -439,14 +439,14 @@ void Avatar::goHome() {
 }
 
 void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _newScale < MAX_SCALE) {
+    if ((1.f + SCALING_RATIO) * _newScale < MAX_AVATAR_SCALE) {
         _newScale *= (1.f + SCALING_RATIO);
         qDebug("Changed scale to %f\n", _newScale);
     }
 }
 
 void Avatar::decreaseSize() {
-    if (MIN_SCALE < (1.f - SCALING_RATIO) * _newScale) {
+    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _newScale) {
         _newScale *= (1.f - SCALING_RATIO);
         qDebug("Changed scale to %f\n", _newScale);
     }

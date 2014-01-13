@@ -2128,8 +2128,8 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
         Avatar* avatar = *fade;
         const float SHRINK_RATE = 0.9f;
         avatar->setNewScale(avatar->getNewScale() * SHRINK_RATE);
-        const float MINIMUM_SCALE = 0.001f;
-        if (avatar->getNewScale() < MINIMUM_SCALE) {
+
+        if (avatar->getNewScale() < MIN_AVATAR_SCALE) {
             delete avatar;
             _avatarFades.erase(fade--);
 

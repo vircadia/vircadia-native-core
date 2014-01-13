@@ -297,10 +297,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void AvatarData::setNewScale(float newScale) {
-    if (newScale > MAX_SCALE) {
-        newScale = MAX_SCALE;
-    } else if (newScale < MIN_SCALE) {
-        newScale = MIN_SCALE;
+    if (newScale > MAX_AVATAR_SCALE) {
+        newScale = MAX_AVATAR_SCALE;
+    } else if (newScale < MIN_AVATAR_SCALE) {
+        newScale = MIN_AVATAR_SCALE;
     }
     _newScale = newScale;
     qDebug() << "Changed scale to " << _newScale << "\n";
