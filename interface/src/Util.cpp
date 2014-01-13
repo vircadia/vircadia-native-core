@@ -25,6 +25,12 @@
 
 #include "Util.h"
 
+#ifdef _WIN32
+bool isnan(double value) { return _isnan(value); }
+#else
+bool isnan(double value) { return std::isnan(value); }
+#endif
+
 using namespace std;
 
 // no clue which versions are affected...
@@ -37,14 +43,14 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
     //
     //  Angles contains (pitch, yaw, roll) in radians
     //
-    
+
     //  First, create the quaternion associated with these euler angles
     glm::quat q(glm::vec3(angles->x, -(angles->y), angles->z));
 
     //  Next, create a rotation matrix from that quaternion
     glm::mat4 rotation;
     rotation = glm::mat4_cast(q);
-    
+
     //  Transform the original vectors by the rotation matrix to get the new vectors
     glm::vec4 qup(0,1,0,0);
     glm::vec4 qright(-1,0,0,0);
@@ -52,7 +58,7 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
     glm::vec4 upNew    = qup*rotation;
     glm::vec4 rightNew = qright*rotation;
     glm::vec4 frontNew = qfront*rotation;
-    
+
     //  Copy the answers to output vectors
     up->x = upNew.x;  up->y = upNew.y;  up->z = upNew.z;
     right->x = rightNew.x;  right->y = rightNew.y;  right->z = rightNew.z;
@@ -68,12 +74,12 @@ float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf;
 }
 
-//  Return the angle in degrees between the head and an object in the scene.  The value is zero if you are looking right at it.  The angle is negative if the object is to your right.   
+//  Return the angle in degrees between the head and an object in the scene.  The value is zero if you are looking right at it.  The angle is negative if the object is to your right.
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
     return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) * 180.0f / PIf + render_yaw + head_yaw;
 }
 
-//  Helper function returns the positive angle in degrees between two 3D vectors 
+//  Helper function returns the positive angle in degrees between two 3D vectors
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return acos((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2))) * 180.f / PIf;
 }
@@ -92,7 +98,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
             axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
         } else {
             axis /= axisLength;
-        }        
+        }
     } else {
         axis = glm::normalize(glm::cross(v1, v2));
     }
@@ -110,7 +116,7 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
                 atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
                 asinf(sy),
                 atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
-                
+
         } else {
             // not a unique solution; x + z = atan2(-m21, m11)
             return glm::degrees(glm::vec3(
@@ -149,7 +155,7 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
         float angle = acosf(cosa), sina = sinf(angle);
         s0 = sinf((1.0f - proportion) * angle) / sina;
         s1 = sinf(proportion * angle) / sina;
-        
+
     } else {
         s0 = 1.0f - proportion;
         s1 = proportion;
@@ -179,7 +185,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
         for (int i = 0; i < 10; i++) {
             // store the results of the previous iteration
             glm::mat3 previous = upper;
-            
+
             // compute average of the matrix with its inverse transpose
             float sd00 = previous[1][1] * previous[2][2] - previous[2][1] * previous[1][2];
             float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
@@ -211,13 +217,13 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             }
         }
     }
-    
+
     // now that we have a nice orthogonal matrix, we can extract the rotation quaternion
     // using the method described in http://en.wikipedia.org/wiki/Rotation_matrix#Conversions
     float x2 = fabs(1.0f + upper[0][0] - upper[1][1] - upper[2][2]);
     float y2 = fabs(1.0f - upper[0][0] + upper[1][1] - upper[2][2]);
     float z2 = fabs(1.0f - upper[0][0] - upper[1][1] + upper[2][2]);
-    float w2 = fabs(1.0f + upper[0][0] + upper[1][1] + upper[2][2]);  
+    float w2 = fabs(1.0f + upper[0][0] + upper[1][1] + upper[2][2]);
     return glm::normalize(glm::quat(0.5f * sqrtf(w2),
         0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
         0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
@@ -255,14 +261,14 @@ void drawVector(glm::vec3 * vector) {
     glVertex3f(0,0,0);
     glVertex3f(0, 0, 1);
     glEnd();
-        
+
     // Draw the vector itself
     glBegin(GL_LINES);
     glColor3f(1,1,1);
     glVertex3f(0,0,0);
     glVertex3f(vector->x, vector->y, vector->z);
     glEnd();
-    
+
     // Draw spheres for magnitude
     glPushMatrix();
     glColor3f(1,0,0);
@@ -284,10 +290,10 @@ void noiseTest(int w, int h) {
     const float NOISE_SCALE = 10.0;
     float xStep = (float) w / CELLS;
     float yStep = (float) h / CELLS;
-    glBegin(GL_QUADS);    
+    glBegin(GL_QUADS);
     for (float x = 0; x < (float)w; x += xStep) {
         for (float y = 0; y < (float)h; y += yStep) {
-            //  Generate a vector varying between 0-1 corresponding to the screen location 
+            //  Generate a vector varying between 0-1 corresponding to the screen location
             glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
             //  Set the cell color using the noise value at that location
             float color = glm::perlin(position);
@@ -300,14 +306,14 @@ void noiseTest(int w, int h) {
     }
     glEnd();
 }
-    
+
 void renderWorldBox() {
     //  Show edge of world
     float red[] = {1, 0, 0};
     float green[] = {0, 1, 0};
     float blue[] = {0, 0, 1};
     float gray[] = {0.5, 0.5, 0.5};
-    
+
     glDisable(GL_LIGHTING);
     glLineWidth(1.0);
     glBegin(GL_LINES);
@@ -355,7 +361,7 @@ double diffclock(timeval *clock1,timeval *clock2)
 {
 	double diffms = (clock2->tv_sec - clock1->tv_sec) * 1000.0;
     diffms += (clock2->tv_usec - clock1->tv_usec) / 1000.0;   // us to ms
-    
+
 	return diffms;
 }
 
@@ -389,9 +395,9 @@ void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
     glRotated(rotate,0,0,1);
     // glLineWidth(thick);
     glScalef(scale / 0.10, scale / 0.10, 1.0);
-    
+
     textRenderer(mono)->draw(0, 0, string);
-    
+
     glPopMatrix();
 
 }
@@ -416,7 +422,7 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
         else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
 	}
     glPopMatrix();
-} 
+}
 
 void renderCollisionOverlay(int width, int height, float magnitude) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
@@ -435,7 +441,7 @@ void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, co
     glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
 
     glLineWidth(3.0);
-    
+
     const int HALF_GRID_DIMENSIONS = 4;
     glBegin(GL_LINES);
 
@@ -463,7 +469,7 @@ void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, flo
     glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
 
     glLineWidth(1.0);
-    
+
     const int GRID_DIMENSIONS = 4;
     const int GRID_SCALER = voxelS / voxelPrecision;
     const int GRID_SEGMENTS = GRID_DIMENSIONS * GRID_SCALER;
@@ -485,7 +491,7 @@ void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, flo
     glEnd();
 
     glColor3f(1.0f,1.0f,1.0f);
-    
+
     glBegin(GL_POLYGON);//begin drawing of square
       glVertex3f(voxelX, 0.0f, voxelZ);//first vertex
       glVertex3f(voxelX + voxelS, 0.0f, voxelZ);//second vertex
@@ -498,7 +504,7 @@ void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS) {
     glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
 
     glLineWidth(3.0);
-    
+
     glBegin(GL_LINES);
 
     glm::vec3 guideColor(1.0, 1.0, 1.0);
@@ -526,21 +532,21 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
     glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
     glm::vec3 right = glm::cross(vectorToPosition, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 up    = glm::cross(right, vectorToPosition);
-    
-    glBegin(GL_LINE_STRIP);             
+
+    glBegin(GL_LINE_STRIP);
     for (int i=0; i<numSides+1; i++) {
         float r = ((float)i / (float)numSides) * PIf * 2.0;
         float s = radius * sin(r);
         float c = radius * cos(r);
-    
+
         glVertex3f
         (
-            position.x + right.x * s + up.x * c, 
-            position.y + right.y * s + up.y * c, 
-            position.z + right.z * s + up.z * c 
-        ); 
+            position.x + right.x * s + up.x * c,
+            position.y + right.y * s + up.y * c,
+            position.z + right.z * s + up.z * c
+        );
     }
-    
+
     glEnd();
 }
 
@@ -548,8 +554,8 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
     glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
     glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
-    
-    glBegin(GL_LINE_STRIP);             
+
+    glBegin(GL_LINE_STRIP);
 
     for (int i=0; i<numSides+1; i++) {
         float r = ((float)i / (float)numSides) * PIf * 2.0;
@@ -557,10 +563,10 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
         float c = radius * cos(r);
         glVertex3f
         (
-            position.x + perp1.x * s + perp2.x * c, 
-            position.y + perp1.y * s + perp2.y * c, 
-            position.z + perp1.z * s + perp2.z * c 
-        ); 
+            position.x + perp1.x * s + perp2.x * c,
+            position.y + perp1.y * s + perp2.y * c,
+            position.z + perp1.z * s + perp2.z * c
+        );
     }
     glEnd();
 }
@@ -570,7 +576,7 @@ void renderOrientationDirections(glm::vec3 position, const glm::quat& orientatio
 	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
 	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
 	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
-		
+
 	glColor3f(1.0f, 0.0f, 0.0f);
 	glBegin(GL_LINE_STRIP);
 	glVertex3f(position.x, position.y, position.z);
@@ -611,7 +617,7 @@ void runTimingTests() {
     }
     elapsedMsecs = diffclock(&startTime, &endTime);
     qDebug("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
-    
+
     // Random number generation
     gettimeofday(&startTime, NULL);
     for (int i = 1; i < numTests; i++) {
@@ -651,13 +657,13 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vector math usecs: %f [%f msecs total for %d tests]\n", 
+    qDebug("vector math usecs: %f [%f msecs total for %d tests]\n",
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
-    
+
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
     float result;
-    
+
     gettimeofday(&startTime, NULL);
     for (int i = 1; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
@@ -679,32 +685,32 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue) {
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
         const glm::vec3& sphereCenter, float sphereRadius, float& distance) {
     glm::vec3 relativeOrigin = rayStarting - sphereCenter;
-    
+
     // compute the b, c terms of the quadratic equation (a is dot(direction, direction), which is one)
     float b = 2.0f * glm::dot(rayNormalizedDirection, relativeOrigin);
     float c = glm::dot(relativeOrigin, relativeOrigin) - sphereRadius * sphereRadius;
-    
+
     // compute the radicand of the quadratic.  if less than zero, there's no intersection
     float radicand = b * b - 4.0f * c;
     if (radicand < 0.0f) {
         return false;
     }
-    
+
     // compute the first solution of the quadratic
     float root = sqrtf(radicand);
     float firstSolution = -b - root;
     if (firstSolution > 0.0f) {
-        distance = firstSolution / 2.0f; 
+        distance = firstSolution / 2.0f;
         return true; // origin is outside the sphere
     }
-    
+
     // now try the second solution
     float secondSolution = -b + root;
     if (secondSolution > 0.0f) {
         distance = 0.0f;
         return true; // origin is inside the sphere
     }
-    
+
     return false;
 }
 

@@ -15,9 +15,9 @@
 #include "PositionalAudioRingBuffer.h"
 
 #ifdef _WIN32
-bool isnan_(double value) { return _isnan(value); }
+bool isnan(double value) { return _isnan(value); }
 #else
-bool isnan_(double value) { return std::isnan(value); }
+bool isnan(double value) { return std::isnan(value); }
 #endif
 
 PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
@@ -53,7 +53,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     currentBuffer += sizeof(_orientation);
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
-    if (isnan_(_orientation.x)) {
+    if (isnan(_orientation.x)) {
         reset();
         return 0;
     }
