@@ -342,6 +342,7 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
 
+#ifdef HAVE_LIBVPX
     QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
 
     addCheckableActionToQMenuAndActionHash(webcamOptionsMenu,
@@ -363,6 +364,8 @@ Menu::Menu() :
                                            false,
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
+#endif //def HAVE_LIBVPX
+
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
@@ -389,13 +392,16 @@ Menu::Menu() :
                                            false,
                                            appInstance->getWebcam(),
                                            SLOT(setSkeletonTrackingOn(bool)));
-    
+
+#ifdef HAVE_LIBVPX
     addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
                                            MenuOption::LEDTracking,
                                            0,
                                            false,
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setLEDTrackingOn(bool)));
+#endif //def HAVE_LIBVPX
+
     
     addDisabledActionAndSeparator(developerMenu, "Testing");
 

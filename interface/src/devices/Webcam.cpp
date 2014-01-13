@@ -30,16 +30,22 @@ using namespace std;
 using namespace xn;
 #endif
 
+
 // register types with Qt metatype system
 int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
 int keyPointVectorMetaType = qRegisterMetaType<KeyPointVector>("KeyPointVector");
+
+#ifdef HAVE_LIBVPX
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
+#endif //def HAVE_LIBVPX
 
-Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0), _skeletonTrackingOn(false) {
+Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0), _skeletonTrackingOn(false), _grabber(NULL) {
     // the grabber simply runs as fast as possible
+#ifdef HAVE_LIBVPX
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
+#endif // def HAVE_LIBVPX
 }
 
 void Webcam::setEnabled(bool enabled) {
@@ -175,6 +181,8 @@ Webcam::~Webcam() {
 #endif
 }
 
+#ifdef HAVE_LIBVPX
+
 static glm::vec3 createVec3(const Point2f& pt) {
     return glm::vec3(pt.x, -pt.y, 0.0f);
 }
@@ -246,6 +254,9 @@ static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm:
 }
 
 const float METERS_PER_MM = 1.0f / 1000.0f;
+
+#endif //def HAVE_LIBVPX
+
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
         const RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints) {
@@ -1037,7 +1048,6 @@ void FrameGrabber::destroyCodecs() {
 #endif
 }
 
-#endif //def HAVE_LIBVPX
 
 
 Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
@@ -1046,3 +1056,5 @@ Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::ve
 
 Joint::Joint() : isValid(false) {
 }
+
+#endif //def HAVE_LIBVPX
