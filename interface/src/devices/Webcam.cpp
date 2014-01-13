@@ -403,6 +403,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
 #endif
 }
 
+#ifdef HAVE_LIBVPX
+
 static SimpleBlobDetector::Params createBlobDetectorParams() {
     SimpleBlobDetector::Params params;
     params.blobColor = 255;
@@ -1034,6 +1036,9 @@ void FrameGrabber::destroyCodecs() {
     }
 #endif
 }
+
+#endif //def HAVE_LIBVPX
+
 
 Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
     isValid(true), position(position), rotation(rotation), projected(projected) {
