@@ -1352,8 +1352,9 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // give the MyAvatar object position to the Profile so it can propagate to the data-server
+    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());
+    _profile.updateOrientation(_myAvatar.getOrientation());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -2133,9 +2134,12 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
         Avatar* avatar = *fade;
         const float SHRINK_RATE = 0.9f;
-        avatar->setNewScale(avatar->getNewScale() * SHRINK_RATE);
-        const float MINIMUM_SCALE = 0.001f;
-        if (avatar->getNewScale() < MINIMUM_SCALE) {
+        
+        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+        
+        const float MIN_FADE_SCALE = 0.001;
+        
+        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             delete avatar;
             _avatarFades.erase(fade--);
 

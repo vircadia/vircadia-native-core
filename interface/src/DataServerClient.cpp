@@ -175,25 +175,34 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                         }
                     }
                 }
-            } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position
-                       && valueList[i] != " " && valueList[i + 1] != " ") {
+            } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&
+                    keyList[i + 2] == DataServerKey::Orientation && valueList[i] != " " &&
+                    valueList[i + 1] != " " && valueList[i + 2] != " ") {
 
                 QStringList coordinateItems = valueList[i + 1].split(',');
+                QStringList orientationItems = valueList[i + 2].split(',');
 
-                if (coordinateItems.size() == 3) {
+                if (coordinateItems.size() == 3 && orientationItems.size() == 3) {
 
                     // send a node kill request, indicating to other clients that they should play the "disappeared" effect
                     NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
 
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
-                        "and position to" << valueList[i + 1].toLocal8Bit().constData() <<
+                        ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
+                        ", and orientation to" << valueList[i + 2].toLocal8Bit().constData() <<
                         "to go to" << userString << "\n";
 
                     NodeList::getInstance()->setDomainHostname(valueList[i]);
+                    // orient the user to face the target
+                    glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                        orientationItems[1].toFloat(), orientationItems[2].toFloat()))) *
+                            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+                    Application::getInstance()->getAvatar()->setOrientation(newOrientation);
 
-                    glm::vec3 newPosition(coordinateItems[0].toFloat(),
-                                          coordinateItems[1].toFloat(),
-                                          coordinateItems[2].toFloat());
+                    // move the user a couple units away
+                    const float DISTANCE_TO_USER = 2.0f;
+                    glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
+                        coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
                     Application::getInstance()->getAvatar()->setPosition(newPosition);
                 }
 
