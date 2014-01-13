@@ -197,22 +197,17 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
-    #ifdef Q_WS_X11
-    _operatingSystem = new QString("ubuntu");
-    #endif
-    
-    #ifdef Q_WS_WIN
+    #ifdef Q_OS_WIN32
     _operatingSystem = new QString("win");
     #endif
     
-    #ifdef Q_WS_MACX
+    #ifdef Q_OS_MAC
     _operatingSystem = new QString("mac");
     #endif
     
     checkVersion();
     
     qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
-    qDebug("[OS] %s", _operatingSystem->toStdString().c_str());
 
     _settings = new QSettings(this);
 
