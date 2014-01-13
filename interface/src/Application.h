@@ -140,7 +140,7 @@ public:
 
     void removeVoxel(glm::vec3 position, float scale);
 
-    const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
+    glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
     MyAvatar* getAvatar() { return &_myAvatar; }
