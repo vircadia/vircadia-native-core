@@ -6,10 +6,6 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifdef _WIN32
-#define _timeval_
-#define _USE_MATH_DEFINES
-#endif
 
 #include <cstring>
 #include <cmath>
