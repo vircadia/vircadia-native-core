@@ -12,6 +12,7 @@
 #include <QHash>
 #include <QImage>
 #include <QMap>
+#include <QNetworkRequest>
 #include <QObject>
 #include <QSharedPointer>
 #include <QWeakPointer>
@@ -126,12 +127,15 @@ protected:
     
 private slots:
     
+    void makeRequest();
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();    
-    
+
 private:
-    
+
+    QNetworkRequest _request;
     QNetworkReply* _reply;
+    int _attempts;
     glm::vec4 _averageColor;
 };
 
