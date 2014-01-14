@@ -29,6 +29,7 @@ public:
         AgentType,
         VoxelServerType,
         ParticleServerType,
+        MetavoxelServerType,
         AllTypes
     };
     

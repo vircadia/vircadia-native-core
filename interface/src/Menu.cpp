@@ -891,7 +891,7 @@ void Menu::editPreferences() {
         _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
         
         applicationInstance->getAvatar()->setLeanScale(leanScale->value());
-        applicationInstance->getAvatar()->setNewScale(avatarScale->value());
+        applicationInstance->getAvatar()->setClampedTargetScale(avatarScale->value());
         
         _audioJitterBufferSamples = audioJitterBufferSamples->value();
         
@@ -999,8 +999,9 @@ void Menu::goToUser() {
     int dialogReturn = userDialog.exec();
     if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
-        DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
-                                                        userDialog.textValue());
+        DataServerClient::getValuesForKeysAndUserString(
+            QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
+            userDialog.textValue());
     }
     
     sendFakeEnterEvent();

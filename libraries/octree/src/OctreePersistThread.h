@@ -11,27 +11,32 @@
 #ifndef __Octree_server__OctreePersistThread__
 #define __Octree_server__OctreePersistThread__
 
+#include <QString>
 #include <GenericThread.h>
-#include <Octree.h>
+#include "Octree.h"
 
-/// Generalized threaded processor for handling received inbound packets. 
-class OctreePersistThread : public virtual GenericThread {
+/// Generalized threaded processor for handling received inbound packets.
+class OctreePersistThread : public GenericThread {
+    Q_OBJECT
 public:
     static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
-    OctreePersistThread(Octree* tree, const char* filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
-    
+    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
 
     time_t* getLoadCompleted() { return &_loadCompleted; }
     uint64_t getLoadElapsedTime() const { return _loadTimeUSecs; }
+
+signals:
+    void loadCompleted();
 
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 private:
     Octree* _tree;
-    const char* _filename;
+    QString _filename;
     int _persistInterval;
     bool _initialLoadComplete;
 

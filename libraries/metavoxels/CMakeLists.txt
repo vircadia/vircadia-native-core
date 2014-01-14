@@ -13,6 +13,9 @@ find_package(Qt5Widgets REQUIRED)
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
+include(${MACRO_DIR}/AutoMTC.cmake)
+auto_mtc(${TARGET_NAME} ${ROOT_DIR})
+
 qt5_use_modules(${TARGET_NAME} Widgets Script)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)

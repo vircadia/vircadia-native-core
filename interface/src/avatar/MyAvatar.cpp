@@ -92,12 +92,12 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     // Ajust, scale, position and lookAt position when following an other avatar
-    if (_leadingAvatar && _newScale != _leadingAvatar->getScale()) {
-        _newScale = _leadingAvatar->getScale();
+    if (_leadingAvatar && _targetScale != _leadingAvatar->getScale()) {
+        _targetScale = _leadingAvatar->getScale();
     }
 
-    if (_scale != _newScale) {
-        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _newScale;
+    if (_scale != _targetScale) {
+        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
@@ -200,7 +200,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // Compute instantaneous acceleration
     float forwardAcceleration = glm::length(glm::dot(getBodyFrontDirection(), getVelocity() - oldVelocity)) / deltaTime;
     const float ACCELERATION_PITCH_DECAY = 0.4f;
-    const float ACCELERATION_YAW_DECAY = 0.4f;
     const float ACCELERATION_PULL_THRESHOLD = 0.2f;
     const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
     const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
@@ -210,8 +209,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         // you start moving, but don't do this with an HMD like the Oculus.
         if (!OculusManager::isConnected()) {
             if (forwardAcceleration > ACCELERATION_PULL_THRESHOLD) {
-                _head.setPitch(_head.getPitch() * (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime));
-                _head.setYaw(_head.getYaw() * (1.f - forwardAcceleration * ACCELERATION_YAW_DECAY * deltaTime));
+                _head.setMousePitch(_head.getMousePitch() * qMax(0.0f,
+                    (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime)));
             }
         } else if (fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
                    && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
@@ -514,7 +513,7 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("pupilDilation", _head.getPupilDilation());
     
     settings->setValue("leanScale", _leanScale);
-    settings->setValue("scale", _newScale);
+    settings->setValue("scale", _targetScale);
     
     settings->endGroup();
 }
@@ -537,7 +536,7 @@ void MyAvatar::loadData(QSettings* settings) {
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     
-    _newScale = loadSetting(settings, "scale", 1.0f);
+    _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
