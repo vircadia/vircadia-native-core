@@ -23,16 +23,28 @@ else (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
   elseif (UNIX)
     find_library(FACESHIFT_LIBRARIES libfaceshift.a ${FACESHIFT_ROOT_DIR}/lib/UNIX/)
   elseif (WIN32)
-    find_library(FACESHIFT_LIBRARIES faceshift.lib ${FACESHIFT_ROOT_DIR}/lib/WIN32/)
+	# For windows, we're going to build the faceshift sources directly into the interface build
+	# and not link to a prebuilt library. This is because the VS2010 linker doesn't like cross-linking
+	# between release and debug libraries. If we change that in the future we can make win32 more
+	# like the other platforms
+    #find_library(FACESHIFT_LIBRARIES faceshift.lib ${FACESHIFT_ROOT_DIR}/lib/WIN32/)
   endif ()
 
-  if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
-     set(FACESHIFT_FOUND TRUE)
-  endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
- 
+  if (WIN32)
+    # Windows only cares about the headers
+    if (FACESHIFT_INCLUDE_DIRS)
+      set(FACESHIFT_FOUND TRUE)
+    endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
+  else (WIN32)
+    # Mac and Unix requires libraries
+    if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
+      set(FACESHIFT_FOUND TRUE)
+    endif (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
+  endif (WIN32)
+
   if (FACESHIFT_FOUND)
     if (NOT FACESHIFT_FIND_QUIETLY)
-      message(STATUS "Found Faceshift: ${FACESHIFT_LIBRARIES}")
+      message(STATUS "Found Faceshift... ${FACESHIFT_LIBRARIES}")
     endif (NOT FACESHIFT_FIND_QUIETLY)
   else (FACESHIFT_FOUND)
     if (FACESHIFT_FIND_REQUIRED)

@@ -22,8 +22,6 @@ else ()
   set(BUILD_SEQ "0")
 endif ()
 
-#set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH} )
-
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
 endif (APPLE)
@@ -34,20 +32,25 @@ if (UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 if (WIN32)
-	#MESSAGE(${CMAKE_PREFIX_PATH})
-	#set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.0A")
-	MESSAGE("interface cmake")
-	MESSAGE(${CMAKE_PREFIX_PATH})
 
-    add_definitions( -D_USE_MATH_DEFINES -DWINDOWS_LEAN_AND_MEAN ) # apparently needed to get M_PI and other defines from cmath/math.h
+    add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
+    add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
 
+	# windows build needs an external glut, we're using freeglut
     set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/freeglut)
-    set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLUT_ROOT_PATH})
 
-    #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+	# windows build needs glew (opengl extention wrangler) this will handle providing access to OpenGL methods after 1.1
+	# which are not accessible on windows without glew or some other dynamic linking mechanism
+    set(GLEW_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glew)
+	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
+    include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
 
-    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glut.h>")
+	# windows still using pthreads, TODO: switch to QThreads
+    set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
+
+    #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
+    set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
     include_directories(SYSTEM ${PTHREADS_ROOT_PATH}/include)
 
 endif (WIN32)
@@ -66,6 +69,16 @@ foreach(SUBDIR avatar devices renderer ui starfield)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
+
+#windows also includes the faceshift externals, because using a lib doesn't work due to debug/release mismatch
+if (WIN32)
+  set(EXTERNAL_SOURCE_SUBDIRS "faceshift")
+endif (WIN32)
+foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
+  file(GLOB_RECURSE SUBDIR_SRCS external/${EXTERNAL_SOURCE_SUBDIR}/src/*.cpp external/${EXTERNAL_SOURCE_SUBDIR}/src/*.c external/${EXTERNAL_SOURCE_SUBDIR}/src/*.h)
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
+endforeach(SUBDIR)
+
 
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
@@ -241,10 +254,9 @@ if (WIN32)
     target_link_libraries(
         ${TARGET_NAME}
 	    ${OPENCV_LIBRARIES}
-		${FACESHIFT_LIBRARIES}
+		#${FACESHIFT_LIBRARIES}
 
-		# this was from the first verion of the attempt to port to windows, it may or may not be correct, temporarily disabled
-        #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib
         ${GLUT_ROOT_PATH}/lib/freeglut.lib
 
 		# note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
