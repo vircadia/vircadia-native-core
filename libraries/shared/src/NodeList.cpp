@@ -442,12 +442,17 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 }
 
 void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    NodeHash::iterator nodeToKill = _nodeHash.find(nodeUUID);
-    if (nodeToKill != _nodeHash.end()) {
-        emit nodeKilled(nodeToKill.value());
-        _nodeHash.erase(nodeToKill);
+    NodeHash::iterator nodeItemToKill = _nodeHash.find(nodeUUID);
+    if (nodeItemToKill != _nodeHash.end()) {
+        killNodeAtHashIterator(nodeItemToKill);
     }
 }
+
+void NodeList::killNodeAtHashIterator(NodeHash::iterator nodeItemToKill) {
+    emit nodeKilled(nodeItemToKill.value());
+    _nodeHash.erase(nodeItemToKill);
+}
+
 
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
@@ -474,12 +479,8 @@ void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
     packetData += NUM_BYTES_RFC4122_UUID;
     dataBytes -= NUM_BYTES_RFC4122_UUID;
     
-    // make sure the node exists
-    NodeHash::iterator nodeToKill = _nodeHash.find(nodeUUID);
-    if (nodeToKill != _nodeHash.end()) {
-        emit nodeKilled(nodeToKill.value());
-        _nodeHash.erase(nodeToKill);
-    }
+    // kill the node with this UUID, if it exists
+    killNodeWithUUID(nodeUUID);
 }
 
 void NodeList::sendDomainServerCheckIn() {
@@ -795,9 +796,8 @@ void NodeList::removeSilentNodes() {
         QMutexLocker(&node->getMutex());
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-            
-            // kill this node, don't lock - we already did it
-            _nodeHash.erase(nodeItem);
+            // call our private method to kill this node (removes it and emits the right signal)
+            killNodeAtHashIterator(nodeItem);
         }
         
         nodeItem++;

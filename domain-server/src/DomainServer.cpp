@@ -77,7 +77,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // Start the web server.
     mg_start(&callbacks, NULL, options);
     
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
     
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
         
@@ -492,7 +492,7 @@ void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignme
     }
 }
 
-void DomainServer::nodeKilled(Node* node) {
+void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this node has linked data it was from an assignment
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();

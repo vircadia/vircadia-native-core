@@ -33,7 +33,7 @@ public:
     
 public slots:
     /// Called by NodeList to inform us that a node has been killed.
-    void nodeKilled(Node* node);
+    void nodeKilled(SharedNodePointer node);
     
 private:    
     static int civetwebRequestHandler(struct mg_connection *connection);

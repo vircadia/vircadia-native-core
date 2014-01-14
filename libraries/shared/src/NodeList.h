@@ -144,6 +144,8 @@ private:
     
     void processKillNode(unsigned char* packetData, size_t dataBytes);
     
+    void killNodeAtHashIterator(NodeHash::iterator nodeItemToKill);
+    
     NodeHash _nodeHash;
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;

@@ -24,6 +24,7 @@
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment {
+    Q_OBJECT
 public:                
     OctreeServer(const unsigned char* dataBuffer, int numBytes);
     ~OctreeServer();
