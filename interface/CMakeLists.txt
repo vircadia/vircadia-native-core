@@ -186,6 +186,8 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
 )
 
+MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
+
 if (APPLE OR UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 endif (APPLE OR UNIX)
@@ -238,8 +240,18 @@ endif (APPLE)
 if (WIN32)
     target_link_libraries(
         ${TARGET_NAME}
+
+		# something is wrong with the find faceshift cmake, so it's not finding the windows lib, hard coding it for now
+		#${FACESHIFT_LIBRARIES}
+		${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift/lib/WIN32/faceshift.lib
+
+		# this was from the first verion of the attempt to port to windows, it may or may not be correct, temporarily disabled
         #${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
+
         ${GLUT_ROOT_PATH}/lib/freeglut.lib
+
+		# note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
+		# but really we need to switch over to QThreads
         ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
         wsock32.lib
 		opengl32.lib
