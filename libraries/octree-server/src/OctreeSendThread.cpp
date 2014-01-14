@@ -34,7 +34,7 @@ bool OctreeSendThread::process() {
 
         if (node) {
             // make sure the node list doesn't kill our node while we're using it
-            if (node->trylock()) {
+            if (node->getMutex().tryLock()) {
                 gotLock = true;
                 OctreeQueryNode* nodeData = NULL;
 
@@ -51,7 +51,7 @@ bool OctreeSendThread::process() {
                     packetsSent = packetDistributor(node.data(), nodeData, viewFrustumChanged);
                 }
 
-                node->unlock(); // we're done with this node for now.
+                node->getMutex().unlock(); // we're done with this node for now.
             }
         }
     } else {

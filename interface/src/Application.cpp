@@ -2030,7 +2030,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
     
     foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
-        node->lock();
+        QMutexLocker(&node->getMutex());
         if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
@@ -2039,7 +2039,6 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
             avatar->simulate(deltaTime, NULL);
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
-        node->unlock();
     }
 
     // simulate avatar fades
@@ -3759,7 +3758,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         NodeList* nodeList = NodeList::getInstance();
         
         foreach(SharedNodePointer node, nodeList->getNodeHash()) {
-            node->lock();
+            QMutexLocker(&node->getMutex());
             
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
@@ -3769,8 +3768,6 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 avatar->render(false);
                 avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
             }
-            
-            node->unlock();
         }
 
         // render avatar fades

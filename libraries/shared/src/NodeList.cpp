@@ -227,7 +227,7 @@ void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned c
 }
 
 int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
-    node->lock();
+    QMutexLocker(&node->getMutex());
     
     node->setLastHeardMicrostamp(usecTimestampNow());
     
@@ -244,12 +244,9 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
         
         int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
         
-        node->unlock();
-        
         return numParsedBytes;
     } else {
         // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
-        node->unlock();
         return 0;
     }
 }
@@ -695,7 +692,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         return newNodeSharedPointer;
     } else {
         SharedNodePointer node = matchingNodeItem.value();
-        matchingNodeItem.value()->lock();
+        QMutexLocker(&node->getMutex());
         
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER ||
@@ -715,8 +712,6 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
             node->setLocalSocket(localSocket);
             qDebug() << "Local socket change for node" << *node << "\n";
         }
-        
-        node->unlock();
         
         // we had this node already, do nothing for now
         return node;
@@ -797,16 +792,13 @@ void NodeList::removeSilentNodes() {
         
         SharedNodePointer node = nodeItem.value();
         
-        node->lock();
+        QMutexLocker(&node->getMutex());
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
             // kill this node, don't lock - we already did it
             _nodeHash.erase(nodeItem);
         }
-        
-        // unlock the node
-        node->unlock();
         
         nodeItem++;
     }

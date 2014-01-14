@@ -19,6 +19,7 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QtCore/QMutex>
 #include <QtCore/QUuid>
 
 #include "HifiSockAddr.h"
@@ -73,13 +74,7 @@ public:
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
     
-    void lock() { pthread_mutex_lock(&_mutex); }
-    
-    /// returns false if lock failed, true if you got the lock
-    bool trylock() { return (pthread_mutex_trylock(&_mutex) == 0); }
-    void unlock() { pthread_mutex_unlock(&_mutex); }
-
-    static void printLog(Node const&);
+    QMutex& getMutex() { return _mutex; }
     
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -98,11 +93,8 @@ private:
     bool _isAlive;
     int _pingMs;
     int _clockSkewUsec;
-    pthread_mutex_t _mutex;
+    QMutex _mutex;
 };
-
-int unpackNodeId(unsigned char *packedData, uint16_t *nodeId);
-int packNodeId(unsigned char *packStore, uint16_t nodeId);
 
 QDebug operator<<(QDebug debug, const Node &message);
 
