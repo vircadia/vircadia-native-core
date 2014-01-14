@@ -139,7 +139,8 @@ public:
     
     glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
     float size; ///< the size of the voxel in all dimensions
-    QVector<AttributeValue> attributeValues;
+    QVector<AttributeValue> inputValues;
+    QVector<AttributeValue> outputValues;
     bool isLeaf;
 };
 
@@ -147,19 +148,23 @@ public:
 class MetavoxelVisitor {
 public:
     
-    MetavoxelVisitor(const QVector<AttributePointer>& attributes) : _attributes(attributes) { }
-        
-    /// Returns a reference to the list of attributes desired.
-    const QVector<AttributePointer>& getAttributes() const { return _attributes; }
+    MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs);
+    
+    /// Returns a reference to the list of input attributes desired.
+    const QVector<AttributePointer>& getInputs() const { return _inputs; }
+    
+    /// Returns a reference to the list of output attributes provided.
+    const QVector<AttributePointer>& getOutputs() const { return _outputs; }
     
     /// Visits a metavoxel.
-    /// \param info the metavoxel ata
-    /// \param if true, continue descending; if false, stop
+    /// \param info the metavoxel data
+    /// \return if true, continue descending; if false, stop
     virtual bool visit(const MetavoxelInfo& info) = 0;
 
 protected:
 
-    QVector<AttributePointer> _attributes;
+    QVector<AttributePointer> _inputs;
+    QVector<AttributePointer> _outputs;
 };
 
 /// Interface for objects that guide metavoxel visitors.
@@ -191,16 +196,19 @@ public:
 
 private:
 
-    static QScriptValue getAttributes(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue getInputs(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue getOutputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
 
     QScriptValue _guideFunction;
     QScriptString _minimumHandle;
     QScriptString _sizeHandle;
-    QScriptString _attributeValuesHandle;
+    QScriptString _inputValuesHandle;
+    QScriptString _outputValuesHandle;
     QScriptString _isLeafHandle;
     QScriptValueList _arguments;
-    QScriptValue _getAttributesFunction;
+    QScriptValue _getInputsFunction;
+    QScriptValue _getOutputsFunction;
     QScriptValue _visitFunction;
     QScriptValue _info;
     QScriptValue _minimum;
