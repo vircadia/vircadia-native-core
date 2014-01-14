@@ -788,8 +788,6 @@ void NodeList::removeSilentNodes() {
     
     NodeHash::iterator nodeItem = _nodeHash.begin();
     
-    int index = 0;
-    
     while (nodeItem != _nodeHash.end()) {
         
         SharedNodePointer node = nodeItem.value();
