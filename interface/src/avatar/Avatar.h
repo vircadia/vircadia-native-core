@@ -21,7 +21,6 @@
 #include "Skeleton.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/SerialInterface.h"
 #include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;

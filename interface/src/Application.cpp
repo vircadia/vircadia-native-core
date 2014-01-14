@@ -95,7 +95,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
-        _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
@@ -670,9 +669,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _audioScope.inputPaused = !_audioScope.inputPaused;
                 break;
             case Qt::Key_L:
-                if (!isShifted && !isMeta) {
-                    _displayLevels = !_displayLevels;
-                } else if (isShifted) {
+                if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 } else if (isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
@@ -1337,11 +1334,6 @@ void Application::timer() {
     _bytesCount = 0;
 
     gettimeofday(&_timerStart, NULL);
-
-    // if we haven't detected gyros, check for them now
-    if (!_serialHeadSensor.isActive()) {
-        _serialHeadSensor.pair();
-    }
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
@@ -2379,10 +2371,6 @@ void Application::updateSixense(float deltaTime) {
 void Application::updateSerialDevices(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateSerialDevices()");
-
-    if (_serialHeadSensor.isActive()) {
-        _serialHeadSensor.readData(deltaTime);
-    }
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -2624,41 +2612,6 @@ void Application::updateAvatar(float deltaTime) {
         const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
         _headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
         _headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
-    }
-
-    if (_serialHeadSensor.isActive()) {
-
-        //  Grab latest readings from the gyros
-        float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
-        float measuredYawRate = _serialHeadSensor.getLastYawRate();
-
-        //  Update gyro-based mouse (X,Y on screen)
-        const float MIN_MOUSE_RATE = 3.0;
-        const float HORIZONTAL_PIXELS_PER_DEGREE = 2880.f / 45.f;
-        const float VERTICAL_PIXELS_PER_DEGREE = 1800.f / 30.f;
-        if (powf(measuredYawRate * measuredYawRate +
-                 measuredPitchRate * measuredPitchRate, 0.5) > MIN_MOUSE_RATE) {
-            _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
-            _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
-        }
-
-        const float MIDPOINT_OF_SCREEN = 0.5;
-
-        // Only use gyro to set lookAt if mouse hasn't selected an avatar
-        if (!_lookatTargetAvatar) {
-
-            // Set lookAtPosition if an avatar is at the center of the screen
-            glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
-            _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
-
-            glm::vec3 eyePosition;
-            updateLookatTargetAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
-            if (_lookatTargetAvatar) {
-                glm::vec3 myLookAtFromMouse(eyePosition);
-                _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
-            }
-        }
-
     }
 
     //  Constrain head-driven mouse to edges of screen
@@ -3327,8 +3280,7 @@ void Application::displayOverlay() {
 
        //noiseTest(_glWidget->width(), _glWidget->height());
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)
-        && USING_INVENSENSE_MPU9150) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         //  Display small target box at center or head mouse target that can also be used to measure LOD
         glColor3f(1.0, 1.0, 1.0);
         glDisable(GL_LINE_SMOOTH);
@@ -3363,9 +3315,6 @@ void Application::displayOverlay() {
 
         }
     }
-
-    //  Show detected levels from the serial I/O ADC channel sensors
-    if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());
 
     //  Show hand transmitter data if detected
     if (_myTransmitter.isConnected()) {
@@ -4119,9 +4068,6 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
 
-    if (_serialHeadSensor.isActive()) {
-        _serialHeadSensor.resetAverages();
-    }
     _webcam.reset();
     _faceshift.reset();
 

@@ -54,7 +54,6 @@
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
-#include "devices/SerialInterface.h"
 #include "devices/SixenseManager.h"
 #include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -155,7 +154,6 @@ public:
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     bool isMouseHidden() const { return _mouseHidden; }
-    SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
@@ -339,10 +337,8 @@ private:
 
     BandwidthMeter _bandwidthMeter;
 
-    SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
-    bool _displayLevels;
 
     glm::vec3 _gravity;
 

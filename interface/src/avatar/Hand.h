@@ -24,7 +24,6 @@
 #include "BuckyBalls.h"
 #include "InterfaceConfig.h"
 #include "world.h"
-#include "devices/SerialInterface.h"
 #include "VoxelSystem.h"
 
 
