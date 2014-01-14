@@ -684,14 +684,15 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     if (matchingNodeItem == _nodeHash.end()) {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
         
-        NodeHash::iterator addedItem = _nodeHash.insert(newNode->getUUID(), SharedNodePointer(newNode, &QObject::deleteLater));
+        _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
         
         qDebug() << "Added" << *newNode << "\n";
         
-        emit nodeAdded(addedItem.value());
+        emit nodeAdded(newNodeSharedPointer);
         
-        return SharedNodePointer(newNode);
+        return newNodeSharedPointer;
     } else {
         SharedNodePointer node = matchingNodeItem.value();
         matchingNodeItem.value()->lock();

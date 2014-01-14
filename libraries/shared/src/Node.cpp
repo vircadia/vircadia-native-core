@@ -39,6 +39,8 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
 }
 
 Node::~Node() {
+    qDebug() << "Destructor for node with UUID" << _uuid << "called.\n";
+    
     if (_linkedData) {
         _linkedData->deleteOrDeleteLater();
     }
