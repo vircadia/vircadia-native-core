@@ -176,7 +176,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     nodeList->addHook(&_voxels);
     nodeList->addHook(this);
-    nodeList->addDomainListener(this);
+    
+    connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
     _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -265,7 +266,6 @@ Application::~Application() {
     storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
-    NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
@@ -4184,9 +4184,9 @@ void Application::updateWindowTitle(){
     _window->setWindowTitle(title);
 }
 
-void Application::domainChanged(QString domain) {
+void Application::domainChanged(const QString& domainHostname) {
     // update the user's last domain in their Profile (which will propagate to data-server)
-    _profile.updateDomain(domain);
+    _profile.updateDomain(domainHostname);
 
     updateWindowTitle();
 
@@ -4199,7 +4199,7 @@ void Application::domainChanged(QString domain) {
     _particleServerJurisdictions.clear();
 
     // reset our persist thread
-    qDebug() << "domainChanged()... domain=" << domain << " swapping persist cache\n";
+    qDebug() << "domainChanged()... domain=" << domainHostname << " swapping persist cache\n";
     updateLocalOctreeCache();
 }
 
