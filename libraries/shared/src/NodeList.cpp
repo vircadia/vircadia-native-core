@@ -789,7 +789,6 @@ void NodeList::removeSilentNodes() {
     NodeHash::iterator nodeItem = _nodeHash.begin();
     
     while (nodeItem != _nodeHash.end()) {
-        
         SharedNodePointer node = nodeItem.value();
         
         QMutexLocker(&node->getMutex());

@@ -39,7 +39,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     
 }
 
-Node::~Node() {    
+Node::~Node() {
     if (_linkedData) {
         _linkedData->deleteOrDeleteLater();
     }
