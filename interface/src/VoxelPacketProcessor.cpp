@@ -21,7 +21,7 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
-        qDebug("VoxelPacketProcessor::processPacket() packets to process=%d\n", packetsToProcessCount());
+        qDebug("VoxelPacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     ssize_t messageLength = packetLength;
 

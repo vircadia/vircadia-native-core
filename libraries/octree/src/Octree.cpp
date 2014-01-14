@@ -69,7 +69,7 @@ void Octree::recurseTreeWithOperation(RecurseOctreeOperation operation, void* ex
 void Octree::recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        qDebug() << "Octree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -96,7 +96,7 @@ void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, Recurse
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseNodeWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        qDebug() << "Octree::recurseNodeWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -494,7 +494,7 @@ void Octree::reaverageOctreeElements(OctreeElement* startNode) {
             recursionCount++;
         }
         if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
-            qDebug("Octree::reaverageOctreeElements()... bailing out of UNREASONABLY_DEEP_RECURSION\n");
+            qDebug("Octree::reaverageOctreeElements()... bailing out of UNREASONABLY_DEEP_RECURSION");
             recursionCount--;
             return;
         }
@@ -674,7 +674,7 @@ int Octree::encodeTreeBitstream(OctreeElement* node,
 
     // you can't call this without a valid node
     if (!node) {
-        qDebug("WARNING! encodeTreeBitstream() called with node=NULL\n");
+        qDebug("WARNING! encodeTreeBitstream() called with node=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesWritten;
     }
@@ -763,7 +763,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* node,
 
     // you can't call this without a valid node
     if (!node) {
-        qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL\n");
+        qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesAtThisLevel;
     }
@@ -1312,7 +1312,7 @@ bool Octree::readFromSVOFile(const char* fileName) {
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
-        qDebug("loading file %s...\n", fileName);
+        qDebug("Loading file %s...", fileName);
 
         // get file length....
         unsigned long fileLength = file.tellg();
@@ -1341,10 +1341,10 @@ bool Octree::readFromSVOFile(const char* fileName) {
                     dataLength -= sizeof(expectedVersion);
                     fileOk = true;
                 } else {
-                    qDebug("SVO file version mismatch. Expected: %d Got: %d\n", expectedVersion, gotVersion);
+                    qDebug("SVO file version mismatch. Expected: %d Got: %d", expectedVersion, gotVersion);
                 }
             } else {
-                qDebug("SVO file type mismatch. Expected: %c Got: %c\n", expectedType, gotType);
+                qDebug("SVO file type mismatch. Expected: %c Got: %c", expectedType, gotType);
             }
         } else {
             fileOk = true; // assume the file is ok
@@ -1367,7 +1367,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        qDebug("saving to file %s...\n", fileName);
+        qDebug("Saving to file %s...", fileName);
 
         // before reading the file, check to see if this version of the Octree supports file versions
         if (getWantSVOfileVersions()) {

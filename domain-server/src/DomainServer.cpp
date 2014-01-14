@@ -229,7 +229,8 @@ void DomainServer::readAvailableDatagrams() {
                     // construct the requested assignment from the packet data
                     Assignment requestAssignment(packetData, receivedBytes);
                     
-                    qDebug("Received a request for assignment type %i from %s.\n", requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
+                    qDebug("Received a request for assignment type %i from %s.",
+                           requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
                     
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
@@ -249,7 +250,7 @@ void DomainServer::readAvailableDatagrams() {
                     }
                     
                 } else {
-                    qDebug("Received an invalid assignment request from %s.\n", qPrintable(senderSockAddr.getAddress().toString()));
+                    qDebug() << "Received an invalid assignment request from" << senderSockAddr.getAddress();
                 }
             }
         }
@@ -464,7 +465,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toLocal8Bit().constData());
     
-    qDebug("Saved a script for assignment at %s\n", newPath.toLocal8Bit().constData());
+    qDebug("Saved a script for assignment at %s", newPath.toLocal8Bit().constData());
     
     // add the script assigment to the assignment queue
     // lock the assignment queue mutex since we're operating on a different thread than DS main
@@ -474,7 +475,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 }
 
 void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
-    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.\n";
+    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.";
     
     // find this assignment in the static file
     for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
@@ -535,8 +536,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     
     // Handle Domain/Voxel Server configuration command line arguments
     if (_voxelServerConfig) {
-        qDebug("Reading Voxel Server Configuration.\n");
-        qDebug() << "config: " << _voxelServerConfig << "\n";
+        qDebug("Reading Voxel Server Configuration.");
+        qDebug() << "config: " << _voxelServerConfig;
         
         QString multiConfig((const char*) _voxelServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
@@ -545,7 +546,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
             
-            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
             
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
@@ -558,7 +559,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
                 int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
                 
                 assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this voxel-assignment is" << assignmentPool << "\n";
+                qDebug() << "The pool for this voxel-assignment is" << assignmentPool;
             }
             
             Assignment voxelServerAssignment(Assignment::CreateCommand,
@@ -577,8 +578,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
 
     // Handle Domain/Particle Server configuration command line arguments
     if (_particleServerConfig) {
-        qDebug("Reading Particle Server Configuration.\n");
-        qDebug() << "config: " << _particleServerConfig << "\n";
+        qDebug("Reading Particle Server Configuration.");
+        qDebug() << "config: " << _particleServerConfig;
         
         QString multiConfig((const char*) _particleServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
@@ -587,7 +588,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
             
-            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
             
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
@@ -600,7 +601,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
                 int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
                 
                 assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this particle-assignment is" << assignmentPool << "\n";
+                qDebug() << "The pool for this particle-assignment is" << assignmentPool;
             }
             
             Assignment particleServerAssignment(Assignment::CreateCommand,
@@ -624,7 +625,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         metavoxelAssignment.setPayload((const unsigned char*)_metavoxelServerConfig, strlen(_metavoxelServerConfig));
     }
     
-    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.\n";
+    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.";
     
     _staticAssignmentFile.open(QIODevice::WriteOnly);
     _staticAssignmentFile.write((char*) &freshStaticAssignments, sizeof(freshStaticAssignments));
@@ -787,7 +788,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             _staticAssignments[i].resetUUID();
             
-            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i] << "\n";
+            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
             
             _assignmentQueueMutex.lock();
             _assignmentQueue.push_back(&_staticAssignments[i]);

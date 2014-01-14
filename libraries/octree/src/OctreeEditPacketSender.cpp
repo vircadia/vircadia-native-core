@@ -103,7 +103,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                     qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] << 
                             " - command to node bytes=" << length << 
                             " sequence=" << sequence << 
-                            " transitTimeSoFar=" << transitTime << " usecs\n";
+                            " transitTimeSoFar=" << transitTime << " usecs";
                 }                
             }
         }

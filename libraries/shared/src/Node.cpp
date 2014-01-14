@@ -107,12 +107,12 @@ void Node::setLocalSocket(const HifiSockAddr& localSocket) {
 }
 
 void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for node" << *this << "\n";
+    qDebug() << "Activating local socket for node" << *this;
     _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for node" << *this << "\n";
+    qDebug() << "Activating public socket for node" << *this;
     _activeSocket = &_publicSocket;
 }
 

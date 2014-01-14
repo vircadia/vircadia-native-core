@@ -295,7 +295,7 @@ void AudioMixer::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            qDebug("Took too much time, not sleeping!\n");
+            qDebug() << "AudioMixer loop took" << -usecToSleep << "of extra time. Not sleeping.";
         }
         
     }

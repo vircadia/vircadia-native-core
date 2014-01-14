@@ -140,7 +140,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             if (keyList[i] == DataServerKey::FaceMeshURL) {
                 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's face model URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    qDebug("Changing user's face model URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
                 } else {
                     // mesh URL for a UUID, find avatar in our list
@@ -159,7 +159,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             } else if (keyList[i] == DataServerKey::SkeletonURL) {
                 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's skeleton URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    qDebug("Changing user's skeleton URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
@@ -190,7 +190,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
                         ", and orientation to" << valueList[i + 2].toLocal8Bit().constData() <<
-                        "to go to" << userString << "\n";
+                        "to go to" << userString;
                     
                     NodeList::getInstance()->setDomainHostname(valueList[i]);
                     

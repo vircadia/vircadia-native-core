@@ -86,8 +86,9 @@ const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
-    fprintf(stdout, "%s", message.toLocal8Bit().constData());
-    Application::getInstance()->getLogger()->addMessage(message.toLocal8Bit().constData());
+    QString messageWithNewLine = message + "\n";
+    fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
+    Application::getInstance()->getLogger()->addMessage(messageWithNewLine.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -155,7 +156,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i\n", BUILD_VERSION);
+    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
 
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -310,7 +311,7 @@ void Application::storeSizeAndPosition() {
 }
 
 void Application::initializeGL() {
-    qDebug( "Created Display Window.\n" );
+    qDebug( "Created Display Window.");
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -325,15 +326,15 @@ void Application::initializeGL() {
     _viewFrustumOffsetCamera.setFarClip(500.0 * TREE_SCALE);
 
     initDisplay();
-    qDebug( "Initialized Display.\n" );
+    qDebug( "Initialized Display.");
 
     init();
-    qDebug( "Init() complete.\n" );
+    qDebug( "init() complete.");
 
     // create thread for receipt of data via UDP
     if (_enableNetworkThread) {
         pthread_create(&_networkReceiveThread, NULL, networkReceive, NULL);
-        qDebug("Network receive thread created.\n");
+        qDebug("Network receive thread created.");
     }
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
@@ -342,7 +343,7 @@ void Application::initializeGL() {
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
-        qDebug("Voxel parsing thread created.\n");
+        qDebug("Voxel parsing thread created.");
     }
 
     // call terminate before exiting
@@ -362,9 +363,7 @@ void Application::initializeGL() {
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
         _justStarted = false;
-        char title[50];
-        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
-        qDebug("%s", title);
+        qDebug("Startup time: %4.2f seconds.", startupTime);
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
 
         // ask the Logstash class to record the startup time
@@ -1707,9 +1706,9 @@ void Application::exportVoxels() {
 
 void Application::importVoxels() {
     if (_voxelImporter.exec()) {
-        qDebug("[DEBUG] Import succedded.\n");
+        qDebug("[DEBUG] Import succeeded.");
     } else {
-        qDebug("[DEBUG] Import failed.\n");
+        qDebug("[DEBUG] Import failed.");
     }
 
     // restore the main window's active state
@@ -1890,7 +1889,7 @@ void Application::init() {
     if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
-    qDebug("Loaded settings.\n");
+    qDebug("Loaded settings");
 
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
@@ -2784,7 +2783,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     }
 
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
-        qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n",
+        qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
             totalServers, inViewServers, unknownJurisdictionServers);
     }
 
@@ -2805,7 +2804,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     }
 
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
-        qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
+        qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2824,7 +2823,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
-                    qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
+                    qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.";
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
@@ -2845,7 +2844,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!\n";
+                        qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }
                 }
             }
@@ -2855,7 +2854,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
-                            << perUnknownServer << " to send us jurisdiction.\n";
+                            << perUnknownServer << " to send us jurisdiction.";
                 }
 
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
@@ -2868,11 +2867,11 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     _voxelQuery.setCameraNearClip(0.1);
                     _voxelQuery.setCameraFarClip(0.1);
                     if (wantExtraDebugging) {
-                        qDebug() << "Using 'minimal' camera position for node " << *node << "\n";
+                        qDebug() << "Using 'minimal' camera position for node" << *node;
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        qDebug() << "Using regular camera position for node " << *node << "\n";
+                        qDebug() << "Using regular camera position for node" << *node;
                     }
                 }
                 _voxelQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
@@ -3729,9 +3728,6 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 
 // render the coverage map on screen
 void Application::renderCoverageMapV2() {
-
-    //qDebug("renderCoverageMap()\n");
-
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -3774,8 +3770,6 @@ void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
 
 // render the coverage map on screen
 void Application::renderCoverageMap() {
-
-    //qDebug("renderCoverageMap()\n");
 
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -4180,7 +4174,7 @@ void Application::updateWindowTitle(){
     title += _profile.getLastDomain();
     title += buildVersion;
 
-    qDebug("Application title set to: %s.\n", title.toStdString().c_str());
+    qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
 
@@ -4199,7 +4193,7 @@ void Application::domainChanged(QString domain) {
     _particleServerJurisdictions.clear();
 
     // reset our persist thread
-    qDebug() << "domainChanged()... domain=" << domain << " swapping persist cache\n";
+    qDebug() << "Domain changed to" << domain << ". Swapping persist cache.";
     updateLocalOctreeCache();
 }
 
@@ -4476,14 +4470,12 @@ void Application::loadScript() {
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
-    printf("fileName:%s\n",fileName);
-
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(!file.is_open()) {
-        printf("error loading file\n");
+        qDebug("Error loading file %s", fileName);
         return;
     }
-    qDebug("loading file %s...\n", fileName);
+    qDebug("Loading file %s...", fileName);
 
     // get file length....
     unsigned long fileLength = file.tellg();
@@ -4575,7 +4567,7 @@ void Application::updateLocalOctreeCache(bool firstTime) {
         _persistThread = new OctreePersistThread(_voxels.getTree(),
                                         localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
 
-        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName << "\n";
+        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
 
         if (_persistThread) {
             _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates

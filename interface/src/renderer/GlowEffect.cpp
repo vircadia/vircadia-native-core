@@ -54,7 +54,7 @@ static ProgramObject* createProgram(const QString& name) {
 
 void GlowEffect::init() {
     if (_initialized) {
-        qDebug("[ERROR] GlowEffeect is already initialized.\n");
+        qDebug("[ERROR] GlowEffeect is already initialized.");
         return;
     }
 
@@ -284,20 +284,20 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 void GlowEffect::cycleRenderMode() {
     switch(_renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT)) {
         case ADD_MODE:
-            qDebug() << "Glow mode: Add\n";
+            qDebug() << "Glow mode: Add";
             break;
             
         case BLUR_ADD_MODE:
-            qDebug() << "Glow mode: Blur/add\n";
+            qDebug() << "Glow mode: Blur/add";
             break;
             
         case BLUR_PERSIST_ADD_MODE:
-            qDebug() << "Glow mode: Blur/persist/add\n";
+            qDebug() << "Glow mode: Blur/persist/add";
             break;
         
         default:    
         case DIFFUSE_ADD_MODE:
-            qDebug() << "Glow mode: Diffuse/add\n";
+            qDebug() << "Glow mode: Diffuse/add";
             break;
     }
     _isFirstFrame = true;

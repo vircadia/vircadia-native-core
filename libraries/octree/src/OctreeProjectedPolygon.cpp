@@ -90,13 +90,9 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
 
 
 void BoundingBox::printDebugDetails(const char* label) const {
-    if (label) {
-        qDebug() << label;
-    } else {
-        qDebug("BoundingBox");
-    }
-    qDebug("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]\n", 
-        debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
+    qDebug("%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
+           (label ? label : "BoundingBox"),
+           debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
 }
 
 

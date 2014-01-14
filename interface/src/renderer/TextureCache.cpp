@@ -333,10 +333,8 @@ void NetworkTexture::handleReplyError() {
     const int BASE_DELAY_MS = 1000;
     if (++_attempts < MAX_ATTEMPTS) {
         QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
-        debug << " -- retrying...\n";    
+        debug << " -- retrying...";
         
-    } else {
-        debug << "\n";
     }
 }
 

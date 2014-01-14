@@ -189,7 +189,7 @@ void AvatarMixer::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            qDebug() << "Took too much time, not sleeping!\n";
+            qDebug() << "AvatarMixer loop took too" << -usecToSleep << "of extra time. Won't sleep.";
         }
     }
 }
