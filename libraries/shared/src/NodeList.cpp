@@ -279,8 +279,7 @@ void NodeList::clear() {
     
     // iterate the nodes in the list
     while (nodeItem != _nodeHash.end()) {
-        killNodeAtHashIterator(nodeItem);
-        nodeItem++;
+        nodeItem = killNodeAtHashIterator(nodeItem);
     }
 }
 
