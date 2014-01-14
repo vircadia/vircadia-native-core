@@ -22,6 +22,8 @@ else (FACESHIFT_LIBRARIES AND FACESHIFT_INCLUDE_DIRS)
     find_library(FACESHIFT_LIBRARIES libfaceshift.a ${FACESHIFT_ROOT_DIR}/lib/MacOS/)
   elseif (UNIX)
     find_library(FACESHIFT_LIBRARIES libfaceshift.a ${FACESHIFT_ROOT_DIR}/lib/UNIX/)
+  elseif (WIN32)
+    find_library(FACESHIFT_LIBRARIES faceshift.lib ${FACESHIFT_ROOT_DIR}/lib/WIN32/)
   endif ()
 
   if (FACESHIFT_INCLUDE_DIRS AND FACESHIFT_LIBRARIES)
