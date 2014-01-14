@@ -4263,7 +4263,7 @@ void Application::processDatagrams() {
     HifiSockAddr senderSockAddr;
     ssize_t bytesReceived;
 
-    if (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams() &&
+    while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams() &&
         (bytesReceived = NodeList::getInstance()->getNodeSocket().readDatagram((char*) _incomingPacket,
                                                                                MAX_PACKET_SIZE,
                                                                                senderSockAddr.getAddressPointer(),
