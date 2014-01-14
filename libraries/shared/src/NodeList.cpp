@@ -794,17 +794,19 @@ void NodeList::removeSilentNodes() {
     NodeHash::iterator nodeItem = _nodeHash.begin();
     
     while (nodeItem != _nodeHash.end()) {
-        nodeItem.value()->lock();
         
-        if ((usecTimestampNow() - nodeItem.value()->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-            SharedNodePointer node = nodeItem.value();
+        SharedNodePointer node = nodeItem.value();
+        
+        node->lock();
+        
+        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
             // kill this node, don't lock - we already did it
             _nodeHash.erase(nodeItem);
-            
-            // unlock the node
-            node->unlock();
         }
+        
+        // unlock the node
+        node->unlock();
     }
 }
 
