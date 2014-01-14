@@ -807,6 +807,8 @@ void NodeList::removeSilentNodes() {
         
         // unlock the node
         node->unlock();
+        
+        nodeItem++;
     }
 }
 

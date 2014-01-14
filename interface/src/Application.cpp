@@ -274,7 +274,6 @@ Application::~Application() {
 
     delete _logger;
     delete _settings;
-    delete _followMode;
     delete _glWidget;
 }
 
@@ -1912,10 +1911,6 @@ void Application::init() {
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
                   _glWidget->height());
-
-    _followMode = new QAction(this);
-    connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
-    _pieMenu.addAction(_followMode);
 
     _audio.init(_glWidget);
 

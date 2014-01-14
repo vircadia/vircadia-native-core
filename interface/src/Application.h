@@ -335,8 +335,6 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
 
-    QAction* _followMode;
-
     BandwidthMeter _bandwidthMeter;
 
     SerialInterface _serialHeadSensor;
