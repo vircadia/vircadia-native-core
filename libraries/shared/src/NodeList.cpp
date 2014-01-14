@@ -36,6 +36,9 @@ NodeList* NodeList::_sharedInstance = NULL;
 NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
+        
+        // register the SharedNodePointer meta-type for signals/slots
+        qRegisterMetaType<SharedNodePointer>();
     } else {
         qDebug("NodeList createInstance called with existing instance.");
     }
@@ -682,7 +685,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         
-        NodeHash::iterator addedItem = _nodeHash.insert(newNode->getUUID(), SharedNodePointer(newNode));
+        NodeHash::iterator addedItem = _nodeHash.insert(newNode->getUUID(), SharedNodePointer(newNode, &QObject::deleteLater));
         
         qDebug() << "Added" << *newNode << "\n";
         

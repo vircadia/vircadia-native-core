@@ -52,6 +52,7 @@ public:
 
 typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
+Q_DECLARE_METATYPE(SharedNodePointer)
 
 class NodeList : public QObject {
     Q_OBJECT
@@ -128,8 +129,8 @@ public slots:
     void pingInactiveNodes();
     void removeSilentNodes();
 signals:
-    void nodeAdded(QSharedPointer<Node>);
-    void nodeKilled(QSharedPointer<Node>);
+    void nodeAdded(SharedNodePointer);
+    void nodeKilled(SharedNodePointer);
 private:
     static NodeList* _sharedInstance;
     

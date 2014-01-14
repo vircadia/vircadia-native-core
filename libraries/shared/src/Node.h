@@ -25,7 +25,8 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
-class Node {
+class Node : public QObject {
+    Q_OBJECT
 public:
     Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     ~Node();
