@@ -44,7 +44,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (nodeList->getNodeActiveSocketOrPing(node.data()) &&
             node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();

@@ -1969,7 +1969,7 @@ void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, cons
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
 
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar*)node->getLinkedData();
             float distance;
@@ -2029,7 +2029,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         QMutexLocker(&node->getMutex());
         if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
@@ -2657,7 +2657,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
@@ -2717,7 +2717,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             
@@ -3292,7 +3292,7 @@ void Application::displayOverlay() {
 
         int totalAvatars = 0, totalServers = 0;
         
-        foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
         }
 
@@ -3406,7 +3406,7 @@ void Application::displayStats() {
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
         
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
                 totalPingVoxel += node->getPingMs();
                 voxelServerCount++;
@@ -3757,7 +3757,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
         
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             QMutexLocker(&node->getMutex());
             
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {

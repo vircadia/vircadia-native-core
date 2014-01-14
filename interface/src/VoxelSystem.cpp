@@ -1605,7 +1605,7 @@ void VoxelSystem::falseColorizeBySource() {
 
     // create a bunch of colors we'll use during colorization
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
             uint16_t nodeID = VoxelTreeElement::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;

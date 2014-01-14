@@ -843,7 +843,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             SortedAvatar sortedAvatar;
             sortedAvatar.avatar = (Avatar*)node->getLinkedData();

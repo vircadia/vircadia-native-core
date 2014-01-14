@@ -58,7 +58,7 @@ bool OctreeEditPacketSender::serversExist() const {
     bool atLeastOnJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()) {
             if (nodeList->getNodeActiveSocketOrPing(node.data())) {
@@ -87,7 +87,7 @@ bool OctreeEditPacketSender::serversExist() const {
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
@@ -170,7 +170,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
@@ -216,7 +216,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned c
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();

@@ -244,7 +244,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
     
     NodeList* nodeList = NodeList::getInstance();
 
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;

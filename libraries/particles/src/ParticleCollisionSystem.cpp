@@ -188,7 +188,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
     // loop through all the other avatars for potential interactions...
     
-    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.

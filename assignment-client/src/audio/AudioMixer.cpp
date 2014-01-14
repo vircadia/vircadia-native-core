@@ -188,7 +188,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
     memset(_clientSamples, 0, sizeof(_clientSamples));
     
     // loop through all other nodes that have sufficient audio to mix
-    foreach(SharedNodePointer otherNode, NodeList::getInstance()->getNodeHash()) {
+    foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
         if (otherNode->getLinkedData()) {
             
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
@@ -263,13 +263,13 @@ void AudioMixer::run() {
             break;
         }
         
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
             }
         }
 
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
@@ -282,7 +282,7 @@ void AudioMixer::run() {
         }
         
         // push forward the next output pointers for any audio buffers we used
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }

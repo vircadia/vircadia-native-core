@@ -145,7 +145,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                 } else {
                     // mesh URL for a UUID, find avatar in our list
                     
-                    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
@@ -163,7 +163,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
-                    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             

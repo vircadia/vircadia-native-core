@@ -110,7 +110,7 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
 }
 
 void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData) {
-    foreach(SharedNodePointer node, _nodeHash) {
+    foreach (const SharedNodePointer& node, _nodeHash) {
         if (node->getPublicSocket() == nodeAddress ||
             node->getLocalSocket() == nodeAddress) {
             
@@ -254,7 +254,7 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     // naively returns the first node that has a matching active HifiSockAddr
     // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach(SharedNodePointer node, _nodeHash) {
+    foreach (const SharedNodePointer& node, _nodeHash) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return node;
         }
@@ -721,7 +721,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
     
-    foreach(SharedNodePointer node, _nodeHash) {
+    foreach (const SharedNodePointer& node, _nodeHash) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
             if (getNodeActiveSocketOrPing(node.data())) {
@@ -737,7 +737,7 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
 }
 
 void NodeList::pingInactiveNodes() {
-    foreach(SharedNodePointer node, _nodeHash) {
+    foreach (const SharedNodePointer& node, _nodeHash) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
             pingPublicAndLocalSocketsForInactiveNode(node.data());
@@ -756,7 +756,7 @@ const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
 
 void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddress) {
     
-    foreach(SharedNodePointer node, _nodeHash) {
+    foreach (const SharedNodePointer& node, _nodeHash) {
         if (!node->getActiveSocket()) {
             // check both the public and local addresses for each node to see if we find a match
             // prioritize the private address so that we prune erroneous local matches
@@ -774,7 +774,7 @@ void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddre
 SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
     
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
-        foreach(SharedNodePointer node, _nodeHash) {
+        foreach (const SharedNodePointer& node, _nodeHash) {
             if (node->getType() == nodeType) {
                 return node;
             }

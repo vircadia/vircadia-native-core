@@ -368,7 +368,7 @@ void Hand::updateCollisions() {
         glm::vec3 totalPenetration;
         
         // check other avatars
-        foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
                 if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {

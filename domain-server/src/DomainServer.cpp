@@ -201,7 +201,7 @@ void DomainServer::readAvailableDatagrams() {
                     
                     if (numInterestTypes > 0) {
                         // if the node has sent no types of interest, assume they want nothing but their own ID back
-                        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+                        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                             if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
                                 
@@ -318,7 +318,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
-            foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
+            foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                 if (node->getLinkedData()) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
@@ -370,7 +370,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
-            foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
                 nodesJSON[uuidString] = jsonObjectForNode(node.data());
@@ -735,7 +735,7 @@ bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePu
                                                       const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData()
             && nodePublicSocket == node->getPublicSocket()
             && nodeLocalSocket == node->getLocalSocket()
@@ -767,7 +767,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
         NodeList* nodeList = NodeList::getInstance();
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
                 if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {

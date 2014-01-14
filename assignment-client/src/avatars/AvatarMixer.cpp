@@ -67,7 +67,7 @@ void broadcastAvatarData() {
     
     NodeList* nodeList = NodeList::getInstance();
     
-    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
             
             // reset packet pointers for this node
@@ -76,7 +76,7 @@ void broadcastAvatarData() {
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
-            foreach(SharedNodePointer otherNode, nodeList->getNodeHash()) {
+            foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
                     
                     unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0],
@@ -142,7 +142,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
                                                                   NUM_BYTES_RFC4122_UUID));
             // let everyone else know about the update
-            foreach(SharedNodePointer node, nodeList->getNodeHash()) {
+            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 if (node->getActiveSocket() && node->getUUID() != nodeUUID) {
                     nodeList->getNodeSocket().writeDatagram(dataByteArray,
                                                             node->getActiveSocket()->getAddress(),
