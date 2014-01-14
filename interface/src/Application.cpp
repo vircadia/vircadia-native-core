@@ -89,12 +89,8 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
-<<<<<<< HEAD
 const QString CHECK_VERSION_URL = "http://www.google.com";
 
-
-=======
->>>>>>> a8bbe41642f5ce3152f7e7ca8b9b001c78c2fcdc
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
     Application::getInstance()->getLogger()->addMessage(message.toLocal8Bit().constData());
