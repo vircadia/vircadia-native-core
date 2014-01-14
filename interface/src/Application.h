@@ -215,6 +215,8 @@ public:
 public slots:
     void nodeKilled(SharedNodePointer node);
     
+    void processDatagrams();
+    
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
@@ -466,10 +468,6 @@ private:
     #ifndef _WIN32
     Audio _audio;
     #endif
-
-    bool _enableNetworkThread;
-    pthread_t _networkReceiveThread;
-    bool _stopNetworkReceiveThread;
 
     bool _enableProcessVoxelsThread;
     VoxelPacketProcessor _voxelProcessor;

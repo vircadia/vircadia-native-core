@@ -786,7 +786,7 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
         }
     }
     
-    return SharedNodePointer(NULL);
+    return SharedNodePointer();
 }
 
 void NodeList::removeSilentNodes() {
