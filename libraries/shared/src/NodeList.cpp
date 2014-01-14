@@ -254,24 +254,24 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     }
 }
 
-QSharedPointer<Node> NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
+SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     // naively returns the first node that has a matching active HifiSockAddr
     // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach(QSharedPointer<Node> node, _nodeHash) {
+    foreach(SharedNodePointer node, _nodeHash) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return node;
         }
     }
     
-    return QSharedPointer<Node>(NULL);
+    return SharedNodePointer();
 }
 
-QSharedPointer<Node> NodeList::nodeWithUUID(const QUuid& nodeUUID) {
+SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
     QHash<QUuid, QSharedPointer<Node> >::const_iterator foundIterator = _nodeHash.find(nodeUUID);
     if (foundIterator != _nodeHash.end()) {
         return foundIterator.value();
     } else {
-        return QSharedPointer<Node>(NULL);
+        return SharedNodePointer();
     }
 }
 
