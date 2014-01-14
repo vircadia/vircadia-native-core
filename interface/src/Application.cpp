@@ -1121,7 +1121,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 return;
             }
             if (_isHoverVoxel) {
-                _myAvatar.orbit(glm::vec3(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z) * (float)TREE_SCALE, deltaX, deltaY);
+                _myAvatar.orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
                 return;
             }
         }
@@ -1347,8 +1347,9 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
 
-    // give the MyAvatar object position to the Profile so it can propagate to the data-server
+    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());
+    _profile.updateOrientation(_myAvatar.getOrientation());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -1617,10 +1618,9 @@ void Application::makeVoxel(glm::vec3 position,
                         isDestructive);
    }
 
-const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
-    return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
-                     (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
-                     (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
+glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
+    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.f) * TREE_SCALE,
+        (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
 const float NUDGE_PRECISION_MIN = 1 / pow(2.0, 12.0);
@@ -2127,9 +2127,12 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
         Avatar* avatar = *fade;
         const float SHRINK_RATE = 0.9f;
-        avatar->setNewScale(avatar->getNewScale() * SHRINK_RATE);
-        const float MINIMUM_SCALE = 0.001f;
-        if (avatar->getNewScale() < MINIMUM_SCALE) {
+        
+        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+        
+        const float MIN_FADE_SCALE = 0.001;
+        
+        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             delete avatar;
             _avatarFades.erase(fade--);
 

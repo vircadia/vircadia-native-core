@@ -356,8 +356,8 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
 }
 
 int MetavoxelPath::operator[](int index) const {
-    return _array.at(index * BITS_PER_ELEMENT) | (_array.at(index * BITS_PER_ELEMENT + 1) << 1) |
-        (_array.at(index * BITS_PER_ELEMENT + 2) << 2);
+    return (int)_array.at(index * BITS_PER_ELEMENT) | ((int)_array.at(index * BITS_PER_ELEMENT + 1) << 1) |
+        ((int)_array.at(index * BITS_PER_ELEMENT + 2) << 2);
 }
 
 MetavoxelPath& MetavoxelPath::operator+=(int element) {
