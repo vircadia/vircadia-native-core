@@ -80,7 +80,7 @@ void broadcastAvatarData() {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
                     
                     unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0],
-                                                                                 &*otherNode);
+                                                                                 otherNode.data());
                     int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
                     
                     if (avatarDataLength + packetLength <= MAX_PACKET_SIZE) {

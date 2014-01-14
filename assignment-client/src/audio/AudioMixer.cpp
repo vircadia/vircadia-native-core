@@ -272,7 +272,7 @@ void AudioMixer::run() {
         foreach(SharedNodePointer node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
-                prepareMixForListeningNode(&(*node));
+                prepareMixForListeningNode(node.data());
                 
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
                 nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),

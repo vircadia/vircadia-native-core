@@ -207,7 +207,7 @@ void DomainServer::readAvailableDatagrams() {
                                 
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
                                 if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
+                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, node.data());
                                 }
                                 
                             }
@@ -322,7 +322,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 if (node->getLinkedData()) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                    assignedNodesJSON[uuidString] = jsonObjectForNode(&(*node));
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(node.data());
                 }
             }
             
