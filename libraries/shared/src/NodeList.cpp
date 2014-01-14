@@ -52,10 +52,9 @@ NodeList* NodeList::getInstance() {
 }
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
+    _nodeHash(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _nodeBuckets(),
-    _numNodes(0),
     _nodeSocket(),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
@@ -108,10 +107,10 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
 }
 
 void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData) {
-    for(NodeList::iterator node = begin(); node != end(); node++) {
+    foreach(SharedNodePointer node, _nodeHash) {
         if (node->getPublicSocket() == nodeAddress ||
             node->getLocalSocket() == nodeAddress) {
-
+            
             unsigned char* dataAt = packetData + numBytesForPacketHeader(packetData);
             uint64_t ourOriginalTime = *(uint64_t*)(dataAt);
             dataAt += sizeof(ourOriginalTime);
@@ -129,15 +128,15 @@ void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *pac
             node->setClockSkewUsec(clockSkew);
             
             const bool wantDebug = false;
-            if (wantDebug) { 
+            if (wantDebug) {
                 qDebug() << "PING_REPLY from node " << *node << "\n" <<
-                    "                     now: " << now << "\n" <<
-                    "                 ourTime: " << ourOriginalTime << "\n" <<
-                    "                pingTime: " << pingTime << "\n" <<
-                    "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
-                    "         othersReplyTime: " << othersReplyTime << "\n" <<
-                    "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-                    "               clockSkew: " << clockSkew << "\n";
+                "                     now: " << now << "\n" <<
+                "                 ourTime: " << ourOriginalTime << "\n" <<
+                "                pingTime: " << pingTime << "\n" <<
+                "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+                "         othersReplyTime: " << othersReplyTime << "\n" <<
+                "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+                "               clockSkew: " << clockSkew << "\n";
             }
             break;
         }
@@ -184,10 +183,9 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char
 }
 
 void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned char *packetData, int numTotalBytes) {
+    SharedNodePointer bulkSendNode = nodeWithAddress(senderAddress);
     
     // find the avatar mixer in our node list and update the lastRecvTime from it
-    Node* bulkSendNode = nodeWithAddress(senderAddress);
-
     if (bulkSendNode) {
         
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
@@ -209,14 +207,14 @@ void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned c
                    numTotalBytes - (currentPosition - startPosition));
             
             QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)currentPosition, NUM_BYTES_RFC4122_UUID));
-            Node* matchingNode = nodeWithUUID(nodeUUID);
+            SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
             
             if (!matchingNode) {
                 // we're missing this node, we need to add it to the list
                 matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, HifiSockAddr(), HifiSockAddr());
             }
             
-            currentPosition += updateNodeWithData(matchingNode,
+            currentPosition += updateNodeWithData(matchingNode.data(),
                                                   HifiSockAddr(),
                                                   packetHolder,
                                                   numTotalBytes - (currentPosition - startPosition));
@@ -253,53 +251,39 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     }
 }
 
-Node* NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
-    for(NodeList::iterator node = begin(); node != end(); node++) {
+QSharedPointer<Node> NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
+    // naively returns the first node that has a matching active HifiSockAddr
+    // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
+    foreach(QSharedPointer<Node> node, _nodeHash) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
-            return &(*node);
+            return node;
         }
     }
     
-    return NULL;
+    return QSharedPointer<Node>(NULL);
 }
 
-Node* NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    for(NodeList::iterator node = begin(); node != end(); node++) {
-        if (node->getUUID() == nodeUUID) {
-            return &(*node);
-        }
+QSharedPointer<Node> NodeList::nodeWithUUID(const QUuid& nodeUUID) {
+    QHash<QUuid, QSharedPointer<Node> >::const_iterator foundIterator = _nodeHash.find(nodeUUID);
+    if (foundIterator != _nodeHash.end()) {
+        return foundIterator.value();
+    } else {
+        return QSharedPointer<Node>(NULL);
     }
-
-    return NULL;
-}
-
-int NodeList::getNumAliveNodes() const {
-    int numAliveNodes = 0;
-    
-    for (NodeList::iterator node = begin(); node != end(); node++) {
-        if (node->isAlive()) {
-            ++numAliveNodes;
-        }
-    }
-    
-    return numAliveNodes;
 }
 
 void NodeList::clear() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.\n";
     
-    // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
-    for (int i = 0; i < _numNodes; i++) {
-        Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
-        Node* node = nodeBucket[i % NODES_PER_BUCKET];
-        
-        node->lock();
-        notifyHooksOfKilledNode(&*node);
-        
-        delete node;
-    }
+    NodeHash::iterator nodeItem = _nodeHash.begin();
     
-    _numNodes = 0;
+    // iterate the nodes in the list
+    while (nodeItem != _nodeHash.end()) {
+        // emit our signal to say this node has been killed
+        emit nodeKilled(nodeItem.value());
+        // erase the node from our node hash
+        _nodeHash.erase(nodeItem);
+    }
 }
 
 void NodeList::reset() {
@@ -457,6 +441,14 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
     }
 }
 
+void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+    NodeHash::iterator nodeToKill = _nodeHash.find(nodeUUID);
+    if (nodeToKill != _nodeHash.end()) {
+        emit nodeKilled(nodeToKill.value());
+        _nodeHash.erase(nodeToKill);
+    }
+}
+
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
     unsigned char* packetPosition = packet;
@@ -483,9 +475,10 @@ void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
     dataBytes -= NUM_BYTES_RFC4122_UUID;
     
     // make sure the node exists
-    Node* node = nodeWithUUID(nodeUUID);
-    if (node) {
-        killNode(node, true);
+    NodeHash::iterator nodeToKill = _nodeHash.find(nodeUUID);
+    if (nodeToKill != _nodeHash.end()) {
+        emit nodeKilled(nodeToKill.value());
+        _nodeHash.erase(nodeToKill);
     }
 }
 
@@ -681,26 +674,24 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
                               node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
 }
 
-Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
+SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-    NodeList::iterator node = end();
+    NodeHash::iterator matchingNodeItem = _nodeHash.find(uuid);
     
-    for (node = begin(); node != end(); node++) {
-        if (node->getUUID() == uuid) {
-            // we already have this node, stop checking
-            break;
-        }
-    }
-    
-    if (node == end()) {
+    if (matchingNodeItem == _nodeHash.end()) {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         
-        addNodeToList(newNode);
+        NodeHash::iterator addedItem = _nodeHash.insert(newNode->getUUID(), SharedNodePointer(newNode));
         
-        return newNode;
+        qDebug() << "Added" << *newNode << "\n";
+        
+        emit nodeAdded(addedItem.value());
+        
+        return SharedNodePointer(newNode);
     } else {
-        node->lock();
+        SharedNodePointer node = matchingNodeItem.value();
+        matchingNodeItem.value()->lock();
         
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER ||
@@ -724,33 +715,17 @@ Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         node->unlock();
         
         // we had this node already, do nothing for now
-        return &*node;
+        return node;
     }    
-}
-
-void NodeList::addNodeToList(Node* newNode) {
-    // find the correct array to add this node to
-    int bucketIndex = _numNodes / NODES_PER_BUCKET;
-    
-    if (!_nodeBuckets[bucketIndex]) {
-        _nodeBuckets[bucketIndex] = new Node*[NODES_PER_BUCKET]();
-    }
-    
-    _nodeBuckets[bucketIndex][_numNodes % NODES_PER_BUCKET] = newNode;
-    
-    ++_numNodes;
-    
-    qDebug() << "Added" << *newNode << "\n";
-    
-    notifyHooksOfAddedNode(newNode);
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
-    for(NodeList::iterator node = begin(); node != end(); node++) {
+    
+    foreach(SharedNodePointer node, _nodeHash) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            if (getNodeActiveSocketOrPing(&(*node))) {
+            if (getNodeActiveSocketOrPing(node.data())) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.writeDatagram((char*) broadcastData, dataBytes,
                                           node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
@@ -758,14 +733,15 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
             }
         }
     }
+    
     return n;
 }
 
 void NodeList::pingInactiveNodes() {
-    for(NodeList::iterator node = begin(); node != end(); node++) {
+    foreach(SharedNodePointer node, _nodeHash) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(&(*node));
+            pingPublicAndLocalSocketsForInactiveNode(node.data());
         }
     }
 }
@@ -780,7 +756,8 @@ const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
 }
 
 void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddress) {
-    for(NodeList::iterator node = begin(); node != end(); node++) {
+    
+    foreach(SharedNodePointer node, _nodeHash) {
         if (!node->getActiveSocket()) {
             // check both the public and local addresses for each node to see if we find a match
             // prioritize the private address so that we prune erroneous local matches
@@ -795,46 +772,35 @@ void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddre
     }
 }
 
-Node* NodeList::soloNodeOfType(char nodeType) {
+SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
+    
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
-        for(NodeList::iterator node = begin(); node != end(); node++) {
+        foreach(SharedNodePointer node, _nodeHash) {
             if (node->getType() == nodeType) {
-                return &(*node);
+                return node;
             }
         }
     }
     
-    return NULL;
-}
-
-void NodeList::killNode(Node* node, bool mustLockNode) {
-    if (mustLockNode) {
-        node->lock();
-    }
-    
-    qDebug() << "Killed " << *node << "\n";
-    
-    notifyHooksOfKilledNode(&*node);
-    
-    node->setAlive(false);
-    
-    if (mustLockNode) {
-        node->unlock();
-    }
+    return SharedNodePointer(NULL);
 }
 
 void NodeList::removeSilentNodes() {
-    NodeList* nodeList = NodeList::getInstance();
     
-    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-        node->lock();
+    NodeHash::iterator nodeItem = _nodeHash.begin();
+    
+    while (nodeItem != _nodeHash.end()) {
+        nodeItem.value()->lock();
         
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+        if ((usecTimestampNow() - nodeItem.value()->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+            SharedNodePointer node = nodeItem.value();
+            
             // kill this node, don't lock - we already did it
-            nodeList->killNode(&(*node), false);
+            _nodeHash.erase(nodeItem);
+            
+            // unlock the node
+            node->unlock();
         }
-        
-        node->unlock();
     }
 }
 
@@ -868,80 +834,6 @@ void NodeList::saveData(QSettings* settings) {
     settings->endGroup();
 }
 
-NodeList::iterator NodeList::begin() const {
-    Node** nodeBucket = NULL;
-    
-    for (int i = 0; i < _numNodes; i++) {
-        if (i % NODES_PER_BUCKET == 0) {
-            nodeBucket =  _nodeBuckets[i / NODES_PER_BUCKET];
-        }
-        
-        if (nodeBucket[i % NODES_PER_BUCKET]->isAlive()) {
-            return NodeListIterator(this, i);
-        }
-    }
-    
-    // there's no alive node to start from - return the end
-    return end();
-}
-
-NodeList::iterator NodeList::end() const {
-    return NodeListIterator(this, _numNodes);
-}
-
-NodeListIterator::NodeListIterator(const NodeList* nodeList, int nodeIndex) :
-    _nodeIndex(nodeIndex) {
-    _nodeList = nodeList;
-}
-
-NodeListIterator& NodeListIterator::operator=(const NodeListIterator& otherValue) {
-    _nodeList = otherValue._nodeList;
-    _nodeIndex = otherValue._nodeIndex;
-    return *this;
-}
-
-bool NodeListIterator::operator==(const NodeListIterator &otherValue) {
-    return _nodeIndex == otherValue._nodeIndex;
-}
-
-bool NodeListIterator::operator!=(const NodeListIterator &otherValue) {
-    return !(*this == otherValue);
-}
-
-Node& NodeListIterator::operator*() {
-    Node** nodeBucket = _nodeList->_nodeBuckets[_nodeIndex / NODES_PER_BUCKET];
-    return *nodeBucket[_nodeIndex % NODES_PER_BUCKET];
-}
-
-Node* NodeListIterator::operator->() {
-    Node** nodeBucket = _nodeList->_nodeBuckets[_nodeIndex / NODES_PER_BUCKET];
-    return nodeBucket[_nodeIndex % NODES_PER_BUCKET];
-}
-
-NodeListIterator& NodeListIterator::operator++() {
-    skipDeadAndStopIncrement();
-    return *this;
-}
-
-NodeList::iterator NodeListIterator::operator++(int) {
-    NodeListIterator newIterator = NodeListIterator(*this);
-    skipDeadAndStopIncrement();
-    return newIterator;
-}
-
-void NodeListIterator::skipDeadAndStopIncrement() {
-    while (_nodeIndex != _nodeList->_numNodes) {
-        ++_nodeIndex;
-        
-        if (_nodeIndex == _nodeList->_numNodes) {
-            break;
-        } else if ((*(*this)).isAlive()) {
-            // skip over the dead nodes
-            break;
-        }
-    }
-}
-
 void NodeList::addDomainListener(DomainChangeListener* listener) {
     _domainListeners.push_back(listener);
     QString domain = _domainHostname.isEmpty() ? _domainSockAddr.getAddress().toString() : _domainHostname;
@@ -954,33 +846,6 @@ void NodeList::removeDomainListener(DomainChangeListener* listener) {
             _domainListeners.erase(_domainListeners.begin() + i);
             return;
         }
-    }
-}
-
-void NodeList::addHook(NodeListHook* hook) {
-    _hooks.push_back(hook);
-}
-
-void NodeList::removeHook(NodeListHook* hook) {
-    for (int i = 0; i < _hooks.size(); i++) {
-        if (_hooks[i] == hook) {
-            _hooks.erase(_hooks.begin() + i);
-            return;
-        }
-    }
-}
-
-void NodeList::notifyHooksOfAddedNode(Node* node) {
-    for (int i = 0; i < _hooks.size(); i++) {
-        //printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
-        _hooks[i]->nodeAdded(node);
-    }
-}
-
-void NodeList::notifyHooksOfKilledNode(Node* node) {
-    for (int i = 0; i < _hooks.size(); i++) {
-        //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
-        _hooks[i]->nodeKilled(node);
     }
 }
 

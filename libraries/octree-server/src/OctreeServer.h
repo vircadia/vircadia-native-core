@@ -23,7 +23,7 @@
 #include "OctreeInboundPacketProcessor.h"
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
-class OctreeServer : public ThreadedAssignment, public NodeListHook {
+class OctreeServer : public ThreadedAssignment {
 public:                
     OctreeServer(const unsigned char* dataBuffer, int numBytes);
     ~OctreeServer();
@@ -60,15 +60,13 @@ public:
     virtual int sendSpecialPacket(Node* node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
-
-    // NodeListHook 
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
-
+    
 public slots:
     /// runs the voxel server assignment
     void run();
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    
+    void nodeKilled(SharedNodePointer node);
 
 protected:
     int _argc;

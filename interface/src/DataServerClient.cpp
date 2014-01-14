@@ -144,14 +144,14 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                     Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
                 } else {
                     // mesh URL for a UUID, find avatar in our list
-                    NodeList* nodeList = NodeList::getInstance();
-                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    
+                    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-                                    "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
+                                                          "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }
@@ -163,14 +163,13 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
-                    NodeList* nodeList = NodeList::getInstance();
-                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
-                                    Q_ARG(QUrl, QUrl(valueList[i])));
+                                                          Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }

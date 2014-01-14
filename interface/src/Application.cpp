@@ -173,9 +173,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-
-    nodeList->addHook(&_voxels);
-    nodeList->addHook(this);
+    
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
+            
     nodeList->addDomainListener(this);
 
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -263,8 +265,6 @@ Application::~Application() {
     _audio.thread()->wait();
 
     storeSizeAndPosition();
-    NodeList::getInstance()->removeHook(&_voxels);
-    NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
@@ -1441,7 +1441,7 @@ void Application::terminate() {
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
     // record the packet for stats-tracking
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AVATARS).updateValue(dataBytes);
-    Node* avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+    SharedNodePointer avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     if (avatarMixerNode) {
         avatarMixerNode->recordBytesReceived(dataBytes);
     }
@@ -1458,7 +1458,7 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     dataBytes -= NUM_BYTES_RFC4122_UUID;
 
     // make sure the node exists
-    Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+    SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
     if (!node || !node->getLinkedData()) {
         return NULL;
     }
@@ -1985,16 +1985,16 @@ void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, cons
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
 
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar*)node->getLinkedData();
             float distance;
+            
             if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
                 // rescale to compensate for head embiggening
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
-                    (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
-
+                (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
+                
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = avatar->getHead().getPosition();
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -2002,6 +2002,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             }
         }
     }
+    
     return NULL;
 }
 
@@ -2026,71 +2027,6 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest) {
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
-void maybeBeginFollowIndicator(bool& began) {
-    if (!began) {
-        Application::getInstance()->getGlowEffect()->begin();
-        glLineWidth(5);
-        glBegin(GL_LINES);
-        began = true;
-    }
-}
-
-void Application::renderFollowIndicator() {
-    NodeList* nodeList = NodeList::getInstance();
-
-    // initialize lazily so that we don't enable the glow effect unnecessarily
-    bool began = false;
-
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* avatar = (Avatar *) node->getLinkedData();
-            Avatar* leader = NULL;
-
-            if (!avatar->getLeaderUUID().isNull()) {
-                if (avatar->getLeaderUUID() == NodeList::getInstance()->getOwnerUUID()) {
-                    leader = &_myAvatar;
-                } else {
-                    for (NodeList::iterator it = nodeList->begin(); it != nodeList->end(); ++it) {
-                        if(it->getUUID() == avatar->getLeaderUUID()
-                                && it->getType() == NODE_TYPE_AGENT) {
-                            leader = (Avatar*) it->getLinkedData();
-                        }
-                    }
-                }
-
-                if (leader != NULL) {
-                    maybeBeginFollowIndicator(began);
-                    glColor3f(1.f, 0.f, 0.f);
-                    glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
-                               (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
-                               (avatar->getHead().getPosition().z + avatar->getPosition().z) / 2.f);
-                    glColor3f(0.f, 1.f, 0.f);
-                    glVertex3f((leader->getHead().getPosition().x + leader->getPosition().x) / 2.f,
-                               (leader->getHead().getPosition().y + leader->getPosition().y) / 2.f,
-                               (leader->getHead().getPosition().z + leader->getPosition().z) / 2.f);
-                }
-            }
-        }
-    }
-
-    if (_myAvatar.getLeadingAvatar() != NULL) {
-        maybeBeginFollowIndicator(began);
-        glColor3f(1.f, 0.f, 0.f);
-        glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
-                   (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
-                   (_myAvatar.getHead().getPosition().z + _myAvatar.getPosition().z) / 2.f);
-        glColor3f(0.f, 1.f, 0.f);
-        glVertex3f((_myAvatar.getLeadingAvatar()->getHead().getPosition().x + _myAvatar.getLeadingAvatar()->getPosition().x) / 2.f,
-                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().y + _myAvatar.getLeadingAvatar()->getPosition().y) / 2.f,
-                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
-    }
-
-    if (began) {
-        glEnd();
-        _glowEffect.end();
-    }
-}
-
 void Application::renderHighlightVoxel(VoxelDetail voxel) {
     glDisable(GL_LIGHTING);
     glPushMatrix();
@@ -2108,9 +2044,8 @@ void Application::renderHighlightVoxel(VoxelDetail voxel) {
 void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
-    NodeList* nodeList = NodeList::getInstance();
-
-    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
         node->lock();
         if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
@@ -2739,39 +2674,36 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
 
     unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
 
-    NodeList* nodeList = NodeList::getInstance();
-
     // Iterate all of the nodes, and get a count of how many voxel servers we have...
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
-
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-
+    
+    foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
-
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownJurisdictionServers++;
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
-
+                    
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
                     }
@@ -2804,18 +2736,20 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
     }
-
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    foreach(SharedNodePointer node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
-
-
+            
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             bool inView = false;
             bool unknownView = false;
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
@@ -2825,15 +2759,15 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
@@ -2846,15 +2780,15 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     }
                 }
             }
-
+            
             if (inView) {
                 _voxelQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
-                            << perUnknownServer << " to send us jurisdiction.\n";
+                    << perUnknownServer << " to send us jurisdiction.\n";
                 }
-
+                
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -2878,24 +2812,24 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-
+            
             // insert packet type/version and node UUID
             endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, packetType);
             QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
             memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
             endOfVoxelQueryPacket += ownerUUID.size();
-
+            
             // encode the query data...
             endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-
+            
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
-
+            
             // make sure we still have an active socket
             if (node->getActiveSocket()) {
                 nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
-                                                    node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
+                                                        node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
             }
-
+            
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
         }
@@ -3252,12 +3186,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
 
-        {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... renderFollowIndicator...");
-            renderFollowIndicator();
-        }
-
         // render transmitter pick ray, if non-empty
         if (_transmitterPickStart != _transmitterPickEnd) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -3384,12 +3312,12 @@ void Application::displayOverlay() {
         glPointSize(1.0f);
         char nodes[100];
 
-        NodeList* nodeList = NodeList::getInstance();
         int totalAvatars = 0, totalServers = 0;
-
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        
+        foreach(SharedNodePointer node, NodeList::getInstance()->getNodeHash()) {
             node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
         }
+
         sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
         drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     }
@@ -3489,8 +3417,8 @@ void Application::displayStats() {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
 
         NodeList* nodeList = NodeList::getInstance();
-        Node* audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        Node* avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
 
         pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
@@ -3499,7 +3427,8 @@ void Application::displayStats() {
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        
+        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
                 totalPingVoxel += node->getPingMs();
                 voxelServerCount++;
@@ -3508,6 +3437,7 @@ void Application::displayStats() {
                 }
             }
         }
+        
         if (voxelServerCount) {
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
@@ -3524,7 +3454,7 @@ void Application::displayStats() {
     sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
-    Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+    SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     if (avatarMixer) {
         sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
@@ -3848,10 +3778,10 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     if (!selfAvatarOnly) {
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
-
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        
+        foreach(SharedNodePointer node, nodeList->getNodeHash()) {
             node->lock();
-
+            
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
@@ -3860,7 +3790,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 avatar->render(false);
                 avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
             }
-
+            
             node->unlock();
         }
 
@@ -4106,18 +4036,6 @@ void Application::eyedropperVoxelUnderCursor() {
     }
 }
 
-void Application::toggleFollowMode() {
-    glm::vec3 mouseRayOrigin, mouseRayDirection;
-    _viewFrustum.computePickRay(_pieMenu.getX() / (float)_glWidget->width(),
-                                _pieMenu.getY() / (float)_glWidget->height(),
-                                mouseRayOrigin, mouseRayDirection);
-    glm::vec3 eyePositionIgnored;
-    QUuid nodeUUIDIgnored;
-    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeUUIDIgnored);
-
-    _myAvatar.follow(leadingAvatar);
-}
-
 void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
@@ -4200,11 +4118,7 @@ void Application::domainChanged(QString domain) {
     updateLocalOctreeCache();
 }
 
-void Application::nodeAdded(Node* node) {
-
-}
-
-void Application::nodeKilled(Node* node) {
+void Application::nodeKilled(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
@@ -4284,7 +4198,7 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
                         const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
-    Node* serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+    SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
     if (serverNode) {
         QUuid nodeUUID = serverNode->getUUID();
 
@@ -4301,7 +4215,7 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
 int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderSockAddr) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-    Node* server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+    SharedNodePointer server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
