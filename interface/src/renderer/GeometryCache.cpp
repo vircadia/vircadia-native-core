@@ -251,18 +251,16 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
 }
 
 NetworkGeometry::NetworkGeometry(const QUrl& url) :
+    _modelRequest(url),
     _modelReply(NULL),
-    _mappingReply(NULL)
+    _mappingReply(NULL),
+    _attempts(0)
 {
     if (!url.isValid()) {
         return;
     }
-    QNetworkRequest modelRequest(url);
-    modelRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(modelRequest);
-    
-    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
-    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
+    _modelRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    makeModelRequest();
     
     QUrl mappingURL = url;
     QString path = url.path();
@@ -312,12 +310,28 @@ glm::vec4 NetworkGeometry::computeAverageColor() const {
     return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
 }
 
+void NetworkGeometry::makeModelRequest() {
+    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(_modelRequest);
+    
+    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
+    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
+}
+
 void NetworkGeometry::handleModelReplyError() {
-    qDebug() << _modelReply->errorString() << "\n";
+    QDebug debug = qDebug() << _modelReply->errorString();
     
     _modelReply->disconnect(this);
     _modelReply->deleteLater();
     _modelReply = NULL;
+    
+    // retry with increasing delays
+    const int MAX_ATTEMPTS = 8;
+    const int BASE_DELAY_MS = 1000;
+    if (++_attempts < MAX_ATTEMPTS) {
+        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeModelRequest()));
+        debug << " -- retrying...";
+        
+    }
 }
 
 void NetworkGeometry::handleMappingReplyError() {
@@ -351,7 +365,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         _geometry = url.path().toLower().endsWith(".svo") ? readSVO(model) : readFBX(model, mapping);
         
     } catch (const QString& error) {
-        qDebug() << "Error reading " << url << ": " << error << "\n";
+        qDebug() << "Error reading " << url << ": " << error;
         return;
     }
     

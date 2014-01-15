@@ -30,10 +30,10 @@ SixenseManager::~SixenseManager() {
 void SixenseManager::setFilter(bool filter) {
 #ifdef HAVE_SIXENSE
     if (filter) {
-        qDebug("Sixense Filter ON\n");
+        qDebug("Sixense Filter ON");
         sixenseSetFilterEnabled(1);
     } else {
-        qDebug("Sixense Filter OFF\n");
+        qDebug("Sixense Filter OFF");
         sixenseSetFilterEnabled(0);
     }
 #endif

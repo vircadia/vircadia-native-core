@@ -10,6 +10,7 @@
 #define __interface__GeometryCache__
 
 #include <QHash>
+#include <QNetworkRequest>
 #include <QObject>
 #include <QSharedPointer>
 #include <QWeakPointer>
@@ -67,15 +68,18 @@ public:
 
 private slots:
     
+    void makeModelRequest();
     void handleModelReplyError();    
     void handleMappingReplyError();
     void maybeReadModelWithMapping();
     
 private:
     
+    QNetworkRequest _modelRequest;
     QNetworkReply* _modelReply;
     QNetworkReply* _mappingReply;
     
+    int _attempts;
     FBXGeometry _geometry;
     QVector<NetworkMesh> _meshes;
 };

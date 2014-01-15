@@ -204,10 +204,10 @@ void processFillSVOFile(const char* fillSVOFile) {
     VoxelTree filledSVO(true); // reaveraging
 
     originalSVO.readFromSVOFile(fillSVOFile);
-    qDebug("Nodes after loading %lu nodes\n", originalSVO.getOctreeElementsCount());
+    qDebug("Nodes after loading %lu nodes", originalSVO.getOctreeElementsCount());
     originalSVO.reaverageOctreeElements();
-    qDebug("Original Voxels reAveraged\n");
-    qDebug("Nodes after reaveraging %lu nodes\n", originalSVO.getOctreeElementsCount());
+    qDebug("Original Voxels reAveraged");
+    qDebug("Nodes after reaveraging %lu nodes", originalSVO.getOctreeElementsCount());
     
     copyAndFillArgs args;
     args.destinationTree = &filledSVO;
@@ -215,23 +215,23 @@ void processFillSVOFile(const char* fillSVOFile) {
     args.outCount = 0;
     args.originalCount = originalSVO.getOctreeElementsCount();
     
-    printf("Begin processing...\n");
+    printf("Begin processing...");
     originalSVO.recurseTreeWithOperation(copyAndFillOperation, &args);
-    printf("DONE processing...\n");
+    printf("DONE processing...");
 
-    qDebug("Original input nodes used for filling %lu nodes\n", args.originalCount);
-    qDebug("Input nodes traversed during filling %lu nodes\n", args.inCount);
-    qDebug("Nodes created during filling %lu nodes\n", args.outCount);
-    qDebug("Nodes after filling %lu nodes\n", filledSVO.getOctreeElementsCount());
+    qDebug("Original input nodes used for filling %lu nodes", args.originalCount);
+    qDebug("Input nodes traversed during filling %lu nodes", args.inCount);
+    qDebug("Nodes created during filling %lu nodes", args.outCount);
+    qDebug("Nodes after filling %lu nodes", filledSVO.getOctreeElementsCount());
 
     filledSVO.reaverageOctreeElements();
-    qDebug("Nodes after reaveraging %lu nodes\n", filledSVO.getOctreeElementsCount());
+    qDebug("Nodes after reaveraging %lu nodes", filledSVO.getOctreeElementsCount());
 
     sprintf(outputFileName, "filled%s", fillSVOFile);
-    printf("outputFile: %s\n", outputFileName);
+    printf("outputFile: %s", outputFileName);
     filledSVO.writeToSVOFile(outputFileName);
 
-    printf("exiting now\n");
+    printf("exiting now");
 }
 
 void unitTest(VoxelTree * tree);
@@ -265,18 +265,18 @@ int main(int argc, const char * argv[])
             float z = zStr.toFloat()/TREE_SCALE; // 0.56540045166016;
             float s = sStr.toFloat()/TREE_SCALE; // 0.015625;
 
-            qDebug() << "Get Octal Code for:\n";
-            qDebug() << "    x:" << xStr << " [" << x << "] \n";
-            qDebug() << "    y:" << yStr << " [" << y << "] \n";
-            qDebug() << "    z:" << zStr << " [" << z << "] \n";
-            qDebug() << "    s:" << sStr << " [" << s << "] \n";
+            qDebug() << "Get Octal Code for:";
+            qDebug() << "    x:" << xStr << " [" << x << "]";
+            qDebug() << "    y:" << yStr << " [" << y << "]";
+            qDebug() << "    z:" << zStr << " [" << z << "]";
+            qDebug() << "    s:" << sStr << " [" << s << "]";
 
             unsigned char* octalCode = pointToVoxel(x, y, z, s);
             QString octalCodeStr = octalCodeToHexString(octalCode);
-            qDebug() << "octal code: " << octalCodeStr << "\n";
+            qDebug() << "octal code: " << octalCodeStr;
 
         } else {
-            qDebug() << "Unexpected number of parameters for getOctCode\n";
+            qDebug() << "Unexpected number of parameters for getOctCode";
         }
         return 0;
     }
@@ -293,12 +293,12 @@ int main(int argc, const char * argv[])
         
         delete[] octalCodeToDecode;
 
-        qDebug() << "octal code to decode: " << decodeParamsString << "\n";
-        qDebug() << "Details for Octal Code:\n";
-        qDebug() << "    x:" << details.x << "[" << details.x * TREE_SCALE << "]" << "\n";
-        qDebug() << "    y:" << details.y << "[" << details.y * TREE_SCALE << "]" << "\n";
-        qDebug() << "    z:" << details.z << "[" << details.z * TREE_SCALE << "]" << "\n";
-        qDebug() << "    s:" << details.s << "[" << details.s * TREE_SCALE << "]" << "\n";
+        qDebug() << "octal code to decode: " << decodeParamsString;
+        qDebug() << "Details for Octal Code:";
+        qDebug() << "    x:" << details.x << "[" << details.x * TREE_SCALE << "]";
+        qDebug() << "    y:" << details.y << "[" << details.y * TREE_SCALE << "]";
+        qDebug() << "    z:" << details.z << "[" << details.z * TREE_SCALE << "]";
+        qDebug() << "    s:" << details.s << "[" << details.s * TREE_SCALE << "]";
         return 0;
     }    
     

@@ -172,7 +172,7 @@ void ImportTask::run() {
     } else if (_filename.endsWith(".schematic", Qt::CaseInsensitive)) {
         voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data());
     } else {
-        qDebug("[ERROR] Invalid file extension.\n");
+        qDebug("[ERROR] Invalid file extension.");
     }
 
     voxelSystem->getTree()->reaverageOctreeElements();

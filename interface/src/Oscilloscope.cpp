@@ -10,8 +10,6 @@
 #include <cstring>
 #include <algorithm>
 
-#include <QtCore/QDebug>
-
 #include "InterfaceConfig.h"
 
 #include "Oscilloscope.h"

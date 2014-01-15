@@ -27,11 +27,7 @@ void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     }
 }
 
-void OctreeServer::nodeAdded(Node* node) {
-    // do nothing
-}
-
-void OctreeServer::nodeKilled(Node* node) {
+void OctreeServer::nodeKilled(SharedNodePointer node) {
     // Use this to cleanup our node
     if (node->getType() == NODE_TYPE_AGENT) {
         OctreeQueryNode* nodeData = (OctreeQueryNode*)node->getLinkedData();
@@ -90,14 +86,11 @@ OctreeServer::~OctreeServer() {
         _persistThread->terminate();
         delete _persistThread;
     }
-    
-    // tell our NodeList we're done with notifications
-    NodeList::getInstance()->removeHook(this);
 
     delete _jurisdiction;
     _jurisdiction = NULL;
     
-    qDebug() << "OctreeServer::run()... DONE\n";
+    qDebug() << "OctreeServer::run()... DONE";
 }
 
 void OctreeServer::initMongoose(int port) {
@@ -127,7 +120,7 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
 
 #ifdef FORCE_CRASH
     if (strcmp(ri->uri, "/force_crash") == 0 && strcmp(ri->request_method, "GET") == 0) {
-        qDebug() << "About to force a crash!\n";
+        qDebug() << "About to force a crash!";
         int foo;
         int* forceCrash = &foo;
         mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
@@ -471,9 +464,9 @@ void OctreeServer::setArguments(int argc, char** argv) {
     _argc = argc;
     _argv = const_cast<const char**>(argv);
 
-    qDebug("OctreeServer::setArguments()\n");
+    qDebug("OctreeServer::setArguments()");
     for (int i = 0; i < _argc; i++) {
-        qDebug("_argv[%d]=%s\n", i, _argv[i]);
+        qDebug("_argv[%d]=%s", i, _argv[i]);
     }
 
 }
@@ -488,7 +481,7 @@ void OctreeServer::parsePayload() {
         
         int argCount = configList.size() + 1;
 
-        qDebug("OctreeServer::parsePayload()... argCount=%d\n",argCount);
+        qDebug("OctreeServer::parsePayload()... argCount=%d",argCount);
 
         _parsedArgV = new char*[argCount];
         const char* dummy = "config-from-payload";
@@ -499,7 +492,7 @@ void OctreeServer::parsePayload() {
             QString configItem = configList.at(i-1);
             _parsedArgV[i] = new char[configItem.length() + sizeof(char)];
             strcpy(_parsedArgV[i], configItem.toLocal8Bit().constData());
-            qDebug("OctreeServer::parsePayload()... _parsedArgV[%d]=%s\n", i, _parsedArgV[i]);
+            qDebug("OctreeServer::parsePayload()... _parsedArgV[%d]=%s", i, _parsedArgV[i]);
         }
 
         setArguments(argCount, _parsedArgV);
@@ -514,7 +507,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
-            qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at" << usecTimestampNow() << "\n";
+            qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at" << usecTimestampNow();
         }
         
         int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
@@ -524,10 +517,10 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
         QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
                                                               NUM_BYTES_RFC4122_UUID));
         
-        Node* node = nodeList->nodeWithUUID(nodeUUID);
+        SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
         
         if (node) {
-            nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char *) dataByteArray.data(),
+            nodeList->updateNodeWithData(node.data(), senderSockAddr, (unsigned char *) dataByteArray.data(),
                                          dataByteArray.size());
             if (!node->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
@@ -579,22 +572,22 @@ void OctreeServer::run() {
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
     if (jurisdictionFile) {
-        qDebug("jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("jurisdictionFile=%s", jurisdictionFile);
 
-        qDebug("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("about to readFromFile().... jurisdictionFile=%s", jurisdictionFile);
         _jurisdiction = new JurisdictionMap(jurisdictionFile);
-        qDebug("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("after readFromFile().... jurisdictionFile=%s", jurisdictionFile);
     } else {
         const char* JURISDICTION_ROOT = "--jurisdictionRoot";
         const char* jurisdictionRoot = getCmdOption(_argc, _argv, JURISDICTION_ROOT);
         if (jurisdictionRoot) {
-            qDebug("jurisdictionRoot=%s\n", jurisdictionRoot);
+            qDebug("jurisdictionRoot=%s", jurisdictionRoot);
         }
 
         const char* JURISDICTION_ENDNODES = "--jurisdictionEndNodes";
         const char* jurisdictionEndNodes = getCmdOption(_argc, _argv, JURISDICTION_ENDNODES);
         if (jurisdictionEndNodes) {
-            qDebug("jurisdictionEndNodes=%s\n", jurisdictionEndNodes);
+            qDebug("jurisdictionEndNodes=%s", jurisdictionEndNodes);
         }
 
         if (jurisdictionRoot || jurisdictionEndNodes) {
@@ -612,29 +605,29 @@ void OctreeServer::run() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
-    nodeList->addHook(this);
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
     srand((unsigned)time(0));
     
     const char* VERBOSE_DEBUG = "--verboseDebug";
     _verboseDebug =  cmdOptionExists(_argc, _argv, VERBOSE_DEBUG);
-    qDebug("verboseDebug=%s\n", debug::valueOf(_verboseDebug));
+    qDebug("verboseDebug=%s", debug::valueOf(_verboseDebug));
 
     const char* DEBUG_SENDING = "--debugSending";
     _debugSending =  cmdOptionExists(_argc, _argv, DEBUG_SENDING);
-    qDebug("debugSending=%s\n", debug::valueOf(_debugSending));
+    qDebug("debugSending=%s", debug::valueOf(_debugSending));
 
     const char* DEBUG_RECEIVING = "--debugReceiving";
     _debugReceiving =  cmdOptionExists(_argc, _argv, DEBUG_RECEIVING);
-    qDebug("debugReceiving=%s\n", debug::valueOf(_debugReceiving));
+    qDebug("debugReceiving=%s", debug::valueOf(_debugReceiving));
 
     // By default we will persist, if you want to disable this, then pass in this parameter
     const char* NO_PERSIST = "--NoPersist";
     if (cmdOptionExists(_argc, _argv, NO_PERSIST)) {
         _wantPersist = false;
     }
-    qDebug("wantPersist=%s\n", debug::valueOf(_wantPersist));
+    qDebug("wantPersist=%s", debug::valueOf(_wantPersist));
 
     // if we want Persistence, set up the local file and persist thread
     if (_wantPersist) {
@@ -648,7 +641,7 @@ void OctreeServer::run() {
             strcpy(_persistFilename, getMyDefaultPersistFilename());
         }
 
-        qDebug("persistFilename=%s\n", _persistFilename);
+        qDebug("persistFilename=%s", _persistFilename);
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename);
@@ -665,7 +658,7 @@ void OctreeServer::run() {
     if (clockSkewOption) {
         int clockSkew = atoi(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qDebug("clockSkewOption=%s clockSkew=%d\n", clockSkewOption, clockSkew);
+        qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
 
     // Check to see if the user passed in a command line option for setting packet send rate
@@ -676,7 +669,7 @@ void OctreeServer::run() {
         if (_packetsPerClientPerInterval < 1) {
             _packetsPerClientPerInterval = 1;
         }
-        qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
+        qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d", packetsPerSecond, _packetsPerClientPerInterval);
     }
 
     HifiSockAddr senderSockAddr;
@@ -703,7 +696,7 @@ void OctreeServer::run() {
     if (gmtm != NULL) {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
-    qDebug() << "Now running... started at: " << localBuffer << utcBuffer << "\n";
+    qDebug() << "Now running... started at: " << localBuffer << utcBuffer;
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
