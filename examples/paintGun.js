@@ -51,7 +51,7 @@ function checkController() {
                 var fingerTipController = palmController + 1; 
                 var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
                 
-                var bulletSize = 0.05/TREE_SCALE;
+                var bulletSize = 0.01/TREE_SCALE;
 
                 var palmInParticleSpace = 
                                   { x: palmPosition.x/TREE_SCALE, 
@@ -73,7 +73,7 @@ function checkController() {
                                  y: tipInParticleSpace.y + palmToFingerTipVector.y/2, 
                                  z: tipInParticleSpace.z  + palmToFingerTipVector.z/2};   
 
-                var linearVelocity = 5; 
+                var linearVelocity = 25; 
                                     
                 var velocity = { x: palmToFingerTipVector.x * linearVelocity,
                                  y: palmToFingerTipVector.y * linearVelocity,
@@ -96,7 +96,7 @@ function checkController() {
                          "   Particle.setColor(voxelColor); " +
                          "   var voxelAt = voxel.getPosition();" +
                          "   var voxelScale = voxel.getScale();" +
-                         "   Voxels.queueVoxelDelete(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  " +
+                         "   Voxels.queueVoxelAdd(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale, 255, 255, 0);  " +
                          "   print('Voxels.queueVoxelDelete(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); " +
                          " } " +
                          " Particle.collisionWithVoxel.connect(collisionWithVoxel); ";

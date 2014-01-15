@@ -145,6 +145,7 @@ void BuckyBalls::simulate(float deltaTime) {
 }
 
 void BuckyBalls::render() {
+    glEnable(GL_LIGHTING);
     for (int i = 0; i < NUM_BBALLS; i++) {
         if (_bballColliding[i] > 0.f) {
             const float GRAB_BRIGHTEN = 1.15f;
