@@ -29,8 +29,10 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
     delete _sessions.take(sessionId);
 }
 
+const char METAVOXEL_SERVER_LOGGING_NAME[] = "avatar-mixer";
+
 void MetavoxelServer::run() {
-    commonInit("metavoxel-server", NODE_TYPE_METAVOXEL_SERVER);
+    commonInit(METAVOXEL_SERVER_LOGGING_NAME, NODE_TYPE_METAVOXEL_SERVER);
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);

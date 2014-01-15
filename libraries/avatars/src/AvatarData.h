@@ -101,8 +101,6 @@ public:
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
-
-    const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
@@ -134,9 +132,6 @@ protected:
 
     // Body scale
     float _targetScale;
-
-    // Following mode infos
-    QUuid _leaderUUID;
 
     //  Hand state (are we grabbing something or not)
     char _handState;

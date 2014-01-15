@@ -33,9 +33,10 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
-    _clockSkewUsec(0)
+    _clockSkewUsec(0),
+    _mutex()
 {
-    pthread_mutex_init(&_mutex, 0);
+    
 }
 
 Node::~Node() {
@@ -44,8 +45,6 @@ Node::~Node() {
     }
     
     delete _bytesReceivedMovingAverage;
-    
-    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types

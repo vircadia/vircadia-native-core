@@ -49,6 +49,7 @@ protected:
     glm::quat _orientation;
     bool _willBeAddedToMix;
     bool _shouldLoopbackForNode;
+    bool _shouldOutputStarveDebug;
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */

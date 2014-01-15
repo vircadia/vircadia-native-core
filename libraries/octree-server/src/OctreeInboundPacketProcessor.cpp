@@ -57,7 +57,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
 
-        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+        SharedNodePointer senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
@@ -87,7 +87,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType, 
-                                                                packetData, packetLength, editData, maxSize, senderNode);
+                                                                                  packetData,
+                                                                                  packetLength,
+                                                                                  editData, maxSize, senderNode.data());
             _myServer->getOctree()->unlock();
             uint64_t endProcess = usecTimestampNow();
 
