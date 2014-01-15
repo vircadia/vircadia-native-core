@@ -121,15 +121,20 @@ bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius
                                glm::vec3& penetration) {
     glm::vec3 localCenter = sphereCenter - diskCenter;
     float verticalDistance = glm::dot(localCenter, diskNormal);
+
+
     if (abs(verticalDistance) < sphereRadius) {
-        // sphere hits the plane, but does it hit the disk?
+        // sphere hit the plane, but does it hit the disk?
         // Note: this algorithm ignores edge hits.
         glm::vec3 verticalOffset = verticalDistance * diskNormal;
         if (glm::length(localCenter - verticalOffset) < diskRadius) {
+            // yes, hit the disk
             penetration = (sphereRadius - abs(verticalDistance)) * diskNormal;
             if (verticalDistance < 0.f) {
+                // hit the backside of the disk, so negate penetration vector
                 penetration *= -1.f;
             }
+            return true;
         }
     }
     return false;
