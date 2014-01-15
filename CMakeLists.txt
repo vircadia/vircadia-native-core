@@ -2,12 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(hifi)
 
-MESSAGE("start...")
-
 IF (WIN32)
     include_directories(SYSTEM "externals/winsdk")
-	add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS )
-	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
+    add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS )
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
 ENDIF(WIN32)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH} )
