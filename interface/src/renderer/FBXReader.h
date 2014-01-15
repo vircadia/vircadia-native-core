@@ -48,6 +48,7 @@ public:
     int parentIndex;
     float distanceToParent;
     float boneRadius;
+    glm::vec3 translation;
     glm::mat4 preTransform;
     glm::quat preRotation;
     glm::quat rotation;
