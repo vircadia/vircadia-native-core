@@ -193,7 +193,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
 
     // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
@@ -287,12 +287,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     return sourceBuffer - startPosition;
 }
 
-void AvatarData::setNewScale(float newScale) {
-    if (newScale > MAX_SCALE) {
-        newScale = MAX_SCALE;
-    } else if (newScale < MIN_SCALE) {
-        newScale = MIN_SCALE;
-    }
-    _newScale = newScale;
-    qDebug() << "Changed scale to " << _newScale << "\n";
+void AvatarData::setClampedTargetScale(float targetScale) {
+    
+    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    
+    _targetScale = targetScale;
+    qDebug() << "Changed scale to " << _targetScale << "\n";
 }

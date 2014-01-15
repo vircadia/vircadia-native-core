@@ -502,7 +502,7 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("pupilDilation", _head.getPupilDilation());
     
     settings->setValue("leanScale", _leanScale);
-    settings->setValue("scale", _newScale);
+    settings->setValue("scale", _targetScale);
     
     settings->endGroup();
 }
@@ -525,7 +525,7 @@ void MyAvatar::loadData(QSettings* settings) {
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     
-    _newScale = loadSetting(settings, "scale", 1.0f);
+    _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     

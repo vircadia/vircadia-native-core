@@ -418,30 +418,30 @@ void Avatar::goHome() {
 }
 
 void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _newScale < MAX_SCALE) {
-        _newScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _newScale);
+    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
+        _targetScale *= (1.f + SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _targetScale);
     }
 }
 
 void Avatar::decreaseSize() {
-    if (MIN_SCALE < (1.f - SCALING_RATIO) * _newScale) {
-        _newScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _newScale);
+    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
+        _targetScale *= (1.f - SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _targetScale);
     }
 }
 
 void Avatar::resetSize() {
-    _newScale = 1.0f;
-    qDebug("Reseted scale to %f\n", _newScale);
+    _targetScale = 1.0f;
+    qDebug("Reseted scale to %f\n", _targetScale);
 }
 
 void Avatar::setScale(const float scale) {
     _scale = scale;
 
-    if (_newScale * (1.f - RESCALING_TOLERANCE) < _scale &&
-            _scale < _newScale * (1.f + RESCALING_TOLERANCE)) {
-        _scale = _newScale;
+    if (_targetScale * (1.f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
+        _scale = _targetScale;
     }
     
     _skeleton.setScale(_scale);
