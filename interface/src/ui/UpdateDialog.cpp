@@ -16,15 +16,6 @@
 #include "SharedUtil.h"
 #include "UpdateDialog.h"
 
-const int buttonWidth = 125;
-const int buttonHeight = 40;
-const int buttonMargin = 100;
-const int leftStartingPosition = 275;
-const int dialogWidth = 750;
-const int dialogHeigth = 300;
-
-const QString dialogTitle = "Update Required";
-
 UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(parent, Qt::Dialog) {
     Application* application = Application::getInstance();
     
