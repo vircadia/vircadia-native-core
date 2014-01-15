@@ -384,13 +384,6 @@ Menu::Menu() :
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
     addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
-                                           MenuOption::SkeletonTracking,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam(),
-                                           SLOT(setSkeletonTrackingOn(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
                                            MenuOption::LEDTracking,
                                            0,
                                            false,

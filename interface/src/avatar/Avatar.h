@@ -18,7 +18,6 @@
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
-#include "Skeleton.h"
 #include "SkeletonModel.h"
 #include "world.h"
 #include "devices/Transmitter.h"
@@ -142,11 +141,10 @@ public:
 
     //getters
     bool isInitialized() const { return _initialized; }
-    const Skeleton& getSkeleton() const { return _skeleton; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     float getHeadYawRate() const { return _head.yawRate; }
-    const glm::vec3& getHeadJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position; }
-    const glm::vec3& getChestJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_CHEST ].position; }
+    const glm::vec3& getHeadJointPosition() const { return _position; }
+    const glm::vec3& getChestJointPosition() const { return _position; }
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
@@ -182,23 +180,8 @@ public slots:
 
 
 protected:
-    struct AvatarBall {
-        AvatarJointID parentJoint; /// the skeletal joint that serves as a reference for determining the position
-        glm::vec3 parentOffset; /// a 3D vector in the frame of reference of the parent skeletal joint
-        AvatarBodyBallID parentBall; /// the ball to which this ball is constrained for spring forces 
-        glm::vec3 position; /// the actual dynamic position of the ball at any given time
-        glm::quat rotation; /// the rotation of the ball           
-        glm::vec3 velocity; /// the velocity of the ball
-        float springLength; /// the ideal length of the spring between this ball and its parentBall 
-        float jointTightness; /// how tightly the ball position attempts to stay at its ideal position (determined by parentOffset)
-        float radius; /// the radius of the ball
-        bool isCollidable; /// whether or not the ball responds to collisions 
-        float touchForce; /// a scalar determining the amount that the cursor (or hand) is penetrating the ball
-    };
-
     Head _head;
     Hand _hand;
-    Skeleton _skeleton;
     SkeletonModel _skeletonModel;
     bool _ballSpringsInitialized;
     float _bodyYawDelta;
@@ -234,8 +217,6 @@ private:
     
     bool _initialized;
     glm::vec3 _handHoldingPosition;
-    float _maxArmLength;
-    float _pelvisStandingHeight;
     
     
     // private methods...

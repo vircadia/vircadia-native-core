@@ -246,7 +246,6 @@ namespace MenuOption {
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString VoxelDrumming = "Voxel Drumming";
     const QString PlaySlaps = "Play Slaps";
-    const QString SkeletonTracking = "Skeleton Tracking";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString LEDTracking = "LED Tracking";
     const QString Stars = "Stars";

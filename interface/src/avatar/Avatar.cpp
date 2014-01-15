@@ -97,9 +97,7 @@ Avatar::Avatar(Node* owningNode) :
     _isCollisionsOn(true),
     _moving(false),
     _initialized(false),
-    _handHoldingPosition(0.0f, 0.0f, 0.0f),
-    _maxArmLength(0.0f),
-    _pelvisStandingHeight(0.0f)
+    _handHoldingPosition(0.0f, 0.0f, 0.0f)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -108,14 +106,10 @@ Avatar::Avatar(Node* owningNode) :
     _headData = &_head;
     _handData = &_hand;
     
-    _skeleton.initialize();
-    
-    _height = _skeleton.getHeight();
+    _height = 0.0f; // _skeleton.getHeight();
 
-    _maxArmLength = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight();
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
+    _pelvisFloatingHeight = 0.0f; // _skeleton.getPelvisFloatingHeight();
+    _pelvisToHeadLength = 0.0f; // _skeleton.getPelvisToHeadLength();
     
 }
 
@@ -152,22 +146,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
-    
-    // update torso rotation based on head lean
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
-                                                                                    _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
-    
-    // apply joint data (if any) to skeleton
-    bool enableHandMovement = true;
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        _skeleton.joint[it->jointID].rotation = it->rotation;
-        
-        // disable hand movement if we have joint info for the right wrist
-        enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
-    }
-    
-    // update avatar skeleton
-    _skeleton.update(deltaTime, getOrientation(), _position);
     
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
@@ -444,13 +422,9 @@ void Avatar::setScale(const float scale) {
         _scale = _targetScale;
     }
     
-    _skeleton.setScale(_scale);
+    _height = 0.0f; // _skeleton.getHeight();
     
-    _height = _skeleton.getHeight();
-    
-    _maxArmLength = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight();
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
+    _pelvisFloatingHeight = 0.0f; // _skeleton.getPelvisFloatingHeight();
+    _pelvisToHeadLength = 0.0f; // _skeleton.getPelvisToHeadLength();
 }
 

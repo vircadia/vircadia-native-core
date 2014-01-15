@@ -102,21 +102,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // calculate speed
     _speed = glm::length(_velocity);
     
-    // update torso rotation based on head lean
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
-        _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
-    
-    // apply joint data (if any) to skeleton
-    bool enableHandMovement = true;
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        _skeleton.joint[it->jointID].rotation = it->rotation;
-        
-        // disable hand movement if we have joint info for the right wrist
-        enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
-    }
-    
     // update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime, enableHandMovement);
+    updateHandMovementAndTouching(deltaTime);
 
     // apply gravity
     // For gravity, always move the avatar by the amount driven by gravity, so that the collision
@@ -267,7 +254,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _position += _velocity * deltaTime;
     
     // update avatar skeleton and simulate hand and head
-    _skeleton.update(deltaTime, getOrientation(), _position);
     _hand.simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -331,21 +317,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
         
         // apply face data
         _head.getVideoFace().setFrameFromWebcam();
-        
-        // compute and store the joint rotations
-        const JointVector& joints = webcam->getEstimatedJoints();
-        _joints.clear();
-        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-            if (joints.size() > i && joints[i].isValid) {
-                JointData data = { i, joints[i].rotation };
-                _joints.push_back(data);
-                
-                if (i == AVATAR_JOINT_CHEST) {
-                    // if we have a chest rotation, don't apply lean based on head
-                    estimatedPosition = glm::vec3();
-                }
-            }
-        }
     } else {
         _head.getVideoFace().clearFrame();
     }
@@ -547,12 +518,6 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
-glm::vec3 MyAvatar::getEyeLevelPosition() const {
-    const float EYE_UP_OFFSET = 0.36f;
-    return _position + getWorldAlignedOrientation() * _skeleton.joint[AVATAR_JOINT_TORSO].rotation *
-        glm::vec3(0.0f, _pelvisToHeadLength + _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET, 0.0f);
-}
-
 void MyAvatar::renderBody(bool forceRenderHead) {
 
     if (_head.getVideoFace().isFullFrame()) {
@@ -690,7 +655,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _isThrustOn = (glm::length(_thrust) > EPSILON);
 }
 
-void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
+void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     
     glm::quat orientation = getOrientation();
     
@@ -698,7 +663,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     glm::vec3 up = orientation * IDENTITY_UP;
     
     bool pointing = false;
-    if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
+    if (glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
         // confine to the approximate shoulder plane
         glm::vec3 pointDirection = _mouseRayDirection;
         if (glm::dot(_mouseRayDirection, up) > 0.0f) {

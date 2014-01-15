@@ -29,12 +29,11 @@ using namespace xn;
 #endif
 
 // register types with Qt metatype system
-int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
 int keyPointVectorMetaType = qRegisterMetaType<KeyPointVector>("KeyPointVector");
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
-Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0), _skeletonTrackingOn(false) {
+Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -111,20 +110,6 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glBindTexture(GL_TEXTURE_2D, 0);
             glDisable(GL_TEXTURE_2D);
 
-            if (!_joints.isEmpty()) {
-                glColor3f(1.0f, 0.0f, 0.0f);
-                glPointSize(4.0f);
-                glBegin(GL_POINTS);
-                    float projectedScale = PREVIEW_HEIGHT / _textureSize.height;
-                    foreach (const Joint& joint, _joints) {
-                        if (joint.isValid) {
-                            glVertex2f(left + joint.projected.x * projectedScale,
-                                top - PREVIEW_HEIGHT + joint.projected.y * projectedScale);
-                        }
-                    }
-                glEnd();
-                glPointSize(1.0f);
-            }
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
             glDisable(GL_TEXTURE_2D);
@@ -238,7 +223,7 @@ static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm:
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
-        const RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints) {
+        const RotatedRect& faceRect, bool sending, const KeyPointVector& keyPoints) {
     if (!_enabled) {
         return; // was queued before we shut down; ignore
     }
@@ -289,7 +274,6 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     _aspectRatio = aspectRatio;
     _faceRect = faceRect;
     _sending = sending;
-    _joints = _skeletonTrackingOn ? joints : JointVector();
     _keyPoints = keyPoints;
     _frameCount++;
 
@@ -304,32 +288,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     }
     _lastFrameTimestamp = now;
 
-    // see if we have joint data
-    if (!_joints.isEmpty()) {
-        _estimatedJoints.resize(NUM_AVATAR_JOINTS);
-        glm::vec3 origin;
-        if (_joints[AVATAR_JOINT_LEFT_HIP].isValid && _joints[AVATAR_JOINT_RIGHT_HIP].isValid) {
-            origin = glm::mix(_joints[AVATAR_JOINT_LEFT_HIP].position, _joints[AVATAR_JOINT_RIGHT_HIP].position, 0.5f);
-
-        } else if (_joints[AVATAR_JOINT_TORSO].isValid) {
-            const glm::vec3 TORSO_TO_PELVIS = glm::vec3(0.0f, -0.09f, -0.01f);
-            origin = _joints[AVATAR_JOINT_TORSO].position + TORSO_TO_PELVIS;
-        }
-        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-            if (!_joints[i].isValid) {
-                continue;
-            }
-            const float JOINT_SMOOTHING = 0.5f;
-            _estimatedJoints[i].isValid = true;
-            _estimatedJoints[i].position = glm::mix(_joints[i].position - origin,
-                _estimatedJoints[i].position, JOINT_SMOOTHING);
-            _estimatedJoints[i].rotation = safeMix(_joints[i].rotation,
-                _estimatedJoints[i].rotation, JOINT_SMOOTHING);
-        }
-        _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].rotation);
-        _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
-
-    } else if (!keyPoints.empty()) {
+    // see if we have key points
+    if (!keyPoints.empty()) {
         glm::quat rotation;
         glm::vec3 position;
         float scale = computeTransformFromKeyPoints(keyPoints, rotation, position);
@@ -415,51 +375,6 @@ FrameGrabber::~FrameGrabber() {
 }
 
 #ifdef HAVE_OPENNI
-static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
-    switch (joint) {
-        case XN_SKEL_HEAD: return AVATAR_JOINT_HEAD_TOP;
-        case XN_SKEL_NECK: return AVATAR_JOINT_HEAD_BASE;
-        case XN_SKEL_TORSO: return AVATAR_JOINT_CHEST;
-
-        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_RIGHT_ELBOW;
-        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_RIGHT_WRIST;
-
-        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_LEFT_ELBOW;
-        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_LEFT_WRIST;
-
-        case XN_SKEL_LEFT_HIP: return AVATAR_JOINT_RIGHT_KNEE;
-        case XN_SKEL_LEFT_KNEE: return AVATAR_JOINT_RIGHT_HEEL;
-        case XN_SKEL_LEFT_FOOT: return AVATAR_JOINT_RIGHT_TOES;
-
-        case XN_SKEL_RIGHT_HIP: return AVATAR_JOINT_LEFT_KNEE;
-        case XN_SKEL_RIGHT_KNEE: return AVATAR_JOINT_LEFT_HEEL;
-        case XN_SKEL_RIGHT_FOOT: return AVATAR_JOINT_LEFT_TOES;
-
-        default: return AVATAR_JOINT_NULL;
-    }
-}
-
-static int getParentJoint(XnSkeletonJoint joint) {
-    switch (joint) {
-        case XN_SKEL_HEAD: return XN_SKEL_NECK;
-        case XN_SKEL_TORSO: return -1;
-
-        case XN_SKEL_LEFT_ELBOW: return XN_SKEL_LEFT_SHOULDER;
-        case XN_SKEL_LEFT_HAND: return XN_SKEL_LEFT_ELBOW;
-
-        case XN_SKEL_RIGHT_ELBOW: return XN_SKEL_RIGHT_SHOULDER;
-        case XN_SKEL_RIGHT_HAND: return XN_SKEL_RIGHT_ELBOW;
-
-        case XN_SKEL_LEFT_KNEE: return XN_SKEL_LEFT_HIP;
-        case XN_SKEL_LEFT_FOOT: return XN_SKEL_LEFT_KNEE;
-
-        case XN_SKEL_RIGHT_KNEE: return XN_SKEL_RIGHT_HIP;
-        case XN_SKEL_RIGHT_FOOT: return XN_SKEL_RIGHT_KNEE;
-
-        default: return XN_SKEL_TORSO;
-    }
-}
-
 static glm::vec3 xnToGLM(const XnVector3D& vector, bool flip = false) {
     return glm::vec3(vector.X * (flip ? -1 : 1), vector.Y, vector.Z);
 }
@@ -470,31 +385,6 @@ static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
         matrix.elements[3], matrix.elements[4], matrix.elements[5],
         matrix.elements[6], matrix.elements[7], matrix.elements[8]));
     return glm::quat(rotation.w, -rotation.x, rotation.y, rotation.z);
-}
-
-static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    qDebug("Found user %d.", id);
-    generator.GetSkeletonCap().RequestCalibration(id, false);
-}
-
-static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    qDebug("Lost user %d.", id);
-}
-
-static void XN_CALLBACK_TYPE calibrationStarted(SkeletonCapability& capability, XnUserID id, void* cookie) {
-    qDebug("Calibration started for user %d.", id);
-}
-
-static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability,
-        XnUserID id, XnCalibrationStatus status, void* cookie) {
-    if (status == XN_CALIBRATION_STATUS_OK) {
-        qDebug("Calibration completed for user %d.", id);
-        capability.StartTracking(id);
-
-    } else {
-        qDebug("Calibration failed to user %d.", id);
-        capability.RequestCalibration(id, true);
-    }
 }
 #endif
 
@@ -517,12 +407,6 @@ void FrameGrabber::setLEDTrackingOn(bool ledTrackingOn) {
 
 void FrameGrabber::reset() {
     _searchWindow = cv::Rect(0, 0, 0, 0);
-
-#ifdef HAVE_OPENNI
-    if (_userGenerator.IsValid() && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
-        _userGenerator.GetSkeletonCap().RequestCalibration(_userID, true);
-    }
-#endif
 }
 
 void FrameGrabber::shutdown() {
@@ -551,7 +435,6 @@ void FrameGrabber::grabFrame() {
     }
     int format = GL_BGR;
     Mat color, depth;
-    JointVector joints;
 
 #ifdef HAVE_OPENNI
     if (_depthGenerator.IsValid()) {
@@ -560,37 +443,6 @@ void FrameGrabber::grabFrame() {
         format = GL_RGB;
 
         depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
-
-        _userID = 0;
-        XnUInt16 userCount = 1;
-        _userGenerator.GetUsers(&_userID, userCount);
-        if (userCount > 0 && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
-            joints.resize(NUM_AVATAR_JOINTS);
-            const int MAX_ACTIVE_JOINTS = 16;
-            XnSkeletonJoint activeJoints[MAX_ACTIVE_JOINTS];
-            XnUInt16 activeJointCount = MAX_ACTIVE_JOINTS;
-            _userGenerator.GetSkeletonCap().EnumerateActiveJoints(activeJoints, activeJointCount);
-            XnSkeletonJointTransformation transform;
-            for (int i = 0; i < activeJointCount; i++) {
-                AvatarJointID avatarJoint = xnToAvatarJoint(activeJoints[i]);
-                if (avatarJoint == AVATAR_JOINT_NULL) {
-                    continue;
-                }
-                _userGenerator.GetSkeletonCap().GetSkeletonJoint(_userID, activeJoints[i], transform);
-                XnVector3D projected;
-                _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
-                glm::quat rotation = xnToGLM(transform.orientation.orientation);
-                int parentJoint = getParentJoint(activeJoints[i]);
-                if (parentJoint != -1) {
-                    XnSkeletonJointOrientation parentOrientation;
-                    _userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(
-                        _userID, (XnSkeletonJoint)parentJoint, parentOrientation);
-                    rotation = glm::inverse(xnToGLM(parentOrientation.orientation)) * rotation;
-                }
-                joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
-                    rotation, xnToGLM(projected));
-            }
-        }
     }
 #endif
 
@@ -929,7 +781,7 @@ void FrameGrabber::grabFrame() {
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
         Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
-        Q_ARG(JointVector, joints), Q_ARG(KeyPointVector, keyPoints));
+        Q_ARG(KeyPointVector, keyPoints));
 }
 
 bool FrameGrabber::init() {
@@ -945,19 +797,10 @@ bool FrameGrabber::init() {
     // first try for a Kinect
 #ifdef HAVE_OPENNI
     _xnContext.Init();
-    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK &&
-            _userGenerator.Create(_xnContext) == XN_STATUS_OK &&
-                _userGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
+    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK) {
         _depthGenerator.GetMetaData(_depthMetaData);
         _imageGenerator.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
         _imageGenerator.GetMetaData(_imageMetaData);
-
-        XnCallbackHandle userCallbacks, calibrationStartCallback, calibrationCompleteCallback;
-        _userGenerator.RegisterUserCallbacks(newUser, lostUser, 0, userCallbacks);
-        _userGenerator.GetSkeletonCap().RegisterToCalibrationStart(calibrationStarted, 0, calibrationStartCallback);
-        _userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleted, 0, calibrationCompleteCallback);
-
-        _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
 
         // make the depth viewpoint match that of the video image
         if (_depthGenerator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
@@ -1017,11 +860,4 @@ void FrameGrabber::destroyCodecs() {
         vpx_codec_destroy(&_depthCodec);
         _depthCodec.name = 0;
     }
-}
-
-Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
-    isValid(true), position(position), rotation(rotation), projected(projected) {
-}
-
-Joint::Joint() : isValid(false) {
 }

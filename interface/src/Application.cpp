@@ -2349,7 +2349,7 @@ void Application::updateTransmitter(float deltaTime) {
 
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
+        _transmitterPickStart = _myAvatar.getChestJointPosition();
         glm::vec3 direction = _myAvatar.getOrientation() *
             glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
 

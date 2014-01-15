@@ -31,9 +31,7 @@ class QImage;
 struct CvCapture;
 
 class FrameGrabber;
-class Joint;
 
-typedef QVector<Joint> JointVector;
 typedef std::vector<cv::KeyPoint> KeyPointVector;
 
 /// Handles interaction with the webcam (including depth cameras such as the Kinect).
@@ -61,7 +59,6 @@ public:
 
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; }
-    const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
 
     void reset();
     void renderPreview(int screenWidth, int screenHeight);
@@ -70,8 +67,7 @@ public slots:
 
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth, float aspectRatio,
-        const cv::RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints);
-    void setSkeletonTrackingOn(bool toggle) { _skeletonTrackingOn = toggle; };
+        const cv::RotatedRect& faceRect, bool sending, const KeyPointVector& keyPoints);
 
 private:
 
@@ -88,7 +84,6 @@ private:
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     float _initialFaceDepth;
-    JointVector _joints;
     KeyPointVector _keyPoints;
     
     glm::quat _initialLEDRotation;
@@ -102,9 +97,6 @@ private:
 
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
-    JointVector _estimatedJoints;
-
-    bool _skeletonTrackingOn;
 };
 
 /// Acquires and processes video frames in a dedicated thread.
@@ -164,27 +156,11 @@ private:
     xn::Context _xnContext;
     xn::DepthGenerator _depthGenerator;
     xn::ImageGenerator _imageGenerator;
-    xn::UserGenerator _userGenerator;
     xn::DepthMetaData _depthMetaData;
     xn::ImageMetaData _imageMetaData;
-    XnUserID _userID;
 #endif
 };
 
-/// Contains the 3D transform and 2D projected position of a tracked joint.
-class Joint {
-public:
-
-    Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected);
-    Joint();
-
-    bool isValid;
-    glm::vec3 position;
-    glm::quat rotation;
-    glm::vec3 projected;
-};
-
-Q_DECLARE_METATYPE(JointVector)
 Q_DECLARE_METATYPE(KeyPointVector)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
