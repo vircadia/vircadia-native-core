@@ -30,11 +30,11 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
 
         if (node) {
             // make sure the node list doesn't kill our node while we're using it
-            if (node->trylock()) {
+            if (node->getMutex().tryLock()) {
                 gotLock = true;
                 OctreeQueryNode* nodeData = NULL;
 
@@ -48,15 +48,15 @@ bool OctreeSendThread::process() {
                     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                         printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                     }
-                    packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+                    packetsSent = packetDistributor(node.data(), nodeData, viewFrustumChanged);
                 }
 
-                node->unlock(); // we're done with this node for now.
+                node->getMutex().unlock(); // we're done with this node for now.
             }
         }
     } else {
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("OctreeSendThread::process() waiting for isInitialLoadComplete()\n");
+            qDebug("OctreeSendThread::process() waiting for isInitialLoadComplete()");
         }
     }
 
@@ -131,7 +131,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
                 qDebug() << "Adding stats to packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " statsMessageLength: " << statsMessageLength <<
                         " original size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
-                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
             // actually send it
@@ -154,7 +154,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             if (debug) {
                 qDebug() << "Sending separate stats packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " size: " << statsMessageLength << " [" << _totalBytes <<
-                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
             trueBytesSent += statsMessageLength;
@@ -174,7 +174,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             if (debug) {
                 qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
-                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
         }
         nodeData->stats.markAsSent();
@@ -194,7 +194,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             if (debug) {
                 qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
-                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]\n";
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
         }
     }
@@ -236,7 +236,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
                 qDebug("about to call handlePacketSend() .... line: %d -- format change "
                         "wantColor=%s wantCompression=%s SENDING PARTIAL PACKET! currentPacketIsColor=%s "
-                        "currentPacketIsCompressed=%s\n",
+                        "currentPacketIsCompressed=%s",
                         __LINE__,
                         debug::valueOf(wantColor), debug::valueOf(wantCompression),
                         debug::valueOf(nodeData->getCurrentPacketIsColor()),
@@ -245,7 +245,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         } else {
             if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                qDebug("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s\n",
+                qDebug("wantColor=%s wantCompression=%s FIXING HEADER! currentPacketIsColor=%s currentPacketIsCompressed=%s",
                         debug::valueOf(wantColor), debug::valueOf(wantCompression),
                         debug::valueOf(nodeData->getCurrentPacketIsColor()),
                         debug::valueOf(nodeData->getCurrentPacketIsCompressed()) );
@@ -257,7 +257,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
         }
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n", __LINE__,
+            qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d", __LINE__,
                 debug::valueOf(wantCompression), targetSize);
         }
 
@@ -265,7 +265,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     }
 
     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-        qDebug("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s\n",
+        qDebug("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s",
                 debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()),
                 debug::valueOf(wantCompression), debug::valueOf(nodeData->getCurrentPacketIsCompressed()),
                 debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
@@ -274,7 +274,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-        qDebug("packetDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s\n",
+        qDebug("packetDistributor() viewFrustumChanged=%s, nodeBag.isEmpty=%s, viewSent=%s",
                 debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()),
                 debug::valueOf(nodeData->getViewSent())
             );
@@ -285,7 +285,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
         uint64_t now = usecTimestampNow();
         if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-            qDebug("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
+            qDebug("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...",
                    debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
             if (nodeData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
@@ -294,7 +294,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                 } else {
                     qDebug("elapsed time to send scene = %f seconds", elapsedSceneSend);
                 }
-                qDebug(" [occlusionCulling:%s, wantDelta:%s, wantColor:%s ]\n",
+                qDebug("[ occlusionCulling:%s, wantDelta:%s, wantColor:%s ]",
                        debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta),
                        debug::valueOf(wantColor));
             }
@@ -323,12 +323,12 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
         if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-            qDebug("about to call handlePacketSend() .... line: %d -- completed scene \n", __LINE__ );
+            qDebug("about to call handlePacketSend() .... line: %d -- completed scene", __LINE__ );
         }
         int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
         if (forceDebugging) {
-            qDebug("packetsJustSent=%d packetsSentThisInterval=%d\n", packetsJustSent, packetsSentThisInterval);
+            qDebug("packetsJustSent=%d packetsSentThisInterval=%d", packetsJustSent, packetsSentThisInterval);
         }
 
         if (forceDebugging || _myServer->wantsDebugSending()) {
@@ -338,7 +338,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                 << " elapsed:" << elapsedTime
                 << " Packets:" << _totalPackets
                 << " Bytes:" << _totalBytes
-                << " Wasted:" << _totalWastedBytes << "\n";
+                << " Wasted:" << _totalWastedBytes;
         }
 
         // start tracking our stats
@@ -354,7 +354,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             qDebug() << "Scene started at " << usecTimestampNow()
                 << " Packets:" << _totalPackets
                 << " Bytes:" << _totalBytes
-                << " Wasted:" << _totalWastedBytes << "\n";
+                << " Wasted:" << _totalWastedBytes;
         }
 
         ::startSceneSleepTime = _usleepTime;
@@ -382,7 +382,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n",
+            qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d",
                 truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(),
                 nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
         }
@@ -391,7 +391,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         bool completedScene = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval) {
             if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n",
+                qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d",
                     truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(),
                     nodeData->getMaxOctreePacketsPerSecond(), clientMaxPacketsPerInterval);
             }
@@ -471,14 +471,14 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                     if (writtenSize > nodeData->getAvailable()) {
                         if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
                             qDebug("about to call handlePacketSend() .... line: %d -- "
-                                   "writtenSize[%d] > available[%d] too big, sending packet as is.\n",
+                                   "writtenSize[%d] > available[%d] too big, sending packet as is.",
                                     __LINE__, writtenSize, nodeData->getAvailable());
                         }
                         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     }
 
                     if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
-                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d\n",
+                        qDebug(">>>>>> calling writeToPacket() available=%d compressedSize=%d uncompressedSize=%d target=%d",
                                 nodeData->getAvailable(), _packetData.getFinalizedSize(),
                                 _packetData.getUncompressedSize(), _packetData.getTargetSize());
                     }
@@ -499,7 +499,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
                     if (forceDebugging) {
-                        qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE\n", __LINE__);
+                        qDebug("about to call handlePacketSend() .... line: %d -- sendNow = TRUE", __LINE__);
                     }
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     if (wantCompression) {
@@ -515,7 +515,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
                 if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                    qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d\n",__LINE__,
+                    qDebug("line:%d _packetData.changeSettings() wantCompression=%s targetSize=%d",__LINE__,
                         debug::valueOf(nodeData->getWantCompression()), targetSize);
                 }
                 _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
@@ -546,18 +546,18 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
             if (elapsedmsec > 1000) {
                 int elapsedsec = (end - start)/1000000;
                 qDebug("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] "
-                        "to generate %d bytes in %d packets %d nodes still to send\n",
+                        "to generate %d bytes in %d packets %d nodes still to send",
                         elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
                         trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             } else {
                 qDebug("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
-                        "to generate %d bytes in %d packets, %d nodes still to send\n",
+                        "to generate %d bytes in %d packets, %d nodes still to send",
                         elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
                         trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
         } else if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
             qDebug("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] "
-                    "to generate %d bytes in %d packets, %d nodes still to send\n",
+                    "to generate %d bytes in %d packets, %d nodes still to send",
                     elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls,
                     trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }
@@ -575,7 +575,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
             qDebug("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d "
-                    "server PPI=%d nodePPS=%d nodePPI=%d\n",
+                    "server PPI=%d nodePPS=%d nodePPI=%d",
                     truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval,
                     _myServer->getPacketsPerClientPerInterval(), nodeData->getMaxOctreePacketsPerSecond(),
                     clientMaxPacketsPerInterval);

@@ -117,5 +117,5 @@ void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& co
         prefixString.append(QString(" [%1]").arg(Logging::targetName));
     }
     
-    fprintf(stdout, "%s %s", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());
+    fprintf(stdout, "%s %s\n", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());
 }

@@ -42,7 +42,7 @@ Menu* Menu::getInstance() {
     menuInstanceMutex.lock();
     
     if (!_instance) {
-        qDebug("First call to Menu::getInstance() - initing menu.\n");
+        qDebug("First call to Menu::getInstance() - initing menu.");
         
         _instance = new Menu();
     }
@@ -978,7 +978,7 @@ void Menu::goToLocation() {
                 // send a node kill request, indicating to other clients that they should play the "disappeared" effect
                 NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
                 
-                qDebug("Going To Location: %f, %f, %f...\n", x, y, z);
+                qDebug("Going To Location: %f, %f, %f...", x, y, z);
                 myAvatar->setPosition(newAvatarPos); 
             }
         }
@@ -1027,7 +1027,7 @@ void Menu::pasteToVoxel() {
         if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
             Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
         } else {
-            qDebug() << "problem with octcode...\n";
+            qDebug() << "Problem with octcode...";
         }
     }
     

@@ -38,7 +38,9 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(pare
     
     Application* application = Application::getInstance();
     
-    const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. Please download and install the most recent release to access the latest features and bug fixes.").arg(application->applicationVersion(), *application->_latestVersion);
+    const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
+                                           Please download and install the most recent release to access the latest features and bug fixes.")
+                                           .arg(application->applicationVersion(), *application->_latestVersion);
     
     
     QPushButton *_downloadButton = updateDialog->findChild<QPushButton*>("downloadButton");
@@ -62,10 +64,9 @@ void UpdateDialog::handleDownload() {
 void UpdateDialog::handleSkip() {
     Application* application = Application::getInstance();
     application->skipVersion();
-    this->QDialog::close();
+    this->reject();
 }
 
 void UpdateDialog::handleClose() {
-    qDebug("###### HANDLECLOSE\n");
-    this->QDialog::close();
+    this->reject();
 }
