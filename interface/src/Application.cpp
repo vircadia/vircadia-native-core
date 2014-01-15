@@ -323,6 +323,16 @@ void Application::initializeGL() {
     glutInit(&argc, 0);
     #endif
 
+	#ifdef WIN32
+    GLenum err = glewInit();
+    if (GLEW_OK != err) {
+      /* Problem: glewInit failed, something is seriously wrong. */
+      qDebug("Error: %s\n", glewGetErrorString(err));
+    }
+    qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+    #endif
+
+
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
     //viewFrustumOffsetCamera.setFieldOfView(90.0);
