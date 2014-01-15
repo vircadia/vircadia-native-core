@@ -82,6 +82,22 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    /// Retrieve the position of the left hand
+    /// \return true whether or not the position was found
+    bool getLeftHandPosition(glm::vec3&) const;
+    
+    /// Retrieve the rotation of the left hand
+    /// \return true whether or not the rotation was found
+    bool getLeftHandRotation(glm::quat&) const;
+    
+    /// Retrieve the position of the right hand
+    /// \return true whether or not the position was found
+    bool getRightHandPosition(glm::vec3&) const;
+    
+    /// Retrieve the rotation of the right hand
+    /// \return true whether or not the rotation was found
+    bool getRightHandRotation(glm::quat&) const;
+    
     /// Sets the position of the left hand using inverse kinematics.
     /// \return whether or not the left hand joint was found
     bool setLeftHandPosition(const glm::vec3& position);
@@ -129,6 +145,9 @@ public:
 
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
+
+    bool findSpherePenetrationWithJoint(const glm::vec3& sphereCenter, float sphereRadius,
+        glm::vec3& penetration, int jointIndex, float boneScale = 1.0f) const;
 
 protected:
 
