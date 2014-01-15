@@ -40,7 +40,6 @@
 #include <QDesktopServices>
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
-#include <QMessageBox>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
