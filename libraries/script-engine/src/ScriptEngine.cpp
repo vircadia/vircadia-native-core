@@ -160,7 +160,6 @@ void ScriptEngine::run() {
     _isRunning = true;
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug() << "Evaluated script.\n";
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
