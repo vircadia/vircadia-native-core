@@ -364,23 +364,31 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
         for (int i = 0; i < 2; i++) {
             const PalmData* palm = handData->getPalm(i);
             if (palm) {
-                int jointIndex = jointIndices[i];
-                /* 
-                // TODO: create a disk where the hand is
-                glm::vec3 position;
-                glm::quat rotation;
+                // create a disk collision proxy where the hand is
+                glm::vec3 fingerAxis(0.f);
+                for (size_t f = 0; f < palm->getNumFingers(); ++f) {
+                    const FingerData& finger = (palm->getFingers())[f];
+                    if (finger.isActive()) {
+                        // compute finger axis
+                        glm::vec3 fingerTip = finger.getTipPosition();
+                        glm::vec3 fingerRoot = finger.getRootPosition();
+                        fingerAxis = glm::normalize(fingerTip - fingerRoot);
+                        break;
+                    }
+                }
+                glm::vec3 handPosition;
                 if (i == 0) {
-                    _skeletonModel.getLeftHandPosition(position);
-                    _skeletonModel.getLeftHandRotation(rotation);
+                    _skeletonModel.getLeftHandPosition(handPosition);
                 }
                 else {
-                    _skeletonModel.getRightHandPosition(position);
-                    _skeletonModel.getRightHandRotation(rotation);
+                    _skeletonModel.getRightHandPosition(handPosition);
                 }
-                */
-                // HACK: we temporarily boost the size of the hand so it is easier to collide with it
-                float handScaleFactor = 5.f;
-                if (_skeletonModel.findSpherePenetrationWithJoint(sphereCenter, sphereRadius, collision._penetration, jointIndex, handScaleFactor)) {
+                glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
+                glm::vec3 diskNormal = palm->getNormal();
+
+                // collide against the disk
+                if (findSphereDiskPenetration(sphereCenter, sphereRadius, 
+                            diskCenter, HAND_PADDLE_RADIUS, diskNormal, collision._penetration)) {
                     collision._addedVelocity = palm->getVelocity();
                     return true;
                 }
@@ -389,7 +397,6 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     }
 
     if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
-        // apply hard collision when particle collides with avatar
         collision._penetration /= (float)(TREE_SCALE);
         collision._addedVelocity = getVelocity();
         return true;
