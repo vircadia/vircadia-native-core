@@ -11,7 +11,6 @@
 #include <cmath>
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
-#include <pthread.h>
 
 #include <OctalCode.h>
 #include <PacketHeaders.h>
@@ -1594,13 +1593,13 @@ void VoxelSystem::falseColorizeBySource() {
     };
 
     // create a bunch of colors we'll use during colorization
-    
+
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
             uint16_t nodeID = VoxelTreeElement::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
-            
+
             if (groupColors[groupColor].red > 0) {
                 groupColors[groupColor].red = ((groupColors[groupColor].red - MIN_COLOR)/2) + MIN_COLOR;
             }
@@ -1610,7 +1609,7 @@ void VoxelSystem::falseColorizeBySource() {
             if (groupColors[groupColor].blue > 0) {
                 groupColors[groupColor].blue = ((groupColors[groupColor].blue - MIN_COLOR)/2) + MIN_COLOR;
             }
-            
+
             voxelServerCount++;
         }
     }

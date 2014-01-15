@@ -10,7 +10,6 @@
 #define __interface__Application__
 
 #include <map>
-#include <pthread.h>
 #include <time.h>
 
 #include <QApplication>
@@ -190,7 +189,7 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-    
+
     virtual void packetSentNotification(ssize_t length);
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
@@ -209,9 +208,9 @@ public:
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-    
+
     void processDatagrams();
-    
+
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
