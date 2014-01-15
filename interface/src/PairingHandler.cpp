@@ -6,7 +6,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-//#include <arpa/inet.h> // not available on windows, apparently not needed on mac
+#ifndef _WIN32
+#include <arpa/inet.h> // not available on windows
+#endif
+
 #include <string.h>
 #include <stdio.h>
 
@@ -47,7 +50,7 @@ void PairingHandler::sendPairRequest() {
             (localAddress >> 24) & 0xFF,
             NodeList::getInstance()->getNodeSocket().localPort());
     qDebug("Sending pair packet: %s", pairPacket);
-    
+
     HifiSockAddr pairingServerSocket(PAIRING_SERVER_HOSTNAME, PAIRING_SERVER_PORT);
 
     // send the pair request to the pairing server

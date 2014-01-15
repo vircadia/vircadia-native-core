@@ -11,7 +11,9 @@
 #include <cstdio>
 #include <cstring>
 
-//#include <arpa/inet.h> // not available on windows, apparently not needed on mac
+#ifndef _WIN32
+#include <arpa/inet.h> // not available on windows
+#endif
 
 const int INET_ADDR_STRLEN = 16;
 

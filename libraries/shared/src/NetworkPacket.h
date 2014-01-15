@@ -12,8 +12,11 @@
 #define __shared_NetworkPacket__
 
 #include <stdlib.h>
-//#include <arpa/inet.h> // not available on windows, apparently not needed on mac
-//#include <ifaddrs.h>
+
+#ifndef _WIN32
+#include <arpa/inet.h> // not available on windows
+#include <ifaddrs.h>
+#endif
 
 #include "HifiSockAddr.h"
 
