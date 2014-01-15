@@ -376,6 +376,48 @@ bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float pene
     return false;
 }
 
+bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    // TODO: provide an early exit using bounding sphere of entire avatar
+
+    const HandData* handData = getHandData();
+    if (handData) {
+        int jointIndices[2] = { _skeletonModel.getLeftHandJointIndex(), _skeletonModel.getRightHandJointIndex() };
+        for (int i = 0; i < 2; i++) {
+            const PalmData* palm = handData->getPalm(i);
+            if (palm) {
+                int jointIndex = jointIndices[i];
+                /* 
+                // TODO: create a disk where the hand is
+                glm::vec3 position;
+                glm::quat rotation;
+                if (i == 0) {
+                    _skeletonModel.getLeftHandPosition(position);
+                    _skeletonModel.getLeftHandRotation(rotation);
+                }
+                else {
+                    _skeletonModel.getRightHandPosition(position);
+                    _skeletonModel.getRightHandRotation(rotation);
+                }
+                */
+                // HACK: we temporarily boost the size of the hand so it is easier to collide with it
+                float handScaleFactor = 5.f;
+                if (_skeletonModel.findSpherePenetrationWithJoint(sphereCenter, sphereRadius, collision._penetration, jointIndex, handScaleFactor)) {
+                    collision._addedVelocity = palm->getVelocity();
+                    return true;
+                }
+            }
+        }
+    }
+
+    if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
+        // apply hard collision when particle collides with avatar
+        collision._penetration /= (float)(TREE_SCALE);
+        collision._addedVelocity = getVelocity();
+        return true;
+    }
+    return false;
+}
+
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
@@ -441,14 +483,12 @@ void Avatar::goHome() {
 void Avatar::increaseSize() {
     if ((1.f + SCALING_RATIO) * _newScale < MAX_SCALE) {
         _newScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _newScale);
     }
 }
 
 void Avatar::decreaseSize() {
     if (MIN_SCALE < (1.f - SCALING_RATIO) * _newScale) {
         _newScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _newScale);
     }
 }
 

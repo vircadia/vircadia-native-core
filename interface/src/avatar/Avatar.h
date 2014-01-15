@@ -169,6 +169,8 @@ public:
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, int skeletonSkipIndex = -1) const;
 
+    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
