@@ -116,6 +116,25 @@ bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadiu
     return false;
 }
 
+bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+                               const glm::vec3& diskCenter, float diskRadius, const glm::vec3& diskNormal, 
+                               glm::vec3& penetration) {
+    glm::vec3 localCenter = sphereCenter - diskCenter;
+    float verticalDistance = glm::dot(localCenter, diskNormal);
+    if (abs(verticalDistance) < sphereRadius) {
+        // sphere hits the plane, but does it hit the disk?
+        // Note: this algorithm ignores edge hits.
+        glm::vec3 verticalOffset = verticalDistance * diskNormal;
+        if (glm::length(localCenter - verticalOffset) < diskRadius) {
+            penetration = (sphereRadius - abs(verticalDistance)) * diskNormal;
+            if (verticalDistance < 0.f) {
+                penetration *= -1.f;
+            }
+        }
+    }
+    return false;
+}
+
 bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
                                   const glm::vec3& sphereCenter, float sphereRadius, glm::vec3& penetration) {
     if (findSphereCapsulePenetration(sphereCenter, sphereRadius,
