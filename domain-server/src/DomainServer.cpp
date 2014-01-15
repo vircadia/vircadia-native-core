@@ -77,7 +77,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // Start the web server.
     mg_start(&callbacks, NULL, options);
     
-    nodeList->addHook(this);
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
     
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
         
@@ -171,10 +171,10 @@ void DomainServer::readAvailableDatagrams() {
                                                               nodeLocalAddress,
                                                               nodeUUID)))
                 {
-                    Node* checkInNode = nodeList->addOrUpdateNode(nodeUUID,
-                                                                  nodeType,
-                                                                  nodePublicAddress,
-                                                                  nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
+                                                                              nodeType,
+                                                                              nodePublicAddress,
+                                                                              nodeLocalAddress);
                     
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
@@ -201,13 +201,13 @@ void DomainServer::readAvailableDatagrams() {
                     
                     if (numInterestTypes > 0) {
                         // if the node has sent no types of interest, assume they want nothing but their own ID back
-                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                             if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
                                 
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
                                 if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
+                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, node.data());
                                 }
                                 
                             }
@@ -318,13 +318,11 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
-            NodeList* nodeList = NodeList::getInstance();
-            
-            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                 if (node->getLinkedData()) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                    assignedNodesJSON[uuidString] = jsonObjectForNode(&(*node));
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(node.data());
                 }
             }
             
@@ -372,10 +370,10 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
-            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                nodesJSON[uuidString] = jsonObjectForNode(&(*node));
+                nodesJSON[uuidString] = jsonObjectForNode(node.data());
             }
             
             rootJSON["nodes"] = nodesJSON;
@@ -410,14 +408,14 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             QUuid deleteUUID = QUuid(QString(ri->uri + strlen(URI_NODE) + sizeof('/')));
             
             if (!deleteUUID.isNull()) {
-                Node *nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+                SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
                 
                 if (nodeToKill) {
                     // start with a 200 response
                     mg_printf(connection, "%s", RESPONSE_200);
                     
                     // we have a valid UUID and node - kill the node that has this assignment
-                    NodeList::getInstance()->killNode(nodeToKill);
+                    NodeList::getInstance()->killNodeWithUUID(deleteUUID);
                     
                     // successfully processed request
                     return 1;
@@ -494,11 +492,7 @@ void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignme
     }
 }
 
-void DomainServer::nodeAdded(Node* node) {
-    
-}
-
-void DomainServer::nodeKilled(Node* node) {
+void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this node has linked data it was from an assignment
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
@@ -741,7 +735,7 @@ bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePu
                                                       const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData()
             && nodePublicSocket == node->getPublicSocket()
             && nodeLocalSocket == node->getLocalSocket()
@@ -773,7 +767,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
         NodeList* nodeList = NodeList::getInstance();
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
                 if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {

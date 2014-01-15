@@ -9,11 +9,14 @@
 #ifndef __hifi__Profile__
 #define __hifi__Profile__
 
+#include <stdint.h>
+
 #include <QtCore/QString>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 class Profile {
 public:
@@ -34,6 +37,7 @@ public:
     
     void updateDomain(const QString& domain);
     void updatePosition(const glm::vec3 position);
+    void updateOrientation(const glm::quat& orientation);
     
     QString getLastDomain() const  { return _lastDomain; }
     const glm::vec3& getLastPosition() const { return _lastPosition; }
@@ -45,6 +49,8 @@ private:
     QUuid _uuid;
     QString _lastDomain;
     glm::vec3 _lastPosition;
+    glm::vec3 _lastOrientation;
+    uint64_t _lastOrientationSend;
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
 };

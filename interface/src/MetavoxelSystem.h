@@ -26,13 +26,11 @@
 class MetavoxelClient;
 
 /// Renders a metavoxel tree.
-class MetavoxelSystem : public QObject, public NodeListHook {
+class MetavoxelSystem : public QObject {
     Q_OBJECT
 
 public:
-
     MetavoxelSystem();
-    ~MetavoxelSystem();
 
     void init();
     
@@ -41,9 +39,9 @@ public:
     void simulate(float deltaTime);
     void render();
     
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
-    
+public slots:
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
 private:
 
     Q_INVOKABLE void addClient(const QUuid& uuid, const HifiSockAddr& address);

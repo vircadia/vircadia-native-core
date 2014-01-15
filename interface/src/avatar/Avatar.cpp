@@ -95,7 +95,6 @@ Avatar::Avatar(Node* owningNode) :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _isCollisionsOn(true),
-    _leadingAvatar(NULL),
     _moving(false),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
@@ -146,29 +145,9 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
-void Avatar::follow(Avatar* leadingAvatar) {
-    const float MAX_STRING_LENGTH = 2;
-
-    _leadingAvatar = leadingAvatar;
-    if (_leadingAvatar != NULL) {
-        _leaderUUID = leadingAvatar->getOwningNode()->getUUID();
-        _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
-        if (_stringLength > MAX_STRING_LENGTH) {
-            _stringLength = MAX_STRING_LENGTH;
-        }
-    } else {
-        _leaderUUID = QUuid();
-    }
-}
-
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
-    
-    if (_leadingAvatar && !_leadingAvatar->getOwningNode()->isAlive()) {
-        follow(NULL);
-    }
-    
-    if (_scale != _newScale) {
-        setScale(_newScale);
+    if (_scale != _targetScale) {
+        setScale(_targetScale);
     }
     
     // copy velocity so we can use it later for acceleration
@@ -481,28 +460,30 @@ void Avatar::goHome() {
 }
 
 void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _newScale < MAX_SCALE) {
-        _newScale *= (1.f + SCALING_RATIO);
+    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
+        _targetScale *= (1.f + SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _targetScale);
     }
 }
 
 void Avatar::decreaseSize() {
-    if (MIN_SCALE < (1.f - SCALING_RATIO) * _newScale) {
-        _newScale *= (1.f - SCALING_RATIO);
+    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
+        _targetScale *= (1.f - SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _targetScale);
     }
 }
 
 void Avatar::resetSize() {
-    _newScale = 1.0f;
-    qDebug("Reseted scale to %f\n", _newScale);
+    _targetScale = 1.0f;
+    qDebug("Reseted scale to %f\n", _targetScale);
 }
 
 void Avatar::setScale(const float scale) {
     _scale = scale;
 
-    if (_newScale * (1.f - RESCALING_TOLERANCE) < _scale &&
-            _scale < _newScale * (1.f + RESCALING_TOLERANCE)) {
-        _scale = _newScale;
+    if (_targetScale * (1.f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
+        _scale = _targetScale;
     }
     
     _skeleton.setScale(_scale);
