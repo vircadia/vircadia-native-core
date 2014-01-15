@@ -368,8 +368,7 @@ void Hand::updateCollisions() {
         glm::vec3 totalPenetration;
         
         // check other avatars
-        NodeList* nodeList = NodeList::getInstance();
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
                 if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
@@ -388,21 +387,21 @@ void Hand::updateCollisions() {
                         if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
                             palm.setIsCollidingWithPalm(true);
                             if (!wasColliding) {
-                            const float PALM_COLLIDE_VOLUME = 1.f;
-                            const float PALM_COLLIDE_FREQUENCY = 1000.f;
-                            const float PALM_COLLIDE_DURATION_MAX = 0.75f;
-                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
-                            Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                                   PALM_COLLIDE_FREQUENCY,
-                                                                                   PALM_COLLIDE_DURATION_MAX,
-                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
-                            //  If the other person's palm is in motion, move mine downward to show I was hit
-                            const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                                const float PALM_COLLIDE_VOLUME = 1.f;
+                                const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                                const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                                const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
+                                Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                                       PALM_COLLIDE_FREQUENCY,
+                                                                                       PALM_COLLIDE_DURATION_MAX,
+                                                                                       PALM_COLLIDE_DECAY_PER_SAMPLE);
+                                //  If the other person's palm is in motion, move mine downward to show I was hit
+                                const float MIN_VELOCITY_FOR_SLAP = 0.05f;
                                 if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
                                     // add slapback here
                                 }
                             }
-
+                            
                             
                         }
                     }

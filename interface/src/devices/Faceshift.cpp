@@ -116,7 +116,7 @@ void Faceshift::setTCPEnabled(bool enabled) {
 void Faceshift::connectSocket() {
     if (_tcpEnabled) {
         if (!_tcpRetryCount) {
-            qDebug("Faceshift: Connecting...\n");
+            qDebug("Faceshift: Connecting...");
         }
 
         _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
@@ -125,8 +125,7 @@ void Faceshift::connectSocket() {
 }
 
 void Faceshift::noteConnected() {
-    qDebug("Faceshift: Connected.\n");
-
+    qDebug("Faceshift: Connected.");
     // request the list of blendshape names
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
@@ -136,7 +135,7 @@ void Faceshift::noteConnected() {
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
     if (!_tcpRetryCount) {
        // Only spam log with fail to connect the first time, so that we can keep waiting for server
-       qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
+       qDebug() << "Faceshift: " << _tcpSocket.errorString();
     }
     // retry connection after a 2 second delay
     if (_tcpEnabled) {

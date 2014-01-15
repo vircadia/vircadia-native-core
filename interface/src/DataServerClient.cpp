@@ -140,18 +140,18 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             if (keyList[i] == DataServerKey::FaceMeshURL) {
 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's face model URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    qDebug("Changing user's face model URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
                 } else {
                     // mesh URL for a UUID, find avatar in our list
-                    NodeList* nodeList = NodeList::getInstance();
-                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    
+                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
 
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-                                    "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
+                                                          "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }
@@ -159,18 +159,17 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             } else if (keyList[i] == DataServerKey::SkeletonURL) {
 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's skeleton URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    qDebug("Changing user's skeleton URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
-                    NodeList* nodeList = NodeList::getInstance();
-                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                             Avatar* avatar = (Avatar *) node->getLinkedData();
 
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
-                                    Q_ARG(QUrl, QUrl(valueList[i])));
+                                                          Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }
@@ -190,8 +189,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
                         ", and orientation to" << valueList[i + 2].toLocal8Bit().constData() <<
-                        "to go to" << userString << "\n";
-
+                        "to go to" << userString;
+                    
                     NodeList::getInstance()->setDomainHostname(valueList[i]);
                     // orient the user to face the target
                     glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),

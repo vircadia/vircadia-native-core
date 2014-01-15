@@ -616,8 +616,8 @@ void runTimingTests() {
         gettimeofday(&endTime, NULL);
     }
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
-
+    qDebug("gettimeofday() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
+    
     // Random number generation
     gettimeofday(&startTime, NULL);
     for (int i = 1; i < numTests; i++) {
@@ -625,7 +625,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("rand() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
 
     // Random number generation using randFloat()
     gettimeofday(&startTime, NULL);
@@ -634,7 +634,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("randFloat() stored in array usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -644,7 +644,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("powf(f, 0.5) usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  Vector Math
     float distance;
@@ -657,7 +657,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vector math usecs: %f [%f msecs total for %d tests]\n",
+    qDebug("vector math usecs: %f [%f msecs total for %d tests]",
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
 
     //  Vec3 test
@@ -671,7 +671,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    qDebug("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("vec3 assign and dot() usecs: %f", 1000.0f * elapsedMsecs / (float) numTests);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {

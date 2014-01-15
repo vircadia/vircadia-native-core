@@ -30,7 +30,7 @@ JurisdictionSender::~JurisdictionSender() {
 
 void JurisdictionSender::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_JURISDICTION_REQUEST) {
-        Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
+        SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
             lockRequestingNodes();
@@ -62,7 +62,7 @@ bool JurisdictionSender::process() {
 
             QUuid nodeUUID = _nodesRequestingJurisdictions.front();
             _nodesRequestingJurisdictions.pop();
-            Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+            SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
             if (node->getActiveSocket() != NULL) {
                 const HifiSockAddr* nodeAddress = node->getActiveSocket();

@@ -337,14 +337,14 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(std::string(fileName), ss);
     if (err && ss.get() != TAG_Compound) {
-        qDebug("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.");
         return false;
     }
 
     ss.get();
     TagCompound schematics(ss);
     if (!schematics.getBlocksId() || !schematics.getBlocksData()) {
-        qDebug("[ERROR] Invalid schematic data.\n");
+        qDebug("[ERROR] Invalid schematic data.");
         return false;
     }
 
@@ -369,7 +369,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
 
             for (int x = 0; x < schematics.getWidth(); ++x) {
                 if (_stopImport) {
-                    qDebug("[DEBUG] Canceled import at %d voxels.\n", count);
+                    qDebug("[DEBUG] Canceled import at %d voxels.", count);
                     _stopImport = false;
                     return true;
                 }
@@ -420,7 +420,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     }
 
     emit importProgress(100);
-    qDebug("Created %d voxels from minecraft import.\n", count);
+    qDebug("Created %d voxels from minecraft import.", count);
 
     return true;
 }
@@ -459,7 +459,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadC
             }
         } else {
             if (!node->isLeaf()) {
-                qDebug("WARNING! operation would require deleting children, add Voxel ignored!\n ");
+                qDebug("WARNING! operation would require deleting children, add Voxel ignored!");
             }
         }
 

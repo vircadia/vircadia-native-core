@@ -483,7 +483,7 @@ public:
     QString name;
 
     int parentIndex;
-
+    glm::vec3 translation;
     glm::mat4 preTransform;
     glm::quat preRotation;
     glm::quat rotation;
@@ -499,8 +499,8 @@ glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
         const FBXModel& model = models.value(nodeID);
-        globalTransform = model.preTransform * glm::mat4_cast(model.preRotation * model.rotation * model.postRotation) *
-            model.postTransform * globalTransform;
+        globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
+            model.rotation * model.postRotation) * model.postTransform * globalTransform;
 
         QList<QString> parentIDs = parentMap.values(nodeID);
         nodeID = QString();
@@ -523,11 +523,13 @@ public:
 
 void printNode(const FBXNode& node, int indent) {
     QByteArray spaces(indent, ' ');
-    qDebug("%s%s: ", spaces.data(), node.name.data());
+    QDebug nodeDebug = qDebug();
+    
+    nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
-        qDebug() << property;
+        nodeDebug << property;
     }
-    qDebug() << "\n";
+    
     foreach (const FBXNode& child, node.children) {
         printNode(child, indent + 1);
     }
@@ -956,9 +958,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    model.preTransform = glm::translate(translation) * glm::translate(rotationOffset) *
-                        glm::translate(rotationPivot);
-                    model.preRotation = glm::quat(glm::radians(preRotation));
+                    model.translation = translation;
+                    model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);      
+                    model.preRotation = glm::quat(glm::radians(preRotation));            
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
@@ -1141,7 +1143,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             joint.freeLineage.append(index);
         }
         joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
-
+        joint.translation = model.translation;
         joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
@@ -1151,13 +1153,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.rotationMax = model.rotationMax;
         glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
         if (joint.parentIndex == -1) {
-            joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
+            joint.transform = geometry.offset * glm::translate(model.translation) * model.preTransform * 
+                glm::mat4_cast(combinedRotation) * model.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
 
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
-            joint.transform = parentJoint.transform *
+            joint.transform = parentJoint.transform * glm::translate(model.translation) *
                 model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
@@ -1271,7 +1274,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
-                    qDebug() << "Joint not in model list: " << jointID << "\n";
+                    qDebug() << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
@@ -1289,7 +1292,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
-                qDebug() << "Model not in model list: " << modelID << "\n";
+                qDebug() << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);

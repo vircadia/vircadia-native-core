@@ -138,9 +138,9 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                                   const QAudioFormat& desiredAudioFormat,
                                   QAudioFormat& adjustedAudioFormat) {
     if (!audioDevice.isFormatSupported(desiredAudioFormat)) {
-        qDebug() << "The desired format for audio I/O is" << desiredAudioFormat << "\n";
-        qDebug() << "The desired audio format is not supported by this device.\n";
-
+        qDebug() << "The desired format for audio I/O is" << desiredAudioFormat;
+        qDebug("The desired audio format is not supported by this device");
+        
         if (desiredAudioFormat.channelCount() == 1) {
             adjustedAudioFormat = desiredAudioFormat;
             adjustedAudioFormat.setChannelCount(2);
@@ -245,12 +245,11 @@ void Audio::start() {
     _desiredOutputFormat.setChannelCount(2);
 
     QAudioDeviceInfo inputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioInput);
-
-    qDebug() << "The audio input device is" << inputDeviceInfo.deviceName() << "\n";
-
+    qDebug() << "The audio input device is" << inputDeviceInfo.deviceName();
+    
     if (adjustedFormatForAudioDevice(inputDeviceInfo, _desiredInputFormat, _inputFormat)) {
-        qDebug() << "The format to be used for audio input is" << _inputFormat << "\n";
-
+        qDebug() << "The format to be used for audio input is" << _inputFormat;
+        
         _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
         _numInputCallbackBytes = NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL * _inputFormat.channelCount()
             * (_inputFormat.sampleRate() / SAMPLE_RATE)
@@ -258,12 +257,11 @@ void Audio::start() {
         _audioInput->setBufferSize(_numInputCallbackBytes);
 
         QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-
-        qDebug() << "The audio output device is" << outputDeviceInfo.deviceName() << "\n";
+        qDebug() << "The audio output device is" << outputDeviceInfo.deviceName();
 
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
-            qDebug() << "The format to be used for audio output is" << _outputFormat << "\n";
-
+            qDebug() << "The format to be used for audio output is" << _outputFormat;
+            
             _inputRingBuffer.resizeForFrameSize(_numInputCallbackBytes * CALLBACK_ACCELERATOR_RATIO / sizeof(int16_t));
             _inputDevice = _audioInput->start();
             connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleAudioInput()));
@@ -280,8 +278,8 @@ void Audio::start() {
 
         return;
     }
-
-    qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.\n";
+    
+    qDebug() << "Unable to set up audio I/O because of a problem with input or output formats.";
 }
 
 void Audio::handleAudioInput() {
@@ -367,9 +365,9 @@ void Audio::handleAudioInput() {
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
         NodeList* nodeList = NodeList::getInstance();
-        Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-
-        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
+        SharedNodePointer audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        
+        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
 
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
@@ -451,7 +449,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
                                                          + (_jitterBufferSamples * 2))) {
             // starved and we don't have enough to start, keep waiting
-            qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.\n";
+            qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.";
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             _ringBuffer.setIsStarved(false);
@@ -521,7 +519,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer, and the ring buffer from
         // the network has nothing in it either - we just starved
-        qDebug() << "Audio output just starved.\n";
+        qDebug() << "Audio output just starved.";
         _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }

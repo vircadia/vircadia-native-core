@@ -43,7 +43,7 @@ ProgramObject* VoxelShader::createGeometryShaderProgram(const QString& name) {
 
 void VoxelShader::init() {
     if (_initialized) {
-        qDebug("[ERROR] TestProgram is already initialized.\n");
+        qDebug("[ERROR] TestProgram is already initialized.");
         return;
     }
     switchToResourcesParentIfRequired();

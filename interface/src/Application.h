@@ -52,7 +52,6 @@
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
-#include "devices/SerialInterface.h"
 #include "devices/SixenseManager.h"
 #include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
@@ -93,7 +92,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook, public PacketSenderNotify, public DomainChangeListener {
+class Application : public QApplication, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -153,7 +152,6 @@ public:
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     bool isMouseHidden() const { return _mouseHidden; }
-    SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
@@ -192,11 +190,8 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
+    
     virtual void packetSentNotification(ssize_t length);
-
-    virtual void domainChanged(QString domain);
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -212,6 +207,11 @@ public:
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
 
 public slots:
+    void domainChanged(const QString& domainHostname);
+    void nodeKilled(SharedNodePointer node);
+    
+    void processDatagrams();
+    
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
@@ -247,8 +247,6 @@ private slots:
     void renderCoverageMapsV2Recursively(CoverageMapV2* map);
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
-
-    void toggleFollowMode();
 
     void closeMirrorView();
     void restoreMirrorView();
@@ -299,7 +297,6 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
-    void renderFollowIndicator();
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
@@ -333,14 +330,10 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
 
-    QAction* _followMode;
-
     BandwidthMeter _bandwidthMeter;
 
-    SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
-    bool _displayLevels;
 
     glm::vec3 _gravity;
 
@@ -462,10 +455,6 @@ private:
     PointShader _pointShader;
 
     Audio _audio;
-
-    bool _enableNetworkThread;
-    pthread_t _networkReceiveThread;
-    bool _stopNetworkReceiveThread;
 
     bool _enableProcessVoxelsThread;
     VoxelPacketProcessor _voxelProcessor;

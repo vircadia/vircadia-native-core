@@ -57,7 +57,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
 
-        Node* senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+        SharedNodePointer senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
@@ -70,7 +70,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         if (_myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount 
                     << " command from client receivedBytes=" << packetLength 
-                    << " sequence=" << sequence << " transitTime=" << transitTime << " usecs\n";
+                    << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* editData = (unsigned char*)&packetData[atByte];
@@ -87,7 +87,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType, 
-                                                                packetData, packetLength, editData, maxSize, senderNode);
+                                                                                  packetData,
+                                                                                  packetLength,
+                                                                                  editData, maxSize, senderNode.data());
             _myServer->getOctree()->unlock();
             uint64_t endProcess = usecTimestampNow();
 
@@ -114,16 +116,16 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             senderNode->setLastHeardMicrostamp(usecTimestampNow());
             nodeUUID = senderNode->getUUID();
             if (debugProcessPacket) {
-                qDebug() << "sender has uuid=" << nodeUUID << "\n";
+                qDebug() << "sender has uuid=" << nodeUUID;
             }
         } else {
             if (debugProcessPacket) {
-                qDebug() << "sender has no known nodeUUID.\n";
+                qDebug() << "sender has no known nodeUUID.";
             }
         }
         trackInboundPackets(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
-        printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
+        qDebug("unknown packet ignored... packetData[0]=%c", packetData[0]);
     }
 }
 

@@ -160,7 +160,7 @@ void Assignment::swap(Assignment& otherAssignment) {
 void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     if (numBytes > MAX_PAYLOAD_BYTES) {
-        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
+        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.",
                MAX_PAYLOAD_BYTES,
                MAX_PAYLOAD_BYTES);
         

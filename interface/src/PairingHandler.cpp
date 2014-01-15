@@ -46,9 +46,8 @@ void PairingHandler::sendPairRequest() {
             (localAddress >> 16) & 0xFF,
             (localAddress >> 24) & 0xFF,
             NodeList::getInstance()->getNodeSocket().localPort());
-
-    qDebug("Sending pair packet: %s\n", pairPacket);
-
+    qDebug("Sending pair packet: %s", pairPacket);
+    
     HifiSockAddr pairingServerSocket(PAIRING_SERVER_HOSTNAME, PAIRING_SERVER_PORT);
 
     // send the pair request to the pairing server

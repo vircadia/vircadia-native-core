@@ -501,26 +501,26 @@ static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
 }
 
 static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    qDebug("Found user %d.\n", id);
+    qDebug("Found user %d.", id);
     generator.GetSkeletonCap().RequestCalibration(id, false);
 }
 
 static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    qDebug("Lost user %d.\n", id);
+    qDebug("Lost user %d.", id);
 }
 
 static void XN_CALLBACK_TYPE calibrationStarted(SkeletonCapability& capability, XnUserID id, void* cookie) {
-    qDebug("Calibration started for user %d.\n", id);
+    qDebug("Calibration started for user %d.", id);
 }
 
 static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability,
         XnUserID id, XnCalibrationStatus status, void* cookie) {
     if (status == XN_CALIBRATION_STATUS_OK) {
-        qDebug("Calibration completed for user %d.\n", id);
+        qDebug("Calibration completed for user %d.", id);
         capability.StartTracking(id);
 
     } else {
-        qDebug("Calibration failed to user %d.\n", id);
+        qDebug("Calibration failed to user %d.", id);
         capability.RequestCalibration(id, true);
     }
 }
@@ -633,7 +633,7 @@ void FrameGrabber::grabFrame() {
         // make sure it's in the format we expect
         if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
                 image->origin != 0) {
-            qDebug("Invalid webcam image format.\n");
+            qDebug("Invalid webcam image format.");
             return;
         }
         color = image;
@@ -965,7 +965,7 @@ bool FrameGrabber::init() {
     // load our face cascade
     switchToResourcesParentIfRequired();
     if (_faceCascade.empty() && !_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
-        qDebug("Failed to load Haar cascade for face tracking.\n");
+        qDebug("Failed to load Haar cascade for face tracking.");
         return false;
     }
 
@@ -998,7 +998,7 @@ bool FrameGrabber::init() {
 
     // next, an ordinary webcam
     if ((_capture = cvCaptureFromCAM(-1)) == 0) {
-        qDebug("Failed to open webcam.\n");
+        qDebug("Failed to open webcam.");
         return false;
     }
     const int IDEAL_FRAME_WIDTH = 320;

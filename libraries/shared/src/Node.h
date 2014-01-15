@@ -19,6 +19,7 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QtCore/QMutex>
 #include <QtCore/QUuid>
 #include <QMutex>
 
@@ -26,7 +27,8 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
-class Node {
+class Node : public QObject {
+    Q_OBJECT
 public:
     Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     ~Node();
@@ -72,14 +74,7 @@ public:
 
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
-
-    void lock() { _mutex.lock(); }
-
-    /// returns false if lock failed, true if you got the lock
-    bool trylock() { return _mutex.tryLock(); }
-    void unlock() { _mutex.unlock(); }
-
-    static void printLog(Node const&);
+    QMutex& getMutex() { return _mutex; }
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -100,9 +95,6 @@ private:
     int _clockSkewUsec;
     QMutex _mutex;
 };
-
-int unpackNodeId(unsigned char *packedData, uint16_t *nodeId);
-int packNodeId(unsigned char *packStore, uint16_t nodeId);
 
 QDebug operator<<(QDebug debug, const Node &message);
 

@@ -21,7 +21,6 @@
 #include "Skeleton.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/SerialInterface.h"
 #include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;
@@ -135,7 +134,6 @@ public:
 
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void follow(Avatar* leadingAvatar);
     void render(bool forceRenderHead);
 
     //setters
@@ -217,7 +215,6 @@ protected:
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
     bool _isCollisionsOn;
-    Avatar* _leadingAvatar;
     float _stringLength;
 
     bool _moving; ///< set when position is changing

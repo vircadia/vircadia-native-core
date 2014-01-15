@@ -88,15 +88,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         _elapsedTimeMoving += deltaTime;
     }
 
-    if (_leadingAvatar && !_leadingAvatar->getOwningNode()->isAlive()) {
-        follow(NULL);
-    }
-
-    // Ajust, scale, position and lookAt position when following an other avatar
-    if (_leadingAvatar && _targetScale != _leadingAvatar->getScale()) {
-        _targetScale = _leadingAvatar->getScale();
-    }
-
     if (_scale != _targetScale) {
         float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -300,7 +291,6 @@ const float MAX_PITCH = 90.0f;
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
 
@@ -321,16 +311,11 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
                 }
             }
         }
-    } else if (gyros->isActive()) {
-        estimatedRotation = gyros->getEstimatedRotation();
-
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
 
     } else {
-        if (!_leadingAvatar) {
-            _head.setPitch(_head.getMousePitch());
-        }
+        _head.setPitch(_head.getMousePitch());
         _head.getVideoFace().clearFrame();
 
         // restore rotation, lean to neutral positions
@@ -634,47 +619,6 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         _shouldJump = false;
     }
 
-
-    // Add thrusts from leading avatar
-    const float FOLLOWING_RATE = 0.02f;
-    const float MIN_YAW = 5.0f;
-    const float MIN_PITCH = 1.0f;
-    const float PITCH_RATE = 0.1f;
-    const float MIN_YAW_BEFORE_PITCH = 30.0f;
-
-    if (_leadingAvatar != NULL) {
-        glm::vec3 toTarget = _leadingAvatar->getPosition() - _position;
-
-        if (glm::length(_position - _leadingAvatar->getPosition()) > _scale * _stringLength) {
-            _position += toTarget * FOLLOWING_RATE;
-        } else {
-            toTarget = _leadingAvatar->getHead().getLookAtPosition() - _head.getPosition();
-        }
-        toTarget = glm::vec3(glm::dot(right, toTarget),
-                             glm::dot(up   , toTarget),
-                             glm::dot(front, toTarget));
-
-        float yawAngle = angleBetween(-IDENTITY_FRONT, glm::vec3(toTarget.x, 0.f, toTarget.z));
-        if (glm::abs(yawAngle) > MIN_YAW){
-            if (IDENTITY_RIGHT.x * toTarget.x + IDENTITY_RIGHT.y * toTarget.y + IDENTITY_RIGHT.z * toTarget.z > 0) {
-                _bodyYawDelta -= yawAngle;
-            } else {
-                _bodyYawDelta += yawAngle;
-            }
-        }
-
-        float pitchAngle = glm::abs(90.0f - angleBetween(IDENTITY_UP, toTarget));
-        if (glm::abs(pitchAngle) > MIN_PITCH && yawAngle < MIN_YAW_BEFORE_PITCH){
-            if (IDENTITY_UP.x * toTarget.x + IDENTITY_UP.y * toTarget.y + IDENTITY_UP.z * toTarget.z > 0) {
-                _head.setMousePitch(_head.getMousePitch() + PITCH_RATE * pitchAngle);
-            } else {
-                _head.setMousePitch(_head.getMousePitch() - PITCH_RATE * pitchAngle);
-            }
-            _head.setPitch(_head.getMousePitch());
-        }
-    }
-
-
     //  Add thrusts from Transmitter
     if (transmitter) {
         transmitter->checkForLostTransmitter();
@@ -872,16 +816,7 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
 
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-
-    // loop through all the other avatars for potential interactions...
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            //Avatar *otherAvatar = (Avatar *)node->getLinkedData();
-            //
-            // Placeholder:  Add code here when we want to add Avatar<->Avatar collision stuff
-        }
-    }
+    // loop through all the other avatars for potential interactions
 }
 
 class SortedAvatar {
@@ -902,8 +837,8 @@ void MyAvatar::updateChatCircle(float deltaTime) {
 
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             SortedAvatar sortedAvatar;
             sortedAvatar.avatar = (Avatar*)node->getLinkedData();
@@ -914,6 +849,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
             sortedAvatars.append(sortedAvatar);
         }
     }
+    
     qSort(sortedAvatars.begin(), sortedAvatars.end());
 
     // compute the accumulated centers

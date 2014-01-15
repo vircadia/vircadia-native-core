@@ -65,30 +65,33 @@ bool shouldDo(float desiredInterval, float deltaTime) {
     return randFloat() < deltaTime / desiredInterval;
 }
 
-void outputBufferBits(const unsigned char* buffer, int length, bool withNewLine) {
+void outputBufferBits(const unsigned char* buffer, int length, QDebug* continuedDebug) {
     for (int i = 0; i < length; i++) {
-        outputBits(buffer[i], false);
-    }
-    if (withNewLine) {
-        qDebug("\n");
+        outputBits(buffer[i], continuedDebug);
     }
 }
 
-void outputBits(unsigned char byte, bool withNewLine, bool usePrintf) {
-    if (isalnum(byte)) {
-        usePrintf ? (void)printf("[ %d (%c): ", byte, byte) : qDebug("[ %d (%c): ", byte, byte);
-    } else {
-        usePrintf ? (void)printf("[ %d (0x%x): ", byte, byte) : qDebug("[ %d (0x%x): ", byte, byte);
+void outputBits(unsigned char byte, QDebug* continuedDebug) {
+    QDebug debug = qDebug().nospace();
+
+    if (continuedDebug) {
+        debug = *continuedDebug;
     }
+
+    QString resultString;
+
+    if (isalnum(byte)) {
+        resultString.sprintf("[ %d (%c): ", byte, byte);
+    } else {
+        resultString.sprintf("[ %d (0x%x): ", byte, byte);
+    }
+    debug << resultString;
 
     for (int i = 0; i < 8; i++) {
-        usePrintf ? (void)printf("%d", byte >> (7 - i) & 1) : qDebug("%d", byte >> (7 - i) & 1);
+        resultString.sprintf("%d", byte >> (7 - i) & 1);
     }
-    usePrintf ? (void)printf(" ] ") : qDebug(" ] ");
-
-    if (withNewLine) {
-        usePrintf ? (void)printf("\n") : qDebug("\n");
-    }
+    debug << resultString;
+    debug << " ]";
 }
 
 int numberOfOnes(unsigned char byte) {
@@ -465,15 +468,16 @@ void printVoxelCode(unsigned char* voxelCode) {
 	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
 	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    qDebug("octets=%d\n",octets);
-    qDebug("voxelSizeInBits=%d\n",voxelSizeInBits);
-    qDebug("voxelSizeInBytes=%d\n",voxelSizeInBytes);
-    qDebug("voxelSizeInOctets=%d\n",voxelSizeInOctets);
-    qDebug("voxelBufferSize=%d\n",voxelBufferSize);
+    qDebug("octets=%d",octets);
+    qDebug("voxelSizeInBits=%d",voxelSizeInBits);
+    qDebug("voxelSizeInBytes=%d",voxelSizeInBytes);
+    qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
+    qDebug("voxelBufferSize=%d",voxelBufferSize);
 
-    for(unsigned int i=0;i<voxelBufferSize;i++) {
-        qDebug("i=%d ",i);
-        outputBits(voxelCode[i]);
+    for(int i=0; i < voxelBufferSize; i++) {
+        QDebug voxelBufferDebug = qDebug();
+        voxelBufferDebug << "i =" << i;
+        outputBits(voxelCode[i], &voxelBufferDebug);
     }
 }
 

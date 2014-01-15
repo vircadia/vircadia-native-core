@@ -188,22 +188,22 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     }
 
     // loop through all the other avatars for potential interactions...
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             // TODO: dot collidingPalm and hand velocities and skip collision when they are moving apart.
             AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
             //printf("updateCollisionWithAvatars()...avatar=%p\n", avatar);
-
+            
             // check hands...
             const HandData* handData = avatar->getHandData();
-
+            
             if (handData->findSpherePenetration(center, radius, penetration, collidingPalm)) {
                 // apply a hard collision when ball collides with hand
                 penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
-
+                
                 // determine if the palm that collided was moving, if so, then we add that palm velocity as well...
                 glm::vec3 addedVelocity = NO_ADDED_VELOCITY;
                 if (collidingPalm) {
@@ -211,9 +211,9 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                     //printf("collidingPalm Velocity=%f,%f,%f\n", palmVelocity.x, palmVelocity.y, palmVelocity.z);
                     addedVelocity = palmVelocity;
                 }
-
+                
                 applyHardCollision(particle, penetration, ELASTICITY, DAMPING, addedVelocity);
-
+                
             } else if (avatar->findSpherePenetration(center, radius, penetration)) {
                 penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
