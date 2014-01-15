@@ -19,8 +19,10 @@ const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import");
 const QString IMPORT_INFO = QObject::tr("<b>Import</b> %1 as voxels");
 const QString CANCEL_BUTTON_NAME = QObject::tr("Cancel");
-const QString INFO_LABEL_TEXT = QObject::tr("This will load selected file into Hifi and\n"
-                                            "allow you to place it with Command V");
+const QString INFO_LABEL_TEXT = QObject::tr("<div style='line-height:20px;'>"
+                                            "This will load the selected file into Hifi and allow you<br/>"
+                                            "to place it with %1-V; you must be in select or<br/>"
+                                            "add mode (S or V keys will toggle mode) to place.</div>");
 
 const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
@@ -99,7 +101,16 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
     
+#ifdef Q_OS_MAC
+    QString cmdString = ("Command");
+#else
+    QString cmdString = ("Control");
+#endif
+    QLabel *infoLabel = new QLabel(QString(INFO_LABEL_TEXT).arg(cmdString));
+    infoLabel->setObjectName("infoLabel");
+    
     QGridLayout* gridLayout = (QGridLayout*) layout();
+    gridLayout->addWidget(infoLabel, 2, 0, 2, 1);
     gridLayout->addWidget(&_cancelButton, 2, 1, 2, 1);
     gridLayout->addWidget(&_importButton, 2, 2, 2, 1);
     
@@ -187,6 +198,9 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("fileTypeLabel");
     widget->hide();
     
+    widget = findChild<QWidget*>("fileNameLabel");
+    widget->hide();
+    
     widget = findChild<QWidget*>("buttonBox");
     widget->hide();
  
@@ -254,8 +268,12 @@ void ImportDialog::setImportTypes() {
         // set custom file icons
         setIconProvider(new HiFiIconProvider(iconsMap));
         setNameFilter(importFormatsFilterList);
-
+        
+#ifdef Q_OS_MAC
+        QString cmdString = ("Command");
+#else
+        QString cmdString = ("Control");
+#endif
         setLabelText(QFileDialog::LookIn, QString(IMPORT_INFO).arg(importFormatsInfo));
-        setLabelText(QFileDialog::FileName, INFO_LABEL_TEXT);
     }
 }

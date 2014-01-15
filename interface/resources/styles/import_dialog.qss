@@ -15,22 +15,25 @@ QLabel {
     color: #333333;
 }
 
-QLabel#fileNameLabel {
-    margin-top: 18px;
-    padding: 10px 0 0 7px;
+QLabel#infoLabel {
+    padding: 7px 0 0 7px;
+    color: #666666;
 }
 
 QPushButton {
     border-width: 0;
     border-radius: 9px;
     font-size: 18px;
-    padding: 16px 0px;
+    padding: 17px 0px 15px;
     width: 107px;
-    margin: 20px 6px 18px;
+    margin-top: 20px;
+    margin-bottom: 18px;
 }
 
 QPushButton#importButton {
     color: #FFFFFF;
+    font-weight: bold;
+    margin-right: 6px;
 }
 
 QPushButton#importButton:enabled {
@@ -44,10 +47,12 @@ QPushButton#importButton:!enabled {
 QPushButton#cancelButton {
     color: #333333;
     background-color: #FFFFFF;
+    width: 74px;
+    margin-right: 11px;
 }
 
 QSidebar, QTreeView {
-    border: 1px solid #E5E5E5;
+    border: 1px solid #C5C5C5;
     font-size: 14px;
     margin: 0px;
 }
@@ -67,8 +72,8 @@ QTreeView QHeaderView {
 QTreeView QHeaderView:section {
     border-left: none;
     border-top: none;
-    border-bottom: 1px solid #E5E5E5;
-    border-right: 1px solid #E5E5E5;
+    border-bottom: 1px solid #C5C5C5;
+    border-right: 1px solid #C5C5C5;
     background: white;
     color: #666666;
     padding: 10px 20px;
