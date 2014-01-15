@@ -146,8 +146,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
-    if (_scale != _newScale) {
-        setScale(_newScale);
+    if (_scale != _targetScale) {
+        setScale(_targetScale);
     }
     
     // copy velocity so we can use it later for acceleration

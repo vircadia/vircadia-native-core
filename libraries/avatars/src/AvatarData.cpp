@@ -29,7 +29,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _newScale(1.0f),
+    _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
@@ -75,7 +75,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
 
     // Body scale
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
+    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);

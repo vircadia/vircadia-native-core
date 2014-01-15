@@ -88,7 +88,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     if (_scale != _newScale) {
-        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _newScale;
+        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
