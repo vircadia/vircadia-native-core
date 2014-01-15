@@ -31,6 +31,10 @@
 class Avatar;
 class ProgramObject;
 
+const float HAND_PADDLE_OFFSET = 0.1f;
+const float HAND_PADDLE_THICKNESS = 0.05f;
+const float HAND_PADDLE_RADIUS = 0.15f;
+
 class Hand : public HandData {
 public:
     Hand(Avatar* owningAvatar);
