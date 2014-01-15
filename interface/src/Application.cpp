@@ -4473,7 +4473,7 @@ bool Application::shouldSkipVersion() {
     QByteArray skipFileContents = skipFile->readAll();
     QString *skipVersion = new QString(skipFileContents);
     skipFile->close();
-    if (*skipVersion == *_latestVersion /*|| applicationVersion() == "0.1"*/) {
+    if (*skipVersion == *_latestVersion || applicationVersion() == "0.1") {
         return true;
     }
     return false;
