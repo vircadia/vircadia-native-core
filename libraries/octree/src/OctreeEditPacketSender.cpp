@@ -57,14 +57,15 @@ bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
     bool atLeastOnJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()) {
-            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
                 QUuid nodeUUID = node->getUUID();
                 // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
                 if (_serverJurisdictions) {
-                    // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
+                    // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
                     // missing at least one jurisdiction
                     if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
                         atLeastOnJurisdictionMissing = true;
@@ -77,6 +78,7 @@ bool OctreeEditPacketSender::serversExist() const {
             break; // no point in looking further...
         }
     }
+    
     return (hasServers && !atLeastOnJurisdictionMissing);
 }
 
@@ -84,11 +86,12 @@ bool OctreeEditPacketSender::serversExist() const {
 // a known nodeID. 
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
                 const HifiSockAddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
                 
@@ -100,11 +103,11 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                     uint64_t createdAt = (*((uint64_t*)(buffer + numBytesPacketHeader + sizeof(sequence))));
                     uint64_t queuedAt = usecTimestampNow();
                     uint64_t transitTime = queuedAt - createdAt;
-                    qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] << 
-                            " - command to node bytes=" << length << 
-                            " sequence=" << sequence << 
-                            " transitTimeSoFar=" << transitTime << " usecs\n";
-                }                
+                    qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
+                        " - command to node bytes=" << length <<
+                        " sequence=" << sequence <<
+                        " transitTimeSoFar=" << transitTime << " usecs\n";
+                }
             }
         }
     }
@@ -166,13 +169,13 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
     // But we can't really do that with a packed message, since each edit message could be destined 
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
-            // we need to get the jurisdiction for this 
+            // we need to get the jurisdiction for this
             // here we need to get the "pending packet" for this server
             const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
@@ -212,15 +215,15 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned c
     // But we can't really do that with a packed message, since each edit message could be destined 
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
-    NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
-
+            
             if (_serverJurisdictions) {
-                // we need to get the jurisdiction for this 
+                // we need to get the jurisdiction for this
                 // here we need to get the "pending packet" for this server
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
@@ -232,19 +235,19 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned c
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
                 packetBuffer._nodeUUID = nodeUUID;
-            
+                
                 // If we're switching type, then we send the last one and start over
-                if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) || 
+                if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
                     (packetBuffer._currentSize + length >= _maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
                     initializePacket(packetBuffer, type);
                 }
-
+                
                 // If the buffer is empty and not correctly initialized for our type...
                 if (type != packetBuffer._currentType && packetBuffer._currentSize == 0) {
                     initializePacket(packetBuffer, type);
                 }
-
+                
                 // This is really the first time we know which server/node this particular edit message
                 // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
                 // We call this virtual function that allows our specific type of EditPacketSender to
@@ -252,7 +255,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned c
                 if (node->getClockSkewUsec() != 0) {
                     adjustEditPacketForClockSkew(codeColorBuffer, length, node->getClockSkewUsec());
                 }
-
+                
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], codeColorBuffer, length);
                 packetBuffer._currentSize += length;
             }
