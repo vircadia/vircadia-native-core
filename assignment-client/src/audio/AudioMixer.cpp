@@ -217,12 +217,12 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
                                                               NUM_BYTES_RFC4122_UUID));
 
         NodeList* nodeList = NodeList::getInstance();
-        
+
         SharedNodePointer matchingNode = nodeList->nodeWithUUID(nodeUUID);
-        
+
         if (matchingNode) {
             nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
-            
+
             if (!matchingNode->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
                 // this means they've heard from us and can reply, let's assume public is active
@@ -252,6 +252,7 @@ void AudioMixer::run() {
     gettimeofday(&startTime, NULL);
 
     int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+    // note: Visual Studio 2010 doesn't support variable sized local arrays
     #ifdef _WIN32
     unsigned char clientPacket[MAX_PACKET_SIZE];
     #else
@@ -266,7 +267,7 @@ void AudioMixer::run() {
         if (_isFinished) {
             break;
         }
-        
+
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
@@ -277,7 +278,7 @@ void AudioMixer::run() {
             if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
-                
+
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
                 nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
                                                         node->getActiveSocket()->getAddress(),

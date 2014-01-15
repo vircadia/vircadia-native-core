@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-//#include <arpa/inet.h> // not available on windows, apparently not needed on mac
 #include <signal.h>
 
 #include <QtCore/QJsonDocument>
@@ -76,9 +75,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     // Start the web server.
     mg_start(&callbacks, NULL, options);
-    
+
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
-    
+
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
 
         if (_voxelServerConfig) {
@@ -177,7 +176,7 @@ void DomainServer::readAvailableDatagrams() {
                                                                               nodeType,
                                                                               nodePublicAddress,
                                                                               nodeLocalAddress);
-                    
+
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
 
@@ -230,10 +229,10 @@ void DomainServer::readAvailableDatagrams() {
                 if (_assignmentQueue.size() > 0) {
                     // construct the requested assignment from the packet data
                     Assignment requestAssignment(packetData, receivedBytes);
-                    
+
                     qDebug("Received a request for assignment type %i from %s.",
                            requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
-                    
+
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
 
                     if (assignmentToDeploy) {
@@ -372,7 +371,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
 
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
-            
+
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
@@ -412,14 +411,14 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
 
             if (!deleteUUID.isNull()) {
                 SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
-                
+
                 if (nodeToKill) {
                     // start with a 200 response
                     mg_printf(connection, "%s", RESPONSE_200);
 
                     // we have a valid UUID and node - kill the node that has this assignment
                     NodeList::getInstance()->killNodeWithUUID(deleteUUID);
-                    
+
                     // successfully processed request
                     return 1;
                 }
@@ -464,9 +463,9 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toLocal8Bit().constData());
-    
+
     qDebug("Saved a script for assignment at %s", newPath.toLocal8Bit().constData());
-    
+
     // add the script assigment to the assignment queue
     // lock the assignment queue mutex since we're operating on a different thread than DS main
     domainServerInstance->_assignmentQueueMutex.lock();
@@ -476,7 +475,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 
 void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
     qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.";
-    
+
     // find this assignment in the static file
     for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
         if (_staticAssignments[i].getUUID() == releasedAssignment->getUUID()) {
@@ -534,16 +533,16 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     if (_voxelServerConfig) {
         qDebug("Reading Voxel Server Configuration.");
         qDebug() << "config: " << _voxelServerConfig;
-        
+
         QString multiConfig((const char*) _voxelServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
 
         // read each config to a payload for a VS assignment
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
-            
+
             qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
-            
+
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
             QString assignmentPool;
@@ -576,16 +575,16 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     if (_particleServerConfig) {
         qDebug("Reading Particle Server Configuration.");
         qDebug() << "config: " << _particleServerConfig;
-        
+
         QString multiConfig((const char*) _particleServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
 
         // read each config to a payload for a VS assignment
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
-            
+
             qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
-            
+
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
             QString assignmentPool;
@@ -620,9 +619,9 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     if (_metavoxelServerConfig) {
         metavoxelAssignment.setPayload((const unsigned char*)_metavoxelServerConfig, strlen(_metavoxelServerConfig));
     }
-    
+
     qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.";
-    
+
     _staticAssignmentFile.open(QIODevice::WriteOnly);
     _staticAssignmentFile.write((char*) &freshStaticAssignments, sizeof(freshStaticAssignments));
     _staticAssignmentFile.resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
@@ -737,7 +736,7 @@ bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePu
                                                       const HifiSockAddr& nodeLocalSocket,
                                                       const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
-    
+
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData()
             && nodePublicSocket == node->getPublicSocket()
@@ -783,9 +782,9 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
         if (!foundMatchingAssignment) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             _staticAssignments[i].resetUUID();
-            
+
             qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
-            
+
             _assignmentQueueMutex.lock();
             _assignmentQueue.push_back(&_staticAssignments[i]);
             _assignmentQueueMutex.unlock();

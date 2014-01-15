@@ -36,17 +36,17 @@ if (WIN32)
     add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
 
-	# windows build needs an external glut, we're using freeglut
+    # windows build needs an external glut, we're using freeglut
     set(GLUT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/freeglut)
-	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLUT_ROOT_PATH})
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLUT_ROOT_PATH})
 
-	# windows build needs glew (opengl extention wrangler) this will handle providing access to OpenGL methods after 1.1
-	# which are not accessible on windows without glew or some other dynamic linking mechanism
+    # windows build needs glew (opengl extention wrangler) this will handle providing access to OpenGL methods after 1.1
+    # which are not accessible on windows without glew or some other dynamic linking mechanism
     set(GLEW_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glew)
-	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
     include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
 
-	# windows still using pthreads, TODO: switch to QThreads
+    # windows still using pthreads, TODO: switch to QThreads
     set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
 
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
@@ -252,18 +252,18 @@ endif (APPLE)
 # link target to external libraries
 if (WIN32)
     target_link_libraries(
-        ${TARGET_NAME}
-	    ${OPENCV_LIBRARIES}
-		#${FACESHIFT_LIBRARIES}
+    ${TARGET_NAME}
+    ${OPENCV_LIBRARIES}
+    #${FACESHIFT_LIBRARIES}
 
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib
-        ${GLUT_ROOT_PATH}/lib/freeglut.lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib
+    ${GLUT_ROOT_PATH}/lib/freeglut.lib
 
-		# note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
-		# but really we need to switch over to QThreads
-        ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
-        wsock32.lib
-		opengl32.lib
+    # note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
+    # but really we need to switch over to QThreads
+    ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
+    wsock32.lib
+    opengl32.lib
     )
 else (WIN32)
   # link required libraries on UNIX
