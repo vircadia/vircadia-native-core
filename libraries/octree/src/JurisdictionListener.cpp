@@ -15,29 +15,20 @@
 #include <PacketHeaders.h>
 #include "JurisdictionListener.h"
 
-
 JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* notify) : 
     PacketSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->addHook(this);
-
+    
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    
     //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
 
 }
 
-JurisdictionListener::~JurisdictionListener() {
-    NodeList* nodeList = NodeList::getInstance();
-    nodeList->removeHook(this);
-}
-
-void JurisdictionListener::nodeAdded(Node* node) {
-    // nothing to do. But need to implement it.
-}
-
-void JurisdictionListener::nodeKilled(Node* node) {
+void JurisdictionListener::nodeKilled(SharedNodePointer node) {
     if (_jurisdictions.find(node->getUUID()) != _jurisdictions.end()) {
         _jurisdictions.erase(_jurisdictions.find(node->getUUID()));
     }
@@ -52,8 +43,9 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     int nodeCount = 0;
 
     NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (nodeList->getNodeActiveSocketOrPing(&(*node)) && 
+    
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        if (nodeList->getNodeActiveSocketOrPing(node.data()) &&
             node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();
             PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
@@ -73,7 +65,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
 void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_JURISDICTION) {
-        Node* node = NodeList::getInstance()->nodeWithAddress(senderAddress);
+        SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
             JurisdictionMap map;

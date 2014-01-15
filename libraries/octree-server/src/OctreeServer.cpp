@@ -27,11 +27,7 @@ void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     }
 }
 
-void OctreeServer::nodeAdded(Node* node) {
-    // do nothing
-}
-
-void OctreeServer::nodeKilled(Node* node) {
+void OctreeServer::nodeKilled(SharedNodePointer node) {
     // Use this to cleanup our node
     if (node->getType() == NODE_TYPE_AGENT) {
         OctreeQueryNode* nodeData = (OctreeQueryNode*)node->getLinkedData();
@@ -90,9 +86,6 @@ OctreeServer::~OctreeServer() {
         _persistThread->terminate();
         delete _persistThread;
     }
-    
-    // tell our NodeList we're done with notifications
-    NodeList::getInstance()->removeHook(this);
 
     delete _jurisdiction;
     _jurisdiction = NULL;
@@ -524,10 +517,10 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
         QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
                                                               NUM_BYTES_RFC4122_UUID));
         
-        Node* node = nodeList->nodeWithUUID(nodeUUID);
+        SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
         
         if (node) {
-            nodeList->updateNodeWithData(node, senderSockAddr, (unsigned char *) dataByteArray.data(),
+            nodeList->updateNodeWithData(node.data(), senderSockAddr, (unsigned char *) dataByteArray.data(),
                                          dataByteArray.size());
             if (!node->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
@@ -612,7 +605,7 @@ void OctreeServer::run() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
-    nodeList->addHook(this);
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
     srand((unsigned)time(0));

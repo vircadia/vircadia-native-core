@@ -30,11 +30,11 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
+        SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
 
         if (node) {
             // make sure the node list doesn't kill our node while we're using it
-            if (node->trylock()) {
+            if (node->getMutex().tryLock()) {
                 gotLock = true;
                 OctreeQueryNode* nodeData = NULL;
 
@@ -48,10 +48,10 @@ bool OctreeSendThread::process() {
                     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                         printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                     }
-                    packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+                    packetsSent = packetDistributor(node.data(), nodeData, viewFrustumChanged);
                 }
 
-                node->unlock(); // we're done with this node for now.
+                node->getMutex().unlock(); // we're done with this node for now.
             }
         }
     } else {

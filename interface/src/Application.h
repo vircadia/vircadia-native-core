@@ -95,7 +95,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook, public PacketSenderNotify, public DomainChangeListener {
+class Application : public QApplication, public PacketSenderNotify, public DomainChangeListener {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -194,8 +194,7 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
         float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
+    
     virtual void packetSentNotification(ssize_t length);
 
     virtual void domainChanged(QString domain);
@@ -214,6 +213,10 @@ public:
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
 
 public slots:
+    void nodeKilled(SharedNodePointer node);
+    
+    void processDatagrams();
+    
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
@@ -249,8 +252,6 @@ private slots:
     void renderCoverageMapsV2Recursively(CoverageMapV2* map);
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
-
-    void toggleFollowMode();
 
     void closeMirrorView();
     void restoreMirrorView();
@@ -301,7 +302,6 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
-    void renderFollowIndicator();
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
@@ -334,8 +334,6 @@ private:
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
-
-    QAction* _followMode;
 
     BandwidthMeter _bandwidthMeter;
 
@@ -468,10 +466,6 @@ private:
     #ifndef _WIN32
     Audio _audio;
     #endif
-
-    bool _enableNetworkThread;
-    pthread_t _networkReceiveThread;
-    bool _stopNetworkReceiveThread;
 
     bool _enableProcessVoxelsThread;
     VoxelPacketProcessor _voxelProcessor;
