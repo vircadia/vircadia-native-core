@@ -5,9 +5,8 @@ project(hifi)
 MESSAGE("start...")
 
 IF (WIN32)
+    include_directories(SYSTEM "externals/winsdk")
 	add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS )
-	#MESSAGE(${CMAKE_PREFIX_PATH})
-	#set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.0A ")
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
 ENDIF(WIN32)
 
