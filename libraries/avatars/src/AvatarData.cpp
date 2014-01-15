@@ -30,7 +30,6 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _targetScale(1.0f),
-    _leaderUUID(),
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
@@ -77,10 +76,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
-    
-    // Follow mode info
-    memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    destinationBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -199,10 +194,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
-
-    // Follow mode info
-    _leaderUUID = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;

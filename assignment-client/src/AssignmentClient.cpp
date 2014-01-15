@@ -148,6 +148,9 @@ void AssignmentClient::readPendingDatagrams() {
                         
                         _currentAssignment->moveToThread(workerThread);
                         
+                        // move the NodeList to the thread used for the _current assignment
+                        nodeList->moveToThread(workerThread);
+                        
                         // Starts an event loop, and emits workerThread->started()
                         workerThread->start();
                     } else {
@@ -171,6 +174,9 @@ void AssignmentClient::assignmentCompleted() {
     _currentAssignment = NULL;
     
     NodeList* nodeList = NodeList::getInstance();
+    
+    // move the NodeList back to our thread
+    nodeList->moveToThread(thread());
     
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);

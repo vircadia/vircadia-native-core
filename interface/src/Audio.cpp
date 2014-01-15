@@ -365,9 +365,9 @@ void Audio::handleAudioInput() {
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         
         NodeList* nodeList = NodeList::getInstance();
-        Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        SharedNodePointer audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
-        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
+        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();

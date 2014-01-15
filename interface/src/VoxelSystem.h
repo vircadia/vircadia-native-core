@@ -37,8 +37,7 @@ struct VoxelShaderVBOData
 };
 
 
-class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook,
-                    public NodeListHook {
+class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public OctreeElementUpdateHook {
     Q_OBJECT
 
     friend class VoxelHideShowThread;
@@ -112,8 +111,6 @@ public:
 
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
 
     bool treeIsBusy() const { return _treeIsBusy; }
 
@@ -124,6 +121,9 @@ signals:
     void importProgress(int progress);
 
 public slots:
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
+                        
     void collectStatsForTreesAndVBOs();
 
     // Methods that recurse tree

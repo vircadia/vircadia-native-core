@@ -18,7 +18,7 @@ ReceivedPacketProcessor::ReceivedPacketProcessor() {
 
 void ReceivedPacketProcessor::queueReceivedPacket(const HifiSockAddr& address, unsigned char* packetData, ssize_t packetLength) {
     // Make sure our Node and NodeList knows we've heard from this node.
-    Node* node = NodeList::getInstance()->nodeWithAddress(address);
+    SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(address);
     if (node) {
         node->setLastHeardMicrostamp(usecTimestampNow());
     }
