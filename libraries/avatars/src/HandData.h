@@ -55,6 +55,7 @@ public:
 
     std::vector<PalmData>& getPalms() { return _palms; }
     const std::vector<PalmData>& getPalms() const { return _palms; }
+    const PalmData* getPalm(int sixSenseID) const;
     size_t getNumPalms() const { return _palms.size(); }
     PalmData& addNewPalm();
 

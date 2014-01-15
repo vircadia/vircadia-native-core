@@ -41,6 +41,18 @@ PalmData& HandData::addNewPalm()  {
 const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
 const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
 
+const PalmData* HandData::getPalm(int sixSenseID) const {
+    // the palms are not necessarily added in left-right order, 
+    // so we have to search for the right SixSenseID
+    for (int i = 0; i < _palms.size(); i++) {
+        const PalmData* palm = &(_palms[i]);
+        if (palm->getSixenseID() == sixSenseID) {
+            return palm->isActive() ? palm : NULL;
+        }
+    }
+    return NULL;
+}
+
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
     leftPalmIndex = -1;
     rightPalmIndex = -1;
