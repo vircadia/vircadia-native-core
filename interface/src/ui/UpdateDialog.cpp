@@ -10,6 +10,7 @@
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
+#include <QtUiTools>
 
 #include "Application.h"
 #include "SharedUtil.h"
@@ -26,44 +27,26 @@ const QString dialogTitle = "Update Required";
 
 UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(parent, Qt::Dialog) {
     
+    QUiLoader updateDialogLoader;
+    
+    QFile updateDialogUi("resources/ui/updateDialog.ui");
+    updateDialogUi.open(QFile::ReadOnly);
+    QWidget *updateDialog = updateDialogLoader.load(&updateDialogUi, this);
+    updateDialogUi.close();
+    
+    updateDialog->show();
+    
     Application* application = Application::getInstance();
     
-    const QString updateRequired = QString("You are currently running build %1, the latest build released is %2.\n \
-                                            Please download and install the most recent release to access the latest \
-                                            features and bug fixes.").arg(application->applicationVersion(), *application->_latestVersion);
+    const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. Please download and install the most recent release to access the latest features and bug fixes.").arg(application->applicationVersion(), *application->_latestVersion);
     
-    int leftPosition = leftStartingPosition;
-    setWindowTitle(dialogTitle);
-    //setWindowFlags(Qt::WindowTitleHint);
-    setModal(true);
-    resize(dialogWidth, dialogHeigth);
-    QFile styleSheet("resources/styles/update_dialog.qss");
-    if (styleSheet.open(QIODevice::ReadOnly)) {
-        setStyleSheet(styleSheet.readAll());
-    }
-    _releaseNotes = new QLabel(this);
-    _releaseNotes->setText(releaseNotes);
-    _releaseNotes->setObjectName("releaseNotes");
     
-    _updateRequired = new QLabel(this);
-    _updateRequired->setText(updateRequired);
-    _updateRequired->setObjectName("updateRequired");
+    QPushButton *_downloadButton = updateDialog->findChild<QPushButton*>("downloadButton");
+    QPushButton *_skipButton = updateDialog->findChild<QPushButton*>("skipButton");
+    QPushButton *_closeButton = updateDialog->findChild<QPushButton*>("closeButton");
+    QLabel *_updateContent = updateDialog->findChild<QLabel*>("updateContent");
     
-    _downloadButton = new QPushButton("Download", this);
-    _downloadButton->setObjectName("downloadButton");
-    _downloadButton->setGeometry(leftPosition, buttonMargin, buttonWidth, buttonHeight);
-    leftPosition += buttonWidth;
-    
-    _skipButton = new QPushButton("Skip Version", this);
-    _skipButton->setObjectName("skipButton");
-    _skipButton->setGeometry(leftPosition, buttonMargin, buttonWidth, buttonHeight);
-    leftPosition += buttonWidth;
-    
-    _closeButton = new QPushButton("Close", this);
-    _closeButton->setObjectName("closeButton");
-    _closeButton->setGeometry(leftPosition, buttonMargin, buttonWidth, buttonHeight);
-    
-    _titleBackground = new QFrame();
+    _updateContent->setText(updateRequired);
     
     connect(_downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
     connect(_skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
@@ -79,9 +62,10 @@ void UpdateDialog::handleDownload() {
 void UpdateDialog::handleSkip() {
     Application* application = Application::getInstance();
     application->skipVersion();
-    close();
+    this->QDialog::close();
 }
 
 void UpdateDialog::handleClose() {
-    close();
+    qDebug("###### HANDLECLOSE\n");
+    this->QDialog::close();
 }

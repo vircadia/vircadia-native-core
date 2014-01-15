@@ -89,7 +89,7 @@ const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
-const QString CHECK_VERSION_URL = "http://www.google.com";
+const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -4602,7 +4602,7 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 }
 
 void Application::checkVersion() {
-    QUrl url("https://a-tower.below92.com/version.xml");
+    QUrl url(CHECK_VERSION_URL);
     QNetworkAccessManager *downloadXML = new QNetworkAccessManager(this);
     QNetworkRequest request(url);
     connect(downloadXML, SIGNAL(finished(QNetworkReply*)), this, SLOT(parseVersionXml(QNetworkReply*)));
@@ -4631,14 +4631,15 @@ void Application::parseVersionXml(QNetworkReply *reply) {
                 xml.readNext();
                 _latestVersion = new QString(xml.text().toString());
             }
+            if (xml.name() == _operatingSystem) {
+                xml.readNext();
+                _downloadURL = new QUrl(xml.text().toString());
+            }
         }
     }
     
-    _downloadURL = new QUrl(CHECK_VERSION_URL);
-    
     if (!shouldSkipVersion() && applicationVersion() != _latestVersion) {
         UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes);
-        _updateDialog->exec();
     }
 }
 
@@ -4655,7 +4656,7 @@ bool Application::shouldSkipVersion() {
     QByteArray skipFileContents = skipFile->readAll();
     QString *skipVersion = new QString(skipFileContents);
     skipFile->close();
-    if (*skipVersion == *_latestVersion ) {
+    if (*skipVersion == *_latestVersion /*|| applicationVersion() == "0.1"*/) {
         return true;
     }
     return false;

@@ -22,15 +22,6 @@ class UpdateDialog : public QDialog {
 public:
     UpdateDialog(QWidget*, QString releaseNotes);
     
-private:
-    QLabel *_updateRequired;
-    QLabel *_releaseNotes;
-    QPushButton *_downloadButton;
-    QPushButton *_skipButton;
-    QPushButton *_closeButton;
-    QFrame *_titleBackground;
-    QUrl *_downloadURL;
-    
 private slots:
     void handleDownload();
     void handleSkip();
