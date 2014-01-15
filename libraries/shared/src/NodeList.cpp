@@ -274,7 +274,9 @@ void NodeList::clear() {
     
     // iterate the nodes in the list
     while (nodeItem != _nodeHash.end()) {
-        nodeItem = killNodeAtHashIterator(nodeItem);
+        NodeHash::iterator previousNodeItem = nodeItem;
+        ++nodeItem;
+        killNodeAtHashIterator(previousNodeItem);
     }
 }
 
@@ -440,13 +442,12 @@ void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     }
 }
 
-NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
+void NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
     qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
     
-    return _nodeHash.erase(nodeItemToKill);
+    _nodeHash.erase(nodeItemToKill);
 }
-
 
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
@@ -790,7 +791,10 @@ void NodeList::removeSilentNodes() {
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             // call our private method to kill this node (removes it and emits the right signal)
-            nodeItem = killNodeAtHashIterator(nodeItem);
+            NodeHash::iterator previousNodeItem = nodeItem;
+            ++nodeItem;
+            
+            killNodeAtHashIterator(previousNodeItem);
         } else {
             // we didn't kill this node, push the iterator forwards
             ++nodeItem;
