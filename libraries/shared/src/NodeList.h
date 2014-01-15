@@ -17,7 +17,9 @@
 #include <stdint.h>
 #include <iterator>
 
-//#include <unistd.h> // not on windows, not needed for mac or windows
+#ifndef _WIN32
+#include <unistd.h> // not on windows, not needed for mac or windows
+#endif
 
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
