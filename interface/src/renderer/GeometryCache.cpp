@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include <QNetworkReply>
+#include <QTimer>
 
 #include "Application.h"
 #include "GeometryCache.h"
