@@ -10,8 +10,6 @@ ENDIF(WIN32)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH} )
 
-MESSAGE(${CMAKE_PREFIX_PATH})
-MESSAGE("here...")
 
 # set our Base SDK to 10.8
 set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk)
