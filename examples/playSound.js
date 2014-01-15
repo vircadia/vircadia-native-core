@@ -1,5 +1,5 @@
 //
-//  This sample script makes an occassional clapping sound at the location of your palm
+//  This sample script loads a sound file and plays it at the 'fingertip' of the 
 //
 
 //  First, load the clap sound from a URL 
@@ -11,7 +11,7 @@ function maybePlaySound() {
 		var options = new AudioInjectionOptions(); 
 		var palmPosition = Controller.getSpatialControlPosition(0);
 		options.position = palmPosition;
-		options.volume = 0.1;
+		options.volume = 0.5;
 		Audio.playSound(clap, options);
 	}
 }
