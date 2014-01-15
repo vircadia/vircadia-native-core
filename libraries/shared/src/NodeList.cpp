@@ -69,7 +69,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _stunRequestsSinceSuccess(0)
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
-    qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort() << "\n";
+    qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
 }
 
 NodeList::~NodeList() {
@@ -92,7 +92,7 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
             // grab the port by reading the string after the colon
             _domainSockAddr.setPort(atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData()));
             
-            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainSockAddr.getPort() << "\n";
+            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainSockAddr.getPort();
             
         } else {
             // no port included with the hostname, simply set the member variable and reset the domain server port to default
@@ -133,13 +133,13 @@ void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *pac
             const bool wantDebug = false;
             if (wantDebug) {
                 qDebug() << "PING_REPLY from node " << *node << "\n" <<
-                "                     now: " << now << "\n" <<
-                "                 ourTime: " << ourOriginalTime << "\n" <<
-                "                pingTime: " << pingTime << "\n" <<
-                "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
-                "         othersReplyTime: " << othersReplyTime << "\n" <<
-                "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-                "               clockSkew: " << clockSkew << "\n";
+                    "                     now: " << now << "\n" <<
+                    "                 ourTime: " << ourOriginalTime << "\n" <<
+                    "                pingTime: " << pingTime << "\n" <<
+                    "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+                    "         othersReplyTime: " << othersReplyTime << "\n" <<
+                    "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+                    "               clockSkew: " << clockSkew;
             }
             break;
         }
@@ -264,22 +264,19 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    QHash<QUuid, QSharedPointer<Node> >::const_iterator foundIterator = _nodeHash.find(nodeUUID);
-    if (foundIterator != _nodeHash.end()) {
-        return foundIterator.value();
-    } else {
-        return SharedNodePointer();
-    }
+    return _nodeHash.value(nodeUUID);
 }
 
 void NodeList::clear() {
-    qDebug() << "Clearing the NodeList. Deleting all nodes in list.\n";
+    qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
     NodeHash::iterator nodeItem = _nodeHash.begin();
     
     // iterate the nodes in the list
     while (nodeItem != _nodeHash.end()) {
-        nodeItem = killNodeAtHashIterator(nodeItem);
+        NodeHash::iterator previousNodeItem = nodeItem;
+        ++nodeItem;
+        killNodeAtHashIterator(previousNodeItem);
     }
 }
 
@@ -339,7 +336,7 @@ void NodeList::sendSTUNRequest() {
     static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
     
     if (!_hasCompletedInitialSTUNFailure) {
-        qDebug("Sending intial stun request to %s\n", stunSockAddr.getAddress().toString().toLocal8Bit().constData());
+        qDebug("Sending intial stun request to %s", stunSockAddr.getAddress().toString().toLocal8Bit().constData());
     }
     
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
@@ -351,7 +348,7 @@ void NodeList::sendSTUNRequest() {
         if (!_hasCompletedInitialSTUNFailure) {
             // if we're here this was the last failed STUN request
             // use our DS as our stun server
-            qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.\n",
+            qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.",
                    STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
             
             _hasCompletedInitialSTUNFailure = true;
@@ -414,7 +411,7 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
                         
-                        qDebug("New public socket received from STUN server is %s:%hu\n",
+                        qDebug("New public socket received from STUN server is %s:%hu",
                                _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                                _publicSockAddr.getPort());
                         
@@ -445,13 +442,12 @@ void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     }
 }
 
-NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
-    qDebug() << "Killed" << *nodeItemToKill.value() << "\n";
+void NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
+    qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
     
-    return _nodeHash.erase(nodeItemToKill);
+    _nodeHash.erase(nodeItemToKill);
 }
-
 
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
@@ -487,7 +483,7 @@ void NodeList::sendDomainServerCheckIn() {
     
     //  Lookup the IP address of the domain server if we need to
     if (_domainSockAddr.getAddress().isNull()) {
-        qDebug("Looking up DS hostname %s.\n", _domainHostname.toLocal8Bit().constData());
+        qDebug("Looking up DS hostname %s.", _domainHostname.toLocal8Bit().constData());
         
         QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
         
@@ -495,7 +491,7 @@ void NodeList::sendDomainServerCheckIn() {
             if (domainServerHostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
                 _domainSockAddr.setAddress(domainServerHostInfo.addresses()[i]);
                 
-                qDebug("DS at %s is at %s\n", _domainHostname.toLocal8Bit().constData(),
+                qDebug("DS at %s is at %s", _domainHostname.toLocal8Bit().constData(),
                        _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
                 
                 printedDomainServerIP = true;
@@ -505,11 +501,11 @@ void NodeList::sendDomainServerCheckIn() {
             
             // if we got here without a break out of the for loop then we failed to lookup the address
             if (i == domainServerHostInfo.addresses().size() - 1) {
-                qDebug("Failed domain server lookup\n");
+                qDebug("Failed domain server lookup");
             }
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
+        qDebug("Domain Server IP: %s", _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
         printedDomainServerIP = true;
     }
     
@@ -685,7 +681,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
         
-        qDebug() << "Added" << *newNode << "\n";
+        qDebug() << "Added" << *newNode;
         
         emit nodeAdded(newNodeSharedPointer);
         
@@ -705,12 +701,12 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         // check if we need to change this node's public or local sockets
         if (publicSocket != node->getPublicSocket()) {
             node->setPublicSocket(publicSocket);
-            qDebug() << "Public socket change for node" << *node << "\n";
+            qDebug() << "Public socket change for node" << *node;
         }
         
         if (localSocket != node->getLocalSocket()) {
             node->setLocalSocket(localSocket);
-            qDebug() << "Local socket change for node" << *node << "\n";
+            qDebug() << "Local socket change for node" << *node;
         }
         
         // we had this node already, do nothing for now
@@ -795,7 +791,10 @@ void NodeList::removeSilentNodes() {
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             // call our private method to kill this node (removes it and emits the right signal)
-            nodeItem = killNodeAtHashIterator(nodeItem);
+            NodeHash::iterator previousNodeItem = nodeItem;
+            ++nodeItem;
+            
+            killNodeAtHashIterator(previousNodeItem);
         } else {
             // we didn't kill this node, push the iterator forwards
             ++nodeItem;

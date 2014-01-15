@@ -30,7 +30,7 @@ BuckyBalls::BuckyBalls() {
     colors[1] = glm::vec3(0.64f, 0.16f, 0.16f);
     colors[2] = glm::vec3(0.31f, 0.58f, 0.80f);
 
-    qDebug("Creating buckyballs...\n");
+    qDebug("Creating buckyballs...");
     for (int i = 0; i < NUM_BBALLS; i++) {
         _bballPosition[i] = CORNER_BBALLS + randVector() * RANGE_BBALLS;
         int element = (rand() % NUM_ELEMENTS);
@@ -145,6 +145,7 @@ void BuckyBalls::simulate(float deltaTime) {
 }
 
 void BuckyBalls::render() {
+    glEnable(GL_LIGHTING);
     for (int i = 0; i < NUM_BBALLS; i++) {
         if (_bballColliding[i] > 0.f) {
             const float GRAB_BRIGHTEN = 1.15f;

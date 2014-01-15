@@ -598,10 +598,10 @@ void* animateVoxels(void* args) {
     
     bool firstTime = true;
     
-    qDebug() << "Setting PPS to " << ::packetsPerSecond << "\n";
+    qDebug() << "Setting PPS to " << ::packetsPerSecond;
     ::voxelEditPacketSender->setPacketsPerSecond(::packetsPerSecond);
     
-    qDebug() << "PPS set to " << ::voxelEditPacketSender->getPacketsPerSecond() << "\n";
+    qDebug() << "PPS set to " << ::voxelEditPacketSender->getPacketsPerSecond();
     
     while (true) {
         

@@ -160,6 +160,7 @@ protected:
     
     class JointState {
     public:
+        glm::vec3 translation;
         glm::quat rotation;
         glm::mat4 transform;
         glm::quat combinedRotation;
@@ -191,6 +192,8 @@ protected:
         bool allIntermediatesFree = false, const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
     bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
+    void setJointTranslation(int jointIndex, const glm::vec3& translation);
+    
     /// Restores the indexed joint to its default position.
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
@@ -206,8 +209,6 @@ protected:
     void renderCollisionProxies(float alpha);
     
 private:
-    
-    void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
     
     void deleteGeometry();
     

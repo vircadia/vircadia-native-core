@@ -127,7 +127,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
 
         if (debug) {
             int percentComplete = 100 * (thisRadius/radius);
-            qDebug("percentComplete=%d\n",percentComplete);
+            qDebug("percentComplete=%d",percentComplete);
         }
 
         for (float theta=0.0; theta <= 2 * M_PI; theta += angleDelta) {
@@ -143,7 +143,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                 // 2) In all modes, we will use our "outer" color to draw the voxels. Otherwise we will use the average color
                 if (lastLayer) {
                     if (false && debug) {
-                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f\n",
+                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f",
                                  theta, phi, thisRadius,radius);
                     }
                     switch (mode) {
@@ -167,7 +167,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                         green = (unsigned char)std::min(255, std::max(0, (int)(g1 + ((g2 - g1) * gradient))));
                         blue  = (unsigned char)std::min(255, std::max(0, (int)(b1 + ((b2 - b1) * gradient))));
                         if (debug) {
-                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)\n",perlin, gradient, red, green, blue);
+                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)",perlin, gradient, red, green, blue);
                         }
                         } break;
                     }
@@ -468,14 +468,14 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(std::string(fileName), ss);
     if (err && ss.get() != TAG_Compound) {
-        qDebug("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.");
         return false;
     }
 
     ss.get();
     TagCompound schematics(ss);
     if (!schematics.getBlocksId() || !schematics.getBlocksData()) {
-        qDebug("[ERROR] Invalid schematic data.\n");
+        qDebug("[ERROR] Invalid schematic data.");
         return false;
     }
 
@@ -500,7 +500,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
 
             for (int x = 0; x < schematics.getWidth(); ++x) {
                 if (_stopImport) {
-                    qDebug("[DEBUG] Canceled import at %d voxels.\n", count);
+                    qDebug("[DEBUG] Canceled import at %d voxels.", count);
                     _stopImport = false;
                     return true;
                 }
@@ -551,7 +551,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     }
 
     emit importProgress(100);
-    qDebug("Created %d voxels from minecraft import.\n", count);
+    qDebug("Created %d voxels from minecraft import.", count);
 
     return true;
 }
@@ -590,7 +590,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadC
             }
         } else {
             if (!node->isLeaf()) {
-                qDebug("WARNING! operation would require deleting children, add Voxel ignored!\n ");
+                qDebug("WARNING! operation would require deleting children, add Voxel ignored!");
             }
         }
 

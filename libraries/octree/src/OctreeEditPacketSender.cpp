@@ -103,10 +103,11 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                     uint64_t createdAt = (*((uint64_t*)(buffer + numBytesPacketHeader + sizeof(sequence))));
                     uint64_t queuedAt = usecTimestampNow();
                     uint64_t transitTime = queuedAt - createdAt;
-                    qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
-                        " - command to node bytes=" << length <<
-                        " sequence=" << sequence <<
-                        " transitTimeSoFar=" << transitTime << " usecs\n";
+                    
+                    qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] << 
+                            " - command to node bytes=" << length << 
+                            " sequence=" << sequence << 
+                            " transitTimeSoFar=" << transitTime << " usecs";
                 }
             }
         }

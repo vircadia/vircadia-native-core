@@ -290,7 +290,6 @@ const float MAX_PITCH = 90.0f;
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     
@@ -311,9 +310,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
                 }
             }
         }
-    } else if (gyros->isActive()) {
-        estimatedRotation = gyros->getEstimatedRotation();
-    
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
     
