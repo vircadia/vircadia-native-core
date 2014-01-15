@@ -446,7 +446,7 @@ void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
 }
 
 NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
-    qDebug() << "Killed" << *nodeItemToKill.value() << "\n";
+    qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
     
     return _nodeHash.erase(nodeItemToKill);
@@ -685,7 +685,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
         
-        qDebug() << "Added" << *newNode << "\n";
+        qDebug() << "Added" << *newNode;
         
         emit nodeAdded(newNodeSharedPointer);
         
