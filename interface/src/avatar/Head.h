@@ -21,7 +21,6 @@
 #include "InterfaceConfig.h"
 #include "VideoFace.h"
 #include "world.h"
-#include "devices/SerialInterface.h"
 #include "renderer/TextureCache.h"
 
 enum eyeContactTargets {

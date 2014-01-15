@@ -67,7 +67,7 @@ void Agent::run() {
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QNetworkReply *reply = networkManager->get(QNetworkRequest(QUrl(scriptURLString)));
     
-    qDebug() << "Downloading script at" << scriptURLString << "\n";
+    qDebug() << "Downloading script at" << scriptURLString;
     
     QEventLoop loop;
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
@@ -76,7 +76,7 @@ void Agent::run() {
     
     QString scriptContents(reply->readAll());
     
-    qDebug() << "Downloaded script:" << scriptContents << "\n";
+    qDebug() << "Downloaded script:" << scriptContents;
     
     timeval startTime;
     gettimeofday(&startTime, NULL);

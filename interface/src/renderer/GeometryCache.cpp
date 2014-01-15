@@ -329,10 +329,8 @@ void NetworkGeometry::handleModelReplyError() {
     const int BASE_DELAY_MS = 1000;
     if (++_attempts < MAX_ATTEMPTS) {
         QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeModelRequest()));
-        debug << " -- retrying...\n";    
+        debug << " -- retrying...";
         
-    } else {
-        debug << "\n";
     }
 }
 
@@ -367,7 +365,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         _geometry = url.path().toLower().endsWith(".svo") ? readSVO(model) : readFBX(model, mapping);
         
     } catch (const QString& error) {
-        qDebug() << "Error reading " << url << ": " << error << "\n";
+        qDebug() << "Error reading " << url << ": " << error;
         return;
     }
     

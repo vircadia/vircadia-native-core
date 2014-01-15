@@ -204,7 +204,7 @@ glBufferIndex VoxelSystem::getNextBufferIndex() {
 // will be "invisible"
 void VoxelSystem::freeBufferIndex(glBufferIndex index) {
     if (_voxelsInWriteArrays == 0) {
-        qDebug() << "freeBufferIndex() called when _voxelsInWriteArrays == 0!!!!\n";
+        qDebug() << "freeBufferIndex() called when _voxelsInWriteArrays == 0!";
     }
 
     // if the "freed" index was our max index, then just drop the _voxelsInWriteArrays down one...
@@ -214,7 +214,7 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
         for (long i = 0; i < _freeIndexes.size(); i++) {
             if (_freeIndexes[i] == index) {
-                printf("freeBufferIndex(glBufferIndex index)... index=%ld already in free list!\n", index);
+                printf("freeBufferIndex(glBufferIndex index)... index=%ld already in free list!", index);
                 inList = true;
                 break;
             }
@@ -615,7 +615,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                     if (Application::getInstance()->getLogger()->extraDebugging()) {
                         qDebug("VoxelSystem::parseData() ... Got Packet Section"
                                " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
-                               " subsection:%d sectionLength:%d uncompressed:%d\n",
+                               " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                             sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
                     }
@@ -704,7 +704,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     bool extraDebugging = Application::getInstance()->getLogger()->extraDebugging();
     if (extraDebugging) {
-        qDebug("setupNewVoxelsForDrawing()... _voxelsUpdated=%lu...\n",_voxelsUpdated);
+        qDebug("setupNewVoxelsForDrawing()... _voxelsUpdated=%lu...",_voxelsUpdated);
         _viewFrustum->printDebugDetails();
     }
 }
@@ -801,7 +801,7 @@ void VoxelSystem::cleanupRemovedVoxels() {
     // This handles cleanup of voxels that were culled as part of our regular out of view culling operation
     if (!_removedVoxels.isEmpty()) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-            qDebug() << "cleanupRemovedVoxels().. _removedVoxels=" << _removedVoxels.count() << "\n";
+            qDebug() << "cleanupRemovedVoxels().. _removedVoxels=" << _removedVoxels.count();
         }
         while (!_removedVoxels.isEmpty()) {
             delete _removedVoxels.extract();
@@ -815,7 +815,7 @@ void VoxelSystem::cleanupRemovedVoxels() {
     if (!_writeRenderFullVBO && (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
             qDebug() << "cleanupRemovedVoxels().. _abandonedVBOSlots ["
-                << _abandonedVBOSlots << "] > TOO_MANY_ABANDONED_RATIO \n";
+                << _abandonedVBOSlots << "] > TOO_MANY_ABANDONED_RATIO";
         }
         _writeRenderFullVBO = true;
     }
@@ -982,7 +982,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
         // possibly shifting down to lower LOD or something. This debug message is to help identify, if/when/how this
         // state actually occurs.
         if (Application::getInstance()->getLogger()->extraDebugging()) {
-            qDebug("OHHHH NOOOOOO!!!! updateNodeInArrays() BAILING (_voxelsInWriteArrays >= _maxVoxels)\n");
+            qDebug("OH NO! updateNodeInArrays() BAILING (_voxelsInWriteArrays >= _maxVoxels)");
         }
         return 0;
     }
@@ -1062,7 +1062,7 @@ ProgramObject VoxelSystem::_shadowMapProgram;
 
 void VoxelSystem::init() {
     if (_initialized) {
-        qDebug("[ERROR] VoxelSystem is already initialized.\n");
+        qDebug("[ERROR] VoxelSystem is already initialized.");
         return;
     }
 
@@ -1436,7 +1436,7 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
     unlockTree();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-        qDebug("clearing buffer index of %d nodes\n", _nodeCount);
+        qDebug("clearing buffer index of %d nodes", _nodeCount);
     }
 }
 
@@ -1449,7 +1449,7 @@ bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* e
 void VoxelSystem::forceRedrawEntireTree() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(forceRedrawEntireTreeOperation);
-    qDebug("forcing redraw of %d nodes\n", _nodeCount);
+    qDebug("forcing redraw of %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1467,7 +1467,7 @@ bool VoxelSystem::randomColorOperation(OctreeElement* element, void* extraData) 
 void VoxelSystem::randomizeVoxelColors() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(randomColorOperation);
-    qDebug("setting randomized true color for %d nodes\n", _nodeCount);
+    qDebug("setting randomized true color for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1483,7 +1483,7 @@ bool VoxelSystem::falseColorizeRandomOperation(OctreeElement* element, void* ext
 void VoxelSystem::falseColorizeRandom() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeRandomOperation);
-    qDebug("setting randomized false color for %d nodes\n", _nodeCount);
+    qDebug("setting randomized false color for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1499,7 +1499,7 @@ void VoxelSystem::trueColorize() {
     PerformanceWarning warn(true, "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
-    qDebug("setting true color for %d nodes\n", _nodeCount);
+    qDebug("setting true color for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1521,7 +1521,7 @@ bool VoxelSystem::falseColorizeInViewOperation(OctreeElement* element, void* ext
 void VoxelSystem::falseColorizeInView() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)_viewFrustum);
-    qDebug("setting in view false color for %d nodes\n", _nodeCount);
+    qDebug("setting in view false color for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1626,7 +1626,7 @@ void VoxelSystem::falseColorizeBySource() {
     }
 
     _tree->recurseTreeWithOperation(falseColorizeBySourceOperation, &args);
-    qDebug("setting false color by source for %d nodes\n", _nodeCount);
+    qDebug("setting false color by source for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1679,10 +1679,10 @@ void VoxelSystem::falseColorizeDistanceFromView() {
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
     _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation, (void*) _viewFrustum);
-    qDebug("determining distance range for %d nodes\n", _nodeCount);
+    qDebug("determining distance range for %d nodes", _nodeCount);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation, (void*) _viewFrustum);
-    qDebug("setting in distance false color for %d nodes\n", _nodeCount);
+    qDebug("setting in distance false color for %d nodes", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
@@ -1813,7 +1813,7 @@ void VoxelSystem::removeOutOfView() {
     }
     bool showRemoveDebugDetails = false;
     if (showRemoveDebugDetails) {
-        qDebug("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d \n",
+        qDebug("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d",
                 args.nodesScanned, args.nodesRemoved, args.nodesInside,
                 args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
             );
@@ -1842,7 +1842,7 @@ void VoxelSystem::showAllLocalVoxels() {
 
     bool showRemoveDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     if (showRemoveDebugDetails) {
-        qDebug("showAllLocalVoxels() scanned=%ld \n",args.nodesScanned );
+        qDebug("showAllLocalVoxels() scanned=%ld",args.nodesScanned );
     }
 }
 
@@ -1979,15 +1979,15 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
 
     bool extraDebugDetails = false; // Application::getInstance()->getLogger()->extraDebugging();
     if (extraDebugDetails) {
-        qDebug("hideOutOfView() scanned=%ld removed=%ld show=%ld inside=%ld intersect=%ld outside=%ld\n",
+        qDebug("hideOutOfView() scanned=%ld removed=%ld show=%ld inside=%ld intersect=%ld outside=%ld",
                 args.nodesScanned, args.nodesRemoved, args.nodesShown, args.nodesInside,
                 args.nodesIntersect, args.nodesOutside
             );
-        qDebug("    inside/inside=%ld intersect/inside=%ld outside/outside=%ld\n",
+        qDebug("inside/inside=%ld intersect/inside=%ld outside/outside=%ld",
                 args.nodesInsideInside, args.nodesIntersectInside, args.nodesOutsideOutside
             );
 
-        qDebug() << "args.thisViewFrustum....\n";
+        qDebug() << "args.thisViewFrustum....";
         args.thisViewFrustum.printDebugDetails();
     }
     _inhideOutOfView = false;
@@ -2224,7 +2224,7 @@ bool VoxelSystem::falseColorizeRandomEveryOtherOperation(OctreeElement* element,
 void VoxelSystem::falseColorizeRandomEveryOther() {
     falseColorizeRandomEveryOtherArgs args;
     _tree->recurseTreeWithOperation(falseColorizeRandomEveryOtherOperation,&args);
-    qDebug("randomized false color for every other node: total %ld, colorable %ld, colored %ld\n",
+    qDebug("randomized false color for every other node: total %ld, colorable %ld, colored %ld",
         args.totalNodes, args.colorableNodes, args.coloredNodes);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
@@ -2294,14 +2294,14 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(OctreeElement* element, v
 
         const bool extraDebugging = false; // enable for extra debugging
         if (extraDebugging) {
-            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s \n",
+            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s",
                     voxel->getCorner().x, voxel->getCorner().y, voxel->getCorner().z, voxel->getScale(),
                     nodeIndex, debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()));
         }
 
         if (args->hasIndexFound[nodeIndex]) {
             args->duplicateVBOIndex++;
-            qDebug("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s \n", nodeIndex,
+            qDebug("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s", nodeIndex,
                     debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()));
         } else {
             args->hasIndexFound[nodeIndex] = true;
@@ -2335,17 +2335,17 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     collectStatsForTreesAndVBOsArgs args(_maxVoxels);
     args.expectedMax = _voxelsInWriteArrays;
 
-    qDebug("CALCULATING Local Voxel Tree Statistics >>>>>>>>>>>>\n");
+    qDebug("CALCULATING Local Voxel Tree Statistics >>>>>>>>>>>>");
 
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
+    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
+    qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld", debug::valueOf(_voxelsDirty),
         _voxelsInWriteArrays, minDirty, maxDirty);
 
-    qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld \n",
+    qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld",
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
@@ -2358,13 +2358,13 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
         }
     }
 
-    qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld \n",
+    qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld",
             minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
 
-    qDebug(" _freeIndexes.size()=%ld \n",
+    qDebug(" _freeIndexes.size()=%ld",
             _freeIndexes.size());
 
-    qDebug("DONE WITH Local Voxel Tree Statistics >>>>>>>>>>>>\n");
+    qDebug("DONE WITH Local Voxel Tree Statistics >>>>>>>>>>>>");
 }
 
 
@@ -2550,7 +2550,7 @@ void VoxelSystem::falseColorizeOccluded() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
 
-    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n",
+    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld",
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels,
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped,
@@ -2685,7 +2685,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
 void VoxelSystem::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-        qDebug("VoxelSystem... voxel server %s added...\n", node->getUUID().toString().toLocal8Bit().constData());
+        qDebug("VoxelSystem... voxel server %s added...", node->getUUID().toString().toLocal8Bit().constData());
         _voxelServerCount++;
     }
 }
@@ -2708,7 +2708,7 @@ void VoxelSystem::nodeKilled(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
         QUuid nodeUUID = node->getUUID();
-        qDebug("VoxelSystem... voxel server %s removed...\n", nodeUUID.toString().toLocal8Bit().constData());
+        qDebug("VoxelSystem... voxel server %s removed...", nodeUUID.toString().toLocal8Bit().constData());
     }
 }
 
@@ -2777,7 +2777,7 @@ void VoxelSystem::unlockTree() {
 
 
 void VoxelSystem::localVoxelCacheLoaded() {
-    qDebug() << "localVoxelCacheLoaded()\n";
+    qDebug() << "localVoxelCacheLoaded()";
 
     // Make sure that the application has properly set up the view frustum for our loaded state
     Application::getInstance()->initAvatarAndViewFrustum();
@@ -2790,11 +2790,11 @@ void VoxelSystem::localVoxelCacheLoaded() {
 }
 
 void VoxelSystem::beginLoadingLocalVoxelCache() {
-    qDebug() << "beginLoadingLocalVoxelCache()\n";
+    qDebug() << "beginLoadingLocalVoxelCache()";
     _writeRenderFullVBO = true; // this will disable individual node updates
     _inhideOutOfView = true; // this will disable hidOutOfView which we want to do until local cache is loaded
     killLocalVoxels();
-    qDebug() << "DONE beginLoadingLocalVoxelCache()\n";
+    qDebug() << "DONE beginLoadingLocalVoxelCache()";
 }
 
 
