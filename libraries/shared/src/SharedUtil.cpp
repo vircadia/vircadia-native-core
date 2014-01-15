@@ -474,7 +474,7 @@ void printVoxelCode(unsigned char* voxelCode) {
     qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
     qDebug("voxelBufferSize=%d",voxelBufferSize);
 
-    for(int i=0; i < voxelBufferSize; i++) {
+    for(unsigned int i=0; i < voxelBufferSize; i++) {
         QDebug voxelBufferDebug = qDebug();
         voxelBufferDebug << "i =" << i;
         outputBits(voxelCode[i], &voxelBufferDebug);
