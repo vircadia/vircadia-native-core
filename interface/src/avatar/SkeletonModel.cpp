@@ -8,6 +8,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <HandData.h>
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Menu.h"

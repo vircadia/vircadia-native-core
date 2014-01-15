@@ -9,7 +9,6 @@
 #ifndef __interface__SkeletonModel__
 #define __interface__SkeletonModel__
 
-#include <HandData.h>
 
 #include "renderer/Model.h"
 
