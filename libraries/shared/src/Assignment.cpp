@@ -29,6 +29,8 @@ Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
             return Assignment::VoxelServerType;
         case NODE_TYPE_PARTICLE_SERVER:
             return Assignment::ParticleServerType;
+        case NODE_TYPE_METAVOXEL_SERVER:
+            return Assignment::MetavoxelServerType;
         default:
             return Assignment::AllTypes;
     }
@@ -147,7 +149,7 @@ void Assignment::swap(Assignment& otherAssignment) {
 void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     if (numBytes > MAX_PAYLOAD_BYTES) {
-        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
+        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.",
                MAX_PAYLOAD_BYTES,
                MAX_PAYLOAD_BYTES);
         
@@ -180,6 +182,8 @@ const char* Assignment::getTypeName() const {
             return "voxel-server";
         case Assignment::ParticleServerType:
             return "particle-server";
+        case Assignment::MetavoxelServerType:
+            return "metavoxel-server";
         default:
             return "unknown";
     }

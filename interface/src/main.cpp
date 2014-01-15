@@ -33,16 +33,16 @@ int main(int argc, const char * argv[]) {
     if (clockSkewOption) {
         int clockSkew = atoi(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qDebug("clockSkewOption=%s clockSkew=%d\n", clockSkewOption, clockSkew);
+        qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
     
     int exitCode;
     {
         Application app(argc, const_cast<char**>(argv), startup_time);
     
-        qDebug( "Created QT Application.\n" );
+        qDebug( "Created QT Application.");
         exitCode = app.exec();
     }
-    qDebug("Normal exit.\n");
+    qDebug("Normal exit.");
     return exitCode;
 }   

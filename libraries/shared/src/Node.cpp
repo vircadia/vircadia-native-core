@@ -33,9 +33,10 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
-    _clockSkewUsec(0)
+    _clockSkewUsec(0),
+    _mutex()
 {
-    pthread_mutex_init(&_mutex, 0);
+    
 }
 
 Node::~Node() {
@@ -44,14 +45,13 @@ Node::~Node() {
     }
     
     delete _bytesReceivedMovingAverage;
-    
-    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types
 const char* NODE_TYPE_NAME_DOMAIN = "Domain";
 const char* NODE_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
 const char* NODE_TYPE_NAME_PARTICLE_SERVER = "Particle Server";
+const char* NODE_TYPE_NAME_METAVOXEL_SERVER = "Metavoxel Server";
 const char* NODE_TYPE_NAME_AGENT = "Agent";
 const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
@@ -68,6 +68,8 @@ const char* Node::getTypeName() const {
 			return NODE_TYPE_NAME_VOXEL_SERVER;
 		case NODE_TYPE_PARTICLE_SERVER:
 		    return NODE_TYPE_NAME_PARTICLE_SERVER;
+		case NODE_TYPE_METAVOXEL_SERVER:
+		    return NODE_TYPE_NAME_METAVOXEL_SERVER;
 		case NODE_TYPE_AGENT:
 			return NODE_TYPE_NAME_AGENT;
 		case NODE_TYPE_AUDIO_MIXER:
@@ -104,12 +106,12 @@ void Node::setLocalSocket(const HifiSockAddr& localSocket) {
 }
 
 void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for node" << *this << "\n";
+    qDebug() << "Activating local socket for node" << *this;
     _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for node" << *this << "\n";
+    qDebug() << "Activating public socket for node" << *this;
     _activeSocket = &_publicSocket;
 }
 

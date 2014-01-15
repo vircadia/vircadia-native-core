@@ -11,7 +11,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
-set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
 set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
@@ -104,7 +103,6 @@ find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(LibVPX)
-find_package(Leap)
 find_package(MotionDriver)
 find_package(OpenCV)
 find_package(OpenNI)
@@ -195,11 +193,6 @@ if (APPLE)
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
     )
-    
-    if (LEAP_FOUND)
-      target_link_libraries(${TARGET_NAME} ${LEAP_LIBRARIES})
-    endif(LEAP_FOUND)
-    
 else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
@@ -234,3 +227,4 @@ INSTALL(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
     RUNTIME DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/install COMPONENT Runtime
 )
+

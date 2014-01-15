@@ -42,7 +42,7 @@ Menu* Menu::getInstance() {
     menuInstanceMutex.lock();
     
     if (!_instance) {
-        qDebug("First call to Menu::getInstance() - initing menu.\n");
+        qDebug("First call to Menu::getInstance() - initing menu.");
         
         _instance = new Menu();
     }
@@ -824,6 +824,10 @@ void Menu::editPreferences() {
     leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
     form->addRow("Lean Scale:", leanScale);
     
+    QDoubleSpinBox* avatarScale = new QDoubleSpinBox();
+    avatarScale->setValue(applicationInstance->getAvatar()->getScale());
+    form->addRow("Avatar Scale:", avatarScale);
+    
     QSpinBox* audioJitterBufferSamples = new QSpinBox();
     audioJitterBufferSamples->setMaximum(10000);
     audioJitterBufferSamples->setMinimum(-10000);
@@ -887,6 +891,7 @@ void Menu::editPreferences() {
         _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
         
         applicationInstance->getAvatar()->setLeanScale(leanScale->value());
+        applicationInstance->getAvatar()->setClampedTargetScale(avatarScale->value());
         
         _audioJitterBufferSamples = audioJitterBufferSamples->value();
         
@@ -973,7 +978,7 @@ void Menu::goToLocation() {
                 // send a node kill request, indicating to other clients that they should play the "disappeared" effect
                 NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
                 
-                qDebug("Going To Location: %f, %f, %f...\n", x, y, z);
+                qDebug("Going To Location: %f, %f, %f...", x, y, z);
                 myAvatar->setPosition(newAvatarPos); 
             }
         }
@@ -994,8 +999,9 @@ void Menu::goToUser() {
     int dialogReturn = userDialog.exec();
     if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
-        DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
-                                                        userDialog.textValue());
+        DataServerClient::getValuesForKeysAndUserString(
+            QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
+            userDialog.textValue());
     }
     
     sendFakeEnterEvent();
@@ -1021,7 +1027,7 @@ void Menu::pasteToVoxel() {
         if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
             Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
         } else {
-            qDebug() << "problem with octcode...\n";
+            qDebug() << "Problem with octcode...";
         }
     }
     

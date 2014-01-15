@@ -29,7 +29,7 @@ void NetworkPacket::copyContents(const HifiSockAddr& sockAddr, const unsigned ch
         _packetLength = packetLength;
         memcpy(&_packetData[0], packetData, packetLength);
     } else {
-        qDebug(">>> NetworkPacket::copyContents() unexpected length=%lu\n",packetLength);
+        qDebug(">>> NetworkPacket::copyContents() unexpected length=%lu",packetLength);
     }
 }
 

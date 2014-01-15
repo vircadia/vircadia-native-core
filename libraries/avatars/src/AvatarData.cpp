@@ -29,8 +29,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
-    _newScale(1.0f),
-    _leaderUUID(),
+    _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
@@ -76,11 +75,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
 
     // Body scale
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
-    
-    // Follow mode info
-    memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    destinationBuffer += NUM_BYTES_RFC4122_UUID;
+    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -198,11 +193,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
 
     // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
-
-    // Follow mode info
-    _leaderUUID = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
@@ -294,4 +285,12 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
 
     return sourceBuffer - startPosition;
+}
+
+void AvatarData::setClampedTargetScale(float targetScale) {
+    
+    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    
+    _targetScale = targetScale;
+    qDebug() << "Changed scale to " << _targetScale;
 }

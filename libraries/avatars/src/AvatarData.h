@@ -32,6 +32,9 @@ const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5;
 
+static const float MAX_AVATAR_SCALE = 1000.f;
+static const float MIN_AVATAR_SCALE = .005f;
+
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
 enum KeyState
@@ -79,8 +82,9 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
     
     //  Scale
-    float getNewScale() const { return _newScale; }
-    void setNewScale(float newScale) { _newScale = newScale; }
+    float getTargetScale() const { return _targetScale; }
+    void setTargetScale(float targetScale) { _targetScale = targetScale; }
+    void setClampedTargetScale(float targetScale);
     
     //  Hand State
     void setHandState(char s) { _handState = s; }
@@ -97,8 +101,6 @@ public:
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
-
-    const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
@@ -129,10 +131,7 @@ protected:
     float _bodyRoll;
 
     // Body scale
-    float _newScale;
-
-    // Following mode infos
-    QUuid _leaderUUID;
+    float _targetScale;
 
     //  Hand state (are we grabbing something or not)
     char _handState;

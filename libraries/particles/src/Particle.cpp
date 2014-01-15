@@ -58,6 +58,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
 
     _position = position;
     _radius = radius;
+    _mass = 1.0f;
     memcpy(_color, color, sizeof(_color));
     _velocity = velocity;
     _damping = damping;
@@ -67,6 +68,11 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _shouldDie = false;
 }
 
+void Particle::setMass(float value) {
+    if (value > 0.0f) {
+        _mass = value;
+    }
+}
 
 bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
@@ -461,10 +467,10 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
-        qDebug("Particle::adjustEditPacketForClockSkew()...\n");
-        qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime << "\n";
-        qDebug() << "                 clockSkew: " << clockSkew << "\n";
-        qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime << "\n";
+        qDebug("Particle::adjustEditPacketForClockSkew()...");
+        qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
+        qDebug() << "                 clockSkew: " << clockSkew;
+        qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
     }
 }
 

@@ -71,19 +71,19 @@ CoverageMap::~CoverageMap() {
 };
 
 void CoverageMap::printStats() {
-    qDebug("CoverageMap::printStats()...\n");
-    qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
-    qDebug("_mapCount=%d\n",_mapCount);
-    qDebug("_checkMapRootCalls=%d\n",_checkMapRootCalls);
-    qDebug("_notAllInView=%d\n",_notAllInView);
-    qDebug("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
-    qDebug("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
-    qDebug("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
-    qDebug("_regionSkips=%d\n",CoverageRegion::_regionSkips);
-    qDebug("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
-    qDebug("_regionFullSkips=%d\n",CoverageRegion::_regionFullSkips);
-    qDebug("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
-    qDebug("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
+    qDebug("CoverageMap::printStats()...");
+    qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
+    qDebug("_mapCount=%d",_mapCount);
+    qDebug("_checkMapRootCalls=%d",_checkMapRootCalls);
+    qDebug("_notAllInView=%d",_notAllInView);
+    qDebug("_maxPolygonsUsed=%d",CoverageRegion::_maxPolygonsUsed);
+    qDebug("_totalPolygons=%d",CoverageRegion::_totalPolygons);
+    qDebug("_occlusionTests=%d",CoverageRegion::_occlusionTests);
+    qDebug("_regionSkips=%d",CoverageRegion::_regionSkips);
+    qDebug("_tooSmallSkips=%d",CoverageRegion::_tooSmallSkips);
+    qDebug("_regionFullSkips=%d",CoverageRegion::_regionFullSkips);
+    qDebug("_outOfOrderPolygon=%d",CoverageRegion::_outOfOrderPolygon);
+    qDebug("_clippedPolygons=%d",CoverageRegion::_clippedPolygons);
 }
 
 void CoverageMap::erase() {
@@ -102,7 +102,7 @@ void CoverageMap::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        qDebug("CoverageMap last to be deleted...\n");
+        qDebug("CoverageMap last to be deleted...");
         printStats();
         
         CoverageRegion::_maxPolygonsUsed = 0;

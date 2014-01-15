@@ -21,6 +21,7 @@
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {
+    Q_OBJECT
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 

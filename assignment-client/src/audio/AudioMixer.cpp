@@ -182,15 +182,13 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
 }
 
 void AudioMixer::prepareMixForListeningNode(Node* node) {
-	NodeList* nodeList = NodeList::getInstance();
-    
     AvatarAudioRingBuffer* nodeRingBuffer = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer();
     
     // zero out the client mix for this node
     memset(_clientSamples, 0, sizeof(_clientSamples));
     
     // loop through all other nodes that have sufficient audio to mix
-    for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
+    foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
         if (otherNode->getLinkedData()) {
             
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
@@ -200,7 +198,7 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
                 PositionalAudioRingBuffer* otherNodeBuffer = otherNodeClientData->getRingBuffers()[i];
                 
                 if ((*otherNode != *node
-                    || otherNodeBuffer->shouldLoopbackForNode())
+                     || otherNodeBuffer->shouldLoopbackForNode())
                     && otherNodeBuffer->willBeAddedToMix()) {
                     addBufferToMixForListeningNodeWithBuffer(otherNodeBuffer, nodeRingBuffer);
                 }
@@ -220,10 +218,10 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
         
         NodeList* nodeList = NodeList::getInstance();
         
-        Node* matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        SharedNodePointer matchingNode = nodeList->nodeWithUUID(nodeUUID);
         
         if (matchingNode) {
-            nodeList->updateNodeWithData(matchingNode, senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
             
             if (!matchingNode->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
@@ -239,29 +237,14 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
 
 void AudioMixer::run() {
     
+    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
+    
     NodeList* nodeList = NodeList::getInstance();
-    
-    // change the logging target name while this is running
-    Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
-    
-    nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);
     
     const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
     nodeList->setNodeTypesOfInterest(AUDIO_MIXER_NODE_TYPES_OF_INTEREST, sizeof(AUDIO_MIXER_NODE_TYPES_OF_INTEREST));
     
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
-    
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);
-    
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     int nextFrame = 0;
     timeval startTime;
@@ -279,17 +262,17 @@ void AudioMixer::run() {
         if (_isFinished) {
             break;
         }
-
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->checkBuffersBeforeFrameSend(JITTER_BUFFER_SAMPLES);
             }
         }
-        
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
-                prepareMixForListeningNode(&(*node));
+                prepareMixForListeningNode(node.data());
                 
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
                 nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
@@ -299,18 +282,19 @@ void AudioMixer::run() {
         }
         
         // push forward the next output pointers for any audio buffers we used
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 ((AudioMixerClientData*) node->getLinkedData())->pushBuffersAfterFrameSend();
             }
         }
+        
         
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            qDebug("Took too much time, not sleeping!\n");
+            qDebug() << "AudioMixer loop took" << -usecToSleep << "of extra time. Not sleeping.";
         }
         
     }

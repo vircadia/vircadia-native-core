@@ -37,6 +37,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
     _staticAssignmentFileData(NULL),
     _voxelServerConfig(NULL),
+    _metavoxelServerConfig(NULL),
     _hasCompletedRestartHold(false)
 {
     DomainServer::setDomainServerInstance(this);
@@ -54,6 +55,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     const char PARTICLE_CONFIG_OPTION[] = "--particleServerConfig";
     _particleServerConfig = getCmdOption(argc, (const char**) argv, PARTICLE_CONFIG_OPTION);
+    
+    const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
+    _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
     
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
@@ -73,7 +77,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // Start the web server.
     mg_start(&callbacks, NULL, options);
     
-    nodeList->addHook(this);
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
     
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
         
@@ -152,10 +156,11 @@ void DomainServer::readAvailableDatagrams() {
                 int numBytesPublicSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodeLocalAddress);
                 packetIndex += numBytesPublicSocket;
                 
-                const char STATICALLY_ASSIGNED_NODES[3] = {
+                const char STATICALLY_ASSIGNED_NODES[] = {
                     NODE_TYPE_AUDIO_MIXER,
                     NODE_TYPE_AVATAR_MIXER,
-                    NODE_TYPE_VOXEL_SERVER
+                    NODE_TYPE_VOXEL_SERVER,
+                    NODE_TYPE_METAVOXEL_SERVER
                 };
                 
                 Assignment* matchingStaticAssignment = NULL;
@@ -166,10 +171,10 @@ void DomainServer::readAvailableDatagrams() {
                                                               nodeLocalAddress,
                                                               nodeUUID)))
                 {
-                    Node* checkInNode = nodeList->addOrUpdateNode(nodeUUID,
-                                                                  nodeType,
-                                                                  nodePublicAddress,
-                                                                  nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
+                                                                              nodeType,
+                                                                              nodePublicAddress,
+                                                                              nodeLocalAddress);
                     
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
@@ -196,13 +201,13 @@ void DomainServer::readAvailableDatagrams() {
                     
                     if (numInterestTypes > 0) {
                         // if the node has sent no types of interest, assume they want nothing but their own ID back
-                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                             if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
                                 
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
                                 if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
+                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, node.data());
                                 }
                                 
                             }
@@ -224,7 +229,8 @@ void DomainServer::readAvailableDatagrams() {
                     // construct the requested assignment from the packet data
                     Assignment requestAssignment(packetData, receivedBytes);
                     
-                    qDebug("Received a request for assignment type %i from %s.\n", requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
+                    qDebug("Received a request for assignment type %i from %s.",
+                           requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
                     
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
@@ -244,7 +250,7 @@ void DomainServer::readAvailableDatagrams() {
                     }
                     
                 } else {
-                    qDebug("Received an invalid assignment request from %s.\n", qPrintable(senderSockAddr.getAddress().toString()));
+                    qDebug() << "Received an invalid assignment request from" << senderSockAddr.getAddress();
                 }
             }
         }
@@ -313,13 +319,11 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
-            NodeList* nodeList = NodeList::getInstance();
-            
-            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                 if (node->getLinkedData()) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                    assignedNodesJSON[uuidString] = jsonObjectForNode(&(*node));
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(node.data());
                 }
             }
             
@@ -367,10 +371,10 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
-            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                nodesJSON[uuidString] = jsonObjectForNode(&(*node));
+                nodesJSON[uuidString] = jsonObjectForNode(node.data());
             }
             
             rootJSON["nodes"] = nodesJSON;
@@ -405,14 +409,14 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             QUuid deleteUUID = QUuid(QString(ri->uri + strlen(URI_NODE) + sizeof('/')));
             
             if (!deleteUUID.isNull()) {
-                Node *nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+                SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
                 
                 if (nodeToKill) {
                     // start with a 200 response
                     mg_printf(connection, "%s", RESPONSE_200);
                     
                     // we have a valid UUID and node - kill the node that has this assignment
-                    NodeList::getInstance()->killNode(nodeToKill);
+                    NodeList::getInstance()->killNodeWithUUID(deleteUUID);
                     
                     // successfully processed request
                     return 1;
@@ -459,7 +463,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toLocal8Bit().constData());
     
-    qDebug("Saved a script for assignment at %s\n", newPath.toLocal8Bit().constData());
+    qDebug("Saved a script for assignment at %s", newPath.toLocal8Bit().constData());
     
     // add the script assigment to the assignment queue
     // lock the assignment queue mutex since we're operating on a different thread than DS main
@@ -469,7 +473,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 }
 
 void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
-    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.\n";
+    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.";
     
     // find this assignment in the static file
     for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
@@ -489,11 +493,7 @@ void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignme
     }
 }
 
-void DomainServer::nodeAdded(Node* node) {
-    
-}
-
-void DomainServer::nodeKilled(Node* node) {
+void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this node has linked data it was from an assignment
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
@@ -530,8 +530,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     
     // Handle Domain/Voxel Server configuration command line arguments
     if (_voxelServerConfig) {
-        qDebug("Reading Voxel Server Configuration.\n");
-        qDebug() << "config: " << _voxelServerConfig << "\n";
+        qDebug("Reading Voxel Server Configuration.");
+        qDebug() << "config: " << _voxelServerConfig;
         
         QString multiConfig((const char*) _voxelServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
@@ -540,7 +540,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
             
-            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
             
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
@@ -553,7 +553,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
                 int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
                 
                 assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this voxel-assignment is" << assignmentPool << "\n";
+                qDebug() << "The pool for this voxel-assignment is" << assignmentPool;
             }
             
             Assignment voxelServerAssignment(Assignment::CreateCommand,
@@ -572,8 +572,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
 
     // Handle Domain/Particle Server configuration command line arguments
     if (_particleServerConfig) {
-        qDebug("Reading Particle Server Configuration.\n");
-        qDebug() << "config: " << _particleServerConfig << "\n";
+        qDebug("Reading Particle Server Configuration.");
+        qDebug() << "config: " << _particleServerConfig;
         
         QString multiConfig((const char*) _particleServerConfig);
         QStringList multiConfigList = multiConfig.split(";");
@@ -582,7 +582,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         for (int i = 0; i < multiConfigList.size(); i++) {
             QString config = multiConfigList.at(i);
             
-            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
             
             // Now, parse the config to check for a pool
             const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
@@ -595,7 +595,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
                 int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
                 
                 assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this particle-assignment is" << assignmentPool << "\n";
+                qDebug() << "The pool for this particle-assignment is" << assignmentPool;
             }
             
             Assignment particleServerAssignment(Assignment::CreateCommand,
@@ -612,7 +612,14 @@ void DomainServer::prepopulateStaticAssignmentFile() {
         freshStaticAssignments[numFreshStaticAssignments++] = rootParticleServerAssignment;
     }
     
-    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.\n";
+    // handle metavoxel configuration command line argument
+    Assignment& metavoxelAssignment = (freshStaticAssignments[numFreshStaticAssignments++] =
+        Assignment(Assignment::CreateCommand, Assignment::MetavoxelServerType));
+    if (_metavoxelServerConfig) {
+        metavoxelAssignment.setPayload((const unsigned char*)_metavoxelServerConfig, strlen(_metavoxelServerConfig));
+    }
+    
+    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.";
     
     _staticAssignmentFile.open(QIODevice::WriteOnly);
     _staticAssignmentFile.write((char*) &freshStaticAssignments, sizeof(freshStaticAssignments));
@@ -729,7 +736,7 @@ bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePu
                                                       const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData()
             && nodePublicSocket == node->getPublicSocket()
             && nodeLocalSocket == node->getLocalSocket()
@@ -761,7 +768,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
         NodeList* nodeList = NodeList::getInstance();
         
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getLinkedData()) {
                 Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
                 if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {
@@ -775,7 +782,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             _staticAssignments[i].resetUUID();
             
-            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i] << "\n";
+            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
             
             _assignmentQueueMutex.lock();
             _assignmentQueue.push_back(&_staticAssignments[i]);

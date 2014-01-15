@@ -99,6 +99,7 @@ void Model::simulate(float deltaTime) {
     if (_jointStates.isEmpty()) {
         foreach (const FBXJoint& joint, geometry.joints) {
             JointState state;
+            state.translation = joint.translation;
             state.rotation = joint.rotation;
             _jointStates.append(state);
         }
@@ -626,7 +627,7 @@ void Model::updateJointState(int index) {
         glm::mat4 baseTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset);
     
         glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
-        state.transform = baseTransform * geometry.offset * joint.preTransform *
+        state.transform = baseTransform * geometry.offset * glm::translate(state.translation) * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = _rotation * combinedRotation;
     
@@ -642,7 +643,7 @@ void Model::updateJointState(int index) {
             maybeUpdateEyeRotation(parentState, joint, state);
         }
         glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
-        state.transform = parentState.transform * joint.preTransform *
+        state.transform = parentState.transform * glm::translate(state.translation) * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = parentState.combinedRotation * combinedRotation;
     }
@@ -747,6 +748,23 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fro
     return true;
 }
 
+void Model::setJointTranslation(int jointIndex, const glm::vec3& translation) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXJoint& joint = geometry.joints.at(jointIndex);
+    
+    glm::mat4 parentTransform;
+    if (joint.parentIndex == -1) {
+        parentTransform = glm::mat4_cast(_rotation) * glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+        
+    } else {
+        parentTransform = _jointStates.at(joint.parentIndex).transform;
+    }
+    JointState& state = _jointStates[jointIndex];
+    glm::vec3 preTranslation = extractTranslation(joint.preTransform * glm::mat4_cast(joint.preRotation *
+        state.rotation * joint.postRotation) * joint.postTransform); 
+    state.translation = glm::vec3(glm::inverse(parentTransform) * glm::vec4(translation, 1.0f)) - preTranslation;
+}
+
 bool Model::restoreJointPosition(int jointIndex, float percent) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
@@ -822,25 +840,6 @@ void Model::renderCollisionProxies(float alpha) {
     }
     
     glPopMatrix();
-}
-
-void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    JointState& state = _jointStates[jointIndex];
-    if (childIndex != -1 && geometry.joints.at(jointIndex).isFree) {
-        // if there's a child, then I must adjust *my* rotation
-        glm::vec3 childTranslation = extractTranslation(_jointStates.at(childIndex).transform);
-        applyRotationDelta(jointIndex, rotationBetween(childTranslation - extractTranslation(state.transform),
-            childTranslation - translation));
-    }
-    if (parentIndex != -1 && geometry.joints.at(parentIndex).isFree) {
-        // if there's a parent, then I must adjust *its* rotation
-        JointState& parent = _jointStates[parentIndex];
-        glm::vec3 parentTranslation = extractTranslation(parent.transform);
-        applyRotationDelta(parentIndex, rotationBetween(extractTranslation(state.transform) - parentTranslation, 
-            translation - parentTranslation));
-    }
-    ::setTranslation(state.transform, translation);
 }
 
 void Model::deleteGeometry() {
