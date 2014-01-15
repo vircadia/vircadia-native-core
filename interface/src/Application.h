@@ -220,6 +220,7 @@ public:
     QString *_latestVersion;
     QString *_operatingSystem;
     QUrl *_downloadURL;
+    QWidget *_updateDialog;
 
 public slots:
     void domainChanged(const QString& domainHostname);

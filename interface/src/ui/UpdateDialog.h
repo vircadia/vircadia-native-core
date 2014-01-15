@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QFrame>
+#include <QWidget>
 
 #include <iostream>
 
@@ -21,6 +22,11 @@ class UpdateDialog : public QDialog {
     
 public:
     UpdateDialog(QWidget*, QString releaseNotes);
+    ~UpdateDialog();
+    void toggleUpdateDialog();
+    
+private:
+    QWidget *dialogWidget;
     
 private slots:
     void handleDownload();

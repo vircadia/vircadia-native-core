@@ -26,33 +26,45 @@ const int dialogHeigth = 300;
 const QString dialogTitle = "Update Required";
 
 UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(parent, Qt::Dialog) {
+    Application* application = Application::getInstance();
     
     QUiLoader updateDialogLoader;
     
     QFile updateDialogUi("resources/ui/updateDialog.ui");
     updateDialogUi.open(QFile::ReadOnly);
-    QWidget *updateDialog = updateDialogLoader.load(&updateDialogUi, this);
+    dialogWidget = updateDialogLoader.load(&updateDialogUi, parent);
     updateDialogUi.close();
-    
-    updateDialog->show();
-    
-    Application* application = Application::getInstance();
     
     const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
                                            Please download and install the most recent release to access the latest features and bug fixes.")
                                            .arg(application->applicationVersion(), *application->_latestVersion);
     
     
-    QPushButton *_downloadButton = updateDialog->findChild<QPushButton*>("downloadButton");
-    QPushButton *_skipButton = updateDialog->findChild<QPushButton*>("skipButton");
-    QPushButton *_closeButton = updateDialog->findChild<QPushButton*>("closeButton");
-    QLabel *_updateContent = updateDialog->findChild<QLabel*>("updateContent");
+    setAttribute(Qt::WA_DeleteOnClose);
+    
+    QPushButton *_downloadButton = dialogWidget->findChild<QPushButton *>("downloadButton");
+    QPushButton *_skipButton = dialogWidget->findChild<QPushButton *>("skipButton");
+    QPushButton *_closeButton = dialogWidget->findChild<QPushButton *>("closeButton");
+    QLabel *_updateContent = dialogWidget->findChild<QLabel *>("updateContent");
     
     _updateContent->setText(updateRequired);
     
     connect(_downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
     connect(_skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
     connect(_closeButton, SIGNAL(released()), this, SLOT(handleClose()));
+    dialogWidget->show();
+}
+
+UpdateDialog::~UpdateDialog() {
+    deleteLater();
+}
+
+void UpdateDialog::toggleUpdateDialog() {
+    if (this->dialogWidget->isVisible()) {
+        this->dialogWidget->hide();
+    } else {
+        this->dialogWidget->show();
+    }
 }
 
 void UpdateDialog::handleDownload() {
@@ -64,9 +76,9 @@ void UpdateDialog::handleDownload() {
 void UpdateDialog::handleSkip() {
     Application* application = Application::getInstance();
     application->skipVersion();
-    this->reject();
+    this->toggleUpdateDialog();
 }
 
 void UpdateDialog::handleClose() {
-    this->reject();
+    this->toggleUpdateDialog();
 }

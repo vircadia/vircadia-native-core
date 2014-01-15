@@ -41,6 +41,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMessageBox>
+#include <QtGui>
+#include <QtUiTools>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -4456,7 +4458,7 @@ void Application::parseVersionXml(QNetworkReply *reply) {
     }
     
     if (!shouldSkipVersion() && applicationVersion() != _latestVersion) {
-        UpdateDialog *_updateDialog = new UpdateDialog(_glWidget, _releaseNotes);
+        _updateDialog = new UpdateDialog(_glWidget, _releaseNotes);
     }
 }
 
