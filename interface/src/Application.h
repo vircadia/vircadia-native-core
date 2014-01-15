@@ -218,7 +218,6 @@ public:
     void skipVersion();
     
     QString *_latestVersion;
-    QString *_operatingSystem;
     QUrl *_downloadURL;
     QWidget *_updateDialog;
 

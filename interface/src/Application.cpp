@@ -197,14 +197,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
-    #ifdef Q_OS_WIN32
-    _operatingSystem = new QString("win");
-    #endif
-    
-    #ifdef Q_OS_MAC
-    _operatingSystem = new QString("mac");
-    #endif
-    
     checkVersion();
     
     qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
@@ -4430,6 +4422,16 @@ void Application::checkVersion() {
 }
 
 void Application::parseVersionXml(QNetworkReply *reply) {
+    QString *_operatingSystem;
+    
+    #ifdef Q_OS_WIN32
+    _operatingSystem = new QString("win");
+    #endif
+    
+    #ifdef Q_OS_MAC
+    _operatingSystem = new QString("mac");
+    #endif
+    
     QString _releaseDate;
     QString _releaseNotes;
     
