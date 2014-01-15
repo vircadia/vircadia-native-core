@@ -101,7 +101,7 @@ qint64 AudioRingBuffer::writeData(const char* data, qint64 maxSize) {
         && (less(_endOfLastWrite, _nextOutput)
             && lessEqual(_nextOutput, shiftedPositionAccomodatingWrap(_endOfLastWrite, samplesToCopy)))) {
         // this read will cross the next output, so call us starved and reset the buffer
-        qDebug() << "Filled the ring buffer. Resetting.\n";
+        qDebug() << "Filled the ring buffer. Resetting.";
         _endOfLastWrite = _buffer;
         _nextOutput = _buffer;
         _isStarved = true;

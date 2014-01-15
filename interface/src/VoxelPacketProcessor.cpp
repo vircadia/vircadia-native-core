@@ -21,7 +21,7 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
-        qDebug("VoxelPacketProcessor::processPacket() packets to process=%d\n", packetsToProcessCount());
+        qDebug("VoxelPacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     ssize_t messageLength = packetLength;
 
@@ -57,12 +57,13 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         app->trackIncomingVoxelPacket(packetData, messageLength, senderSockAddr, wasStatsPacket);
         
-        Node* serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+        SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (serverNode && serverNode->getActiveSocket() && *serverNode->getActiveSocket() == senderSockAddr) {
         
             switch(packetData[0]) {
                 case PACKET_TYPE_PARTICLE_DATA: {
-                    app->_particles.processDatagram(QByteArray((char*) packetData, messageLength), senderSockAddr, serverNode);
+                    app->_particles.processDatagram(QByteArray((char*) packetData, messageLength),
+                                                    senderSockAddr, serverNode.data());
                 } break;
                 
                 case PACKET_TYPE_ENVIRONMENT_DATA: {

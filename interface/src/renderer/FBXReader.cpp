@@ -523,11 +523,13 @@ public:
 
 void printNode(const FBXNode& node, int indent) {
     QByteArray spaces(indent, ' ');
-    qDebug("%s%s: ", spaces.data(), node.name.data());
+    QDebug nodeDebug = qDebug();
+    
+    nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
-        qDebug() << property;
+        nodeDebug << property;
     }
-    qDebug() << "\n";
+    
     foreach (const FBXNode& child, node.children) {
         printNode(child, indent + 1);
     }
@@ -1271,7 +1273,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
-                    qDebug() << "Joint not in model list: " << jointID << "\n";
+                    qDebug() << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
@@ -1289,7 +1291,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
-                qDebug() << "Model not in model list: " << modelID << "\n";
+                qDebug() << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
