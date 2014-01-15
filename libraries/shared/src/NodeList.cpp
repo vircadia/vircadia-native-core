@@ -278,12 +278,7 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    QHash<QUuid, QSharedPointer<Node> >::const_iterator foundIterator = _nodeHash.find(nodeUUID);
-    if (foundIterator != _nodeHash.end()) {
-        return foundIterator.value();
-    } else {
-        return SharedNodePointer();
-    }
+    return _nodeHash.value(nodeUUID);
 }
 
 void NodeList::clear() {
