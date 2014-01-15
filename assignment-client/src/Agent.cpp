@@ -55,7 +55,8 @@ void Agent::run() {
     // XXXBHG - this seems less than ideal. There might be classes (like jurisdiction listeners, that need access to
     // other node types, but for them to get access to those node types, we have to add them here. It seems like 
     // NodeList should support adding types of interest
-    const NODE_TYPE AGENT_NODE_TYPES_OF_INTEREST[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER  };
+    const NODE_TYPE AGENT_NODE_TYPES_OF_INTEREST[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
+        NODE_TYPE_AUDIO_MIXER };
     
     nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
     
