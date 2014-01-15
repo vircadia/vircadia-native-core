@@ -40,7 +40,7 @@ Environment::~Environment() {
 
 void Environment::init() {
     if (_initialized) {
-        qDebug("[ERROR] Environment is already initialized.\n");
+        qDebug("[ERROR] Environment is already initialized.");
         return;
     }
 

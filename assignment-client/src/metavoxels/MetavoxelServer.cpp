@@ -123,7 +123,7 @@ void MetavoxelSession::sendDelta() {
 }
 
 void MetavoxelSession::timedOut() {
-    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]\n";
+    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]";
     _server->removeSession(_sessionId);
 }
 

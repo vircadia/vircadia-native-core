@@ -413,27 +413,27 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
 }
 
 void Avatar::goHome() {
-    qDebug("Going Home!\n");
+    qDebug("Going Home!");
     setPosition(START_LOCATION);
 }
 
 void Avatar::increaseSize() {
     if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _targetScale);
+        qDebug("Changed scale to %f", _targetScale);
     }
 }
 
 void Avatar::decreaseSize() {
     if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
         _targetScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f\n", _targetScale);
+        qDebug("Changed scale to %f", _targetScale);
     }
 }
 
 void Avatar::resetSize() {
     _targetScale = 1.0f;
-    qDebug("Reseted scale to %f\n", _targetScale);
+    qDebug("Reseted scale to %f", _targetScale);
 }
 
 void Avatar::setScale(const float scale) {

@@ -47,10 +47,10 @@ void AssignmentClientMonitor::spawnChildClient() {
     connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this,
             SLOT(childProcessFinished(int, QProcess::ExitStatus)));
     
-    qDebug() << "Spawned a child client with PID" << assignmentClient->pid() << "\n";
+    qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
 
 void AssignmentClientMonitor::childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-    qDebug() << "Replacing dead child assignment client with a new one.\n";
+    qDebug("Replacing dead child assignment client with a new one");
     spawnChildClient();
 }

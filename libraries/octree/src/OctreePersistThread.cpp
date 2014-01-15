@@ -26,7 +26,7 @@ bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
         uint64_t loadStarted = usecTimestampNow();
-        qDebug() << "loading Octrees from file: " << _filename << "...\n";
+        qDebug() << "loading Octrees from file: " << _filename << "...";
 
         bool persistantFileRead;
 
@@ -42,20 +42,20 @@ bool OctreePersistThread::process() {
         _loadTimeUSecs = loadDone - loadStarted;
 
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-        qDebug("DONE loading Octrees from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
+        qDebug("DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistantFileRead));
 
         unsigned long nodeCount = OctreeElement::getNodeCount();
         unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
         unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
-        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
+        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
 
         double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() / (double)OctreeElement::getGetChildAtIndexCalls();
         qDebug() << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
-                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet << " \n";
+                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
 
         double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() / (double)OctreeElement::getSetChildAtIndexCalls();
         qDebug() << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
-                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perset=" << usecPerSet << " \n";
+                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perset=" << usecPerSet;
 
         _initialLoadComplete = true;
         _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
@@ -81,10 +81,10 @@ bool OctreePersistThread::process() {
             // check the dirty bit and persist here...
             _lastCheck = usecTimestampNow();
             if (_tree->isDirty()) {
-                qDebug() << "saving Octrees to file " << _filename << "...\n";
+                qDebug() << "saving Octrees to file " << _filename << "...";
                 _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
                 _tree->clearDirtyBit(); // tree is clean after saving
-                qDebug("DONE saving Octrees to file...\n");
+                qDebug("DONE saving Octrees to file...");
             }
         }
     }
