@@ -41,8 +41,6 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMessageBox>
-#include <QtGui>
-#include <QtUiTools>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
