@@ -1004,6 +1004,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Minus:
                 _myAvatar.decreaseSize();
                 break;
+            case Qt::Key_Equal:
+                _myAvatar.resetSize();
+                break;
 
             case Qt::Key_1:
             case Qt::Key_2:

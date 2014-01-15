@@ -264,12 +264,7 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    QHash<QUuid, QSharedPointer<Node> >::const_iterator foundIterator = _nodeHash.find(nodeUUID);
-    if (foundIterator != _nodeHash.end()) {
-        return foundIterator.value();
-    } else {
-        return SharedNodePointer();
-    }
+    return _nodeHash.value(nodeUUID);
 }
 
 void NodeList::clear() {
@@ -279,7 +274,9 @@ void NodeList::clear() {
     
     // iterate the nodes in the list
     while (nodeItem != _nodeHash.end()) {
-        nodeItem = killNodeAtHashIterator(nodeItem);
+        NodeHash::iterator previousNodeItem = nodeItem;
+        ++nodeItem;
+        killNodeAtHashIterator(previousNodeItem);
     }
 }
 
@@ -445,13 +442,12 @@ void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     }
 }
 
-NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
-    qDebug() << "Killed" << *nodeItemToKill.value() << "\n";
+void NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
+    qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
     
-    return _nodeHash.erase(nodeItemToKill);
+    _nodeHash.erase(nodeItemToKill);
 }
-
 
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
@@ -685,7 +681,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
         
-        qDebug() << "Added" << *newNode << "\n";
+        qDebug() << "Added" << *newNode;
         
         emit nodeAdded(newNodeSharedPointer);
         
@@ -795,7 +791,10 @@ void NodeList::removeSilentNodes() {
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             // call our private method to kill this node (removes it and emits the right signal)
-            nodeItem = killNodeAtHashIterator(nodeItem);
+            NodeHash::iterator previousNodeItem = nodeItem;
+            ++nodeItem;
+            
+            killNodeAtHashIterator(previousNodeItem);
         } else {
             // we didn't kill this node, push the iterator forwards
             ++nodeItem;
