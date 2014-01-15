@@ -303,5 +303,4 @@ void AvatarData::setNewScale(float newScale) {
         newScale = MIN_SCALE;
     }
     _newScale = newScale;
-    qDebug() << "Changed scale to " << _newScale << "\n";
 }

@@ -1,0 +1,44 @@
+//
+//  CollisionInfo.h
+//  hifi
+//
+//  Created by Andrew Meadows on 2014.01.13
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+
+#ifndef __hifi__CollisionInfo__
+#define __hifi__CollisionInfo__
+
+/*
+#include <ostream>
+#include <stdint.h>
+
+#ifdef _WIN32
+#include "Syssocket.h"
+#else
+#include <sys/socket.h>
+#endif
+
+#include <QtCore/QDebug>
+#include <QtCore/QUuid>
+
+#include "HifiSockAddr.h"
+#include "NodeData.h"
+#include "SimpleMovingAverage.h"
+*/
+
+#include <glm/glm.hpp>
+
+class CollisionInfo {
+public:
+    CollisionInfo() : _penetration(0.f), _addedVelocity(0.f) { }
+    ~CollisionInfo() {}
+
+    //glm::vec3 _point;
+    //glm::vec3 _normal;
+    glm::vec3 _penetration;
+    glm::vec3 _addedVelocity;
+};
+
+
+#endif /* defined(__hifi__CollisionInfo__) */
