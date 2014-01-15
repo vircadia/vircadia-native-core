@@ -136,7 +136,7 @@ private:
     void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
 
     void processKillNode(unsigned char* packetData, size_t dataBytes);
-    NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
+    void killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     NodeHash _nodeHash;
     QString _domainHostname;
