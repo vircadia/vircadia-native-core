@@ -95,7 +95,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public PacketSenderNotify, public DomainChangeListener {
+class Application : public QApplication, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -197,8 +197,6 @@ public:
     
     virtual void packetSentNotification(ssize_t length);
 
-    virtual void domainChanged(QString domain);
-
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
@@ -213,6 +211,7 @@ public:
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
 
 public slots:
+    void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
     
     void processDatagrams();

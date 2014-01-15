@@ -177,11 +177,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     audioThread->start();
     
+    connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
+
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-            
-    nodeList->addDomainListener(this);
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -265,7 +265,6 @@ Application::~Application() {
     _audio.thread()->wait();
 
     storeSizeAndPosition();
-    NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
@@ -4078,9 +4077,9 @@ void Application::updateWindowTitle(){
     _window->setWindowTitle(title);
 }
 
-void Application::domainChanged(QString domain) {
+void Application::domainChanged(const QString& domainHostname) {
     // update the user's last domain in their Profile (which will propagate to data-server)
-    _profile.updateDomain(domain);
+    _profile.updateDomain(domainHostname);
 
     updateWindowTitle();
 
@@ -4093,7 +4092,7 @@ void Application::domainChanged(QString domain) {
     _particleServerJurisdictions.clear();
 
     // reset our persist thread
-    qDebug() << "domainChanged()... domain=" << domain << " swapping persist cache\n";
+    qDebug() << "domainChanged()... domain=" << domainHostname << " swapping persist cache\n";
     updateLocalOctreeCache();
 }
 

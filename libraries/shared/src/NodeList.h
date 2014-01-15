@@ -45,11 +45,6 @@ const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 class Assignment;
 class HifiSockAddr;
 
-class DomainChangeListener {
-public:
-    virtual void domainChanged(QString domain) = 0;
-};
-
 typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
@@ -120,15 +115,13 @@ public:
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
     
-    void addDomainListener(DomainChangeListener* listener);
-    void removeDomainListener(DomainChangeListener* listener);
-    
     const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
 public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
     void removeSilentNodes();
 signals:
+    void domainChanged(const QString& domainHostname);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 private:
@@ -162,10 +155,7 @@ private:
     void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
     void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
     
-    std::vector<DomainChangeListener*> _domainListeners;
-    
     void resetDomainData(char domainField[], const char* domainData);
-    void notifyDomainChanged();
     void domainLookup();
 };
 
