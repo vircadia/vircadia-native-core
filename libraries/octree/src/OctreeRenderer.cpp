@@ -65,10 +65,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
 
         if (extraDebugging) {
             qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
-                   " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
-                   "\n",
-                debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
-                sequence, flightTime, packetLength, dataBytes);
+                   " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d",
+                   debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
+                   sequence, flightTime, packetLength, dataBytes);
         }
         
         int subsection = 1;
@@ -96,9 +95,10 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
                 if (extraDebugging) {
                     qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
-                           " subsection:%d sectionLength:%d uncompressed:%d\n",
-                        debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
-                        sequence, flightTime, packetLength, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
+                           " subsection:%d sectionLength:%d uncompressed:%d",
+                           debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
+                           sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,
+                           packetData.getUncompressedSize());
                 }
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                 _tree->unlock();

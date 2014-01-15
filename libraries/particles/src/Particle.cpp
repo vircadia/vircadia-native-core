@@ -467,10 +467,10 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
-        qDebug("Particle::adjustEditPacketForClockSkew()...\n");
-        qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime << "\n";
-        qDebug() << "                 clockSkew: " << clockSkew << "\n";
-        qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime << "\n";
+        qDebug("Particle::adjustEditPacketForClockSkew()...");
+        qDebug() << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
+        qDebug() << "                 clockSkew: " << clockSkew;
+        qDebug() << "    lastEditedInServerTime: " << lastEditedInServerTime;
     }
 }
 

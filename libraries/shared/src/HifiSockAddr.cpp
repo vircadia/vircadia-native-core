@@ -98,7 +98,7 @@ quint32 getHostOrderLocalAddress() {
                 foreach(const QNetworkAddressEntry &entry, interface.addressEntries()) {
                     // make sure it's an IPv4 address that isn't the loopback
                     if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-                        qDebug("Node's local address is %s\n", entry.ip().toString().toLocal8Bit().constData());
+                        qDebug("Node's local address is %s", entry.ip().toString().toLocal8Bit().constData());
                         
                         // set our localAddress and break out
                         localAddress = entry.ip().toIPv4Address();

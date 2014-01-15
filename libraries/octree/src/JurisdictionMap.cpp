@@ -145,7 +145,7 @@ void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
 
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
 
-    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)\n",
+    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)",
         rootHexCode, rootHexCode, endNodesHexCodes, endNodesHexCodes);
 
     _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
@@ -162,7 +162,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
         unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
         
-        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s\n",
+        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
             i, endNodeHexString.toLocal8Bit().constData());
         
         //printOctalCode(endNodeOctcode);
@@ -209,7 +209,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
     QString     rootCode = settings.value("root","00").toString();
-    qDebug() << "rootCode=" << rootCode << "\n";
+    qDebug() << "rootCode=" << rootCode;
 
     _rootOctalCode = hexStringToOctalCode(rootCode);
     printOctalCode(_rootOctalCode);
@@ -220,7 +220,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     foreach (const QString &childKey, childKeys) {
         QString childValue = settings.value(childKey).toString();
         values.insert(childKey, childValue);
-        qDebug() << childKey << "=" << childValue << "\n";
+        qDebug() << childKey << "=" << childValue;
 
         unsigned char* octcode = hexStringToOctalCode(childValue);
         printOctalCode(octcode);
@@ -234,11 +234,11 @@ bool JurisdictionMap::readFromFile(const char* filename) {
 void JurisdictionMap::displayDebugDetails() const {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
-    qDebug() << "root:" << rootNodeValue << "\n";
+    qDebug() << "root:" << rootNodeValue;
     
     for (int i = 0; i < _endNodes.size(); i++) {
         QString value = octalCodeToHexString(_endNodes[i]);
-        qDebug() << "End node[" << i << "]: " << rootNodeValue << "\n";
+        qDebug() << "End node[" << i << "]: " << rootNodeValue;
     }
 }
 

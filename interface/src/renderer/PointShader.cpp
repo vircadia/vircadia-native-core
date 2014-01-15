@@ -36,7 +36,7 @@ ProgramObject* PointShader::createPointShaderProgram(const QString& name) {
 
 void PointShader::init() {
     if (_initialized) {
-        qDebug("[ERROR] PointShader is already initialized.\n");
+        qDebug("[ERROR] PointShader is already initialized.");
         return;
     }
     switchToResourcesParentIfRequired();
