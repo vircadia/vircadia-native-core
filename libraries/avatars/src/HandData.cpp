@@ -38,9 +38,6 @@ PalmData& HandData::addNewPalm()  {
     return _palms.back();
 }
 
-const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
-const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
-
 const PalmData* HandData::getPalm(int sixSenseID) const {
     // the palms are not necessarily added in left-right order, 
     // so we have to search for the right SixSenseID
