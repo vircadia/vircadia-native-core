@@ -76,10 +76,10 @@ GLuint TextureCache::getPermutationNormalTextureID() {
     return _permutationNormalTextureID;
 }
 
-const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-const char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
+const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
-static void loadSingleColorTexture(const char* color) {
+static void loadSingleColorTexture(const unsigned char* color) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }

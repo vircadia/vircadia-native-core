@@ -11,7 +11,10 @@
 
 #include <math.h>
 #include <stdint.h>
-#include <unistd.h>
+
+#ifndef _WIN32
+#include <unistd.h> // not on windows, not needed for mac or windows
+#endif
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -46,8 +49,8 @@ static const float PIE              = 3.141592f;
 static const float PI_TIMES_TWO		= 3.141592f * 2.0f;
 static const float PI_OVER_180      = 3.141592f / 180.0f;
 static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
-static const float SQUARE_ROOT_OF_2 = (float)sqrt(2);
-static const float SQUARE_ROOT_OF_3 = (float)sqrt(3);
+static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.f);
+static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.f);
 static const float METER            = 1.0f;
 static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
@@ -105,34 +108,34 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r 
 unsigned char* pointToOctalCode(float x, float y, float z, float s);
 
 // Creates a full Voxel edit message, including command header, sequence, and details
-bool createVoxelEditMessage(unsigned char command, short int sequence, 
+bool createVoxelEditMessage(unsigned char command, short int sequence,
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
 
 /// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails, 
+bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
 #ifdef _WIN32
 void usleep(int waitTime);
 #endif
 
-int insertIntoSortedArrays(void* value, float key, int originalIndex, 
-                           void** valueArray, float* keyArray, int* originalIndexArray, 
+int insertIntoSortedArrays(void* value, float key, int originalIndex,
+                           void** valueArray, float* keyArray, int* originalIndexArray,
                            int currentCount, int maxCount);
 
-int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray,
                            int currentCount, int maxCount);
 
 
 
 // Helper Class for debugging
 class debug {
-public:                           
+public:
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
     static void setDeadBeef(void* memoryVoid, int size);
     static void checkDeadBeef(void* memoryVoid, int size);
 private:
-    static char DEADBEEF[];
+    static unsigned char DEADBEEF[];
     static int DEADBEEF_SIZE;
 };
 
@@ -146,7 +149,7 @@ bool isBetween(int64_t value, int64_t max, int64_t min);
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
 int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer);
 
-// Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0 
+// Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0
 // this allows us to encode each component in 16bits with great accuracy
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
 int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput);

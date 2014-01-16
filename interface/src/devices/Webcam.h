@@ -22,7 +22,9 @@
 #include <XnCppWrapper.h>
 #endif
 
+#ifdef HAVE_LIBVPX
 #include <vpx_codec.h>
+#endif
 
 #include "InterfaceConfig.h"
 
@@ -90,7 +92,7 @@ private:
     float _initialFaceDepth;
     JointVector _joints;
     KeyPointVector _keyPoints;
-    
+
     glm::quat _initialLEDRotation;
     glm::vec3 _initialLEDPosition;
     float _initialLEDScale;
@@ -106,6 +108,8 @@ private:
 
     bool _skeletonTrackingOn;
 };
+
+#ifdef HAVE_LIBVPX
 
 /// Acquires and processes video frames in a dedicated thread.
 class FrameGrabber : public QObject {
@@ -171,6 +175,9 @@ private:
 #endif
 };
 
+#endif //def HAVE_LIBVPX
+
+
 /// Contains the 3D transform and 2D projected position of a tracked joint.
 class Joint {
 public:
@@ -186,7 +193,13 @@ public:
 
 Q_DECLARE_METATYPE(JointVector)
 Q_DECLARE_METATYPE(KeyPointVector)
+
+
+
+#ifdef HAVE_LIBVPX
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
+#endif //def HAVE_LIBVPX
+
 
 #endif /* defined(__interface__Webcam__) */

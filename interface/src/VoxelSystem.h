@@ -97,8 +97,6 @@ public:
     void createVoxel(float x, float y, float z, float s,
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
     void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
-    void createSphere(float r,float xc, float yc, float zc, float s, bool solid,
-                      creationMode mode, bool destructive = false, bool debug = false);
 
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
@@ -151,7 +149,7 @@ public slots:
 
 protected:
     float _treeScale;
-    int _maxVoxels;
+    unsigned long _maxVoxels;
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();
@@ -260,8 +258,8 @@ private:
     GLuint _vboIndicesFront;
     GLuint _vboIndicesBack;
 
-    pthread_mutex_t _bufferWriteLock;
-    pthread_mutex_t _treeLock;
+    QMutex _bufferWriteLock;
+    QMutex _treeLock;
 
     ViewFrustum _lastKnownViewFrustum;
     ViewFrustum _lastStableViewFrustum;
@@ -287,7 +285,7 @@ private:
 
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
-    pthread_mutex_t _freeIndexLock;
+    QMutex _freeIndexLock;
 
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();

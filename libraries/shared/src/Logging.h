@@ -9,7 +9,11 @@
 #ifndef __hifi__Logging__
 #define __hifi__Logging__
 
+#ifdef _WIN32
+#include "Syssocket.h"
+#else
 #include <netinet/in.h>
+#endif
 
 #include <QtCore/QString>
 
@@ -27,21 +31,21 @@ class Logging {
 public:
     /// \return the socket used to send stats to logstash
     static const HifiSockAddr& socket();
-    
+
     /// checks if this target should send stats to logstash, given its current environment
     /// \return true if the caller should send stats to logstash
     static bool shouldSendStats();
-    
+
     /// stashes a float value to Logstash instance
     /// \param statType a stat type from the constants in this file
     /// \param key the key at which to store the stat
     /// \param value the value to store
     static void stashValue(char statType, const char* key, float value);
-    
+
     /// sets the target name to output via the verboseMessageHandler, called once before logging begins
     /// \param targetName the desired target name to output in logs
     static void setTargetName(const char* targetName);
-    
+
     /// a qtMessageHandler that can be hooked up to a target that links to Qt
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);

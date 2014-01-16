@@ -10,7 +10,20 @@
 #define __hifi__AvatarData__
 
 #include <string>
+/* VS2010 defines stdint.h, but not inttypes.h */
+#if defined(_MSC_VER)
+typedef signed char  int8_t;
+typedef signed short int16_t;
+typedef signed int   int32_t;
+typedef unsigned char  uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int   uint32_t;
+typedef signed long long   int64_t;
+typedef unsigned long long uint64_t;
+#define PRId64 "I64d"
+#else
 #include <inttypes.h>
+#endif
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -20,9 +33,10 @@
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
 
+#include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
-
 #include <NodeData.h>
+
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -50,7 +64,7 @@ class JointData;
 
 class AvatarData : public NodeData {
     Q_OBJECT
-    
+
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
@@ -60,19 +74,19 @@ class AvatarData : public NodeData {
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();
-    
+
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
-    
+
     const glm::vec3& getHandPosition() const { return _handPosition; }
     void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
-    
+
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    
+
     QUuid& getUUID() { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
-    
+
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
@@ -80,20 +94,20 @@ public:
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
-    
+
     //  Scale
     float getTargetScale() const { return _targetScale; }
     void setTargetScale(float targetScale) { _targetScale = targetScale; }
     void setClampedTargetScale(float targetScale);
-    
+
     //  Hand State
     void setHandState(char s) { _handState = s; }
     char getHandState() const { return _handState; }
-    
+
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
-    
+
     // chat message
     void setChatMessage(const std::string& msg) { _chatMessage = msg; }
     void setChatMessage(const QString& string) { _chatMessage = string.toLocal8Bit().constData(); }
@@ -101,7 +115,6 @@ public:
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
-    
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
@@ -118,13 +131,17 @@ public:
     /// \return whether or not the sphere penetrated
     virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, int skeletonSkipIndex = -1) const { return false; }
+
+    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+        return false;
+    }
     
 protected:
     QUuid _uuid;
-    
+
     glm::vec3 _position;
     glm::vec3 _handPosition;
-    
+
     //  Body rotation
     float _bodyYaw;
     float _bodyPitch;
@@ -135,20 +152,20 @@ protected:
 
     //  Hand state (are we grabbing something or not)
     char _handState;
-    
+
     // key state
     KeyState _keyState;
-    
+
     // chat message
     std::string _chatMessage;
-    
+
     bool _isChatCirclingEnabled;
-    
+
     std::vector<JointData> _joints;
-    
+
     HeadData* _headData;
     HandData* _handData;
-    
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
@@ -157,7 +174,7 @@ private:
 
 class JointData {
 public:
-    
+
     int jointID;
     glm::quat rotation;
 };

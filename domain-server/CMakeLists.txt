@@ -14,12 +14,12 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
-# grab cJSON and civetweb sources to pass as OPTIONAL_SRCS 
+# grab cJSON and civetweb sources to pass as OPTIONAL_SRCS
 FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/*)
 
 setup_hifi_project(${TARGET_NAME} TRUE ${OPTIONAL_SRCS})
 
-include_directories(${ROOT_DIR}/externals/civetweb/include)
+include_directories(SYSTEM ${ROOT_DIR}/externals/civetweb/include)
 
 # remove and then copy the files for the webserver
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -38,3 +38,7 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 if (UNIX AND NOT APPLE)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX AND NOT APPLE)
+
+IF (WIN32)
+	target_link_libraries(${TARGET_NAME} Winmm)
+ENDIF(WIN32)

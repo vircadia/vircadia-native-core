@@ -5,16 +5,11 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifdef _WIN32
-#define _timeval_
-#define _USE_MATH_DEFINES
-#endif
 
 #include <cstring>
 #include <cmath>
 #include <iostream> // to load voxels from file
 #include <fstream> // to load voxels from file
-#include <pthread.h>
 
 #include <OctalCode.h>
 #include <PacketHeaders.h>
@@ -73,9 +68,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _tree = new VoxelTree();
 
     _tree->getRoot()->setVoxelSystem(this);
-    pthread_mutex_init(&_bufferWriteLock, NULL);
-    pthread_mutex_init(&_treeLock, NULL);
-    pthread_mutex_init(&_freeIndexLock, NULL);
 
     VoxelTreeElement::addDeleteHook(this);
     VoxelTreeElement::addUpdateHook(this);
@@ -187,10 +179,10 @@ glBufferIndex VoxelSystem::getNextBufferIndex() {
     glBufferIndex output = GLBUFFER_INDEX_UNKNOWN;
     // if there's a free index, use it...
     if (_freeIndexes.size() > 0) {
-        pthread_mutex_lock(&_freeIndexLock);
+        _freeIndexLock.lock();
         output = _freeIndexes.back();
         _freeIndexes.pop_back();
-        pthread_mutex_unlock(&_freeIndexLock);
+        _freeIndexLock.unlock();
     } else {
         output = _voxelsInWriteArrays;
         _voxelsInWriteArrays++;
@@ -211,7 +203,7 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
 
     // make sure the index isn't already in the free list..., this is a debugging measure only done if you've enabled audits
     if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
-        for (long i = 0; i < _freeIndexes.size(); i++) {
+        for (unsigned long i = 0; i < _freeIndexes.size(); i++) {
             if (_freeIndexes[i] == index) {
                 printf("freeBufferIndex(glBufferIndex index)... index=%ld already in free list!", index);
                 inList = true;
@@ -221,9 +213,9 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
     }
     if (!inList) {
         // make the index available for next node that needs to be drawn
-        pthread_mutex_lock(&_freeIndexLock);
+        _freeIndexLock.lock();
         _freeIndexes.push_back(index);
-        pthread_mutex_unlock(&_freeIndexLock);
+        _freeIndexLock.unlock();
 
         // make the VBO slot "invisible" in case this slot is not used
         const glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -242,14 +234,14 @@ void VoxelSystem::clearFreeBufferIndexes() {
 
     // clear out freeIndexes
     {
-        PerformanceWarning warn(showWarnings,"clearFreeBufferIndexes() : pthread_mutex_lock(&_freeIndexLock)");
-        pthread_mutex_lock(&_freeIndexLock);
+        PerformanceWarning warn(showWarnings,"clearFreeBufferIndexes() : _freeIndexLock.lock()");
+        _freeIndexLock.lock();
     }
     {
         PerformanceWarning warn(showWarnings,"clearFreeBufferIndexes() : _freeIndexes.clear()");
         _freeIndexes.clear();
     }
-    pthread_mutex_unlock(&_freeIndexLock);
+    _freeIndexLock.unlock();
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -258,9 +250,6 @@ VoxelSystem::~VoxelSystem() {
 
     cleanupVoxelMemory();
     delete _tree;
-    pthread_mutex_destroy(&_bufferWriteLock);
-    pthread_mutex_destroy(&_treeLock);
-    pthread_mutex_destroy(&_freeIndexLock);
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
@@ -344,7 +333,7 @@ void VoxelSystem::setVoxelsAsPoints(bool voxelsAsPoints) {
 
 void VoxelSystem::cleanupVoxelMemory() {
     if (_initialized) {
-        pthread_mutex_lock(&_bufferWriteLock);
+        _bufferWriteLock.lock();
         _initialized = false; // no longer initialized
         if (_useVoxelShader) {
             // these are used when in VoxelShader mode.
@@ -382,7 +371,7 @@ void VoxelSystem::cleanupVoxelMemory() {
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
-        pthread_mutex_unlock(&_bufferWriteLock);
+        _bufferWriteLock.unlock();
     }
 }
 
@@ -391,7 +380,7 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 
     // populate the indicesArray
     // this will not change given new voxels, so we can set it all up now
-    for (int n = 0; n < _maxVoxels; n++) {
+    for (unsigned long n = 0; n < _maxVoxels; n++) {
         // fill the indices array
         int voxelIndexOffset = n * INDICES_PER_FACE;
         GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
@@ -415,7 +404,7 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 }
 
 void VoxelSystem::initVoxelMemory() {
-    pthread_mutex_lock(&_bufferWriteLock);
+    _bufferWriteLock.lock();
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
@@ -430,7 +419,7 @@ void VoxelSystem::initVoxelMemory() {
 
         // populate the indicesArray
         // this will not change given new voxels, so we can set it all up now
-        for (int n = 0; n < _maxVoxels; n++) {
+        for (unsigned long n = 0; n < _maxVoxels; n++) {
             indicesArray[n] = n;
         }
 
@@ -530,7 +519,7 @@ void VoxelSystem::initVoxelMemory() {
 
     _initialized = true;
 
-    pthread_mutex_unlock(&_bufferWriteLock);
+    _bufferWriteLock.unlock();
 }
 
 void VoxelSystem::writeToSVOFile(const char* filename, VoxelTreeElement* element) const {
@@ -684,7 +673,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    pthread_mutex_lock(&_bufferWriteLock);
+    _bufferWriteLock.lock();
 
     if (_voxelsUpdated) {
         _voxelsDirty=true;
@@ -693,7 +682,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
     copyWrittenDataToReadArrays(didWriteFullVBO);
 
-    pthread_mutex_unlock(&_bufferWriteLock);
+    _bufferWriteLock.unlock();
 
     uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
@@ -724,8 +713,8 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
     {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "setupNewVoxelsForDrawingSingleNode()... pthread_mutex_lock(&_bufferWriteLock);");
-        pthread_mutex_lock(&_bufferWriteLock);
+                                "setupNewVoxelsForDrawingSingleNode()... _bufferWriteLock.lock();" );
+        _bufferWriteLock.lock();
     }
 
     _voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
@@ -736,7 +725,7 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     // after...
     _voxelsUpdated = 0;
 
-    pthread_mutex_unlock(&_bufferWriteLock);
+    _bufferWriteLock.unlock();
 
     uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
@@ -1603,13 +1592,13 @@ void VoxelSystem::falseColorizeBySource() {
     };
 
     // create a bunch of colors we'll use during colorization
-    
+
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
             uint16_t nodeID = VoxelTreeElement::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
-            
+
             if (groupColors[groupColor].red > 0) {
                 groupColors[groupColor].red = ((groupColors[groupColor].red - MIN_COLOR)/2) + MIN_COLOR;
             }
@@ -1619,7 +1608,7 @@ void VoxelSystem::falseColorizeBySource() {
             if (groupColors[groupColor].blue > 0) {
                 groupColors[groupColor].blue = ((groupColors[groupColor].blue - MIN_COLOR)/2) + MIN_COLOR;
             }
-            
+
             voxelServerCount++;
         }
     }
@@ -2397,12 +2386,6 @@ void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize,
     setupNewVoxelsForDrawing();
 };
 
-void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bool solid,
-                               creationMode mode, bool destructive, bool debug) {
-    _tree->createSphere(r, xc, yc, zc, s, solid, mode, destructive, debug);
-    setupNewVoxelsForDrawing();
-};
-
 void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
     destination->setupNewVoxelsForDrawing();
@@ -2765,13 +2748,13 @@ unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
 }
 
 void VoxelSystem::lockTree() {
-    pthread_mutex_lock(&_treeLock);
+    _treeLock.lock();
     _treeIsBusy = true;
 }
 
 void VoxelSystem::unlockTree() {
     _treeIsBusy = false;
-    pthread_mutex_unlock(&_treeLock);
+    _treeLock.unlock();
 }
 
 

@@ -23,7 +23,7 @@ Cloud::Cloud() {
     _particles = new Particle[_count];
     _field = new Field(PARTICLE_WORLD_SIZE, FIELD_COUPLE);
     
-    for (int i = 0; i < _count; i++) {
+    for (unsigned int i = 0; i < _count; i++) {
         _particles[i].position = randVector() * box;
         const float INIT_VEL_SCALE = 0.03f;
         _particles[i].velocity = randVector() * ((float)PARTICLE_WORLD_SIZE * INIT_VEL_SCALE);
