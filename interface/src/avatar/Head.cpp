@@ -20,12 +20,12 @@ using namespace std;
 const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
 const float EYE_FRONT_OFFSET         =  0.8f;
-const float EAR_RIGHT_OFFSET         =  1.0;
+const float EAR_RIGHT_OFFSET         =  1.0f;
 const float MOUTH_UP_OFFSET          = -0.3f;
-const float HEAD_MOTION_DECAY        =  0.1;
+const float HEAD_MOTION_DECAY        =  0.1f;
 const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
-const float EYEBALL_RADIUS           =  0.017;
-const float EYELID_RADIUS            =  0.019; 
+const float EYEBALL_RADIUS           =  0.017f;
+const float EYELID_RADIUS            =  0.019f; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
 
 const float HAIR_SPRING_FORCE        =  15.0f; 
@@ -35,12 +35,12 @@ const float HAIR_DRAG                =  10.0f;
 
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
-const float NOSE_LENGTH              =  0.025;
-const float NOSE_WIDTH               =  0.03;
-const float NOSE_HEIGHT              =  0.034;
-const float NOSE_UP_OFFSET           = -0.07;
-const float NOSE_UPTURN              =  0.005;
-const float IRIS_RADIUS              =  0.007;
+const float NOSE_LENGTH              =  0.025f;
+const float NOSE_WIDTH               =  0.03f;
+const float NOSE_HEIGHT              =  0.034f;
+const float NOSE_UP_OFFSET           = -0.07f;
+const float NOSE_UPTURN              =  0.005f;
+const float IRIS_RADIUS              =  0.007f;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
@@ -81,7 +81,6 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _videoFace(this),
     _faceModel(this)
 {
   
@@ -148,7 +147,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         }
         _saccade += (_saccadeTarget - _saccade) * 0.50f;
     
-        const float AUDIO_AVERAGING_SECS = 0.05;
+        const float AUDIO_AVERAGING_SECS = 0.05f;
         _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
                                  (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
         
@@ -284,7 +283,7 @@ void Head::render(float alpha, bool renderAvatarBalls) {
         renderNose();
         renderEyeBrows();
     
-    } else if (!_videoFace.render(alpha)) {
+    } else {
         lookatVectorsVisible &= _faceModel.render(alpha);
     }
     

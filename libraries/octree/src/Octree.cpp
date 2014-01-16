@@ -43,20 +43,12 @@ Octree::Octree(bool shouldReaverage) :
     _shouldReaverage(shouldReaverage),
     _stopImport(false) {
     _rootNode = NULL;
-
-    pthread_mutex_init(&_encodeSetLock, NULL);
-    pthread_mutex_init(&_deleteSetLock, NULL);
-    pthread_mutex_init(&_deletePendingSetLock, NULL);
 }
 
 Octree::~Octree() {
     // delete the children of the root node
     // this recursively deletes the tree
     delete _rootNode;
-
-    pthread_mutex_destroy(&_encodeSetLock);
-    pthread_mutex_destroy(&_deleteSetLock);
-    pthread_mutex_destroy(&_deletePendingSetLock);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each node.
@@ -1504,53 +1496,53 @@ void dumpSetContents(const char* name, std::set<unsigned char*> set) {
 }
 
 void Octree::startEncoding(OctreeElement* node) {
-    pthread_mutex_lock(&_encodeSetLock);
+    _encodeSetLock.lock();
     _codesBeingEncoded.insert(node->getOctalCode());
-    pthread_mutex_unlock(&_encodeSetLock);
+    _encodeSetLock.unlock();
 }
 
 void Octree::doneEncoding(OctreeElement* node) {
-    pthread_mutex_lock(&_encodeSetLock);
+    _encodeSetLock.lock();
     _codesBeingEncoded.erase(node->getOctalCode());
-    pthread_mutex_unlock(&_encodeSetLock);
+    _encodeSetLock.unlock();
 
     // if we have any pending delete codes, then delete them now.
     emptyDeleteQueue();
 }
 
 void Octree::startDeleting(const unsigned char* code) {
-    pthread_mutex_lock(&_deleteSetLock);
+    _deleteSetLock.lock();
     _codesBeingDeleted.insert(code);
-    pthread_mutex_unlock(&_deleteSetLock);
+    _deleteSetLock.unlock();
 }
 
 void Octree::doneDeleting(const unsigned char* code) {
-    pthread_mutex_lock(&_deleteSetLock);
+    _deleteSetLock.lock();
     _codesBeingDeleted.erase(code);
-    pthread_mutex_unlock(&_deleteSetLock);
+    _deleteSetLock.unlock();
 }
 
 bool Octree::isEncoding(const unsigned char* codeBuffer) {
-    pthread_mutex_lock(&_encodeSetLock);
+    _encodeSetLock.lock();
     bool isEncoding = (_codesBeingEncoded.find(codeBuffer) != _codesBeingEncoded.end());
-    pthread_mutex_unlock(&_encodeSetLock);
+    _encodeSetLock.unlock();
     return isEncoding;
 }
 
 void Octree::queueForLaterDelete(const unsigned char* codeBuffer) {
-    pthread_mutex_lock(&_deletePendingSetLock);
+    _deletePendingSetLock.lock();
     _codesPendingDelete.insert(codeBuffer);
-    pthread_mutex_unlock(&_deletePendingSetLock);
+    _deletePendingSetLock.unlock();
 }
 
 void Octree::emptyDeleteQueue() {
-    pthread_mutex_lock(&_deletePendingSetLock);
+    _deletePendingSetLock.lock();
     for (std::set<const unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
         const unsigned char* codeToDelete = *i;
         _codesBeingDeleted.erase(codeToDelete);
         deleteOctalCodeFromTree(codeToDelete, COLLAPSE_EMPTY_TREE);
     }
-    pthread_mutex_unlock(&_deletePendingSetLock);
+    _deletePendingSetLock.unlock();
 }
 
 void Octree::cancelImport() {

@@ -11,7 +11,11 @@
 #include <cstdio>
 #include <cstring>
 
-#include <arpa/inet.h>
+#ifndef _WIN32
+#include <arpa/inet.h> // not available on windows
+#endif
+
+const int INET_ADDR_STRLEN = 16;
 
 #include <QtNetwork/QUdpSocket>
 
@@ -28,7 +32,7 @@ struct PairableDevice {
 };
 
 struct RequestingClient {
-    char address[INET_ADDRSTRLEN];
+    char address[INET_ADDR_STRLEN];
     int port;
 };
 
@@ -38,67 +42,67 @@ RequestingClient* lastClient = NULL;
 
 int indexOfFirstOccurenceOfCharacter(char* haystack, char needle) {
     int currentIndex = 0;
-    
+
     while (haystack[currentIndex] != '\0' && haystack[currentIndex] != needle) {
         currentIndex++;
     }
-    
+
     return currentIndex;
 }
 
 void sendLastClientToLastDevice() {
-    char pairData[INET_ADDRSTRLEN + 6] = {};
+    char pairData[INET_ADDR_STRLEN + 6] = {};
     int bytesWritten = sprintf(pairData, "%s:%d", ::lastClient->address, ::lastClient->port);
-    
+
     ::serverSocket.writeDatagram(pairData, bytesWritten,
                                  ::lastDevice->sendingSocket.getAddress(), ::lastDevice->sendingSocket.getPort());
 }
 
 int main(int argc, const char* argv[]) {
-    
+
     serverSocket.bind(QHostAddress::LocalHost, PAIRING_SERVER_LISTEN_PORT);
-    
+
     HifiSockAddr senderSockAddr;
     char senderData[MAX_PACKET_SIZE_BYTES] = {};
-    
+
     while (true) {
         if (::serverSocket.hasPendingDatagrams()
             && ::serverSocket.readDatagram(senderData, MAX_PACKET_SIZE_BYTES,
                                            senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer())) {
             if (senderData[0] == 'A') {
                 // this is a device reporting itself as available
-                
+
                 PairableDevice tempDevice = {};
-                
-                char deviceAddress[INET_ADDRSTRLEN] = {};
+
+                char deviceAddress[INET_ADDR_STRLEN] = {};
                 int socketPort = 0;
-                
+
                 int numMatches = sscanf(senderData, "Available %s %[^:]:%d %s",
                                         tempDevice.identifier,
                                         deviceAddress,
                                         &socketPort,
                                         tempDevice.name);
-                
+
                 if (numMatches >= 3) {
                     // if we have fewer than 3 matches the packet wasn't properly formatted
-                    
+
                     // setup the localSocket for the pairing device
                     tempDevice.localSocket.setAddress(QHostAddress(deviceAddress));
                     tempDevice.localSocket.setPort(socketPort);
-                    
+
                     // store this device's sending socket so we can talk back to it
                     tempDevice.sendingSocket = senderSockAddr;
-                    
+
                     // push this new device into the vector
                     printf("New last device is %s (%s) at %s:%d\n",
                            tempDevice.identifier,
                            tempDevice.name,
                            deviceAddress,
                            socketPort);
-                
-                    // copy the tempDevice to the persisting lastDevice                    
+
+                    // copy the tempDevice to the persisting lastDevice
                     ::lastDevice = new PairableDevice(tempDevice);
-                    
+
                     if (::lastClient) {
                         sendLastClientToLastDevice();
                     }
@@ -106,21 +110,21 @@ int main(int argc, const char* argv[]) {
             } else if (senderData[0] == 'F') {
                 // this is a client looking to pair with a device
                 // send the most recent device this address so it can attempt to pair
-                
+
                 RequestingClient tempClient = {};
-                
+
                 int requestorMatches = sscanf(senderData, "Find %[^:]:%d",
                                               tempClient.address,
                                               &tempClient.port);
-                
+
                 if (requestorMatches == 2) {
-                    // good data, copy the tempClient to the persisting lastInterfaceClient                    
+                    // good data, copy the tempClient to the persisting lastInterfaceClient
                     ::lastClient = new RequestingClient(tempClient);
-                    
+
                     printf("New last client is at %s:%d\n",
                            ::lastClient->address,
                            ::lastClient->port);
-                    
+
                     if (::lastDevice) {
                         sendLastClientToLastDevice();
                     }

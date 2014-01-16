@@ -19,15 +19,15 @@
 
 using namespace std;
 
-const float FINGERTIP_COLLISION_RADIUS = 0.01;
-const float FINGERTIP_VOXEL_SIZE = 0.05;
+const float FINGERTIP_COLLISION_RADIUS = 0.01f;
+const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.1f;
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const float NO_DAMPING = 0.f;
-const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0,0);
+const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0f,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
 const float CATCH_RADIUS = 0.3f;
@@ -159,7 +159,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                              IN_HAND,
                                                              TOY_BALL_UPDATE_SCRIPT);
         // Play a new ball sound
-        app->getAudio()->startDrumSound(1.0, 2000, 0.5, 0.02);
+        app->getAudio()->startDrumSound(1.0f, 2000, 0.5f, 0.02f);
     }
 
     if (grabButtonPressed) {
@@ -359,7 +359,7 @@ void Hand::updateCollisions() {
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     // check for collisions
-    for (int i = 0; i < getNumPalms(); i++) {
+    for (size_t i = 0; i < getNumPalms(); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
@@ -378,7 +378,7 @@ void Hand::updateCollisions() {
                     bool wasColliding = palm.getIsCollidingWithPalm();
                     palm.setIsCollidingWithPalm(false);
                     //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
-                    for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
+                    for (size_t j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
                         PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
                         if (!otherPalm.isActive()) {
                             continue;
@@ -504,7 +504,7 @@ void Hand::render(bool isMine) {
     }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-        for (int i = 0; i < getNumPalms(); i++) {
+        for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
             if (!palm.isActive()) {
                 continue;
@@ -610,29 +610,43 @@ void Hand::renderLeapHands(bool isMine) {
                     glColor4f(handColor.r, handColor.g, handColor.b, 0.5);
                     glm::vec3 tip = finger.getTipPosition();
                     glm::vec3 root = finger.getRootPosition();
-                    Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
+                    Avatar::renderJointConnectingCone(root, tip, 0.001f, 0.003f);
                 }
             }
         }
     }
 
-    // Draw the palms
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            const float palmThickness = 0.02f;
-            if (palm.getIsCollidingWithPalm()) {
-                glColor4f(1, 0, 0, 0.50);
-            } else {
-                glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+    // Draw the hand paddles
+    int MAX_NUM_PADDLES = 2; // one for left and one for right
+    glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
+    for (int i = 0; i < MAX_NUM_PADDLES; i++) {
+        const PalmData* palm = getPalm(i);
+        if (palm) {
+            // compute finger axis
+            glm::vec3 fingerAxis(0.f);
+            for (size_t f = 0; f < palm->getNumFingers(); ++f) {
+                const FingerData& finger = (palm->getFingers())[f];
+                if (finger.isActive()) {
+                    glm::vec3 fingerTip = finger.getTipPosition();
+                    glm::vec3 fingerRoot = finger.getRootPosition();
+                    fingerAxis = glm::normalize(fingerTip - fingerRoot);
+                    break;
+                }
             }
-            glm::vec3 tip = palm.getPosition();
-            glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
-            const float radiusA = 0.05f;
-            const float radiusB = 0.03f;
-            Avatar::renderJointConnectingCone(root, tip, radiusA, radiusB);
+            // compute paddle position
+            glm::vec3 handPosition;
+            if (i == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+                _owningAvatar->getSkeletonModel().getLeftHandPosition(handPosition);
+            } else if (i == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
+                _owningAvatar->getSkeletonModel().getRightHandPosition(handPosition);
+            }
+            glm::vec3 tip = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
+            glm::vec3 root = tip + palm->getNormal() * HAND_PADDLE_THICKNESS;
+            // render a very shallow cone as the paddle
+            Avatar::renderJointConnectingCone(root, tip, HAND_PADDLE_RADIUS, 0.f);
         }
     }
+
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
 

@@ -28,7 +28,7 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(bool turnWithHead);
+    void updateFromGyros(bool turnWithHead);
     void render(bool forceRenderHead);
     void renderDebugBodyPoints();
 

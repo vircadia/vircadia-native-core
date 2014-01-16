@@ -67,7 +67,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     QIODeviceOpener opener(&_incomingDatagramBuffer, QIODevice::ReadOnly);
     
     // read the sequence number
-    quint32 sequenceNumber;
+    int sequenceNumber;
     _incomingDatagramStream >> sequenceNumber;
     
     // if it's less than the last, ignore
@@ -107,7 +107,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     // read the list of acknowledged packets
     quint32 acknowledgementCount;
     _incomingPacketStream >> acknowledgementCount;
-    for (int i = 0; i < acknowledgementCount; i++) {
+    for (quint32 i = 0; i < acknowledgementCount; i++) {
         quint32 packetNumber;
         _incomingPacketStream >> packetNumber;
         if (_sendRecords.isEmpty()) {

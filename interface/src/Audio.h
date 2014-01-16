@@ -9,6 +9,11 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#ifdef _WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include <fstream>
 #include <vector>
 

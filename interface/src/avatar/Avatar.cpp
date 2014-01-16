@@ -33,17 +33,17 @@ using namespace std;
 
 const bool BALLS_ON = false;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_MAG = 500.0;
-const float MY_HAND_HOLDING_PULL = 0.2;
-const float YOUR_HAND_HOLDING_PULL = 1.0;
+const float YAW_MAG = 500.0f;
+const float MY_HAND_HOLDING_PULL = 0.2f;
+const float YOUR_HAND_HOLDING_PULL = 1.0f;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE = 300.0f;
 const float BODY_SPRING_DECAY = 16.0f;
-const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
-const float HEAD_ROTATION_SCALE = 0.70;
-const float HEAD_ROLL_SCALE = 0.40;
+const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE = 200.0f; // pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
+const float HEAD_ROTATION_SCALE = 0.70f;
+const float HEAD_ROLL_SCALE = 0.40f;
 const float HEAD_MAX_PITCH = 45;
 const float HEAD_MIN_PITCH = -45;
 const float HEAD_MAX_YAW = 85;
@@ -52,14 +52,14 @@ const float AVATAR_BRAKING_STRENGTH = 40.0f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const float FLOATING_HEIGHT = 0.13f;
 const bool  USING_HEAD_LEAN = false;
-const float LEAN_SENSITIVITY = 0.15;
-const float LEAN_MAX = 0.45;
-const float LEAN_AVERAGING = 10.0;
+const float LEAN_SENSITIVITY = 0.15f;
+const float LEAN_MAX = 0.45f;
+const float LEAN_AVERAGING = 10.0f;
 const float HEAD_RATE_MAX = 50.f;
-const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
-const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
+const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
+const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 const int   NUM_BODY_CONE_SIDES = 9;
-const float CHAT_MESSAGE_SCALE = 0.0015;
+const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
@@ -226,7 +226,7 @@ void Avatar::render(bool forceRenderHead) {
         glRotatef(glm::angle(chatRotation), chatAxis.x, chatAxis.y, chatAxis.z);
         
         
-        glColor3f(0, 0.8, 0);
+        glColor3f(0, 0.8f, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
         glScalef(_scale * CHAT_MESSAGE_SCALE, _scale * CHAT_MESSAGE_SCALE, 1.0f);
@@ -271,17 +271,11 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody(bool forceRenderHead) {
-
-    if (_head.getVideoFace().isFullFrame()) {
-        //  Render the full-frame video
-        _head.getVideoFace().render(1.0f);
-    } else {
-        //  Render the body's voxels and head
-        glm::vec3 pos = getPosition();
-        //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
-        _skeletonModel.render(1.0f);
-        _head.render(1.0f, false);
-    }
+    //  Render the body's voxels and head
+    glm::vec3 pos = getPosition();
+    //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
+    _skeletonModel.render(1.0f);
+    _head.render(1.0f, false);
     _hand.render(false);
 }
 
@@ -328,6 +322,54 @@ bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float pene
     }
     if (didPenetrate) {
         penetration = totalPenetration;
+        return true;
+    }
+    return false;
+}
+
+bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    // TODO: provide an early exit using bounding sphere of entire avatar
+
+    const HandData* handData = getHandData();
+    if (handData) {
+        for (int i = 0; i < 2; i++) {
+            const PalmData* palm = handData->getPalm(i);
+            if (palm) {
+                // create a disk collision proxy where the hand is
+                glm::vec3 fingerAxis(0.f);
+                for (size_t f = 0; f < palm->getNumFingers(); ++f) {
+                    const FingerData& finger = (palm->getFingers())[f];
+                    if (finger.isActive()) {
+                        // compute finger axis
+                        glm::vec3 fingerTip = finger.getTipPosition();
+                        glm::vec3 fingerRoot = finger.getRootPosition();
+                        fingerAxis = glm::normalize(fingerTip - fingerRoot);
+                        break;
+                    }
+                }
+                glm::vec3 handPosition;
+                if (i == 0) {
+                    _skeletonModel.getLeftHandPosition(handPosition);
+                }
+                else {
+                    _skeletonModel.getRightHandPosition(handPosition);
+                }
+                glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
+                glm::vec3 diskNormal = palm->getNormal();
+
+                // collide against the disk
+                if (findSphereDiskPenetration(sphereCenter, sphereRadius, 
+                            diskCenter, HAND_PADDLE_RADIUS, diskNormal, collision._penetration)) {
+                    collision._addedVelocity = palm->getVelocity();
+                    return true;
+                }
+            }
+        }
+    }
+
+    if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
+        collision._penetration /= (float)(TREE_SCALE);
+        collision._addedVelocity = getVelocity();
         return true;
     }
     return false;

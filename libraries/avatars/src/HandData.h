@@ -35,6 +35,9 @@ const int BUTTON_FWD = 128;
 
 const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
 
+const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
+const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
@@ -55,6 +58,7 @@ public:
 
     std::vector<PalmData>& getPalms() { return _palms; }
     const std::vector<PalmData>& getPalms() const { return _palms; }
+    const PalmData* getPalm(int sixSenseID) const;
     size_t getNumPalms() const { return _palms.size(); }
     PalmData& addNewPalm();
 

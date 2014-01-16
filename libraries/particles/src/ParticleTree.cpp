@@ -180,7 +180,7 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
 
 void ParticleTree::notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode) {
     _newlyCreatedHooksLock.lockForRead();
-    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
         _newlyCreatedHooks[i]->particleCreated(newParticle, senderNode);
     }
     _newlyCreatedHooksLock.unlock();
@@ -194,7 +194,7 @@ void ParticleTree::addNewlyCreatedHook(NewlyCreatedParticleHook* hook) {
 
 void ParticleTree::removeNewlyCreatedHook(NewlyCreatedParticleHook* hook) {
     _newlyCreatedHooksLock.lockForWrite();
-    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
         if (_newlyCreatedHooks[i] == hook) {
             _newlyCreatedHooks.erase(_newlyCreatedHooks.begin() + i);
             break;
