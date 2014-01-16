@@ -531,10 +531,15 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
 bool Audio::mousePressEvent(int x, int y) {
     if (_iconBounds.contains(x, y)) {
-        _muted = !_muted;
+        toggleMute();
         return true;
     }
     return false;
+}
+
+void Audio::toggleMute() {
+    _muted = !_muted;
+    muteToggled();
 }
 
 void Audio::render(int screenWidth, int screenHeight) {
