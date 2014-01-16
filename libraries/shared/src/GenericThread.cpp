@@ -28,7 +28,7 @@ void GenericThread::initialize(bool isThreaded) {
         // when the worker thread is started, call our engine's run..
         connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
 
-        // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
+        // XXXBHG: this is a known memory leak/thread leak. I will fix this shortly.
         //connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
         //connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
 
