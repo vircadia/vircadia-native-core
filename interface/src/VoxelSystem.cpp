@@ -922,9 +922,7 @@ int VoxelSystem::newTreeToArrays(VoxelTreeElement* voxel) {
         }
     }
 
-    // for either voxels that should not render, or those that should render and are in view
-    // update their geometry in the array.if the voxel "should render" but is not in view, then
-    // it actually doesn't need to be rendered
+    // update their geometry in the array. depending on our over all mode (fullVBO or not) we will reuse or not reuse the index
     if (_writeRenderFullVBO) {
         const bool DONT_REUSE_INDEX = false;
         const bool FORCE_REDRAW = true;
