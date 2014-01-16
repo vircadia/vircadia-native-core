@@ -1474,6 +1474,11 @@ void Application::setFullscreen(bool fullscreen) {
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
 
+void Application::setEnable3DTVMode(bool enable3DTVMode) {
+    resizeGL(_glWidget->width(),_glWidget->height());
+}
+
+
 void Application::setRenderVoxels(bool voxelRender) {
     _voxelEditSender.setShouldSend(voxelRender);
     if (!voxelRender) {
