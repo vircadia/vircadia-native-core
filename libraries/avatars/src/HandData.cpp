@@ -41,7 +41,7 @@ PalmData& HandData::addNewPalm()  {
 const PalmData* HandData::getPalm(int sixSenseID) const {
     // the palms are not necessarily added in left-right order, 
     // so we have to search for the right SixSenseID
-    for (int i = 0; i < _palms.size(); i++) {
+    for (unsigned int i = 0; i < _palms.size(); i++) {
         const PalmData* palm = &(_palms[i]);
         if (palm->getSixenseID() == sixSenseID) {
             return palm->isActive() ? palm : NULL;
