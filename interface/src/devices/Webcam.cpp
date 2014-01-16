@@ -40,7 +40,8 @@ int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 #endif //def HAVE_LIBVPX
 
-Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0), _skeletonTrackingOn(false), _grabber(NULL) {
+Webcam::Webcam() : _grabber(NULL), _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0),
+    _skeletonTrackingOn(false) {
     // the grabber simply runs as fast as possible
 #ifdef HAVE_LIBVPX
     _grabber = new FrameGrabber();
