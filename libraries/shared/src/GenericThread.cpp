@@ -64,7 +64,7 @@ void GenericThread::threadRoutine() {
         }
     }
 
-    // If we were on a thread, then wait till it's done
+    // If we were on a thread, then quit our thread
     if (_isThreaded && _thread) {
         _thread->quit();
     }
