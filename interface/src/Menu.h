@@ -44,12 +44,12 @@ class Menu : public QMenuBar, public AbstractMenuInterface {
 public:
     static Menu* getInstance();
     ~Menu();
-    
+
     bool isOptionChecked(const QString& menuOption);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
-    
+
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
@@ -61,7 +61,7 @@ public:
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
-    
+
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
@@ -69,10 +69,10 @@ public:
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
-    
+
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
-    
+
     virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
     virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString actionName,
@@ -81,7 +81,7 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
-    
+
 public slots:
     void bandwidthDetails();
     void voxelStatsDetails();
@@ -92,7 +92,7 @@ public slots:
     void exportSettings();
     void goToUser();
     void pasteToVoxel();
-    
+
 private slots:
     void aboutApp();
     void login();
@@ -107,30 +107,30 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    
+
 private:
     static Menu* _instance;
-    
+
     Menu();
-    
+
     typedef void(*settingsAction)(QSettings*, QAction*);
     static void loadAction(QSettings* set, QAction* action);
     static void saveAction(QSettings* set, QAction* action);
     void scanMenuBar(settingsAction modifySetting, QSettings* set);
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
-    
+
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
-                                           
+
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL);
-    
+
     void updateFrustumRenderModeAction();
-    
+
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
@@ -171,6 +171,7 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DisableColorVoxels = "Disable Colored Voxels";
     const QString DisableDeltaSending = "Disable Delta Sending";
+    const QString DisableLocalVoxelCache = "Disable Local Voxel Cache";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
