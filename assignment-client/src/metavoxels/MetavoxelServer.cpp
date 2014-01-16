@@ -29,7 +29,7 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
     delete _sessions.take(sessionId);
 }
 
-const char METAVOXEL_SERVER_LOGGING_NAME[] = "avatar-mixer";
+const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
 
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NODE_TYPE_METAVOXEL_SERVER);
