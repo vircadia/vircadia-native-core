@@ -31,7 +31,6 @@
 
 using namespace std;
 
-const bool BALLS_ON = false;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0f;
 const float MY_HAND_HOLDING_PULL = 0.2f;
@@ -40,7 +39,6 @@ const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float BODY_SPRING_FORCE = 300.0f;
 const float BODY_SPRING_DECAY = 16.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE = 200.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float HEAD_ROTATION_SCALE = 0.70f;
 const float HEAD_ROLL_SCALE = 0.40f;
@@ -56,8 +54,6 @@ const float LEAN_SENSITIVITY = 0.15f;
 const float LEAN_MAX = 0.45f;
 const float LEAN_AVERAGING = 10.0f;
 const float HEAD_RATE_MAX = 50.f;
-const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
-const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
@@ -82,7 +78,6 @@ Avatar::Avatar(Node* owningNode) :
     _head(this),
     _hand(this),
     _skeletonModel(this),
-    _ballSpringsInitialized(false),
     _bodyYawDelta(0.0f),
     _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
@@ -95,8 +90,7 @@ Avatar::Avatar(Node* owningNode) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _isCollisionsOn(true),
     _moving(false),
-    _initialized(false),
-    _handHoldingPosition(0.0f, 0.0f, 0.0f)
+    _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -155,7 +149,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     _head.setPosition(headPosition);
     _head.setScale(_scale);
-    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
     
     // use speed and angular velocity to determine walking vs. standing
@@ -275,18 +268,8 @@ void Avatar::renderBody(bool forceRenderHead) {
     glm::vec3 pos = getPosition();
     //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
     _skeletonModel.render(1.0f);
-    _head.render(1.0f, false);
+    _head.render(1.0f);
     _hand.render(false);
-}
-
-void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {
-    lighter = glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
-    darker = glm::vec3(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
-    if (_head.getFaceModel().isActive()) {
-        lighter = glm::vec3(_head.getFaceModel().computeAverageColor());
-        const float SKIN_DARKENING = 0.9f;
-        darker = lighter * SKIN_DARKENING;
-    }
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
@@ -456,7 +439,7 @@ void Avatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-void Avatar::setScale(const float scale) {
+void Avatar::setScale(float scale) {
     _scale = scale;
 
     if (_targetScale * (1.f - RESCALING_TOLERANCE) < _scale &&
