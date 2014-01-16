@@ -75,22 +75,22 @@ OctreeServer::~OctreeServer() {
 
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
-        delete _jurisdictionSender;
+        _jurisdictionSender->deleteLater();
     }
 
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminate();
-        delete _octreeInboundPacketProcessor;
+        _octreeInboundPacketProcessor->deleteLater();
     }
 
     if (_persistThread) {
         _persistThread->terminate();
-        delete _persistThread;
+        _persistThread->deleteLater();
     }
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-    
+
     qDebug() << "OctreeServer::run()... DONE";
 }
 
@@ -504,9 +504,9 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
         // need to make sure we have it in our nodeList.
         QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
                                                               NUM_BYTES_RFC4122_UUID));
-        
+
         SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
-        
+
         if (node) {
             nodeList->updateNodeWithData(node.data(), senderSockAddr, (unsigned char *) dataByteArray.data(),
                                          dataByteArray.size());
@@ -593,7 +593,7 @@ void OctreeServer::run() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
     srand((unsigned)time(0));
@@ -685,7 +685,7 @@ void OctreeServer::run() {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer;
-    
+
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_USECS / 1000);

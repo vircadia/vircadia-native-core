@@ -1395,13 +1395,13 @@ void Application::terminate() {
     // let the avatar mixer know we're out
     NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
 
-    printf("");
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
     if (_persistThread) {
         _persistThread->terminate();
+        _persistThread->deleteLater();
         _persistThread = NULL;
     }
 }
@@ -4326,6 +4326,7 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 
         if (_persistThread) {
             _persistThread->terminate();
+            _persistThread->deleteLater();
             _persistThread = NULL;
         }
 
