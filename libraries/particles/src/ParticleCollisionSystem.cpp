@@ -202,7 +202,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     const float EPSILON = 0.0f;
     float velocityDotPenetration = glm::dot(velocity, penetration);
     if (velocityDotPenetration > EPSILON) {
-        //position -= penetration;
+        position -= penetration;
         static float HALTING_VELOCITY = 0.2f / (float)(TREE_SCALE);
         // cancel out the velocity component in the direction of penetration
 
