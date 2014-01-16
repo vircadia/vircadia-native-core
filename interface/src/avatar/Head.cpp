@@ -9,44 +9,12 @@
 #include <NodeList.h>
 
 #include "Application.h"
-#include "Menu.h"
 #include "Avatar.h"
 #include "Head.h"
+#include "Menu.h"
 #include "Util.h"
-#include "renderer/ProgramObject.h"
 
 using namespace std;
-
-const float EYE_RIGHT_OFFSET         =  0.27f;
-const float EYE_UP_OFFSET            =  0.36f;
-const float EYE_FRONT_OFFSET         =  0.8f;
-const float EAR_RIGHT_OFFSET         =  1.0f;
-const float MOUTH_UP_OFFSET          = -0.3f;
-const float HEAD_MOTION_DECAY        =  0.1f;
-const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is straight ahead, 0.0 is 90 degrees off
-const float EYEBALL_RADIUS           =  0.017f;
-const float EYELID_RADIUS            =  0.019f; 
-const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
-
-const float HAIR_SPRING_FORCE        =  15.0f; 
-const float HAIR_TORQUE_FORCE        =  0.2f;
-const float HAIR_GRAVITY_FORCE       =  0.001f;
-const float HAIR_DRAG                =  10.0f;
-
-const float HAIR_LENGTH              =  0.09f;
-const float HAIR_THICKNESS           =  0.03f;
-const float NOSE_LENGTH              =  0.025f;
-const float NOSE_WIDTH               =  0.03f;
-const float NOSE_HEIGHT              =  0.034f;
-const float NOSE_UP_OFFSET           = -0.07f;
-const float NOSE_UPTURN              =  0.005f;
-const float IRIS_RADIUS              =  0.007f;
-const float IRIS_PROTRUSION          =  0.0145f;
-const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
-
-ProgramObject Head::_irisProgram;
-QSharedPointer<DilatableNetworkTexture> Head::_irisTexture;
-int Head::_eyePositionLocation;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
@@ -61,7 +29,6 @@ Head::Head(Avatar* owningAvatar) :
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _audioAttack(0.0f),
-    _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
@@ -80,18 +47,6 @@ Head::Head(Avatar* owningAvatar) :
 }
 
 void Head::init() {
-    if (!_irisProgram.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _irisProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
-        _irisProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
-        _irisProgram.link();
-
-        _irisProgram.setUniformValue("texture", 0);
-        _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
-        
-        _irisTexture = Application::getInstance()->getTextureCache()->getTexture(QUrl::fromLocalFile(IRIS_TEXTURE_FILENAME),
-            false, true).staticCast<DilatableNetworkTexture>();
-    }
     _faceModel.init();
 }
 
@@ -215,6 +170,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
         _leftEyePosition = _rightEyePosition = getPosition();
     }
+    _eyePosition = calculateAverageEyePosition();
 }
 
 void Head::render(float alpha) {

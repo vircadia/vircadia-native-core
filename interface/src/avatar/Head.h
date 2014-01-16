@@ -20,7 +20,6 @@
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "world.h"
-#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -43,7 +42,6 @@ public:
     void setPosition(glm::vec3 position) { _position = position; }
     void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
-    void setSpringScale(float returnSpringScale) { _returnSpringScale = returnSpringScale; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
@@ -93,7 +91,6 @@ private:
     glm::vec3 _gravity;
     float _lastLoudness;
     float _audioAttack;
-    float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
@@ -107,12 +104,6 @@ private:
     float _cameraYaw;
     bool _isCameraMoving;
     FaceModel _faceModel;
-
-    QSharedPointer<Texture> _dilatedIrisTexture;
-
-    static ProgramObject _irisProgram;
-    static QSharedPointer<DilatableNetworkTexture> _irisTexture;
-    static int _eyePositionLocation;
     
     // private methods
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
