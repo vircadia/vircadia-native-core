@@ -10,7 +10,6 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
-set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 
 if (DEFINED ENV{JOB_ID})
@@ -128,7 +127,6 @@ link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
-find_package(MotionDriver)
 find_package(Sixense)
 find_package(ZLIB)
 
@@ -166,7 +164,6 @@ include_directories(
   SYSTEM
   ${FACESHIFT_INCLUDE_DIRS}
   ${GLM_INCLUDE_DIRS}
-  ${MOTIONDRIVER_INCLUDE_DIRS}
 )
 
 MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
@@ -174,7 +171,6 @@ MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
-  ${MOTIONDRIVER_LIBRARIES}
   ${ZLIB_LIBRARIES}
 )
 
