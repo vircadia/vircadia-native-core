@@ -165,7 +165,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     }
 
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
-    
+
     // connect our processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(processDatagrams()));
 
@@ -176,7 +176,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-    
+
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
 
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
@@ -209,7 +209,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER, 
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER,
         NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
@@ -1416,8 +1416,10 @@ void Application::terminate() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
-    _persistThread->terminate();
-    _persistThread = NULL;
+    if (_persistThread) {
+        _persistThread->terminate();
+        _persistThread = NULL;
+    }
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
@@ -1966,12 +1968,12 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar*)node->getLinkedData();
             float distance;
-            
+
             if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
                 // rescale to compensate for head embiggening
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
                 (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
-                
+
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = avatar->getHead().getPosition();
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -1979,7 +1981,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             }
         }
     }
-    
+
     return NULL;
 }
 
@@ -2021,7 +2023,7 @@ void Application::renderHighlightVoxel(VoxelDetail voxel) {
 void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
-    
+
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         QMutexLocker(&node->getMutex());
         if (node->getLinkedData()) {
@@ -2038,11 +2040,11 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
         Avatar* avatar = *fade;
         const float SHRINK_RATE = 0.9f;
-        
+
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
-        
+
         const float MIN_FADE_SCALE = 0.001;
-        
+
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             delete avatar;
             _avatarFades.erase(fade--);
@@ -2260,6 +2262,7 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
     }
 }
 
+
 void Application::updateHandAndTouch(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
@@ -2303,7 +2306,9 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
-        _persistThread->threadRoutine();
+        if (_persistThread) {
+            _persistThread->threadRoutine();
+        }
     }
 }
 
@@ -2613,32 +2618,32 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
-    
+
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
             totalServers++;
-            
+
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-            
+
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownJurisdictionServers++;
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-                
+
                 unsigned char* rootCode = map.getRootOctalCode();
-                
+
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-                    
+
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
-                    
+
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
                     }
@@ -2671,20 +2676,20 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
     if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
-    
+
     NodeList* nodeList = NodeList::getInstance();
-    
+
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() != NULL && node->getType() == serverType) {
-            
-            
+
+
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-            
+
             bool inView = false;
             bool unknownView = false;
-            
+
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
@@ -2694,15 +2699,15 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-                
+
                 unsigned char* rootCode = map.getRootOctalCode();
-                
+
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-                    
+
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
@@ -2715,7 +2720,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     }
                 }
             }
-            
+
             if (inView) {
                 _voxelQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
@@ -2723,7 +2728,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
                             << perUnknownServer << " to send us jurisdiction.";
                 }
-                
+
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -2747,24 +2752,24 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-            
+
             // insert packet type/version and node UUID
             endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, packetType);
             QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
             memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
             endOfVoxelQueryPacket += ownerUUID.size();
-            
+
             // encode the query data...
             endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-            
+
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
-            
+
             // make sure we still have an active socket
             if (node->getActiveSocket()) {
                 nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
                                                         node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
             }
-            
+
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
         }
@@ -3244,7 +3249,7 @@ void Application::displayOverlay() {
         char nodes[100];
 
         int totalAvatars = 0, totalServers = 0;
-        
+
         foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
         }
@@ -3358,7 +3363,7 @@ void Application::displayStats() {
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
-        
+
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
                 totalPingVoxel += node->getPingMs();
@@ -3368,7 +3373,7 @@ void Application::displayStats() {
                 }
             }
         }
-        
+
         if (voxelServerCount) {
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
@@ -3704,10 +3709,10 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     if (!selfAvatarOnly) {
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
-        
+
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
             QMutexLocker(&node->getMutex());
-            
+
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
@@ -4205,28 +4210,28 @@ void Application::processDatagrams() {
                                                                                MAX_PACKET_SIZE,
                                                                                senderSockAddr.getAddressPointer(),
                                                                                senderSockAddr.getPortPointer()))) {
-        
+
         _packetCount++;
         _bytesCount += bytesReceived;
-        
+
         if (packetVersionMatch(_incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (_incomingPacket[0]) {
                 case PACKET_TYPE_TRANSMITTER_DATA_V2:
                     //  V2 = IOS transmitter app
                     _myTransmitter.processIncomingData(_incomingPacket, bytesReceived);
-                    
+
                     break;
                 case PACKET_TYPE_MIXED_AUDIO:
                     QMetaObject::invokeMethod(&_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, QByteArray((char*) _incomingPacket, bytesReceived)));
                     break;
-                    
+
                 case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
                     // look up our ParticleEditHanders....
                     ParticleEditHandle::handleAddResponse(_incomingPacket, bytesReceived);
                     break;
-                    
+
                 case PACKET_TYPE_PARTICLE_DATA:
                 case PACKET_TYPE_VOXEL_DATA:
                 case PACKET_TYPE_VOXEL_ERASE:
@@ -4234,7 +4239,7 @@ void Application::processDatagrams() {
                 case PACKET_TYPE_ENVIRONMENT_DATA: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
-                    
+
                     bool wantExtraDebugging = getLogger()->extraDebugging();
                     if (wantExtraDebugging && _incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
                         int numBytesPacketHeader = numBytesForPacketHeader(_incomingPacket);
@@ -4246,10 +4251,10 @@ void Application::processDatagrams() {
                         dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
                         VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
                         int flightTime = arrivedAt - sentAt;
-                        
+
                         printf("got PACKET_TYPE_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
                     }
-                    
+
                     // add this packet to our list of voxel packets and process them on the voxel processing
                     _voxelProcessor.queueReceivedPacket(senderSockAddr, _incomingPacket, bytesReceived);
                     break;
@@ -4392,10 +4397,13 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 
         QString localVoxelCacheFileName = getLocalVoxelCacheFileName();
         const int LOCAL_CACHE_PERSIST_INTERVAL = 1000 * 10; // every 10 seconds
-        _persistThread = new OctreePersistThread(_voxels.getTree(),
-                                        localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
 
-        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableLocalVoxelCache)) {
+            _persistThread = new OctreePersistThread(_voxels.getTree(),
+                                            localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
+
+            qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
+        }
 
         if (_persistThread) {
             _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
