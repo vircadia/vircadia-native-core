@@ -53,12 +53,6 @@ NodeList* NodeList::getInstance() {
     return _sharedInstance;
 }
 
-#ifdef WIN32
-//warning C4351: new behavior: elements of array 'NodeList::_nodeBuckets' will be default initialized
-// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
-#pragma warning(disable:4351)
-#endif
-
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
@@ -77,11 +71,6 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
 }
-
-#ifdef WIN32
-//warning C4351: new behavior: elements of array 'NodeList::_nodeBuckets' will be default initialized
-#pragma warning(default:4351)
-#endif
 
 
 NodeList::~NodeList() {
