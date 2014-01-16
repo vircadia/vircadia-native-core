@@ -89,7 +89,6 @@ Avatar::Avatar(Node* owningNode) :
     _thrust(0.0f, 0.0f, 0.0f),
     _speed(0.0f),
     _leanScale(0.5f),
-    _pelvisFloatingHeight(0.0f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
@@ -97,9 +96,7 @@ Avatar::Avatar(Node* owningNode) :
     _isCollisionsOn(true),
     _moving(false),
     _initialized(false),
-    _handHoldingPosition(0.0f, 0.0f, 0.0f),
-    _maxArmLength(0.0f),
-    _pelvisStandingHeight(0.0f)
+    _handHoldingPosition(0.0f, 0.0f, 0.0f)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -107,16 +104,6 @@ Avatar::Avatar(Node* owningNode) :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     _handData = &_hand;
-    
-    _skeleton.initialize();
-    
-    _height = _skeleton.getHeight();
-
-    _maxArmLength = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight();
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
-    
 }
 
 
@@ -137,6 +124,12 @@ void Avatar::init() {
     _initialized = true;
 }
 
+glm::vec3 Avatar::getChestPosition() const {
+    // for now, let's just assume that the "chest" is halfway between the root and the neck
+    glm::vec3 neckPosition;
+    return _skeletonModel.getNeckPosition(neckPosition) ? (_position + neckPosition) * 0.5f : _position;
+}
+
 glm::quat Avatar::getOrientation() const {
     return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
 }
@@ -152,22 +145,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
-    
-    // update torso rotation based on head lean
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
-                                                                                    _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
-    
-    // apply joint data (if any) to skeleton
-    bool enableHandMovement = true;
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        _skeleton.joint[it->jointID].rotation = it->rotation;
-        
-        // disable hand movement if we have joint info for the right wrist
-        enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
-    }
-    
-    // update avatar skeleton
-    _skeleton.update(deltaTime, getOrientation(), _position);
     
     _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
@@ -219,14 +196,15 @@ void Avatar::render(bool forceRenderHead) {
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+        float height = getHeight();
+        glm::vec3 delta = height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
         if (angle < MAX_ANGLE) {
             glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
             glPushMatrix();
             glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
+            glScalef(height / 2.f, height / 2.f, height / 2.f);
             glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
             glPopMatrix();
         }
@@ -293,17 +271,11 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody(bool forceRenderHead) {
-
-    if (_head.getVideoFace().isFullFrame()) {
-        //  Render the full-frame video
-        _head.getVideoFace().render(1.0f);
-    } else {
-        //  Render the body's voxels and head
-        glm::vec3 pos = getPosition();
-        //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
-        _skeletonModel.render(1.0f);
-        _head.render(1.0f, false);
-    }
+    //  Render the body's voxels and head
+    glm::vec3 pos = getPosition();
+    //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
+    _skeletonModel.render(1.0f);
+    _head.render(1.0f, false);
     _hand.render(false);
 }
 
@@ -360,7 +332,6 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
 
     const HandData* handData = getHandData();
     if (handData) {
-        int jointIndices[2] = { _skeletonModel.getLeftHandJointIndex(), _skeletonModel.getRightHandJointIndex() };
         for (int i = 0; i < 2; i++) {
             const PalmData* palm = handData->getPalm(i);
             if (palm) {
@@ -492,14 +463,18 @@ void Avatar::setScale(const float scale) {
             _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
         _scale = _targetScale;
     }
-    
-    _skeleton.setScale(_scale);
-    
-    _height = _skeleton.getHeight();
-    
-    _maxArmLength = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight();
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
+}
+
+float Avatar::getHeight() const {
+    Extents extents = _skeletonModel.getBindExtents();
+    return extents.maximum.y - extents.minimum.y;
+}
+
+float Avatar::getPelvisFloatingHeight() const {
+    return -_skeletonModel.getBindExtents().minimum.y;
+}
+
+float Avatar::getPelvisToHeadLength() const {
+    return glm::distance(_position, _head.getPosition());
 }
 

@@ -24,22 +24,18 @@ void FaceModel::simulate(float deltaTime) {
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
-    glm::vec3 modelTranslation;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
-        neckPosition = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].position;
-        const glm::vec3 OLD_SKELETON_MODEL_TRANSLATION(0.0f, -60.0f, 40.0f);
-        modelTranslation = OLD_SKELETON_MODEL_TRANSLATION;
+        neckPosition = owningAvatar->getPosition();
     }
     setTranslation(neckPosition);
     glm::quat neckRotation;
     if (!owningAvatar->getSkeletonModel().getNeckRotation(neckRotation)) {
-        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation *
-            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+        neckRotation = owningAvatar->getOrientation();
     }
     setRotation(neckRotation);
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
-    setOffset(modelTranslation - _geometry->getFBXGeometry().neckPivot);
+    setOffset(-_geometry->getFBXGeometry().neckPivot);
     
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());

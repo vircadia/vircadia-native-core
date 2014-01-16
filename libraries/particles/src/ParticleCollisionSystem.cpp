@@ -149,7 +149,6 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
-    const PalmData* collidingPalm = NULL;
 
     // first check the selfAvatar if set...
     if (_selfAvatar) {

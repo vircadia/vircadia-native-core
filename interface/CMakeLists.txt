@@ -10,11 +10,8 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
-set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
 set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
-set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
-set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -131,23 +128,9 @@ link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
-find_package(LibVPX)
 find_package(MotionDriver)
-find_package(OpenCV)
-find_package(OpenNI)
 find_package(Sixense)
-find_package(UVCCameraControl)
 find_package(ZLIB)
-
-# let the source know that we have OpenNI/NITE for Kinect
-if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
-    add_definitions(-DHAVE_OPENNI)
-    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
-endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
 # likewise with Sixense library for Razer Hydra
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -169,17 +152,6 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-# let the source know that we have LibVPX
-if (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
-    add_definitions(-DHAVE_LIBVPX)
-    include_directories(SYSTEM ${LIBVPX_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBVPX_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${LIBVPX_LIBRARIES})
-endif (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
-
-
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
@@ -194,22 +166,15 @@ include_directories(
   SYSTEM
   ${FACESHIFT_INCLUDE_DIRS}
   ${GLM_INCLUDE_DIRS}
-  ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
-  ${OPENCV_INCLUDE_DIRS}
 )
 
 MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
-
-if (APPLE OR UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
-endif (APPLE OR UNIX)
 
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
-  ${OPENCV_LIBRARIES}
   ${ZLIB_LIBRARIES}
 )
 
@@ -226,8 +191,6 @@ if (APPLE)
     find_library(QTKit QTKit)
     find_library(QuartzCore QuartzCore)
 
-    include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
-
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
@@ -240,7 +203,6 @@ if (APPLE)
         ${IOKit}
         ${QTKit}
         ${QuartzCore}
-        ${UVCCAMERACONTROL_LIBRARIES}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
@@ -253,7 +215,6 @@ endif (APPLE)
 if (WIN32)
     target_link_libraries(
     ${TARGET_NAME}
-    ${OPENCV_LIBRARIES}
     #${FACESHIFT_LIBRARIES}
 
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib

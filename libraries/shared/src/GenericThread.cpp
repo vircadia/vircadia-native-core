@@ -8,7 +8,10 @@
 //  Generic Threaded or non-threaded processing class
 //
 
+#include <QDebug>
+
 #include "GenericThread.h"
+
 
 GenericThread::GenericThread() :
     _stopThread(false),
@@ -23,14 +26,10 @@ GenericThread::~GenericThread() {
 void GenericThread::initialize(bool isThreaded) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
-        QThread* _thread = new QThread(this);
+        _thread = new QThread(this);
 
         // when the worker thread is started, call our engine's run..
         connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
-
-        // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-        //connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
-        //connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
 
         this->moveToThread(_thread);
 
@@ -42,7 +41,11 @@ void GenericThread::initialize(bool isThreaded) {
 void GenericThread::terminate() {
     if (_isThreaded) {
         _stopThread = true;
-        //_isThreaded = false;
+
+        if (_thread) {
+            _thread->wait();
+            _thread->deleteLater();
+        }
     }
 }
 
@@ -61,7 +64,10 @@ void GenericThread::threadRoutine() {
         }
     }
 
-    if (_isThreaded) {
-        emit finished();
+    // If we were on a thread, then quit our thread
+    if (_isThreaded && _thread) {
+        _thread->quit();
     }
+
+    emit finished();
 }

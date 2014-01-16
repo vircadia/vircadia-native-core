@@ -187,7 +187,6 @@ namespace MenuOption {
     const QString ExportVoxels = "Export Voxels";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
-    const QString FaceMode = "Cycle Face Mode";
     const QString FaceshiftTCP = "Faceshift (TCP)";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
@@ -213,7 +212,6 @@ namespace MenuOption {
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString ParticleCloud = "Particle Cloud";
-    const QString LeapDrive = "Leap Drive";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
@@ -244,12 +242,9 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";
-    const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString VoxelDrumming = "Voxel Drumming";
     const QString PlaySlaps = "Play Slaps";
-    const QString SkeletonTracking = "Skeleton Tracking";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
-    const QString LEDTracking = "LED Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString TestPing = "Test Ping";
@@ -268,9 +263,6 @@ namespace MenuOption {
     const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
-    const QString Webcam = "Webcam";
-    const QString WebcamMode = "Cycle Webcam Send Mode";
-    const QString WebcamTexture = "Webcam Texture";
 }
 
 #endif /* defined(__hifi__Menu__) */
