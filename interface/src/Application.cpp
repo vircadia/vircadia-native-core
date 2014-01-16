@@ -454,7 +454,7 @@ void Application::paintGL() {
             bool eyeRelativeCamera = false;
             if (_rearMirrorTools->getZoomLevel() == BODY) {
                 _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar.getScale());
-                _mirrorCamera.setTargetPosition(_myAvatar.getChestJointPosition());
+                _mirrorCamera.setTargetPosition(_myAvatar.getChestPosition());
             } else { // HEAD zoom level
                 _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar.getScale());
                 if (_myAvatar.getSkeletonModel().isActive() && _myAvatar.getHead().getFaceModel().isActive()) {
@@ -2349,7 +2349,7 @@ void Application::updateTransmitter(float deltaTime) {
 
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _transmitterPickStart = _myAvatar.getChestJointPosition();
+        _transmitterPickStart = _myAvatar.getChestPosition();
         glm::vec3 direction = _myAvatar.getOrientation() *
             glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
 
@@ -2973,7 +2973,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_DEPTH_TEST);
 
     //  Enable to show line from me to the voxel I am touching
-    //renderLineToTouchedVoxel();
     //renderThrustAtVoxel(_voxelThrust);
 
     if (!selfAvatarOnly) {
@@ -3540,20 +3539,6 @@ void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
         glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
         glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
         glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
-        glEnd();
-    }
-}
-
-void Application::renderLineToTouchedVoxel() {
-    //  Draw a teal line to the voxel I am currently dragging on
-    if (_mousePressed) {
-        glColor3f(0, 1, 1);
-        glLineWidth(2.0f);
-        glBegin(GL_LINES);
-        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
-        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
-        glm::vec3 headPosition = _myAvatar.getHeadJointPosition();
-        glVertex3fv(&headPosition.x);
         glEnd();
     }
 }

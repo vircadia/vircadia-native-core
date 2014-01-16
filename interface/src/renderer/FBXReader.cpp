@@ -1194,6 +1194,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
     
+    geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
@@ -1286,6 +1289,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 FBXJoint& joint = geometry.joints[fbxCluster.jointIndex];
                 joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
                 joint.bindTransform = cluster.transformLink;
+                
+                // update the bind pose extents
+                glm::vec3 bindTranslation = extractTranslation(geometry.offset * joint.bindTransform);
+                geometry.bindExtents.minimum = glm::min(geometry.bindExtents.minimum, bindTranslation);
+                geometry.bindExtents.maximum = glm::max(geometry.bindExtents.maximum, bindTranslation);
             }
         }
         

@@ -89,7 +89,6 @@ Avatar::Avatar(Node* owningNode) :
     _thrust(0.0f, 0.0f, 0.0f),
     _speed(0.0f),
     _leanScale(0.5f),
-    _pelvisFloatingHeight(0.0f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
@@ -105,12 +104,6 @@ Avatar::Avatar(Node* owningNode) :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     _handData = &_hand;
-    
-    _height = 0.0f; // _skeleton.getHeight();
-
-    _pelvisFloatingHeight = 0.0f; // _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = 0.0f; // _skeleton.getPelvisToHeadLength();
-    
 }
 
 
@@ -129,6 +122,12 @@ void Avatar::init() {
     _hand.init();
     _skeletonModel.init();
     _initialized = true;
+}
+
+glm::vec3 Avatar::getChestPosition() const {
+    // for now, let's just assume that the "chest" is halfway between the root and the neck
+    glm::vec3 neckPosition;
+    return _skeletonModel.getNeckPosition(neckPosition) ? (_position + neckPosition) * 0.5f : _position;
 }
 
 glm::quat Avatar::getOrientation() const {
@@ -197,14 +196,15 @@ void Avatar::render(bool forceRenderHead) {
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+        float height = getHeight();
+        glm::vec3 delta = height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
         if (angle < MAX_ANGLE) {
             glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
             glPushMatrix();
             glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
+            glScalef(height / 2.f, height / 2.f, height / 2.f);
             glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
             glPopMatrix();
         }
@@ -421,10 +421,18 @@ void Avatar::setScale(const float scale) {
             _scale < _targetScale * (1.f + RESCALING_TOLERANCE)) {
         _scale = _targetScale;
     }
-    
-    _height = 0.0f; // _skeleton.getHeight();
-    
-    _pelvisFloatingHeight = 0.0f; // _skeleton.getPelvisFloatingHeight();
-    _pelvisToHeadLength = 0.0f; // _skeleton.getPelvisToHeadLength();
+}
+
+float Avatar::getHeight() const {
+    Extents extents = _skeletonModel.getBindExtents();
+    return extents.maximum.y - extents.minimum.y;
+}
+
+float Avatar::getPelvisFloatingHeight() const {
+    return -_skeletonModel.getBindExtents().minimum.y;
+}
+
+float Avatar::getPelvisToHeadLength() const {
+    return glm::distance(_position, _head.getPosition());
 }
 

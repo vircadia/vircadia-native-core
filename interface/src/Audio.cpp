@@ -370,7 +370,7 @@ void Audio::handleAudioInput() {
         if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             
-            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+            glm::vec3 headPosition = interfaceAvatar->getHead().getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
             
             // we need the amount of bytes in the buffer + 1 for type

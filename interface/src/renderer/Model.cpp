@@ -460,6 +460,15 @@ bool Model::render(float alpha) {
     return true;
 }
 
+Extents Model::getBindExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
+    Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }

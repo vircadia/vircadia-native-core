@@ -240,7 +240,6 @@ private slots:
     void setFullscreen(bool fullscreen);
 
     void renderThrustAtVoxel(const glm::vec3& thrust);
-    void renderLineToTouchedVoxel();
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);

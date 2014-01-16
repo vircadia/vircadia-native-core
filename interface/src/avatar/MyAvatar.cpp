@@ -58,8 +58,6 @@ MyAvatar::MyAvatar(Node* owningNode) :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-
-    _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
 }
 
 void MyAvatar::reset() {
@@ -122,7 +120,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
             _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
             _collisionRadius *= COLLISION_RADIUS_SCALAR;
         } else {
-            _collisionRadius = _height * COLLISION_RADIUS_SCALE;
+            _collisionRadius = getHeight() * COLLISION_RADIUS_SCALE;
         }
 
         updateCollisionWithEnvironment(deltaTime);
@@ -515,7 +513,7 @@ float MyAvatar::getAbsoluteHeadYaw() const {
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
+    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
 void MyAvatar::renderBody(bool forceRenderHead) {
@@ -698,9 +696,10 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
+    float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
-            _position - up * (_pelvisFloatingHeight - radius),
-            _position + up * (_height - _pelvisFloatingHeight + radius), radius, penetration)) {
+            _position - up * (pelvisFloatingHeight - radius),
+            _position + up * (getHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
@@ -714,9 +713,10 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
     const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
+    float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
+            _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, getHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);

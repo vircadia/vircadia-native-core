@@ -143,8 +143,7 @@ public:
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     float getHeadYawRate() const { return _head.yawRate; }
-    const glm::vec3& getHeadJointPosition() const { return _position; }
-    const glm::vec3& getChestJointPosition() const { return _position; }
+    glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
@@ -190,10 +189,7 @@ protected:
     glm::vec3 _thrust;
     float _speed;
     float _leanScale;
-    float _pelvisFloatingHeight;
-    float _pelvisToHeadLength;
     float _scale;
-    float _height;
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
@@ -209,6 +205,9 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(const float scale);
 
+    float getHeight() const;
+    float getPelvisFloatingHeight() const;
+    float getPelvisToHeadLength() const;
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
