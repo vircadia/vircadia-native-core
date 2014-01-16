@@ -634,29 +634,6 @@ bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penet
     return false;
 }
 
-// TODO: purge this once we get proper collisions against hand paddles
-bool Model::findSpherePenetrationWithJoint(const glm::vec3& sphereCenter, float sphereRadius,
-        glm::vec3& penetration, int jointIndex, float boneScale) const {
-    if (jointIndex < 0 || jointIndex > _jointStates.size()) {
-        return false;
-    }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const FBXJoint& joint = geometry.joints[jointIndex];
-    glm::vec3 end = extractTranslation(_jointStates[jointIndex].transform);
-    float radiusScale = extractUniformScale(_scale) * boneScale;
-    float endRadius = joint.boneRadius * radiusScale;
-    glm::vec3 start = end;
-    float startRadius = joint.boneRadius * radiusScale;
-    glm::vec3 bonePenetration;
-    if (joint.parentIndex != -1) {
-        start = extractTranslation(_jointStates[joint.parentIndex].transform);
-        startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
-    }
-    const glm::vec3 relativeCenter = sphereCenter - _translation;
-    return findSphereCapsuleConePenetration(relativeCenter, sphereRadius, start, end,
-            startRadius, endRadius, penetration);
-}
-
 void Model::updateJointState(int index) {
     JointState& state = _jointStates[index];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
