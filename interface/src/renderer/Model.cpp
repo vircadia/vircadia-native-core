@@ -488,6 +488,22 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
     return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
+    
+bool Model::getLeftHandPosition(glm::vec3& position) const {
+    return getJointPosition(getLeftHandJointIndex(), position);
+}
+
+bool Model::getLeftHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getLeftHandJointIndex(), rotation);
+}
+
+bool Model::getRightHandPosition(glm::vec3& position) const {
+    return getJointPosition(getRightHandJointIndex(), position);
+}
+
+bool Model::getRightHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getRightHandJointIndex(), rotation);
+}
 
 bool Model::setLeftHandPosition(const glm::vec3& position) {
     return setJointPosition(getLeftHandJointIndex(), position);

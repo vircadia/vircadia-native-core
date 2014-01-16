@@ -167,6 +167,13 @@ public:
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, int skeletonSkipIndex = -1) const;
 
+    /// Checks for collision between the a sphere and the avatar.
+    /// \param collisionCenter the center of the penetration test sphere
+    /// \param collisionRadius the radius of the penetration test sphere
+    /// \param collision[out] the details of the collision point
+    /// \return whether or not the sphere collided
+    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
