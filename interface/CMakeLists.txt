@@ -43,12 +43,8 @@ if (WIN32)
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
     include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
 
-    # windows still using pthreads, TODO: switch to QThreads
-    set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
-
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
-    include_directories(SYSTEM ${PTHREADS_ROOT_PATH}/include)
 
 endif (WIN32)
 
@@ -215,14 +211,10 @@ endif (APPLE)
 if (WIN32)
     target_link_libraries(
     ${TARGET_NAME}
-    #${FACESHIFT_LIBRARIES}
 
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib
     ${GLUT_ROOT_PATH}/lib/freeglut.lib
 
-    # note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
-    # but really we need to switch over to QThreads
-    ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
     wsock32.lib
     opengl32.lib
     )
