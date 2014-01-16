@@ -59,8 +59,6 @@ MyAvatar::MyAvatar(Node* owningNode) :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-
-    _collisionRadius = _height * COLLISION_RADIUS_SCALE;
 }
 
 void MyAvatar::reset() {
@@ -103,21 +101,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // calculate speed
     _speed = glm::length(_velocity);
 
-    // update torso rotation based on head lean
-    _skeleton.joint[AVATAR_JOINT_TORSO].rotation = glm::quat(glm::radians(glm::vec3(
-        _head.getLeanForward(), 0.0f, _head.getLeanSideways())));
-
-    // apply joint data (if any) to skeleton
-    bool enableHandMovement = true;
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        _skeleton.joint[it->jointID].rotation = it->rotation;
-
-        // disable hand movement if we have joint info for the right wrist
-        enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
-    }
-
     // update the movement of the hand and process handshaking with other avatars...
-    updateHandMovementAndTouching(deltaTime, enableHandMovement);
+    updateHandMovementAndTouching(deltaTime);
 
     // apply gravity
     // For gravity, always move the avatar by the amount driven by gravity, so that the collision
@@ -136,7 +121,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
             _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
             _collisionRadius *= COLLISION_RADIUS_SCALAR;
         } else {
-            _collisionRadius = _height * COLLISION_RADIUS_SCALE;
+            _collisionRadius = getHeight() * COLLISION_RADIUS_SCALE;
         }
 
         updateCollisionWithEnvironment(deltaTime);
@@ -268,7 +253,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
-    _skeleton.update(deltaTime, getOrientation(), _position);
     _hand.simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -289,9 +273,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
+void MyAvatar::updateFromGyros(bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
 
     if (faceshift->isActive()) {
@@ -311,12 +294,8 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
                 }
             }
         }
-    } else if (webcam->isActive()) {
-        estimatedRotation = webcam->getEstimatedRotation();
-
     } else {
         _head.setPitch(_head.getMousePitch());
-        _head.getVideoFace().clearFrame();
 
         // restore rotation, lean to neutral positions
         const float RESTORE_RATE = 0.05f;
@@ -325,30 +304,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
         _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
-    }
-
-    if (webcam->isActive()) {
-        estimatedPosition = webcam->getEstimatedPosition();
-
-        // apply face data
-        _head.getVideoFace().setFrameFromWebcam();
-
-        // compute and store the joint rotations
-        const JointVector& joints = webcam->getEstimatedJoints();
-        _joints.clear();
-        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-            if (joints.size() > i && joints[i].isValid) {
-                JointData data = { i, joints[i].rotation };
-                _joints.push_back(data);
-
-                if (i == AVATAR_JOINT_CHEST) {
-                    // if we have a chest rotation, don't apply lean based on head
-                    estimatedPosition = glm::vec3();
-                }
-            }
-        }
-    } else {
-        _head.getVideoFace().clearFrame();
     }
 
     // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
@@ -544,30 +499,18 @@ float MyAvatar::getAbsoluteHeadYaw() const {
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
-}
-
-glm::vec3 MyAvatar::getEyeLevelPosition() const {
-    const float EYE_UP_OFFSET = 0.36f;
-    return _position + getWorldAlignedOrientation() * _skeleton.joint[AVATAR_JOINT_TORSO].rotation *
-        glm::vec3(0.0f, _pelvisToHeadLength + _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET, 0.0f);
+    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
 void MyAvatar::renderBody(bool forceRenderHead) {
+    //  Render the body's voxels and head
+    _skeletonModel.render(1.0f);
 
-    if (_head.getVideoFace().isFullFrame()) {
-        //  Render the full-frame video
-            _head.getVideoFace().render(1.0f);
-    } else {
-        //  Render the body's voxels and head
-        _skeletonModel.render(1.0f);
-
-        //  Render head so long as the camera isn't inside it
-        const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
-        Camera* myCamera = Application::getInstance()->getCamera();
-        if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
-            _head.render(1.0f, false);
-        }
+    //  Render head so long as the camera isn't inside it
+    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
+    Camera* myCamera = Application::getInstance()->getCamera();
+    if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
+        _head.render(1.0f, false);
     }
     _hand.render(true);
 }
@@ -690,15 +633,14 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _isThrustOn = (glm::length(_thrust) > EPSILON);
 }
 
-void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
-
+void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     glm::quat orientation = getOrientation();
 
     // reset hand and arm positions according to hand movement
     glm::vec3 up = orientation * IDENTITY_UP;
 
     bool pointing = false;
-    if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
+    if (glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
         // confine to the approximate shoulder plane
         glm::vec3 pointDirection = _mouseRayDirection;
         if (glm::dot(_mouseRayDirection, up) > 0.0f) {
@@ -733,9 +675,10 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
+    float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
-            _position - up * (_pelvisFloatingHeight - radius),
-            _position + up * (_height - _pelvisFloatingHeight + radius), radius, penetration)) {
+            _position - up * (pelvisFloatingHeight - radius),
+            _position + up * (getHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
@@ -749,9 +692,10 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
     const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
+    float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
-            _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
+            _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
+            _position + glm::vec3(0.0f, getHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
