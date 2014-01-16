@@ -9,24 +9,6 @@
 #ifndef __hifi__CollisionInfo__
 #define __hifi__CollisionInfo__
 
-/*
-#include <ostream>
-#include <stdint.h>
-
-#ifdef _WIN32
-#include "Syssocket.h"
-#else
-#include <sys/socket.h>
-#endif
-
-#include <QtCore/QDebug>
-#include <QtCore/QUuid>
-
-#include "HifiSockAddr.h"
-#include "NodeData.h"
-#include "SimpleMovingAverage.h"
-*/
-
 #include <glm/glm.hpp>
 
 class CollisionInfo {
