@@ -22,7 +22,7 @@ public:
 };
 
 
-/// Generalized threaded processor for queueing and sending of outbound packets. 
+/// Generalized threaded processor for queueing and sending of outbound packets.
 class PacketSender : public virtual GenericThread {
 public:
 
@@ -44,9 +44,8 @@ public:
     /// \param ssize_t packetLength size of data
     /// \thread any thread, typically the application thread
     void queuePacketForSending(const HifiSockAddr& address, unsigned char*  packetData, ssize_t packetLength);
-    
-    void setPacketsPerSecond(int packetsPerSecond) 
-        { _packetsPerSecond = std::max(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond); }
+
+    void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
 
     void setPacketSenderNotify(PacketSenderNotify* notify) { _notify = notify; }
@@ -66,19 +65,19 @@ public:
     void setProcessCallIntervalHint(int usecsPerProcessCall) { _usecsPerProcessCallHint = usecsPerProcessCall; }
 
     /// returns the packets per second send rate of this object over its lifetime
-    float getLifetimePPS() const 
+    float getLifetimePPS() const
         { return getLifetimeInSeconds() == 0 ? 0 : (float)((float)_totalPacketsSent / getLifetimeInSeconds()); }
 
     /// returns the bytes per second send rate of this object over its lifetime
-    float getLifetimeBPS() const 
+    float getLifetimeBPS() const
         { return getLifetimeInSeconds() == 0 ? 0 : (float)((float)_totalBytesSent / getLifetimeInSeconds()); }
-    
+
     /// returns the packets per second queued rate of this object over its lifetime
-    float getLifetimePPSQueued() const 
+    float getLifetimePPSQueued() const
         { return getLifetimeInSeconds() == 0 ? 0 : (float)((float)_totalPacketsQueued / getLifetimeInSeconds()); }
 
     /// returns the bytes per second queued rate of this object over its lifetime
-    float getLifetimeBPSQueued() const 
+    float getLifetimeBPSQueued() const
         { return getLifetimeInSeconds() == 0 ? 0 : (float)((float)_totalBytesQueued / getLifetimeInSeconds()); }
 
     /// returns lifetime of this object from first packet sent to now in usecs
@@ -104,7 +103,7 @@ protected:
     int _usecsPerProcessCallHint;
     uint64_t _lastProcessCallTime;
     SimpleMovingAverage _averageProcessCallTime;
-    
+
 private:
     std::vector<NetworkPacket> _packets;
     uint64_t _lastSendTime;
@@ -112,7 +111,7 @@ private:
 
     bool threadedProcess();
     bool nonThreadedProcess();
-    
+
     uint64_t _lastPPSCheck;
     int _packetsOverCheckInterval;
 

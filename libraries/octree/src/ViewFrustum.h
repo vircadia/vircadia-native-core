@@ -80,7 +80,7 @@ public:
     ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
     ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
     ViewFrustum::location boxInFrustum(const AABox& box) const;
-    
+
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
     bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
@@ -90,11 +90,11 @@ public:
 
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearValue, float& farValue,
                                glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
     void printDebugDetails() const;
-    
+
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AABox& box) const;
     glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
@@ -104,16 +104,16 @@ private:
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
     ViewFrustum::location boxInKeyhole(const AABox& box) const;
-    
+
     // camera location/orientation attributes
     glm::vec3   _position;
     glm::quat   _orientation;
-    
+
     // calculated for orientation
     glm::vec3   _direction;
     glm::vec3   _up;
     glm::vec3   _right;
-    
+
     // Lens attributes
     float _fieldOfView;
     float _aspectRatio;
@@ -122,12 +122,12 @@ private:
     float _focalLength;
     glm::vec3 _eyeOffsetPosition;
     glm::quat _eyeOffsetOrientation;
-    
+
     // keyhole attributes
     float       _keyholeRadius;
     AABox       _keyholeBoundingBox;
 
-    
+
     // Calculated values
     glm::vec3   _offsetPosition;
     glm::vec3   _offsetDirection;
@@ -143,9 +143,9 @@ private:
     glm::vec3   _nearBottomRight;
     enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     ::Plane _planes[6]; // How will this be used?
-    
+
     const char* debugPlaneName (int plane) const;
-    
+
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
 };

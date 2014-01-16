@@ -41,3 +41,7 @@ include_directories(${ROOT_DIR}/externals/civetweb/include)
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
+
+IF (WIN32)
+	target_link_libraries(${TARGET_NAME} Winmm)
+ENDIF(WIN32)

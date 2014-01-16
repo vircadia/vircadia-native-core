@@ -14,51 +14,54 @@ GenericThread::GenericThread() :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
-    pthread_mutex_init(&_mutex, 0);
 }
 
 GenericThread::~GenericThread() {
     terminate();
-    pthread_mutex_destroy(&_mutex);
 }
 
 void GenericThread::initialize(bool isThreaded) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
-        pthread_create(&_thread, NULL, GenericThreadEntry, this);
+        QThread* _thread = new QThread(this);
+
+        // when the worker thread is started, call our engine's run..
+        connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
+
+        // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
+        //connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
+        //connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
+
+        this->moveToThread(_thread);
+
+        // Starts an event loop, and emits _thread->started()
+        _thread->start();
     }
 }
 
 void GenericThread::terminate() {
     if (_isThreaded) {
         _stopThread = true;
-        pthread_join(_thread, NULL); 
-        _isThreaded = false;
+        //_isThreaded = false;
     }
 }
 
-void* GenericThread::threadRoutine() {
+void GenericThread::threadRoutine() {
     while (!_stopThread) {
-    
+
         // override this function to do whatever your class actually does, return false to exit thread early
         if (!process()) {
             break;
         }
-        
-        // In non-threaded mode, this will break each time you call it so it's the 
+
+        // In non-threaded mode, this will break each time you call it so it's the
         // callers responsibility to continuously call this method
         if (!_isThreaded) {
             break;
         }
     }
-    
-    if (_isThreaded) {
-        pthread_exit(0); 
-    }
-    return NULL; 
-}
 
-extern "C" void* GenericThreadEntry(void* arg) {
-    GenericThread* genericThread = (GenericThread*)arg;
-    return genericThread->threadRoutine();
+    if (_isThreaded) {
+        emit finished();
+    }
 }

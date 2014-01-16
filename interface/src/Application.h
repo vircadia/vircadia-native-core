@@ -10,7 +10,6 @@
 #define __interface__Application__
 
 #include <map>
-#include <pthread.h>
 #include <time.h>
 
 #include <QApplication>
@@ -28,9 +27,7 @@
 #include <ScriptEngine.h>
 #include <VoxelQuery.h>
 
-#ifndef _WIN32
 #include "Audio.h"
-#endif
 
 #include "BandwidthMeter.h"
 #include "Camera.h"
@@ -189,10 +186,10 @@ public:
     const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
-        float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-    
+
     virtual void packetSentNotification(ssize_t length);
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
@@ -211,9 +208,9 @@ public:
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-    
+
     void processDatagrams();
-    
+
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
@@ -445,8 +442,6 @@ private:
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
-    bool _perfStatsOn; //  Do we want to display perfStats?
-
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
 
@@ -458,9 +453,7 @@ private:
     VoxelShader _voxelShader;
     PointShader _pointShader;
 
-    #ifndef _WIN32
     Audio _audio;
-    #endif
 
     bool _enableProcessVoxelsThread;
     VoxelPacketProcessor _voxelProcessor;

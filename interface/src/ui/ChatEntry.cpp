@@ -42,7 +42,7 @@ bool ChatEntry::keyPressEvent(QKeyEvent* event) {
             return true;
         
         case Qt::Key_Delete:
-            if (_cursorPos < _contents.size()) {
+            if (_cursorPos < (int)_contents.size()) {
                 _contents.erase(_cursorPos, 1);
             }
             return true;
@@ -86,11 +86,11 @@ void ChatEntry::render(int screenWidth, int screenHeight) {
     glVertex2f(left - 5, top - 3);
     glEnd();
 
-    drawtext(left, bottom, 0.10, 0, 1.0, 0, _contents.c_str(), 1, 1, 1);
+    drawtext(left, bottom, 0.10f, 0, 1.0f, 0, _contents.c_str(), 1, 1, 1);
     
     float width = 0;
     for (string::iterator it = _contents.begin(), end = it + _cursorPos; it != end; it++) {
-        width += widthChar(0.10, 0, *it);
+        width += widthChar(0.10f, 0, *it);
     }
     glDisable(GL_LINE_SMOOTH);
     glBegin(GL_LINE_STRIP);
