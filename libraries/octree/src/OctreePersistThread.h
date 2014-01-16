@@ -38,7 +38,6 @@ private:
     int _persistInterval;
     bool _initialLoadComplete;
 
-    time_t _loadCompleted;
     uint64_t _loadTimeUSecs;
     uint64_t _lastCheck;
 };
