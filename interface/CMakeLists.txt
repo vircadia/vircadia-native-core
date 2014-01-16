@@ -166,8 +166,6 @@ include_directories(
   ${GLM_INCLUDE_DIRS}
 )
 
-MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
-
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
