@@ -8,7 +8,10 @@
 //  Generic Threaded or non-threaded processing class
 //
 
+#include <QDebug>
+
 #include "GenericThread.h"
+
 
 GenericThread::GenericThread() :
     _stopThread(false),
@@ -23,14 +26,10 @@ GenericThread::~GenericThread() {
 void GenericThread::initialize(bool isThreaded) {
     _isThreaded = isThreaded;
     if (_isThreaded) {
-        QThread* _thread = new QThread(this);
+        _thread = new QThread(this);
 
         // when the worker thread is started, call our engine's run..
         connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
-
-        // XXXBHG: this is a known memory leak/thread leak. I will fix this shortly.
-        //connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
-        //connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
 
         this->moveToThread(_thread);
 
@@ -42,7 +41,11 @@ void GenericThread::initialize(bool isThreaded) {
 void GenericThread::terminate() {
     if (_isThreaded) {
         _stopThread = true;
-        //_isThreaded = false;
+
+        if (_thread) {
+            _thread->wait();
+            _thread->deleteLater();
+        }
     }
 }
 
@@ -61,7 +64,10 @@ void GenericThread::threadRoutine() {
         }
     }
 
-    if (_isThreaded) {
-        emit finished();
+    // If we were on a thread, then wait till it's done
+    if (_isThreaded && _thread) {
+        _thread->quit();
     }
+
+    emit finished();
 }
