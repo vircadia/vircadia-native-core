@@ -86,7 +86,7 @@ void Webcam::reset() {
 }
 
 void Webcam::renderPreview(int screenWidth, int screenHeight) {
-#ifdef HAVE_LIBVPX    
+#ifdef HAVE_LIBVPX
 	if (_enabled) {
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
@@ -431,9 +431,7 @@ static SimpleBlobDetector::Params createBlobDetectorParams() {
 
 FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _ledTrackingOn(false),
     _capture(0), _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH),
-#ifdef HAVE_LIBVPX
     _colorCodec(), _depthCodec(),
-#endif
     _frameCount(0), _blobDetector(createBlobDetectorParams()) {
 }
 
@@ -575,7 +573,6 @@ static Point clip(const Point& point, const Rect& bounds) {
 }
 
 void FrameGrabber::grabFrame() {
-#ifdef HAVE_LIBVPX
     if (!(_initialized || init())) {
         return;
     }
@@ -957,7 +954,6 @@ void FrameGrabber::grabFrame() {
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
         Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
         Q_ARG(JointVector, joints), Q_ARG(KeyPointVector, keyPoints));
-#endif
 }
 
 bool FrameGrabber::init() {
@@ -1037,7 +1033,6 @@ void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
 }
 
 void FrameGrabber::destroyCodecs() {
-#ifdef HAVE_LIBVPX
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
         _colorCodec.name = 0;
@@ -1046,7 +1041,6 @@ void FrameGrabber::destroyCodecs() {
         vpx_codec_destroy(&_depthCodec);
         _depthCodec.name = 0;
     }
-#endif
 }
 
 
