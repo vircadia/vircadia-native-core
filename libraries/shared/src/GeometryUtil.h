@@ -47,6 +47,17 @@ bool findSphereCapsuleConePenetration(const glm::vec3& sphereCenter, float spher
 bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadius, 
                                 const glm::vec4& plane, glm::vec3& penetration);
                                   
+/// Computes the penetration between a sphere and a disk.
+/// \param sphereCenter center of sphere
+/// \param sphereRadius radius of sphere
+/// \param diskCenter center of disk
+/// \param diskRadius radius of disk
+/// \param diskNormal normal of disk plan
+/// \return true if sphere touches disk (does not handle collisions with disk edge)
+bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
+                               const glm::vec3& diskCenter, float diskRadius, const glm::vec3& diskNormal, 
+                               glm::vec3& penetration);
+
 bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,
                                   const glm::vec3& sphereCenter, float sphereRadius, glm::vec3& penetration);
 

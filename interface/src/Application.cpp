@@ -1432,8 +1432,10 @@ void Application::terminate() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
-    _persistThread->terminate();
-    _persistThread = NULL;
+    if (_persistThread) {
+        _persistThread->terminate();
+        _persistThread = NULL;
+    }
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
@@ -2276,6 +2278,7 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
     }
 }
 
+
 void Application::updateHandAndTouch(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
@@ -2319,7 +2322,9 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
-        _persistThread->threadRoutine();
+        if (_persistThread) {
+            _persistThread->threadRoutine();
+        }
     }
 }
 
@@ -4395,10 +4400,13 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 
         QString localVoxelCacheFileName = getLocalVoxelCacheFileName();
         const int LOCAL_CACHE_PERSIST_INTERVAL = 1000 * 10; // every 10 seconds
-        _persistThread = new OctreePersistThread(_voxels.getTree(),
-                                        localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
 
-        qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableLocalVoxelCache)) {
+            _persistThread = new OctreePersistThread(_voxels.getTree(),
+                                            localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
+
+            qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
+        }
 
         if (_persistThread) {
             _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates

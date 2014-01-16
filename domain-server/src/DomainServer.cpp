@@ -417,8 +417,8 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                     mg_printf(connection, "%s", RESPONSE_200);
 
                     // we have a valid UUID and node - kill the node that has this assignment
-                    NodeList::getInstance()->killNodeWithUUID(deleteUUID);
-
+                    QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
+                    
                     // successfully processed request
                     return 1;
                 }

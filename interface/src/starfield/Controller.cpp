@@ -24,7 +24,8 @@ bool Controller::computeStars(unsigned numStars, unsigned seed) {
     
     this->retile(numStars, _tileResolution);
     
-    qDebug() << "Total time to generate stars: " << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
+    qDebug() << "Total time to retile and generate stars: "
+        << ((usecTimestampNow() - usecTimestamp(&startTime)) / 1000) << "msec";
     
     return true;
 }

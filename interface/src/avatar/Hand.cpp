@@ -616,23 +616,37 @@ void Hand::renderLeapHands(bool isMine) {
         }
     }
 
-    // Draw the palms
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            const float palmThickness = 0.02f;
-            if (palm.getIsCollidingWithPalm()) {
-                glColor4f(1, 0, 0, 0.50);
-            } else {
-                glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+    // Draw the hand paddles
+    int MAX_NUM_PADDLES = 2; // one for left and one for right
+    glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
+    for (int i = 0; i < MAX_NUM_PADDLES; i++) {
+        const PalmData* palm = getPalm(i);
+        if (palm) {
+            // compute finger axis
+            glm::vec3 fingerAxis(0.f);
+            for (size_t f = 0; f < palm->getNumFingers(); ++f) {
+                const FingerData& finger = (palm->getFingers())[f];
+                if (finger.isActive()) {
+                    glm::vec3 fingerTip = finger.getTipPosition();
+                    glm::vec3 fingerRoot = finger.getRootPosition();
+                    fingerAxis = glm::normalize(fingerTip - fingerRoot);
+                    break;
+                }
             }
-            glm::vec3 tip = palm.getPosition();
-            glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
-            const float radiusA = 0.05f;
-            const float radiusB = 0.03f;
-            Avatar::renderJointConnectingCone(root, tip, radiusA, radiusB);
+            // compute paddle position
+            glm::vec3 handPosition;
+            if (i == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+                _owningAvatar->getSkeletonModel().getLeftHandPosition(handPosition);
+            } else if (i == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
+                _owningAvatar->getSkeletonModel().getRightHandPosition(handPosition);
+            }
+            glm::vec3 tip = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
+            glm::vec3 root = tip + palm->getNormal() * HAND_PADDLE_THICKNESS;
+            // render a very shallow cone as the paddle
+            Avatar::renderJointConnectingCone(root, tip, HAND_PADDLE_RADIUS, 0.f);
         }
     }
+
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
 

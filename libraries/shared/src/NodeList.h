@@ -99,7 +99,7 @@ public:
     int fillPingPacket(unsigned char* buffer);
     int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
-    void killNodeWithUUID(const QUuid& nodeUUID);
+    
     void sendKillNode(const char* nodeTypes, int numNodeTypes);
 
     SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
@@ -123,6 +123,8 @@ public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
     void removeSilentNodes();
+    
+    void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
     void domainChanged(const QString& domainHostname);
     void nodeAdded(SharedNodePointer);

@@ -67,6 +67,9 @@ void OculusManager::connect() {
         _scaleLocation = _program.uniformLocation("scale");
         _scaleInLocation = _program.uniformLocation("scaleIn");
         _hmdWarpParamLocation = _program.uniformLocation("hmdWarpParam");        
+    } else {
+        _deviceManager.Clear();
+        System::Destroy();
     }
 #endif
 }

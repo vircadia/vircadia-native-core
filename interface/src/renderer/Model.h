@@ -82,6 +82,22 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    /// Retrieve the position of the left hand
+    /// \return true whether or not the position was found
+    bool getLeftHandPosition(glm::vec3& position) const;
+    
+    /// Retrieve the rotation of the left hand
+    /// \return true whether or not the rotation was found
+    bool getLeftHandRotation(glm::quat& rotation) const;
+    
+    /// Retrieve the position of the right hand
+    /// \return true whether or not the position was found
+    bool getRightHandPosition(glm::vec3& position) const;
+    
+    /// Retrieve the rotation of the right hand
+    /// \return true whether or not the rotation was found
+    bool getRightHandRotation(glm::quat& rotation) const;
+    
     /// Sets the position of the left hand using inverse kinematics.
     /// \return whether or not the left hand joint was found
     bool setLeftHandPosition(const glm::vec3& position);
