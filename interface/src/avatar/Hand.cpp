@@ -617,8 +617,9 @@ void Hand::renderLeapHands(bool isMine) {
     }
 
     // Draw the hand paddles
+    int MAX_NUM_PADDLES = 2; // one for left and one for right
     glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < MAX_NUM_PADDLES; i++) {
         const PalmData* palm = getPalm(i);
         if (palm) {
             // compute finger axis
@@ -634,9 +635,9 @@ void Hand::renderLeapHands(bool isMine) {
             }
             // compute paddle position
             glm::vec3 handPosition;
-            if (i == 0) {
+            if (i == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
                 _owningAvatar->getSkeletonModel().getLeftHandPosition(handPosition);
-            } else {
+            } else if (i == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
                 _owningAvatar->getSkeletonModel().getRightHandPosition(handPosition);
             }
             glm::vec3 tip = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
