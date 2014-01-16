@@ -19,7 +19,6 @@
 
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
-#include "VideoFace.h"
 #include "world.h"
 #include "renderer/TextureCache.h"
 
@@ -69,7 +68,6 @@ public:
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
-    VideoFace& getVideoFace() { return _videoFace; }
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
     
@@ -126,7 +124,6 @@ private:
     float _mousePitch;
     float _cameraYaw;
     bool _isCameraMoving;
-    VideoFace _videoFace;
     FaceModel _faceModel;
 
     QSharedPointer<Texture> _dilatedIrisTexture;

@@ -327,12 +327,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
 
-    addActionToQMenuAndActionHash(avatarOptionsMenu,
-                                  MenuOption::FaceMode,
-                                  0,
-                                  &appInstance->getAvatar()->getHead().getVideoFace(),
-                                  SLOT(cycleRenderMode()));
-
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
@@ -343,31 +337,6 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
 
-#ifdef HAVE_LIBVPX
-    QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
-
-    addCheckableActionToQMenuAndActionHash(webcamOptionsMenu,
-                                           MenuOption::Webcam,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam(),
-                                           SLOT(setEnabled(bool)));
-
-    addActionToQMenuAndActionHash(webcamOptionsMenu,
-                                  MenuOption::WebcamMode,
-                                  0,
-                                  appInstance->getWebcam()->getGrabber(),
-                                  SLOT(cycleVideoSendMode()));
-
-    addCheckableActionToQMenuAndActionHash(webcamOptionsMenu,
-                                           MenuOption::WebcamTexture,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam()->getGrabber(),
-                                           SLOT(setDepthOnly(bool)));
-#endif //def HAVE_LIBVPX
-
-
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -376,32 +345,11 @@ Menu::Menu() :
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::BallFromHand, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
-
-
-
-    QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
-    addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
-                                           MenuOption::SkeletonTracking,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam(),
-                                           SLOT(setSkeletonTrackingOn(bool)));
-
-#ifdef HAVE_LIBVPX
-    addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
-                                           MenuOption::LEDTracking,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam()->getGrabber(),
-                                           SLOT(setLEDTrackingOn(bool)));
-#endif //def HAVE_LIBVPX
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 

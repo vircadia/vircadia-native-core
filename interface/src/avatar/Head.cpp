@@ -81,7 +81,6 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _videoFace(this),
     _faceModel(this)
 {
   
@@ -284,7 +283,7 @@ void Head::render(float alpha, bool renderAvatarBalls) {
         renderNose();
         renderEyeBrows();
     
-    } else if (!_videoFace.render(alpha)) {
+    } else {
         lookatVectorsVisible &= _faceModel.render(alpha);
     }
     
