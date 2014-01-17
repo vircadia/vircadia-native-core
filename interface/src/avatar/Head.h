@@ -20,7 +20,6 @@
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "world.h"
-#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -38,13 +37,11 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(float alpha, bool renderAvatarBalls);
+    void render(float alpha);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
-    void setSkinColor(glm::vec3 skinColor) { _skinColor = skinColor; }
-    void setSpringScale(float returnSpringScale) { _returnSpringScale = returnSpringScale; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
@@ -59,7 +56,6 @@ public:
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
-    const glm::vec3& getSkinColor() const { return _skinColor; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
     const glm::vec3& getSaccade() const { return _saccade; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -85,36 +81,19 @@ private:
     Head(const Head&);
     Head& operator= (const Head&);
 
-    struct Nose {
-        glm::vec3 top;
-        glm::vec3 left;
-        glm::vec3 right;
-        glm::vec3 front;
-    };
-
-    float _renderAlpha;
     bool _returnHeadToCenter;
-    glm::vec3 _skinColor;
     glm::vec3 _position;
     glm::vec3 _rotation;
     glm::vec3 _leftEyePosition;
     glm::vec3 _rightEyePosition;
     glm::vec3 _eyePosition;
-    glm::vec3 _leftEyeBrowPosition;
-    glm::vec3 _rightEyeBrowPosition;
-    glm::vec3 _leftEarPosition;
-    glm::vec3 _rightEarPosition;
-    glm::vec3 _mouthPosition;
-    Nose _nose;
     float _scale;
     glm::vec3 _gravity;
     float _lastLoudness;
     float _audioAttack;
-    float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
-    //BendyLine _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlinkVelocity;
@@ -125,22 +104,9 @@ private:
     float _cameraYaw;
     bool _isCameraMoving;
     FaceModel _faceModel;
-
-    QSharedPointer<Texture> _dilatedIrisTexture;
-
-    static ProgramObject _irisProgram;
-    static QSharedPointer<DilatableNetworkTexture> _irisTexture;
-    static int _eyePositionLocation;
     
     // private methods
-    void renderHeadSphere();
-    void renderEyeBalls();
-    void renderEyeBrows();
-    void renderEars();
-    void renderNose();
-    void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
-    void calculateGeometry();
 
     friend class FaceModel;
 };

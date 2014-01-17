@@ -297,7 +297,7 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
         // if this person wants local loopback add that to the locally injected audio
 
         if (!_loopbackOutputDevice) {
