@@ -123,7 +123,6 @@ void HttpConnection::respond(const char* code, const QByteArray& content, const 
     _socket->write("Connection: close\r\n\r\n");
 
     if (csize > 0) {
-        qDebug() << "Writing" << QString(content) << "\n";
         _socket->write(content);
     }
 
