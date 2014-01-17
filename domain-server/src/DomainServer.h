@@ -16,9 +16,8 @@
 #include <QtCore/QMutex>
 
 #include <Assignment.h>
+#include <HttpManager.h>
 #include <NodeList.h>
-
-#include "civetweb.h"
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
 
@@ -36,9 +35,6 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private:    
-    static int civetwebRequestHandler(struct mg_connection *connection);
-    static void civetwebUploadHandler(struct mg_connection *connection, const char *path);
-    
     static DomainServer* domainServerInstance;
     
     void prepopulateStaticAssignmentFile();
@@ -51,6 +47,8 @@ private:
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
+    
+    HttpManager _httpManager;
     
     QMutex _assignmentQueueMutex;
     std::deque<Assignment*> _assignmentQueue;

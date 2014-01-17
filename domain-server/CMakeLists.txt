@@ -12,12 +12,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
 
+find_package(Qt5Network REQUIRED)
+
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
 # grab cJSON and civetweb sources to pass as OPTIONAL_SRCS
 FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/*)
 
 setup_hifi_project(${TARGET_NAME} TRUE ${OPTIONAL_SRCS})
+
+qt5_use_modules(${TARGET_NAME} Network)
 
 include_directories(SYSTEM ${ROOT_DIR}/externals/civetweb/include)
 
@@ -33,6 +37,7 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 # link the shared hifi library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+link_hifi_library(embedded-webserver ${TARGET_NAME} ${ROOT_DIR})
 
 # link dl library on UNIX for civetweb
 if (UNIX AND NOT APPLE)
