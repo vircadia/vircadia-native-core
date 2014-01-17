@@ -2176,7 +2176,6 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 
     _mouseVoxel.s = 0.0f;
     bool wasInitialized = _mouseVoxelScaleInitialized;
-    _mouseVoxelScaleInitialized = false;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
