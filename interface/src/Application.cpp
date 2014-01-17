@@ -4372,7 +4372,6 @@ void Application::checkVersion() {
     QNetworkRequest request(url);
     connect(downloadXML, SIGNAL(finished(QNetworkReply*)), this, SLOT(parseVersionXml(QNetworkReply*)));
     downloadXML->get(request);
-    
 }
 
 void Application::parseVersionXml(QNetworkReply *reply) {
@@ -4425,7 +4424,6 @@ void Application::parseVersionXml(QNetworkReply *reply) {
 QFile *Application::loadSkipFile() {
     QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     fileName.append(QString("/hifi.skipversion"));
-    qDebug("###### FILENAME %s \n", fileName.toStdString().c_str());
     QFile *file = new QFile(fileName);
     file->open(QIODevice::ReadWrite);
     return file;
