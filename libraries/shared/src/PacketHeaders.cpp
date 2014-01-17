@@ -18,21 +18,21 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
         case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
             return 2;
-            
+
         case PACKET_TYPE_HEAD_DATA:
             return 14;
-        
+
         case PACKET_TYPE_AVATAR_URLS:
             return 2;
 
         case PACKET_TYPE_OCTREE_STATS:
             return 2;
-       
+
         case PACKET_TYPE_DOMAIN:
         case PACKET_TYPE_DOMAIN_LIST_REQUEST:
         case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
             return 2;
-        
+
         case PACKET_TYPE_VOXEL_QUERY:
             return 2;
 
@@ -43,19 +43,19 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 
         case PACKET_TYPE_VOXEL_DATA:
             return 1;
-            
+
         case PACKET_TYPE_JURISDICTION:
             return 1;
-            
-        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:    
-            return 2;
+
+        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:
+            return 3;
 
         case PACKET_TYPE_PARTICLE_DATA:
-            return 5;
-        
+            return 6;
+
         case PACKET_TYPE_PING_REPLY:
             return 1;
-        
+
         default:
             return 0;
     }
@@ -75,7 +75,7 @@ bool packetVersionMatch(unsigned char* packetHeader) {
 int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type) {
     destinationHeader[0] = type;
     destinationHeader[1] = versionForPacketType(type);
-    
+
     // return the number of bytes written for pointer pushing
     return 2;
 }
@@ -99,7 +99,7 @@ int numBytesForPacketVersion(const unsigned char* packetVersion) {
 int numBytesForPacketHeader(const unsigned char* packetHeader) {
     // int numBytesType = numBytesForPacketType(packetHeader);
     // return numBytesType + numBytesForPacketVersion(packetHeader + numBytesType);
-    
+
     // currently this need not be dynamic - there are 2 bytes for each packet header
     return 2;
 }

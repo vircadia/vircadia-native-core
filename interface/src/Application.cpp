@@ -1513,8 +1513,9 @@ void Application::shootParticle() {
     const float radius = 0.125 / TREE_SCALE;
     xColor color = { 0, 255, 255};
     glm::vec3 velocity = lookingAt - position;
-    glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
+    glm::vec3 gravity = DEFAULT_GRAVITY * 0.01f;
     float damping = DEFAULT_DAMPING * 0.01f;
+    float lifetime = 5.0f; // bullets have 5 second lifetime
     QString script(
                  " function collisionWithVoxel(voxel) { "
                  "   print('collisionWithVoxel(voxel)... '); "
@@ -1533,7 +1534,7 @@ void Application::shootParticle() {
 
 
     ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color,
-                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, script);
+                                     velocity / (float)TREE_SCALE,  gravity, damping, lifetime, NOT_IN_HAND, script);
 
     // If we wanted to be able to edit this particle after shooting, then we could store this value
     // and use it for editing later. But we don't care about that for "shooting" and therefore we just
@@ -1550,10 +1551,10 @@ ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
 
 // Caller is responsible for managing this EditableParticle
 ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
-            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
+            glm::vec3 gravity, float damping, float lifetime, bool inHand, QString updateScript) {
 
     ParticleEditHandle* particleEditHandle = newParticleEditHandle();
-    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, inHand, updateScript);
+    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, lifetime, inHand, updateScript);
     return particleEditHandle;
 }
 
@@ -2089,14 +2090,14 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         glm::vec3 rayOrigin, rayDirection;
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
-    
+
     } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
 
         } else {
-            //  Just look in direction of the mouse ray            
+            //  Just look in direction of the mouse ray
             lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         }
     }

@@ -24,6 +24,7 @@ const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.1f;
+const float TOY_BALL_LIFETIME = 30.0f; // toy balls live for 30 seconds
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const float NO_DAMPING = 0.f;
@@ -113,6 +114,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                             newVelocity,
                                             NO_GRAVITY,
                                             NO_DAMPING,
+                                            DEFAULT_LIFETIME,
                                             IN_HAND, // we just grabbed it!
                                             closestParticle->getScript());
             
@@ -156,6 +158,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                              NO_VELOCITY / (float)TREE_SCALE,
                                                              TOY_BALL_GRAVITY / (float) TREE_SCALE,
                                                              TOY_BALL_DAMPING,
+                                                             TOY_BALL_LIFETIME,
                                                              IN_HAND,
                                                              TOY_BALL_UPDATE_SCRIPT);
         // Play a new ball sound
@@ -178,6 +181,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          NO_VELOCITY / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
+                                                         TOY_BALL_LIFETIME,
                                                          IN_HAND,
                                                          TOY_BALL_UPDATE_SCRIPT);
         }
@@ -204,6 +208,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                          ballVelocity / (float)TREE_SCALE,
                                                          TOY_BALL_GRAVITY / (float) TREE_SCALE, 
                                                          TOY_BALL_DAMPING,
+                                                         TOY_BALL_LIFETIME,
                                                          NOT_IN_HAND,
                                                          TOY_BALL_UPDATE_SCRIPT);
 

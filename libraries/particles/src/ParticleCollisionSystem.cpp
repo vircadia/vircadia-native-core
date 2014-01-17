@@ -121,14 +121,16 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
 
             ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
-            particleEditHandle.updateParticle(particleA->getPosition(), particleA->getRadius(), particleA->getXColor(), particleA->getVelocity(),
-                           particleA->getGravity(), particleA->getDamping(), particleA->getInHand(), particleA->getScript());
+            particleEditHandle.updateParticle(particleA->getPosition(), particleA->getRadius(), particleA->getXColor(),
+                particleA->getVelocity(), particleA->getGravity(), particleA->getDamping(), particleA->getLifetime(),
+                particleA->getInHand(), particleA->getScript());
 
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
 
             ParticleEditHandle penetratedparticleEditHandle(_packetSender, _particles, particleB->getID());
-            penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(), particleB->getXColor(), particleB->getVelocity(),
-                           particleB->getGravity(), particleB->getDamping(), particleB->getInHand(), particleB->getScript());
+            penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(),
+                            particleB->getXColor(), particleB->getVelocity(), particleB->getGravity(), particleB->getDamping(),
+                            particleB->getLifetime(), particleB->getInHand(), particleB->getScript());
 
             penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
@@ -160,7 +162,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 collision._penetration /= (float)(TREE_SCALE);
                 collision._addedVelocity /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);    
+                applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);
             }
         }
     }
@@ -178,7 +180,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                     collision._penetration /= (float)(TREE_SCALE);
                     collision._addedVelocity /= (float)(TREE_SCALE);
                     updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                    applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);    
+                    applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);
                 }
             }
         }
@@ -224,7 +226,8 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
 
     ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
     particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getScript());
+                           particle->getGravity(), particle->getDamping(), particle->getLifetime(),
+                           particle->getInHand(), particle->getScript());
 }
 
 

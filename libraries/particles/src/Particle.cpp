@@ -29,22 +29,22 @@ ParticleEditPacketSender* Particle::_particleEditSender = NULL;
 
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
-                    float damping, bool inHand, QString updateScript, uint32_t id) {
+                    float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
 
-    init(position, radius, color, velocity, gravity, damping, inHand, updateScript, id);
+    init(position, radius, color, velocity, gravity, damping, lifetime, inHand, updateScript, id);
 }
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
     init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0),
-            DEFAULT_GRAVITY, DEFAULT_DAMPING, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
+            DEFAULT_GRAVITY, DEFAULT_DAMPING, DEFAULT_LIFETIME, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
 Particle::~Particle() {
 }
 
 void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
-                    float damping, bool inHand, QString updateScript, uint32_t id) {
+                    float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
     if (id == NEW_PARTICLE) {
         _id = _nextID;
         _nextID++;
@@ -54,7 +54,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     uint64_t now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
-    _created = now; // will get updated as appropriate in setLifetime()
+    _created = now; // will get updated as appropriate in setAge()
 
     _position = position;
     _radius = radius;
@@ -62,6 +62,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     memcpy(_color, color, sizeof(_color));
     _velocity = velocity;
     _damping = damping;
+    _lifetime = lifetime;
     _gravity = gravity;
     _script = updateScript;
     _inHand = inHand;
@@ -81,7 +82,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     //printf("Particle::appendParticleData()... getID()=%d\n", getID());
 
     if (success) {
-        success = packetData->appendValue(getLifetime());
+        success = packetData->appendValue(getAge());
     }
     if (success) {
         success = packetData->appendValue(getLastUpdated());
@@ -108,6 +109,9 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
         success = packetData->appendValue(getDamping());
     }
     if (success) {
+        success = packetData->appendValue(getLifetime());
+    }
+    if (success) {
         success = packetData->appendValue(getInHand());
     }
     if (success) {
@@ -122,7 +126,7 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
-                + sizeof(float) // lifetime
+                + sizeof(float) // age
                 + sizeof(uint64_t) // last updated
                 + sizeof(uint64_t) // lasted edited
                 + sizeof(float) // radius
@@ -131,6 +135,7 @@ int Particle::expectedBytes() {
                 + sizeof(glm::vec3) // velocity
                 + sizeof(glm::vec3) // gravity
                 + sizeof(float) // damping
+                + sizeof(float) // lifetime
                 + sizeof(bool); // inhand
                 // potentially more...
     return expectedBytes;
@@ -145,6 +150,7 @@ int Particle::expectedEditMessageBytes() {
                 + sizeof(glm::vec3) // velocity
                 + sizeof(glm::vec3) // gravity
                 + sizeof(float) // damping
+                + sizeof(float) // lifetime
                 + sizeof(bool); // inhand
                 // potentially more...
     return expectedBytes;
@@ -162,12 +168,12 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(_id);
         bytesRead += sizeof(_id);
 
-        // lifetime
-        float lifetime;
-        memcpy(&lifetime, dataAt, sizeof(lifetime));
-        dataAt += sizeof(lifetime);
-        bytesRead += sizeof(lifetime);
-        setLifetime(lifetime);
+        // age
+        float age;
+        memcpy(&age, dataAt, sizeof(age));
+        dataAt += sizeof(age);
+        bytesRead += sizeof(age);
+        setAge(age);
 
         // _lastUpdated
         memcpy(&_lastUpdated, dataAt, sizeof(_lastUpdated));
@@ -210,6 +216,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         memcpy(&_damping, dataAt, sizeof(_damping));
         dataAt += sizeof(_damping);
         bytesRead += sizeof(_damping);
+
+        // lifetime
+        memcpy(&_lifetime, dataAt, sizeof(_lifetime));
+        dataAt += sizeof(_lifetime);
+        bytesRead += sizeof(_lifetime);
 
         // inHand
         memcpy(&_inHand, dataAt, sizeof(_inHand));
@@ -262,7 +273,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         newParticle.setCreatorTokenID(creatorTokenID);
         newParticle._newlyCreated = true;
 
-        newParticle.setLifetime(0); // this guy is new!
+        newParticle.setAge(0); // this guy is new!
 
     } else {
         newParticle._id = editID;
@@ -304,6 +315,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += sizeof(newParticle._damping);
     processedBytes += sizeof(newParticle._damping);
 
+    // lifetime
+    memcpy(&newParticle._lifetime, dataAt, sizeof(newParticle._lifetime));
+    dataAt += sizeof(newParticle._lifetime);
+    processedBytes += sizeof(newParticle._lifetime);
+
     // inHand
     memcpy(&newParticle._inHand, dataAt, sizeof(newParticle._inHand));
     dataAt += sizeof(newParticle._inHand);
@@ -331,7 +347,7 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
 void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
-    printf(" lifetime:%f\n", getLifetime());
+    printf(" age:%f\n", getAge());
     printf(" edited ago:%f\n", getEditedAgo());
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
@@ -414,6 +430,11 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, int count, 
             copyAt += sizeof(details[i].damping);
             sizeOut += sizeof(details[i].damping);
 
+            // damping
+            memcpy(copyAt, &details[i].lifetime, sizeof(details[i].lifetime));
+            copyAt += sizeof(details[i].lifetime);
+            sizeOut += sizeof(details[i].lifetime);
+
             // inHand
             memcpy(copyAt, &details[i].inHand, sizeof(details[i].inHand));
             copyAt += sizeof(details[i].inHand);
@@ -486,9 +507,11 @@ void Particle::update() {
     const float STILL_MOVING = 0.05f / static_cast<float>(TREE_SCALE);
     bool isStillMoving = (velocityScalar > STILL_MOVING);
     const float REALLY_OLD = 30.0f; // 30 seconds
-    bool isReallyOld = (getLifetime() > REALLY_OLD);
+    bool isReallyOld = (getAge() > REALLY_OLD);
     bool isInHand = getInHand();
-    bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
+
+    // Lifetime - even if you're moving, or in hand, if you're age is greater than your requested lifetime, you are going to die
+    bool shouldDie = getShouldDie() || (getAge() > getLifetime()) || (!isInHand && !isStillMoving && isReallyOld);
     setShouldDie(shouldDie);
 
     runUpdateScript(); // allow the javascript to alter our state
@@ -607,15 +630,15 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 
 
 
-void Particle::setLifetime(float lifetime) {
-    uint64_t lifetimeInUsecs = lifetime * USECS_PER_SECOND;
-    _created = usecTimestampNow() - lifetimeInUsecs;
+void Particle::setAge(float age) {
+    uint64_t ageInUsecs = age * USECS_PER_SECOND;
+    _created = usecTimestampNow() - ageInUsecs;
 }
 
 void Particle::copyChangedProperties(const Particle& other) {
-    float lifetime = getLifetime();
+    float age = getAge();
     *this = other;
-    setLifetime(lifetime);
+    setAge(age);
 }
 
 
@@ -625,7 +648,7 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
     QScriptValue position = vec3toScriptValue(engine, _position);
     properties.setProperty("position", position);
 
-    QScriptValue color = xColortoScriptValue(engine, _color);
+    QScriptValue color = xColorToScriptValue(engine, _color);
     properties.setProperty("color", color);
 
     properties.setProperty("radius", _radius);
@@ -637,6 +660,7 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
     properties.setProperty("gravity", gravity);
 
     properties.setProperty("damping", _damping);
+    properties.setProperty("lifetime", _lifetime);
     properties.setProperty("script", _script);
     properties.setProperty("inHand", _inHand);
     properties.setProperty("shouldDie", _shouldDie);
@@ -736,6 +760,16 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
+    QScriptValue lifetime = object.property("lifetime");
+    if (lifetime.isValid()) {
+        float newLifetime;
+        newLifetime = lifetime.toVariant().toFloat();
+        if (newLifetime != _lifetime) {
+            _lifetime = newLifetime;
+            _lifetimeChanged = true;
+        }
+    }
+
     QScriptValue script = object.property("script");
     if (script.isValid()) {
         QString newScript;
@@ -792,6 +826,10 @@ void ParticleProperties::copyToParticle(Particle& particle) const {
         particle.setDamping(_damping);
     }
 
+    if (_lifetimeChanged) {
+        particle.setLifetime(_lifetime);
+    }
+
     if (_scriptChanged) {
         particle.setScript(_script);
     }
@@ -812,6 +850,7 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _velocity = particle.getVelocity();
     _gravity = particle.getGravity();
     _damping = particle.getDamping();
+    _lifetime = particle.getLifetime();
     _script = particle.getScript();
     _inHand = particle.getInHand();
     _shouldDie = particle.getShouldDie();
@@ -822,6 +861,7 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _velocityChanged = false;
     _gravityChanged = false;
     _dampingChanged = false;
+    _lifetimeChanged = false;
     _scriptChanged = false;
     _inHandChanged = false;
     _shouldDieChanged = false;
