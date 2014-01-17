@@ -148,7 +148,7 @@ void ScriptEngine::evaluate() {
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
     }
 }
 
@@ -159,10 +159,9 @@ void ScriptEngine::run() {
     _isRunning = true;
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+        qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
     }
 
     timeval startTime;
@@ -219,7 +218,7 @@ void ScriptEngine::run() {
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString() << "\n";
+            qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString();
         }
     }
     cleanMenuItems();

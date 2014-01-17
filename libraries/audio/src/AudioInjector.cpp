@@ -57,7 +57,7 @@ void AudioInjector::injectAudio() {
         currentPacketPosition += rfcSessionUUID.size();
         
         // pick a random UUID to use for this stream
-        QUuid randomStreamUUID;
+        QUuid randomStreamUUID = QUuid::createUuid();
         QByteArray rfcStreamUUID = randomStreamUUID.toRfc4122();
         memcpy(currentPacketPosition, rfcStreamUUID, rfcStreamUUID.size());
         currentPacketPosition += rfcStreamUUID.size();
@@ -103,9 +103,9 @@ void AudioInjector::injectAudio() {
             
             
             // grab our audio mixer from the NodeList, if it exists
-            Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+            SharedNodePointer audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
             
-            if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
+            if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
                 // send off this audio packet
                 nodeList->getNodeSocket().writeDatagram((char*) injectedAudioPacket,
                                                         (currentPacketPosition - injectedAudioPacket) + bytesToCopy,

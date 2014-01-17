@@ -28,7 +28,7 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(bool turnWithHead);
+    void updateFromGyros(bool turnWithHead);
     void render(bool forceRenderHead);
     void renderDebugBodyPoints();
 
@@ -51,10 +51,8 @@ public:
     float getAbsoluteHeadYaw() const;
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    Avatar* getLeadingAvatar() const { return _leadingAvatar; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
-    glm::vec3 getEyeLevelPosition() const;
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -93,7 +91,7 @@ private:
 	// private methods
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
+    void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime);
     void updateCollisionWithVoxels(float deltaTime);

@@ -10,6 +10,7 @@
 #define __interface__LogDialog__
 
 #include <QDialog>
+#include <QMutex>
 #include <QPlainTextEdit>
 #include <QLineEdit>
 #include <QPushButton>
@@ -30,7 +31,7 @@ protected:
 
 private:
     QTextCharFormat keywordFormat;
-    
+
 };
 
 class LogDialog : public QDialog {
@@ -59,7 +60,7 @@ private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
-    pthread_mutex_t _mutex;
+    QMutex _mutex;
     QString _searchTerm;
     KeywordHighlighter* _highlighter;
 

@@ -36,7 +36,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 
-#include "UrlReader.h"
 #include "AngleUtil.h"
 #include "Radix2InplaceSort.h"
 #include "Radix2IntegerScanner.h"

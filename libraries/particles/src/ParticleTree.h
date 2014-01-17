@@ -12,11 +12,6 @@
 #include <Octree.h>
 #include "ParticleTreeElement.h"
 
-class ParticleTreeUpdateArgs {
-public:
-    std::vector<Particle> _movingParticles;
-};
-
 class NewlyCreatedParticleHook {
 public:
     virtual void particleCreated(const Particle& newParticle, Node* senderNode) = 0;

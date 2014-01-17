@@ -41,45 +41,6 @@ void addCornersAndAxisLines(VoxelTree* tree) {
     printf("DONE creating lines...\n");
 }
 
-void addSphereScene(VoxelTree * tree) {
-    printf("adding sphere scene...\n");
-
-    // Now some more examples... creating some spheres using the sphere primitive
-    // We want the smallest unit of our spheres to be about 1/16th of a meter tall
-    float sphereVoxelSize = 1.f / (8 * TREE_SCALE);
-    printf("creating spheres... sphereVoxelSize=%f\n",sphereVoxelSize);
-
-    tree->createSphere(0.030625, 0.5, 0.5, (0.25 - 0.06125), sphereVoxelSize, true, NATURAL);
-    printf("1 spheres added... sphereVoxelSize=%f\n",sphereVoxelSize);
-    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), (0.75 - 0.06125), sphereVoxelSize, true, GRADIENT);
-    printf("2 spheres added... sphereVoxelSize=%f\n",sphereVoxelSize);
-    tree->createSphere(0.030625, (0.75 - 0.030625), (0.75 - 0.030625), 0.06125, sphereVoxelSize, true, RANDOM);
-    printf("3 spheres added... sphereVoxelSize=%f\n",sphereVoxelSize);
-    tree->createSphere(0.030625, (0.75 - 0.030625), 0.06125, (0.75 - 0.06125), sphereVoxelSize, true, GRADIENT);
-    printf("4 spheres added... sphereVoxelSize=%f\n",sphereVoxelSize);
-    tree->createSphere(0.06125, 0.125, 0.125, (0.75 - 0.125), sphereVoxelSize, true, GRADIENT);
-
-/**
-    float radius = 0.0125f;
-    printf("5 spheres added...\n");
-    tree->createSphere(radius, 0.25, radius * 5.0f, 0.25, sphereVoxelSize, true, GRADIENT);
-    printf("6 spheres added...\n");
-    tree->createSphere(radius, 0.125, radius * 5.0f, 0.25, sphereVoxelSize, true, RANDOM);
-    printf("7 spheres added...\n");
-    tree->createSphere(radius, 0.075, radius * 5.0f, 0.25, sphereVoxelSize, true, GRADIENT);
-    printf("8 spheres added...\n");
-    tree->createSphere(radius, 0.05, radius * 5.0f, 0.25, sphereVoxelSize, true, RANDOM);
-    printf("9 spheres added...\n");
-    tree->createSphere(radius, 0.025, radius * 5.0f, 0.25, sphereVoxelSize, true, GRADIENT);
-    printf("10 spheres added...\n");
-*/
-    float largeRadius = 0.1875f;
-    tree->createSphere(largeRadius, 0.5, 0.5, 0.5, sphereVoxelSize, true, NATURAL);
-    printf("11 - last large sphere added... largeRadius=%f sphereVoxelSize=%f\n", largeRadius, sphereVoxelSize);
-
-    printf("DONE adding scene of spheres...\n");
-}
-
 void addSurfaceScene(VoxelTree * tree) {
     printf("adding surface scene...\n");
     float voxelSize = 1.f / (8 * TREE_SCALE);

@@ -23,11 +23,12 @@
 #include "OctreeInboundPacketProcessor.h"
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
-class OctreeServer : public ThreadedAssignment, public NodeListHook {
+class OctreeServer : public ThreadedAssignment {
+    Q_OBJECT
 public:                
     OctreeServer(const unsigned char* dataBuffer, int numBytes);
     ~OctreeServer();
-    
+
     /// allows setting of run arguments
     void setArguments(int argc, char** argv);
 
@@ -37,15 +38,15 @@ public:
 
     Octree* getOctree() { return _tree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
-    
+
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     static OctreeServer* GetInstance() { return _theInstance; }
-    
+
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
-    time_t* getLoadCompleted() { return (_persistThread) ? _persistThread->getLoadCompleted() : NULL; }
+    bool isPersistEnabled() const { return (_persistThread) ? true : false; }
     uint64_t getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
 
-    // Subclasses must implement these methods    
+    // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode) = 0;
     virtual Octree* createTree() = 0;
     virtual unsigned char getMyNodeType() const = 0;
@@ -53,22 +54,19 @@ public:
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
-    
+
     // subclass may implement these method
     virtual void beforeRun() { };
     virtual bool hasSpecialPacketToSend() { return false; }
     virtual int sendSpecialPacket(Node* node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
-
-    // NodeListHook 
-    virtual void nodeAdded(Node* node);
-    virtual void nodeKilled(Node* node);
-
 public slots:
     /// runs the voxel server assignment
     void run();
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    
+    void nodeKilled(SharedNodePointer node);
 
 protected:
     int _argc;
@@ -77,7 +75,7 @@ protected:
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
-    Octree* _tree; // this IS a reaveraging tree 
+    Octree* _tree; // this IS a reaveraging tree
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;

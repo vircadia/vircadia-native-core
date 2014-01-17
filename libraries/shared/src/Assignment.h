@@ -9,7 +9,11 @@
 #ifndef __hifi__Assignment__
 #define __hifi__Assignment__
 
+#ifdef _WIN32
+#include "Systime.h"
+#else
 #include <sys/time.h>
+#endif
 
 #include <QtCore/QUuid>
 
@@ -22,29 +26,30 @@ const int MAX_ASSIGNMENT_POOL_BYTES = 64 + sizeof('\0');
 class Assignment : public NodeData {
     Q_OBJECT
 public:
-    
+
     enum Type {
         AudioMixerType,
         AvatarMixerType,
         AgentType,
         VoxelServerType,
         ParticleServerType,
+        MetavoxelServerType,
         AllTypes
     };
-    
+
     enum Command {
         CreateCommand,
         DeployCommand,
         RequestCommand
     };
-    
+
     enum Location {
         GlobalLocation,
         LocalLocation
     };
-    
+
     static Assignment::Type typeForNodeType(NODE_TYPE nodeType);
-    
+
     Assignment();
     Assignment(Assignment::Command command,
                Assignment::Type type,
@@ -52,48 +57,48 @@ public:
                Assignment::Location location = Assignment::LocalLocation);
     Assignment(const Assignment& otherAssignment);
     Assignment& operator=(const Assignment &rhsAssignment);
-    
+
     void swap(Assignment& otherAssignment);
-    
+
     /// Constructs an Assignment from the data in the buffer
     /// \param dataBuffer the source buffer to un-pack the assignment from
     /// \param numBytes the number of bytes left to read in the source buffer
     Assignment(const unsigned char* dataBuffer, int numBytes);
-    
+
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }
     void resetUUID() { _uuid = QUuid::createUuid(); }
-    
+
     Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }
-    
+
     uchar* getPayload() { return _payload; }
     int getNumPayloadBytes() const { return _numPayloadBytes; }
     void setPayload(const uchar *payload, int numBytes);
-    
+
     void setPool(const char* pool);
     const char* getPool() const { return _pool; }
     bool hasPool() const { return (bool) strlen(_pool); }
-    
+
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
     void decrementNumberOfInstances() { --_numberOfInstances; }
-    
+
     const char* getTypeName() const;
 
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
     /// \return number of bytes packed into buffer
     int packToBuffer(unsigned char* buffer);
-    
+
     // implement parseData to return 0 so we can be a subclass of NodeData
     int parseData(unsigned char* sourceBuffer, int numBytes) { return 0; }
-    
+
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
     friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);
-    
+
 protected:
     QUuid _uuid; /// the 16 byte UUID for this assignment
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)

@@ -21,8 +21,11 @@ public slots:
     /// threaded run of assignment
     virtual void run() = 0;
     
+    virtual void deleteLater();
+    
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) = 0;
 protected:
+    void commonInit(const char* targetName, NODE_TYPE nodeType);
     bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();

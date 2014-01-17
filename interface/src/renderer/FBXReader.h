@@ -48,6 +48,7 @@ public:
     int parentIndex;
     float distanceToParent;
     float boneRadius;
+    glm::vec3 translation;
     glm::mat4 preTransform;
     glm::quat preRotation;
     glm::quat rotation;
@@ -120,6 +121,13 @@ public:
     glm::vec3 scale;
 };
 
+class Extents {
+public:
+    
+    glm::vec3 minimum;
+    glm::vec3 maximum;
+};
+
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
@@ -144,11 +152,13 @@ public:
     QVector<int> rightFingerJointIndices;
     
     QVector<int> leftFingertipJointIndices;
-    QVector<int> rightFingertipJointIndices;
+    QVector<int> rightFingertipJointIndices;    
     
     glm::vec3 palmDirection;
     
     glm::vec3 neckPivot;
+    
+    Extents bindExtents;
     
     QVector<FBXAttachment> attachments;
 };

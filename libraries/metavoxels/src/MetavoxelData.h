@@ -10,7 +10,9 @@
 #define __interface__MetavoxelData__
 
 #include <QBitArray>
+#include <QExplicitlySharedDataPointer>
 #include <QHash>
+#include <QSharedData>
 #include <QScriptString>
 #include <QScriptValue>
 #include <QVector>
@@ -27,10 +29,14 @@ class MetavoxelVisitation;
 class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
-class MetavoxelData {
+class MetavoxelData : public QSharedData {
 public:
 
+    MetavoxelData();
+    MetavoxelData(const MetavoxelData& other);
     ~MetavoxelData();
+
+    MetavoxelData& operator=(const MetavoxelData& other);
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
@@ -41,10 +47,25 @@ public:
     /// Retrieves the attribute value corresponding to the specified path.
     AttributeValue getAttributeValue(const MetavoxelPath& path, const AttributePointer& attribute) const;
 
+    void read(Bitstream& in);
+    void write(Bitstream& out) const;
+
+    void readDelta(const MetavoxelData& reference, Bitstream& in);
+    void writeDelta(const MetavoxelData& reference, Bitstream& out) const;
+
 private:
    
+    void incrementRootReferenceCounts();
+    void decrementRootReferenceCounts();
+    
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
+
+typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
+
+void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out);
+
+void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in);
 
 /// A single node within a metavoxel layer.
 class MetavoxelNode {
@@ -69,6 +90,19 @@ public:
 
     bool isLeaf() const;
 
+    void read(const AttributePointer& attribute, Bitstream& in);
+    void write(const AttributePointer& attribute, Bitstream& out) const;
+
+    void readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in);
+    void writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const;
+
+    /// Increments the node's reference count.
+    void incrementReferenceCount() { _referenceCount++; }
+
+    /// Decrements the node's reference count.  If the resulting reference count is zero, destroys the node
+    /// and calls delete this.
+    void decrementReferenceCount(const AttributePointer& attribute);
+
     void destroy(const AttributePointer& attribute);
 
 private:
@@ -76,6 +110,7 @@ private:
     
     void clearChildren(const AttributePointer& attribute);
     
+    int _referenceCount;
     void* _attributeValue;
     MetavoxelNode* _children[CHILD_COUNT];
 };

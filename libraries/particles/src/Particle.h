@@ -69,6 +69,7 @@ public:
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     float getRadius() const { return _radius; }
+    float getMass() const { return _mass; }
     const glm::vec3& getVelocity() const { return _velocity; }
     const glm::vec3& getGravity() const { return _gravity; }
     bool getInHand() const { return _inHand; }
@@ -98,6 +99,7 @@ public:
             _color[BLUE_INDEX] = value.blue;
     }
     void setRadius(float value) { _radius = value; }
+    void setMass(float value);
     void setGravity(const glm::vec3& value) { _gravity = value; }
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
@@ -127,11 +129,11 @@ public:
     static VoxelEditPacketSender* getVoxelEditPacketSender() { return _voxelEditSender; }
     static ParticleEditPacketSender* getParticleEditPacketSender() { return _particleEditSender; }
 
-    static void setVoxelEditPacketSender(VoxelEditPacketSender* interface)
-                    { _voxelEditSender = interface; }
+    static void setVoxelEditPacketSender(VoxelEditPacketSender* senderInterface)
+                    { _voxelEditSender = senderInterface; }
 
-    static void setParticleEditPacketSender(ParticleEditPacketSender* interface)
-                    { _particleEditSender = interface; }
+    static void setParticleEditPacketSender(ParticleEditPacketSender* senderInterface)
+                    { _particleEditSender = senderInterface; }
 
 
 protected:
@@ -149,6 +151,7 @@ protected:
     glm::vec3 _position;
     rgbColor _color;
     float _radius;
+    float _mass;
     glm::vec3 _velocity;
     uint32_t _id;
     static uint32_t _nextID;

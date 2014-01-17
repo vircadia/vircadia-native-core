@@ -63,11 +63,10 @@ void PieMenu::render() {
         return;
     }
 
-    float start = M_PI / 2.0f;
-    float end   = start + 2.0f * M_PI;
-    float step  = 2.0f * M_PI / 100.0f;
-    float distance  = sqrt((_mouseX - _x) * (_mouseX - _x) +
-                           (_mouseY - _y) * (_mouseY - _y));
+    float start = (float)M_PI / 2.0f;
+    float end   = start + 2.0f * (float)M_PI;
+    float step  = 2.0f * (float)M_PI / 100.0f;
+    float distance  = sqrt((float)(_mouseX - _x) * (_mouseX - _x) + (_mouseY - _y) * (_mouseY - _y));
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _textureID);
@@ -75,7 +74,7 @@ void PieMenu::render() {
     glColor3f(1.0f, 1.0f, 1.0f);
 
     if (_radiusIntern < distance) {
-        float angle = atan2((_mouseY - _y), (_mouseX - _x)) - start;
+        float angle = atan2((float)(_mouseY - _y), (float)(_mouseX - _x)) - start;
         angle = (0.0f < angle) ? angle : angle + 2.0f * M_PI;
 
         _selectedAction = floor(angle / (2.0f * M_PI / _actions.size()));
@@ -130,7 +129,7 @@ void PieMenu::mousePressEvent(int x, int y) {
 }
 
 void PieMenu::mouseReleaseEvent(int x, int y) {
-    if (0 <= _selectedAction && _selectedAction < _actions.size() && _actions[_selectedAction]) {
+    if (0 <= _selectedAction && _selectedAction < (int)_actions.size() && _actions[_selectedAction]) {
         _actions[_selectedAction]->trigger();
     }
 

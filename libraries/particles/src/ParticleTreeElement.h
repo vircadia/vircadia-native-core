@@ -19,7 +19,11 @@
 
 class ParticleTree;
 class ParticleTreeElement;
-class ParticleTreeUpdateArgs;
+
+class ParticleTreeUpdateArgs {
+public:
+    std::vector<Particle> _movingParticles;
+};
 
 class ParticleTreeElement : public OctreeElement {
     friend class ParticleTree; // to allow createElement to new us...

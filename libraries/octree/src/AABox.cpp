@@ -53,6 +53,7 @@ glm::vec3 AABox::getVertex(BoxVertex vertex) const {
             return _corner + glm::vec3(0, 0, _scale);
         case TOP_RIGHT_FAR:
             return _corner + glm::vec3(0, _scale, _scale);
+		default: //quiet windows warnings
         case TOP_LEFT_FAR:
             return _corner + glm::vec3(_scale, _scale, _scale);
     }
@@ -269,6 +270,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec3& point, BoxFace face) con
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
                 glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z));
     
+		default: //quiet windows warnings
         case MAX_Z_FACE:
             return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z + _scale),
                 glm::vec3(_corner.x + _scale, _corner.y + _scale, _corner.z + _scale));
@@ -349,6 +351,7 @@ glm::vec4 AABox::getPlane(BoxFace face) const {
         case MIN_Y_FACE: return glm::vec4(0.0f, -1.0f, 0.0f, _corner.y);
         case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_corner.y - _scale);
         case MIN_Z_FACE: return glm::vec4(0.0f, 0.0f, -1.0f, _corner.z);
+		default: //quiet windows warnings
         case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_corner.z - _scale);
     }
 }
@@ -360,6 +363,7 @@ BoxFace AABox::getOppositeFace(BoxFace face) {
         case MIN_Y_FACE: return MAX_Y_FACE;
         case MAX_Y_FACE: return MIN_Y_FACE;
         case MIN_Z_FACE: return MAX_Z_FACE;
+		default: //quiet windows warnings
         case MAX_Z_FACE: return MIN_Z_FACE;
     }
 }

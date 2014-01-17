@@ -12,6 +12,7 @@
 #define __shared__JurisdictionSender__
 
 #include <queue>
+#include <QMutex>
 
 #include <PacketSender.h>
 #include <ReceivedPacketProcessor.h>
@@ -21,6 +22,7 @@
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {
+    Q_OBJECT
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
@@ -38,14 +40,14 @@ protected:
     virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
     /// Locks all the resources of the thread.
-    void lockRequestingNodes() { pthread_mutex_lock(&_requestingNodeMutex); }
+    void lockRequestingNodes() { _requestingNodeMutex.lock(); }
 
     /// Unlocks all the resources of the thread.
-    void unlockRequestingNodes() { pthread_mutex_unlock(&_requestingNodeMutex); }
-    
+    void unlockRequestingNodes() { _requestingNodeMutex.unlock(); }
+
 
 private:
-    pthread_mutex_t _requestingNodeMutex;
+    QMutex _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
     std::queue<QUuid> _nodesRequestingJurisdictions;
     NODE_TYPE _nodeType;

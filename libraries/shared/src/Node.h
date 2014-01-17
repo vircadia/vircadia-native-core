@@ -19,49 +19,52 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QtCore/QMutex>
 #include <QtCore/QUuid>
+#include <QMutex>
 
 #include "HifiSockAddr.h"
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
-class Node {
+class Node : public QObject {
+    Q_OBJECT
 public:
     Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     ~Node();
-    
+
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
-    
+
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
     const char* getTypeName() const;
-    
+
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
-    
+
     uint64_t getWakeMicrostamp() const { return _wakeMicrostamp; }
     void setWakeMicrostamp(uint64_t wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
-    
+
     uint64_t getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
-    
+
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     void setPublicSocket(const HifiSockAddr& publicSocket);
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
     void setLocalSocket(const HifiSockAddr& localSocket);
-    
+
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
-    
+
     void activatePublicSocket();
     void activateLocalSocket();
-    
+
     NodeData* getLinkedData() const { return _linkedData; }
     void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
-    
+
     bool isAlive() const { return _isAlive; }
     void setAlive(bool isAlive) { _isAlive = isAlive; }
-    
+
     void  recordBytesReceived(int bytesReceived);
     float getAverageKilobitsPerSecond();
     float getAveragePacketsPerSecond();
@@ -71,20 +74,13 @@ public:
 
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
-    
-    void lock() { pthread_mutex_lock(&_mutex); }
-    
-    /// returns false if lock failed, true if you got the lock
-    bool trylock() { return (pthread_mutex_trylock(&_mutex) == 0); }
-    void unlock() { pthread_mutex_unlock(&_mutex); }
+    QMutex& getMutex() { return _mutex; }
 
-    static void printLog(Node const&);
-    
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
-    
+
     char _type;
     QUuid _uuid;
     uint64_t _wakeMicrostamp;
@@ -97,11 +93,8 @@ private:
     bool _isAlive;
     int _pingMs;
     int _clockSkewUsec;
-    pthread_mutex_t _mutex;
+    QMutex _mutex;
 };
-
-int unpackNodeId(unsigned char *packedData, uint16_t *nodeId);
-int packNodeId(unsigned char *packStore, uint16_t nodeId);
 
 QDebug operator<<(QDebug debug, const Node &message);
 

@@ -33,14 +33,14 @@ bool VoxelHideShowThread::process() {
 
     bool showExtraDebugging = Application::getInstance()->getLogger()->extraDebugging();
     if (showExtraDebugging && elapsed > USECS_PER_FRAME) {
-        qDebug() << "VoxelHideShowThread::process()... checkForCulling took " << elapsed << "\n";
+        qDebug() << "VoxelHideShowThread::process()... checkForCulling took" << elapsed;
     }
-    
+
     if (isStillRunning()) {
         if (elapsed < USECS_PER_FRAME) {
             uint64_t sleepFor = USECS_PER_FRAME - elapsed;
             usleep(sleepFor);
         }
-    }    
+    }
     return isStillRunning();  // keep running till they terminate us
 }
