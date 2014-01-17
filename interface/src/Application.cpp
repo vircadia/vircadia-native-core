@@ -4422,18 +4422,22 @@ void Application::checkVersion() {
 }
 
 void Application::parseVersionXml(QNetworkReply *reply) {
-    QString *_operatingSystem;
+    QString *operatingSystem;
     
     #ifdef Q_OS_WIN32
-    _operatingSystem = new QString("win");
+    operatingSystem = new QString("win");
     #endif
     
     #ifdef Q_OS_MAC
-    _operatingSystem = new QString("mac");
+    operatingSystem = new QString("mac");
     #endif
     
-    QString _releaseDate;
-    QString _releaseNotes;
+    QString releaseDate;
+    QString releaseNotes;
+    QString latestVersion;
+    QUrl downloadURL;
+    
+    QWidget *updateDialog;
     
     QXmlStreamReader xml(reply);
     while (!xml.atEnd() && !xml.hasError()) {
@@ -4442,25 +4446,25 @@ void Application::parseVersionXml(QNetworkReply *reply) {
         if (token == QXmlStreamReader::StartElement) {
             if (xml.name() == "ReleaseDate") {
                 xml.readNext();
-                _releaseDate = xml.text().toString();
+                releaseDate = xml.text().toString();
             }
             if (xml.name() == "ReleaseNotes") {
                 xml.readNext();
-                _releaseNotes = xml.text().toString();
+                releaseNotes = xml.text().toString();
             }
             if (xml.name() == "Version") {
                 xml.readNext();
-                _latestVersion = new QString(xml.text().toString());
+                latestVersion = xml.text().toString();
             }
-            if (xml.name() == _operatingSystem) {
+            if (xml.name() == operatingSystem) {
                 xml.readNext();
-                _downloadURL = new QUrl(xml.text().toString());
+                downloadURL = QUrl(xml.text().toString());
             }
         }
     }
     
-    if (!shouldSkipVersion() && applicationVersion() != _latestVersion) {
-        _updateDialog = new UpdateDialog(_glWidget, _releaseNotes);
+    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
+        updateDialog = new UpdateDialog(_glWidget, releaseNotes);
     }
 }
 
@@ -4472,20 +4476,20 @@ QFile *Application::loadSkipFile() {
     return file;
 }
 
-bool Application::shouldSkipVersion() {
+bool Application::shouldSkipVersion(QString latestVersion) {
     QFile *skipFile = loadSkipFile();
     QByteArray skipFileContents = skipFile->readAll();
     QString *skipVersion = new QString(skipFileContents);
     skipFile->close();
-    if (*skipVersion == *_latestVersion || applicationVersion() == "0.1") {
+    if (*skipVersion == latestVersion || applicationVersion() == "0.1") {
         return true;
     }
     return false;
 }
 
-void Application::skipVersion() {
+void Application::skipVersion(QString latestVersion) {
     QFile *skipFile = loadSkipFile();
     skipFile->seek(0);
-    skipFile->write(_latestVersion->toStdString().c_str());
+    skipFile->write(latestVersion.toStdString().c_str());
     skipFile->close();
 }

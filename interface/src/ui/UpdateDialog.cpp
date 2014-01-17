@@ -16,7 +16,7 @@
 #include "SharedUtil.h"
 #include "UpdateDialog.h"
 
-UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(parent, Qt::Dialog) {
+UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) : QDialog(parent, Qt::Dialog) {
     Application* application = Application::getInstance();
     
     QUiLoader updateDialogLoader;
@@ -28,48 +28,34 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes) : QDialog(pare
     
     const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
                                            Please download and install the most recent release to access the latest features and bug fixes.")
-                                           .arg(application->applicationVersion(), *application->_latestVersion);
+                                           .arg(application->applicationVersion(), latestVersion);
     
     
     setAttribute(Qt::WA_DeleteOnClose);
     
-    QPushButton *_downloadButton = dialogWidget->findChild<QPushButton *>("downloadButton");
-    QPushButton *_skipButton = dialogWidget->findChild<QPushButton *>("skipButton");
-    QPushButton *_closeButton = dialogWidget->findChild<QPushButton *>("closeButton");
-    QLabel *_updateContent = dialogWidget->findChild<QLabel *>("updateContent");
+    QPushButton *downloadButton = dialogWidget->findChild<QPushButton *>("downloadButton");
+    QPushButton *skipButton = dialogWidget->findChild<QPushButton *>("skipButton");
+    QPushButton *closeButton = dialogWidget->findChild<QPushButton *>("closeButton");
+    QLabel *updateContent = dialogWidget->findChild<QLabel *>("updateContent");
     
-    _updateContent->setText(updateRequired);
+    updateContent->setText(updateRequired);
     
-    connect(_downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
-    connect(_skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
-    connect(_closeButton, SIGNAL(released()), this, SLOT(handleClose()));
+    connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload(QUrl downloadURL)));
+    connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
+    connect(closeButton, SIGNAL(released()), this, SLOT(handleClose()));
     dialogWidget->show();
 }
 
-UpdateDialog::~UpdateDialog() {
-    deleteLater();
-}
-
-void UpdateDialog::toggleUpdateDialog() {
-    if (this->dialogWidget->isVisible()) {
-        this->dialogWidget->hide();
-    } else {
-        this->dialogWidget->show();
-    }
-}
-
-void UpdateDialog::handleDownload() {
+void UpdateDialog::handleDownload(QUrl downloadURL) {
     Application* application = Application::getInstance();
-    QDesktopServices::openUrl(*application->_downloadURL);
+    QDesktopServices::openUrl(downloadURL);
     application->quit();
 }
 
 void UpdateDialog::handleSkip() {
-    Application* application = Application::getInstance();
-    application->skipVersion();
-    this->toggleUpdateDialog();
+    this->close();
 }
 
 void UpdateDialog::handleClose() {
-    this->toggleUpdateDialog();
+    this->close();
 }
