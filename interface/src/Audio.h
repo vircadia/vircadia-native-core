@@ -62,6 +62,8 @@ public:
     
     bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
     
+    bool getMuted() { return _muted; }
+    
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
@@ -70,8 +72,12 @@ public slots:
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
     void handleAudioInput();
     void reset();
+    void toggleMute();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
+
+signals:
+    bool muteToggled();
     
 private:
     QByteArray firstInputFrame;

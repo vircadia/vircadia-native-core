@@ -167,7 +167,9 @@ Menu::Menu() :
                                            true,
                                            appInstance->getAvatar(),
                                            SLOT(setWantCollisionsOn(bool)));
-
+    
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+    
     QMenu* toolsMenu = addMenu("Tools");
 
     _voxelModeActionsGroup = new QActionGroup(this);
@@ -187,8 +189,6 @@ Menu::Menu() :
 
     QAction* getColorMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
     _voxelModeActionsGroup->addAction(getColorMode);
-
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ClickToFly);
 
 
     // connect each of the voxel mode actions to the updateVoxelModeActionsSlot
@@ -455,13 +455,19 @@ Menu::Menu() :
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
-
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
+                                           Qt::CTRL | Qt::Key_M,
+                                           false,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleMute()));
+    
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
                 Qt::CTRL | Qt::SHIFT | Qt::Key_V,
                 this,
                 SLOT(pasteToVoxel()));
 
-
+    connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
+    
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
@@ -1000,6 +1006,11 @@ void Menu::bandwidthDetails() {
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
+}
+
+void Menu::audioMuteToggled() {
+    QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
+    muteAction->setChecked(Application::getInstance()->getAudio()->getMuted());
 }
 
 void Menu::bandwidthDetailsClosed() {
