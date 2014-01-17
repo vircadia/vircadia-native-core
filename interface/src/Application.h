@@ -250,6 +250,8 @@ private slots:
     void restoreMirrorView();
     void shrinkMirrorView();
     void resetSensors();
+    
+    void parseVersionXml(QNetworkReply *reply);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -497,13 +499,11 @@ private:
     QString getLocalVoxelCacheFileName();
     void updateLocalOctreeCache(bool firstTime = false);
     
-    QFile *loadSkipFile();
+    QFile* loadSkipFile();
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void skipVersion(QString latestVersion);
-    
-    void parseVersionXml(QNetworkReply *reply);
 };
 
 #endif /* defined(__interface__Application__) */

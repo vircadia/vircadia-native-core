@@ -22,10 +22,9 @@ class UpdateDialog : public QDialog {
     
 public:
     UpdateDialog(QWidget*, QString releaseNotes, QString latestVersion, QUrl downloadURL);
-    ~UpdateDialog();
     
 private:
-    QWidget *dialogWidget;
+    QWidget* _dialogWidget;
     
 private slots:
     void handleDownload(QUrl downloadURL);

@@ -4418,13 +4418,14 @@ void Application::parseVersionXml(QNetworkReply *reply) {
     }
     
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        updateDialog = new UpdateDialog(_glWidget, releaseNotes);
+        updateDialog = new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadURL);
     }
 }
 
 QFile *Application::loadSkipFile() {
     QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     fileName.append(QString("/hifi.skipversion"));
+    qDebug("###### FILENAME %s \n", fileName.toStdString().c_str());
     QFile *file = new QFile(fileName);
     file->open(QIODevice::ReadWrite);
     return file;
@@ -4435,7 +4436,7 @@ bool Application::shouldSkipVersion(QString latestVersion) {
     QByteArray skipFileContents = skipFile->readAll();
     QString *skipVersion = new QString(skipFileContents);
     skipFile->close();
-    if (*skipVersion == latestVersion || applicationVersion() == "0.1") {
+    if (*skipVersion == latestVersion /*|| applicationVersion() == "0.1"*/) {
         return true;
     }
     return false;

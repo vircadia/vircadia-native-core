@@ -23,7 +23,7 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     
     QFile updateDialogUi("resources/ui/updateDialog.ui");
     updateDialogUi.open(QFile::ReadOnly);
-    dialogWidget = updateDialogLoader.load(&updateDialogUi, parent);
+    _dialogWidget = updateDialogLoader.load(&updateDialogUi, parent);
     updateDialogUi.close();
     
     const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
@@ -33,17 +33,17 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     
     setAttribute(Qt::WA_DeleteOnClose);
     
-    QPushButton *downloadButton = dialogWidget->findChild<QPushButton *>("downloadButton");
-    QPushButton *skipButton = dialogWidget->findChild<QPushButton *>("skipButton");
-    QPushButton *closeButton = dialogWidget->findChild<QPushButton *>("closeButton");
-    QLabel *updateContent = dialogWidget->findChild<QLabel *>("updateContent");
+    QPushButton* downloadButton = _dialogWidget->findChild<QPushButton*>("downloadButton");
+    QPushButton* skipButton = _dialogWidget->findChild<QPushButton*>("skipButton");
+    QPushButton* closeButton = _dialogWidget->findChild<QPushButton*>("closeButton");
+    QLabel* updateContent = _dialogWidget->findChild<QLabel*>("updateContent");
     
     updateContent->setText(updateRequired);
     
     connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload(QUrl downloadURL)));
     connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
     connect(closeButton, SIGNAL(released()), this, SLOT(handleClose()));
-    dialogWidget->show();
+    _dialogWidget->show();
 }
 
 void UpdateDialog::handleDownload(QUrl downloadURL) {
@@ -53,6 +53,7 @@ void UpdateDialog::handleDownload(QUrl downloadURL) {
 }
 
 void UpdateDialog::handleSkip() {
+    
     this->close();
 }
 
