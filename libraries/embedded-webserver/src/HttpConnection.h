@@ -7,7 +7,7 @@
 //
 //  Heavily based on Andrzej Kapolka's original HttpConnection class
 //  found from another one of his projects.
-//  (https://github.com/ey6es/witgap/tree/master/src/cpp/server/http)
+//  https://github.com/ey6es/witgap/tree/master/src/cpp/server/http
 //
 
 #ifndef __hifi__HttpConnection__
@@ -38,6 +38,9 @@ class HttpConnection : public QObject {
    Q_OBJECT
 
 public:
+    static const char* StatusCode200;
+    static const char* StatusCode400;
+    static const char* StatusCode404;
 
     /// WebSocket close status codes.
     enum ReasonCode { NoReason = 0, NormalClosure = 1000, GoingAway = 1001 };

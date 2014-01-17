@@ -5,10 +5,6 @@
 //  Created by Stephen Birarda on 1/16/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  Heavily based on Andrzej Kapolka's original HttpConnection class
-//  found from another one of his projects.
-//  (https://github.com/ey6es/witgap/tree/master/src/cpp/server/http)
-//
 
 
 #include <QBuffer>
@@ -17,6 +13,10 @@
 
 #include "HttpConnection.h"
 #include "HttpManager.h"
+
+const char* HttpConnection::StatusCode200 = "200 OK";
+const char* HttpConnection::StatusCode400 = "400 Bad Request";
+const char* HttpConnection::StatusCode404 = "404 Not Found";
 
 HttpConnection::HttpConnection (QTcpSocket* socket, HttpManager* parentManager) :
     QObject(parentManager),
@@ -178,7 +178,7 @@ void HttpConnection::readHeaders() {
 
             QByteArray clength = _requestHeaders.value("Content-Length");
             if (clength.isEmpty()) {
-                _parentManager->handleRequest(this, _requestUrl.path());
+                _parentManager->handleHTTPRequest(this, _requestUrl.path());
 
             } else {
                 _requestContent.resize(clength.toInt());
@@ -217,5 +217,5 @@ void HttpConnection::readContent() {
     _socket->read(_requestContent.data(), size);
     _socket->disconnect(this, SLOT(readContent()));
 
-    _parentManager->handleRequest(this, _requestUrl.path());
+    _parentManager->handleHTTPRequest(this, _requestUrl.path());
 }

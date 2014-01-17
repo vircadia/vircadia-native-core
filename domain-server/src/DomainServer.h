@@ -21,10 +21,12 @@
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
 
-class DomainServer : public QCoreApplication {
+class DomainServer : public QCoreApplication, public HttpRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
+    
+    bool handleHTTPRequest(HttpConnection* connection, const QString& path);
     
     void exit(int retCode = 0);
 

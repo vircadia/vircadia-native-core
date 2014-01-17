@@ -5,10 +5,6 @@
 //  Created by Stephen Birarda on 1/16/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  Heavily based on Andrzej Kapolka's original HttpManager class
-//  found from another one of his projects.
-//  (https://github.com/ey6es/witgap/tree/master/src/cpp/server/http)
-//
 
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
@@ -19,7 +15,15 @@
 #include "HttpConnection.h"
 #include "HttpManager.h"
 
-bool HttpManager::handleRequest(HttpConnection* connection, const QString& path) {
+bool HttpManager::handleHTTPRequest(HttpConnection* connection, const QString& path) {
+    if (_requestHandler && _requestHandler->handleHTTPRequest(connection, path)) {
+        // this request was handled by our _requestHandler object
+        // so we don't need to attempt to do so in the document root
+        return true;
+    }
+    
+    // check to see if there is a file to serve from the document root for this path
+    
     QString subPath = path;
     
     // remove any slash at the beginning of the path
@@ -45,6 +49,8 @@ bool HttpManager::handleRequest(HttpConnection* connection, const QString& path)
 
     
     if (!filePath.isEmpty()) {
+        // file exists, serve it
+
         static QMimeDatabase mimeDatabase;
         
         QFile localFile(filePath);
@@ -93,18 +99,20 @@ bool HttpManager::handleRequest(HttpConnection* connection, const QString& path)
             }
         }
         
-        connection->respond("200 OK", localFileString.toLocal8Bit(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
+        connection->respond(HttpConnection::StatusCode200, localFileString.toLocal8Bit(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
     } else {
         // respond with a 404
-        connection->respond("404 Not Found", "Resource not found.");
+        connection->respond(HttpConnection::StatusCode404, "Resource not found.");
     }
     
     return true;
 }
 
-HttpManager::HttpManager(quint16 port, const QString& documentRoot, QObject* parent) :
+HttpManager::HttpManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
-    _documentRoot(documentRoot) {
+    _documentRoot(documentRoot),
+    _requestHandler(requestHandler)
+{
     // start listening on the passed port
     if (!listen(QHostAddress("0.0.0.0"), port)) {
         qDebug() << "Failed to open HTTP server socket:" << errorString();
