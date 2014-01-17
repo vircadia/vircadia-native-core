@@ -65,7 +65,7 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
 
 void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // likewise with the eye joints
-    glm::mat4 inverse = glm::inverse(parentState.transform *
+    glm::mat4 inverse = glm::inverse(parentState.transform * glm::translate(state.translation) *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getOrientation() * IDENTITY_FRONT, 0.0f));
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
