@@ -22,7 +22,7 @@ JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* n
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     NodeList* nodeList = NodeList::getInstance();
     
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
     
     //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
 
