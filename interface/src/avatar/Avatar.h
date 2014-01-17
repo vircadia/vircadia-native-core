@@ -26,64 +26,8 @@ static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
 
-const float BODY_BALL_RADIUS_PELVIS = 0.07f;
-const float BODY_BALL_RADIUS_TORSO = 0.065f;
-const float BODY_BALL_RADIUS_CHEST = 0.08f;
-const float BODY_BALL_RADIUS_NECK_BASE = 0.03f;
-const float BODY_BALL_RADIUS_HEAD_BASE = 0.07f;
-const float BODY_BALL_RADIUS_LEFT_COLLAR = 0.04f;
-const float BODY_BALL_RADIUS_LEFT_SHOULDER = 0.03f;
-const float BODY_BALL_RADIUS_LEFT_ELBOW = 0.02f;
-const float BODY_BALL_RADIUS_LEFT_WRIST = 0.02f;
-const float BODY_BALL_RADIUS_LEFT_FINGERTIPS = 0.01f;
-const float BODY_BALL_RADIUS_RIGHT_COLLAR = 0.04f;
-const float BODY_BALL_RADIUS_RIGHT_SHOULDER = 0.03f;
-const float BODY_BALL_RADIUS_RIGHT_ELBOW = 0.02f;
-const float BODY_BALL_RADIUS_RIGHT_WRIST = 0.02f;
-const float BODY_BALL_RADIUS_RIGHT_FINGERTIPS = 0.01f;
-const float BODY_BALL_RADIUS_LEFT_HIP = 0.04f;
-const float BODY_BALL_RADIUS_LEFT_MID_THIGH = 0.03f;
-const float BODY_BALL_RADIUS_LEFT_KNEE = 0.025f;
-const float BODY_BALL_RADIUS_LEFT_HEEL = 0.025f;
-const float BODY_BALL_RADIUS_LEFT_TOES = 0.025f;
-const float BODY_BALL_RADIUS_RIGHT_HIP = 0.04f;
-const float BODY_BALL_RADIUS_RIGHT_KNEE = 0.025f;
-const float BODY_BALL_RADIUS_RIGHT_HEEL = 0.025f;
-const float BODY_BALL_RADIUS_RIGHT_TOES = 0.025f;
-
-extern const bool usingBigSphereCollisionTest;
-
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
-
-enum AvatarBodyBallID {
-	BODY_BALL_NULL = -1,
-	BODY_BALL_PELVIS,
-	BODY_BALL_TORSO,
-	BODY_BALL_CHEST,
-	BODY_BALL_NECK_BASE,
-	BODY_BALL_HEAD_BASE,
-	BODY_BALL_HEAD_TOP,
-	BODY_BALL_LEFT_COLLAR,
-	BODY_BALL_LEFT_SHOULDER,
-	BODY_BALL_LEFT_ELBOW,
-	BODY_BALL_LEFT_WRIST,
-	BODY_BALL_LEFT_FINGERTIPS,
-	BODY_BALL_RIGHT_COLLAR,
-	BODY_BALL_RIGHT_SHOULDER,
-	BODY_BALL_RIGHT_ELBOW,
-	BODY_BALL_RIGHT_WRIST,
-	BODY_BALL_RIGHT_FINGERTIPS,
-    BODY_BALL_LEFT_HIP,
-    BODY_BALL_LEFT_KNEE,
-    BODY_BALL_LEFT_HEEL,
-    BODY_BALL_LEFT_TOES,
-    BODY_BALL_RIGHT_HIP,
-    BODY_BALL_RIGHT_KNEE,
-    BODY_BALL_RIGHT_HEEL,
-    BODY_BALL_RIGHT_TOES,
-	NUM_AVATAR_BODY_BALLS
-};
 
 enum DriveKeys {
     FWD = 0,
@@ -151,8 +95,6 @@ public:
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
 
-    void getSkinColors(glm::vec3& lighter, glm::vec3& darker);
-
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
     /// Checks for penetration between the described sphere and the avatar.
@@ -189,7 +131,6 @@ protected:
     Head _head;
     Hand _hand;
     SkeletonModel _skeletonModel;
-    bool _ballSpringsInitialized;
     float _bodyYawDelta;
     AvatarMode _mode;
     glm::vec3 _velocity;
@@ -210,26 +151,17 @@ protected:
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void setScale(const float scale);
+    void setScale(float scale);
 
     float getHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
 private:
-    // privatize copy constructor and assignment operator to avoid copying
-    Avatar(const Avatar&);
-    Avatar& operator= (const Avatar&);
 
     bool _initialized;
-    glm::vec3 _handHoldingPosition;
 
-    // private methods...
-    glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
-    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
     void renderBody(bool forceRenderHead);
-    void initializeBodyBalls();
-    void resetBodyBalls();
 };
 
 #endif

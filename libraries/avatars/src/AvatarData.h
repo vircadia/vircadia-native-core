@@ -60,8 +60,6 @@ enum KeyState
 
 const glm::vec3 vec3Zero(0.0f);
 
-class JointData;
-
 class AvatarData : public NodeData {
     Q_OBJECT
 
@@ -161,8 +159,6 @@ protected:
 
     bool _isChatCirclingEnabled;
 
-    std::vector<JointData> _joints;
-
     HeadData* _headData;
     HandData* _handData;
 
@@ -170,13 +166,6 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
-};
-
-class JointData {
-public:
-
-    int jointID;
-    glm::quat rotation;
 };
 
 #endif /* defined(__hifi__AvatarData__) */
