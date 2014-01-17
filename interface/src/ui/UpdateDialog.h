@@ -10,9 +10,6 @@
 #define __hifi__UpdateDialog__
 
 #include <QDialog>
-#include <QPushButton>
-#include <QLabel>
-#include <QFrame>
 #include <QWidget>
 
 #include <iostream>

@@ -11,6 +11,9 @@
 #include <QTextBlock>
 #include <QtGui>
 #include <QtUiTools>
+#include <QPushButton>
+#include <QLabel>
+#include <QFrame>
 
 #include "Application.h"
 #include "SharedUtil.h"
@@ -53,10 +56,9 @@ void UpdateDialog::handleDownload(QUrl downloadURL) {
 }
 
 void UpdateDialog::handleSkip() {
-    
-    this->close();
+    this->_dialogWidget->close();
 }
 
 void UpdateDialog::handleClose() {
-    this->close();
+    this->_dialogWidget->close();
 }
