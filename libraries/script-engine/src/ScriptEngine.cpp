@@ -225,6 +225,7 @@ void ScriptEngine::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString();
         }
     }
+    emit scriptEnding();
     cleanMenuItems();
 
     // If we were on a thread, then wait till it's done
