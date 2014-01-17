@@ -674,9 +674,9 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-    NodeHash::iterator matchingNodeItem = _nodeHash.find(uuid);
-
-    if (matchingNodeItem == _nodeHash.end()) {
+    SharedNodePointer matchingNode = _nodeHash.value(uuid);
+    
+    if (!matchingNode) {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
@@ -689,29 +689,28 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 
         return newNodeSharedPointer;
     } else {
-        SharedNodePointer node = matchingNodeItem.value();
-        QMutexLocker(&node->getMutex());
+        QMutexLocker(&matchingNode->getMutex());
 
-        if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
-            node->getType() == NODE_TYPE_VOXEL_SERVER ||
-            node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+        if (matchingNode->getType() == NODE_TYPE_AUDIO_MIXER ||
+            matchingNode->getType() == NODE_TYPE_VOXEL_SERVER ||
+            matchingNode->getType() == NODE_TYPE_METAVOXEL_SERVER) {
             // until the Audio class also uses our nodeList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            node->setLastHeardMicrostamp(usecTimestampNow());
+            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
         }
 
         // check if we need to change this node's public or local sockets
-        if (publicSocket != node->getPublicSocket()) {
-            node->setPublicSocket(publicSocket);
-            qDebug() << "Public socket change for node" << *node;
+        if (publicSocket != matchingNode->getPublicSocket()) {
+            matchingNode->setPublicSocket(publicSocket);
+            qDebug() << "Public socket change for node" << *matchingNode;
         }
 
-        if (localSocket != node->getLocalSocket()) {
-            node->setLocalSocket(localSocket);
-            qDebug() << "Local socket change for node" << *node;
+        if (localSocket != matchingNode->getLocalSocket()) {
+            matchingNode->setLocalSocket(localSocket);
+            qDebug() << "Local socket change for node" << *matchingNode;
         }
         // we had this node already, do nothing for now
-        return node;
+        return matchingNode;
     }
 }
 
