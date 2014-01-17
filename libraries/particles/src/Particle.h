@@ -207,4 +207,38 @@ private:
 };
 
 
+class ParticleProperties : public QObject {
+    Q_OBJECT
+public:
+    ParticleProperties();
+
+    QScriptValue copyToScriptValue(QScriptEngine* engine) const;
+    void copyFromScriptValue(const QScriptValue& object);
+
+    void copyToParticle(Particle& particle) const;
+    void copyFromParticle(const Particle& particle);
+
+private:
+    glm::vec3 _position;
+    xColor _color;
+    float _radius;
+    glm::vec3 _velocity;
+    glm::vec3 _gravity;
+    float _damping;
+    QString _script;
+    bool _inHand;
+    bool _shouldDie;
+
+    bool _positionChanged;
+    bool _colorChanged;
+    bool _radiusChanged;
+    bool _velocityChanged;
+    bool _gravityChanged;
+    bool _dampingChanged;
+    bool _scriptChanged;
+    bool _inHandChanged;
+    bool _shouldDieChanged;
+};
+
+
 #endif /* defined(__hifi__Particle__) */

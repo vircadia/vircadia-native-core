@@ -611,3 +611,212 @@ void Particle::copyChangedProperties(const Particle& other) {
     *this = other;
     setLifetime(lifetime);
 }
+
+
+QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const {
+    QScriptValue properties = engine->newObject();
+
+    QScriptValue position = vec3toScriptValue(engine, _position);
+    properties.setProperty("position", position);
+
+    QScriptValue color = xColortoScriptValue(engine, _color);
+    properties.setProperty("color", color);
+
+    properties.setProperty("radius", _radius);
+
+    QScriptValue velocity = vec3toScriptValue(engine, _velocity);
+    properties.setProperty("velocity", velocity);
+
+    QScriptValue gravity = vec3toScriptValue(engine, _gravity);
+    properties.setProperty("gravity", gravity);
+
+    properties.setProperty("damping", _damping);
+    properties.setProperty("script", _script);
+    properties.setProperty("inHand", _inHand);
+    properties.setProperty("shouldDie", _shouldDie);
+
+    return properties;
+}
+
+void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
+
+    QScriptValue position = object.property("position");
+    if (position.isValid()) {
+        QScriptValue x = position.property("x");
+        QScriptValue y = position.property("y");
+        QScriptValue z = position.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newPosition;
+            newPosition.x = x.toVariant().toFloat();
+            newPosition.y = x.toVariant().toFloat();
+            newPosition.z = x.toVariant().toFloat();
+            if (newPosition != _position) {
+                _position = newPosition;
+                _positionChanged = true;
+            }
+        }
+    }
+
+    QScriptValue color = object.property("color");
+    if (color.isValid()) {
+        QScriptValue red = color.property("red");
+        QScriptValue green = color.property("green");
+        QScriptValue blue = color.property("blue");
+        if (red.isValid() && green.isValid() && blue.isValid()) {
+            xColor newColor;
+            newColor.red = red.toVariant().toInt();
+            newColor.green = green.toVariant().toInt();
+            newColor.blue = blue.toVariant().toInt();
+            if (newColor.red != _color.red ||
+                newColor.green != _color.green ||
+                newColor.blue != _color.blue) {
+                _color = newColor;
+                _colorChanged = true;
+            }
+        }
+    }
+
+    QScriptValue radius = object.property("radius");
+    if (radius.isValid()) {
+        float newRadius;
+        newRadius = radius.toVariant().toFloat();
+        if (newRadius != _radius) {
+            _radius = newRadius;
+            _radiusChanged = true;
+        }
+    }
+
+    QScriptValue velocity = object.property("velocity");
+    if (velocity.isValid()) {
+        QScriptValue x = velocity.property("x");
+        QScriptValue y = velocity.property("y");
+        QScriptValue z = velocity.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newVelocity;
+            newVelocity.x = x.toVariant().toFloat();
+            newVelocity.y = x.toVariant().toFloat();
+            newVelocity.z = x.toVariant().toFloat();
+            if (newVelocity != _velocity) {
+                _velocity = newVelocity;
+                _velocityChanged = true;
+            }
+        }
+    }
+
+    QScriptValue gravity = object.property("gravity");
+    if (gravity.isValid()) {
+        QScriptValue x = gravity.property("x");
+        QScriptValue y = gravity.property("y");
+        QScriptValue z = gravity.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newGravity;
+            newGravity.x = x.toVariant().toFloat();
+            newGravity.y = x.toVariant().toFloat();
+            newGravity.z = x.toVariant().toFloat();
+            if (newGravity != _gravity) {
+                _gravity = newGravity;
+                _gravityChanged = true;
+            }
+        }
+    }
+
+    QScriptValue damping = object.property("damping");
+    if (damping.isValid()) {
+        float newDamping;
+        newDamping = damping.toVariant().toFloat();
+        if (newDamping != _damping) {
+            _damping = newDamping;
+            _dampingChanged = true;
+        }
+    }
+
+    QScriptValue script = object.property("script");
+    if (script.isValid()) {
+        QString newScript;
+        newScript = script.toVariant().toString();
+        if (newScript != _script) {
+            _script = newScript;
+            _scriptChanged = true;
+        }
+    }
+
+    QScriptValue inHand = object.property("inHand");
+    if (inHand.isValid()) {
+        bool newInHand;
+        newInHand = inHand.toVariant().toBool();
+        if (newInHand != _inHand) {
+            _inHand = newInHand;
+            _inHandChanged = true;
+        }
+    }
+
+    QScriptValue shouldDie = object.property("shouldDie");
+    if (shouldDie.isValid()) {
+        bool newShouldDie;
+        newShouldDie = shouldDie.toVariant().toBool();
+        if (newShouldDie != _shouldDie) {
+            _shouldDie = newShouldDie;
+            _shouldDieChanged = true;
+        }
+    }
+}
+
+void ParticleProperties::copyToParticle(Particle& particle) const {
+    if (_positionChanged) {
+        particle.setPosition(_position);
+    }
+
+    if (_colorChanged) {
+        particle.setColor(_color);
+    }
+
+    if (_radiusChanged) {
+        particle.setRadius(_radius);
+    }
+
+    if (_velocityChanged) {
+        particle.setVelocity(_velocity);
+    }
+
+    if (_gravityChanged) {
+        particle.setGravity(_gravity);
+    }
+
+    if (_dampingChanged) {
+        particle.setDamping(_damping);
+    }
+
+    if (_scriptChanged) {
+        particle.setScript(_script);
+    }
+
+    if (_inHandChanged) {
+        particle.setInHand(_inHand);
+    }
+
+    if (_shouldDieChanged) {
+        particle.setShouldDie(_shouldDie);
+    }
+}
+
+void ParticleProperties::copyFromParticle(const Particle& particle) {
+    _position = particle.getPosition();
+    _color = particle.getXColor();
+    _radius = particle.getRadius();
+    _velocity = particle.getVelocity();
+    _gravity = particle.getGravity();
+    _damping = particle.getDamping();
+    _script = particle.getScript();
+    _inHand = particle.getInHand();
+    _shouldDie = particle.getShouldDie();
+
+    _positionChanged = false;
+    _colorChanged = false;
+    _radiusChanged = false;
+    _velocityChanged = false;
+    _gravityChanged = false;
+    _dampingChanged = false;
+    _scriptChanged = false;
+    _inHandChanged = false;
+    _shouldDieChanged = false;
+}
