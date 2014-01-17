@@ -21,7 +21,7 @@ qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
 
-# link in the shared library
+# link in the shared libraries
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
@@ -34,7 +34,7 @@ link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particle-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxel-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
-#testing
+link_hifi_library(embedded-webserver ${TARGET_NAME} ${ROOT_DIR})
 
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
