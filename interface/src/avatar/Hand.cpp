@@ -187,6 +187,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         
             const float THROWN_VELOCITY_SCALING = 1.5f;
             _toyBallInHand[handID] = false;
+            palm.updateCollisionlessPaddleExpiry();
             glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
             glm::vec3 ballVelocity = ballFromHand ? palm.getRawVelocity() : palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
@@ -562,6 +563,8 @@ void Hand::renderLeapHands(bool isMine) {
                 continue;
             }
             glm::vec3 targetPosition = ballFromHand ? palm.getPosition() : palm.getTipPosition();
+            const float BALL_FORWARD_OFFSET = 0.08f;    // put the ball a bit forward of fingers
+            targetPosition += BALL_FORWARD_OFFSET * palm.getNormal();
             glPushMatrix();
         
             ParticleTree* particles = Application::getInstance()->getParticles()->getTree();

@@ -79,7 +79,8 @@ _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
 _isCollidingWithVoxel(false),
-_isCollidingWithPalm(false)
+_isCollidingWithPalm(false),
+_collisionlessPaddleExpiry(0)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));

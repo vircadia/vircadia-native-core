@@ -70,7 +70,7 @@ bool packetVersionMatch(unsigned char* packetHeader) {
     if (packetHeader[1] == versionForPacketType(packetHeader[0]) || packetHeader[0] == PACKET_TYPE_STUN_RESPONSE) {
         return true;
     } else {
-        qDebug("There is a packet version mismatch for packet with header %c", packetHeader[0]);
+        //qDebug("There is a packet version mismatch for packet with header %c", packetHeader[0]);
         return false;
     }
 }

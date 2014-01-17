@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "SharedUtil.h"
+
 class AvatarData;
 class FingerData;
 class PalmData;
@@ -51,7 +53,7 @@ public:
         return _basePosition + _baseOrientation * (leapPosition * LEAP_UNIT_SCALE);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
-        return glm::normalize(_baseOrientation * leapDirection);
+        return _baseOrientation * leapDirection;
     }
     glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
     glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
@@ -193,6 +195,9 @@ public:
     bool getIsCollidingWithPalm() const { return _isCollidingWithPalm; }
     void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
 
+    bool hasPaddle() const { return _collisionlessPaddleExpiry < usecTimestampNow(); }
+    void updateCollisionlessPaddleExpiry() { _collisionlessPaddleExpiry = usecTimestampNow() + USECS_PER_SECOND; }
+
 private:
     std::vector<FingerData> _fingers;
     glm::quat _rawRotation;
@@ -217,7 +222,7 @@ private:
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
     bool      _isCollidingWithPalm;
-    
+    uint64_t  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
 #endif /* defined(__hifi__HandData__) */

@@ -145,7 +145,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
     glm::vec3 center = particle->getPosition() * (float)(TREE_SCALE);
     float radius = particle->getRadius() * (float)(TREE_SCALE);
-    const float ELASTICITY = 0.95f;
+    const float ELASTICITY = 0.9f;
     const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
@@ -155,12 +155,26 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         AvatarData* avatar = (AvatarData*)_selfAvatar;
         CollisionInfo collision;
         if (avatar->findSphereCollision(center, radius, collision)) {
-            if (glm::dot(particle->getVelocity(), collision._addedVelocity) < 0.f) {
+            collision._addedVelocity /= (float)(TREE_SCALE);
+            glm::vec3 relativeVelocity = collision._addedVelocity - particle->getVelocity();
+            if (glm::dot(relativeVelocity, collision._penetration) < 0.f) {
                 // only collide when particle and collision point are moving toward each other
+
+                // HACK BEGIN: to make slow particle-paddle collisions mellower
+                float elasticity = ELASTICITY;
+                float damping = glm::length(collision._addedVelocity) / 5.0e-5f;
+                if (damping < 1.f) {
+                    collision._addedVelocity *= (damping * damping);
+                    elasticity = ELASTICITY * damping;
+                    damping = 0.1f;
+                } else {
+                    damping = DAMPING;
+                }
+                // HACK END
+
                 collision._penetration /= (float)(TREE_SCALE);
-                collision._addedVelocity /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);    
+                applyHardCollision(particle, collision._penetration, elasticity, damping, collision._addedVelocity);
             }
         }
     }
