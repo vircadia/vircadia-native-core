@@ -453,43 +453,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     return false;
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
-
-//void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
-//
-//    // create an assignment for this saved script, for now make it local only
-//    Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
-//                                                  Assignment::AgentType,
-//                                                  NULL,
-//                                                  Assignment::LocalLocation);
-//
-//    // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
-//    const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
-//    const char* requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
-//
-//    if (requestInstancesHeader) {
-//        // the user has requested a number of instances greater than 1
-//        // so set that on the created assignment
-//        scriptAssignment->setNumberOfInstances(atoi(requestInstancesHeader));
-//    }
-//
-//    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-//    newPath += "/";
-//    // append the UUID for this script as the new filename, remove the curly braces
-//    newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
-//
-//    // rename the saved script to the GUID of the assignment and move it to the script host locaiton
-//    rename(path, newPath.toLocal8Bit().constData());
-//
-//    qDebug("Saved a script for assignment at %s", newPath.toLocal8Bit().constData());
-//
-//    // add the script assigment to the assignment queue
-//    // lock the assignment queue mutex since we're operating on a different thread than DS main
-//    domainServerInstance->_assignmentQueueMutex.lock();
-//    domainServerInstance->_assignmentQueue.push_back(scriptAssignment);
-//    domainServerInstance->_assignmentQueueMutex.unlock();
-//}
-
 void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
     qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.";
 
