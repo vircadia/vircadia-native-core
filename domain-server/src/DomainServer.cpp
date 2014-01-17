@@ -33,7 +33,7 @@ const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _httpManager(DOMAIN_SERVER_HTTP_PORT),
+    _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath())),
     _assignmentQueueMutex(),
     _assignmentQueue(),
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
@@ -60,8 +60,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
     _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
-
-//    QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    
 //
 //    char* documentRoot = new char[documentRootString.size() + 1];
 //    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());

@@ -82,11 +82,6 @@ public:
     const QByteArray& requestContent () const { return _requestContent; }
 
     /**
-     * Checks whether the request is asking to switch to a WebSocket.
-     */
-    bool isWebSocketRequest ();
-
-    /**
      * Parses the request content as form data, returning a list of header/content pairs.
      */
     QList<FormData> parseFormData () const;
@@ -97,28 +92,6 @@ public:
     void respond (const char* code, const QByteArray& content = QByteArray(),
         const char* contentType = "text/plain; charset=ISO-8859-1",
         const Headers& headers = Headers());
-
-    /**
-     * Switches to a WebSocket.
-     */
-    void switchToWebSocket (const char* protocol = 0);
-
-    /**
-     * Writes a header for a WebSocket message of the specified size.  The body of the message
-     * should be written through the socket.
-     */
-    void writeWebSocketHeader (int size) { writeFrameHeader(BinaryFrame, size); }
-
-    /**
-     * Pauses or unpauses the WebSocket.  A paused WebSocket buffers messages until unpaused.
-     */
-    void setWebSocketPaused (bool paused);
-
-    /**
-     * Closes the WebSocket.
-     */
-    void closeWebSocket (quint16 reasonCode = NormalClosure, const char* reason = 0);
-
 signals:
 
     /**
@@ -148,36 +121,14 @@ protected slots:
      */
     void readContent ();
 
-    /**
-     * Reads any incoming WebSocket frames.
-     */
-    void readFrames ();
-
 protected:
-
-    /** The available WebSocket frame opcodes. */
-    enum FrameOpcode { ContinuationFrame, TextFrame, BinaryFrame,
-        ConnectionClose = 0x08, Ping, Pong };
-
-    /**
-     * Attempts to read a single WebSocket frame, returning true if successful.
-     */
-    bool maybeReadFrame ();
-
-    /**
-     * Writes a WebSocket frame header.
-     */
-    void writeFrameHeader (FrameOpcode opcode, int size = 0, bool final = true);
 
     /** The parent HTTP manager. */
     HttpManager* _parentManager;
 
     /** The underlying socket. */
     QTcpSocket* _socket;
-
-    /** The mask filter for WebSocket frames. */
-    MaskFilter* _unmasker;
-
+    
     /** The data stream for writing to the socket. */
     QDataStream _stream;
 
@@ -198,64 +149,6 @@ protected:
 
     /** The content of the request. */
     QByteArray _requestContent;
-
-    /** The opcode for the WebSocket message being continued. */
-    FrameOpcode _continuingOpcode;
-
-    /** The WebSocket message being continued. */
-    QByteArray _continuingMessage;
-
-    /** Whether or not the WebSocket is paused (buffering messages for future processing). */
-    bool _webSocketPaused;
-
-    /** Whether or not we've sent a WebSocket close message. */
-    bool _closeSent;
-};
-
-/**
- * A filter device that applies a 32-bit mask.
- */
-class MaskFilter : public QIODevice
-{
-    Q_OBJECT
-
-public:
-
-    /**
-     * Creates a new masker to filter the supplied device.
-     */
-    MaskFilter (QIODevice* device, QObject* parent = 0);
-
-    /**
-     * Sets the mask to apply.
-     */
-    void setMask (quint32 mask);
-
-    /**
-     * Returns the number of bytes available to read.
-     */
-    virtual qint64 bytesAvailable () const;
-
-protected:
-
-    /**
-     * Reads masked data from the underlying device.
-     */
-    virtual qint64 readData (char* data, qint64 maxSize);
-
-    /**
-     * Writes masked data to the underlying device.
-     */
-    virtual qint64 writeData (const char* data, qint64 maxSize);
-
-    /** The underlying device. */
-    QIODevice* _device;
-
-    /** The current mask. */
-    char _mask[4];
-
-    /** The current position within the mask. */
-    int _position;
 };
 
 #endif // HTTP_CONNECTION

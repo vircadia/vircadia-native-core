@@ -21,47 +21,9 @@ class HttpConnection;
 class HttpRequestHandler;
 
 /**
- * Interface for HTTP request handlers.
- */
-class HttpRequestHandler
-{
-public:
-
-    /**
-     * Handles an HTTP request.
-     */
-    virtual bool handleRequest (
-        HttpConnection* connection, const QString& name, const QString& path) = 0;
-};
-
-/**
- * Handles requests by forwarding them to subhandlers.
- */
-class HttpSubrequestHandler : public HttpRequestHandler
-{
-public:
-
-    /**
-     * Registers a subhandler with the given name.
-     */
-    void registerSubhandler (const QString& name, HttpRequestHandler* handler);
-
-    /**
-     * Handles an HTTP request.
-     */
-    virtual bool handleRequest (
-        HttpConnection* connection, const QString& name, const QString& path);
-
-protected:
-
-    /** Subhandlers mapped by name. */
-    QHash<QString, HttpRequestHandler*> _subhandlers;
-};
-
-/**
  * Handles HTTP connections.
  */
-class HttpManager : public QTcpServer, public HttpSubrequestHandler
+class HttpManager : public QTcpServer
 {
    Q_OBJECT
 
@@ -70,7 +32,13 @@ public:
     /**
      * Initializes the manager.
      */
-    HttpManager(quint16 port, QObject* parent = 0);
+    HttpManager(quint16 port, const QString& documentRoot, QObject* parent = 0);
+    
+    /**
+     * Handles an HTTP request.
+     */
+    virtual bool handleRequest (HttpConnection* connection, const QString& path);
+    
 
 protected slots:
 
@@ -78,6 +46,8 @@ protected slots:
      * Accepts all pending connections.
      */
     void acceptConnections ();
+protected:
+    QString _documentRoot;
 };
 
 #endif // HTTP_MANAGER

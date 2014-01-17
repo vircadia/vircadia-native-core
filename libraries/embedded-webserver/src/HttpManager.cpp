@@ -10,40 +10,59 @@
 //  (https://github.com/ey6es/witgap/tree/master/src/cpp/server/http)
 //
 
-#include <QTcpSocket>
-#include <QtDebug>
+#include <QtCore/QDebug>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QMimeDatabase>
+#include <QtNetwork/QTcpSocket>
 
 #include "HttpConnection.h"
 #include "HttpManager.h"
 
-void HttpSubrequestHandler::registerSubhandler (const QString& name, HttpRequestHandler* handler) {
-    _subhandlers.insert(name, handler);
-}
-
-bool HttpSubrequestHandler::handleRequest (
-    HttpConnection* connection, const QString& name, const QString& path) {
-    QString subpath = path;
-    if (subpath.startsWith('/')) {
-        subpath.remove(0, 1);
+bool HttpManager::handleRequest(HttpConnection* connection, const QString& path) {
+    QString subPath = path;
+    
+    // remove any slash at the beginning of the path
+    if (subPath.startsWith('/')) {
+        subPath.remove(0, 1);
     }
-    QString subname;
-    int idx = subpath.indexOf('/');
-    if (idx == -1) {
-        subname = subpath;
-        subpath = "";
+    
+    QString filePath;
+    
+    // if the last thing is a trailing slash then we want to look for index file
+    if (subPath.endsWith('/') || subPath.size() == 0) {
+        QStringList possibleIndexFiles = QStringList() << "index.html" << "index.shtml";
+        
+        foreach (const QString& possibleIndexFilename, possibleIndexFiles) {
+            if (QFileInfo(_documentRoot + subPath + possibleIndexFilename).exists()) {
+                filePath = _documentRoot + subPath + possibleIndexFilename;
+                break;
+            }
+        }
+    } else if (QFileInfo(_documentRoot + subPath).isFile()) {
+        filePath = _documentRoot + subPath;
+    }
+    
+    if (!filePath.isEmpty()) {
+        static QMimeDatabase mimeDatabase;
+        
+        qDebug() << "Serving file at" << filePath;
+        
+        QFile localFile(filePath);
+        localFile.open(QIODevice::ReadOnly);
+        
+        connection->respond("200 OK", localFile.readAll(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
     } else {
-        subname = subpath.left(idx);
-        subpath = subpath.mid(idx + 1);
-    }
-    HttpRequestHandler* handler = _subhandlers.value(subname);
-    if (handler == 0 || !handler->handleRequest(connection, subname, subpath)) {
+        // respond with a 404
         connection->respond("404 Not Found", "Resource not found.");
     }
+    
     return true;
 }
 
-HttpManager::HttpManager(quint16 port, QObject* parent) :
-    QTcpServer(parent) {
+HttpManager::HttpManager(quint16 port, const QString& documentRoot, QObject* parent) :
+    QTcpServer(parent),
+    _documentRoot(documentRoot) {
     // start listening on the passed port
     if (!listen(QHostAddress("0.0.0.0"), port)) {
         qDebug() << "Failed to open HTTP server socket:" << errorString();
@@ -54,7 +73,7 @@ HttpManager::HttpManager(quint16 port, QObject* parent) :
     connect(this, SIGNAL(newConnection()), SLOT(acceptConnections()));
 }
 
-void HttpManager::acceptConnections () {
+void HttpManager::acceptConnections() {
     QTcpSocket* socket;
     while ((socket = nextPendingConnection()) != 0) {
         new HttpConnection(socket, this);
