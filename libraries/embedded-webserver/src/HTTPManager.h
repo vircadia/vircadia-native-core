@@ -17,18 +17,18 @@
 
 class HTTPConnection;
 
-class HttpRequestHandler {
+class HTTPRequestHandler {
 public:
     /// Handles an HTTP request.
     virtual bool handleHTTPRequest(HTTPConnection* connection, const QString& path) = 0;
 };
 
 /// Handles HTTP connections
-class HTTPManager : public QTcpServer, public HttpRequestHandler {
+class HTTPManager : public QTcpServer, public HTTPRequestHandler {
    Q_OBJECT
 public:
     /// Initializes the manager.
-    HTTPManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler = NULL, QObject* parent = 0);
+    HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler = NULL, QObject* parent = 0);
     
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
     
@@ -37,7 +37,7 @@ protected slots:
     void acceptConnections();
 protected:
     QString _documentRoot;
-    HttpRequestHandler* _requestHandler;
+    HTTPRequestHandler* _requestHandler;
 };
 
 #endif /* defined(__hifi__HTTPManager__) */

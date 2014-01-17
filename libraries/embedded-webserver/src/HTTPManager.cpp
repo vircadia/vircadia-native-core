@@ -108,7 +108,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
     return true;
 }
 
-HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler, QObject* parent) :
+HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
     _documentRoot(documentRoot),
     _requestHandler(requestHandler)

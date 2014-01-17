@@ -58,17 +58,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
     _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
     
-//
-//    char* documentRoot = new char[documentRootString.size() + 1];
-//    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
-//
-//    // list of options. Last element must be NULL.
-//    const char* options[] = {"listening_ports", "8080",
-//        "document_root", documentRoot, NULL};
-//
-//    callbacks.begin_request = civetwebRequestHandler;
-//    callbacks.upload = civetwebUploadHandler;
-
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
 
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {

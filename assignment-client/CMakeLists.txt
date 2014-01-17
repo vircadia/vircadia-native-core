@@ -36,8 +36,6 @@ link_hifi_library(voxel-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 #testing
 
-include_directories(${ROOT_DIR}/externals/civetweb/include)
-
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
