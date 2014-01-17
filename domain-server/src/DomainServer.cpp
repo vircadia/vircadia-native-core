@@ -28,8 +28,6 @@ void signalhandler(int sig){
     }
 }
 
-DomainServer* DomainServer::domainServerInstance = NULL;
-
 const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
@@ -43,8 +41,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _metavoxelServerConfig(NULL),
     _hasCompletedRestartHold(false)
 {
-    DomainServer::setDomainServerInstance(this);
-
     signal(SIGINT, signalhandler);
 
     const char CUSTOM_PORT_OPTION[] = "-p";
@@ -253,10 +249,6 @@ void DomainServer::readAvailableDatagrams() {
     }
 }
 
-void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
-    domainServerInstance = domainServer;
-}
-
 QJsonObject jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
 
@@ -322,9 +314,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             QJsonObject queuedAssignmentsJSON;
             
             // add the queued but unfilled assignments to the json
-            std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
+            std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
             
-            while (assignment != domainServerInstance->_assignmentQueue.end()) {
+            while (assignment != _assignmentQueue.end()) {
                 QJsonObject queuedAssignmentJSON;
                 
                 QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());

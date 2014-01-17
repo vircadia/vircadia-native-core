@@ -29,16 +29,12 @@ public:
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
     
     void exit(int retCode = 0);
-
-    static void setDomainServerInstance(DomainServer* domainServer);
     
 public slots:
     /// Called by NodeList to inform us that a node has been killed.
     void nodeKilled(SharedNodePointer node);
     
-private:    
-    static DomainServer* domainServerInstance;
-    
+private:
     void prepopulateStaticAssignmentFile();
     Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
