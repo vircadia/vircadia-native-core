@@ -146,13 +146,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // leap hand data
     destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
-    
-    // skeleton joints
-    *destinationBuffer++ = (unsigned char)_joints.size();
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        *destinationBuffer++ = (unsigned char)it->jointID;
-        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
-    }
 
     return destinationBuffer - bufferStart;
 }
@@ -272,16 +265,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     if (sourceBuffer - startPosition < numBytes) {
         // check passed, bytes match
         sourceBuffer += _handData->decodeRemoteData(sourceBuffer);
-    }
-    
-    // skeleton joints
-    if (sourceBuffer - startPosition < numBytes) {
-        // check passed, bytes match
-        _joints.resize(*sourceBuffer++);
-        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-            it->jointID = *sourceBuffer++;
-            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
-        }
     }
 
     return sourceBuffer - startPosition;
