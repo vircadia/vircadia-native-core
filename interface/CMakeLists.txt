@@ -15,7 +15,7 @@ set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
 else ()
-  set(BUILD_SEQ "0.1")
+  set(BUILD_SEQ "dev")
 endif ()
 
 if (APPLE)
