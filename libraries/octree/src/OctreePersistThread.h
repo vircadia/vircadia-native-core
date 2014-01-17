@@ -24,8 +24,6 @@ public:
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
-
-    time_t* getLoadCompleted() { return &_loadCompleted; }
     uint64_t getLoadElapsedTime() const { return _loadTimeUSecs; }
 
 signals:
@@ -40,7 +38,6 @@ private:
     int _persistInterval;
     bool _initialLoadComplete;
 
-    time_t _loadCompleted;
     uint64_t _loadTimeUSecs;
     uint64_t _lastCheck;
 };

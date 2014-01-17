@@ -412,8 +412,8 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                         if (externalIndex < childCount && externalIndex >= 0) {
                             result = _children.external[externalIndex];
                         } else {
-                            qDebug("getChildAtIndex() attempt to access external client out of bounds externalIndex=%d <<<<<<<<<< WARNING!!!
-                                   ",externalIndex);
+                            qDebug("getChildAtIndex() attempt to access external client out of "
+                                "bounds externalIndex=%d <<<<<<<<<< WARNING!!!", externalIndex);
                         }
                         break;
                     }
@@ -1258,7 +1258,7 @@ void OctreeElement::addDeleteHook(OctreeElementDeleteHook* hook) {
 
 void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
     _deleteHooksLock.lockForWrite();
-    for (int i = 0; i < _deleteHooks.size(); i++) {
+    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
         if (_deleteHooks[i] == hook) {
             _deleteHooks.erase(_deleteHooks.begin() + i);
             break;
@@ -1269,7 +1269,7 @@ void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
 
 void OctreeElement::notifyDeleteHooks() {
     _deleteHooksLock.lockForRead();
-    for (int i = 0; i < _deleteHooks.size(); i++) {
+    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
         _deleteHooks[i]->elementDeleted(this);
     }
     _deleteHooksLock.unlock();
@@ -1282,7 +1282,7 @@ void OctreeElement::addUpdateHook(OctreeElementUpdateHook* hook) {
 }
 
 void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
-    for (int i = 0; i < _updateHooks.size(); i++) {
+    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
         if (_updateHooks[i] == hook) {
             _updateHooks.erase(_updateHooks.begin() + i);
             return;
@@ -1291,7 +1291,7 @@ void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
 }
 
 void OctreeElement::notifyUpdateHooks() {
-    for (int i = 0; i < _updateHooks.size(); i++) {
+    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
         _updateHooks[i]->elementUpdated(this);
     }
 }

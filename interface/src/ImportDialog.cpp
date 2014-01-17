@@ -26,7 +26,7 @@ const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths
 
 const glm::vec3 UP_VECT = glm::vec3(0, 1, 0);
 const float ANGULAR_RATE = 0.02f;
-const float VERTICAL_ANGLE = M_PI_4 / 2.0f;
+const float VERTICAL_ANGLE = (float)M_PI_4 / 2.0f;
 const float RETURN_RATE = 0.02f;
 const float NEAR_CLIP = 0.5f;
 const float FAR_CLIP = 10.0f;

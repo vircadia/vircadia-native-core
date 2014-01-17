@@ -6,12 +6,19 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include "InterfaceConfig.h"
+
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
 
+
+#ifdef WIN32
+#include <Systime.h>
+#endif
+
 #include "Application.h"
-#include "InterfaceConfig.h"
+
 #include "TV3DManager.h"
 #include "Menu.h"
 

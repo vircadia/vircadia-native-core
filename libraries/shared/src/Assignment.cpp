@@ -36,6 +36,12 @@ Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
     }
 }
 
+#ifdef WIN32
+//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
+// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
+#pragma warning(disable:4351) 
+#endif
+
 Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
@@ -105,6 +111,11 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
         setPayload(dataBuffer + numBytesRead, numBytes - numBytesRead);
     }
 }
+
+#ifdef WIN32
+#pragma warning(default:4351) 
+#endif
+
 
 Assignment::Assignment(const Assignment& otherAssignment) {
     

@@ -1,20 +1,29 @@
 #ifndef __Systime__
 #define __Systime__
 
+
 #ifdef _WIN32
+
 #ifdef _WINSOCK2API_
 #define _timeval_
 #endif
+
 #ifndef _timeval_
 #define _timeval_
 /*
  * Structure returned by gettimeofday(2) system call,
  * and used in other calls.
  */
+
+// this is a bit of a hack for now, but sometimes on windows
+// we need timeval defined here, sometimes we get it
+// from winsock.h
+#ifdef WANT_TIMEVAL
 struct timeval {
 	long	tv_sec;		/* seconds */
 	long	tv_usec;	/* and microseconds */
 };
+#endif
 
 #endif _timeval_
 

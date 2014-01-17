@@ -108,7 +108,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -121,7 +121,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
         _jurisdictionRoot = new unsigned char[bytes];
         memcpy(_jurisdictionRoot, other._jurisdictionRoot, bytes);
     }
-    for (int i=0; i < other._jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
         unsigned char* endNodeCode = other._jurisdictionEndNodes[i];
         if (endNodeCode) {
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
@@ -161,7 +161,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
         _jurisdictionRoot = NULL;
     }
     // clear existing endNodes before copying new ones...
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i=0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -178,7 +178,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
         }
 
         // copy new endNodes...
-        for (int i=0; i < jurisdictionMap->getEndNodeCount(); i++) {
+        for (int i = 0; i < jurisdictionMap->getEndNodeCount(); i++) {
             unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
             if (endNodeCode) {
                 int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
@@ -268,7 +268,7 @@ void OctreeSceneStats::reset() {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -577,7 +577,7 @@ int OctreeSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availab
     }
 
     // clear existing endNodes before copying new ones...
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }

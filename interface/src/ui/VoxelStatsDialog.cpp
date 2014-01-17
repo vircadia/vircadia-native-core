@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <sstream>
+
 #include <QFormLayout>
 #include <QDialogButtonBox>
 

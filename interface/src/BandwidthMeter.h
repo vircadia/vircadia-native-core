@@ -9,6 +9,11 @@
 #ifndef __interface__BandwidthMeter__
 #define __interface__BandwidthMeter__
 
+#ifdef _WIN32
+#define WANT_TIMEVAL
+#include <Systime.h>
+#endif
+
 #include <glm/glm.hpp>
 
 #include "ui/TextRenderer.h"

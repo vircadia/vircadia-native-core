@@ -165,9 +165,9 @@ void Model::simulate(float deltaTime) {
             memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
             
             // blend in each coefficient
-            for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+            for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
                 float coefficient = _blendshapeCoefficients[j];
-                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                     continue;
                 }
                 const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
@@ -346,9 +346,9 @@ bool Model::render(float alpha) {
                 memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
                 
                 // blend in each coefficient
-                for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                for (unsigned int j = 0; j < _blendshapeCoefficients.size(); j++) {
                     float coefficient = _blendshapeCoefficients[j];
-                    if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                    if (coefficient == 0.0f || j >= (unsigned int)mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                         continue;
                     }
                     const float NORMAL_COEFFICIENT_SCALE = 0.01f;
@@ -460,6 +460,15 @@ bool Model::render(float alpha) {
     return true;
 }
 
+Extents Model::getBindExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
+    Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
@@ -487,6 +496,22 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
+}
+    
+bool Model::getLeftHandPosition(glm::vec3& position) const {
+    return getJointPosition(getLeftHandJointIndex(), position);
+}
+
+bool Model::getLeftHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getLeftHandJointIndex(), rotation);
+}
+
+bool Model::getRightHandPosition(glm::vec3& position) const {
+    return getJointPosition(getRightHandJointIndex(), position);
+}
+
+bool Model::getRightHandRotation(glm::quat& rotation) const {
+    return getJointRotation(getRightHandJointIndex(), rotation);
 }
 
 bool Model::setLeftHandPosition(const glm::vec3& position) {

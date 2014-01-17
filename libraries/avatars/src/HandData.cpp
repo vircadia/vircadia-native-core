@@ -38,13 +38,22 @@ PalmData& HandData::addNewPalm()  {
     return _palms.back();
 }
 
-const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
-const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+const PalmData* HandData::getPalm(int sixSenseID) const {
+    // the palms are not necessarily added in left-right order, 
+    // so we have to search for the right SixSenseID
+    for (unsigned int i = 0; i < _palms.size(); i++) {
+        const PalmData* palm = &(_palms[i]);
+        if (palm->getSixenseID() == sixSenseID) {
+            return palm->isActive() ? palm : NULL;
+        }
+    }
+    return NULL;
+}
 
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
     leftPalmIndex = -1;
     rightPalmIndex = -1;
-    for (int i = 0; i < _palms.size(); i++) {
+    for (size_t i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
             if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
@@ -81,7 +90,7 @@ void PalmData::addToPosition(const glm::vec3& delta) {
     // convert to Leap coordinates, then add to palm and finger positions
     glm::vec3 leapDelta = _owningHandData->worldVectorToLeapVector(delta);
     _rawPosition += leapDelta;
-    for (int i = 0; i < getNumFingers(); i++) {
+    for (size_t i = 0; i < getNumFingers(); i++) {
         FingerData& finger = _fingers[i];
         if (finger.isActive()) {
             finger.setRawTipPosition(finger.getTipRawPosition() + leapDelta);
@@ -263,7 +272,7 @@ void FingerData::updateTrail() {
         
         _tipTrailPositions[_tipTrailCurrentStartIndex] = getTipPosition();
         
-        if (_tipTrailCurrentValidLength < _tipTrailPositions.size())
+        if (_tipTrailCurrentValidLength < (int)_tipTrailPositions.size())
             _tipTrailCurrentValidLength++;
     }
     else {

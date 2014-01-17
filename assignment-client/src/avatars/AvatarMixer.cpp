@@ -137,8 +137,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             }
         }
         case PACKET_TYPE_KILL_NODE:
-        case PACKET_TYPE_AVATAR_URLS:
-        case PACKET_TYPE_AVATAR_FACE_VIDEO: {
+        case PACKET_TYPE_AVATAR_URLS: {
             QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
                                                                   NUM_BYTES_RFC4122_UUID));
             // let everyone else know about the update
