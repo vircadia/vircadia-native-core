@@ -1474,6 +1474,11 @@ void Application::setFullscreen(bool fullscreen) {
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
 
+void Application::setEnable3DTVMode(bool enable3DTVMode) {
+    resizeGL(_glWidget->width(),_glWidget->height());
+}
+
+
 void Application::setRenderVoxels(bool voxelRender) {
     _voxelEditSender.setShouldSend(voxelRender);
     if (!voxelRender) {
@@ -2075,17 +2080,23 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
+    const float FAR_AWAY_STARE = TREE_SCALE;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         lookAtSpot = _myCamera.getPosition();
 
+    } else if (_mouseHidden) {
+        // if the mouse cursor is hidden, just look straight ahead
+        glm::vec3 rayOrigin, rayDirection;
+        _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
+        lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
+    
     } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
 
         } else {
-            //  Just look in direction of the mouse ray
-            const float FAR_AWAY_STARE = TREE_SCALE;
+            //  Just look in direction of the mouse ray            
             lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         }
     }
