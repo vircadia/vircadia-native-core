@@ -51,11 +51,12 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
     if (scriptMenuName) {
         _scriptMenuName = "Stop ";
         _scriptMenuName.append(scriptMenuName);
+        _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
     } else {
         _scriptMenuName = "Stop Script ";
-        _scriptNumber++;
         _scriptMenuName.append(_scriptNumber);
     }
+    _scriptNumber++;
     _menu = menu;
     _controllerScriptingInterface = controllerScriptingInterface;
 }
