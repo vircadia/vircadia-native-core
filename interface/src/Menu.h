@@ -107,6 +107,7 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void audioMuteToggled();
 
 private:
     static Menu* _instance;
@@ -184,6 +185,7 @@ namespace MenuOption {
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
+    const QString MuteAudio = "Mute Microphone";
     const QString ExportVoxels = "Export Voxels";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
