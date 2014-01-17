@@ -376,7 +376,49 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         if (path == URI_ASSIGNMENT) {
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
-            qDebug() << formData;
+            
+            // create an assignment for this saved script, for now make it local only
+            Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
+                                                          Assignment::AgentType,
+                                                          NULL,
+                                                          Assignment::LocalLocation);
+            
+            // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+            const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
+            
+            QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
+            if (!assignmentInstancesValue.isEmpty()) {
+                // the user has requested a specific number of instances
+                // so set that on the created assignment
+                int numInstances = assignmentInstancesValue.toInt();
+                if (numInstances > 0) {
+                    qDebug() << numInstances;
+                    scriptAssignment->setNumberOfInstances(numInstances);
+                }
+            }
+            
+            const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+            
+            QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+            newPath += "/";
+            // append the UUID for this script as the new filename, remove the curly braces
+            newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
+            
+            // create a file with the GUID of the assignment in the script host locaiton
+            QFile scriptFile(newPath);
+            scriptFile.open(QIODevice::WriteOnly);
+            scriptFile.write(formData[0].second);
+            
+            qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+            
+            // respond with a 200 code for successful upload
+            connection->respond(HTTPConnection::StatusCode200);
+            
+            // add the script assigment to the assignment queue
+            // lock the assignment queue mutex since we're operating on a different thread than DS main
+            _assignmentQueueMutex.lock();
+            _assignmentQueue.push_back(scriptAssignment);
+            _assignmentQueueMutex.unlock();
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
         if (path.startsWith(URI_NODE)) {
