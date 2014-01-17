@@ -499,7 +499,6 @@ private:
     QString getLocalVoxelCacheFileName();
     void updateLocalOctreeCache(bool firstTime = false);
     
-    QFile* loadSkipFile();
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);

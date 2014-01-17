@@ -4421,28 +4421,26 @@ void Application::parseVersionXml(QNetworkReply *reply) {
     }
 }
 
-QFile *Application::loadSkipFile() {
+bool Application::shouldSkipVersion(QString latestVersion) {
     QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     fileName.append(QString("/hifi.skipversion"));
-    QFile *file = new QFile(fileName);
-    file->open(QIODevice::ReadWrite);
-    return file;
-}
-
-bool Application::shouldSkipVersion(QString latestVersion) {
-    QFile *skipFile = loadSkipFile();
-    QByteArray skipFileContents = skipFile->readAll();
-    QString *skipVersion = new QString(skipFileContents);
-    skipFile->close();
-    if (*skipVersion == latestVersion || applicationVersion() == "dev") {
+    QFile skipFile(fileName);
+    skipFile.open(QIODevice::ReadWrite);
+    QByteArray skipFileContents = skipFile.readAll();
+    QString skipVersion(skipFileContents);
+    skipFile.close();
+    if (skipVersion == latestVersion /*|| applicationVersion() == "dev"*/) {
         return true;
     }
     return false;
 }
 
 void Application::skipVersion(QString latestVersion) {
-    QFile *skipFile = loadSkipFile();
-    skipFile->seek(0);
-    skipFile->write(latestVersion.toStdString().c_str());
-    skipFile->close();
+    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    fileName.append(QString("/hifi.skipversion"));
+    QFile skipFile(fileName);
+    skipFile.open(QIODevice::WriteOnly|QIODevice::Truncate);
+    skipFile.seek(0);
+    skipFile.write(latestVersion.toStdString().c_str());
+    skipFile.close();
 }
