@@ -784,7 +784,7 @@ void NodeList::removeSilentNodes() {
     while (nodeItem != _nodeHash.end()) {
         SharedNodePointer node = nodeItem.value();
 
-        QMutexLocker(&node->getMutex());
+        node->getMutex().lock();
 
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             // call our private method to kill this node (removes it and emits the right signal)
@@ -793,6 +793,8 @@ void NodeList::removeSilentNodes() {
             // we didn't kill this node, push the iterator forwards
             ++nodeItem;
         }
+        
+        node->getMutex().unlock();
     }
 }
 
