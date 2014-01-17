@@ -16,7 +16,7 @@
 #include <QtCore/QMutex>
 
 #include <Assignment.h>
-#include <HttpManager.h>
+#include <HTTPManager.h>
 #include <NodeList.h>
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
@@ -26,7 +26,7 @@ class DomainServer : public QCoreApplication, public HttpRequestHandler {
 public:
     DomainServer(int argc, char* argv[]);
     
-    bool handleHTTPRequest(HttpConnection* connection, const QString& path);
+    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
     
     void exit(int retCode = 0);
 
@@ -50,7 +50,7 @@ private:
     
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
     
-    HttpManager _httpManager;
+    HTTPManager _HTTPManager;
     
     QMutex _assignmentQueueMutex;
     std::deque<Assignment*> _assignmentQueue;

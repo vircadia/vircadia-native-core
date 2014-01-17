@@ -1,5 +1,5 @@
 //
-//  HttpConnection.cpp
+//  HTTPConnection.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 1/16/14.
@@ -11,14 +11,14 @@
 #include <QCryptographicHash>
 #include <QTcpSocket>
 
-#include "HttpConnection.h"
-#include "HttpManager.h"
+#include "HTTPConnection.h"
+#include "HTTPManager.h"
 
-const char* HttpConnection::StatusCode200 = "200 OK";
-const char* HttpConnection::StatusCode400 = "400 Bad Request";
-const char* HttpConnection::StatusCode404 = "404 Not Found";
+const char* HTTPConnection::StatusCode200 = "200 OK";
+const char* HTTPConnection::StatusCode400 = "400 Bad Request";
+const char* HTTPConnection::StatusCode404 = "404 Not Found";
 
-HttpConnection::HttpConnection (QTcpSocket* socket, HttpManager* parentManager) :
+HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) :
     QObject(parentManager),
     _parentManager(parentManager),
     _socket(socket),
@@ -34,14 +34,14 @@ HttpConnection::HttpConnection (QTcpSocket* socket, HttpManager* parentManager) 
     connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
 }
 
-HttpConnection::~HttpConnection() {
+HTTPConnection::~HTTPConnection() {
     // log the destruction
     if (_socket->error() != QAbstractSocket::UnknownSocketError) {
         qDebug() << _socket->errorString();
     }
 }
 
-QList<FormData> HttpConnection::parseFormData() const {
+QList<FormData> HTTPConnection::parseFormData() const {
     // make sure we have the correct MIME type
     QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
     if (elements.at(0).trimmed() != "multipart/form-data") {
@@ -97,7 +97,7 @@ QList<FormData> HttpConnection::parseFormData() const {
     return data;
 }
 
-void HttpConnection::respond(const char* code, const QByteArray& content, const char* contentType, const Headers& headers) {
+void HTTPConnection::respond(const char* code, const QByteArray& content, const char* contentType, const Headers& headers) {
     _socket->write("HTTP/1.1 ");
     _socket->write(code);
     _socket->write("\r\n");
@@ -132,7 +132,7 @@ void HttpConnection::respond(const char* code, const QByteArray& content, const 
     _socket->disconnectFromHost();
 }
 
-void HttpConnection::readRequest() {
+void HTTPConnection::readRequest() {
     if (!_socket->canReadLine()) {
         return;
     }
@@ -169,7 +169,7 @@ void HttpConnection::readRequest() {
     readHeaders();
 }
 
-void HttpConnection::readHeaders() {
+void HTTPConnection::readHeaders() {
     while (_socket->canReadLine()) {
         QByteArray line = _socket->readLine();
         QByteArray trimmed = line.trimmed();
@@ -209,7 +209,7 @@ void HttpConnection::readHeaders() {
     }
 }
 
-void HttpConnection::readContent() {
+void HTTPConnection::readContent() {
     int size = _requestContent.size();
     if (_socket->bytesAvailable() < size) {
         return;

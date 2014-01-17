@@ -1,17 +1,17 @@
 //
-//  HttpConnection.h
+//  HTTPConnection.h
 //  hifi
 //
 //  Created by Stephen Birarda on 1/16/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  Heavily based on Andrzej Kapolka's original HttpConnection class
+//  Heavily based on Andrzej Kapolka's original HTTPConnection class
 //  found from another one of his projects.
 //  https://github.com/ey6es/witgap/tree/master/src/cpp/server/http
 //
 
-#ifndef __hifi__HttpConnection__
-#define __hifi__HttpConnection__
+#ifndef __hifi__HTTPConnection__
+#define __hifi__HTTPConnection__
 
 #include <QHash>
 #include <QHostAddress>
@@ -23,7 +23,7 @@
 #include <QUrl>
 
 class QTcpSocket;
-class HttpManager;
+class HTTPManager;
 class MaskFilter;
 class ServerApp;
 
@@ -34,7 +34,7 @@ typedef QHash<QByteArray, QByteArray> Headers;
 typedef QPair<Headers, QByteArray> FormData;
 
 /// Handles a single HTTP connection.
-class HttpConnection : public QObject {
+class HTTPConnection : public QObject {
    Q_OBJECT
 
 public:
@@ -46,10 +46,10 @@ public:
     enum ReasonCode { NoReason = 0, NormalClosure = 1000, GoingAway = 1001 };
 
     /// Initializes the connection.
-    HttpConnection (QTcpSocket* socket, HttpManager* parentManager);
+    HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager);
 
     /// Destroys the connection.
-    virtual ~HttpConnection ();
+    virtual ~HTTPConnection ();
 
     /// Returns a pointer to the underlying socket, to which WebSocket message bodies should be written.
     QTcpSocket* socket () const { return _socket; }
@@ -88,7 +88,7 @@ protected slots:
 protected:
 
     /// The parent HTTP manager
-    HttpManager* _parentManager;
+    HTTPManager* _parentManager;
 
     /// The underlying socket.
     QTcpSocket* _socket;
@@ -115,4 +115,4 @@ protected:
     QByteArray _requestContent;
 };
 
-#endif /* defined(__hifi__HttpConnection__) */
+#endif /* defined(__hifi__HTTPConnection__) */

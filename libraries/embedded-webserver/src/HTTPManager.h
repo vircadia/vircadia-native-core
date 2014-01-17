@@ -1,36 +1,36 @@
 //
-//  HttpManager.h
+//  HTTPManager.h
 //  hifi
 //
 //  Created by Stephen Birarda on 1/16/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  Heavily based on Andrzej Kapolka's original HttpManager class
+//  Heavily based on Andrzej Kapolka's original HTTPManager class
 //  found from another one of his projects.
 //  https://github.com/ey6es/witgap/tree/master/src/cpp/server/http
 //
 
-#ifndef __hifi__HttpManager__
-#define __hifi__HttpManager__
+#ifndef __hifi__HTTPManager__
+#define __hifi__HTTPManager__
 
 #include <QtNetwork/QTcpServer>
 
-class HttpConnection;
+class HTTPConnection;
 
 class HttpRequestHandler {
 public:
     /// Handles an HTTP request.
-    virtual bool handleHTTPRequest(HttpConnection* connection, const QString& path) = 0;
+    virtual bool handleHTTPRequest(HTTPConnection* connection, const QString& path) = 0;
 };
 
 /// Handles HTTP connections
-class HttpManager : public QTcpServer, public HttpRequestHandler {
+class HTTPManager : public QTcpServer, public HttpRequestHandler {
    Q_OBJECT
 public:
     /// Initializes the manager.
-    HttpManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler = NULL, QObject* parent = 0);
+    HTTPManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler = NULL, QObject* parent = 0);
     
-    bool handleHTTPRequest(HttpConnection* connection, const QString& path);
+    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
     
 protected slots:
     /// Accepts all pending connections
@@ -40,4 +40,4 @@ protected:
     HttpRequestHandler* _requestHandler;
 };
 
-#endif /* defined(__hifi__HttpManager__) */
+#endif /* defined(__hifi__HTTPManager__) */

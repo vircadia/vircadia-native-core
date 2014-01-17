@@ -1,5 +1,5 @@
 //
-//  HttpManager.cpp
+//  HTTPManager.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 1/16/14.
@@ -12,10 +12,10 @@
 #include <QtCore/QMimeDatabase>
 #include <QtNetwork/QTcpSocket>
 
-#include "HttpConnection.h"
-#include "HttpManager.h"
+#include "HTTPConnection.h"
+#include "HTTPManager.h"
 
-bool HttpManager::handleHTTPRequest(HttpConnection* connection, const QString& path) {
+bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
     if (_requestHandler && _requestHandler->handleHTTPRequest(connection, path)) {
         // this request was handled by our _requestHandler object
         // so we don't need to attempt to do so in the document root
@@ -99,16 +99,16 @@ bool HttpManager::handleHTTPRequest(HttpConnection* connection, const QString& p
             }
         }
         
-        connection->respond(HttpConnection::StatusCode200, localFileString.toLocal8Bit(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
+        connection->respond(HTTPConnection::StatusCode200, localFileString.toLocal8Bit(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
     } else {
         // respond with a 404
-        connection->respond(HttpConnection::StatusCode404, "Resource not found.");
+        connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
     }
     
     return true;
 }
 
-HttpManager::HttpManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler, QObject* parent) :
+HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HttpRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
     _documentRoot(documentRoot),
     _requestHandler(requestHandler)
@@ -123,9 +123,9 @@ HttpManager::HttpManager(quint16 port, const QString& documentRoot, HttpRequestH
     connect(this, SIGNAL(newConnection()), SLOT(acceptConnections()));
 }
 
-void HttpManager::acceptConnections() {
+void HTTPManager::acceptConnections() {
     QTcpSocket* socket;
     while ((socket = nextPendingConnection()) != 0) {
-        new HttpConnection(socket, this);
+        new HTTPConnection(socket, this);
     }
 }

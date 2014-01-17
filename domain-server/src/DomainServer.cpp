@@ -13,7 +13,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
-#include <HttpConnection.h>
+#include <HTTPConnection.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
@@ -34,7 +34,7 @@ const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
-    _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _assignmentQueueMutex(),
     _assignmentQueue(),
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
@@ -294,7 +294,7 @@ QJsonObject jsonObjectForNode(Node* node) {
     return nodeJson;
 }
 
-bool DomainServer::handleHTTPRequest(HttpConnection* connection, const QString& path) {
+bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
     const QString JSON_MIME_TYPE = "application/json";
     
     const QString URI_ASSIGNMENT = "/assignment";
@@ -346,7 +346,7 @@ bool DomainServer::handleHTTPRequest(HttpConnection* connection, const QString& 
             
             // print out the created JSON
             QJsonDocument assignmentDocument(assignmentJSON);
-            connection->respond(HttpConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            connection->respond(HTTPConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
             
             // we've processed this request
             return true;
@@ -370,11 +370,11 @@ bool DomainServer::handleHTTPRequest(HttpConnection* connection, const QString& 
             QJsonDocument nodesDocument(rootJSON);
             
             // send the response
-            connection->respond(HttpConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
         if (path == URI_ASSIGNMENT) {
-            // this is a script upload - ask the HttpConnection to parse the form data
+            // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
             qDebug() << formData;
         }
@@ -390,7 +390,7 @@ bool DomainServer::handleHTTPRequest(HttpConnection* connection, const QString& 
                 
                 if (nodeToKill) {
                     // start with a 200 response
-                    connection->respond(HttpConnection::StatusCode200);
+                    connection->respond(HTTPConnection::StatusCode200);
                     
                     // we have a valid UUID and node - kill the node that has this assignment
                     QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
@@ -401,7 +401,7 @@ bool DomainServer::handleHTTPRequest(HttpConnection* connection, const QString& 
             }
             
             // bad request, couldn't pull a node ID
-            connection->respond(HttpConnection::StatusCode400);
+            connection->respond(HTTPConnection::StatusCode400);
             
             return true;
         }
