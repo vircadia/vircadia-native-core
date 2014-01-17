@@ -10,8 +10,8 @@
 //  (https://github.com/ey6es/witgap/tree/master/src/cpp/server/http)
 //
 
-#ifndef HTTP_MANAGER
-#define HTTP_MANAGER
+#ifndef __hifi__HttpManager__
+#define __hifi__HttpManager__
 
 #include <QByteArray>
 #include <QHash>
@@ -20,34 +20,23 @@
 class HttpConnection;
 class HttpRequestHandler;
 
-/**
- * Handles HTTP connections.
- */
-class HttpManager : public QTcpServer
-{
+/// Handles HTTP connections
+class HttpManager : public QTcpServer {
    Q_OBJECT
 
 public:
 
-    /**
-     * Initializes the manager.
-     */
+    /// Initializes the manager.
     HttpManager(quint16 port, const QString& documentRoot, QObject* parent = 0);
     
-    /**
-     * Handles an HTTP request.
-     */
+    /// Handles an HTTP request.
     virtual bool handleRequest (HttpConnection* connection, const QString& path);
     
-
 protected slots:
-
-    /**
-     * Accepts all pending connections.
-     */
-    void acceptConnections ();
+    /// Accepts all pending connections
+    void acceptConnections();
 protected:
     QString _documentRoot;
 };
 
-#endif // HTTP_MANAGER
+#endif /* defined(__hifi__HttpManager__) */

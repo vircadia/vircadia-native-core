@@ -23,8 +23,8 @@ HttpConnection::HttpConnection (QTcpSocket* socket, HttpManager* parentManager) 
     _parentManager(parentManager),
     _socket(socket),
     _stream(socket),
-    _address(socket->peerAddress())
-{
+    _address(socket->peerAddress()) {
+        
     // take over ownership of the socket
     _socket->setParent(this);
 
@@ -32,23 +32,16 @@ HttpConnection::HttpConnection (QTcpSocket* socket, HttpManager* parentManager) 
     connect(socket, SIGNAL(readyRead()), SLOT(readRequest()));
     connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(deleteLater()));
     connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
-
-    // log the connection
-    qDebug() << "HTTP connection opened." << _address;
 }
 
-HttpConnection::~HttpConnection ()
-{
+HttpConnection::~HttpConnection() {
     // log the destruction
-    QString error;
-    QDebug base = qDebug() << "HTTP connection closed." << _address;
     if (_socket->error() != QAbstractSocket::UnknownSocketError) {
-        base << _socket->errorString();
+        qDebug() << _socket->errorString();
     }
 }
 
-QList<FormData> HttpConnection::parseFormData () const
-{
+QList<FormData> HttpConnection::parseFormData() const {
     // make sure we have the correct MIME type
     QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
     if (elements.at(0).trimmed() != "multipart/form-data") {
@@ -64,6 +57,7 @@ QList<FormData> HttpConnection::parseFormData () const
             break;
         }
     }
+    
     QByteArray start = "--" + boundary;
     QByteArray end = "\r\n--" + boundary + "--\r\n";
 
@@ -103,7 +97,7 @@ QList<FormData> HttpConnection::parseFormData () const
     return data;
 }
 
-void HttpConnection::respond (const char* code, const QByteArray& content, const char* contentType, const Headers& headers) {
+void HttpConnection::respond(const char* code, const QByteArray& content, const char* contentType, const Headers& headers) {
     _socket->write("HTTP/1.1 ");
     _socket->write(code);
     _socket->write("\r\n");
@@ -139,8 +133,7 @@ void HttpConnection::respond (const char* code, const QByteArray& content, const
     _socket->disconnectFromHost();
 }
 
-void HttpConnection::readRequest ()
-{
+void HttpConnection::readRequest() {
     if (!_socket->canReadLine()) {
         return;
     }
@@ -177,8 +170,7 @@ void HttpConnection::readRequest ()
     readHeaders();
 }
 
-void HttpConnection::readHeaders ()
-{
+void HttpConnection::readHeaders() {
     while (_socket->canReadLine()) {
         QByteArray line = _socket->readLine();
         QByteArray trimmed = line.trimmed();
