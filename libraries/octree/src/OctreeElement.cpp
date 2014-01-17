@@ -412,8 +412,8 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                         if (externalIndex < childCount && externalIndex >= 0) {
                             result = _children.external[externalIndex];
                         } else {
-                            qDebug("getChildAtIndex() attempt to access external client out of bounds externalIndex=%d <<<<<<<<<< WARNING!!!
-                                   ",externalIndex);
+                            qDebug("getChildAtIndex() attempt to access external client out of "
+                                "bounds externalIndex=%d <<<<<<<<<< WARNING!!!", externalIndex);
                         }
                         break;
                     }

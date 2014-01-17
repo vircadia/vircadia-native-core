@@ -30,7 +30,6 @@ const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0f;
 const float PITCH_MAG = 100.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE = 200.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
@@ -181,29 +180,22 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float OCULUS_ACCELERATION_PULL_THRESHOLD = 1.0f;
     const int OCULUS_YAW_OFFSET_THRESHOLD = 10;
 
-    if (!Application::getInstance()->getFaceshift()->isActive()) {
-        // Decay HeadPitch as a function of acceleration, so that you look straight ahead when
-        // you start moving, but don't do this with an HMD like the Oculus.
-        if (!OculusManager::isConnected()) {
-            if (forwardAcceleration > ACCELERATION_PULL_THRESHOLD) {
-                _head.setMousePitch(_head.getMousePitch() * qMax(0.0f,
-                    (1.f - forwardAcceleration * ACCELERATION_PITCH_DECAY * deltaTime)));
-            }
-        } else if (fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD
-                   && fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
-            // if we're wearing the oculus
-            // and this acceleration is above the pull threshold
-            // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
+    if (!Application::getInstance()->getFaceshift()->isActive() && OculusManager::isConnected() &&
+            fabsf(forwardAcceleration) > OCULUS_ACCELERATION_PULL_THRESHOLD &&
+            fabs(_head.getYaw()) > OCULUS_YAW_OFFSET_THRESHOLD) {
+            
+        // if we're wearing the oculus
+        // and this acceleration is above the pull threshold
+        // and the head yaw if off the body by more than OCULUS_YAW_OFFSET_THRESHOLD
 
-            // match the body yaw to the oculus yaw
-            _bodyYaw = getAbsoluteHeadYaw();
+        // match the body yaw to the oculus yaw
+        _bodyYaw = getAbsoluteHeadYaw();
 
-            // set the head yaw to zero for this draw
-            _head.setYaw(0);
+        // set the head yaw to zero for this draw
+        _head.setYaw(0);
 
-            // correct the oculus yaw offset
-            OculusManager::updateYawOffset();
-        }
+        // correct the oculus yaw offset
+        OculusManager::updateYawOffset();
     }
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -262,7 +254,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     _head.setPosition(headPosition);
     _head.setScale(_scale);
-    _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, true);
 
     // Zero thrust out now that we've added it to velocity in this frame
@@ -510,7 +501,7 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
     Camera* myCamera = Application::getInstance()->getCamera();
     if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
-        _head.render(1.0f, false);
+        _head.render(1.0f);
     }
     _hand.render(true);
 }
