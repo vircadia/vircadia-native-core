@@ -10,11 +10,7 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
-set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
-set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
-set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
-set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -46,12 +42,8 @@ if (WIN32)
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
     include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
 
-    # windows still using pthreads, TODO: switch to QThreads
-    set(PTHREADS_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/pthreads)
-
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
-    include_directories(SYSTEM ${PTHREADS_ROOT_PATH}/include)
 
 endif (WIN32)
 
@@ -131,23 +123,8 @@ link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
-find_package(LibVPX)
-find_package(MotionDriver)
-find_package(OpenCV)
-find_package(OpenNI)
 find_package(Sixense)
-find_package(UVCCameraControl)
 find_package(ZLIB)
-
-# let the source know that we have OpenNI/NITE for Kinect
-if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
-    add_definitions(-DHAVE_OPENNI)
-    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
-endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
 # likewise with Sixense library for Razer Hydra
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
@@ -169,17 +146,6 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-# let the source know that we have LibVPX
-if (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
-    add_definitions(-DHAVE_LIBVPX)
-    include_directories(SYSTEM ${LIBVPX_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBVPX_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${LIBVPX_LIBRARIES})
-endif (LIBVPX_FOUND AND NOT DISABLE_LIBVPX)
-
-
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
@@ -194,22 +160,11 @@ include_directories(
   SYSTEM
   ${FACESHIFT_INCLUDE_DIRS}
   ${GLM_INCLUDE_DIRS}
-  ${LEAP_INCLUDE_DIRS}
-  ${MOTIONDRIVER_INCLUDE_DIRS}
-  ${OPENCV_INCLUDE_DIRS}
 )
-
-MESSAGE("here..." ${FACESHIFT_LIBRARIES} )
-
-if (APPLE OR UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
-endif (APPLE OR UNIX)
 
 target_link_libraries(
   ${TARGET_NAME}
   ${FACESHIFT_LIBRARIES}
-  ${MOTIONDRIVER_LIBRARIES}
-  ${OPENCV_LIBRARIES}
   ${ZLIB_LIBRARIES}
 )
 
@@ -226,8 +181,6 @@ if (APPLE)
     find_library(QTKit QTKit)
     find_library(QuartzCore QuartzCore)
 
-    include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
-
     target_link_libraries(
         ${TARGET_NAME}
         ${AppKit}
@@ -240,7 +193,6 @@ if (APPLE)
         ${IOKit}
         ${QTKit}
         ${QuartzCore}
-        ${UVCCAMERACONTROL_LIBRARIES}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
@@ -253,15 +205,10 @@ endif (APPLE)
 if (WIN32)
     target_link_libraries(
     ${TARGET_NAME}
-    ${OPENCV_LIBRARIES}
-    #${FACESHIFT_LIBRARIES}
 
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glew/lib/Release/Win32/glew32s.lib
     ${GLUT_ROOT_PATH}/lib/freeglut.lib
 
-    # note: the pthreads stuff was in the /external/glut before, that's not right, I moved it to it's own location
-    # but really we need to switch over to QThreads
-    ${PTHREADS_ROOT_PATH}/WIN32/pthread_lib.lib
     wsock32.lib
     opengl32.lib
     )

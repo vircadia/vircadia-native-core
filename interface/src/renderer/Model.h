@@ -54,6 +54,12 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
+    /// Returns the extents of the model in its bind pose.
+    Extents getBindExtents() const;
+    
+    /// Returns a reference to the shared geometry.
+    const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
+    
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
     

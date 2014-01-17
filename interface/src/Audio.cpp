@@ -297,7 +297,7 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted) {
         // if this person wants local loopback add that to the locally injected audio
 
         if (!_loopbackOutputDevice) {
@@ -369,8 +369,7 @@ void Audio::handleAudioInput() {
         
         if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
-
-            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+            glm::vec3 headPosition = interfaceAvatar->getHead().getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
@@ -470,7 +469,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
                 int16_t* byteArraySamples = (int16_t*) audioByteArray.data();
 
-                int samplesToRead = MIN(audioByteArray.size() / sizeof(int16_t),
+                int samplesToRead = qMin((int)(audioByteArray.size() / sizeof(int16_t)),
                                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
                 for (int i = 0; i < samplesToRead; i++) {

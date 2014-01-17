@@ -469,7 +469,7 @@ void Application::paintGL() {
             bool eyeRelativeCamera = false;
             if (_rearMirrorTools->getZoomLevel() == BODY) {
                 _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar.getScale());
-                _mirrorCamera.setTargetPosition(_myAvatar.getChestJointPosition());
+                _mirrorCamera.setTargetPosition(_myAvatar.getChestPosition());
             } else { // HEAD zoom level
                 _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar.getScale());
                 if (_myAvatar.getSkeletonModel().isActive() && _myAvatar.getHead().getFaceModel().isActive()) {
@@ -1296,38 +1296,6 @@ void Application::sendPingPackets() {
                                               nodesToPing, sizeof(nodesToPing));
 }
 
-void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data) {
-    unsigned char packet[MAX_PACKET_SIZE];
-    unsigned char* packetPosition = packet;
-
-    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_AVATAR_FACE_VIDEO);
-
-    QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
-    packetPosition += rfcUUID.size();
-
-    *(uint32_t*)packetPosition = frameCount;
-    packetPosition += sizeof(uint32_t);
-
-    *(uint32_t*)packetPosition = data.size();
-    packetPosition += sizeof(uint32_t);
-
-    uint32_t* offsetPosition = (uint32_t*)packetPosition;
-    packetPosition += sizeof(uint32_t);
-
-    int headerSize = packetPosition - packet;
-
-    // break the data up into submessages of the maximum size (at least one, for zero-length packets)
-    *offsetPosition = 0;
-    do {
-        int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
-        memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
-        getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
-        *offsetPosition += payloadSize;
-
-    } while (*offsetPosition < (uint32_t)data.size());
-}
-
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -1427,13 +1395,13 @@ void Application::terminate() {
     // let the avatar mixer know we're out
     NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
 
-    printf("");
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
     if (_persistThread) {
         _persistThread->terminate();
+        _persistThread->deleteLater();
         _persistThread = NULL;
     }
 }
@@ -1487,14 +1455,6 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
         avatar->getUUID());
 }
 
-void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
-    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
-    if (!avatar) {
-        return;
-    }
-    avatar->getHead().getVideoFace().processVideoMessage(packetData, dataBytes);
-}
-
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
 
@@ -1513,6 +1473,11 @@ void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
+
+void Application::setEnable3DTVMode(bool enable3DTVMode) {
+    resizeGL(_glWidget->width(),_glWidget->height());
+}
+
 
 void Application::setRenderVoxels(bool voxelRender) {
     _voxelEditSender.setShouldSend(voxelRender);
@@ -2115,17 +2080,23 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
+    const float FAR_AWAY_STARE = TREE_SCALE;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         lookAtSpot = _myCamera.getPosition();
 
+    } else if (_mouseHidden) {
+        // if the mouse cursor is hidden, just look straight ahead
+        glm::vec3 rayOrigin, rayDirection;
+        _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
+        lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
+    
     } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
 
         } else {
-            //  Just look in direction of the mouse ray
-            const float FAR_AWAY_STARE = TREE_SCALE;
+            //  Just look in direction of the mouse ray            
             lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         }
     }
@@ -2370,7 +2341,7 @@ void Application::updateTransmitter(float deltaTime) {
 
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
+        _transmitterPickStart = _myAvatar.getChestPosition();
         glm::vec3 direction = _myAvatar.getOrientation() *
             glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
 
@@ -2418,12 +2389,6 @@ void Application::updateCamera(float deltaTime) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
                 _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));
-                updateProjectionMatrix();
-
-            } else if (_webcam.isActive()) {
-                const float EYE_OFFSET_SCALE = 0.5f;
-                glm::vec3 position = _webcam.getEstimatedPosition() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, -position.y, position.z));
                 updateProjectionMatrix();
             }
         }
@@ -2536,8 +2501,8 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.getHand().setPitchUpdate(0.f);
     _pitchFromTouch = 0.0f;
 
-    // Update my avatar's state from gyros and/or webcam
-    _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+    // Update my avatar's state from gyros
+    _myAvatar.updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
 
     // Update head mouse from faceshift if active
     if (_faceshift.isActive()) {
@@ -2994,7 +2959,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_DEPTH_TEST);
 
     //  Enable to show line from me to the voxel I am touching
-    //renderLineToTouchedVoxel();
     //renderThrustAtVoxel(_voxelThrust);
 
     if (!selfAvatarOnly) {
@@ -3297,10 +3261,6 @@ void Application::displayOverlay() {
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
     }
 
-
-    // render the webcam input frame
-    _webcam.renderPreview(_glWidget->width(), _glWidget->height());
-
     _palette.render(_glWidget->width(), _glWidget->height());
 
     QAction* paintColorAction = NULL;
@@ -3548,20 +3508,6 @@ void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
         glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
         glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
         glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
-        glEnd();
-    }
-}
-
-void Application::renderLineToTouchedVoxel() {
-    //  Draw a teal line to the voxel I am currently dragging on
-    if (_mousePressed) {
-        glColor3f(0, 1, 1);
-        glLineWidth(2.0f);
-        glBegin(GL_LINES);
-        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
-        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
-        glm::vec3 headPosition = _myAvatar.getHeadJointPosition();
-        glVertex3fv(&headPosition.x);
         glEnd();
     }
 }
@@ -3972,7 +3918,6 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
 
-    _webcam.reset();
     _faceshift.reset();
 
     if (OculusManager::isConnected()) {
@@ -4275,9 +4220,6 @@ void Application::processDatagrams() {
                 case PACKET_TYPE_AVATAR_URLS:
                     processAvatarURLsMessage(_incomingPacket, bytesReceived);
                     break;
-                case PACKET_TYPE_AVATAR_FACE_VIDEO:
-                    processAvatarFaceVideoMessage(_incomingPacket, bytesReceived);
-                    break;
                 case PACKET_TYPE_DATA_SERVER_GET:
                 case PACKET_TYPE_DATA_SERVER_PUT:
                 case PACKET_TYPE_DATA_SERVER_SEND:
@@ -4395,6 +4337,7 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 
         if (_persistThread) {
             _persistThread->terminate();
+            _persistThread->deleteLater();
             _persistThread = NULL;
         }
 

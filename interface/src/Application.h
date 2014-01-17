@@ -52,7 +52,6 @@
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
-#include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -151,7 +150,6 @@ public:
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     bool isMouseHidden() const { return _mouseHidden; }
-    Webcam* getWebcam() { return &_webcam; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -211,7 +209,6 @@ public slots:
 
     void processDatagrams();
 
-    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
@@ -235,9 +232,10 @@ private slots:
     void terminate();
 
     void setFullscreen(bool fullscreen);
+    void setEnable3DTVMode(bool enable3DTVMode);
+
 
     void renderThrustAtVoxel(const glm::vec3& thrust);
-    void renderLineToTouchedVoxel();
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
@@ -259,7 +257,6 @@ private:
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
-    static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
 
     void initDisplay();
@@ -372,8 +369,6 @@ private:
     Profile _profile;                    // The data-server linked profile for this user
 
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
-
-    Webcam _webcam;                    // The webcam interface
 
     Faceshift _faceshift;
 
