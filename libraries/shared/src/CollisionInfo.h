@@ -18,7 +18,7 @@ public:
 
     //glm::vec3 _point;
     //glm::vec3 _normal;
-    glm::vec3 _penetration;
+    glm::vec3 _penetration; // depth that bodyA is penetrates bodyB
     glm::vec3 _addedVelocity;
 };
 
