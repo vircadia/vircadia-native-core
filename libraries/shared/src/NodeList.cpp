@@ -56,6 +56,7 @@ NodeList* NodeList::getInstance() {
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
+    _nodeHashMutex(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(),
@@ -230,7 +231,7 @@ void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned c
 }
 
 int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
-    QMutexLocker(&node->getMutex());
+    QMutexLocker locker(&node->getMutex());
 
     node->setLastHeardMicrostamp(usecTimestampNow());
 
@@ -266,19 +267,25 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
+    QMutexLocker locker(&_nodeHashMutex);
     return _nodeHash.value(nodeUUID);
+}
+
+NodeHash NodeList::getNodeHash() {
+    QMutexLocker locker(&_nodeHashMutex);
+    return NodeHash(_nodeHash);
 }
 
 void NodeList::clear() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
+    
+    QMutexLocker locker(&_nodeHashMutex);
 
     NodeHash::iterator nodeItem = _nodeHash.begin();
 
     // iterate the nodes in the list
     while (nodeItem != _nodeHash.end()) {
-        NodeHash::iterator previousNodeItem = nodeItem;
-        ++nodeItem;
-        killNodeAtHashIterator(previousNodeItem);
+        nodeItem = killNodeAtHashIterator(nodeItem);
     }
 }
 
@@ -438,16 +445,18 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 }
 
 void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+    QMutexLocker locker(&_nodeHashMutex);
+    
     NodeHash::iterator nodeItemToKill = _nodeHash.find(nodeUUID);
     if (nodeItemToKill != _nodeHash.end()) {
         killNodeAtHashIterator(nodeItemToKill);
     }
 }
 
-void NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
+NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
     qDebug() << "Killed" << *nodeItemToKill.value();
     emit nodeKilled(nodeItemToKill.value());
-    _nodeHash.erase(nodeItemToKill);
+    return _nodeHash.erase(nodeItemToKill);
 }
 
 void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
@@ -674,6 +683,8 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+    _nodeHashMutex.lock();
+    
     SharedNodePointer matchingNode = _nodeHash.value(uuid);
     
     if (!matchingNode) {
@@ -683,13 +694,17 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
 
+        _nodeHashMutex.unlock();
+        
         qDebug() << "Added" << *newNode;
 
         emit nodeAdded(newNodeSharedPointer);
 
         return newNodeSharedPointer;
     } else {
-        QMutexLocker(&matchingNode->getMutex());
+        _nodeHashMutex.unlock();
+        
+        QMutexLocker locker(&matchingNode->getMutex());
 
         if (matchingNode->getType() == NODE_TYPE_AUDIO_MIXER ||
             matchingNode->getType() == NODE_TYPE_VOXEL_SERVER ||
@@ -781,24 +796,27 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
 void NodeList::removeSilentNodes() {
 
+    _nodeHashMutex.lock();
+    
     NodeHash::iterator nodeItem = _nodeHash.begin();
 
     while (nodeItem != _nodeHash.end()) {
         SharedNodePointer node = nodeItem.value();
 
-        QMutexLocker(&node->getMutex());
+        node->getMutex().lock();
 
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             // call our private method to kill this node (removes it and emits the right signal)
-            NodeHash::iterator previousNodeItem = nodeItem;
-            ++nodeItem;
-
-            killNodeAtHashIterator(previousNodeItem);
+            nodeItem = killNodeAtHashIterator(nodeItem);
         } else {
             // we didn't kill this node, push the iterator forwards
             ++nodeItem;
         }
+        
+        node->getMutex().unlock();
     }
+    
+    _nodeHashMutex.unlock();
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";
