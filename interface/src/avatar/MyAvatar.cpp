@@ -483,7 +483,7 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     
     // then vertically
     float oldMousePitch = _head.getMousePitch();
-    _head.setMousePitch(oldMousePitch + deltaY * ANGULAR_SCALE);
+    _head.setMousePitch(oldMousePitch + deltaY * -ANGULAR_SCALE);
     rotation = glm::angleAxis(_head.getMousePitch() - oldMousePitch, orientation * IDENTITY_RIGHT);
     setPosition(position + rotation * (getPosition() - position));
 }
