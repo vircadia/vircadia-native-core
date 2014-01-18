@@ -11,7 +11,6 @@
 #include <AbstractAudioInterface.h>
 #include <VoxelTree.h>
 #include <AvatarData.h>
-#include <CollisionInfo.h>
 #include <HeadData.h>
 #include <HandData.h>
 
@@ -74,16 +73,16 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float ELASTICITY = 0.4f;
     const float DAMPING = 0.0f;
     const float COLLISION_FREQUENCY = 0.5f;
-    glm::vec3 penetration;
+    CollisionInfo collisionInfo;
     VoxelDetail* voxelDetails = NULL;
-    if (_voxels->findSpherePenetration(center, radius, penetration, (void**)&voxelDetails)) {
+    if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
 
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
 
-        penetration /= (float)(TREE_SCALE);
-        updateCollisionSound(particle, penetration, COLLISION_FREQUENCY);
-        applyHardCollision(particle, penetration, ELASTICITY, DAMPING);
+        collisionInfo._penetration /= (float)(TREE_SCALE);
+        updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+        applyHardCollision(particle, ELASTICITY, DAMPING, collisionInfo);
 
         delete voxelDetails; // cleanup returned details
     }
@@ -153,11 +152,11 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     // first check the selfAvatar if set...
     if (_selfAvatar) {
         AvatarData* avatar = (AvatarData*)_selfAvatar;
-        CollisionInfo collision;
-        if (avatar->findSphereCollision(center, radius, collision)) {
-            collision._addedVelocity /= (float)(TREE_SCALE);
-            glm::vec3 relativeVelocity = collision._addedVelocity - particle->getVelocity();
-            if (glm::dot(relativeVelocity, collision._penetration) < 0.f) {
+        CollisionInfo collisionInfo;
+        if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+            collisionInfo._addedVelocity /= (float)(TREE_SCALE);
+            glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
+            if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
                 // only collide when particle and collision point are moving toward each other
                 // (doing this prevents some "collision snagging" when particle penetrates the object)
 
@@ -166,16 +165,16 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 // TODO: make this less hacky when we have more per-collision details
                 float elasticity = ELASTICITY;
                 float SLOW_PADDLE_SPEED = 5.0e-5f;
-                float attenuationFactor = glm::length(collision._addedVelocity) / SLOW_PADDLE_SPEED;
+                float attenuationFactor = glm::length(collisionInfo._addedVelocity) / SLOW_PADDLE_SPEED;
                 if (attenuationFactor < 1.f) {
-                    collision._addedVelocity *= attenuationFactor;
+                    collisionInfo._addedVelocity *= attenuationFactor;
                     elasticity *= attenuationFactor;
                 }
                 // HACK END
 
-                collision._penetration /= (float)(TREE_SCALE);
-                updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                applyHardCollision(particle, collision._penetration, elasticity, DAMPING, collision._addedVelocity);
+                collisionInfo._penetration /= (float)(TREE_SCALE);
+                updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+                applyHardCollision(particle, elasticity, DAMPING, collisionInfo);
             }
         }
     }
@@ -185,26 +184,26 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
-            CollisionInfo collision;
-            if (avatar->findSphereCollision(center, radius, collision)) {
-                collision._addedVelocity /= (float)(TREE_SCALE);
-                glm::vec3 relativeVelocity = collision._addedVelocity - particle->getVelocity();
-                if (glm::dot(relativeVelocity, collision._penetration) < 0.f) {
+            CollisionInfo collisionInfo;
+            if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+                collisionInfo._addedVelocity /= (float)(TREE_SCALE);
+                glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
+                if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
                     // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.  
                     // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
                     // TODO: make this less hacky when we have more per-collision details
                     float elasticity = ELASTICITY;
                     float SLOW_PADDLE_SPEED = 5.0e-5f;
-                    float attenuationFactor = glm::length(collision._addedVelocity) / SLOW_PADDLE_SPEED;
+                    float attenuationFactor = glm::length(collisionInfo._addedVelocity) / SLOW_PADDLE_SPEED;
                     if (attenuationFactor < 1.f) {
-                        collision._addedVelocity *= attenuationFactor;
+                        collisionInfo._addedVelocity *= attenuationFactor;
                         elasticity *= attenuationFactor;
                     }
                     // HACK END
 
-                    collision._penetration /= (float)(TREE_SCALE);
-                    updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                    applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);    
+                    collisionInfo._penetration /= (float)(TREE_SCALE);
+                    updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+                    applyHardCollision(particle, ELASTICITY, DAMPING, collisionInfo);    
                 }
             }
         }
@@ -213,8 +212,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
 
 // TODO: convert applyHardCollision() to take a CollisionInfo& instead of penetration + addedVelocity
-void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::vec3& penetration,
-                                                 float elasticity, float damping, const glm::vec3& addedVelocity) {
+void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elasticity, float damping, const CollisionInfo& collisionInfo) {
     //
     //  Update the particle in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
@@ -226,16 +224,14 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, const glm::
     glm::vec3 velocity = particle->getVelocity();
 
     const float EPSILON = 0.0f;
-    float velocityDotPenetration = glm::dot(velocity, penetration);
+    float velocityDotPenetration = glm::dot(velocity, collisionInfo._penetration);
     if (velocityDotPenetration > EPSILON) {
-        position -= penetration;
+        position -= collisionInfo._penetration;
         static float HALTING_VELOCITY = 0.2f / (float)(TREE_SCALE);
         // cancel out the velocity component in the direction of penetration
 
-        float penetrationLength = glm::length(penetration);
-        glm::vec3 direction = penetration / penetrationLength;
-        velocity -= (glm::dot(velocity, direction) * (1.0f + elasticity)) * direction;
-        velocity += addedVelocity;
+        glm::vec3 direction = glm::normalize(collisionInfo._penetration);
+        velocity += collisionInfo._addedVelocity - (glm::dot(velocity, direction) * (1.0f + elasticity)) * direction;
         velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if (glm::length(velocity) < HALTING_VELOCITY) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
