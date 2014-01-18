@@ -41,16 +41,19 @@ function vInterpolate(a, b, fraction) {
 
 //  Decide what kind of bird we are 
 var tweet;
+
 var which = Math.random();
-if (which < 1.0) {
-	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/bushtit_1.raw");
+if (which < 0.2) {
+	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");
 } else if (which < 0.4) {
-	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/bushtit_2.raw");
+	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/rosyfacedlovebird.raw");
 } else if (which < 0.6) {
-	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/bushtit_3.raw");
+	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/saysphoebe.raw");
+} else  if (which < 0.8) {
+	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");
 } else {
-	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/mexicanWhipoorwill.raw");
-}
+	tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/westernscreechowl.raw");
+} 
 
 var position  = { x: 0, y: 0, z: 0 };
 var lastPosition  = { x: 0, y: 0, z: 0 };
@@ -58,7 +61,7 @@ var oldPosition = { x: 0, y: 0, z:0 };
 var targetPosition = { x: 0, y: 0, z: 0 };
 
 var size = 0.125;
-var range = 4.0;       //   Over what distance in meters do you want your bird to fly around 
+var range = 50.0;       //   Over what distance in meters do you want your bird to fly around 
 var color = { r: 100, g: 50, b: 150 };
 var colorEdge = { r:255, g:250, b:175 };
 var frame = 0;
