@@ -143,6 +143,7 @@ private:
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     NodeHash _nodeHash;
+    QMutex _nodeHashMutex;
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;

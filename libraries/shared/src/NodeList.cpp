@@ -56,6 +56,7 @@ NodeList* NodeList::getInstance() {
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
+    _nodeHashMutex(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(),
@@ -266,11 +267,16 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    return _nodeHash.value(nodeUUID);
+    _nodeHashMutex.lock();
+    SharedNodePointer matchingNode = _nodeHash.value(nodeUUID);
+    _nodeHashMutex.unlock();
+    return matchingNode;
 }
 
 void NodeList::clear() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
+    
+    _nodeHashMutex.lock();
 
     NodeHash::iterator nodeItem = _nodeHash.begin();
 
@@ -278,6 +284,8 @@ void NodeList::clear() {
     while (nodeItem != _nodeHash.end()) {
         nodeItem = killNodeAtHashIterator(nodeItem);
     }
+    
+    _nodeHashMutex.unlock();
 }
 
 void NodeList::reset() {
@@ -436,10 +444,14 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 }
 
 void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+    _nodeHashMutex.lock();
+    
     NodeHash::iterator nodeItemToKill = _nodeHash.find(nodeUUID);
     if (nodeItemToKill != _nodeHash.end()) {
         killNodeAtHashIterator(nodeItemToKill);
     }
+    
+    _nodeHashMutex.unlock();
 }
 
 NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
@@ -672,6 +684,8 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+    _nodeHashMutex.lock();
+    
     SharedNodePointer matchingNode = _nodeHash.value(uuid);
     
     if (!matchingNode) {
@@ -681,12 +695,16 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
 
+        _nodeHashMutex.unlock();
+        
         qDebug() << "Added" << *newNode;
 
         emit nodeAdded(newNodeSharedPointer);
 
         return newNodeSharedPointer;
     } else {
+        _nodeHashMutex.unlock();
+        
         QMutexLocker(&matchingNode->getMutex());
 
         if (matchingNode->getType() == NODE_TYPE_AUDIO_MIXER ||
@@ -779,6 +797,8 @@ SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
 void NodeList::removeSilentNodes() {
 
+    _nodeHashMutex.lock();
+    
     NodeHash::iterator nodeItem = _nodeHash.begin();
 
     while (nodeItem != _nodeHash.end()) {
@@ -796,6 +816,8 @@ void NodeList::removeSilentNodes() {
         
         node->getMutex().unlock();
     }
+    
+    _nodeHashMutex.unlock();
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";
