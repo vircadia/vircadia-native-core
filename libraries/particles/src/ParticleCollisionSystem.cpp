@@ -159,22 +159,23 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             glm::vec3 relativeVelocity = collision._addedVelocity - particle->getVelocity();
             if (glm::dot(relativeVelocity, collision._penetration) < 0.f) {
                 // only collide when particle and collision point are moving toward each other
+                // (doing this prevents some "collision snagging" when particle penetrates the object)
 
-                // HACK BEGIN: to make slow particle-paddle collisions mellower
+                // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.  
+                // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
+                // TODO: make this less hacky when we have more per-collision details
                 float elasticity = ELASTICITY;
-                float damping = glm::length(collision._addedVelocity) / 5.0e-5f;
-                if (damping < 1.f) {
-                    collision._addedVelocity *= (damping * damping);
-                    elasticity = ELASTICITY * damping;
-                    damping = 0.1f;
-                } else {
-                    damping = DAMPING;
+                float SLOW_PADDLE_SPEED = 5.0e-5f;
+                float attenuationFactor = glm::length(collision._addedVelocity) / SLOW_PADDLE_SPEED;
+                if (attenuationFactor < 1.f) {
+                    collision._addedVelocity *= attenuationFactor;
+                    elasticity *= attenuationFactor;
                 }
                 // HACK END
 
                 collision._penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
-                applyHardCollision(particle, collision._penetration, elasticity, damping, collision._addedVelocity);
+                applyHardCollision(particle, collision._penetration, elasticity, DAMPING, collision._addedVelocity);
             }
         }
     }
@@ -184,13 +185,24 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
-
             CollisionInfo collision;
             if (avatar->findSphereCollision(center, radius, collision)) {
-                if (glm::dot(particle->getVelocity(), collision._addedVelocity) < 0.f) {
-                    // only collide when particle and collision point are moving toward each other
+                collision._addedVelocity /= (float)(TREE_SCALE);
+                glm::vec3 relativeVelocity = collision._addedVelocity - particle->getVelocity();
+                if (glm::dot(relativeVelocity, collision._penetration) < 0.f) {
+                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.  
+                    // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
+                    // TODO: make this less hacky when we have more per-collision details
+                    float elasticity = ELASTICITY;
+                    float SLOW_PADDLE_SPEED = 5.0e-5f;
+                    float attenuationFactor = glm::length(collision._addedVelocity) / SLOW_PADDLE_SPEED;
+                    if (attenuationFactor < 1.f) {
+                        collision._addedVelocity *= attenuationFactor;
+                        elasticity *= attenuationFactor;
+                    }
+                    // HACK END
+
                     collision._penetration /= (float)(TREE_SCALE);
-                    collision._addedVelocity /= (float)(TREE_SCALE);
                     updateCollisionSound(particle, collision._penetration, COLLISION_FREQUENCY);
                     applyHardCollision(particle, collision._penetration, ELASTICITY, DAMPING, collision._addedVelocity);    
                 }
