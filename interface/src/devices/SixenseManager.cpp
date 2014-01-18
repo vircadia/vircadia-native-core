@@ -98,6 +98,15 @@ void SixenseManager::update(float deltaTime) {
         //  Compute current velocity from position change
         glm::vec3 rawVelocity = (position - palm->getRawPosition()) / deltaTime / 1000.f;
         palm->setRawVelocity(rawVelocity);   //  meters/sec
+        /*
+        if (i == 0)
+        {
+            printf("ADEBUG rawVelocity = [%e, %e, %e]\n",
+                    rawVelocity.x,
+                    rawVelocity.y,
+                    rawVelocity.z);
+        }
+        */
         palm->setRawPosition(position);
         
         // use the velocity to determine whether there's any movement (if the hand isn't new)
