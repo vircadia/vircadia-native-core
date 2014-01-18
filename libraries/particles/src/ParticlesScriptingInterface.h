@@ -24,13 +24,16 @@ public:
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
 
 public slots:
-    /// queues the creation of a Particle which will be sent by calling process on the PacketSender
-    /// returns the creatorTokenID for the newly created particle
-    unsigned int addParticle(glm::vec3 position, float radius,
+    ParticleID addParticle(glm::vec3 position, float radius,
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, float lifetime, bool inHand, QString script);
 
-    void editParticle(unsigned int particleID, glm::vec3 position, float radius,
+    void editParticle(ParticleID particleID, glm::vec3 position, float radius,
             xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, float lifetime, bool inHand, QString script);
+
+    ParticleID addParticle(const ParticleProperties& properties);
+
+    void editParticle(ParticleID particleID, const ParticleProperties& properties);
+    void deleteParticle(ParticleID particleID);
 
 private:
     void queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails);

@@ -556,6 +556,8 @@ void Particle::runUpdateScript() {
 
         particleScriptable.emitUpdate();
 
+        // it seems like we may need to send out particle edits if the state of our particle was changed.
+
         if (_voxelEditSender) {
             _voxelEditSender->releaseQueuedMessages();
         }
@@ -585,6 +587,8 @@ void Particle::collisionWithParticle(Particle* other) {
 
         ParticleScriptObject otherParticleScriptable(other);
         particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
+
+        // it seems like we may need to send out particle edits if the state of our particle was changed.
 
         if (_voxelEditSender) {
             _voxelEditSender->releaseQueuedMessages();
@@ -618,6 +622,8 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 
         VoxelDetailScriptObject voxelDetailsScriptable(voxelDetails);
         particleScriptable.emitCollisionWithVoxel(&voxelDetailsScriptable);
+
+        // it seems like we may need to send out particle edits if the state of our particle was changed.
 
         if (_voxelEditSender) {
             _voxelEditSender->releaseQueuedMessages();
@@ -908,3 +914,20 @@ QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const Partic
 void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties) {
     properties.copyFromScriptValue(object);
 }
+
+
+QScriptValue ParticleIDtoScriptValue(QScriptEngine* engine, const ParticleID& id) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("id", id.id);
+    obj.setProperty("creatorTokenID", id.creatorTokenID);
+    obj.setProperty("isKnownID", id.isKnownID);
+    return obj;
+}
+
+void ParticleIDFromScriptValue(const QScriptValue &object, ParticleID& id) {
+    id.id = object.property("id").toVariant().toUInt();
+    id.creatorTokenID = object.property("creatorTokenID").toVariant().toUInt();
+    id.isKnownID = object.property("isKnownID").toVariant().toBool();
+}
+
+

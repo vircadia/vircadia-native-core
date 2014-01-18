@@ -63,6 +63,17 @@ public:
     void copyToParticle(Particle& particle) const;
     void copyFromParticle(const Particle& particle);
 
+    const glm::vec3& getPosition() const { return _position; }
+    xColor getColor() const { return _color; }
+    float getRadius() const { return _radius; }
+    const glm::vec3& getVelocity() const { return _velocity; }
+    const glm::vec3& getGravity() const { return _gravity; }
+    float getDamping() const { return _damping; }
+    float getLifetime() const { return _lifetime; }
+    QString getScript() const { return _script; }
+    bool getInHand() const { return _inHand; }
+    bool getShouldDie() const { return _shouldDie; }
+
 private:
     glm::vec3 _position;
     xColor _color;
@@ -86,6 +97,29 @@ private:
     bool _inHandChanged;
     bool _shouldDieChanged;
 };
+Q_DECLARE_METATYPE(ParticleProperties);
+QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties);
+void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties);
+
+
+/// used in Particle JS API
+class ParticleID {
+public:
+    ParticleID() :
+            id(NEW_PARTICLE), creatorTokenID(UNKNOWN_TOKEN), isKnownID(false) { };
+
+    ParticleID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
+            id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { };
+
+    uint32_t id;
+    uint32_t creatorTokenID;
+    bool isKnownID;
+};
+
+Q_DECLARE_METATYPE(ParticleID);
+QScriptValue ParticleIDToScriptValue(QScriptEngine* engine, const ParticleID& properties);
+void ParticleIDFromScriptValue(const QScriptValue &object, ParticleID& properties);
+
 
 
 class Particle  {
@@ -257,11 +291,6 @@ private:
     Particle* _particle;
 };
 
-Q_DECLARE_METATYPE(ParticleProperties);
-
-
-QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties);
-void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties);
 
 
 #endif /* defined(__hifi__Particle__) */
