@@ -352,14 +352,11 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
         }
     }
 
-    /* HACK : disable collisions with avatar proper for now -- sometimes interferes with paddle
-     * TODO: disable regular collisions with hand capsules
     if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
         collision._penetration /= (float)(TREE_SCALE);
         collision._addedVelocity = getVelocity();
         return true;
     }
-    */
     return false;
 }
 
