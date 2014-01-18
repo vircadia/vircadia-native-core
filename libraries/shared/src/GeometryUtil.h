@@ -17,7 +17,7 @@ glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec
 /// \param point the point location relative to sphere center (origin)
 /// \param defaultDirection the direction of the pentration when the point is near the origin
 /// \param sphereRadius the radius of the sphere
-/// \param penetration the displacement that would move the point out of penetration with the sphere
+/// \param penetration[out] the displacement that would move the point out of penetration with the sphere
 /// \return true if point is inside sphere, otherwise false
 bool findSpherePenetration(const glm::vec3& point, const glm::vec3& defaultDirection, 
                            float sphereRadius, glm::vec3& penetration);
@@ -53,9 +53,10 @@ bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadiu
 /// \param diskCenter center of disk
 /// \param diskRadius radius of disk
 /// \param diskNormal normal of disk plan
+/// \param penetration[out] the depth that the sphere penetrates the disk
 /// \return true if sphere touches disk (does not handle collisions with disk edge)
 bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
-                               const glm::vec3& diskCenter, float diskRadius, const glm::vec3& diskNormal, 
+                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal, 
                                glm::vec3& penetration);
 
 bool findCapsuleSpherePenetration(const glm::vec3& capsuleStart, const glm::vec3& capsuleEnd, float capsuleRadius,

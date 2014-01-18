@@ -156,7 +156,6 @@ namespace MenuOption {
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
-    const QString BallFromHand = "Ball from Hand";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
