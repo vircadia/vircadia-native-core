@@ -79,7 +79,8 @@ _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
 _isCollidingWithVoxel(false),
-_isCollidingWithPalm(false)
+_isCollidingWithPalm(false),
+_collisionlessPaddleExpiry(0)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
@@ -294,6 +295,15 @@ const glm::vec3& FingerData::getTrailPosition(int index) {
     return _tipTrailPositions[posIndex];
 }
 
+void PalmData::getBallHoldPosition(glm::vec3& position) const { 
+    const float BALL_FORWARD_OFFSET = 0.08f;    // put the ball a bit forward of fingers
+    position = BALL_FORWARD_OFFSET * getNormal(); 
+    if (_fingers.size() > 0) {
+        position += _fingers[0].getTipPosition();
+    } else {
+        position += getPosition();
+    }
+}
 
 
 
