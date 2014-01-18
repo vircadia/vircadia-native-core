@@ -198,6 +198,9 @@ public:
     bool hasPaddle() const { return _collisionlessPaddleExpiry < usecTimestampNow(); }
     void updateCollisionlessPaddleExpiry() { _collisionlessPaddleExpiry = usecTimestampNow() + USECS_PER_SECOND; }
 
+    /// Store position where the palm holds the ball.
+    void getBallHoldPosition(glm::vec3& position) const;
+
 private:
     std::vector<FingerData> _fingers;
     glm::quat _rawRotation;
