@@ -231,7 +231,7 @@ void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned c
 }
 
 int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
-    QMutexLocker(&node->getMutex());
+    QMutexLocker locker(&node->getMutex());
 
     node->setLastHeardMicrostamp(usecTimestampNow());
 
@@ -267,16 +267,19 @@ SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) 
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    _nodeHashMutex.lock();
-    SharedNodePointer matchingNode = _nodeHash.value(nodeUUID);
-    _nodeHashMutex.unlock();
-    return matchingNode;
+    QMutexLocker locker(&_nodeHashMutex);
+    return _nodeHash.value(nodeUUID);
+}
+
+NodeHash NodeList::getNodeHash() {
+    QMutexLocker locker(&_nodeHashMutex);
+    return NodeHash(_nodeHash);
 }
 
 void NodeList::clear() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
-    _nodeHashMutex.lock();
+    QMutexLocker locker(&_nodeHashMutex);
 
     NodeHash::iterator nodeItem = _nodeHash.begin();
 
@@ -284,8 +287,6 @@ void NodeList::clear() {
     while (nodeItem != _nodeHash.end()) {
         nodeItem = killNodeAtHashIterator(nodeItem);
     }
-    
-    _nodeHashMutex.unlock();
 }
 
 void NodeList::reset() {
@@ -444,14 +445,12 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 }
 
 void NodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    _nodeHashMutex.lock();
+    QMutexLocker locker(&_nodeHashMutex);
     
     NodeHash::iterator nodeItemToKill = _nodeHash.find(nodeUUID);
     if (nodeItemToKill != _nodeHash.end()) {
         killNodeAtHashIterator(nodeItemToKill);
     }
-    
-    _nodeHashMutex.unlock();
 }
 
 NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
@@ -705,7 +704,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     } else {
         _nodeHashMutex.unlock();
         
-        QMutexLocker(&matchingNode->getMutex());
+        QMutexLocker locker(&matchingNode->getMutex());
 
         if (matchingNode->getType() == NODE_TYPE_AUDIO_MIXER ||
             matchingNode->getType() == NODE_TYPE_VOXEL_SERVER ||

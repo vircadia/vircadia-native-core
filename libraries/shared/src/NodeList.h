@@ -21,6 +21,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <QtCore/QMutex>
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
@@ -81,7 +82,7 @@ public:
 
     void(*linkedDataCreateCallback)(Node *);
 
-    const NodeHash& getNodeHash() { return _nodeHash; }
+    NodeHash getNodeHash();
     int size() const { return _nodeHash.size(); }
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
