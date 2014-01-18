@@ -51,11 +51,12 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
     if (scriptMenuName) {
         _scriptMenuName = "Stop ";
         _scriptMenuName.append(scriptMenuName);
+        _scriptMenuName.append(QString(" [%1]").arg(_scriptNumber));
     } else {
         _scriptMenuName = "Stop Script ";
-        _scriptNumber++;
         _scriptMenuName.append(_scriptNumber);
     }
+    _scriptNumber++;
     _menu = menu;
     _controllerScriptingInterface = controllerScriptingInterface;
 }
@@ -224,6 +225,7 @@ void ScriptEngine::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << _engine.uncaughtException().toString();
         }
     }
+    emit scriptEnding();
     cleanMenuItems();
 
     // If we were on a thread, then wait till it's done

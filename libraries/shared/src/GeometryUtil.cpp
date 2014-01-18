@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <cstring>
+#include <cmath>
 
 #include "SharedUtil.h"
 #include "GeometryUtil.h"
@@ -115,20 +116,18 @@ bool findSpherePlanePenetration(const glm::vec3& sphereCenter, float sphereRadiu
 }
 
 bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius, 
-                               const glm::vec3& diskCenter, float diskRadius, const glm::vec3& diskNormal, 
+                               const glm::vec3& diskCenter, float diskRadius, float diskThickness, const glm::vec3& diskNormal, 
                                glm::vec3& penetration) {
     glm::vec3 localCenter = sphereCenter - diskCenter;
-    float verticalDistance = glm::dot(localCenter, diskNormal);
-
-
-    if (abs(verticalDistance) < sphereRadius) {
+    float axialDistance = glm::dot(localCenter, diskNormal);
+    if (std::fabs(axialDistance) < (sphereRadius + 0.5f * diskThickness)) {
         // sphere hit the plane, but does it hit the disk?
         // Note: this algorithm ignores edge hits.
-        glm::vec3 verticalOffset = verticalDistance * diskNormal;
-        if (glm::length(localCenter - verticalOffset) < diskRadius) {
+        glm::vec3 axialOffset = axialDistance * diskNormal;
+        if (glm::length(localCenter - axialOffset) < diskRadius) {
             // yes, hit the disk
-            penetration = (sphereRadius - abs(verticalDistance)) * diskNormal;
-            if (verticalDistance < 0.f) {
+            penetration = (std::fabs(axialDistance) - (sphereRadius + 0.5f * diskThickness) ) * diskNormal;
+            if (axialDistance < 0.f) {
                 // hit the backside of the disk, so negate penetration vector
                 penetration *= -1.f;
             }
