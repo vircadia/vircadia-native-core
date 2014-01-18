@@ -1519,16 +1519,18 @@ void Application::shootParticle() {
     QString script(
                  " function collisionWithVoxel(voxel) { "
                  "   print('collisionWithVoxel(voxel)... '); "
-                 "   print('myID=' + Particle.getID() + '\\n'); "
+                 "   print('myID=' + Particle.getID()); "
                  "   var voxelColor = voxel.getColor();"
-                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); "
+                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue ); "
                  "   var myColor = Particle.getColor();"
-                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); "
-                 "   Particle.setColor(voxelColor); "
+                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue ); "
+                 "   var newProps = { color: voxelColor }; "
+                 "   print('about to call Particle.setProperties()'); "
+                 "   Particle.setProperties(newProps); "
                  "   var voxelAt = voxel.getPosition();"
                  "   var voxelScale = voxel.getScale();"
                  "   Voxels.eraseVoxel(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  "
-                 "   print('Voxels.eraseVoxel(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); "
+                 "   print('Voxels.eraseVoxel(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')...'); "
                  " } "
                  " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
 

@@ -99,6 +99,7 @@ void ScriptEngine::init() {
 
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&_engine);
+    qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
 
     QScriptValue agentValue = _engine.newQObject(this);
     _engine.globalObject().setProperty("Agent", agentValue);

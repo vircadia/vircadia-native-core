@@ -23,7 +23,8 @@ class VoxelsScriptingInterface;
 class ParticlesScriptingInterface;
 class VoxelEditPacketSender;
 class ParticleEditPacketSender;
-
+class ParticleProperties;
+class Particle;
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
@@ -51,6 +52,42 @@ const QString DEFAULT_SCRIPT("");
 const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 
+/// Used in scripting to set/get the complete set of particle properties via JavaScript hashes/QScriptValues
+class ParticleProperties {
+public:
+    ParticleProperties();
+
+    QScriptValue copyToScriptValue(QScriptEngine* engine) const;
+    void copyFromScriptValue(const QScriptValue& object);
+
+    void copyToParticle(Particle& particle) const;
+    void copyFromParticle(const Particle& particle);
+
+private:
+    glm::vec3 _position;
+    xColor _color;
+    float _radius;
+    glm::vec3 _velocity;
+    glm::vec3 _gravity;
+    float _damping;
+    float _lifetime;
+    QString _script;
+    bool _inHand;
+    bool _shouldDie;
+
+    bool _positionChanged;
+    bool _colorChanged;
+    bool _radiusChanged;
+    bool _velocityChanged;
+    bool _gravityChanged;
+    bool _dampingChanged;
+    bool _lifetimeChanged;
+    bool _scriptChanged;
+    bool _inHandChanged;
+    bool _shouldDieChanged;
+};
+
+
 class Particle  {
 
 public:
@@ -77,6 +114,7 @@ public:
     bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
     float getLifetime() const { return _lifetime; }
+    ParticleProperties getProperties() const;
 
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
     uint64_t getLastUpdated() const { return _lastUpdated; }
@@ -110,6 +148,7 @@ public:
     void setLifetime(float value) { _lifetime = value; }
     void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
+    void setProperties(const ParticleProperties& properties);
 
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -196,6 +235,7 @@ public slots:
     bool getShouldDie() { return _particle->getShouldDie(); }
     float getAge() const { return _particle->getAge(); }
     float getLifetime() const { return _particle->getLifetime(); }
+    ParticleProperties getProperties() const { return _particle->getProperties(); }
 
     void setPosition(glm::vec3 value) { _particle->setPosition(value); }
     void setVelocity(glm::vec3 value) { _particle->setVelocity(value); }
@@ -206,6 +246,7 @@ public slots:
     void setShouldDie(bool value) { _particle->setShouldDie(value); }
     void setScript(const QString& script) { _particle->setScript(script); }
     void setLifetime(float value) const { return _particle->setLifetime(value); }
+    void setProperties(const ParticleProperties& properties) { return _particle->setProperties(properties); }
 
 signals:
     void update();
@@ -216,41 +257,11 @@ private:
     Particle* _particle;
 };
 
+Q_DECLARE_METATYPE(ParticleProperties);
 
-class ParticleProperties : public QObject {
-    Q_OBJECT
-public:
-    ParticleProperties();
 
-    QScriptValue copyToScriptValue(QScriptEngine* engine) const;
-    void copyFromScriptValue(const QScriptValue& object);
-
-    void copyToParticle(Particle& particle) const;
-    void copyFromParticle(const Particle& particle);
-
-private:
-    glm::vec3 _position;
-    xColor _color;
-    float _radius;
-    glm::vec3 _velocity;
-    glm::vec3 _gravity;
-    float _damping;
-    float _lifetime;
-    QString _script;
-    bool _inHand;
-    bool _shouldDie;
-
-    bool _positionChanged;
-    bool _colorChanged;
-    bool _radiusChanged;
-    bool _velocityChanged;
-    bool _gravityChanged;
-    bool _dampingChanged;
-    bool _lifetimeChanged;
-    bool _scriptChanged;
-    bool _inHandChanged;
-    bool _shouldDieChanged;
-};
+QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties);
+void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties);
 
 
 #endif /* defined(__hifi__Particle__) */

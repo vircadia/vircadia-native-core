@@ -641,6 +641,40 @@ void Particle::copyChangedProperties(const Particle& other) {
     setAge(age);
 }
 
+ParticleProperties Particle::getProperties() const {
+    ParticleProperties properties;
+    properties.copyFromParticle(*this);
+    return properties;
+}
+
+void Particle::setProperties(const ParticleProperties& properties) {
+    properties.copyToParticle(*this);
+}
+
+ParticleProperties::ParticleProperties() :
+    _position(0),
+    _color(),
+    _radius(0),
+    _velocity(0),
+    _gravity(DEFAULT_GRAVITY),
+    _damping(DEFAULT_DAMPING),
+    _lifetime(DEFAULT_LIFETIME),
+    _script(""),
+    _inHand(false),
+    _shouldDie(false),
+
+    _positionChanged(false),
+    _colorChanged(false),
+    _radiusChanged(false),
+    _velocityChanged(false),
+    _gravityChanged(false),
+    _dampingChanged(false),
+    _lifetimeChanged(false),
+    _scriptChanged(false),
+    _inHandChanged(false),
+    _shouldDieChanged(false)
+{
+}
 
 QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const {
     QScriptValue properties = engine->newObject();
@@ -865,4 +899,12 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _scriptChanged = false;
     _inHandChanged = false;
     _shouldDieChanged = false;
+}
+
+QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties) {
+    return properties.copyToScriptValue(engine);
+}
+
+void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties) {
+    properties.copyFromScriptValue(object);
 }

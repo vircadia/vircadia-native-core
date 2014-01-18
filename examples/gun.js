@@ -92,7 +92,8 @@ function checkController() {
                          "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " +
                          "   var myColor = Particle.getColor();" +
                          "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " +
-                         "   Particle.setColor(voxelColor); " +
+                         "   var newProps = { color: voxelColor }; " +
+                         "   Particle.setProperties(newProps); " +
                          "   var voxelAt = voxel.getPosition();" +
                          "   var voxelScale = voxel.getScale();" +
                          "   Voxels.eraseVoxel(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  " +
