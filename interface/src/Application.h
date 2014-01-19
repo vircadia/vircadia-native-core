@@ -205,6 +205,7 @@ public:
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
     
     QUrl _downloadUrl;
+    void skipVersion(QString latestVersion);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -504,7 +505,6 @@ private:
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
-    void skipVersion(QString latestVersion);
     QNetworkReply* _latestVersionReply;
 };
 

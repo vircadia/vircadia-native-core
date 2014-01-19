@@ -20,9 +20,11 @@
 #include "UpdateDialog.h"
 
 UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) :
-    QDialog(parent, Qt::Dialog) {
+    QWidget(parent, Qt::Widget) {
     
     Application* application = Application::getInstance();
+    
+    QString _latestVersion(latestVersion);
     
     QUiLoader updateDialogLoader;
     
@@ -57,6 +59,8 @@ void UpdateDialog::handleDownload() {
 }
 
 void UpdateDialog::handleSkip() {
+    Application* application = Application::getInstance();
+    application->skipVersion(_latestVersion);
     this->close();
 }
 

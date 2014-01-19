@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-class UpdateDialog : public QDialog {
+class UpdateDialog : public QWidget {
     Q_OBJECT
     
 public:
@@ -22,6 +22,7 @@ public:
     
 private:
     QWidget* _dialogWidget;
+    QString _latestVersion;
     
 private slots:
     void handleDownload();

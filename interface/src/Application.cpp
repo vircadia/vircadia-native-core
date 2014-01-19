@@ -4384,6 +4384,10 @@ void Application::parseVersionXml() {
     QString operatingSystem("mac");
     #endif
     
+    #ifdef Q_OS_LINUX
+    QString operatingSystem("ubuntu");
+    #endif
+    
     QString releaseDate;
     QString releaseNotes;
     QString latestVersion;
