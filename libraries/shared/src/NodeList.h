@@ -21,6 +21,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
+#include <QtCore/QMutex>
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
@@ -81,7 +82,7 @@ public:
 
     void(*linkedDataCreateCallback)(Node *);
 
-    const NodeHash& getNodeHash() { return _nodeHash; }
+    NodeHash getNodeHash();
     int size() const { return _nodeHash.size(); }
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
@@ -140,9 +141,10 @@ private:
     void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
 
     void processKillNode(unsigned char* packetData, size_t dataBytes);
-    void killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
+    NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     NodeHash _nodeHash;
+    QMutex _nodeHashMutex;
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;

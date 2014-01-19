@@ -2006,7 +2006,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        QMutexLocker(&node->getMutex());
+        QMutexLocker locker(&node->getMutex());
         if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
@@ -2168,7 +2168,6 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 
     _mouseVoxel.s = 0.0f;
     bool wasInitialized = _mouseVoxelScaleInitialized;
-    _mouseVoxelScaleInitialized = false;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
@@ -3660,7 +3659,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         NodeList* nodeList = NodeList::getInstance();
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            QMutexLocker(&node->getMutex());
+            QMutexLocker locker(&node->getMutex());
 
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();

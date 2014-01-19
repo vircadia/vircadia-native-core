@@ -317,7 +317,7 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     if (handData) {
         for (int i = 0; i < 2; i++) {
             const PalmData* palm = handData->getPalm(i);
-            if (palm) {
+            if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
                 glm::vec3 fingerAxis(0.f);
                 for (size_t f = 0; f < palm->getNumFingers(); ++f) {
@@ -339,10 +339,12 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
                 }
                 glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
                 glm::vec3 diskNormal = palm->getNormal();
+                float diskThickness = 0.08f;
 
                 // collide against the disk
                 if (findSphereDiskPenetration(sphereCenter, sphereRadius, 
-                            diskCenter, HAND_PADDLE_RADIUS, diskNormal, collision._penetration)) {
+                            diskCenter, HAND_PADDLE_RADIUS, diskThickness, diskNormal,
+                            collision._penetration)) {
                     collision._addedVelocity = palm->getVelocity();
                     return true;
                 }
