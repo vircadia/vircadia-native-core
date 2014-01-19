@@ -22,7 +22,7 @@ public:
     
 private:
     QWidget* _dialogWidget;
-    QString _latestVersion;
+    QString* _latestVersion;
     
 private slots:
     void handleDownload();

@@ -24,7 +24,7 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     
     Application* application = Application::getInstance();
     
-    QString _latestVersion(latestVersion);
+    _latestVersion = new QString(latestVersion);
     
     QUiLoader updateDialogLoader;
     
@@ -33,8 +33,8 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     _dialogWidget = updateDialogLoader.load(&updateDialogUi, this);
     
     QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
-                                           Please download and install the most recent release to access the latest features and bug fixes.")
-                                           .arg(application->applicationVersion(), latestVersion);
+                                      Please download and install the most recent release to access the latest features and bug fixes.")
+                                      .arg(application->applicationVersion(), latestVersion);
     
     
     setAttribute(Qt::WA_DeleteOnClose);
@@ -60,7 +60,7 @@ void UpdateDialog::handleDownload() {
 
 void UpdateDialog::handleSkip() {
     Application* application = Application::getInstance();
-    application->skipVersion(_latestVersion);
+    application->skipVersion(*_latestVersion);
     this->close();
 }
 
