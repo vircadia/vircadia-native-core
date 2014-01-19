@@ -100,7 +100,7 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
-    
+
 #ifdef Q_OS_MAC
     QString cmdString = ("Command");
 #else
@@ -127,8 +127,8 @@ ImportDialog::~ImportDialog() {
 }
 
 void ImportDialog::import() {
-    _importButton.setDisabled(true);
     emit accepted();
+    close();
 }
 
 void ImportDialog::accept() {
@@ -145,6 +145,7 @@ int ImportDialog::exec() {
 
 void ImportDialog::reset() {
     _importButton.setEnabled(false);
+    selectFile(" ");
 }
 
 void ImportDialog::saveCurrentFile(QString filename) {
