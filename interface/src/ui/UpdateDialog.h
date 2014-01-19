@@ -18,13 +18,13 @@ class UpdateDialog : public QDialog {
     Q_OBJECT
     
 public:
-    UpdateDialog(QWidget*, QString releaseNotes, QString latestVersion, QUrl downloadURL);
+    UpdateDialog(QWidget* parent, QString releaseNotes, QString latestVersion, QUrl downloadURL);
     
 private:
     QWidget* _dialogWidget;
     
 private slots:
-    void handleDownload(QUrl downloadURL);
+    void handleDownload();
     void handleSkip();
     void handleClose();
 };

@@ -19,17 +19,18 @@
 #include "SharedUtil.h"
 #include "UpdateDialog.h"
 
-UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) : QDialog(parent, Qt::Dialog) {
+UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) :
+    QDialog(parent, Qt::Dialog) {
+    
     Application* application = Application::getInstance();
     
     QUiLoader updateDialogLoader;
     
     QFile updateDialogUi("resources/ui/updateDialog.ui");
     updateDialogUi.open(QFile::ReadOnly);
-    _dialogWidget = updateDialogLoader.load(&updateDialogUi, parent);
-    updateDialogUi.close();
+    _dialogWidget = updateDialogLoader.load(&updateDialogUi, this);
     
-    const QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
+    QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
                                            Please download and install the most recent release to access the latest features and bug fixes.")
                                            .arg(application->applicationVersion(), latestVersion);
     
@@ -43,22 +44,22 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     
     updateContent->setText(updateRequired);
     
-    connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload(QUrl downloadURL)));
+    connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
     connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
     connect(closeButton, SIGNAL(released()), this, SLOT(handleClose()));
     _dialogWidget->show();
 }
 
-void UpdateDialog::handleDownload(QUrl downloadURL) {
+void UpdateDialog::handleDownload() {
     Application* application = Application::getInstance();
-    QDesktopServices::openUrl(downloadURL);
+    QDesktopServices::openUrl(application->_downloadUrl);
     application->quit();
 }
 
 void UpdateDialog::handleSkip() {
-    this->_dialogWidget->close();
+    this->close();
 }
 
 void UpdateDialog::handleClose() {
-    this->_dialogWidget->close();
+    this->close();
 }

@@ -95,6 +95,7 @@ const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
+const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     QString messageWithNewLine = message + "\n";
@@ -202,8 +203,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
-    checkVersion();
-    
     qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
 
     _settings = new QSettings(this);
@@ -262,7 +261,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-
+    
+    checkVersion();
 }
 
 Application::~Application() {
@@ -4367,31 +4367,28 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 
 void Application::checkVersion() {
     QUrl url(CHECK_VERSION_URL);
-    QNetworkAccessManager *downloadXML = new QNetworkAccessManager(this);
-    QNetworkRequest request(url);
-    connect(downloadXML, SIGNAL(finished(QNetworkReply*)), this, SLOT(parseVersionXml(QNetworkReply*)));
-    downloadXML->get(request);
+    QNetworkRequest latestVersionRequest(url);
+    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _latestVersionReply = getNetworkAccessManager()->get(latestVersionRequest);
+    
+    connect(_latestVersionReply, SIGNAL(readyRead()), SLOT(parseVersionXml()));
 }
 
-void Application::parseVersionXml(QNetworkReply *reply) {
-    QString *operatingSystem;
+void Application::parseVersionXml() {
     
     #ifdef Q_OS_WIN32
-    operatingSystem = new QString("win");
+    QString operatingSystem("win");
     #endif
     
     #ifdef Q_OS_MAC
-    operatingSystem = new QString("mac");
+    QString operatingSystem("mac");
     #endif
     
     QString releaseDate;
     QString releaseNotes;
     QString latestVersion;
-    QUrl downloadURL;
     
-    QWidget *updateDialog;
-    
-    QXmlStreamReader xml(reply);
+    QXmlStreamReader xml(_latestVersionReply);
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
@@ -4410,36 +4407,28 @@ void Application::parseVersionXml(QNetworkReply *reply) {
             }
             if (xml.name() == operatingSystem) {
                 xml.readNext();
-                downloadURL = QUrl(xml.text().toString());
+                _downloadUrl = QUrl(xml.text().toString());
             }
         }
     }
     
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        updateDialog = new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadURL);
+        new UpdateDialog(_glWidget, releaseNotes, latestVersion, _downloadUrl);
     }
+    
+    delete _latestVersionReply;
 }
 
 bool Application::shouldSkipVersion(QString latestVersion) {
-    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    fileName.append(QString("/hifi.skipversion"));
-    QFile skipFile(fileName);
+    QFile skipFile(SKIP_FILENAME);
     skipFile.open(QIODevice::ReadWrite);
-    QByteArray skipFileContents = skipFile.readAll();
-    QString skipVersion(skipFileContents);
-    skipFile.close();
-    if (skipVersion == latestVersion || applicationVersion() == "dev") {
-        return true;
-    }
-    return false;
+    QString skipVersion(skipFile.readAll());
+    return (skipVersion == latestVersion /*|| applicationVersion() == "dev"*/);
 }
 
 void Application::skipVersion(QString latestVersion) {
-    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    fileName.append(QString("/hifi.skipversion"));
-    QFile skipFile(fileName);
+    QFile skipFile(SKIP_FILENAME);
     skipFile.open(QIODevice::WriteOnly|QIODevice::Truncate);
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
-    skipFile.close();
 }

@@ -203,6 +203,8 @@ public:
     /// set a voxel which is to be rendered with a highlight
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
+    
+    QUrl _downloadUrl;
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -251,7 +253,7 @@ private slots:
     void shrinkMirrorView();
     void resetSensors();
     
-    void parseVersionXml(QNetworkReply *reply);
+    void parseVersionXml();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -503,6 +505,7 @@ private:
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void skipVersion(QString latestVersion);
+    QNetworkReply* _latestVersionReply;
 };
 
 #endif /* defined(__interface__Application__) */
