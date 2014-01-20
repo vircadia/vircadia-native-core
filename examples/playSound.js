@@ -3,7 +3,7 @@
 //
 
 //  First, load the clap sound from a URL 
-var clap = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/clap1.raw");
+var clap = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");	
 
 function maybePlaySound() {
 	if (Math.random() < 0.01) {

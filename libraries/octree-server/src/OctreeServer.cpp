@@ -6,25 +6,25 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "civetweb.h"
-
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
+#include <QtNetwork/QNetworkAccessManager>
 
 #include <time.h>
+#include <HTTPConnection.h>
 #include <Logging.h>
 #include <UUID.h>
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
+OctreeServer* OctreeServer::_instance = NULL;
+
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        if (GetInstance()) {
-            OctreeQueryNode* newQueryNodeData = GetInstance()->createOctreeQueryNode(newNode);
-            newQueryNodeData->resetOctreePacket(true); // don't bump sequence
-            newNode->setLinkedData(newQueryNodeData);
-        }
+        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode(newNode);
+        newQueryNodeData->resetOctreePacket(true); // don't bump sequence
+        newNode->setLinkedData(newQueryNodeData);
     }
 }
 
@@ -39,30 +39,26 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     }
 };
 
-
-OctreeServer* OctreeServer::_theInstance = NULL;
-
 OctreeServer::OctreeServer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes)
+    ThreadedAssignment(dataBuffer, numBytes),
+    _argc(0),
+    _argv(NULL),
+    _parsedArgV(NULL),
+    _httpManager(NULL),
+    _packetsPerClientPerInterval(10),
+    _tree(NULL),
+    _wantPersist(true),
+    _debugSending(false),
+    _debugReceiving(false),
+    _verboseDebug(false),
+    _jurisdiction(NULL),
+    _jurisdictionSender(NULL),
+    _octreeInboundPacketProcessor(NULL),
+    _persistThread(NULL),
+    _started(time(0)),
+    _startedUSecs(usecTimestampNow())
 {
-    _argc = 0;
-    _argv = NULL;
-    _tree = NULL;
-    _packetsPerClientPerInterval = 10;
-    _wantPersist = true;
-    _debugSending = false;
-    _debugReceiving = false;
-    _verboseDebug = false;
-    _jurisdiction = NULL;
-    _jurisdictionSender = NULL;
-    _octreeInboundPacketProcessor = NULL;
-    _persistThread = NULL;
-    _parsedArgV = NULL;
-
-    _started = time(0);
-    _startedUSecs = usecTimestampNow();
-
-    _theInstance = this;
+    _instance = this;
 }
 
 OctreeServer::~OctreeServer() {
@@ -94,235 +90,220 @@ OctreeServer::~OctreeServer() {
     qDebug() << "OctreeServer::run()... DONE";
 }
 
-void OctreeServer::initMongoose(int port) {
-    // setup the mongoose web server
-    struct mg_callbacks callbacks = {};
+void OctreeServer::initHTTPManager(int port) {
+    // setup the embedded web server
 
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
-    QString listenPort = QString("%1").arg(port);
 
-
-    // list of options. Last element must be NULL.
-    const char* options[] = {
-        "listening_ports", listenPort.toLocal8Bit().constData(),
-        "document_root", documentRoot.toLocal8Bit().constData(),
-        NULL };
-
-    callbacks.begin_request = civetwebRequestHandler;
-
-    // Start the web server.
-    mg_start(&callbacks, NULL, options);
+    // setup an httpManager with us as the request handler and the parent
+    _httpManager = new HTTPManager(port, documentRoot, this, this);
 }
 
-int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
-    const struct mg_request_info* ri = mg_get_request_info(connection);
-
-    OctreeServer* theServer = GetInstance();
-
+bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
+    
 #ifdef FORCE_CRASH
-    if (strcmp(ri->uri, "/force_crash") == 0 && strcmp(ri->request_method, "GET") == 0) {
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && path == "/force_crash") {
+        
         qDebug() << "About to force a crash!";
+        
         int foo;
         int* forceCrash = &foo;
-        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
-        mg_printf(connection, "%s", "forcing a crash....\r\n");
+        
+        QString responseString("forcing a crash...");
+        connection->respond(HTTPConnection::StatusCode200, qPrintable(responseString));
+        
         delete[] forceCrash;
-        mg_printf(connection, "%s", "did it crash....\r\n");
-        return 1;
+        
+        return true;
     }
 #endif
-
+    
     bool showStats = false;
-    if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
-        showStats = true;
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        if (path == "/") {
+            showStats = true;
+        } else if (path == "/resetStats") {
+            _octreeInboundPacketProcessor->resetStats();
+            showStats = true;
+        }
     }
-
-    if (strcmp(ri->uri, "/resetStats") == 0 && strcmp(ri->request_method, "GET") == 0) {
-        theServer->_octreeInboundPacketProcessor->resetStats();
-        showStats = true;
-    }
-
+    
     if (showStats) {
         uint64_t checkSum;
         // return a 200
-        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n");
-        mg_printf(connection, "%s", "Content-Type: text/html\r\n\r\n");
-        mg_printf(connection, "%s", "<html><doc>\r\n");
-        mg_printf(connection, "%s", "<pre>\r\n");
-        mg_printf(connection, "<b>Your %s Server is running... <a href='/'>[RELOAD]</a></b>\r\n", theServer->getMyServerName());
-
-        tm* localtm = localtime(&theServer->_started);
+        QString statsString("<html><doc>\r\n<pre>\r\n");
+        statsString += QString("<b>Your %1 Server is running... <a href='/'>[RELOAD]</a></b>\r\n").arg(getMyServerName());
+        
+        tm* localtm = localtime(&_started);
         const int MAX_TIME_LENGTH = 128;
         char buffer[MAX_TIME_LENGTH];
         strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
-        mg_printf(connection, "Running since: %s", buffer);
-
+        statsString += QString("Running since: %1").arg(buffer);
+        
         // Convert now to tm struct for UTC
-        tm* gmtm = gmtime(&theServer->_started);
-        if (gmtm != NULL) {
+        tm* gmtm = gmtime(&_started);
+        if (gmtm) {
             strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", gmtm);
-            mg_printf(connection, " [%s UTM] ", buffer);
+            statsString += (QString(" [%1 UTM] ").arg(buffer));
         }
-        mg_printf(connection, "%s", "\r\n");
-
+        
+        statsString += "\r\n";
+        
         uint64_t now  = usecTimestampNow();
         const int USECS_PER_MSEC = 1000;
-        uint64_t msecsElapsed = (now - theServer->_startedUSecs) / USECS_PER_MSEC;
+        uint64_t msecsElapsed = (now - _startedUSecs) / USECS_PER_MSEC;
         const int MSECS_PER_SEC = 1000;
         const int SECS_PER_MIN = 60;
         const int MIN_PER_HOUR = 60;
         const int MSECS_PER_MIN = MSECS_PER_SEC * SECS_PER_MIN;
-
+        
         float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
         int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
         int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
-
-        mg_printf(connection, "%s", "Uptime: ");
+        
+        statsString += "Uptime: ";
+        
         if (hours > 0) {
-            mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+            statsString += QString("%1 hour%2").arg(hours).arg((hours > 1) ? "s" : "");
         }
         if (minutes > 0) {
-            mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+            statsString += QString("%1 minute%s").arg(minutes).arg((minutes > 1) ? "s" : "");
         }
         if (seconds > 0) {
-            mg_printf(connection, "%.3f seconds ", seconds);
+            statsString += QString().sprintf("%.3f seconds", seconds);
         }
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "\r\n");
-
-
+        statsString += "\r\n\r\n";
+        
         // display voxel file load time
-        if (theServer->isInitialLoadComplete()) {
-            if (theServer->isPersistEnabled()) {
-                mg_printf(connection, "%s File Persist Enabled...\r\n", theServer->getMyServerName());
+        if (isInitialLoadComplete()) {
+            if (isPersistEnabled()) {
+                statsString += QString("%1 File Persist Enabled...\r\n").arg(getMyServerName());
             } else {
-                mg_printf(connection, "%s File Persist Disabled...\r\n", theServer->getMyServerName());
+                statsString += QString("%1 File Persist Disabled...\r\n").arg(getMyServerName());
             }
-            mg_printf(connection, "%s", "\r\n");
-
-            uint64_t msecsElapsed = theServer->getLoadElapsedTime() / USECS_PER_MSEC;;
+            
+            statsString += "\r\n";
+            
+            uint64_t msecsElapsed = getLoadElapsedTime() / USECS_PER_MSEC;;
             float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
             int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
             int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
-
-            mg_printf(connection, "%s File Load Took: ", theServer->getMyServerName());
+            
+            statsString += QString("%1 File Load Took").arg(getMyServerName());
             if (hours > 0) {
-                mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+                statsString += QString("%1 hour%2").arg(hours).arg((hours > 1) ? "s" : "");
             }
             if (minutes > 0) {
-                mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+                statsString += QString("%1 minute%2").arg(minutes).arg((minutes > 1) ? "s" : "");
             }
             if (seconds >= 0) {
-                mg_printf(connection, "%.3f seconds", seconds);
+                statsString += QString().sprintf("%.3f seconds", seconds);
             }
-            mg_printf(connection, "%s", "\r\n");
-
+            statsString += "\r\n";
+            
         } else {
-            mg_printf(connection, "%s", "Voxels not yet loaded...\r\n");
+            statsString += "Voxels not yet loaded...\r\n";
         }
-
-        mg_printf(connection, "%s", "\r\n");
-
-        mg_printf(connection, "%s", "\r\n");
-
-        mg_printf(connection, "%s", "<b>Configuration:</b>\r\n");
-
-        for (int i = 1; i < theServer->_argc; i++) {
-            mg_printf(connection, "%s ", theServer->_argv[i]);
+        
+        statsString += "\r\n\r\n";
+        statsString += "<b>Configuration:</b>\r\n";
+        
+        for (int i = 1; i < _argc; i++) {
+            statsString += _argv[i];
         }
-        mg_printf(connection, "%s", "\r\n"); // one to end the config line
-        mg_printf(connection, "%s", "\r\n"); // two more for spacing
-        mg_printf(connection, "%s", "\r\n");
-
+        statsString += "\r\n"; //one to end the config line
+        statsString += "\r\n\r\n"; // two more for spacing
+        
         // display scene stats
         unsigned long nodeCount = OctreeElement::getNodeCount();
         unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
         unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
-
+        
         QLocale locale(QLocale::English);
         const float AS_PERCENT = 100.0;
-        mg_printf(connection, "%s", "<b>Current Nodes in scene:</b>\r\n");
-        mg_printf(connection, "       Total Nodes: %s nodes\r\n",
-                    locale.toString((uint)nodeCount).rightJustified(16, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "    Internal Nodes: %s nodes (%5.2f%%)\r\n",
-            locale.toString((uint)internalNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)internalNodeCount / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n",
-            locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)leafNodeCount / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "\r\n");
-
-
+        statsString += "<b>Current Nodes in scene:</b>\r\n";
+        statsString += QString("       Total Nodes: %1 nodes\r\n").arg(locale.toString((uint)nodeCount).rightJustified(16, ' '));
+        statsString += QString().sprintf("    Internal Nodes: %s nodes (%5.2f%%)\r\n",
+                                         locale.toString((uint)internalNodeCount).rightJustified(16,
+                                                                                                 ' ').toLocal8Bit().constData(),
+                                         ((float)internalNodeCount / (float)nodeCount) * AS_PERCENT);
+        statsString += QString().sprintf("        Leaf Nodes: %s nodes (%5.2f%%)\r\n",
+                                         locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
+                                         ((float)leafNodeCount / (float)nodeCount) * AS_PERCENT);
+        statsString += "\r\n";
+        statsString += "\r\n";
+        
         // display outbound packet stats
-        mg_printf(connection, "<b>%s Outbound Packet Statistics...</b>\r\n", theServer->getMyServerName());
+        statsString += QString("<b>%1 Outbound Packet Statistics...</b>\r\n").arg(getMyServerName());
         uint64_t totalOutboundPackets = OctreeSendThread::_totalPackets;
         uint64_t totalOutboundBytes = OctreeSendThread::_totalBytes;
         uint64_t totalWastedBytes = OctreeSendThread::_totalWastedBytes;
         uint64_t totalBytesOfOctalCodes = OctreePacketData::getTotalBytesOfOctalCodes();
         uint64_t totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
         uint64_t totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
-
+        
         const int COLUMN_WIDTH = 10;
-        mg_printf(connection, "           Total Outbound Packets: %s packets\r\n",
-            locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "             Total Outbound Bytes: %s bytes\r\n",
-            locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "               Total Wasted Bytes: %s bytes\r\n",
-            locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",
+        statsString += QString("           Total Outbound Packets: %1 packets\r\n")
+            .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
+            .arg(locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("               Total Wasted Bytes: %1 bytes\r\n")
+            .arg(locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString().sprintf("            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",
             locale.toString((uint)totalBytesOfOctalCodes).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
             ((float)totalBytesOfOctalCodes / (float)totalOutboundBytes) * AS_PERCENT);
-        mg_printf(connection, "             Total BitMasks Bytes: %s bytes (%5.2f%%)\r\n",
+        statsString += QString().sprintf("             Total BitMasks Bytes: %s bytes (%5.2f%%)\r\n",
             locale.toString((uint)totalBytesOfBitMasks).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
             ((float)totalBytesOfBitMasks / (float)totalOutboundBytes) * AS_PERCENT);
-        mg_printf(connection, "                Total Color Bytes: %s bytes (%5.2f%%)\r\n",
+        statsString += QString().sprintf("                Total Color Bytes: %s bytes (%5.2f%%)\r\n",
             locale.toString((uint)totalBytesOfColor).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
             ((float)totalBytesOfColor / (float)totalOutboundBytes) * AS_PERCENT);
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "\r\n");
-
+        
+        statsString += "\r\n";
+        statsString += "\r\n";
+        
         // display inbound packet stats
-        mg_printf(connection, "<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
-                        theServer->getMyServerName());
-        uint64_t averageTransitTimePerPacket = theServer->_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-        uint64_t averageProcessTimePerPacket = theServer->_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-        uint64_t averageLockWaitTimePerPacket = theServer->_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-        uint64_t averageProcessTimePerElement = theServer->_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-        uint64_t averageLockWaitTimePerElement = theServer->_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
-        uint64_t totalElementsProcessed = theServer->_octreeInboundPacketProcessor->getTotalElementsProcessed();
-        uint64_t totalPacketsProcessed = theServer->_octreeInboundPacketProcessor->getTotalPacketsProcessed();
-
+        statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
+                                         getMyServerName());
+        uint64_t averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        uint64_t averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        uint64_t averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        uint64_t averageProcessTimePerElement = _octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        uint64_t averageLockWaitTimePerElement = _octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+        uint64_t totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
+        uint64_t totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
-
-        mg_printf(connection, "           Total Inbound Packets: %s packets\r\n",
-            locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "          Total Inbound Elements: %s elements\r\n",
-            locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, " Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
-        mg_printf(connection, "     Average Transit Time/Packet: %s usecs\r\n",
-            locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "     Average Process Time/Packet: %s usecs\r\n",
-            locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "   Average Wait Lock Time/Packet: %s usecs\r\n",
-            locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "    Average Process Time/Element: %s usecs\r\n",
-            locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "  Average Wait Lock Time/Element: %s usecs\r\n",
-            locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-
-
+        
+        statsString += QString("           Total Inbound Packets: %1 packets\r\n")
+            .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("          Total Inbound Elements: %1 elements\r\n")
+            .arg(locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString().sprintf(" Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
+        statsString += QString("     Average Transit Time/Packet: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("     Average Process Time/Packet: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("   Average Wait Lock Time/Packet: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("    Average Process Time/Element: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("  Average Wait Lock Time/Element: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+        
+        
         int senderNumber = 0;
-        NodeToSenderStatsMap& allSenderStats = theServer->_octreeInboundPacketProcessor->getSingleSenderStats();
+        NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
         for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
             QUuid senderID = i->first;
             SingleSenderStats& senderStats = i->second;
-
-            mg_printf(connection, "\r\n             Stats for sender %d uuid: %s\r\n", senderNumber,
-                senderID.toString().toLocal8Bit().constData());
-
+            
+            statsString += QString("\r\n             Stats for sender %1 uuid: %2\r\n")
+                .arg(senderNumber).arg(senderID.toString());
+            
             averageTransitTimePerPacket = senderStats.getAverageTransitTimePerPacket();
             averageProcessTimePerPacket = senderStats.getAverageProcessTimePerPacket();
             averageLockWaitTimePerPacket = senderStats.getAverageLockWaitTimePerPacket();
@@ -330,36 +311,35 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
             averageLockWaitTimePerElement = senderStats.getAverageLockWaitTimePerElement();
             totalElementsProcessed = senderStats.getTotalElementsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
-
+            
             averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
-
-            mg_printf(connection, "               Total Inbound Packets: %s packets\r\n",
-                locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "              Total Inbound Elements: %s elements\r\n",
-                locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "     Average Inbound Elements/Packet: %f elements/packet\r\n", averageElementsPerPacket);
-            mg_printf(connection, "         Average Transit Time/Packet: %s usecs\r\n",
-                locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "         Average Process Time/Packet: %s usecs\r\n",
-                locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "       Average Wait Lock Time/Packet: %s usecs\r\n",
-                locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "        Average Process Time/Element: %s usecs\r\n",
-                locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-            mg_printf(connection, "      Average Wait Lock Time/Element: %s usecs\r\n",
-                locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
-
+            
+            statsString += QString("               Total Inbound Packets: %1 packets\r\n")
+                .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("              Total Inbound Elements: %1 elements\r\n")
+                .arg(locale.toString((uint)totalElementsProcessed).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString().sprintf("     Average Inbound Elements/Packet: %f elements/packet\r\n",
+                                             averageElementsPerPacket);
+            statsString += QString("         Average Transit Time/Packet: %1 usecs\r\n")
+                .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("        Average Process Time/Packet: %1 usecs\r\n")
+                .arg(locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("       Average Wait Lock Time/Packet: %1 usecs\r\n")
+                .arg(locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("        Average Process Time/Element: %1 usecs\r\n")
+                .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("      Average Wait Lock Time/Element: %1 usecs\r\n")
+                .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+            
         }
-
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "\r\n");
-
+        
+        statsString += "\r\n\r\n";
+        
         // display memory usage stats
-        mg_printf(connection, "%s", "<b>Current Memory Usage Statistics</b>\r\n");
-        mg_printf(connection, "\r\nOctreeElement size... %ld bytes\r\n", sizeof(OctreeElement));
-        mg_printf(connection, "%s", "\r\n");
-
+        statsString += "<b>Current Memory Usage Statistics</b>\r\n";
+        statsString += QString().sprintf("\r\nOctreeElement size... %ld bytes\r\n", sizeof(OctreeElement));
+        statsString += "\r\n";
+        
         const char* memoryScaleLabel;
         const float MEGABYTES = 1000000.f;
         const float GIGABYTES = 1000000000.f;
@@ -371,82 +351,84 @@ int OctreeServer::civetwebRequestHandler(struct mg_connection* connection) {
             memoryScaleLabel = "GB";
             memoryScale = GIGABYTES;
         }
-
-        mg_printf(connection, "Element Node Memory Usage:       %8.2f %s\r\n",
-            OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
-        mg_printf(connection, "Octcode Memory Usage:            %8.2f %s\r\n",
-            OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
-        mg_printf(connection, "External Children Memory Usage:  %8.2f %s\r\n",
-            OctreeElement::getExternalChildrenMemoryUsage() / memoryScale, memoryScaleLabel);
-        mg_printf(connection, "%s", "                                 -----------\r\n");
-        mg_printf(connection, "                         Total:  %8.2f %s\r\n",
-            OctreeElement::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "OctreeElement Children Population Statistics...\r\n");
+        
+        statsString += QString().sprintf("Element Node Memory Usage:       %8.2f %s\r\n",
+                                         OctreeElement::getVoxelMemoryUsage() / memoryScale, memoryScaleLabel);
+        statsString += QString().sprintf("Octcode Memory Usage:            %8.2f %s\r\n",
+                                         OctreeElement::getOctcodeMemoryUsage() / memoryScale, memoryScaleLabel);
+        statsString += QString().sprintf("External Children Memory Usage:  %8.2f %s\r\n",
+                                         OctreeElement::getExternalChildrenMemoryUsage() / memoryScale, memoryScaleLabel);
+        statsString += "                                 -----------\r\n";
+        statsString += QString().sprintf("                         Total:  %8.2f %s\r\n",
+                                         OctreeElement::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
+        statsString += "\r\n";
+        
+        statsString += "OctreeElement Children Population Statistics...\r\n";
         checkSum = 0;
         for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
             checkSum += OctreeElement::getChildrenCount(i);
-            mg_printf(connection, "    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i,
-                locale.toString((uint)OctreeElement::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
-                ((float)OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
+            statsString += QString().sprintf("    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i,
+                      locale.toString((uint)OctreeElement::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
+                      ((float)OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
         }
-        mg_printf(connection, "%s", "                                ----------------------\r\n");
-        mg_printf(connection, "                    Total:      %s nodes\r\n",
-            locale.toString((uint)checkSum).rightJustified(16, ' ').toLocal8Bit().constData());
-
+        statsString += "                                ----------------------\r\n";
+        statsString += QString("                    Total:      %1 nodes\r\n")
+            .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
+        
 #ifdef BLENDED_UNION_CHILDREN
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "OctreeElement Children Encoding Statistics...\r\n");
-
-        mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getSingleChildrenCount(), ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getTwoChildrenOffsetCount(),
-            ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getTwoChildrenExternalCount(),
-            ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getThreeChildrenOffsetCount(),
-            ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getThreeChildrenExternalCount(),
-            ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-            OctreeElement::getExternalChildrenCount(),
-            ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
-
+        statsString += "\r\n";
+        statsString += "OctreeElement Children Encoding Statistics...\r\n";
+        
+        statsString += QString().sprintf("    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getSingleChildrenCount(),
+                                         ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT));
+        statsString += QString().sprintf("    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getTwoChildrenOffsetCount(),
+                                         ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT));
+        statsString += QString().sprintf("    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getTwoChildrenExternalCount(),
+                                         ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
+        statsString += QString().sprintf("    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getThreeChildrenOffsetCount(),
+                                         ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
+        statsString += QString().sprintf("    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getThreeChildrenExternalCount(),
+                                         ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
+        statsString += QString().sprintf("    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
+                                         OctreeElement::getExternalChildrenCount(),
+                                         ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
+        
         checkSum = OctreeElement::getSingleChildrenCount() +
-                            OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
-                            OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
-                            OctreeElement::getExternalChildrenCount();
-
-        mg_printf(connection, "%s", "                                ----------------\r\n");
-        mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
-        mg_printf(connection, "                      Expected: %10.lu nodes\r\n", nodeCount);
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "In other news....\r\n");
-        mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
-            OctreeElement::getCouldStoreFourChildrenInternally());
-        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n",
-            OctreeElement::getCouldNotStoreFourChildrenInternally());
+        OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
+        OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
+        OctreeElement::getExternalChildrenCount();
+        
+        statsString += "                                ----------------\r\n";
+        statsString += QString().sprintf("                         Total: %10.llu nodes\r\n", checkSum);
+        statsString += QString().sprintf("                      Expected: %10.lu nodes\r\n", nodeCount);
+        
+        statsString += "\r\n";
+        statsString += "In other news....\r\n";
+        
+        statsString += QString().sprintf("could store 4 children internally:     %10.llu nodes\r\n",
+                                         OctreeElement::getCouldStoreFourChildrenInternally());
+        statsString += QString().sprintf("could NOT store 4 children internally: %10.llu nodes\r\n",
+                                         OctreeElement::getCouldNotStoreFourChildrenInternally());
 #endif
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "</pre>\r\n");
-
-        mg_printf(connection, "%s", "</doc></html>");
-
-        return 1;
+        
+        statsString += "\r\n\r\n";
+        statsString += "</pre>\r\n";
+        statsString += "</doc></html>";
+        
+        connection->respond(HTTPConnection::StatusCode200, qPrintable(statsString), "text/html");
+        
+        return true;
     } else {
-        // have mongoose process this request from the document_root
-        return 0;
+        // have HTTPManager attempt to process this request from the document_root
+        return false;
     }
-}
 
+}
 
 void OctreeServer::setArguments(int argc, char** argv) {
     _argc = argc;
@@ -553,7 +535,7 @@ void OctreeServer::run() {
     const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
     if (statusPort) {
         int statusPortNumber = atoi(statusPort);
-        initMongoose(statusPortNumber);
+        initHTTPManager(statusPortNumber);
     }
 
 
