@@ -8,24 +8,28 @@
 
 #include <QtCore/QSettings>
 
+#include <NodeList.h>
 #include <UUID.h>
 
+#include "Application.h"
 #include "Profile.h"
-#include "DataServerClient.h"
+#include "Util.h"
 
 Profile::Profile(const QString &username) :
-    _username(username),
+    _username(),
     _uuid(),
     _lastDomain(),
     _lastPosition(0.0, 0.0, 0.0),
     _lastOrientationSend(0),
  	_faceModelURL()
 {
-    if (!_username.isEmpty()) {
+    if (!username.isEmpty()) {
+        setUsername(username);
+        
         // we've been given a new username, ask the data-server for profile
-        DataServerClient::getClientValueForKey(DataServerKey::UUID);
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
+        DataServerClient::getClientValueForKey(DataServerKey::UUID, this);
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL, this);
+        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL, this);
         
         // send our current domain server to the data-server
         updateDomain(NodeList::getInstance()->getDomainHostname());
@@ -42,6 +46,8 @@ QString Profile::getUserString() const {
 
 void Profile::setUUID(const QUuid& uuid) {
     _uuid = uuid;
+    
+    DataServerClient::setClientIdentifier(_username);
     
     // when the UUID is changed we need set it appropriately on our avatar instance
     Application::getInstance()->getAvatar()->setUUID(_uuid);
@@ -132,10 +138,19 @@ void Profile::saveData(QSettings* settings) {
 void Profile::loadData(QSettings* settings) {
     settings->beginGroup("Profile");
     
-    _username = settings->value("username").toString();
+    setUsername(settings->value("username").toString());
     this->setUUID(settings->value("UUID").toUuid());
     _faceModelURL = settings->value("faceModelURL").toUrl();
     _skeletonModelURL = settings->value("skeletonModelURL").toUrl();
     
     settings->endGroup();
+}
+
+void Profile::processDataServerResponse(const QUuid& userUUID, const QStringList& keyList, const QStringList& valueList) {
+    qDebug() << "Called with" << keyList << valueList;
+}
+
+void Profile::setUsername(const QString& username) {
+    _username = username;
+    DataServerClient::setClientIdentifier(_username);
 }

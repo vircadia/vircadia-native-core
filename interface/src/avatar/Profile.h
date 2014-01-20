@@ -18,7 +18,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-class Profile {
+#include "DataServerClient.h"
+
+class Profile : public DataServerCallbackObject {
 public:
     Profile(const QString& username);
     
@@ -44,7 +46,12 @@ public:
     
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
+    
+    void processDataServerResponse(const QUuid& userUUID, const QStringList& keyList, const QStringList& valueList);
 private:
+    
+    void setUsername(const QString& username);
+    
     QString _username;
     QUuid _uuid;
     QString _lastDomain;

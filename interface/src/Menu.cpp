@@ -963,7 +963,7 @@ void Menu::goToUser() {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString(
             QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
-            userDialog.textValue());
+                                                        userDialog.textValue(), Application::getInstance()->getProfile());
     }
 
     sendFakeEnterEvent();

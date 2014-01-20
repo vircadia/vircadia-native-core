@@ -1446,13 +1446,9 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     //  Tell the other avatars that your dataserver data has
     //  changed.
 
-    //QDataStream in(QByteArray((char*)packetData, dataBytes));
-    //QUrl voxelURL;
-    //in >> voxelURL;
-
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
     DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-        avatar->getUUID());
+        avatar->getUUID(), &_profile);
 }
 
 void Application::checkBandwidthMeterClick() {
@@ -1858,8 +1854,8 @@ void Application::init() {
 
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL, &_profile);
+        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL, &_profile);
     }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
@@ -3960,12 +3956,14 @@ void Application::attachNewHeadToNode(Node* newNode) {
 void Application::updateWindowTitle(){
     QString title = "";
     QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
+    
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
-        title += _profile.getUsername();
+        title += username;
         title += " @ ";
     }
-    title += _profile.getLastDomain();
+    
+    title += NodeList::getInstance()->getDomainHostname();
     title += buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
