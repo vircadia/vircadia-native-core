@@ -4427,12 +4427,11 @@ bool Application::shouldSkipVersion(QString latestVersion) {
     QFile skipFile(SKIP_FILENAME);
     skipFile.open(QIODevice::ReadWrite);
     QString skipVersion(skipFile.readAll());
-    return (skipVersion == latestVersion /*|| applicationVersion() == "dev"*/);
+    return (skipVersion == latestVersion || applicationVersion() == "dev");
 }
 
 void Application::skipVersion(QString latestVersion) {
     QFile skipFile(SKIP_FILENAME);
-    qDebug("##### Storing %s in file %s", latestVersion.toStdString().c_str(), SKIP_FILENAME.toStdString().c_str());
     skipFile.open(QIODevice::WriteOnly|QIODevice::Truncate);
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
