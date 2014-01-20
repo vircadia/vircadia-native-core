@@ -33,3 +33,7 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(embedded-webserver ${TARGET_NAME} ${ROOT_DIR})
+
+IF (WIN32)
+  target_link_libraries(${TARGET_NAME} Winmm)
+ENDIF(WIN32)
