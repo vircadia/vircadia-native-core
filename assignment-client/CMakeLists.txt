@@ -41,5 +41,5 @@ if (UNIX)
 endif (UNIX)
 
 IF (WIN32)
-	target_link_libraries(${TARGET_NAME} Winmm)
+	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
