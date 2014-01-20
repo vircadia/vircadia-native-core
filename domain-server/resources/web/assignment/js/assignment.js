@@ -19,7 +19,7 @@ $(document).ready(function(){
       + 'Content-type: application/javascript\r\n\r\n'
       // add the script
       + script + '\r\n'
-      + '--' + boundary + '--';
+      + '--' + boundary + '--\r\n';
       
     var headers = {};
     if ($('#instance-field input').val()) {

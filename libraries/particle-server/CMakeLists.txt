@@ -33,3 +33,5 @@ link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
 
+# link in the embedded webserver
+link_hifi_library(embedded-webserver ${TARGET_NAME} ${ROOT_DIR})
