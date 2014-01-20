@@ -55,7 +55,13 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         
         case PACKET_TYPE_PING_REPLY:
             return 1;
-        
+            
+        case PACKET_TYPE_DATA_SERVER_GET:
+        case PACKET_TYPE_DATA_SERVER_PUT:
+        case PACKET_TYPE_DATA_SERVER_SEND:
+        case PACKET_TYPE_DATA_SERVER_CONFIRM:
+            return 1;
+            
         default:
             return 0;
     }
