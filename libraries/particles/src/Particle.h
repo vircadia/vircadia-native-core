@@ -117,8 +117,8 @@ public:
 };
 
 Q_DECLARE_METATYPE(ParticleID);
-QScriptValue ParticleIDToScriptValue(QScriptEngine* engine, const ParticleID& properties);
-void ParticleIDFromScriptValue(const QScriptValue &object, ParticleID& properties);
+QScriptValue ParticleIDtoScriptValue(QScriptEngine* engine, const ParticleID& properties);
+void ParticleIDfromScriptValue(const QScriptValue &object, ParticleID& properties);
 
 
 

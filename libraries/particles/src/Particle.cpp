@@ -924,7 +924,7 @@ QScriptValue ParticleIDtoScriptValue(QScriptEngine* engine, const ParticleID& id
     return obj;
 }
 
-void ParticleIDFromScriptValue(const QScriptValue &object, ParticleID& id) {
+void ParticleIDfromScriptValue(const QScriptValue &object, ParticleID& id) {
     id.id = object.property("id").toVariant().toUInt();
     id.creatorTokenID = object.property("creatorTokenID").toVariant().toUInt();
     id.isKnownID = object.property("isKnownID").toVariant().toBool();

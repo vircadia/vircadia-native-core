@@ -71,6 +71,13 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
 }
 
 void ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
+    // expected behavior...
+    //
+    // if !particleID.isKnownID
+    //    try to lookup the particle
+    //    do nothing
+
+
     // setup a ParticleDetail struct with the data
     uint64_t now = usecTimestampNow();
 
