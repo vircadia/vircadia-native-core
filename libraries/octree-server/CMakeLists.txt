@@ -8,13 +8,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME octree-server)
 
+find_package(Qt5Network REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 
 setup_hifi_library(${TARGET_NAME} ${OPTIONAL_SRCS})
 
-qt5_use_modules(${TARGET_NAME} Widgets)
+qt5_use_modules(${TARGET_NAME} Network Widgets)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
