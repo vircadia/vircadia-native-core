@@ -124,10 +124,6 @@ glm::vec3 Avatar::getChestPosition() const {
     return _skeletonModel.getNeckPosition(neckPosition) ? (_position + neckPosition) * 0.5f : _position;
 }
 
-glm::quat Avatar::getOrientation() const {
-    return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
-}
-
 glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
