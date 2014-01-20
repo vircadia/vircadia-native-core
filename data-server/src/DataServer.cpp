@@ -64,6 +64,10 @@ void DataServer::readPendingDatagrams() {
             packetVersionMatch(packetData)) {
                 
             int readBytes = numBytesForPacketHeader(packetData);
+            
+            // pull the sequence number used for this packet
+            quint16 sequenceNumber = *reinterpret_cast<quint16>(packetData + readBytes);
+            readBytes += sizeof(sequenceNumber);
                 
             // pull the UUID that we will need as part of the key
             QString uuidString(reinterpret_cast<char*>(packetData + readBytes));
@@ -80,7 +84,6 @@ void DataServer::readPendingDatagrams() {
                 redisReply* reply = (redisReply*) redisCommand(_redis, "GET user:%s", qPrintable(username));
                 
                 if (reply->type == REDIS_REPLY_STRING) {
-                    
                     parsedUUID = QUuid(QString(reply->str));
                 }
                 
@@ -120,7 +123,6 @@ void DataServer::readPendingDatagrams() {
                     
                     if (reply->type == REDIS_REPLY_STATUS && strcmp("OK", reply->str) == 0) {
                         // if redis stored the value successfully reply back with a confirm
-                        
                         // which is the sent packet with the header replaced
                         packetData[0] = PACKET_TYPE_DATA_SERVER_CONFIRM;
                         _socket.writeDatagram(reinterpret_cast<char*>(packetData), receivedBytes,
@@ -134,6 +136,9 @@ void DataServer::readPendingDatagrams() {
                     int numSendPacketBytes = 0;
                     
                     numSendPacketBytes += populateTypeAndVersion(packetData, PACKET_TYPE_DATA_SERVER_SEND);
+                    
+                    memcpy(packetData + numSendPacketBytes, &sequenceNumber, sizeof(sequenceNumber));
+                    numSendPacketBytes += sizeof(sequenceNumber);
                     
                     const char MULTI_KEY_VALUE_SEPARATOR = '|';
                     
