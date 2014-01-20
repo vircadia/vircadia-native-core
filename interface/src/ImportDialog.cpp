@@ -140,12 +140,13 @@ void ImportDialog::reject() {
 }
 
 int ImportDialog::exec() {
+    // deselect selected file
+    selectFile(" ");
     return QFileDialog::exec();
 }
 
 void ImportDialog::reset() {
     _importButton.setEnabled(false);
-    selectFile(" ");
 }
 
 void ImportDialog::saveCurrentFile(QString filename) {
