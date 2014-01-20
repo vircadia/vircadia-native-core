@@ -14,6 +14,8 @@
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
 
+#include <HTTPManager.h>
+
 #include <ThreadedAssignment.h>
 #include <EnvironmentData.h>
 
@@ -23,7 +25,7 @@
 #include "OctreeInboundPacketProcessor.h"
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
-class OctreeServer : public ThreadedAssignment {
+class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
 public:                
     OctreeServer(const unsigned char* dataBuffer, int numBytes);
@@ -40,7 +42,6 @@ public:
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
-    static OctreeServer* GetInstance() { return _theInstance; }
 
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
@@ -61,6 +62,8 @@ public:
     virtual int sendSpecialPacket(Node* node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
+    
+    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
 public slots:
     /// runs the voxel server assignment
     void run();
@@ -69,9 +72,14 @@ public slots:
     void nodeKilled(SharedNodePointer node);
 
 protected:
+    void parsePayload();
+    void initHTTPManager(int port);
+    
     int _argc;
     const char** _argv;
     char** _parsedArgV;
+    
+    HTTPManager* _httpManager;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
@@ -85,12 +93,10 @@ protected:
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
 
-    void parsePayload();
-    void initMongoose(int port);
-    static int civetwebRequestHandler(struct mg_connection *connection);
-    static OctreeServer* _theInstance;
+    static OctreeServer* _instance;
+    
     time_t _started;
-    uint64_t _startedUSecs;
+    uint64_t _startedUSecs;    
 };
 
 #endif // __octree_server__OctreeServer__
