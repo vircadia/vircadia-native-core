@@ -484,7 +484,7 @@ void Particle::update(const uint64_t& now) {
     const float STILL_MOVING = 0.05f / (float)(TREE_SCALE);
     bool isStillMoving = (velocityScalar > STILL_MOVING);
     const float REALLY_OLD = 30.0f; // 30 seconds
-    bool isReallyOld = (getLifetime() > REALLY_OLD);
+    bool isReallyOld = ((float)(now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
     bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
     setShouldDie(shouldDie);
