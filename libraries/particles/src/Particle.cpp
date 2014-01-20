@@ -475,15 +475,13 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
 }
 
 
-void Particle::update() {
-    uint64_t now = usecTimestampNow();
-    float elapsed = static_cast<float>(now - _lastUpdated);
+void Particle::update(const uint64_t& now) {
+    float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
-    float timeElapsed = elapsed / static_cast<float>(USECS_PER_SECOND);
 
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float velocityScalar = glm::length(getVelocity());
-    const float STILL_MOVING = 0.05f / static_cast<float>(TREE_SCALE);
+    const float STILL_MOVING = 0.05f / (float)(TREE_SCALE);
     bool isStillMoving = (velocityScalar > STILL_MOVING);
     const float REALLY_OLD = 30.0f; // 30 seconds
     bool isReallyOld = (getLifetime() > REALLY_OLD);

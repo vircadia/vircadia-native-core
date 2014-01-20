@@ -71,7 +71,7 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     QList<Particle>::iterator particleItr = _particles->begin();
     while(particleItr != _particles->end()) {
         Particle& particle = (*particleItr);
-        particle.update();
+        particle.update(_lastChanged);
 
         // If the particle wants to die, or if it's left our bounding box, then move it
         // into the arguments moving particles. These will be added back or deleted completely
