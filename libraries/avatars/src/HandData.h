@@ -50,10 +50,10 @@ public:
 
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        return _basePosition + _baseOrientation * (leapPosition * LEAP_UNIT_SCALE);
+        return getBasePosition() + getBaseOrientation() * (leapPosition * LEAP_UNIT_SCALE);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
-        return _baseOrientation * leapDirection;
+        return getBaseOrientation() * leapDirection;
     }
     glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
     glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
@@ -86,10 +86,12 @@ public:
 
     friend class AvatarData;
 protected:
-    glm::vec3              _basePosition;      // Hands are placed relative to this
-    glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
+    
+    glm::quat getBaseOrientation() const;
+    glm::vec3 getBasePosition() const;
+    
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);

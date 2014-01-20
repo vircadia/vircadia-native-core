@@ -92,7 +92,6 @@ public:
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
     Hand& getHand() { return _hand; }
-    glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
