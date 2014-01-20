@@ -42,7 +42,7 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
     // iterate the particles...
-    std::vector<Particle>& particles = particleTreeElement->getParticles();
+    QList<Particle>& particles = particleTreeElement->getParticles();
     uint16_t numberOfParticles = particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         Particle* particle = &particles[i];
@@ -227,13 +227,14 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elast
     float velocityDotPenetration = glm::dot(velocity, collisionInfo._penetration);
     if (velocityDotPenetration > EPSILON) {
         position -= collisionInfo._penetration;
-        static float HALTING_VELOCITY = 0.2f / (float)(TREE_SCALE);
         // cancel out the velocity component in the direction of penetration
-
         glm::vec3 direction = glm::normalize(collisionInfo._penetration);
         velocity += collisionInfo._addedVelocity - (glm::dot(velocity, direction) * (1.0f + elasticity)) * direction;
         velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
-        if (glm::length(velocity) < HALTING_VELOCITY) {
+
+        // TODO: move this halt logic into Particle::update() method
+        static float HALTING_SPEED = 0.2f / (float)(TREE_SCALE);
+        if (glm::length(velocity) < HALTING_SPEED) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
             velocity *= 0.f;
         }
