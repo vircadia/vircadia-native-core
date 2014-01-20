@@ -4366,7 +4366,6 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 }
 
 void Application::checkVersion() {
-    qDebug("############# in check version");
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     _latestVersionReply = Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest);
@@ -4432,7 +4431,7 @@ bool Application::shouldSkipVersion(QString latestVersion) {
 
 void Application::skipVersion(QString latestVersion) {
     QFile skipFile(SKIP_FILENAME);
-    skipFile.open(QIODevice::WriteOnly|QIODevice::Truncate);
+    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
 }
