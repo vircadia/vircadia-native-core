@@ -4178,8 +4178,12 @@ void Application::processDatagrams() {
                     break;
 
                 case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
-                    // look up our ParticleEditHanders....
+
+                    // This will make sure our local ParticleEditHandle are handles correctly
                     ParticleEditHandle::handleAddResponse(_incomingPacket, bytesReceived);
+
+                    // this will keep creatorTokenIDs to IDs mapped correctly
+                    Particle::handleAddParticleResponse(_incomingPacket, bytesReceived);
                     break;
 
                 case PACKET_TYPE_PARTICLE_DATA:

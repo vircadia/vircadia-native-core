@@ -28,6 +28,7 @@ class Particle;
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
+const uint32_t UNKNOWN_PARTICLE_ID = 0xFFFFFFFF;
 
 class ParticleDetail {
 public:
@@ -47,12 +48,15 @@ public:
 
 const float DEFAULT_LIFETIME = 60.0f * 60.0f * 24.0f; // particles live for 1 day by default
 const float DEFAULT_DAMPING = 0.99f;
+const float DEFAULT_RADIUS = 0.1f / TREE_SCALE; // really shouldn't be a default?
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 const QString DEFAULT_SCRIPT("");
 const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 
-/// Used in scripting to set/get the complete set of particle properties via JavaScript hashes/QScriptValues
+/// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
+/// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
+/// particle properties via JavaScript hashes/QScriptValues
 class ParticleProperties {
 public:
     ParticleProperties();
@@ -102,7 +106,9 @@ QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const Partic
 void ParticlePropertiesFromScriptValue(const QScriptValue &object, ParticleProperties& properties);
 
 
-/// used in Particle JS API
+/// Abstract ID for editing particles. Used in Particle JS API - When particles are created in the JS api, they are given a
+/// local creatorTokenID, the actual id for the particle is not known until the server responds to the creator with the
+/// correct mapping. This class works with the scripting API an allows the developer to edit particles they created.
 class ParticleID {
 public:
     ParticleID() :
@@ -122,6 +128,7 @@ void ParticleIDfromScriptValue(const QScriptValue &object, ParticleID& propertie
 
 
 
+/// Particle class - this is the actual particle class.
 class Particle  {
 
 public:
@@ -213,6 +220,11 @@ public:
                     { _particleEditSender = senderInterface; }
 
 
+    // these methods allow you to create particles, and later edit them.
+    static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
+    static uint32_t getNextCreatorTokenID();
+    static void handleAddParticleResponse(unsigned char* packetData , int packetLength);
+
 protected:
     static VoxelEditPacketSender* _voxelEditSender;
     static ParticleEditPacketSender* _particleEditSender;
@@ -247,8 +259,14 @@ protected:
 
     // this doesn't go on the wire, we send it as lifetime
     uint64_t _created;
+
+    // used by the static interfaces for creator token ids
+    static uint32_t _nextCreatorTokenID;
+    static std::map<uint32_t,uint32_t> _tokenIDsToIDs;
 };
 
+/// Scriptable interface to a single Particle object. Used exclusively in the JavaScript API for interacting with single
+/// Particles.
 class ParticleScriptObject  : public QObject {
     Q_OBJECT
 public:

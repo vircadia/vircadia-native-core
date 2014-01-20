@@ -27,6 +27,41 @@ uint32_t Particle::_nextID = 0;
 VoxelEditPacketSender* Particle::_voxelEditSender = NULL;
 ParticleEditPacketSender* Particle::_particleEditSender = NULL;
 
+// for locally created particles
+std::map<uint32_t,uint32_t> Particle::_tokenIDsToIDs;
+uint32_t Particle::_nextCreatorTokenID = 0;
+
+uint32_t Particle::getIDfromCreatorTokenID(uint32_t creatorTokenID) {
+    if (_tokenIDsToIDs.find(creatorTokenID) != _tokenIDsToIDs.end()) {
+        return _tokenIDsToIDs[creatorTokenID];
+    }
+    return UNKNOWN_PARTICLE_ID;
+}
+
+uint32_t Particle::getNextCreatorTokenID() {
+    uint32_t creatorTokenID = _nextCreatorTokenID;
+    _nextCreatorTokenID++;
+    return creatorTokenID;
+}
+
+void Particle::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
+    unsigned char* dataAt = packetData;
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    dataAt += numBytesPacketHeader;
+
+    uint32_t creatorTokenID;
+    memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
+    dataAt += sizeof(creatorTokenID);
+
+    uint32_t particleID;
+    memcpy(&particleID, dataAt, sizeof(particleID));
+    dataAt += sizeof(particleID);
+
+    // add our token to id mapping
+    _tokenIDsToIDs[creatorTokenID] = particleID;
+}
+
+
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
                     float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
@@ -335,10 +370,11 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += scriptLength;
     processedBytes += scriptLength;
 
-    const bool wantDebugging = false;
+    const bool wantDebugging = true;
     if (wantDebugging) {
-        printf("Particle::fromEditPacket()...\n");
-        printf("   Particle id in packet:%u\n", editID);
+        qDebug("Particle::fromEditPacket()...");
+        qDebug("   Particle id in packet:%u", editID);
+        //qDebug() << "    position: " << newParticle._position;
         newParticle.debugDump();
     }
 
@@ -660,7 +696,7 @@ void Particle::setProperties(const ParticleProperties& properties) {
 ParticleProperties::ParticleProperties() :
     _position(0),
     _color(),
-    _radius(0),
+    _radius(DEFAULT_RADIUS),
     _velocity(0),
     _gravity(DEFAULT_GRAVITY),
     _damping(DEFAULT_DAMPING),
