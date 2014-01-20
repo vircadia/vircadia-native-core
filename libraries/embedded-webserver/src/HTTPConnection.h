@@ -13,6 +13,7 @@
 #ifndef __hifi__HTTPConnection__
 #define __hifi__HTTPConnection__
 
+#include <QDataStream>
 #include <QHash>
 #include <QHostAddress>
 #include <QIODevice>
