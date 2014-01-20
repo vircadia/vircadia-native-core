@@ -21,7 +21,6 @@ public:
     UpdateDialog(QWidget* parent, QString releaseNotes, QString latestVersion, QUrl downloadURL);
     
 private:
-    QWidget* _dialogWidget;
     QString* _latestVersion;
     
 private slots:

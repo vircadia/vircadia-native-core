@@ -22,34 +22,32 @@
 UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) :
     QWidget(parent, Qt::Widget) {
     
-    Application* application = Application::getInstance();
-    
     _latestVersion = new QString(latestVersion);
     
     QUiLoader updateDialogLoader;
-    
+    QWidget* updateDialog;
     QFile updateDialogUi("resources/ui/updateDialog.ui");
     updateDialogUi.open(QFile::ReadOnly);
-    _dialogWidget = updateDialogLoader.load(&updateDialogUi, this);
+    updateDialog = updateDialogLoader.load(&updateDialogUi, this);
     
     QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
                                       Please download and install the most recent release to access the latest features and bug fixes.")
-                                      .arg(application->applicationVersion(), latestVersion);
+                                      .arg(Application::getInstance()->applicationVersion(), latestVersion);
     
     
     setAttribute(Qt::WA_DeleteOnClose);
     
-    QPushButton* downloadButton = _dialogWidget->findChild<QPushButton*>("downloadButton");
-    QPushButton* skipButton = _dialogWidget->findChild<QPushButton*>("skipButton");
-    QPushButton* closeButton = _dialogWidget->findChild<QPushButton*>("closeButton");
-    QLabel* updateContent = _dialogWidget->findChild<QLabel*>("updateContent");
+    QPushButton* downloadButton = updateDialog->findChild<QPushButton*>("downloadButton");
+    QPushButton* skipButton = updateDialog->findChild<QPushButton*>("skipButton");
+    QPushButton* closeButton = updateDialog->findChild<QPushButton*>("closeButton");
+    QLabel* updateContent = updateDialog->findChild<QLabel*>("updateContent");
     
     updateContent->setText(updateRequired);
     
     connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
     connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
     connect(closeButton, SIGNAL(released()), this, SLOT(handleClose()));
-    _dialogWidget->show();
+    updateDialog->show();
 }
 
 void UpdateDialog::handleDownload() {
