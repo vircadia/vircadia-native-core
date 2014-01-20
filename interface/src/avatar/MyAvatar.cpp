@@ -473,14 +473,19 @@ void MyAvatar::loadData(QSettings* settings) {
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
-    glm::vec3 vector = getPosition() - position;
+    // first orbit horizontally
     glm::quat orientation = getOrientation();
-    glm::vec3 up = orientation * IDENTITY_UP;
     const float ANGULAR_SCALE = 0.5f;
-    glm::quat rotation = glm::angleAxis(deltaX * -ANGULAR_SCALE, up);
-    const float LINEAR_SCALE = 0.01f;
-    setPosition(position + rotation * vector + up * (deltaY * LINEAR_SCALE * _scale));
-    setOrientation(rotation * orientation);
+    glm::quat rotation = glm::angleAxis(deltaX * -ANGULAR_SCALE, orientation * IDENTITY_UP);
+    setPosition(position + rotation * (getPosition() - position));
+    orientation = rotation * orientation;
+    setOrientation(orientation);
+    
+    // then vertically
+    float oldMousePitch = _head.getMousePitch();
+    _head.setMousePitch(oldMousePitch + deltaY * -ANGULAR_SCALE);
+    rotation = glm::angleAxis(_head.getMousePitch() - oldMousePitch, orientation * IDENTITY_RIGHT);
+    setPosition(position + rotation * (getPosition() - position));
 }
 
 float MyAvatar::getAbsoluteHeadYaw() const {

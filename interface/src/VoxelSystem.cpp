@@ -1,6 +1,5 @@
 //
-//  Cube.cpp
-//  interface
+//  VoxelSystem.cpp
 //
 //  Created by Philip on 12/31/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.

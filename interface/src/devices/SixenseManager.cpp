@@ -98,6 +98,15 @@ void SixenseManager::update(float deltaTime) {
         //  Compute current velocity from position change
         glm::vec3 rawVelocity = (position - palm->getRawPosition()) / deltaTime / 1000.f;
         palm->setRawVelocity(rawVelocity);   //  meters/sec
+        /*
+        if (i == 0)
+        {
+            printf("ADEBUG rawVelocity = [%e, %e, %e]\n",
+                    rawVelocity.x,
+                    rawVelocity.y,
+                    rawVelocity.z);
+        }
+        */
         palm->setRawPosition(position);
         
         // use the velocity to determine whether there's any movement (if the hand isn't new)
@@ -110,7 +119,7 @@ void SixenseManager::update(float deltaTime) {
         FingerData finger(palm, &hand);
         finger.setActive(true);
         finger.setRawRootPosition(position);
-        const float FINGER_LENGTH = 150.0f;   //  Millimeters
+        const float FINGER_LENGTH = 300.0f;   //  Millimeters
         const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
         finger.setRawTipPosition(position + rotation * FINGER_VECTOR);

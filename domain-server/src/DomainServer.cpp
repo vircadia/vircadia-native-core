@@ -13,6 +13,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
+#include <HTTPConnection.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
@@ -27,10 +28,11 @@ void signalhandler(int sig){
     }
 }
 
-DomainServer* DomainServer::domainServerInstance = NULL;
+const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
+    _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _assignmentQueueMutex(),
     _assignmentQueue(),
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
@@ -39,8 +41,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _metavoxelServerConfig(NULL),
     _hasCompletedRestartHold(false)
 {
-    DomainServer::setDomainServerInstance(this);
-
     signal(SIGINT, signalhandler);
 
     const char CUSTOM_PORT_OPTION[] = "-p";
@@ -57,25 +57,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
     _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
-
-    // setup the mongoose web server
-    struct mg_callbacks callbacks = {};
-
-    QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
-
-    char* documentRoot = new char[documentRootString.size() + 1];
-    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
-
-    // list of options. Last element must be NULL.
-    const char* options[] = {"listening_ports", "8080",
-        "document_root", documentRoot, NULL};
-
-    callbacks.begin_request = civetwebRequestHandler;
-    callbacks.upload = civetwebUploadHandler;
-
-    // Start the web server.
-    mg_start(&callbacks, NULL, options);
-
+    
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
 
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
@@ -104,8 +86,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
 
     connect(this, SIGNAL(aboutToQuit()), SLOT(cleanup()));
-
-    delete[] documentRoot;
 }
 
 void DomainServer::readAvailableDatagrams() {
@@ -258,10 +238,6 @@ void DomainServer::readAvailableDatagrams() {
     }
 }
 
-void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
-    domainServerInstance = domainServer;
-}
-
 QJsonObject jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
 
@@ -299,26 +275,20 @@ QJsonObject jsonObjectForNode(Node* node) {
     return nodeJson;
 }
 
-int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
-    const struct mg_request_info* ri = mg_get_request_info(connection);
-
-    const char RESPONSE_200[] = "HTTP/1.0 200 OK\r\n\r\n";
-    const char RESPONSE_400[] = "HTTP/1.0 400 Bad Request\r\n\r\n";
-
-    const char URI_ASSIGNMENT[] = "/assignment";
-    const char URI_NODE[] = "/node";
-
-    if (strcmp(ri->request_method, "GET") == 0) {
-        if (strcmp(ri->uri, "/assignments.json") == 0) {
+bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
+    const QString JSON_MIME_TYPE = "application/json";
+    
+    const QString URI_ASSIGNMENT = "/assignment";
+    const QString URI_NODE = "/node";
+    
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        if (path == "/assignments.json") {
             // user is asking for json list of assignments
-
-            // start with a 200 response
-            mg_printf(connection, "%s", RESPONSE_200);
-
+            
             // setup the JSON
             QJsonObject assignmentJSON;
             QJsonObject assignedNodesJSON;
-
+            
             // enumerate the NodeList to find the assigned nodes
             foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
                 if (node->getLinkedData()) {
@@ -327,150 +297,141 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                     assignedNodesJSON[uuidString] = jsonObjectForNode(node.data());
                 }
             }
-
+            
             assignmentJSON["fulfilled"] = assignedNodesJSON;
-
+            
             QJsonObject queuedAssignmentsJSON;
-
+            
             // add the queued but unfilled assignments to the json
-            std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
-
-            while (assignment != domainServerInstance->_assignmentQueue.end()) {
+            std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
+            
+            while (assignment != _assignmentQueue.end()) {
                 QJsonObject queuedAssignmentJSON;
-
+                
                 QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
                 queuedAssignmentJSON[JSON_KEY_TYPE] = QString((*assignment)->getTypeName());
-
+                
                 // if the assignment has a pool, add it
                 if ((*assignment)->hasPool()) {
                     queuedAssignmentJSON[JSON_KEY_POOL] = QString((*assignment)->getPool());
                 }
-
+                
                 // add this queued assignment to the JSON
                 queuedAssignmentsJSON[uuidString] = queuedAssignmentJSON;
-
+                
                 // push forward the iterator to check the next assignment
                 assignment++;
             }
-
+            
             assignmentJSON["queued"] = queuedAssignmentsJSON;
-
+            
             // print out the created JSON
             QJsonDocument assignmentDocument(assignmentJSON);
-            mg_printf(connection, "%s", assignmentDocument.toJson().constData());
-
+            connection->respond(HTTPConnection::StatusCode200, assignmentDocument.toJson(), qPrintable(JSON_MIME_TYPE));
+            
             // we've processed this request
-            return 1;
-        } else if (strcmp(ri->uri, "/nodes.json") == 0) {
-            // start with a 200 response
-            mg_printf(connection, "%s", RESPONSE_200);
-
+            return true;
+        } else if (path == "/nodes.json") {
             // setup the JSON
             QJsonObject rootJSON;
             QJsonObject nodesJSON;
-
+            
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
-
+            
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
                 nodesJSON[uuidString] = jsonObjectForNode(node.data());
             }
-
+            
             rootJSON["nodes"] = nodesJSON;
-
+            
             // print out the created JSON
             QJsonDocument nodesDocument(rootJSON);
-            mg_printf(connection, "%s", nodesDocument.toJson().constData());
-
-            // we've processed this request
-            return 1;
+            
+            // send the response
+            connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
         }
-
-        // not processed, pass to document root
-        return 0;
-    } else if (strcmp(ri->request_method, "POST") == 0) {
-        if (strcmp(ri->uri, URI_ASSIGNMENT) == 0) {
-            // return a 200
-            mg_printf(connection, "%s", RESPONSE_200);
-            // upload the file
-            mg_upload(connection, "/tmp");
-
-            return 1;
+    } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
+        if (path == URI_ASSIGNMENT) {
+            // this is a script upload - ask the HTTPConnection to parse the form data
+            QList<FormData> formData = connection->parseFormData();
+            
+            // create an assignment for this saved script, for now make it local only
+            Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
+                                                          Assignment::AgentType,
+                                                          NULL,
+                                                          Assignment::LocalLocation);
+            
+            // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+            const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
+            
+            QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
+            if (!assignmentInstancesValue.isEmpty()) {
+                // the user has requested a specific number of instances
+                // so set that on the created assignment
+                int numInstances = assignmentInstancesValue.toInt();
+                if (numInstances > 0) {
+                    qDebug() << numInstances;
+                    scriptAssignment->setNumberOfInstances(numInstances);
+                }
+            }
+            
+            const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+            
+            QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+            newPath += "/";
+            // append the UUID for this script as the new filename, remove the curly braces
+            newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
+            
+            // create a file with the GUID of the assignment in the script host locaiton
+            QFile scriptFile(newPath);
+            scriptFile.open(QIODevice::WriteOnly);
+            scriptFile.write(formData[0].second);
+            
+            qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+            
+            // respond with a 200 code for successful upload
+            connection->respond(HTTPConnection::StatusCode200);
+            
+            // add the script assigment to the assignment queue
+            // lock the assignment queue mutex since we're operating on a different thread than DS main
+            _assignmentQueueMutex.lock();
+            _assignmentQueue.push_back(scriptAssignment);
+            _assignmentQueueMutex.unlock();
         }
-
-        return 0;
-    } else if (strcmp(ri->request_method, "DELETE") == 0) {
-        // this is a DELETE request
-
-        // check if it is for an assignment
-        if (memcmp(ri->uri, URI_NODE, strlen(URI_NODE)) == 0) {
+    } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
+        if (path.startsWith(URI_NODE)) {
+            // this is a request to DELETE a node by UUID
+            
             // pull the UUID from the url
-            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(URI_NODE) + sizeof('/')));
-
+            QUuid deleteUUID = QUuid(path.mid(URI_NODE.size() + sizeof('/')));
+            
             if (!deleteUUID.isNull()) {
                 SharedNodePointer nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
-
+                
                 if (nodeToKill) {
                     // start with a 200 response
-                    mg_printf(connection, "%s", RESPONSE_200);
-
+                    connection->respond(HTTPConnection::StatusCode200);
+                    
                     // we have a valid UUID and node - kill the node that has this assignment
                     QMetaObject::invokeMethod(NodeList::getInstance(), "killNodeWithUUID", Q_ARG(const QUuid&, deleteUUID));
                     
                     // successfully processed request
-                    return 1;
+                    return true;
                 }
             }
+            
+            // bad request, couldn't pull a node ID
+            connection->respond(HTTPConnection::StatusCode400);
+            
+            return true;
         }
-
-        // request not processed - bad request
-        mg_printf(connection, "%s", RESPONSE_400);
-
-        // this was processed by civetweb
-        return 1;
-    } else {
-        // have mongoose process this request from the document_root
-        return 0;
     }
-}
-
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
-
-void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
-
-    // create an assignment for this saved script, for now make it local only
-    Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
-                                                  Assignment::AgentType,
-                                                  NULL,
-                                                  Assignment::LocalLocation);
-
-    // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
-    const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
-    const char* requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
-
-    if (requestInstancesHeader) {
-        // the user has requested a number of instances greater than 1
-        // so set that on the created assignment
-        scriptAssignment->setNumberOfInstances(atoi(requestInstancesHeader));
-    }
-
-    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-    newPath += "/";
-    // append the UUID for this script as the new filename, remove the curly braces
-    newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
-
-    // rename the saved script to the GUID of the assignment and move it to the script host locaiton
-    rename(path, newPath.toLocal8Bit().constData());
-
-    qDebug("Saved a script for assignment at %s", newPath.toLocal8Bit().constData());
-
-    // add the script assigment to the assignment queue
-    // lock the assignment queue mutex since we're operating on a different thread than DS main
-    domainServerInstance->_assignmentQueueMutex.lock();
-    domainServerInstance->_assignmentQueue.push_back(scriptAssignment);
-    domainServerInstance->_assignmentQueueMutex.unlock();
+    
+    // didn't process the request, let the HTTPManager try and handle
+    return false;
 }
 
 void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
