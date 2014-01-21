@@ -30,7 +30,8 @@ public:
     
     static void getValueForKeyAndUUID(const QString& key, const QUuid& uuid, DataServerCallbackObject* callbackObject);
     static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject);
-    static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString, DataServerCallbackObject* callbackObject);
+    static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
+                                              DataServerCallbackObject* callbackObject);
     
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
     
