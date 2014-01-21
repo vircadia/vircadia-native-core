@@ -59,7 +59,7 @@ Hand::Hand(Avatar* owningAvatar) :
     _throwSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
     _catchSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
 {
-    for (int i = 0; i < MAX_HANDS; i++) {
+    for (int i = 0; i < NUM_HANDS; i++) {
         _toyBallInHand[i] = false;
         _ballParticleEditHandles[i] = NULL;
         _whichBallColor[i] = 0;

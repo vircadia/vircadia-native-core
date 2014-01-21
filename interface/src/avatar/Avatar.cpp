@@ -311,7 +311,7 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
 
     const HandData* handData = getHandData();
     if (handData) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < NUM_HANDS; i++) {
             const PalmData* palm = handData->getPalm(i);
             if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
