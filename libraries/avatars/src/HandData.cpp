@@ -16,8 +16,6 @@
 const int fingerVectorRadix = 4;
 
 HandData::HandData(AvatarData* owningAvatar) :
-    _basePosition(0.0f, 0.0f, 0.0f),
-    _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar)
 {
     // Start with two palms
@@ -26,11 +24,11 @@ HandData::HandData(AvatarData* owningAvatar) :
 }
 
 glm::vec3 HandData::worldPositionToLeapPosition(const glm::vec3& worldPosition) const {
-    return glm::inverse(_baseOrientation) * (worldPosition - _basePosition) / LEAP_UNIT_SCALE;
+    return glm::inverse(getBaseOrientation()) * (worldPosition - getBasePosition()) / LEAP_UNIT_SCALE;
 }
 
 glm::vec3 HandData::worldVectorToLeapVector(const glm::vec3& worldVector) const {
-    return glm::inverse(_baseOrientation) * worldVector / LEAP_UNIT_SCALE;
+    return glm::inverse(getBaseOrientation()) * worldVector / LEAP_UNIT_SCALE;
 }
 
 PalmData& HandData::addNewPalm()  {
@@ -254,6 +252,15 @@ bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float pe
     return false;
 }
 
+glm::quat HandData::getBaseOrientation() const {
+    return _owningAvatarData->getOrientation();
+}
+
+glm::vec3 HandData::getBasePosition() const {
+    const glm::vec3 LEAP_HANDS_OFFSET_FROM_TORSO(0.0, 0.3, -0.3);
+    return _owningAvatarData->getPosition() + getBaseOrientation() * LEAP_HANDS_OFFSET_FROM_TORSO *
+        _owningAvatarData->getTargetScale();
+}
 
 void FingerData::setTrailLength(unsigned int length) {
     _tipTrailPositions.resize(length);
