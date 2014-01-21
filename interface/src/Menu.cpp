@@ -32,6 +32,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
+#include "ui/MetavoxelEditorDialog.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -219,6 +220,8 @@ Menu::Menu() :
                                   appInstance,
                                   SLOT(increaseVoxelSize()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ResetSwatchColors, 0, this, SLOT(resetSwatchColors()));
+
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
 
 
     QMenu* viewMenu = addMenu("View");
@@ -1005,6 +1008,13 @@ void Menu::bandwidthDetails() {
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
+}
+
+void Menu::showMetavoxelEditor() {
+    if (_metavoxelEditorDialog.isNull()) {
+        _metavoxelEditorDialog = new MetavoxelEditorDialog();
+    }
+    _metavoxelEditorDialog->raise();
 }
 
 void Menu::audioMuteToggled() {
