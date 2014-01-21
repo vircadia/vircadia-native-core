@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <QtCore/QDebug>
-
 #include <GeometryUtil.h>
 
 #include "ParticleTree.h"

@@ -6,12 +6,17 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
+#include "InterfaceConfig.h"
+
+#ifdef WIN32
+#include <Systime.h>
+#endif
+
 #include <QOpenGLFramebufferObject>
 
 #include <glm/glm.hpp>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "OculusManager.h"
 
 ProgramObject OculusManager::_program;
@@ -62,6 +67,9 @@ void OculusManager::connect() {
         _scaleLocation = _program.uniformLocation("scale");
         _scaleInLocation = _program.uniformLocation("scaleIn");
         _hmdWarpParamLocation = _program.uniformLocation("hmdWarpParam");        
+    } else {
+        _deviceManager.Clear();
+        System::Destroy();
     }
 #endif
 }

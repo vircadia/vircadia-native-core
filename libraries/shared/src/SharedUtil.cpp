@@ -65,30 +65,33 @@ bool shouldDo(float desiredInterval, float deltaTime) {
     return randFloat() < deltaTime / desiredInterval;
 }
 
-void outputBufferBits(const unsigned char* buffer, int length, bool withNewLine) {
+void outputBufferBits(const unsigned char* buffer, int length, QDebug* continuedDebug) {
     for (int i = 0; i < length; i++) {
-        outputBits(buffer[i], false);
-    }
-    if (withNewLine) {
-        qDebug("\n");
+        outputBits(buffer[i], continuedDebug);
     }
 }
 
-void outputBits(unsigned char byte, bool withNewLine, bool usePrintf) {
+void outputBits(unsigned char byte, QDebug* continuedDebug) {
+    QDebug debug = qDebug().nospace();
+
+    if (continuedDebug) {
+        debug = *continuedDebug;
+    }
+
+    QString resultString;
+
     if (isalnum(byte)) {
-        usePrintf ? (void)printf("[ %d (%c): ", byte, byte) : qDebug("[ %d (%c): ", byte, byte);
+        resultString.sprintf("[ %d (%c): ", byte, byte);
     } else {
-        usePrintf ? (void)printf("[ %d (0x%x): ", byte, byte) : qDebug("[ %d (0x%x): ", byte, byte);
+        resultString.sprintf("[ %d (0x%x): ", byte, byte);
     }
-    
+    debug << resultString;
+
     for (int i = 0; i < 8; i++) {
-        usePrintf ? (void)printf("%d", byte >> (7 - i) & 1) : qDebug("%d", byte >> (7 - i) & 1);
+        resultString.sprintf("%d", byte >> (7 - i) & 1);
     }
-    usePrintf ? (void)printf(" ] ") : qDebug(" ] ");
-    
-    if (withNewLine) {
-        usePrintf ? (void)printf("\n") : qDebug("\n");
-    }
+    debug << resultString;
+    debug << " ]";
 }
 
 int numberOfOnes(unsigned char byte) {
@@ -121,11 +124,11 @@ int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
 }
 
 int getNthBit(unsigned char byte, int ordinal) {
-    const int ERROR = -1;
+    const int ERROR_RESULT = -1;
     const int MIN_ORDINAL = 1;
     const int MAX_ORDINAL = 8;
     if (ordinal < MIN_ORDINAL || ordinal > MAX_ORDINAL) {
-        return ERROR;
+        return ERROR_RESULT;
     }
     int bitsSet = 0;
     for (int bitIndex = 0; bitIndex < MAX_ORDINAL; bitIndex++) {
@@ -136,11 +139,11 @@ int getNthBit(unsigned char byte, int ordinal) {
             return bitIndex;
         }
     }
-    return ERROR;
+    return ERROR_RESULT;
 }
 
-bool isBetween(int64_t value, int64_t max, int64_t min) { 
-    return ((value <= max) && (value >= min)); 
+bool isBetween(int64_t value, int64_t max, int64_t min) {
+    return ((value <= max) && (value >= min));
 }
 
 
@@ -152,7 +155,7 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
 
 bool isInEnvironment(const char* environment) {
     char* environmentString = getenv("HIFI_ENVIRONMENT");
-    
+
     if (environmentString && strcmp(environmentString, environment) == 0) {
         return true;
     } else {
@@ -169,7 +172,7 @@ void switchToResourcesParentIfRequired() {
         // error!
     }
     CFRelease(resourcesURL);
-    
+
     chdir(path);
     chdir("..");
 #endif
@@ -178,7 +181,7 @@ void switchToResourcesParentIfRequired() {
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes) {
     // seed the the random number generator
     srand(time(NULL));
-    
+
     for (int i = 0; i < numBytes; i++) {
         identifierBuffer[i] = rand() % 256;
     }
@@ -230,9 +233,9 @@ void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, con
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    createVoxelEditMessage()
-// Description: creates an "insert" or "remove" voxel message for a voxel code 
+// Description: creates an "insert" or "remove" voxel message for a voxel code
 //              corresponding to the closest voxel which encloses a cube with
-//              lower corners at x,y,z, having side of length S.  
+//              lower corners at x,y,z, having side of length S.
 //              The input values x,y,z range 0.0 <= v < 1.0
 //              message should be either 'S' for SET or 'E' for ERASE
 //
@@ -246,13 +249,13 @@ void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, con
 #define GUESS_OF_VOXELCODE_SIZE 10
 #define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
 #define SIZE_OF_COLOR_DATA sizeof(rgbColor)
-bool createVoxelEditMessage(unsigned char command, short int sequence, 
+bool createVoxelEditMessage(unsigned char command, short int sequence,
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
-        
+
     bool success = true; // assume the best
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
     unsigned char* messageBuffer = new unsigned char[messageSize];
-    
+
     int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
     unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
     *sequenceAt = sequence;
@@ -269,9 +272,9 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
             voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-            
+
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-        
+
         // make sure we have room to copy this voxel
         if (actualMessageSize + lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             success = false;
@@ -285,19 +288,19 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         delete[] voxelData;
     }
 
-    if (success) {    
+    if (success) {
         // finally, copy the result to the output
         bufferOut = new unsigned char[actualMessageSize];
         sizeOut = actualMessageSize;
         memcpy(bufferOut, messageBuffer, actualMessageSize);
     }
-    
+
     delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }
 
 /// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails, 
+bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best
@@ -308,9 +311,9 @@ bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelD
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
             voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-            
+
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-        
+
         // make sure we have room to copy this voxel
         if (sizeOut + lengthOfVoxelData > sizeIn) {
             success = false;
@@ -328,13 +331,13 @@ bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelD
 }
 
 
-unsigned char* pointToOctalCode(float x, float y, float z, float s) { 
-    return pointToVoxel(x, y, z, s); 
+unsigned char* pointToOctalCode(float x, float y, float z, float s) {
+    return pointToVoxel(x, y, z, s);
 }
 
 /// Given a universal point with location x,y,z this will return the voxel
 /// voxel code corresponding to the closest voxel which encloses a cube with
-/// lower corners at x,y,z, having side of length S.  
+/// lower corners at x,y,z, having side of length S.
 /// The input values x,y,z range 0.0 <= v < 1.0
 /// IMPORTANT: The voxel is returned to you a buffer which you MUST delete when you are
 /// done with it.
@@ -347,10 +350,10 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         return voxelOut;
     }
 
-    float xTest, yTest, zTest, sTest; 
+    float xTest, yTest, zTest, sTest;
     xTest = yTest = zTest = sTest = 0.5f;
 
-    // First determine the voxelSize that will properly encode a 
+    // First determine the voxelSize that will properly encode a
     // voxel of size S.
     unsigned int voxelSizeInOctets = 1;
     while (sTest > s) {
@@ -372,18 +375,18 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     unsigned char byte = 0; // we will be adding coding bits here
     int bitInByteNDX = 0; // keep track of where we are in byte as we go
     int byteNDX = 1; // keep track of where we are in buffer of bytes as we go
-    int octetsDone = 0;
+    unsigned int octetsDone = 0;
 
     // Now we actually fill out the voxel code
     while (octetsDone < voxelSizeInOctets) {
         if (x >= xTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            xTest += sTest/2.0; 
-        } else { 
+            xTest += sTest/2.0;
+        } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            xTest -= sTest/2.0; 
+            xTest -= sTest/2.0;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -398,11 +401,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         if (y >= yTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            yTest += sTest/2.0; 
-        } else { 
+            yTest += sTest/2.0;
+        } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            yTest -= sTest/2.0; 
+            yTest -= sTest/2.0;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -417,11 +420,11 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         if (z >= zTest) {
             //<write 1 bit>
             byte = (byte << 1) | true;
-            zTest += sTest/2.0; 
-        } else { 
+            zTest += sTest/2.0;
+        } else {
             //<write 0 bit;>
             byte = (byte << 1) | false;
-            zTest -= sTest/2.0; 
+            zTest -= sTest/2.0;
         }
         bitInByteNDX++;
         // If we've reached the last bit of the byte, then we want to copy this byte
@@ -435,7 +438,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
         octetsDone++;
         sTest /= 2.0;
-    } 
+    }
 
     // If we've got here, and we didn't fill the last byte, we need to zero pad this
     // byte before we copy it into our buffer.
@@ -445,7 +448,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
             byte = (byte << 1) | false;
             bitInByteNDX++;
         }
-    
+
         // Copy it into our output buffer
         voxelOut[byteNDX]=byte;
         byteNDX++;
@@ -465,15 +468,16 @@ void printVoxelCode(unsigned char* voxelCode) {
 	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
 	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    qDebug("octets=%d\n",octets);
-    qDebug("voxelSizeInBits=%d\n",voxelSizeInBits);
-    qDebug("voxelSizeInBytes=%d\n",voxelSizeInBytes);
-    qDebug("voxelSizeInOctets=%d\n",voxelSizeInOctets);
-    qDebug("voxelBufferSize=%d\n",voxelBufferSize);
-    
-    for(int i=0;i<voxelBufferSize;i++) {
-        qDebug("i=%d ",i);
-        outputBits(voxelCode[i]);
+    qDebug("octets=%d",octets);
+    qDebug("voxelSizeInBits=%d",voxelSizeInBits);
+    qDebug("voxelSizeInBytes=%d",voxelSizeInBytes);
+    qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
+    qDebug("voxelBufferSize=%d",voxelBufferSize);
+
+    for(unsigned int i=0; i < voxelBufferSize; i++) {
+        QDebug voxelBufferDebug = qDebug();
+        voxelBufferDebug << "i =" << i;
+        outputBits(voxelCode[i], &voxelBufferDebug);
     }
 }
 
@@ -491,13 +495,13 @@ void printVoxelCode(unsigned char* voxelCode) {
 
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
-// non-sorted array 
+// non-sorted array
 // returns -1 if size exceeded
 // originalIndexArray is optional
-int insertIntoSortedArrays(void* value, float key, int originalIndex, 
-                           void** valueArray, float* keyArray, int* originalIndexArray, 
+int insertIntoSortedArrays(void* value, float key, int originalIndex,
+                           void** valueArray, float* keyArray, int* originalIndexArray,
                            int currentCount, int maxCount) {
-            
+
     if (currentCount < maxCount) {
         int i = 0;
         if (currentCount > 0) {
@@ -525,7 +529,7 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
     return -1; // error case
 }
 
-int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray,
                            int currentCount, int maxCount) {
 
     int i = 0;
@@ -533,7 +537,7 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
         while (i < currentCount && value != valueArray[i]) {
             i++;
         }
-        
+
         if (value == valueArray[i] && i < currentCount) {
             // i is the location of the item we were looking for
             // shift array elements to the left
@@ -579,10 +583,10 @@ int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
-    
+
     uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
     memcpy(buffer, &angleHolder, sizeof(uint16_t));
-    
+
     return sizeof(uint16_t);
 }
 
@@ -621,7 +625,7 @@ float LARGE_LIMIT = 1000.0;
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()
     int16_t ratioHolder;
-    
+
     if (ratio < SMALL_LIMIT) {
         const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
         ratioHolder = floorf(ratio * SMALL_RATIO_CONVERSION_RATIO);
@@ -651,7 +655,7 @@ int packClipValueToTwoByte(unsigned char* buffer, float clipValue) {
     // Clip values must be less than max signed 16bit integers
     assert(clipValue < std::numeric_limits<int16_t>::max());
     int16_t holder;
-    
+
     // if the clip is less than 10, then encode it as a positive number scaled from 0 to int16::max()
     if (clipValue < SMALL_LIMIT) {
         const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
@@ -693,7 +697,7 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
     return sizeof(holder);
 }
 
-char debug::DEADBEEF[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+unsigned char debug::DEADBEEF[] = { 0xDE, 0xAD, 0xBE, 0xEF };
 int debug::DEADBEEF_SIZE = sizeof(DEADBEEF);
 void debug::setDeadBeef(void* memoryVoid, int size) {
     unsigned char* memoryAt = (unsigned char*)memoryVoid;

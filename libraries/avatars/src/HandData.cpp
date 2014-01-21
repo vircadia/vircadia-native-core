@@ -16,8 +16,6 @@
 const int fingerVectorRadix = 4;
 
 HandData::HandData(AvatarData* owningAvatar) :
-    _basePosition(0.0f, 0.0f, 0.0f),
-    _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar)
 {
     // Start with two palms
@@ -26,11 +24,11 @@ HandData::HandData(AvatarData* owningAvatar) :
 }
 
 glm::vec3 HandData::worldPositionToLeapPosition(const glm::vec3& worldPosition) const {
-    return glm::inverse(_baseOrientation) * (worldPosition - _basePosition) / LEAP_UNIT_SCALE;
+    return glm::inverse(getBaseOrientation()) * (worldPosition - getBasePosition()) / LEAP_UNIT_SCALE;
 }
 
 glm::vec3 HandData::worldVectorToLeapVector(const glm::vec3& worldVector) const {
-    return glm::inverse(_baseOrientation) * worldVector / LEAP_UNIT_SCALE;
+    return glm::inverse(getBaseOrientation()) * worldVector / LEAP_UNIT_SCALE;
 }
 
 PalmData& HandData::addNewPalm()  {
@@ -38,13 +36,22 @@ PalmData& HandData::addNewPalm()  {
     return _palms.back();
 }
 
-const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
-const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+const PalmData* HandData::getPalm(int sixSenseID) const {
+    // the palms are not necessarily added in left-right order, 
+    // so we have to search for the right SixSenseID
+    for (unsigned int i = 0; i < _palms.size(); i++) {
+        const PalmData* palm = &(_palms[i]);
+        if (palm->getSixenseID() == sixSenseID) {
+            return palm->isActive() ? palm : NULL;
+        }
+    }
+    return NULL;
+}
 
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
     leftPalmIndex = -1;
     rightPalmIndex = -1;
-    for (int i = 0; i < _palms.size(); i++) {
+    for (size_t i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
             if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
@@ -70,7 +77,8 @@ _sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
 _owningHandData(owningHandData),
 _isCollidingWithVoxel(false),
-_isCollidingWithPalm(false)
+_isCollidingWithPalm(false),
+_collisionlessPaddleExpiry(0)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
@@ -81,7 +89,7 @@ void PalmData::addToPosition(const glm::vec3& delta) {
     // convert to Leap coordinates, then add to palm and finger positions
     glm::vec3 leapDelta = _owningHandData->worldVectorToLeapVector(delta);
     _rawPosition += leapDelta;
-    for (int i = 0; i < getNumFingers(); i++) {
+    for (size_t i = 0; i < getNumFingers(); i++) {
         FingerData& finger = _fingers[i];
         if (finger.isActive()) {
             finger.setRawTipPosition(finger.getTipRawPosition() + leapDelta);
@@ -244,6 +252,15 @@ bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float pe
     return false;
 }
 
+glm::quat HandData::getBaseOrientation() const {
+    return _owningAvatarData->getOrientation();
+}
+
+glm::vec3 HandData::getBasePosition() const {
+    const glm::vec3 LEAP_HANDS_OFFSET_FROM_TORSO(0.0, 0.3, -0.3);
+    return _owningAvatarData->getPosition() + getBaseOrientation() * LEAP_HANDS_OFFSET_FROM_TORSO *
+        _owningAvatarData->getTargetScale();
+}
 
 void FingerData::setTrailLength(unsigned int length) {
     _tipTrailPositions.resize(length);
@@ -263,7 +280,7 @@ void FingerData::updateTrail() {
         
         _tipTrailPositions[_tipTrailCurrentStartIndex] = getTipPosition();
         
-        if (_tipTrailCurrentValidLength < _tipTrailPositions.size())
+        if (_tipTrailCurrentValidLength < (int)_tipTrailPositions.size())
             _tipTrailCurrentValidLength++;
     }
     else {
@@ -285,6 +302,15 @@ const glm::vec3& FingerData::getTrailPosition(int index) {
     return _tipTrailPositions[posIndex];
 }
 
+void PalmData::getBallHoldPosition(glm::vec3& position) const { 
+    const float BALL_FORWARD_OFFSET = 0.08f;    // put the ball a bit forward of fingers
+    position = BALL_FORWARD_OFFSET * getNormal(); 
+    if (_fingers.size() > 0) {
+        position += _fingers[0].getTipPosition();
+    } else {
+        position += getPosition();
+    }
+}
 
 
 

@@ -501,7 +501,7 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     _visitation = &visitation;
     _guideFunction.call(QScriptValue(), _arguments);
     if (_guideFunction.engine()->hasUncaughtException()) {
-        qDebug() << "Script error: " << _guideFunction.engine()->uncaughtException().toString() << "\n";
+        qDebug() << "Script error: " << _guideFunction.engine()->uncaughtException().toString();
     }
 }
 

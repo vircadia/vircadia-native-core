@@ -6,7 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <QTimer>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QTimer>
 
 #include "Logging.h"
 #include "ThreadedAssignment.h"
@@ -16,6 +17,12 @@ ThreadedAssignment::ThreadedAssignment(const unsigned char* dataBuffer, int numB
     _isFinished(false)
 {
     
+}
+
+void ThreadedAssignment::deleteLater() {
+    // move the NodeList back to the QCoreApplication instance's thread
+    NodeList::getInstance()->moveToThread(QCoreApplication::instance()->thread());
+    QObject::deleteLater();
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
@@ -41,9 +48,9 @@ void ThreadedAssignment::commonInit(const char* targetName, NODE_TYPE nodeType) 
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
-    QTimer* silentNodeTimer = new QTimer(this);
-    connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
-    silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    QTimer* silentNodeRemovalTimer = new QTimer(this);
+    connect(silentNodeRemovalTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeRemovalTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {

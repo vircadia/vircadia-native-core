@@ -76,10 +76,10 @@ GLuint TextureCache::getPermutationNormalTextureID() {
     return _permutationNormalTextureID;
 }
 
-const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-const char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
+const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
 
-static void loadSingleColorTexture(const char* color) {
+static void loadSingleColorTexture(const unsigned char* color) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
@@ -252,16 +252,17 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
+NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
+    _request(url),
+    _reply(NULL),
+    _attempts(0),
+    _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
+    
     if (!url.isValid()) {
         return;
     }
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _reply = Application::getInstance()->getNetworkAccessManager()->get(request);
-    
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    makeRequest();
     
     // default to white/blue
     glBindTexture(GL_TEXTURE_2D, getID());
@@ -277,6 +278,13 @@ NetworkTexture::~NetworkTexture() {
 
 void NetworkTexture::imageLoaded(const QImage& image) {
     // nothing by default
+}
+
+void NetworkTexture::makeRequest() {
+    _reply = Application::getInstance()->getNetworkAccessManager()->get(_request);
+    
+    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
+    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
 }
 
 void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
@@ -314,11 +322,20 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
 }
 
 void NetworkTexture::handleReplyError() {
-    qDebug() << _reply->errorString() << "\n";
+    QDebug debug = qDebug() << _reply->errorString();
     
     _reply->disconnect(this);
     _reply->deleteLater();
     _reply = NULL;
+    
+    // retry with increasing delays
+    const int MAX_ATTEMPTS = 8;
+    const int BASE_DELAY_MS = 1000;
+    if (++_attempts < MAX_ATTEMPTS) {
+        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
+        debug << " -- retrying...";
+        
+    }
 }
 
 DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :

@@ -7,13 +7,12 @@
 //
 
 #include <cstring>
-#include <pthread.h>
 #include <stdio.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
-#include <arpa/inet.h>
+#include <arpa/inet.h> // not available on windows, apparently not needed on mac
 #endif
 
 #include "Node.h"
@@ -33,19 +32,17 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
-    _clockSkewUsec(0)
+    _clockSkewUsec(0),
+    _mutex()
 {
-    pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
     if (_linkedData) {
         _linkedData->deleteOrDeleteLater();
     }
-    
+
     delete _bytesReceivedMovingAverage;
-    
-    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types
@@ -93,7 +90,7 @@ void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
         // if the active socket was the public socket then reset it to NULL
         _activeSocket = NULL;
     }
-    
+
     _publicSocket = publicSocket;
 }
 
@@ -102,17 +99,17 @@ void Node::setLocalSocket(const HifiSockAddr& localSocket) {
         // if the active socket was the local socket then reset it to NULL
         _activeSocket = NULL;
     }
-    
+
     _localSocket = localSocket;
 }
 
 void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for node" << *this << "\n";
+    qDebug() << "Activating local socket for node" << *this;
     _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for node" << *this << "\n";
+    qDebug() << "Activating public socket for node" << *this;
     _activeSocket = &_publicSocket;
 }
 
@@ -120,7 +117,7 @@ void Node::recordBytesReceived(int bytesReceived) {
     if (_bytesReceivedMovingAverage == NULL) {
         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
     }
-    
+
     _bytesReceivedMovingAverage->updateAverage((float) bytesReceived);
 }
 

@@ -10,6 +10,7 @@
 #include <cstring>
 #include <algorithm>
 
+#include <stdint.h>
 #include <QtCore/QDebug>
 
 #include "InterfaceConfig.h"
@@ -74,7 +75,7 @@ void Oscilloscope::addSamples(const QByteArray& audioByteArray, bool isStereo, b
         return;
     }
     
-    int numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * (isStereo ? 2 : 1));
+    unsigned numSamplesPerChannel = audioByteArray.size() / (sizeof(int16_t) * (isStereo ? 2 : 1));
     int16_t* samples = (int16_t*) audioByteArray.data();
     
     for (int channel = 0; channel < (isStereo ? 2 : 1); channel++) {
@@ -105,7 +106,7 @@ void Oscilloscope::addSamples(const QByteArray& audioByteArray, bool isStereo, b
             }
         } else {
             // we have interleaved samples we need to separate into two channels
-            for (int i = 0; i < numSamplesPerChannel + n2; i++) {
+            for (unsigned i = 0; i < numSamplesPerChannel + n2; i++) {
                 if (i < numSamplesPerChannel - n2) {
                     _samples[writePos] = samples[(i * 2) + channel];
                 } else {

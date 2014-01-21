@@ -54,6 +54,12 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
+    /// Returns the extents of the model in its bind pose.
+    Extents getBindExtents() const;
+    
+    /// Returns a reference to the shared geometry.
+    const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
+    
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
     
@@ -81,6 +87,22 @@ public:
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
+    
+    /// Retrieve the position of the left hand
+    /// \return true whether or not the position was found
+    bool getLeftHandPosition(glm::vec3& position) const;
+    
+    /// Retrieve the rotation of the left hand
+    /// \return true whether or not the rotation was found
+    bool getLeftHandRotation(glm::quat& rotation) const;
+    
+    /// Retrieve the position of the right hand
+    /// \return true whether or not the position was found
+    bool getRightHandPosition(glm::vec3& position) const;
+    
+    /// Retrieve the rotation of the right hand
+    /// \return true whether or not the rotation was found
+    bool getRightHandRotation(glm::quat& rotation) const;
     
     /// Sets the position of the left hand using inverse kinematics.
     /// \return whether or not the left hand joint was found
@@ -141,6 +163,7 @@ protected:
     
     class JointState {
     public:
+        glm::vec3 translation;
         glm::quat rotation;
         glm::mat4 transform;
         glm::quat combinedRotation;
@@ -172,6 +195,8 @@ protected:
         bool allIntermediatesFree = false, const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
     bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
+    void setJointTranslation(int jointIndex, const glm::vec3& translation);
+    
     /// Restores the indexed joint to its default position.
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
     /// the original position
@@ -187,8 +212,6 @@ protected:
     void renderCollisionProxies(float alpha);
     
 private:
-    
-    void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
     
     void deleteGeometry();
     

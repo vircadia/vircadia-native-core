@@ -19,15 +19,15 @@
 
 using namespace std;
 
-const float FINGERTIP_COLLISION_RADIUS = 0.01;
-const float FINGERTIP_VOXEL_SIZE = 0.05;
+const float FINGERTIP_COLLISION_RADIUS = 0.01f;
+const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const int TOY_BALL_HAND = 1;
 const float TOY_BALL_RADIUS = 0.05f;
 const float TOY_BALL_DAMPING = 0.1f;
 const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
 const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
 const float NO_DAMPING = 0.f;
-const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0,0);
+const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0f,0);
 const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
 const float CATCH_RADIUS = 0.3f;
@@ -83,7 +83,6 @@ void Hand::reset() {
 void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
     Application* app = Application::getInstance();
     ParticleTree* particles = app->getParticles()->getTree();
-    bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     int handID = palm.getSixenseID();
     
     const int NEW_BALL_BUTTON = BUTTON_3;
@@ -93,7 +92,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     
     bool ballAlreadyInHand = _toyBallInHand[handID];
 
-    glm::vec3 targetPosition = (ballFromHand ? palm.getPosition() : fingerTipPosition) / (float)TREE_SCALE;
+    glm::vec3 targetPosition;
+    palm.getBallHoldPosition(targetPosition);
     float targetRadius = CATCH_RADIUS / (float)TREE_SCALE;
 
     // If I don't currently have a ball in my hand, then try to catch closest one
@@ -148,7 +148,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
     if ((palm.getControllerButtons() & NEW_BALL_BUTTON) && (_toyBallInHand[handID] == false)) {
         _toyBallInHand[handID] = true;
         //  Create a particle on the particle server
-        glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
+        glm::vec3 ballPosition;
+        palm.getBallHoldPosition(ballPosition);
         _ballParticleEditHandles[handID] = app->makeParticle(
                                                              ballPosition / (float)TREE_SCALE,
                                                              TOY_BALL_RADIUS / (float) TREE_SCALE,
@@ -159,7 +160,7 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
                                                              IN_HAND,
                                                              TOY_BALL_UPDATE_SCRIPT);
         // Play a new ball sound
-        app->getAudio()->startDrumSound(1.0, 2000, 0.5, 0.02);
+        app->getAudio()->startDrumSound(1.0f, 2000, 0.5f, 0.02f);
     }
 
     if (grabButtonPressed) {
@@ -171,7 +172,8 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
             xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
                                                     : TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]];
 
-            glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
+            glm::vec3 ballPosition;
+            palm.getBallHoldPosition(ballPosition);
             _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
                                                          TOY_BALL_RADIUS / (float) TREE_SCALE,
                                                          colorForParticleInHand, 
@@ -187,8 +189,10 @@ void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, f
         
             const float THROWN_VELOCITY_SCALING = 1.5f;
             _toyBallInHand[handID] = false;
-            glm::vec3 ballPosition = ballFromHand ? palm.getPosition() : fingerTipPosition;
-            glm::vec3 ballVelocity = ballFromHand ? palm.getRawVelocity() : palm.getTipVelocity();
+            palm.updateCollisionlessPaddleExpiry();
+            glm::vec3 ballPosition;
+            palm.getBallHoldPosition(ballPosition);
+            glm::vec3 ballVelocity = palm.getTipVelocity();
             glm::quat avatarRotation = _owningAvatar->getOrientation();
             ballVelocity = avatarRotation * ballVelocity;
             ballVelocity *= THROWN_VELOCITY_SCALING;
@@ -258,15 +262,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     
     if (isMine) {
         _buckyBalls.simulate(deltaTime);
-    }
-    
-    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
-    
-    Head& head = _owningAvatar->getHead();
-    _baseOrientation = _owningAvatar->getOrientation();
-    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
-    
-    if (isMine) {
         updateCollisions();
     }
     
@@ -359,7 +354,7 @@ void Hand::updateCollisions() {
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     // check for collisions
-    for (int i = 0; i < getNumPalms(); i++) {
+    for (size_t i = 0; i < getNumPalms(); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
@@ -368,8 +363,7 @@ void Hand::updateCollisions() {
         glm::vec3 totalPenetration;
         
         // check other avatars
-        NodeList* nodeList = NodeList::getInstance();
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
             if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
                 Avatar* otherAvatar = (Avatar*)node->getLinkedData();
                 if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
@@ -379,7 +373,7 @@ void Hand::updateCollisions() {
                     bool wasColliding = palm.getIsCollidingWithPalm();
                     palm.setIsCollidingWithPalm(false);
                     //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
-                    for (int j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
+                    for (size_t j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
                         PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
                         if (!otherPalm.isActive()) {
                             continue;
@@ -388,21 +382,21 @@ void Hand::updateCollisions() {
                         if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
                             palm.setIsCollidingWithPalm(true);
                             if (!wasColliding) {
-                            const float PALM_COLLIDE_VOLUME = 1.f;
-                            const float PALM_COLLIDE_FREQUENCY = 1000.f;
-                            const float PALM_COLLIDE_DURATION_MAX = 0.75f;
-                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
-                            Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                                   PALM_COLLIDE_FREQUENCY,
-                                                                                   PALM_COLLIDE_DURATION_MAX,
-                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
-                            //  If the other person's palm is in motion, move mine downward to show I was hit
-                            const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                                const float PALM_COLLIDE_VOLUME = 1.f;
+                                const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                                const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                                const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
+                                Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                                       PALM_COLLIDE_FREQUENCY,
+                                                                                       PALM_COLLIDE_DURATION_MAX,
+                                                                                       PALM_COLLIDE_DECAY_PER_SAMPLE);
+                                //  If the other person's palm is in motion, move mine downward to show I was hit
+                                const float MIN_VELOCITY_FOR_SLAP = 0.05f;
                                 if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
                                     // add slapback here
                                 }
                             }
-
+                            
                             
                         }
                     }
@@ -462,7 +456,7 @@ void Hand::calculateGeometry() {
                     const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
-                    ball.rotation = _baseOrientation;
+                    ball.rotation = getBaseOrientation();
                     ball.position = finger.getTipPosition();
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
@@ -484,7 +478,7 @@ void Hand::calculateGeometry() {
                     const float standardBallRadius = 0.005f;
                     _leapFingerRootBalls.resize(_leapFingerRootBalls.size() + 1);
                     HandBall& ball = _leapFingerRootBalls.back();
-                    ball.rotation = _baseOrientation;
+                    ball.rotation = getBaseOrientation();
                     ball.position = finger.getRootPosition();
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
@@ -505,7 +499,7 @@ void Hand::render(bool isMine) {
     }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-        for (int i = 0; i < getNumPalms(); i++) {
+        for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
             if (!palm.isActive()) {
                 continue;
@@ -551,7 +545,6 @@ void Hand::renderLeapHands(bool isMine) {
     
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
-    bool ballFromHand = Menu::getInstance()->isOptionChecked(MenuOption::BallFromHand);
     
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -562,7 +555,8 @@ void Hand::renderLeapHands(bool isMine) {
             if (!palm.isActive()) {
                 continue;
             }
-            glm::vec3 targetPosition = ballFromHand ? palm.getPosition() : palm.getTipPosition();
+            glm::vec3 targetPosition;
+            palm.getBallHoldPosition(targetPosition);
             glPushMatrix();
         
             ParticleTree* particles = Application::getInstance()->getParticles()->getTree();
@@ -611,29 +605,43 @@ void Hand::renderLeapHands(bool isMine) {
                     glColor4f(handColor.r, handColor.g, handColor.b, 0.5);
                     glm::vec3 tip = finger.getTipPosition();
                     glm::vec3 root = finger.getRootPosition();
-                    Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
+                    Avatar::renderJointConnectingCone(root, tip, 0.001f, 0.003f);
                 }
             }
         }
     }
 
-    // Draw the palms
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (palm.isActive()) {
-            const float palmThickness = 0.02f;
-            if (palm.getIsCollidingWithPalm()) {
-                glColor4f(1, 0, 0, 0.50);
-            } else {
-                glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
+    // Draw the hand paddles
+    int MAX_NUM_PADDLES = 2; // one for left and one for right
+    glColor4f(handColor.r, handColor.g, handColor.b, 0.3f);
+    for (int i = 0; i < MAX_NUM_PADDLES; i++) {
+        const PalmData* palm = getPalm(i);
+        if (palm) {
+            // compute finger axis
+            glm::vec3 fingerAxis(0.f);
+            for (size_t f = 0; f < palm->getNumFingers(); ++f) {
+                const FingerData& finger = (palm->getFingers())[f];
+                if (finger.isActive()) {
+                    glm::vec3 fingerTip = finger.getTipPosition();
+                    glm::vec3 fingerRoot = finger.getRootPosition();
+                    fingerAxis = glm::normalize(fingerTip - fingerRoot);
+                    break;
+                }
             }
-            glm::vec3 tip = palm.getPosition();
-            glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
-            const float radiusA = 0.05f;
-            const float radiusB = 0.03f;
-            Avatar::renderJointConnectingCone(root, tip, radiusA, radiusB);
+            // compute paddle position
+            glm::vec3 handPosition;
+            if (i == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+                _owningAvatar->getSkeletonModel().getLeftHandPosition(handPosition);
+            } else if (i == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
+                _owningAvatar->getSkeletonModel().getRightHandPosition(handPosition);
+            }
+            glm::vec3 tip = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
+            glm::vec3 root = tip + palm->getNormal() * HAND_PADDLE_THICKNESS;
+            // render a very shallow cone as the paddle
+            Avatar::renderJointConnectingCone(root, tip, HAND_PADDLE_RADIUS, 0.f);
         }
     }
+
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
 

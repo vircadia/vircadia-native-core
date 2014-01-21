@@ -16,31 +16,25 @@
 #include <QtCore/QMutex>
 
 #include <Assignment.h>
+#include <HTTPManager.h>
 #include <NodeList.h>
-
-#include "civetweb.h"
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
 
-class DomainServer : public QCoreApplication, public NodeListHook {
+class DomainServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
+    bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
+    
     void exit(int retCode = 0);
-
-    static void setDomainServerInstance(DomainServer* domainServer);
     
-    /// Called by NodeList to inform us that a node has been added.
-    void nodeAdded(Node* node);
+public slots:
     /// Called by NodeList to inform us that a node has been killed.
-    void nodeKilled(Node* node);
-private:    
-    static int civetwebRequestHandler(struct mg_connection *connection);
-    static void civetwebUploadHandler(struct mg_connection *connection, const char *path);
+    void nodeKilled(SharedNodePointer node);
     
-    static DomainServer* domainServerInstance;
-    
+private:
     void prepopulateStaticAssignmentFile();
     Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
@@ -51,6 +45,8 @@ private:
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
+    
+    HTTPManager _HTTPManager;
     
     QMutex _assignmentQueueMutex;
     std::deque<Assignment*> _assignmentQueue;

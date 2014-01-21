@@ -30,7 +30,6 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _targetScale(1.0f),
-    _leaderUUID(),
     _handState(0),
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
@@ -43,6 +42,15 @@ AvatarData::AvatarData(Node* owningNode) :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+}
+
+glm::vec3 AvatarData::getHandPosition() const {
+    return getOrientation() * _handPosition + _position;
+}
+
+void AvatarData::setHandPosition(const glm::vec3& handPosition) {
+    // store relative to position/orientation
+    _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -77,10 +85,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
-    
-    // Follow mode info
-    memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    destinationBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -151,13 +155,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // leap hand data
     destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
-    
-    // skeleton joints
-    *destinationBuffer++ = (unsigned char)_joints.size();
-    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        *destinationBuffer++ = (unsigned char)it->jointID;
-        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
-    }
 
     return destinationBuffer - bufferStart;
 }
@@ -199,10 +196,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
-
-    // Follow mode info
-    _leaderUUID = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
@@ -282,16 +275,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         // check passed, bytes match
         sourceBuffer += _handData->decodeRemoteData(sourceBuffer);
     }
-    
-    // skeleton joints
-    if (sourceBuffer - startPosition < numBytes) {
-        // check passed, bytes match
-        _joints.resize(*sourceBuffer++);
-        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-            it->jointID = *sourceBuffer++;
-            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
-        }
-    }
 
     return sourceBuffer - startPosition;
 }
@@ -301,5 +284,5 @@ void AvatarData::setClampedTargetScale(float targetScale) {
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     
     _targetScale = targetScale;
-    qDebug() << "Changed scale to " << _targetScale << "\n";
+    qDebug() << "Changed scale to " << _targetScale;
 }

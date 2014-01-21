@@ -10,7 +10,23 @@
 #define __hifi__OctreeQuery__
 
 #include <string>
+
+/* VS2010 defines stdint.h, but not inttypes.h */
+#if defined(_MSC_VER)
+typedef signed char  int8_t;
+typedef signed short int16_t;
+typedef signed int   int32_t;
+typedef unsigned char  uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int   uint32_t;
+typedef signed long long   int64_t;
+typedef unsigned long long uint64_t;
+#define PRId64 "I64d"
+#else
 #include <inttypes.h>
+#endif
+
+
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -33,17 +49,17 @@ const int WANT_COMPRESSION = 4; // 5th bit
 
 class OctreeQuery : public NodeData {
     Q_OBJECT
-    
+
 public:
     OctreeQuery(Node* owningNode = NULL);
     virtual ~OctreeQuery();
 
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    
+
     QUuid& getUUID() { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
-    
+
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
@@ -55,7 +71,7 @@ public:
 
     glm::vec3 calculateCameraDirection() const;
 
-    // setters for camera details    
+    // setters for camera details
     void setCameraPosition(const glm::vec3& position) { _cameraPosition = position; }
     void setCameraOrientation(const glm::quat& orientation) { _cameraOrientation = orientation; }
     void setCameraFov(float fov) { _cameraFov = fov; }
@@ -63,7 +79,7 @@ public:
     void setCameraNearClip(float nearClip) { _cameraNearClip = nearClip; }
     void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
-    
+
     // related to Octree Sending strategies
     bool getWantColor() const { return _wantColor; }
     bool getWantDelta() const { return _wantDelta; }
@@ -73,7 +89,7 @@ public:
     int getMaxOctreePacketsPerSecond() const { return _maxOctreePPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
-    
+
 public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
@@ -83,10 +99,10 @@ public slots:
     void setMaxOctreePacketsPerSecond(int maxOctreePPS) { _maxOctreePPS = maxOctreePPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
-    
+
 protected:
     QUuid _uuid;
-    
+
     // camera details for the avatar
     glm::vec3 _cameraPosition;
     glm::quat _cameraOrientation;
@@ -95,7 +111,7 @@ protected:
     float _cameraNearClip;
     float _cameraFarClip;
     glm::vec3 _cameraEyeOffsetPosition;
-    
+
     // octree server sending items
     bool _wantColor;
     bool _wantDelta;
@@ -105,7 +121,7 @@ protected:
     int _maxOctreePPS;
     float _octreeElementSizeScale; /// used for LOD calculations
     int _boundaryLevelAdjust; /// used for LOD calculations
-    
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     OctreeQuery(const OctreeQuery&);

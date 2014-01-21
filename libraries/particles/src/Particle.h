@@ -99,7 +99,7 @@ public:
             _color[BLUE_INDEX] = value.blue;
     }
     void setRadius(float value) { _radius = value; }
-    void setMass(float value); 
+    void setMass(float value);
     void setGravity(const glm::vec3& value) { _gravity = value; }
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
@@ -129,11 +129,11 @@ public:
     static VoxelEditPacketSender* getVoxelEditPacketSender() { return _voxelEditSender; }
     static ParticleEditPacketSender* getParticleEditPacketSender() { return _particleEditSender; }
 
-    static void setVoxelEditPacketSender(VoxelEditPacketSender* interface)
-                    { _voxelEditSender = interface; }
+    static void setVoxelEditPacketSender(VoxelEditPacketSender* senderInterface)
+                    { _voxelEditSender = senderInterface; }
 
-    static void setParticleEditPacketSender(ParticleEditPacketSender* interface)
-                    { _particleEditSender = interface; }
+    static void setParticleEditPacketSender(ParticleEditPacketSender* senderInterface)
+                    { _particleEditSender = senderInterface; }
 
 
 protected:

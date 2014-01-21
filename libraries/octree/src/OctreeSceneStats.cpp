@@ -108,7 +108,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -121,7 +121,7 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
         _jurisdictionRoot = new unsigned char[bytes];
         memcpy(_jurisdictionRoot, other._jurisdictionRoot, bytes);
     }
-    for (int i=0; i < other._jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
         unsigned char* endNodeCode = other._jurisdictionEndNodes[i];
         if (endNodeCode) {
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
@@ -161,7 +161,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
         _jurisdictionRoot = NULL;
     }
     // clear existing endNodes before copying new ones...
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i=0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -178,7 +178,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
         }
 
         // copy new endNodes...
-        for (int i=0; i < jurisdictionMap->getEndNodeCount(); i++) {
+        for (int i = 0; i < jurisdictionMap->getEndNodeCount(); i++) {
             unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
             if (endNodeCode) {
                 int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
@@ -268,7 +268,7 @@ void OctreeSceneStats::reset() {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -577,7 +577,7 @@ int OctreeSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availab
     }
 
     // clear existing endNodes before copying new ones...
-    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
             delete[] _jurisdictionEndNodes[i];
         }
@@ -624,52 +624,51 @@ int OctreeSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availab
 
 
 void OctreeSceneStats::printDebugDetails() {
-    qDebug("\n------------------------------\n");
-    qDebug("OctreeSceneStats:\n");
-    qDebug("    start    : %llu \n", (long long unsigned int)_start);
-    qDebug("    end      : %llu \n", (long long unsigned int)_end);
-    qDebug("    elapsed  : %llu \n", (long long unsigned int)_elapsed);
-    qDebug("    encoding : %llu \n", (long long unsigned int)_totalEncodeTime);
-    qDebug("\n");
-    qDebug("    full scene: %s\n", debug::valueOf(_isFullScene));
-    qDebug("    moving: %s\n", debug::valueOf(_isMoving));
-    qDebug("\n");
-    qDebug("    packets: %d\n", _packets);
-    qDebug("    bytes  : %ld\n", _bytes);
-    qDebug("\n");
-    qDebug("    total elements      : %lu\n", _totalElements              );
-    qDebug("        internal        : %lu\n", _totalInternal            );
-    qDebug("        leaves          : %lu\n", _totalLeaves              );
-    qDebug("    traversed           : %lu\n", _traversed                );
-    qDebug("        internal        : %lu\n", _internal                 );
-    qDebug("        leaves          : %lu\n", _leaves                   );
-    qDebug("    skipped distance    : %lu\n", _skippedDistance          );
-    qDebug("        internal        : %lu\n", _internalSkippedDistance  );
-    qDebug("        leaves          : %lu\n", _leavesSkippedDistance    );
-    qDebug("    skipped out of view : %lu\n", _skippedOutOfView         );
-    qDebug("        internal        : %lu\n", _internalSkippedOutOfView );
-    qDebug("        leaves          : %lu\n", _leavesSkippedOutOfView   );
-    qDebug("    skipped was in view : %lu\n", _skippedWasInView         );
-    qDebug("        internal        : %lu\n", _internalSkippedWasInView );
-    qDebug("        leaves          : %lu\n", _leavesSkippedWasInView   );
-    qDebug("    skipped no change   : %lu\n", _skippedNoChange          );
-    qDebug("        internal        : %lu\n", _internalSkippedNoChange  );
-    qDebug("        leaves          : %lu\n", _leavesSkippedNoChange    );
-    qDebug("    skipped occluded    : %lu\n", _skippedOccluded          );
-    qDebug("        internal        : %lu\n", _internalSkippedOccluded  );
-    qDebug("        leaves          : %lu\n", _leavesSkippedOccluded    );
-
-    qDebug("\n");
-    qDebug("    color sent          : %lu\n", _colorSent                );
-    qDebug("        internal        : %lu\n", _internalColorSent        );
-    qDebug("        leaves          : %lu\n", _leavesColorSent          );
-    qDebug("    Didn't Fit          : %lu\n", _didntFit                 );
-    qDebug("        internal        : %lu\n", _internalDidntFit         );
-    qDebug("        leaves          : %lu\n", _leavesDidntFit           );
-    qDebug("    color bits          : %lu\n", _colorBitsWritten         );
-    qDebug("    exists bits         : %lu\n", _existsBitsWritten        );
-    qDebug("    in packet bit       : %lu\n", _existsInPacketBitsWritten);
-    qDebug("    trees removed       : %lu\n", _treesRemoved             );
+    qDebug("\n------------------------------");
+    qDebug("OctreeSceneStats:");
+    qDebug("    start    : %llu", (long long unsigned int)_start);
+    qDebug("    end      : %llu", (long long unsigned int)_end);
+    qDebug("    elapsed  : %llu", (long long unsigned int)_elapsed);
+    qDebug("    encoding : %llu", (long long unsigned int)_totalEncodeTime);
+    qDebug();
+    qDebug("    full scene: %s", debug::valueOf(_isFullScene));
+    qDebug("    moving: %s", debug::valueOf(_isMoving));
+    qDebug();
+    qDebug("    packets: %d", _packets);
+    qDebug("    bytes  : %ld", _bytes);
+    qDebug();
+    qDebug("    total elements      : %lu", _totalElements              );
+    qDebug("        internal        : %lu", _totalInternal            );
+    qDebug("        leaves          : %lu", _totalLeaves              );
+    qDebug("    traversed           : %lu", _traversed                );
+    qDebug("        internal        : %lu", _internal                 );
+    qDebug("        leaves          : %lu", _leaves                   );
+    qDebug("    skipped distance    : %lu", _skippedDistance          );
+    qDebug("        internal        : %lu", _internalSkippedDistance  );
+    qDebug("        leaves          : %lu", _leavesSkippedDistance    );
+    qDebug("    skipped out of view : %lu", _skippedOutOfView         );
+    qDebug("        internal        : %lu", _internalSkippedOutOfView );
+    qDebug("        leaves          : %lu", _leavesSkippedOutOfView   );
+    qDebug("    skipped was in view : %lu", _skippedWasInView         );
+    qDebug("        internal        : %lu", _internalSkippedWasInView );
+    qDebug("        leaves          : %lu", _leavesSkippedWasInView   );
+    qDebug("    skipped no change   : %lu", _skippedNoChange          );
+    qDebug("        internal        : %lu", _internalSkippedNoChange  );
+    qDebug("        leaves          : %lu", _leavesSkippedNoChange    );
+    qDebug("    skipped occluded    : %lu", _skippedOccluded          );
+    qDebug("        internal        : %lu", _internalSkippedOccluded  );
+    qDebug("        leaves          : %lu", _leavesSkippedOccluded    );
+    qDebug();
+    qDebug("    color sent          : %lu", _colorSent                );
+    qDebug("        internal        : %lu", _internalColorSent        );
+    qDebug("        leaves          : %lu", _leavesColorSent          );
+    qDebug("    Didn't Fit          : %lu", _didntFit                 );
+    qDebug("        internal        : %lu", _internalDidntFit         );
+    qDebug("        leaves          : %lu", _leavesDidntFit           );
+    qDebug("    color bits          : %lu", _colorBitsWritten         );
+    qDebug("    exists bits         : %lu", _existsBitsWritten        );
+    qDebug("    in packet bit       : %lu", _existsInPacketBitsWritten);
+    qDebug("    trees removed       : %lu", _treesRemoved             );
 }
 
 OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {

@@ -29,8 +29,10 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
     delete _sessions.take(sessionId);
 }
 
+const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
+
 void MetavoxelServer::run() {
-    commonInit("metavoxel-server", NODE_TYPE_METAVOXEL_SERVER);
+    commonInit(METAVOXEL_SERVER_LOGGING_NAME, NODE_TYPE_METAVOXEL_SERVER);
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
@@ -121,7 +123,7 @@ void MetavoxelSession::sendDelta() {
 }
 
 void MetavoxelSession::timedOut() {
-    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]\n";
+    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]";
     _server->removeSession(_sessionId);
 }
 

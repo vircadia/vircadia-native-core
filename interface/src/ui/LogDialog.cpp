@@ -111,11 +111,11 @@ void LogDialog::resizeEvent(QResizeEvent*) {
 
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
-        pthread_mutex_lock(& _mutex);
+        _mutex.lock();
         if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
             _logTextBox->appendPlainText(logLine.simplified());
         }
-        pthread_mutex_unlock(& _mutex);
+        _mutex.unlock();
         _logTextBox->ensureCursorVisible();
     }
 }
@@ -140,13 +140,12 @@ void LogDialog::handleSearchTextChanged(const QString searchText) {
 
 void LogDialog::showLogData() {
     _logTextBox->clear();
-    pthread_mutex_lock(& _mutex);
+    _mutex.lock();
     QStringList _logData = _logger->getLogData();
     for (int i = 0; i < _logData.size(); ++i) {
         appendLogLine(_logData[i]);
     }
-
-    pthread_mutex_unlock(& _mutex);
+    _mutex.unlock();
 }
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {

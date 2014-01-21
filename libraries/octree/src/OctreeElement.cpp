@@ -246,23 +246,25 @@ void OctreeElement::auditChildren(const char* label) const {
 
     const bool alwaysReport = false; // set this to true to get additional debugging
     if (alwaysReport || auditFailed) {
-        qDebug("%s... auditChildren() %s <<<< \n", label, (auditFailed ? "FAILED" : "PASSED"));
-        qDebug("    _childrenExternal=%s\n", debug::valueOf(_childrenExternal));
-        qDebug("    childCount=%d\n", getChildCount());
-        qDebug("    _childBitmask=");
-        outputBits(_childBitmask);
+        qDebug("%s... auditChildren() %s <<<<", label, (auditFailed ? "FAILED" : "PASSED"));
+        qDebug("    _childrenExternal=%s", debug::valueOf(_childrenExternal));
+        qDebug("    childCount=%d", getChildCount());
+
+        QDebug bitOutput = qDebug().nospace();
+        bitOutput << "    _childBitmask=";
+        outputBits(_childBitmask, bitOutput);
 
 
         for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
             OctreeElement* testChildNew = getChildAtIndex(childIndex);
             OctreeElement* testChildOld = _childrenArray[childIndex];
 
-            qDebug("child at index %d... testChildOld=%p testChildNew=%p %s \n",
+            qDebug("child at index %d... testChildOld=%p testChildNew=%p %s",
                     childIndex, testChildOld, testChildNew ,
                     ((testChildNew != testChildOld) ? " DOES NOT MATCH <<<< BAD <<<<" : " - OK ")
             );
         }
-        qDebug("%s... auditChildren() <<<< DONE <<<< \n", label);
+        qDebug("%s... auditChildren() <<<< DONE <<<<", label);
     }
 }
 #endif // def HAS_AUDIT_CHILDREN
@@ -410,7 +412,8 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                         if (externalIndex < childCount && externalIndex >= 0) {
                             result = _children.external[externalIndex];
                         } else {
-                            qDebug("getChildAtIndex() attempt to access external client out of bounds externalIndex=%d <<<<<<<<<< WARNING!!! \n",externalIndex);
+                            qDebug("getChildAtIndex() attempt to access external client out of "
+                                "bounds externalIndex=%d <<<<<<<<<< WARNING!!!", externalIndex);
                         }
                         break;
                     }
@@ -420,7 +423,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
     }
 #ifdef HAS_AUDIT_CHILDREN
     if (result != _childrenArray[childIndex]) {
-        qDebug("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!! \n",
+        qDebug("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!!",
             caseStr, result,_childrenArray[childIndex]);
     }
 #endif // def HAS_AUDIT_CHILDREN
@@ -1083,7 +1086,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
     } else {
         //assert(false);
-        qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
+        qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d",previousChildCount, newChildCount);
     }
 
     // check to see if we could store these 4 children locally
@@ -1123,7 +1126,7 @@ OctreeElement* OctreeElement::addChildAtIndex(int childIndex) {
 bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
     bool deleteApproved = false;
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return deleteApproved;
     }
     OctreeElement* childToDelete = getChildAtIndex(childIndex);
@@ -1162,13 +1165,17 @@ void OctreeElement::printDebugDetails(const char* label) const {
             setAtBit(childBits,i);
         }
     }
+    
+    QDebug elementDebug = qDebug().nospace();
 
-    qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
-        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
-        debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
+    QString resultString;
+    resultString.sprintf("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
+                         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
+                         debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
+    elementDebug << resultString;
 
-    outputBits(childBits, false);
-    qDebug("\n octalCode=");
+    outputBits(childBits, &elementDebug);
+    qDebug("octalCode=");
     printOctalCode(getOctalCode());
 }
 
@@ -1251,7 +1258,7 @@ void OctreeElement::addDeleteHook(OctreeElementDeleteHook* hook) {
 
 void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
     _deleteHooksLock.lockForWrite();
-    for (int i = 0; i < _deleteHooks.size(); i++) {
+    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
         if (_deleteHooks[i] == hook) {
             _deleteHooks.erase(_deleteHooks.begin() + i);
             break;
@@ -1262,7 +1269,7 @@ void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
 
 void OctreeElement::notifyDeleteHooks() {
     _deleteHooksLock.lockForRead();
-    for (int i = 0; i < _deleteHooks.size(); i++) {
+    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
         _deleteHooks[i]->elementDeleted(this);
     }
     _deleteHooksLock.unlock();
@@ -1275,7 +1282,7 @@ void OctreeElement::addUpdateHook(OctreeElementUpdateHook* hook) {
 }
 
 void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
-    for (int i = 0; i < _updateHooks.size(); i++) {
+    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
         if (_updateHooks[i] == hook) {
             _updateHooks.erase(_updateHooks.begin() + i);
             return;
@@ -1284,7 +1291,7 @@ void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
 }
 
 void OctreeElement::notifyUpdateHooks() {
-    for (int i = 0; i < _updateHooks.size(); i++) {
+    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
         _updateHooks[i]->elementUpdated(this);
     }
 }

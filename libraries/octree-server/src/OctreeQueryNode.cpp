@@ -158,13 +158,13 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
-    delete[] _octreePacket;
-    delete[] _lastOctreePacket;
-
     if (_octreeSendThread) {
         _octreeSendThread->terminate();
-        delete _octreeSendThread;
+        _octreeSendThread->deleteLater();
     }
+
+    delete[] _octreePacket;
+    delete[] _lastOctreePacket;
 }
 
 bool OctreeQueryNode::updateCurrentViewFrustum() {

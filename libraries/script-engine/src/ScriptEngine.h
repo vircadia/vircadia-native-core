@@ -57,7 +57,9 @@ public slots:
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
+    void scriptEnding();
     void finished();
+
 protected:
     QString _scriptContents;
     bool _isFinished;

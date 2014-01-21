@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <sstream>
+
 #include <QFormLayout>
 #include <QDialogButtonBox>
 
@@ -241,9 +243,10 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                                                 NodeToJurisdictionMap& serverJurisdictions) {
                                                 
     QLocale locale(QLocale::English);
-
+    
     NodeList* nodeList = NodeList::getInstance();
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
@@ -261,8 +264,8 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
             std::stringstream serverDetails("");
             std::stringstream extraDetails("");
             std::stringstream linkDetails("");
-        
-            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+            
+            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
                 serverDetails << "active ";
             } else {
                 serverDetails << "inactive ";
@@ -270,29 +273,29 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
             
             QUuid nodeUUID = node->getUUID();
             
-            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
+            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
             // missing at least one jurisdiction
             if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
                 serverDetails << " unknown jurisdiction ";
             } else {
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-            
+                
                 if (rootCode) {
                     QString rootCodeHex = octalCodeToHexString(rootCode);
-
+                    
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-                    serverDetails << " jurisdiction: " 
-                        << rootCodeHex.toLocal8Bit().constData()
-                        << " [" 
-                        << rootDetails.x << ", "
-                        << rootDetails.y << ", "
-                        << rootDetails.z << ": "
-                        << rootDetails.s << "] ";
+                    serverDetails << " jurisdiction: "
+                    << rootCodeHex.toLocal8Bit().constData()
+                    << " ["
+                    << rootDetails.x << ", "
+                    << rootDetails.y << ", "
+                    << rootDetails.z << ": "
+                    << rootDetails.s << "] ";
                 } else {
                     serverDetails << " jurisdiction has no rootCode";
                 } // root code
@@ -304,7 +307,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                 NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getOcteeSceneStats();
                 if (sceneStats->find(nodeUUID) != sceneStats->end()) {
                     VoxelSceneStats& stats = sceneStats->at(nodeUUID);
-
+                    
                     switch (_extraServerDetails[serverCount-1]) {
                         case MOST: {
                             extraDetails << "<br/>" ;
@@ -312,14 +315,14 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                             const unsigned long USECS_PER_MSEC = 1000;
                             float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
                             float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
-
+                            
                             QString lastFullEncodeString = locale.toString(lastFullEncode);
                             QString lastFullSendString = locale.toString(lastFullSend);
-
-                            extraDetails << "<br/>" << "Last Full Scene... " << 
-                                "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " << 
-                                "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
-                    
+                            
+                            extraDetails << "<br/>" << "Last Full Scene... " <<
+                            "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " <<
+                            "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
+                            
                             for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
                                 VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
                                 VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
@@ -330,44 +333,44 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                             QString totalString = locale.toString((uint)stats.getTotalElements());
                             QString internalString = locale.toString((uint)stats.getTotalInternal());
                             QString leavesString = locale.toString((uint)stats.getTotalLeaves());
-
+                            
                             serverDetails << "<br/>" << "Node UUID: " <<
-                                    nodeUUID.toString().toLocal8Bit().constData() << " ";
-
+                            nodeUUID.toString().toLocal8Bit().constData() << " ";
+                            
                             serverDetails << "<br/>" << "Voxels: " <<
-                                totalString.toLocal8Bit().constData() << " total " << 
-                                internalString.toLocal8Bit().constData() << " internal " <<
-                                leavesString.toLocal8Bit().constData() << " leaves ";
-
+                            totalString.toLocal8Bit().constData() << " total " <<
+                            internalString.toLocal8Bit().constData() << " internal " <<
+                            leavesString.toLocal8Bit().constData() << " leaves ";
+                            
                             QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
                             QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
                             QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
                             QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
                             QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
-
+                            
                             int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);
-                
+                            
                             serverDetails << "<br/>" << "Incoming Packets: " <<
-                                incomingPacketsString.toLocal8Bit().constData() << 
-                                " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
-                                " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
-
+                            incomingPacketsString.toLocal8Bit().constData() <<
+                            " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
+                            " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
+                            
                             serverDetails << "<br/>" <<
-                                " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
-
-                            serverDetails << "<br/>" << 
-                                " Average Ping Time: " << incomingPingTimeString.toLocal8Bit().constData() << " msecs";
-
-                            serverDetails << "<br/>" << 
-                                " Average Clock Skew: " << incomingClockSkewString.toLocal8Bit().constData() << " msecs";
-                    
+                            " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
+                            
+                            serverDetails << "<br/>" <<
+                            " Average Ping Time: " << incomingPingTimeString.toLocal8Bit().constData() << " msecs";
+                            
+                            serverDetails << "<br/>" <<
+                            " Average Clock Skew: " << incomingClockSkewString.toLocal8Bit().constData() << " msecs";
+                            
                             serverDetails << "<br/>" << "Incoming" <<
-                                " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
-                                " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
-
+                            " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
+                            " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
+                            
                             serverDetails << extraDetails.str();
                             if (_extraServerDetails[serverCount-1] == MORE) {
                                 linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
@@ -376,7 +379,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
                                 linkDetails << "   " << " [<a href='more-" << serverCount << "'>less...</a>]";
                                 linkDetails << "   " << " [<a href='less-" << serverCount << "'>least...</a>]";
                             }
-                    
+                            
                         } break;
                         case LESS: {
                             // nothing
@@ -391,7 +394,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
             serverDetails << linkDetails.str();
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
-    } // Node Loop
+    }
 }
 
 void VoxelStatsDialog::reject() {

@@ -36,6 +36,12 @@ Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
     }
 }
 
+#ifdef WIN32
+//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
+// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
+#pragma warning(disable:4351) 
+#endif
+
 Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
@@ -106,6 +112,11 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
 }
 
+#ifdef WIN32
+#pragma warning(default:4351) 
+#endif
+
+
 Assignment::Assignment(const Assignment& otherAssignment) {
     
     _uuid = otherAssignment._uuid;
@@ -149,7 +160,7 @@ void Assignment::swap(Assignment& otherAssignment) {
 void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     if (numBytes > MAX_PAYLOAD_BYTES) {
-        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
+        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.",
                MAX_PAYLOAD_BYTES,
                MAX_PAYLOAD_BYTES);
         

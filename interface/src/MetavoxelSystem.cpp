@@ -26,10 +26,6 @@ MetavoxelSystem::MetavoxelSystem() :
     _buffer(QOpenGLBuffer::VertexBuffer) {
 }
 
-MetavoxelSystem::~MetavoxelSystem() {
-    NodeList::getInstance()->removeHook(this);
-}
-
 void MetavoxelSystem::init() {
     if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();
@@ -39,7 +35,10 @@ void MetavoxelSystem::init() {
         _pointScaleLocation = _program.uniformLocation("pointScale");
     }
     
-    NodeList::getInstance()->addHook(this);
+    NodeList* nodeList = NodeList::getInstance();
+    
+    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     
     AttributeRegistry::getInstance()->configureScriptEngine(&_scriptEngine);
     
@@ -117,14 +116,14 @@ void MetavoxelSystem::render() {
     _program.release();
 }
 
-void MetavoxelSystem::nodeAdded(Node* node) {
+void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
         QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
             Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
     }
 }
 
-void MetavoxelSystem::nodeKilled(Node* node) {
+void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
         QMetaObject::invokeMethod(this, "removeClient", Q_ARG(const QUuid&, node->getUUID()));
     }

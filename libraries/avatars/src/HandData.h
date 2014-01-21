@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "SharedUtil.h"
+
 class AvatarData;
 class FingerData;
 class PalmData;
@@ -35,6 +37,9 @@ const int BUTTON_FWD = 128;
 
 const float LEAP_UNIT_SCALE = 0.001f; ///< convert mm to meters
 
+const int SIXENSE_CONTROLLER_ID_LEFT_HAND = 0;
+const int SIXENSE_CONTROLLER_ID_RIGHT_HAND = 1;
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
@@ -45,16 +50,17 @@ public:
 
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        return _basePosition + _baseOrientation * (leapPosition * LEAP_UNIT_SCALE);
+        return getBasePosition() + getBaseOrientation() * (leapPosition * LEAP_UNIT_SCALE);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {
-        return glm::normalize(_baseOrientation * leapDirection);
+        return getBaseOrientation() * leapDirection;
     }
     glm::vec3 worldPositionToLeapPosition(const glm::vec3& worldPosition) const;
     glm::vec3 worldVectorToLeapVector(const glm::vec3& worldVector) const;
 
     std::vector<PalmData>& getPalms() { return _palms; }
     const std::vector<PalmData>& getPalms() const { return _palms; }
+    const PalmData* getPalm(int sixSenseID) const;
     size_t getNumPalms() const { return _palms.size(); }
     PalmData& addNewPalm();
 
@@ -80,10 +86,12 @@ public:
 
     friend class AvatarData;
 protected:
-    glm::vec3              _basePosition;      // Hands are placed relative to this
-    glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
+    
+    glm::quat getBaseOrientation() const;
+    glm::vec3 getBasePosition() const;
+    
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
@@ -189,6 +197,12 @@ public:
     bool getIsCollidingWithPalm() const { return _isCollidingWithPalm; }
     void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
 
+    bool hasPaddle() const { return _collisionlessPaddleExpiry < usecTimestampNow(); }
+    void updateCollisionlessPaddleExpiry() { _collisionlessPaddleExpiry = usecTimestampNow() + USECS_PER_SECOND; }
+
+    /// Store position where the palm holds the ball.
+    void getBallHoldPosition(glm::vec3& position) const;
+
 private:
     std::vector<FingerData> _fingers;
     glm::quat _rawRotation;
@@ -213,7 +227,7 @@ private:
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
     bool      _isCollidingWithPalm;
-    
+    uint64_t  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
 #endif /* defined(__hifi__HandData__) */

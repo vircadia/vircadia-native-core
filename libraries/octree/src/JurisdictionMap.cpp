@@ -58,7 +58,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
         *rootCode = 0;
     }
     
-    for (int i = 0; i < endNodesIn.size(); i++) {
+    for (size_t i = 0; i < endNodesIn.size(); i++) {
         if (endNodesIn[i]) {
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
             unsigned char* endNodeCode = new unsigned char[bytes];
@@ -84,7 +84,7 @@ void JurisdictionMap::clear() {
         _rootOctalCode = NULL;
     }
     
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         if (_endNodes[i]) {
             delete[] _endNodes[i];
         }
@@ -145,7 +145,7 @@ void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
 
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
 
-    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)\n",
+    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)",
         rootHexCode, rootHexCode, endNodesHexCodes, endNodesHexCodes);
 
     _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
@@ -162,7 +162,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
         unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
         
-        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s\n",
+        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
             i, endNodeHexString.toLocal8Bit().constData());
         
         //printOctalCode(endNodeOctcode);
@@ -193,7 +193,7 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nod
     bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
     // if we're under the root, then we can't be under any of the endpoints
     if (isInJurisdiction) {
-        for (int i = 0; i < _endNodes.size(); i++) {
+        for (size_t i = 0; i < _endNodes.size(); i++) {
             bool isUnderEndNode = isAncestorOf(_endNodes[i], nodeOctalCode);
             if (isUnderEndNode) {
                 isInJurisdiction = false;
@@ -209,7 +209,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
     QString     rootCode = settings.value("root","00").toString();
-    qDebug() << "rootCode=" << rootCode << "\n";
+    qDebug() << "rootCode=" << rootCode;
 
     _rootOctalCode = hexStringToOctalCode(rootCode);
     printOctalCode(_rootOctalCode);
@@ -220,7 +220,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     foreach (const QString &childKey, childKeys) {
         QString childValue = settings.value(childKey).toString();
         values.insert(childKey, childValue);
-        qDebug() << childKey << "=" << childValue << "\n";
+        qDebug() << childKey << "=" << childValue;
 
         unsigned char* octcode = hexStringToOctalCode(childValue);
         printOctalCode(octcode);
@@ -234,11 +234,11 @@ bool JurisdictionMap::readFromFile(const char* filename) {
 void JurisdictionMap::displayDebugDetails() const {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
-    qDebug() << "root:" << rootNodeValue << "\n";
+    qDebug() << "root:" << rootNodeValue;
     
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         QString value = octalCodeToHexString(_endNodes[i]);
-        qDebug() << "End node[" << i << "]: " << rootNodeValue << "\n";
+        qDebug() << "End node[" << i << "]: " << rootNodeValue;
     }
 }
 
@@ -253,7 +253,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     settings.setValue("root", rootNodeValue);
     
     settings.beginGroup("endNodes");
-    for (int i = 0; i < _endNodes.size(); i++) {
+    for (size_t i = 0; i < _endNodes.size(); i++) {
         QString key = QString("endnode%1").arg(i);
         QString value = octalCodeToHexString(_endNodes[i]);
         settings.setValue(key, value);
