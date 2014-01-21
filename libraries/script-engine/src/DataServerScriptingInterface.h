@@ -17,6 +17,8 @@ class DataServerScriptingInterface : public QObject {
     Q_OBJECT
 public:
     DataServerScriptingInterface();
+    
+    void refreshUUID() { _uuid = QUuid::createUuid(); }
 public slots:
     void setValueForKey(const QString& key, const QString& value);
 private:

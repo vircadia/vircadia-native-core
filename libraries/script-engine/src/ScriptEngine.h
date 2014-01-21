@@ -22,6 +22,7 @@
 class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
+#include "DataServerScriptingInterface.h"
 
 const QString NO_SCRIPT("");
 
@@ -61,6 +62,8 @@ signals:
     void finished();
 
 protected:
+    void preEvaluateReset();
+    
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
@@ -72,6 +75,7 @@ private:
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
+    DataServerScriptingInterface _dataServerScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;
     AbstractMenuInterface* _menu;

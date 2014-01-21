@@ -119,6 +119,8 @@ void ScriptEngine::init() {
 
     QScriptValue audioScriptingInterfaceValue = _engine.newQObject(&_audioScriptingInterface);
     _engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
+    
+    registerGlobalObject("Data", &_dataServerScriptingInterface);
 
     if (_controllerScriptingInterface) {
         QScriptValue controllerScripterValue =  _engine.newQObject(_controllerScriptingInterface);
@@ -138,6 +140,10 @@ void ScriptEngine::init() {
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     QScriptValue value = _engine.newQObject(object);
     _engine.globalObject().setProperty(name, value);
+}
+
+void ScriptEngine::preEvaluateReset() {
+    _dataServerScriptingInterface.refreshUUID();
 }
 
 void ScriptEngine::evaluate() {
