@@ -66,7 +66,6 @@
 #include "ui/LogDialog.h"
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
-#include "ParticleEditHandle.h"
 #include "ControllerScriptingInterface.h"
 
 
@@ -122,11 +121,6 @@ public:
     void updateWindowTitle();
 
     void wheelEvent(QWheelEvent* event);
-
-    void shootParticle(); // shoots a particle in the direction you're looking
-    ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
-    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
-            glm::vec3 gravity, float damping, float lifetime, bool inHand, QString updateScript);
 
     void makeVoxel(glm::vec3 position,
                    float scale,
