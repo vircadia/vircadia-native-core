@@ -36,6 +36,7 @@
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
+#include <QObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -4402,16 +4403,12 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 }
 
 void Application::checkVersion() {
-    qDebug() << "################### in check version";
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _latestVersionReply = Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest);
-    
-    connect(_latestVersionReply, SIGNAL(finished()), SLOT(parseVersionXml()));
+    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
 }
 
 void Application::parseVersionXml() {
-    qDebug() << "################### in parse version xml";
     
     #ifdef Q_OS_WIN32
     QString operatingSystem("win");
@@ -4430,7 +4427,7 @@ void Application::parseVersionXml() {
     QString latestVersion;
     QUrl downloadUrl;
     
-    QXmlStreamReader xml(_latestVersionReply);
+    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(QObject::sender()));
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
@@ -4453,12 +4450,9 @@ void Application::parseVersionXml() {
             }
         }
     }
-    
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
         new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }
-    
-    delete _latestVersionReply;
 }
 
 bool Application::shouldSkipVersion(QString latestVersion) {

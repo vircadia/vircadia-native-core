@@ -208,7 +208,6 @@ public:
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
     
-    QUrl _downloadUrl;
     void skipVersion(QString latestVersion);
 
 public slots:
@@ -512,7 +511,6 @@ private:
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
-    QNetworkReply* _latestVersionReply;
 };
 
 #endif /* defined(__interface__Application__) */

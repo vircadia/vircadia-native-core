@@ -20,10 +20,9 @@
 #include "UpdateDialog.h"
 
 UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL) :
-    QWidget(parent, Qt::Widget) {
-    
-    _latestVersion = latestVersion;
-    _downloadUrl = downloadURL;
+    QWidget(parent, Qt::Widget),
+    _latestVersion(latestVersion),
+    _downloadUrl(downloadURL) {
     
     QUiLoader updateDialogLoader;
     QWidget* updateDialog;
@@ -36,7 +35,7 @@ UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const Q
                                       .arg(Application::getInstance()->applicationVersion(), latestVersion);
     
     
-    setAttribute(Qt::WA_DeleteOnClose);
+    updateDialog->setAttribute(Qt::WA_DeleteOnClose);
     
     QPushButton* downloadButton = updateDialog->findChild<QPushButton*>("downloadButton");
     QPushButton* skipButton = updateDialog->findChild<QPushButton*>("skipButton");
