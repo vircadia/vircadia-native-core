@@ -32,7 +32,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
     // we need to iterate the actual particles of the element
     ParticleTreeElement* particleTreeElement = (ParticleTreeElement*)element;
     
-    const std::vector<Particle>& particles = particleTreeElement->getParticles();
+    const QList<Particle>& particles = particleTreeElement->getParticles();
     
     uint16_t numberOfParticles = particles.size();
     

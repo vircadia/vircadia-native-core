@@ -213,7 +213,7 @@ public:
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
-    void update();
+    void update(const uint64_t& now);
     void collisionWithParticle(Particle* other);
     void collisionWithVoxel(VoxelDetail* voxel);
 
