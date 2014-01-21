@@ -17,6 +17,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QStringList>
 #include <QPointer>
 
 #include <NetworkPacket.h>
@@ -104,7 +105,10 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
+    void loadScript(const QString& fileNameString);    
+    void loadScripts();
     void storeSizeAndPosition();
+    void saveScripts();
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
@@ -225,7 +229,7 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void loadScript();
+    void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
 
@@ -255,6 +259,8 @@ private slots:
     void resetSensors();
     
     void parseVersionXml();
+
+    void removeScriptName(const QString& fileNameString);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -379,6 +385,7 @@ private:
     Faceshift _faceshift;
 
     SixenseManager _sixenseManager;
+    QStringList _activeScripts;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode

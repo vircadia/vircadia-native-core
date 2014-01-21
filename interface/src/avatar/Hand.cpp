@@ -262,15 +262,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     
     if (isMine) {
         _buckyBalls.simulate(deltaTime);
-    }
-    
-    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
-    
-    Head& head = _owningAvatar->getHead();
-    _baseOrientation = _owningAvatar->getOrientation();
-    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
-    
-    if (isMine) {
         updateCollisions();
     }
     
@@ -465,7 +456,7 @@ void Hand::calculateGeometry() {
                     const float standardBallRadius = FINGERTIP_COLLISION_RADIUS;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
-                    ball.rotation = _baseOrientation;
+                    ball.rotation = getBaseOrientation();
                     ball.position = finger.getTipPosition();
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
@@ -487,7 +478,7 @@ void Hand::calculateGeometry() {
                     const float standardBallRadius = 0.005f;
                     _leapFingerRootBalls.resize(_leapFingerRootBalls.size() + 1);
                     HandBall& ball = _leapFingerRootBalls.back();
-                    ball.rotation = _baseOrientation;
+                    ball.rotation = getBaseOrientation();
                     ball.position = finger.getRootPosition();
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;

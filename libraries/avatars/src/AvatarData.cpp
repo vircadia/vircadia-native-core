@@ -44,6 +44,15 @@ AvatarData::~AvatarData() {
     delete _handData;
 }
 
+glm::vec3 AvatarData::getHandPosition() const {
+    return getOrientation() * _handPosition + _position;
+}
+
+void AvatarData::setHandPosition(const glm::vec3& handPosition) {
+    // store relative to position/orientation
+    _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
+}
+
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     

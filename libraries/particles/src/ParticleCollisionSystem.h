@@ -16,6 +16,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
@@ -46,8 +47,7 @@ public:
     void updateCollisionWithVoxels(Particle* particle);
     void updateCollisionWithParticles(Particle* particle);
     void updateCollisionWithAvatars(Particle* particle);
-    void applyHardCollision(Particle* particle, const glm::vec3& penetration, float elasticity, float damping, 
-                            const glm::vec3& addedVelocity = NO_ADDED_VELOCITY);
+    void applyHardCollision(Particle* particle, float elasticity, float damping, const CollisionInfo& collisionInfo);
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
 private:
