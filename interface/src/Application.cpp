@@ -33,8 +33,10 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
+#include <QObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -43,6 +45,8 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QXmlStreamReader>
+#include <QXmlStreamAttributes>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -90,6 +94,9 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+
+const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
+const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     QString messageWithNewLine = message + "\n";
@@ -160,8 +167,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
-
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -195,9 +200,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     applicationInfo.beginGroup("INFO");
 
     setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
+    setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _settings = new QSettings(this);
 
@@ -256,7 +263,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-
+    
+    checkVersion();
 }
 
 Application::~Application() {
@@ -1385,6 +1393,7 @@ void Application::idle() {
         }
     }
 }
+
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
@@ -3960,7 +3969,7 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
-    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
+    QString buildVersion = " (build " + applicationVersion() + ")";
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
         title += _profile.getUsername();
@@ -4346,7 +4355,6 @@ void Application::toggleLogDialog() {
     }
 }
 
-
 void Application::initAvatarAndViewFrustum() {
     updateAvatar(0.f);
 }
@@ -4392,4 +4400,73 @@ void Application::updateLocalOctreeCache(bool firstTime) {
             _persistThread->initialize(true);
         }
     }
+}
+
+void Application::checkVersion() {
+    QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
+    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+}
+
+void Application::parseVersionXml() {
+    
+    #ifdef Q_OS_WIN32
+    QString operatingSystem("win");
+    #endif
+    
+    #ifdef Q_OS_MAC
+    QString operatingSystem("mac");
+    #endif
+    
+    #ifdef Q_OS_LINUX
+    QString operatingSystem("ubuntu");
+    #endif
+    
+    QString releaseDate;
+    QString releaseNotes;
+    QString latestVersion;
+    QUrl downloadUrl;
+    QObject* sender = QObject::sender();
+    
+    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    while (!xml.atEnd() && !xml.hasError()) {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            if (xml.name() == "ReleaseDate") {
+                xml.readNext();
+                releaseDate = xml.text().toString();
+            }
+            if (xml.name() == "ReleaseNotes") {
+                xml.readNext();
+                releaseNotes = xml.text().toString();
+            }
+            if (xml.name() == "Version") {
+                xml.readNext();
+                latestVersion = xml.text().toString();
+            }
+            if (xml.name() == operatingSystem) {
+                xml.readNext();
+                downloadUrl = QUrl(xml.text().toString());
+            }
+        }
+    }
+    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
+        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+    }
+    sender->deleteLater();
+}
+
+bool Application::shouldSkipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::ReadWrite);
+    QString skipVersion(skipFile.readAll());
+    return (skipVersion == latestVersion || applicationVersion() == "dev");
+}
+
+void Application::skipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    skipFile.seek(0);
+    skipFile.write(latestVersion.toStdString().c_str());
 }
