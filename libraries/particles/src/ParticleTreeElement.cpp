@@ -11,12 +11,14 @@
 #include "ParticleTree.h"
 #include "ParticleTreeElement.h"
 
-ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeElement() { 
+ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeElement(), _particles(NULL) { 
     init(octalCode);
 };
 
 ParticleTreeElement::~ParticleTreeElement() {
     _voxelMemoryUsage -= sizeof(ParticleTreeElement);
+    delete _particles;
+    _particles = NULL;
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
@@ -31,6 +33,7 @@ OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) c
 
 void ParticleTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
+    _particles = new QList<Particle>;
     _voxelMemoryUsage += sizeof(ParticleTreeElement);
 }
 
@@ -45,12 +48,12 @@ bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const 
     bool success = true; // assume the best...
 
     // write our particles out...
-    uint16_t numberOfParticles = _particles.size();
+    uint16_t numberOfParticles = _particles->size();
     success = packetData->appendValue(numberOfParticles);
 
     if (success) {
         for (uint16_t i = 0; i < numberOfParticles; i++) {
-            const Particle& particle = _particles[i];
+            const Particle& particle = (*_particles)[i];
             success = particle.appendParticleData(packetData);
             if (!success) {
                 break;
@@ -62,35 +65,42 @@ bool ParticleTreeElement::appendElementData(OctreePacketData* packetData) const 
 
 void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     markWithChangedTime();
+    // TODO: early exit when _particles is empty
 
     // update our contained particles
-    uint16_t numberOfParticles = _particles.size();
-
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        _particles[i].update();
+    QList<Particle>::iterator particleItr = _particles->begin();
+    while(particleItr != _particles->end()) {
+        Particle& particle = (*particleItr);
+        particle.update(_lastChanged);
 
         // If the particle wants to die, or if it's left our bounding box, then move it
         // into the arguments moving particles. These will be added back or deleted completely
-        if (_particles[i].getShouldDie() || !_box.contains(_particles[i].getPosition())) {
-            args._movingParticles.push_back(_particles[i]);
+        if (particle.getShouldDie() || !_box.contains(particle.getPosition())) {
+            args._movingParticles.push_back(particle);
             
             // erase this particle
-            _particles.erase(_particles.begin()+i);
-            
-            // reduce our index since we just removed this item
-            i--;
-            numberOfParticles--;
+            particleItr = _particles->erase(particleItr);
+        }
+        else
+        {
+            ++particleItr;
         }
     }
+    // TODO: if _particles is empty after while loop consider freeing memory in _particles if
+    // internal array is too big (QList internal array does not decrease size except in dtor and
+    // assignment operator).  Otherwise _particles could become a "resource leak" for large
+    // roaming piles of particles.
 }
 
 bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius, 
                                     glm::vec3& penetration, void** penetratedObject) const {
                                     
-    uint16_t numberOfParticles = _particles.size();
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        glm::vec3 particleCenter = _particles[i].getPosition();
-        float particleRadius = _particles[i].getRadius();
+    QList<Particle>::iterator particleItr = _particles->begin();
+    QList<Particle>::const_iterator particleEnd = _particles->end();
+    while(particleItr != particleEnd) {
+        Particle& particle = (*particleItr);
+        glm::vec3 particleCenter = particle.getPosition();
+        float particleRadius = particle.getRadius();
         
         // don't penetrate yourself
         if (particleCenter == center && particleRadius == radius) {
@@ -102,23 +112,28 @@ bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float r
         const bool IN_HAND_PARTICLES_DONT_COLLIDE = false;
         if (IN_HAND_PARTICLES_DONT_COLLIDE) {
             // don't penetrate if the particle is "inHand" -- they don't collide
-            if (_particles[i].getInHand()) {
-                return false;
+            if (particle.getInHand()) {
+                ++particleItr;
+                continue;
             }
         }
         
         if (findSphereSpherePenetration(center, radius, particleCenter, particleRadius, penetration)) {
-            *penetratedObject = (void*)&_particles[i];
+            // return true on first valid particle penetration
+            *penetratedObject = (void*)(&particle);
             return true;
         }
+        ++particleItr;
     }
     return false;
 }
 
 bool ParticleTreeElement::containsParticle(const Particle& particle) const {
-    uint16_t numberOfParticles = _particles.size();
+    // TODO: remove this method and force callers to use getParticleWithID() instead
+    uint16_t numberOfParticles = _particles->size();
+    uint32_t particleID = particle.getID();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if (_particles[i].getID() == particle.getID()) {
+        if ((*_particles)[i].getID() == particleID) {
             return true;
         }
     }
@@ -126,13 +141,17 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
+    // NOTE: this method must first lookup the particle by ID, hence it is O(N) 
+    // and "particle is not found" is worst-case (full N) but maybe we don't care? 
+    // (guaranteed that num particles per elemen is small?)
     const bool wantDebug = false;
-    uint16_t numberOfParticles = _particles.size();
+    uint16_t numberOfParticles = _particles->size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if (_particles[i].getID() == particle.getID()) {
-            int difference = _particles[i].getLastUpdated() - particle.getLastUpdated();
-            bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
-            bool localOlder = _particles[i].getLastUpdated() < particle.getLastUpdated();
+        Particle& thisParticle = (*_particles)[i];
+        if (thisParticle.getID() == particle.getID()) {
+            int difference = thisParticle.getLastUpdated() - particle.getLastUpdated();
+            bool changedOnServer = thisParticle.getLastEdited() < particle.getLastEdited();
+            bool localOlder = thisParticle.getLastUpdated() < particle.getLastUpdated();
             if (changedOnServer || localOlder) {                
                 if (wantDebug) {
                     printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
@@ -140,7 +159,7 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
                             (localOlder ? "OLDER" : "NEWER"),               
                             difference, debug::valueOf(particle.isNewlyCreated()) );
                 }
-                _particles[i].copyChangedProperties(particle);
+                thisParticle.copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
                     printf(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
@@ -159,22 +178,23 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
 const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {
     const Particle* closestParticle = NULL;
     float closestParticleDistance = FLT_MAX;
-    uint16_t numberOfParticles = _particles.size();
+    uint16_t numberOfParticles = _particles->size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
-        float distanceToParticle = glm::distance(position, _particles[i].getPosition());
+        float distanceToParticle = glm::distance(position, (*_particles)[i].getPosition());
         if (distanceToParticle < closestParticleDistance) {
-            closestParticle = &_particles[i];
+            closestParticle = &(*_particles)[i];
         }
     }
     return closestParticle;    
 }
 
 const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
+    // NOTE: this lookup is O(N) but maybe we don't care? (guaranteed that num particles per elemen is small?)
     const Particle* foundParticle = NULL;
-    uint16_t numberOfParticles = _particles.size();
+    uint16_t numberOfParticles = _particles->size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if (_particles[i].getID() == id) {
-            foundParticle = &_particles[i];
+        if ((*_particles)[i].getID() == id) {
+            foundParticle = &(*_particles)[i];
             break;
         }
     }
@@ -229,7 +249,7 @@ bool ParticleTreeElement::collapseChildren() {
 
 
 void ParticleTreeElement::storeParticle(const Particle& particle, Node* senderNode) {
-    _particles.push_back(particle);
+    _particles->push_back(particle);
     markWithChangedTime();
 }
 
