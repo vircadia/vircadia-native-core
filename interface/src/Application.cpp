@@ -2006,7 +2006,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        QMutexLocker(&node->getMutex());
+        QMutexLocker locker(&node->getMutex());
         if (node->getLinkedData()) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
@@ -3659,7 +3659,7 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         NodeList* nodeList = NodeList::getInstance();
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            QMutexLocker(&node->getMutex());
+            QMutexLocker locker(&node->getMutex());
 
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();

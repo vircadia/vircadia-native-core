@@ -28,6 +28,9 @@ target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
+# link in the embedded webserver
+link_hifi_library(embedded-webserver ${TARGET_NAME} ${ROOT_DIR})
+
 # link in the hifi octree library
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree-server ${TARGET_NAME} ${ROOT_DIR})
