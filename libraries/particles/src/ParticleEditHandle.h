@@ -45,7 +45,6 @@ private:
     uint32_t _creatorTokenID;
     uint32_t _id;
     bool _isKnownID;
-    static uint32_t _nextCreatorTokenID;
     static std::map<uint32_t,ParticleEditHandle*> _allHandles;
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _localTree;

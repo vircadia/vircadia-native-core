@@ -25,26 +25,21 @@ class VoxelEditPacketSender;
 class ParticleEditPacketSender;
 class ParticleProperties;
 class Particle;
+class ParticleTree;
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 const uint32_t UNKNOWN_PARTICLE_ID = 0xFFFFFFFF;
 
-class ParticleDetail {
-public:
-    uint32_t id;
-    uint64_t lastEdited;
-    glm::vec3 position;
-    float radius;
-    rgbColor color;
-    glm::vec3 velocity;
-    glm::vec3 gravity;
-    float damping;
-    float lifetime;
-    bool inHand;
-    QString updateScript;
-    uint32_t creatorTokenID;
-};
+const uint16_t PACKET_CONTAINS_RADIUS = 1;
+const uint16_t PACKET_CONTAINS_POSITION = 2;
+const uint16_t PACKET_CONTAINS_COLOR = 4;
+const uint16_t PACKET_CONTAINS_VELOCITY = 8;
+const uint16_t PACKET_CONTAINS_GRAVITY = 16;
+const uint16_t PACKET_CONTAINS_DAMPING = 32;
+const uint16_t PACKET_CONTAINS_LIFETIME = 64;
+const uint16_t PACKET_CONTAINS_INHAND = 128;
+const uint16_t PACKET_CONTAINS_SCRIPT = 256;
 
 const float DEFAULT_LIFETIME = 60.0f * 60.0f * 24.0f; // particles live for 1 day by default
 const float DEFAULT_DAMPING = 0.99f;
@@ -74,9 +69,12 @@ public:
     const glm::vec3& getGravity() const { return _gravity; }
     float getDamping() const { return _damping; }
     float getLifetime() const { return _lifetime; }
-    QString getScript() const { return _script; }
+    const QString& getScript() const { return _script; }
     bool getInHand() const { return _inHand; }
     bool getShouldDie() const { return _shouldDie; }
+
+    uint64_t getLastEdited() const { return _lastEdited; }
+    uint16_t getChangedBits() const;
 
 private:
     glm::vec3 _position;
@@ -90,6 +88,7 @@ private:
     bool _inHand;
     bool _shouldDie;
 
+    uint64_t _lastEdited;
     bool _positionChanged;
     bool _colorChanged;
     bool _radiusChanged;
@@ -138,7 +137,7 @@ public:
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes);
+    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree);
 
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
@@ -196,7 +195,7 @@ public:
     static int expectedBytes();
     static int expectedEditMessageBytes();
 
-    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, int count, const ParticleDetail* details,
+    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);

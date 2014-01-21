@@ -13,7 +13,6 @@
 #include "ParticleTree.h"
 
 std::map<uint32_t,ParticleEditHandle*> ParticleEditHandle::_allHandles;
-uint32_t ParticleEditHandle::_nextCreatorTokenID = 0;
 
 ParticleEditHandle::ParticleEditHandle(ParticleEditPacketSender* packetSender, ParticleTree* localTree, uint32_t id) {
     if (id == NEW_PARTICLE) {
@@ -43,13 +42,14 @@ void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor
                            glm::vec3 gravity, float damping, float lifetime, bool inHand, QString updateScript) {
 
     // setup a ParticleDetail struct with the data
+/****
     uint64_t now = usecTimestampNow();
     ParticleDetail addParticleDetail = { NEW_PARTICLE, now,
             position, radius, {color.red, color.green, color.blue },
             velocity, gravity, damping, lifetime, inHand, updateScript, _creatorTokenID };
 
     // queue the packet
-    _packetSender->queueParticleEditMessages(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &addParticleDetail);
+    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, 1, &addParticleDetail);
 
     // release them
     _packetSender->releaseQueuedMessages();
@@ -59,6 +59,8 @@ void ParticleEditHandle::createParticle(glm::vec3 position, float radius, xColor
         // we can't really do this here, because if we create a particle locally, we'll get a ghost particle
         // because we can't really handle updating/deleting it locally
     }
+****/
+
 }
 
 bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
@@ -69,6 +71,7 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
     }
 
     // setup a ParticleDetail struct with the data
+/****
     uint64_t now = usecTimestampNow();
     ParticleDetail newParticleDetail = { _id, now,
             position, radius, {color.red, color.green, color.blue },
@@ -86,6 +89,7 @@ bool ParticleEditHandle::updateParticle(glm::vec3 position, float radius, xColor
         Particle tempParticle(position, radius, rcolor, velocity, gravity, damping, lifetime, inHand, updateScript, _id);
         _localTree->storeParticle(tempParticle);
     }
+***/
 
     return true;
 }

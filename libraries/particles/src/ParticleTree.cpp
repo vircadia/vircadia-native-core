@@ -15,7 +15,7 @@ ParticleTree::ParticleTree(bool shouldReaverage) : Octree(shouldReaverage) {
 }
 
 ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) const {
-    ParticleTreeElement* newElement = new ParticleTreeElement(octalCode); 
+    ParticleTreeElement* newElement = new ParticleTreeElement(octalCode);
     return newElement;
 }
 
@@ -35,7 +35,7 @@ public:
     const Particle& searchParticle;
     bool found;
 };
-    
+
 bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
     FindAndUpdateParticleArgs* args = static_cast<FindAndUpdateParticleArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
@@ -51,7 +51,7 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
     // First, look for the existing particle in the tree..
     FindAndUpdateParticleArgs args = { particle, false };
     recurseTreeWithOperation(findAndUpdateOperation, &args);
-    
+
     // if we didn't find it in the tree, then store it...
     if (!args.found) {
         glm::vec3 position = particle.getPosition();
@@ -59,7 +59,7 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
         ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
         element->storeParticle(particle, senderNode);
-    }    
+    }
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
 }
@@ -72,25 +72,25 @@ public:
     const Particle* closestParticle;
     float closestParticleDistance;
 };
-    
+
 
 bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraData) {
     FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
     glm::vec3 penetration;
-    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position, 
+    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
     // If this particleTreeElement contains the point, then search it...
     if (sphereIntersection) {
         const Particle* thisClosestParticle = particleTreeElement->getClosestParticle(args->position);
-        
+
         // we may have gotten NULL back, meaning no particle was available
         if (thisClosestParticle) {
             glm::vec3 particlePosition = thisClosestParticle->getPosition();
             float distanceFromPointToParticle = glm::distance(particlePosition, args->position);
-            
+
             // If we're within our target radius
             if (distanceFromPointToParticle <= args->targetRadius) {
                 // we are closer than anything else we've found
@@ -101,11 +101,11 @@ bool ParticleTree::findNearPointOperation(OctreeElement* element, void* extraDat
                 }
             }
         }
-        
+
         // we should be able to optimize this...
         return true; // keep searching in case children have closer particles
     }
-    
+
     // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
     return false;
 }
@@ -124,9 +124,11 @@ public:
     bool found;
     const Particle* foundParticle;
 };
-    
+
 
 bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
+qDebug() << "ParticleTree::findByIDOperation()....";
+
     FindByIDArgs* args = static_cast<FindByIDArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
 
@@ -134,7 +136,7 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
     if (args->found) {
         return false;
     }
-    
+
     // as the tree element if it has this particle
     const Particle* foundParticle = particleTreeElement->getParticleWithID(args->id);
     if (foundParticle) {
@@ -142,17 +144,23 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
         args->found = true;
         return false;
     }
-        
+
     // keep looking
     return true;
 }
 
 
-const Particle* ParticleTree::findParticleByID(uint32_t id) {
+const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) {
     FindByIDArgs args = { id, false, NULL };
-    lockForRead();
+    if (!alreadyLocked) {
+        qDebug() << "ParticleTree::findParticleByID().... about to call lockForRead()....";
+        lockForRead();
+        qDebug() << "ParticleTree::findParticleByID().... after call lockForRead()....";
+    }
     recurseTreeWithOperation(findByIDOperation, &args);
-    unlock();
+    if (!alreadyLocked) {
+        unlock();
+    }
     return args.foundParticle;
 }
 
@@ -164,13 +172,21 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     // we handle these types of "edit" packets
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
-            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes);
+
+qDebug() << " got PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
+
+            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this);
+qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... calling storeParticle() ";
             storeParticle(newParticle, senderNode);
+qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... AFTER storeParticle() ";
             if (newParticle.isNewlyCreated()) {
+qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... calling notifyNewlyCreatedParticle() ";
                 notifyNewlyCreatedParticle(newParticle, senderNode);
+qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... AFTER notifyNewlyCreatedParticle() ";
             }
+qDebug() << " DONE... PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
         } break;
-        
+
         case PACKET_TYPE_PARTICLE_ERASE: {
             processedBytes = 0;
         } break;
@@ -227,7 +243,7 @@ void ParticleTree::update() {
 
     ParticleTreeUpdateArgs args = { };
     recurseTreeWithOperation(updateOperation, &args);
-    
+
     // now add back any of the particles that moved elements....
     int movingParticles = args._movingParticles.size();
     for (int i = 0; i < movingParticles; i++) {
@@ -235,12 +251,12 @@ void ParticleTree::update() {
 
         // if the particle is still inside our total bounds, then re-add it
         AABox treeBounds = getRoot()->getAABox();
-        
+
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
             storeParticle(args._movingParticles[i]);
         }
     }
-    
+
     // prune the tree...
     recurseTreeWithOperation(pruneOperation, NULL);
 }
