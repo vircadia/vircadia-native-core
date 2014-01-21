@@ -29,7 +29,7 @@ const HifiSockAddr& DataServerClient::dataServerSockAddr() {
     return dsSockAddr;
 }
 
-void DataServerClient::putValueForKeyAndUsername(const QString& key, const QString& value, const QString& clientIdentifier) {
+void DataServerClient::putValueForKeyAndUserString(const QString& key, const QString& value, const QString& userString) {
     unsigned char putPacket[MAX_PACKET_SIZE];
     
     // setup the header for this packet
@@ -40,8 +40,8 @@ void DataServerClient::putValueForKeyAndUsername(const QString& key, const QStri
     numPacketBytes += sizeof(_sequenceNumber);
     
     // pack the client UUID, null terminated
-    memcpy(putPacket + numPacketBytes, qPrintable(clientIdentifier), clientIdentifier.toLocal8Bit().size());
-    numPacketBytes += clientIdentifier.toLocal8Bit().size();
+    memcpy(putPacket + numPacketBytes, qPrintable(userString), userString.size());
+    numPacketBytes += userString.size();
     putPacket[numPacketBytes++] = '\0';
     
     // pack a 1 to designate that we are putting a single value
@@ -70,7 +70,7 @@ void DataServerClient::putValueForKeyAndUsername(const QString& key, const QStri
 }
 
 void DataServerClient::putValueForKeyAndUUID(const QString& key, const QString& value, const QUuid& uuid) {
-    putValueForKeyAndUsername(key, value, uuidStringWithoutCurlyBraces(uuid));
+    putValueForKeyAndUserString(key, value, uuidStringWithoutCurlyBraces(uuid));
 }
 
 void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uuid, DataServerCallbackObject* callbackObject) {
@@ -79,13 +79,13 @@ void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uu
 
 void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject) {
     if (!uuid.isNull()) {
-        getValuesForKeysAndUsername(keys, uuidStringWithoutCurlyBraces(uuid), callbackObject);
+        getValuesForKeysAndUserString(keys, uuidStringWithoutCurlyBraces(uuid), callbackObject);
     }
 }
 
-void DataServerClient::getValuesForKeysAndUsername(const QStringList& keys, const QString& clientIdentifier,
+void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
                                                    DataServerCallbackObject* callbackObject) {
-    if (!clientIdentifier.isEmpty() && keys.size() <= UCHAR_MAX) {
+    if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
         unsigned char getPacket[MAX_PACKET_SIZE];
         
         // setup the header for this packet
@@ -96,8 +96,8 @@ void DataServerClient::getValuesForKeysAndUsername(const QStringList& keys, cons
         numPacketBytes += sizeof(_sequenceNumber);
 
         // pack the user string (could be username or UUID string), null-terminate
-        memcpy(getPacket + numPacketBytes, clientIdentifier.toLocal8Bit().constData(), clientIdentifier.size());
-        numPacketBytes += clientIdentifier.size();
+        memcpy(getPacket + numPacketBytes, qPrintable(userString), userString.size());
+        numPacketBytes += userString.size();
         getPacket[numPacketBytes++] = '\0';
 
         // pack one byte to designate the number of keys
@@ -122,9 +122,9 @@ void DataServerClient::getValuesForKeysAndUsername(const QStringList& keys, cons
     }
 }
 
-void DataServerClient::getClientValueForKey(const QString& key, const QString& clientIdentifier,
-                                            DataServerCallbackObject* callbackObject) {
-    getValuesForKeysAndUsername(QStringList(key), clientIdentifier, callbackObject);
+void DataServerClient::getValueForKeyAndUserString(const QString& key, const QString& userString,
+                                                   DataServerCallbackObject* callbackObject) {
+    getValuesForKeysAndUserString(QStringList(key), userString, callbackObject);
 }
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData) {

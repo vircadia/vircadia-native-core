@@ -27,9 +27,9 @@ Profile::Profile(const QString &username) :
         setUsername(username);
         
         // we've been given a new username, ask the data-server for profile
-        DataServerClient::getClientValueForKey(DataServerKey::UUID, username, this);
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL, username, this);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL, username, this);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::UUID, getUserString(), this);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, getUserString(), this);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, getUserString(), this);
         
         // send our current domain server to the data-server
         updateDomain(NodeList::getInstance()->getDomainHostname());
@@ -70,7 +70,7 @@ void Profile::updateDomain(const QString& domain) {
         _lastDomain = domain;
         
         // send the changed domain to the data-server
-        DataServerClient::putValueForKeyAndUsername(DataServerKey::Domain, domain, _username);
+        DataServerClient::putValueForKeyAndUserString(DataServerKey::Domain, domain, getUserString());
     }
 }
 
@@ -99,8 +99,8 @@ void Profile::updatePosition(const glm::vec3 position) {
                 gettimeofday(&lastPositionSend, NULL);
                 
                 // send the changed position to the data-server
-                DataServerClient::putValueForKeyAndUsername(DataServerKey::Position,
-                                                            QString(createByteArray(position)), _username);
+                DataServerClient::putValueForKeyAndUserString(DataServerKey::Position,
+                                                              QString(createByteArray(position)), getUserString());
             }
     }
 }
@@ -116,8 +116,8 @@ void Profile::updateOrientation(const glm::quat& orientation) {
     uint64_t now = usecTimestampNow();
     if (now - _lastOrientationSend >= DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS &&
             glm::distance(_lastOrientation, eulerAngles) >= DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES) {
-        DataServerClient::putValueForKeyAndUsername(DataServerKey::Orientation, QString(createByteArray(eulerAngles)),
-                                                    _username);
+        DataServerClient::putValueForKeyAndUserString(DataServerKey::Orientation, QString(createByteArray(eulerAngles)),
+                                                      getUserString());
         
         _lastOrientation = eulerAngles;
         _lastOrientationSend = now;

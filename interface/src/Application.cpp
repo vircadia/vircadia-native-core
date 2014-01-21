@@ -1854,8 +1854,8 @@ void Application::init() {
 
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL, _profile.getUsername(), &_profile);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL, _profile.getUsername(), &_profile);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, _profile.getUserString(), &_profile);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, _profile.getUserString(), &_profile);
     }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count

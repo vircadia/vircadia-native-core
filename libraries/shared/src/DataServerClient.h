@@ -26,15 +26,15 @@ class DataServerClient {
 public:
     static const HifiSockAddr& dataServerSockAddr();
     
-    static void putValueForKeyAndUsername(const QString& key, const QString& value, const QString& clientIdentifier);
+    static void putValueForKeyAndUserString(const QString& key, const QString& value, const QString& userString);
     static void putValueForKeyAndUUID(const QString& key, const QString& value, const QUuid& uuid);
     
-    static void getClientValueForKey(const QString& key, const QString& _clientIdentifer,
-                                     DataServerCallbackObject* callbackObject);
+    static void getValueForKeyAndUserString(const QString& key, const QString& userString,
+                                            DataServerCallbackObject* callbackObject);
     static void getValueForKeyAndUUID(const QString& key, const QUuid& uuid, DataServerCallbackObject* callbackObject);
     static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject);
-    static void getValuesForKeysAndUsername(const QStringList& keys, const QString& clientIdentifier,
-                                            DataServerCallbackObject* callbackObject);
+    static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
+                                                    DataServerCallbackObject* callbackObject);
     
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
     
