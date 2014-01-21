@@ -204,14 +204,17 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                     NodeList::getInstance()->setDomainHostname(valueList[i]);
                     // orient the user to face the target
                     glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
-                                                                                orientationItems[1].toFloat(), orientationItems[2].toFloat()))) *
-                    glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
-                    Application::getInstance()->getAvatar()->setOrientation(newOrientation);
+                                                                                orientationItems[1].toFloat(),
+                                                                                orientationItems[2].toFloat()))) *
+                                                                                glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+                                                                                Application::getInstance()->getAvatar()
+                                                                                ->setOrientation(newOrientation);
                     
                     // move the user a couple units away
                     const float DISTANCE_TO_USER = 2.0f;
                     glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
-                                                      coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+                                                      coordinateItems[2].toFloat()
+                                                      ) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
                     Application::getInstance()->getAvatar()->setPosition(newPosition);
                 }
                 
