@@ -4402,14 +4402,16 @@ void Application::updateLocalOctreeCache(bool firstTime) {
 }
 
 void Application::checkVersion() {
+    qDebug() << "################### in check version";
     QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
     latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     _latestVersionReply = Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest);
     
-    connect(_latestVersionReply, SIGNAL(readyRead()), SLOT(parseVersionXml()));
+    connect(_latestVersionReply, SIGNAL(finished()), SLOT(parseVersionXml()));
 }
 
 void Application::parseVersionXml() {
+    qDebug() << "################### in parse version xml";
     
     #ifdef Q_OS_WIN32
     QString operatingSystem("win");
@@ -4463,7 +4465,7 @@ bool Application::shouldSkipVersion(QString latestVersion) {
     QFile skipFile(SKIP_FILENAME);
     skipFile.open(QIODevice::ReadWrite);
     QString skipVersion(skipFile.readAll());
-    return (skipVersion == latestVersion || applicationVersion() == "dev");
+    return (skipVersion == latestVersion /*|| applicationVersion() == "dev"*/);
 }
 
 void Application::skipVersion(QString latestVersion) {
