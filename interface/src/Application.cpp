@@ -4459,7 +4459,7 @@ bool Application::shouldSkipVersion(QString latestVersion) {
     QFile skipFile(SKIP_FILENAME);
     skipFile.open(QIODevice::ReadWrite);
     QString skipVersion(skipFile.readAll());
-    return (skipVersion == latestVersion /*|| applicationVersion() == "dev"*/);
+    return (skipVersion == latestVersion || applicationVersion() == "dev");
 }
 
 void Application::skipVersion(QString latestVersion) {
