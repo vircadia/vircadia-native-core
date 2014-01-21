@@ -19,7 +19,7 @@
 
 class DataServerCallbackObject {
 public:
-    virtual void processDataServerResponse(const QUuid& userUUID, const QStringList& keyList, const QStringList& valueList) = 0;
+    virtual void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList) = 0;
 };
 
 class DataServerClient {

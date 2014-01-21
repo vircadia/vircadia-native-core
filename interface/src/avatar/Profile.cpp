@@ -146,7 +146,7 @@ void Profile::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
-void Profile::processDataServerResponse(const QUuid& userUUID, const QStringList& keyList, const QStringList& valueList) {
+void Profile::processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList) {
     qDebug() << "Called with" << keyList << valueList;
 }
 

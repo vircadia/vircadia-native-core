@@ -12,11 +12,15 @@
 
 #include "DataServer.h"
 
+const char DATA_SERVER_LOGGING_TARGET_NAME[] = "data-server";
+
 int main(int argc, char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    Logging::setTargetName(DATA_SERVER_LOGGING_TARGET_NAME);
     
     DataServer dataServer(argc, argv);
     

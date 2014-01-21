@@ -24,7 +24,7 @@ quint8 DataServerClient::_sequenceNumber = 0;
 
 const char MULTI_KEY_VALUE_SEPARATOR = '|';
 
-const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
+const char DATA_SERVER_HOSTNAME[] = "localhost";
 const unsigned short DATA_SERVER_PORT = 3282;
 
 const HifiSockAddr& DataServerClient::dataServerSockAddr() {
@@ -35,7 +35,7 @@ const HifiSockAddr& DataServerClient::dataServerSockAddr() {
 void DataServerClient::putValueForKey(const QString& key, const char* value) {
     if (!_clientIdentifier.isEmpty()) {
         
-        static unsigned char putPacket[MAX_PACKET_SIZE];
+        unsigned char putPacket[MAX_PACKET_SIZE];
         
         // setup the header for this packet
         int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
@@ -88,7 +88,7 @@ void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QU
 void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
                                                      DataServerCallbackObject* callbackObject) {
     if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
-        static unsigned char getPacket[MAX_PACKET_SIZE];
+        unsigned char getPacket[MAX_PACKET_SIZE];
         
         // setup the header for this packet
         int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
@@ -146,19 +146,15 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         DataServerCallbackObject* callbackObject = _callbackObjects.take(_sequenceNumber);
         
         char* userStringPosition = (char*) packetData + numHeaderBytes + sizeof(_sequenceNumber);
+        QString userString(userStringPosition);
         
-        QString userString(QByteArray(userStringPosition, strlen(userStringPosition)));
-        
-        QUuid userUUID(userString);
-        
-        char* keysPosition = (char*) packetData + numHeaderBytes + strlen(userStringPosition)
-        + sizeof('\0') + sizeof(unsigned char);
+        char* keysPosition = userStringPosition + userString.size() + sizeof('\0') + sizeof(unsigned char);
         char* valuesPosition =  keysPosition + strlen(keysPosition) + sizeof('\0');
         
         QStringList keyList = QString(keysPosition).split(MULTI_KEY_VALUE_SEPARATOR);
         QStringList valueList = QString(valuesPosition).split(MULTI_KEY_VALUE_SEPARATOR);
         
-        callbackObject->processDataServerResponse(userUUID, keyList, valueList);
+        callbackObject->processDataServerResponse(userString, keyList, valueList);
     }
 
     

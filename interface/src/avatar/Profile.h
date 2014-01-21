@@ -47,7 +47,7 @@ public:
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
     
-    void processDataServerResponse(const QUuid& userUUID, const QStringList& keyList, const QStringList& valueList);
+    void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
 private:
     
     void setUsername(const QString& username);
