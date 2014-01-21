@@ -4426,8 +4426,9 @@ void Application::parseVersionXml() {
     QString releaseNotes;
     QString latestVersion;
     QUrl downloadUrl;
+    QObject* sender = QObject::sender();
     
-    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(QObject::sender()));
+    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         
@@ -4453,6 +4454,7 @@ void Application::parseVersionXml() {
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
         new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }
+    sender->deleteLater();
 }
 
 bool Application::shouldSkipVersion(QString latestVersion) {
