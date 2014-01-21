@@ -19,6 +19,8 @@ public:
     DataServerScriptingInterface();
     
     void refreshUUID() { _uuid = QUuid::createUuid(); }
+    const QUuid& getUUID() const { return _uuid; }
+    
 public slots:
     void setValueForKey(const QString& key, const QString& value);
 private:

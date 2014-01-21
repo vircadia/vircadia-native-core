@@ -40,7 +40,9 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems,
                                 const char* scriptMenuName, AbstractMenuInterface* menu,
-                                AbstractControllerScriptingInterface* controllerScriptingInterface) {
+                           AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _avatarData(NULL)
+{
     _scriptContents = scriptContents;
     _isFinished = false;
     _isRunning = false;
@@ -65,6 +67,15 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
+void ScriptEngine::setAvatarData(AvatarData* avatarData) {
+    _avatarData = avatarData;
+    
+    // remove the old Avatar property, if it exists
+    _engine.globalObject().setProperty("Avatar", QScriptValue());
+    
+    // give the script engine the new Avatar script property
+    registerGlobalObject("Avatar", _avatarData);
+}
 
 void ScriptEngine::setupMenuItems() {
     if (_menu && _wantMenuItems) {
@@ -178,6 +189,8 @@ void ScriptEngine::run() {
     gettimeofday(&startTime, NULL);
 
     int thisFrame = 0;
+    
+    NodeList* nodeList = NodeList::getInstance();
 
     while (!_isFinished) {
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
@@ -220,6 +233,26 @@ void ScriptEngine::run() {
             if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
                 _particlesScriptingInterface.getParticlePacketSender()->process();
             }
+        }
+        
+        if (_isAvatar && _avatarData) {
+            static unsigned char avatarPacket[MAX_PACKET_SIZE];
+            static int numAvatarHeaderBytes = 0;
+            
+            if (numAvatarHeaderBytes == 0) {
+                // pack the avatar header bytes the first time
+                // unlike the _avatar.getBroadcastData these won't change
+                numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
+                
+                // pack the owner UUID for this script
+                QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+                memcpy(avatarPacket, ownerUUID.constData(), ownerUUID.size());
+                numAvatarHeaderBytes += ownerUUID.size();
+            }
+            
+            int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
+            
+            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, &NODE_TYPE_AVATAR_MIXER, 1);
         }
 
         if (willSendVisualDataCallBack) {
