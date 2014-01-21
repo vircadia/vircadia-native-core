@@ -32,9 +32,6 @@ void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, Particl
         if (!serversExist()) {
             queuePendingPacketToNodes(type, bufferOut, sizeOut);
         } else {
-
-qDebug("calling queuePacketToNodes(bufferOut, sizeOut=%d)... ", sizeOut);
-
             queuePacketToNodes(bufferOut, sizeOut);
         }
     }
@@ -46,9 +43,6 @@ void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeC
 
 
 void ParticleEditPacketSender::queueParticleEditMessage(PACKET_TYPE type, ParticleID particleID, const ParticleProperties& properties) {
-
-qDebug() << "ParticleEditPacketSender::queueParticleEditMessage() id.id=" << particleID.id << " id.creatorTokenID=" << particleID.creatorTokenID;
-
     if (!_shouldSend) {
         return; // bail early
     }
@@ -58,9 +52,6 @@ qDebug() << "ParticleEditPacketSender::queueParticleEditMessage() id.id=" << par
     int sizeOut = 0;
 
     if (Particle::encodeParticleEditMessageDetails(type, particleID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
-
-qDebug("calling queueOctreeEditMessage(bufferOut, sizeOut=%d)... ", sizeOut);
-
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }
 }

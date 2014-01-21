@@ -46,12 +46,15 @@ void ParticlesScriptingInterface::editParticle(ParticleID particleID, const Part
 }
 
 
+// TODO: This deleteParticle() method uses the PACKET_TYPE_PARTICLE_ADD_OR_EDIT message to send
+// a changed particle with a shouldDie() property set to true. This works and is currently the only
+// way to tell the particle server to delete a particle. But we should change this to use the PACKET_TYPE_PARTICLE_ERASE
+// message which takes a list of particle id's to delete.
 void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
 
     // setup properties to kill the particle
     ParticleProperties properties;
-    properties.setScript("print('here'); Particle.setShouldDie(true);");
-    //properties.setShouldDie(true);
+    properties.setShouldDie(true);
 
     uint32_t actualID = particleID.id;
     if (!particleID.isKnownID) {
@@ -59,7 +62,7 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
 
         // hmmm... we kind of want to bail if someone attempts to edit an unknown
         if (actualID == UNKNOWN_PARTICLE_ID) {
-qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown particle...";
+            //qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown particle...";
             return; // bailing early
         }
     }
@@ -67,6 +70,6 @@ qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown pa
     particleID.id = actualID;
     particleID.isKnownID = true;
 
-qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
+    //qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 }

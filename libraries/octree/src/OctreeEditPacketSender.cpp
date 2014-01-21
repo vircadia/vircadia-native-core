@@ -181,12 +181,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
             const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
             if (isMyJurisdiction) {
-
-qDebug() << "calling queuePacketToNode(nodeUUID, buffer, length); nodeUUID=" << nodeUUID << " length=" << length;
-
                 queuePacketToNode(nodeUUID, buffer, length);
-            } else {
-qDebug() << "not my jurisdiction skipping queuePacketToNode(nodeUUID, buffer, length); nodeUUID=" << nodeUUID << " length=" << length;
             }
         }
     }
@@ -196,12 +191,9 @@ qDebug() << "not my jurisdiction skipping queuePacketToNode(nodeUUID, buffer, le
 // NOTE: codeColorBuffer - is JUST the octcode/color and does not contain the packet header!
 void OctreeEditPacketSender::queueOctreeEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
 
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
     if (!_shouldSend) {
         return; // bail early
     }
-
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
 
     // If we don't have jurisdictions, then we will simply queue up all of these packets and wait till we have
     // jurisdictions for processing
@@ -221,7 +213,7 @@ qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
         return; // bail early
     }
 
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
+    //qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
 
     // We want to filter out edit messages for servers based on the server's Jurisdiction
     // But we can't really do that with a packed message, since each edit message could be destined
@@ -240,17 +232,17 @@ qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
                     isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__ << " isMyJurisdiction=" << isMyJurisdiction;
+                    //qDebug() << "queueOctreeEditMessage() line:" << __LINE__ << " isMyJurisdiction=" << isMyJurisdiction;
                 } else {
                     isMyJurisdiction = false;
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
+                    //qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
                 }
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
                 packetBuffer._nodeUUID = nodeUUID;
 
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
+                //qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
 
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
@@ -270,10 +262,10 @@ qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
                     adjustEditPacketForClockSkew(codeColorBuffer, length, node->getClockSkewUsec());
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
+                    //qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
                 }
 
-qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
+                //qDebug() << "queueOctreeEditMessage() line:" << __LINE__;
 
                 memcpy(&packetBuffer._currentBuffer[packetBuffer._currentSize], codeColorBuffer, length);
                 packetBuffer._currentSize += length;
@@ -291,14 +283,14 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
     } else {
         for (std::map<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
             releaseQueuedPacket(i->second);
-qDebug() << "releaseQueuedMessages() line:" << __LINE__;
+            //qDebug() << "releaseQueuedMessages() line:" << __LINE__;
         }
     }
 }
 
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
     if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PACKET_TYPE_UNKNOWN) {
-qDebug() << "OctreeEditPacketSender::releaseQueuedPacket() line:" << __LINE__;
+        //qDebug() << "OctreeEditPacketSender::releaseQueuedPacket() line:" << __LINE__;
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
     }
     packetBuffer._currentSize = 0;

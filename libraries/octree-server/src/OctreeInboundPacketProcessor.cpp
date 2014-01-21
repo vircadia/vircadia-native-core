@@ -67,7 +67,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         uint64_t processTime = 0;
         uint64_t lockWaitTime = 0;
 
-        if (true || _myServer->wantsDebugReceiving()) {
+        if (_myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
                     << " command from client receivedBytes=" << packetLength
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
@@ -77,7 +77,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         while (atByte < packetLength) {
             int maxSize = packetLength - atByte;
 
-            if (true || debugProcessPacket) {
+            if (debugProcessPacket) {
                 printf("OctreeInboundPacketProcessor::processPacket() %c "
                        "packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
                         packetType, packetData, packetLength, editData, atByte, maxSize);
