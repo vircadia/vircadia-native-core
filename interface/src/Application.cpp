@@ -203,7 +203,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
-    qDebug("[VERSION] Build sequence: %s\n", applicationVersion().toStdString().c_str());
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _settings = new QSettings(this);
 
@@ -4426,6 +4426,7 @@ void Application::parseVersionXml() {
     QString releaseDate;
     QString releaseNotes;
     QString latestVersion;
+    QUrl downloadUrl;
     
     QXmlStreamReader xml(_latestVersionReply);
     while (!xml.atEnd() && !xml.hasError()) {
@@ -4446,13 +4447,13 @@ void Application::parseVersionXml() {
             }
             if (xml.name() == operatingSystem) {
                 xml.readNext();
-                _downloadUrl = QUrl(xml.text().toString());
+                downloadUrl = QUrl(xml.text().toString());
             }
         }
     }
     
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, _downloadUrl);
+        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
     }
     
     delete _latestVersionReply;

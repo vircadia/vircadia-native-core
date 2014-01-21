@@ -19,10 +19,11 @@
 #include "SharedUtil.h"
 #include "UpdateDialog.h"
 
-UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latestVersion, QUrl downloadURL) :
+UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL) :
     QWidget(parent, Qt::Widget) {
     
-    _latestVersion = new QString(latestVersion);
+    _latestVersion = latestVersion;
+    _downloadUrl = downloadURL;
     
     QUiLoader updateDialogLoader;
     QWidget* updateDialog;
@@ -46,22 +47,16 @@ UpdateDialog::UpdateDialog(QWidget *parent, QString releaseNotes, QString latest
     
     connect(downloadButton, SIGNAL(released()), this, SLOT(handleDownload()));
     connect(skipButton, SIGNAL(released()), this, SLOT(handleSkip()));
-    connect(closeButton, SIGNAL(released()), this, SLOT(handleClose()));
+    connect(closeButton, SIGNAL(released()), this, SLOT(close()));
     updateDialog->show();
 }
 
 void UpdateDialog::handleDownload() {
-    Application* application = Application::getInstance();
-    QDesktopServices::openUrl(application->_downloadUrl);
-    application->quit();
+    QDesktopServices::openUrl(_downloadUrl);
+    Application::getInstance()->quit();
 }
 
 void UpdateDialog::handleSkip() {
-    Application* application = Application::getInstance();
-    application->skipVersion(*_latestVersion);
-    this->close();
-}
-
-void UpdateDialog::handleClose() {
+    Application::getInstance()->skipVersion(_latestVersion);
     this->close();
 }

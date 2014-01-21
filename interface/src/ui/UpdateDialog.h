@@ -9,24 +9,21 @@
 #ifndef __hifi__UpdateDialog__
 #define __hifi__UpdateDialog__
 
-#include <QDialog>
 #include <QWidget>
-
-#include <iostream>
 
 class UpdateDialog : public QWidget {
     Q_OBJECT
     
 public:
-    UpdateDialog(QWidget* parent, QString releaseNotes, QString latestVersion, QUrl downloadURL);
+    UpdateDialog(QWidget* parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL);
     
 private:
-    QString* _latestVersion;
+    QString _latestVersion;
+    QUrl _downloadUrl;
     
 private slots:
     void handleDownload();
     void handleSkip();
-    void handleClose();
 };
 
 #endif /* defined(__hifi__UpdateDialog__) */
