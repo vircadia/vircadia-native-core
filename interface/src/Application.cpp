@@ -232,6 +232,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
+    loadScripts();
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -270,7 +271,7 @@ Application::~Application() {
     _audio.thread()->wait();
 
     storeSizeAndPosition();
-
+    saveScripts();
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
@@ -4237,13 +4238,38 @@ void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 
-void Application::loadScript() {
-    // shut down and stop any existing script
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/script.js");
+void Application::loadScripts(){
+  // loads all saved scripts
+  QSettings* settings = new QSettings(this);
+  int size = settings->beginReadArray("Settings");
+  for(int i=0; i<size; ++i){
+    settings->setArrayIndex(i);
+    QString string = settings->value("script").toString();
+    loadScript(string);
+  }
+  settings->endArray();
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName,
-                                                          tr("JavaScript Files (*.js)"));
+}
+
+void Application::saveScripts(){
+  // saves all current running scripts
+  QSettings* settings = new QSettings(this);
+  settings->beginWriteArray("Settings");
+  for(int i=0; i<_activeScripts.size(); ++i){
+    settings->setArrayIndex(i);
+    settings->setValue("script", _activeScripts.at(i));
+  }
+  settings->endArray();
+
+}
+
+void Application::removeScriptName(const QString& fileNameString)
+{
+  _activeScripts.removeOne(fileNameString);
+}
+
+void Application::loadScript(const QString& fileNameString){
+    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -4270,9 +4296,7 @@ void Application::loadScript() {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
-                                                    &_controllerScriptingInterface);
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(), &_controllerScriptingInterface);
     scriptEngine->setupMenuItems();
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -4286,8 +4310,9 @@ void Application::loadScript() {
     connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(finished()), scriptEngine, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(removeScriptName(const QString&)));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
@@ -4299,6 +4324,17 @@ void Application::loadScript() {
 
     // restore the main window's active state
     _window->activateWindow();
+}
+
+void Application::loadDialog() {
+    // shut down and stop any existing script
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/script.js");
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+                                                          tr("JavaScript Files (*.js)"));
+    
+    loadScript(fileNameString);
 }
 
 void Application::toggleLogDialog() {

@@ -474,21 +474,21 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     }
 }
 
+// MIN_VALID_SPEED is obtained by computing speed gained at one gravity during the shortest expected frame period
+const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
+const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE); 
 
-void Particle::update() {
-    uint64_t now = usecTimestampNow();
-    float elapsed = static_cast<float>(now - _lastUpdated);
+void Particle::update(const uint64_t& now) {
+    float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
-    float timeElapsed = elapsed / static_cast<float>(USECS_PER_SECOND);
 
     // calculate our default shouldDie state... then allow script to change it if it wants...
-    float velocityScalar = glm::length(getVelocity());
-    const float STILL_MOVING = 0.05f / static_cast<float>(TREE_SCALE);
-    bool isStillMoving = (velocityScalar > STILL_MOVING);
-    const float REALLY_OLD = 30.0f; // 30 seconds
-    bool isReallyOld = (getLifetime() > REALLY_OLD);
+    float speed = glm::length(_velocity);
+    bool isStopped = (speed < MIN_VALID_SPEED);
+    const uint64_t REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
+    bool isReallyOld = ((now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
-    bool shouldDie = getShouldDie() || (!isInHand && !isStillMoving && isReallyOld);
+    bool shouldDie = getShouldDie() || (!isInHand && isStopped && isReallyOld);
     setShouldDie(shouldDie);
 
     runUpdateScript(); // allow the javascript to alter our state
