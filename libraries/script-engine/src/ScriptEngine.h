@@ -29,7 +29,7 @@ class ScriptEngine : public QObject {
     Q_OBJECT
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL,
+		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
                     AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
@@ -58,7 +58,7 @@ signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
     void scriptEnding();
-    void finished();
+    void finished(const QString& fileNameString);
 
 protected:
     QString _scriptContents;
@@ -74,6 +74,7 @@ private:
     AudioScriptingInterface _audioScriptingInterface;
     bool _wantMenuItems;
     QString _scriptMenuName;
+    QString _fileNameString;
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
 };

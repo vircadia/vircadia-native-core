@@ -10,9 +10,10 @@
 #ifndef __hifi__ParticleTreeElement__
 #define __hifi__ParticleTreeElement__
 
-#include <vector>
+//#include <vector>
 
 #include <OctreeElement.h>
+#include <QList>
 
 #include "Particle.h"
 #include "ParticleTree.h"
@@ -22,7 +23,7 @@ class ParticleTreeElement;
 
 class ParticleTreeUpdateArgs {
 public:
-    std::vector<Particle> _movingParticles;
+    QList<Particle> _movingParticles;
 };
 
 class ParticleTreeElement : public OctreeElement {
@@ -34,7 +35,6 @@ class ParticleTreeElement : public OctreeElement {
     
 public:
     virtual ~ParticleTreeElement();
-    virtual void init(unsigned char * octalCode);
 
     // type safe versions of OctreeElement methods
     ParticleTreeElement* getChildAtIndex(int index) { return (ParticleTreeElement*)OctreeElement::getChildAtIndex(index); }
@@ -79,9 +79,9 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
                         glm::vec3& penetration, void** penetratedObject) const;
 
-    const std::vector<Particle>& getParticles() const { return _particles; }
-    std::vector<Particle>& getParticles() { return _particles; }
-    bool hasParticles() const { return _particles.size() > 0; }
+    const QList<Particle>& getParticles() const { return *_particles; }
+    QList<Particle>& getParticles() { return *_particles; }
+    bool hasParticles() const { return _particles->size() > 0; }
     
     void update(ParticleTreeUpdateArgs& args);
     void setTree(ParticleTree* tree) { _myTree = tree; }
@@ -93,10 +93,12 @@ public:
     
 
 protected:
+    virtual void init(unsigned char * octalCode);
+
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
 
     ParticleTree* _myTree;
-    std::vector<Particle> _particles;
+    QList<Particle>* _particles;
 };
 
 #endif /* defined(__hifi__ParticleTreeElement__) */

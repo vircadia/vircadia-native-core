@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 
 #include <AbstractControllerScriptingInterface.h>
+class PalmData;
 
 /// handles scripting of input controller commands from JS
 class ControllerScriptingInterface : public AbstractControllerScriptingInterface {

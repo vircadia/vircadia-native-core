@@ -33,8 +33,10 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
+#include <QObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -43,6 +45,8 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QXmlStreamReader>
+#include <QXmlStreamAttributes>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -90,6 +94,9 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+
+const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
+const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     QString messageWithNewLine = message + "\n";
@@ -160,8 +167,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
-
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -195,9 +200,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     applicationInfo.beginGroup("INFO");
 
     setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
+    setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _settings = new QSettings(this);
 
@@ -232,6 +239,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
+    loadScripts();
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -255,7 +263,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-
+    
+    checkVersion();
 }
 
 Application::~Application() {
@@ -270,7 +279,7 @@ Application::~Application() {
     _audio.thread()->wait();
 
     storeSizeAndPosition();
-
+    saveScripts();
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
@@ -1384,6 +1393,7 @@ void Application::idle() {
         }
     }
 }
+
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
@@ -3959,7 +3969,7 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
-    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
+    QString buildVersion = " (build " + applicationVersion() + ")";
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
         title += _profile.getUsername();
@@ -4237,13 +4247,38 @@ void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 
-void Application::loadScript() {
-    // shut down and stop any existing script
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString suggestedName = desktopLocation.append("/script.js");
+void Application::loadScripts(){
+  // loads all saved scripts
+  QSettings* settings = new QSettings(this);
+  int size = settings->beginReadArray("Settings");
+  for(int i=0; i<size; ++i){
+    settings->setArrayIndex(i);
+    QString string = settings->value("script").toString();
+    loadScript(string);
+  }
+  settings->endArray();
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName,
-                                                          tr("JavaScript Files (*.js)"));
+}
+
+void Application::saveScripts(){
+  // saves all current running scripts
+  QSettings* settings = new QSettings(this);
+  settings->beginWriteArray("Settings");
+  for(int i=0; i<_activeScripts.size(); ++i){
+    settings->setArrayIndex(i);
+    settings->setValue("script", _activeScripts.at(i));
+  }
+  settings->endArray();
+
+}
+
+void Application::removeScriptName(const QString& fileNameString)
+{
+  _activeScripts.removeOne(fileNameString);
+}
+
+void Application::loadScript(const QString& fileNameString){
+    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -4270,9 +4305,7 @@ void Application::loadScript() {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
-                                                    &_controllerScriptingInterface);
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(), &_controllerScriptingInterface);
     scriptEngine->setupMenuItems();
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -4286,8 +4319,9 @@ void Application::loadScript() {
     connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(finished()), scriptEngine, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(removeScriptName(const QString&)));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
@@ -4301,6 +4335,17 @@ void Application::loadScript() {
     _window->activateWindow();
 }
 
+void Application::loadDialog() {
+    // shut down and stop any existing script
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString suggestedName = desktopLocation.append("/script.js");
+
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Open Script"), suggestedName, 
+                                                          tr("JavaScript Files (*.js)"));
+    
+    loadScript(fileNameString);
+}
+
 void Application::toggleLogDialog() {
     if (! _logDialog) {
         _logDialog = new LogDialog(_glWidget, getLogger());
@@ -4309,7 +4354,6 @@ void Application::toggleLogDialog() {
         _logDialog->close();
     }
 }
-
 
 void Application::initAvatarAndViewFrustum() {
     updateAvatar(0.f);
@@ -4356,4 +4400,73 @@ void Application::updateLocalOctreeCache(bool firstTime) {
             _persistThread->initialize(true);
         }
     }
+}
+
+void Application::checkVersion() {
+    QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
+    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+}
+
+void Application::parseVersionXml() {
+    
+    #ifdef Q_OS_WIN32
+    QString operatingSystem("win");
+    #endif
+    
+    #ifdef Q_OS_MAC
+    QString operatingSystem("mac");
+    #endif
+    
+    #ifdef Q_OS_LINUX
+    QString operatingSystem("ubuntu");
+    #endif
+    
+    QString releaseDate;
+    QString releaseNotes;
+    QString latestVersion;
+    QUrl downloadUrl;
+    QObject* sender = QObject::sender();
+    
+    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    while (!xml.atEnd() && !xml.hasError()) {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            if (xml.name() == "ReleaseDate") {
+                xml.readNext();
+                releaseDate = xml.text().toString();
+            }
+            if (xml.name() == "ReleaseNotes") {
+                xml.readNext();
+                releaseNotes = xml.text().toString();
+            }
+            if (xml.name() == "Version") {
+                xml.readNext();
+                latestVersion = xml.text().toString();
+            }
+            if (xml.name() == operatingSystem) {
+                xml.readNext();
+                downloadUrl = QUrl(xml.text().toString());
+            }
+        }
+    }
+    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
+        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+    }
+    sender->deleteLater();
+}
+
+bool Application::shouldSkipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::ReadWrite);
+    QString skipVersion(skipFile.readAll());
+    return (skipVersion == latestVersion || applicationVersion() == "dev");
+}
+
+void Application::skipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    skipFile.seek(0);
+    skipFile.write(latestVersion.toStdString().c_str());
 }
