@@ -80,9 +80,7 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
             
             // erase this particle
             particleItr = _particles->erase(particleItr);
-        }
-        else
-        {
+        } else {
             ++particleItr;
         }
     }
