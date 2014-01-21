@@ -4224,6 +4224,7 @@ void Application::loadScript() {
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
 
     QThread* workerThread = new QThread(this);
 

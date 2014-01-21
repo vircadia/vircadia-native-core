@@ -77,6 +77,14 @@ function moveParticle() {
     print("newProperties.position.x = " + newProperties.position.x);
 
     Particles.editParticle(particleID, newProperties);
+    
+    // also check to see if we can "find" particles...
+    var searchAt = { x: 0, y: 0, z: 0};
+    var searchRadius = 2;
+    var foundParticle = Particles.findClosestParticle(searchAt, searchRadius);
+    if (foundParticle.isKnownID) {
+        print("found particle:" + foundParticle.id);
+    }
 }
 
 

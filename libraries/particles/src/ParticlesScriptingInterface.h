@@ -19,19 +19,26 @@
 class ParticlesScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
+    ParticlesScriptingInterface();
+    
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
     virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
+
+    void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
+    ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
 
 public slots:
     ParticleID addParticle(const ParticleProperties& properties);
     void editParticle(ParticleID particleID, const ParticleProperties& properties);
     void deleteParticle(ParticleID particleID);
+    ParticleID findClosestParticle(const glm::vec3& center, float radius) const;
 
 private:
     void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
 
     uint32_t _nextCreatorTokenID;
+    ParticleTree* _particleTree;
 };
 
 #endif /* defined(__hifi__ParticlesScriptingInterface__) */

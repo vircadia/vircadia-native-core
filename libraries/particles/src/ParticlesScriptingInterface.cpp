@@ -7,7 +7,13 @@
 //
 
 #include "ParticlesScriptingInterface.h"
+#include "ParticleTree.h"
 
+ParticlesScriptingInterface::ParticlesScriptingInterface() :
+    _nextCreatorTokenID(0),
+    _particleTree(NULL)
+{
+}
 
 
 void ParticlesScriptingInterface::queueParticleMessage(PACKET_TYPE packetType,
@@ -73,3 +79,18 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
     //qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 }
+
+ParticleID ParticlesScriptingInterface::findClosestParticle(const glm::vec3& center, float radius) const {
+    ParticleID result(UNKNOWN_PARTICLE_ID, UNKNOWN_TOKEN, false);
+    if (_particleTree) {
+        const Particle* closestParticle = _particleTree->findClosestParticle(center/(float)TREE_SCALE, 
+                                                                                radius/(float)TREE_SCALE);
+
+        if (closestParticle) {
+            result.id = closestParticle->getID();
+            result.isKnownID = true;
+        }
+    }
+    return result;
+}
+
