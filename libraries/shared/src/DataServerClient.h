@@ -15,7 +15,7 @@
 #include <QtCore/QPointer>
 #include <QtCore/QUuid>
 
-#include <HifiSockAddr.h>
+#include "HifiSockAddr.h"
 
 class DataServerCallbackObject {
 public:

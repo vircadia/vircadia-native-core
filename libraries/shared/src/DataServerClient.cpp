@@ -9,11 +9,9 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QUdpSocket>
 
-#include <NodeList.h>
-#include <PacketHeaders.h>
-#include <UUID.h>
-
-#include "avatar/Profile.h"
+#include "NodeList.h"
+#include "PacketHeaders.h"
+#include "UUID.h"
 
 #include "DataServerClient.h"
 
@@ -140,12 +138,14 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
     // pull the user string from the packet so we know who to associate this with
     int numHeaderBytes = numBytesForPacketHeader(packetData);
     
-    _sequenceNumber = *(packetData + numHeaderBytes);
+    quint8 sequenceNumber = *(packetData + numHeaderBytes);
     
     if (_callbackObjects.find(_sequenceNumber) != _callbackObjects.end()) {
-        DataServerCallbackObject* callbackObject = _callbackObjects.take(_sequenceNumber);
+        // remove the packet from our two maps, it's matched
+        DataServerCallbackObject* callbackObject = _callbackObjects.take(sequenceNumber);
+        _unmatchedPackets.remove(sequenceNumber);
         
-        char* userStringPosition = (char*) packetData + numHeaderBytes + sizeof(_sequenceNumber);
+        char* userStringPosition = (char*) packetData + numHeaderBytes + sizeof(sequenceNumber);
         QString userString(userStringPosition);
         
         char* keysPosition = userStringPosition + userString.size() + sizeof('\0') + sizeof(unsigned char);
@@ -156,84 +156,6 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         
         callbackObject->processDataServerResponse(userString, keyList, valueList);
     }
-
-    
-    // user string was UUID, find matching avatar and associate data
-//    for (int i = 0; i < keyList.size(); i++) {
-//        if (valueList[i] != " ") {
-//            if (keyList[i] == DataServerKey::FaceMeshURL) {
-    
-//                if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-//                    qDebug("Changing user's face model URL to %s\n", valueList[i].toLocal8Bit().constData());
-//                    Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
-//                } else {
-//                    // mesh URL for a UUID, find avatar in our list
-//                    
-//                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-//                        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-//                            Avatar* avatar = (Avatar *) node->getLinkedData();
-//                            
-//                            if (avatar->getUUID() == userUUID) {
-//                                QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-//                                                          "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-//                            }
-//                        }
-//                    }
-//                }
-//            } else if (keyList[i] == DataServerKey::SkeletonURL) {
-    
-//                if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-//                    qDebug("Changing user's skeleton URL to %s\n", valueList[i].toLocal8Bit().constData());
-//                    Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
-//                } else {
-//                    // skeleton URL for a UUID, find avatar in our list
-//                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-//                        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-//                            Avatar* avatar = (Avatar *) node->getLinkedData();
-//                            
-//                            if (avatar->getUUID() == userUUID) {
-//                                QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
-//                                                          Q_ARG(QUrl, QUrl(valueList[i])));
-//                            }
-//                        }
-//                    }
-//                }
-//            } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&
-//                    keyList[i + 2] == DataServerKey::Orientation && valueList[i] != " " &&
-//                    valueList[i + 1] != " " && valueList[i + 2] != " ") {
-//                
-//                QStringList coordinateItems = valueList[i + 1].split(',');
-//                QStringList orientationItems = valueList[i + 2].split(',');
-    
-//                if (coordinateItems.size() == 3 && orientationItems.size() == 3) {
-//                    
-//                    // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-//                    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
-//                    
-//                    qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
-//                        ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
-//                        ", and orientation to" << valueList[i + 2].toLocal8Bit().constData() <<
-//                        "to go to" << userString << "\n";
-//                    
-//                    NodeList::getInstance()->setDomainHostname(valueList[i]);
-//                    
-//                    // orient the user to face the target
-//                    glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
-//                        orientationItems[1].toFloat(), orientationItems[2].toFloat()))) *
-//                            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
-//                    Application::getInstance()->getAvatar()->setOrientation(newOrientation);
-//                    
-//                    // move the user a couple units away
-//                    const float DISTANCE_TO_USER = 2.0f;
-//                    glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
-//                        coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-//                    Application::getInstance()->getAvatar()->setPosition(newPosition);
-//                }
-                
-//            } else if (keyList[i] == DataServerKey::UUID) {
-                // this is the user's UUID - set it on the profile
-//                Application::getInstance()->getProfile()->setUUID(valueList[i]);
-    
 }
 
 void DataServerClient::processMessageFromDataServer(unsigned char* packetData, int numPacketBytes) {
