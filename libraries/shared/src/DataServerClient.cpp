@@ -17,7 +17,6 @@
 
 QMap<quint8, QByteArray> DataServerClient::_unmatchedPackets;
 QMap<quint8, DataServerCallbackObject*> DataServerClient::_callbackObjects;
-QString DataServerClient::_clientIdentifier;
 quint8 DataServerClient::_sequenceNumber = 0;
 
 const char MULTI_KEY_VALUE_SEPARATOR = '|';
@@ -30,47 +29,48 @@ const HifiSockAddr& DataServerClient::dataServerSockAddr() {
     return dsSockAddr;
 }
 
-void DataServerClient::putValueForKey(const QString& key, const char* value) {
-    if (!_clientIdentifier.isEmpty()) {
-        
-        unsigned char putPacket[MAX_PACKET_SIZE];
-        
-        // setup the header for this packet
-        int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
-        
-        // pack the sequence number
-        memcpy(putPacket + numPacketBytes, &_sequenceNumber, sizeof(_sequenceNumber));
-        numPacketBytes += sizeof(_sequenceNumber);
-        
-        // pack the client UUID, null terminated
-        memcpy(putPacket + numPacketBytes, qPrintable(_clientIdentifier), _clientIdentifier.toLocal8Bit().size());
-        numPacketBytes += _clientIdentifier.toLocal8Bit().size();
-        putPacket[numPacketBytes++] = '\0';
+void DataServerClient::putValueForKeyAndUsername(const QString& key, const QString& value, const QString& clientIdentifier) {
+    unsigned char putPacket[MAX_PACKET_SIZE];
+    
+    // setup the header for this packet
+    int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
+    
+    // pack the sequence number
+    memcpy(putPacket + numPacketBytes, &_sequenceNumber, sizeof(_sequenceNumber));
+    numPacketBytes += sizeof(_sequenceNumber);
+    
+    // pack the client UUID, null terminated
+    memcpy(putPacket + numPacketBytes, qPrintable(clientIdentifier), clientIdentifier.toLocal8Bit().size());
+    numPacketBytes += clientIdentifier.toLocal8Bit().size();
+    putPacket[numPacketBytes++] = '\0';
+    
+    // pack a 1 to designate that we are putting a single value
+    putPacket[numPacketBytes++] = 1;
+    
+    // pack the key, null terminated
+    strcpy((char*) putPacket + numPacketBytes, qPrintable(key));
+    numPacketBytes += key.size();
+    putPacket[numPacketBytes++] = '\0';
+    
+    // pack the value, null terminated
+    strcpy((char*) putPacket + numPacketBytes, qPrintable(value));
+    numPacketBytes += value.size();
+    putPacket[numPacketBytes++] = '\0';
+    
+    // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
+    _unmatchedPackets.insert(_sequenceNumber, QByteArray((char*) putPacket, numPacketBytes));
+    
+    // send this put request to the data server
+    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) putPacket, numPacketBytes,
+                                                           dataServerSockAddr().getAddress(),
+                                                           dataServerSockAddr().getPort());
+    
+    // push the sequence number forwards
+    _sequenceNumber++;
+}
 
-        // pack a 1 to designate that we are putting a single value
-        putPacket[numPacketBytes++] = 1;
-
-        // pack the key, null terminated
-        strcpy((char*) putPacket + numPacketBytes, key.toLocal8Bit().constData());
-        numPacketBytes += key.size();
-        putPacket[numPacketBytes++] = '\0';
-
-        // pack the value, null terminated
-        strcpy((char*) putPacket + numPacketBytes, value);
-        numPacketBytes += strlen(value);
-        putPacket[numPacketBytes++] = '\0';
-
-        // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
-        _unmatchedPackets.insert(_sequenceNumber, QByteArray((char*) putPacket, numPacketBytes));
-        
-        // send this put request to the data server
-        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) putPacket, numPacketBytes,
-                                                               dataServerSockAddr().getAddress(),
-                                                               dataServerSockAddr().getPort());
-        
-        // push the sequence number forwards
-        _sequenceNumber++;
-    }
+void DataServerClient::putValueForKeyAndUUID(const QString& key, const QString& value, const QUuid& uuid) {
+    putValueForKeyAndUsername(key, value, uuidStringWithoutCurlyBraces(uuid));
 }
 
 void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uuid, DataServerCallbackObject* callbackObject) {
@@ -79,13 +79,13 @@ void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uu
 
 void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject) {
     if (!uuid.isNull()) {
-        getValuesForKeysAndUserString(keys, uuidStringWithoutCurlyBraces(uuid), callbackObject);
+        getValuesForKeysAndUsername(keys, uuidStringWithoutCurlyBraces(uuid), callbackObject);
     }
 }
 
-void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
-                                                     DataServerCallbackObject* callbackObject) {
-    if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
+void DataServerClient::getValuesForKeysAndUsername(const QStringList& keys, const QString& clientIdentifier,
+                                                   DataServerCallbackObject* callbackObject) {
+    if (!clientIdentifier.isEmpty() && keys.size() <= UCHAR_MAX) {
         unsigned char getPacket[MAX_PACKET_SIZE];
         
         // setup the header for this packet
@@ -96,8 +96,8 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
         numPacketBytes += sizeof(_sequenceNumber);
 
         // pack the user string (could be username or UUID string), null-terminate
-        memcpy(getPacket + numPacketBytes, userString.toLocal8Bit().constData(), userString.toLocal8Bit().size());
-        numPacketBytes += userString.toLocal8Bit().size();
+        memcpy(getPacket + numPacketBytes, clientIdentifier.toLocal8Bit().constData(), clientIdentifier.size());
+        numPacketBytes += clientIdentifier.size();
         getPacket[numPacketBytes++] = '\0';
 
         // pack one byte to designate the number of keys
@@ -122,12 +122,9 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
     }
 }
 
-void DataServerClient::getClientValueForKey(const QString& key, DataServerCallbackObject* callbackObject) {
-    if (!_clientIdentifier.isEmpty()) {
-        getValuesForKeysAndUserString(QStringList(key), _clientIdentifier, callbackObject);
-    } else {
-        qDebug() << "There is no client identifier set for the DataServerClient.";
-    }
+void DataServerClient::getClientValueForKey(const QString& key, const QString& clientIdentifier,
+                                            DataServerCallbackObject* callbackObject) {
+    getValuesForKeysAndUsername(QStringList(key), clientIdentifier, callbackObject);
 }
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData) {

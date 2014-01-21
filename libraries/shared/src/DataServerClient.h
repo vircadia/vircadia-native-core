@@ -25,26 +25,25 @@ public:
 class DataServerClient {
 public:
     static const HifiSockAddr& dataServerSockAddr();
-    static void putValueForKey(const QString& key, const char* value);
-    static void getClientValueForKey(const QString& key, DataServerCallbackObject* callbackObject);
     
+    static void putValueForKeyAndUsername(const QString& key, const QString& value, const QString& clientIdentifier);
+    static void putValueForKeyAndUUID(const QString& key, const QString& value, const QUuid& uuid);
+    
+    static void getClientValueForKey(const QString& key, const QString& _clientIdentifer,
+                                     DataServerCallbackObject* callbackObject);
     static void getValueForKeyAndUUID(const QString& key, const QUuid& uuid, DataServerCallbackObject* callbackObject);
     static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject);
-    static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
-                                              DataServerCallbackObject* callbackObject);
+    static void getValuesForKeysAndUsername(const QStringList& keys, const QString& clientIdentifier,
+                                            DataServerCallbackObject* callbackObject);
     
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
     
     static void resendUnmatchedPackets();
-    
-    static void setClientIdentifier(const QString& clientIdentifier) { _clientIdentifier = clientIdentifier; }
 private:
-    
     static void processConfirmFromDataServer(unsigned char* packetData);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void removeMatchedPacketFromMap(unsigned char* packetData);
     
-    static QString _clientIdentifier;
     static QMap<quint8, QByteArray> _unmatchedPackets;
     static QMap<quint8, DataServerCallbackObject*> _callbackObjects;
     static quint8 _sequenceNumber;

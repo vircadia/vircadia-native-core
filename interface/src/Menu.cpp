@@ -830,8 +830,9 @@ void Menu::editPreferences() {
             applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
 
             // send the new face mesh URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
-                                             faceModelURL.toString().toLocal8Bit().constData());
+            DataServerClient::putValueForKeyAndUsername(DataServerKey::FaceMeshURL,
+                                                        faceModelURL.toString().toLocal8Bit().constData(),
+                                                        applicationInstance->getProfile()->getUsername());
         }
 
         QUrl skeletonModelURL(skeletonURLEdit->text());
@@ -841,8 +842,9 @@ void Menu::editPreferences() {
             applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
 
             // send the new skeleton model URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
-                                             skeletonModelURL.toString().toLocal8Bit().constData());
+            DataServerClient::putValueForKeyAndUsername(DataServerKey::SkeletonURL,
+                                                        skeletonModelURL.toString().toLocal8Bit().constData(),
+                                                        applicationInstance->getProfile()->getUsername());
         }
 
         applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
@@ -961,7 +963,7 @@ void Menu::goToUser() {
     int dialogReturn = userDialog.exec();
     if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
-        DataServerClient::getValuesForKeysAndUserString(
+        DataServerClient::getValuesForKeysAndUsername(
             QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
                                                         userDialog.textValue(), Application::getInstance()->getProfile());
     }
