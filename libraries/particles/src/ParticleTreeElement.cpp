@@ -11,7 +11,7 @@
 #include "ParticleTree.h"
 #include "ParticleTreeElement.h"
 
-ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeElement() { 
+ParticleTreeElement::ParticleTreeElement(unsigned char* octalCode) : OctreeElement() {
     init(octalCode);
 };
 
@@ -20,7 +20,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 }
 
 // This will be called primarily on addChildAt(), which means we're adding a child of our
-// own type to our own tree. This means we should initialize that child with any tree and type 
+// own type to our own tree. This means we should initialize that child with any tree and type
 // specific settings that our children must have. One example is out VoxelSystem, which
 // we know must match ours.
 OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
@@ -34,8 +34,8 @@ void ParticleTreeElement::init(unsigned char* octalCode) {
     _voxelMemoryUsage += sizeof(ParticleTreeElement);
 }
 
-ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) { 
-    ParticleTreeElement* newElement = (ParticleTreeElement*)OctreeElement::addChildAtIndex(index); 
+ParticleTreeElement* ParticleTreeElement::addChildAtIndex(int index) {
+    ParticleTreeElement* newElement = (ParticleTreeElement*)OctreeElement::addChildAtIndex(index);
     newElement->setTree(_myTree);
     return newElement;
 }
@@ -66,17 +66,29 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     // update our contained particles
     uint16_t numberOfParticles = _particles.size();
 
+    if (numberOfParticles > 0) {
+//        qDebug() << "ParticleTreeElement::update()... numberOfParticles="<< numberOfParticles;
+    }
+
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         _particles[i].update();
 
         // If the particle wants to die, or if it's left our bounding box, then move it
         // into the arguments moving particles. These will be added back or deleted completely
+
+//        qDebug() << "ParticleTreeElement::update()... _particles[i="<< i << "].getShouldDie()="
+//            << _particles[i].getShouldDie() << " getID()=" << _particles[i].getID();
+
         if (_particles[i].getShouldDie() || !_box.contains(_particles[i].getPosition())) {
-            args._movingParticles.push_back(_particles[i]);
-            
+
+            // if it moved out of bounds, add it to the movingParticles
+            //if (!_particles[i].getShouldDie()) {
+                args._movingParticles.push_back(_particles[i]);
+            //}
+
             // erase this particle
             _particles.erase(_particles.begin()+i);
-            
+
             // reduce our index since we just removed this item
             i--;
             numberOfParticles--;
@@ -84,14 +96,14 @@ void ParticleTreeElement::update(ParticleTreeUpdateArgs& args) {
     }
 }
 
-bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius, 
+bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
-                                    
+
     uint16_t numberOfParticles = _particles.size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         glm::vec3 particleCenter = _particles[i].getPosition();
         float particleRadius = _particles[i].getRadius();
-        
+
         // don't penetrate yourself
         if (particleCenter == center && particleRadius == radius) {
             return false;
@@ -106,7 +118,7 @@ bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float r
                 return false;
             }
         }
-        
+
         if (findSphereSpherePenetration(center, radius, particleCenter, particleRadius, penetration)) {
             *penetratedObject = (void*)&_particles[i];
             return true;
@@ -122,7 +134,7 @@ bool ParticleTreeElement::containsParticle(const Particle& particle) const {
             return true;
         }
     }
-    return false;    
+    return false;
 }
 
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
@@ -133,27 +145,27 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
             int difference = _particles[i].getLastUpdated() - particle.getLastUpdated();
             bool changedOnServer = _particles[i].getLastEdited() < particle.getLastEdited();
             bool localOlder = _particles[i].getLastUpdated() < particle.getLastUpdated();
-            if (changedOnServer || localOlder) {                
+            if (changedOnServer || localOlder) {
                 if (wantDebug) {
-                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
+                    printf("local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                            (localOlder ? "OLDER" : "NEWER"),               
+                            (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );
                 }
                 _particles[i].copyChangedProperties(particle);
             } else {
                 if (wantDebug) {
                     printf(">>> IGNORING SERVER!!! Would've caused jutter! <<<  "
-                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n", 
+                            "local particle [id:%d] %s and %s than server particle by %d, particle.isNewlyCreated()=%s\n",
                             particle.getID(), (changedOnServer ? "CHANGED" : "same"),
-                            (localOlder ? "OLDER" : "NEWER"),               
+                            (localOlder ? "OLDER" : "NEWER"),
                             difference, debug::valueOf(particle.isNewlyCreated()) );
                 }
             }
             return true;
         }
     }
-    return false;    
+    return false;
 }
 
 const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {
@@ -166,7 +178,7 @@ const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) cons
             closestParticle = &_particles[i];
         }
     }
-    return closestParticle;    
+    return closestParticle;
 }
 
 const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
@@ -178,26 +190,26 @@ const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
             break;
         }
     }
-    return foundParticle;    
+    return foundParticle;
 }
 
 
-int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
-            ReadBitstreamToTreeParams& args) { 
-    
+int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+            ReadBitstreamToTreeParams& args) {
+
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfParticles = 0;
     int expectedBytesPerParticle = Particle::expectedBytes();
 
     if (bytesLeftToRead >= sizeof(numberOfParticles)) {
-    
+
         // read our particles in....
         numberOfParticles = *(uint16_t*)dataAt;
         dataAt += sizeof(numberOfParticles);
         bytesLeftToRead -= sizeof(numberOfParticles);
         bytesRead += sizeof(numberOfParticles);
-        
+
         if (bytesLeftToRead >= (numberOfParticles * expectedBytesPerParticle)) {
             for (uint16_t i = 0; i < numberOfParticles; i++) {
                 Particle tempParticle;
@@ -209,7 +221,7 @@ int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, in
             }
         }
     }
-    
+
     return bytesRead;
 }
 
@@ -220,7 +232,7 @@ void ParticleTreeElement::calculateAverageFromChildren() {
 
 // will detect if children are leaves AND collapsable into the parent node
 // and in that case will collapse children and make this node
-// a leaf, returns TRUE if all the leaves are collapsed into a 
+// a leaf, returns TRUE if all the leaves are collapsed into a
 // single node
 bool ParticleTreeElement::collapseChildren() {
     // nothing to do here yet...

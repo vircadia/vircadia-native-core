@@ -34,7 +34,7 @@ void OctreeInboundPacketProcessor::resetStats() {
     _totalLockWaitTime = 0;
     _totalElementsInPacket = 0;
     _totalPackets = 0;
-    
+
     _singleSenderStats.clear();
 }
 
@@ -43,14 +43,14 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
                                                unsigned char* packetData, ssize_t packetLength) {
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
-    
+
     if (debugProcessPacket) {
         printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    
-    
+
+
     // Ask our tree subclass if it can handle the incoming packet...
     PACKET_TYPE packetType = packetData[0];
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
@@ -58,7 +58,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         _receivedPacketCount++;
 
         SharedNodePointer senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
-        
+
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
         uint64_t arrivedAt = usecTimestampNow();
@@ -66,10 +66,10 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         int editsInPacket = 0;
         uint64_t processTime = 0;
         uint64_t lockWaitTime = 0;
-        
-        if (_myServer->wantsDebugReceiving()) {
-            qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount 
-                    << " command from client receivedBytes=" << packetLength 
+
+        if (true || _myServer->wantsDebugReceiving()) {
+            qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
+                    << " command from client receivedBytes=" << packetLength
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
@@ -77,7 +77,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         while (atByte < packetLength) {
             int maxSize = packetLength - atByte;
 
-            if (debugProcessPacket) {
+            if (true || debugProcessPacket) {
                 printf("OctreeInboundPacketProcessor::processPacket() %c "
                        "packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
                         packetType, packetData, packetLength, editData, atByte, maxSize);
@@ -86,7 +86,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             uint64_t startLock = usecTimestampNow();
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
-            int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType, 
+            int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
                                                                                   packetData,
                                                                                   packetLength,
                                                                                   editData, maxSize, senderNode.data());
@@ -129,15 +129,15 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
     }
 }
 
-void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
+void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime,
             int editsInPacket, uint64_t processTime, uint64_t lockWaitTime) {
-            
+
     _totalTransitTime += transitTime;
     _totalProcessTime += processTime;
     _totalLockWaitTime += lockWaitTime;
     _totalElementsInPacket += editsInPacket;
     _totalPackets++;
-    
+
     // find the individual senders stats and track them there too...
     // see if this is the first we've heard of this node...
     if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
@@ -162,7 +162,7 @@ void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, in
 
 
 SingleSenderStats::SingleSenderStats() {
-    _totalTransitTime = 0; 
+    _totalTransitTime = 0;
     _totalProcessTime = 0;
     _totalLockWaitTime = 0;
     _totalElementsInPacket = 0;

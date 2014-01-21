@@ -40,10 +40,12 @@ const uint16_t PACKET_CONTAINS_DAMPING = 32;
 const uint16_t PACKET_CONTAINS_LIFETIME = 64;
 const uint16_t PACKET_CONTAINS_INHAND = 128;
 const uint16_t PACKET_CONTAINS_SCRIPT = 256;
+const uint16_t PACKET_CONTAINS_SHOULDDIE = 512;
 
-const float DEFAULT_LIFETIME = 60.0f * 60.0f * 24.0f; // particles live for 1 day by default
+const float DEFAULT_LIFETIME = 10.f; //60.0f * 60.0f * 24.0f; // particles live for 1 day by default
 const float DEFAULT_DAMPING = 0.99f;
-const float DEFAULT_RADIUS = 0.1f / TREE_SCALE; // really shouldn't be a default?
+const float DEFAULT_RADIUS = 0.1f / TREE_SCALE;
+const float MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 const QString DEFAULT_SCRIPT("");
 const bool IN_HAND = true; // it's in a hand
@@ -75,6 +77,17 @@ public:
 
     uint64_t getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
+
+    void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
+    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true;  }
+    void setColor(const xColor& value) { _color = value; _colorChanged = true; }
+    void setRadius(float value) { _radius = value; _radiusChanged = true; }
+    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true;  }
+    void setInHand(bool inHand) { _inHand = inHand; _inHandChanged = true; }
+    void setDamping(float value) { _damping = value; _dampingChanged = true;  }
+    void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
+    void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true;  }
+    void setScript(QString updateScript) { _script = updateScript; _scriptChanged = true;  }
 
 private:
     glm::vec3 _position;

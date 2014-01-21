@@ -86,8 +86,10 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     if (id == NEW_PARTICLE) {
         _id = _nextID;
         _nextID++;
+qDebug() << "Particle::init()... assigning new id... _id=" << _id;
     } else {
         _id = id;
+qDebug() << "Particle::init()... assigning id from init... _id=" << _id;
     }
     uint64_t now = usecTimestampNow();
     _lastEdited = now;
@@ -152,6 +154,13 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     if (success) {
         success = packetData->appendValue(getInHand());
     }
+/**
+    if (success) {
+qDebug() << "appendParticleData().... getShouldDie()=" << getShouldDie();
+        success = packetData->appendValue(getShouldDie());
+    }
+**/
+
     if (success) {
         uint16_t scriptLength = _script.size() + 1; // include NULL
         success = packetData->appendValue(scriptLength);
@@ -265,6 +274,15 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(_inHand);
         bytesRead += sizeof(_inHand);
 
+/**
+        // shouldDie
+        memcpy(&_shouldDie, dataAt, sizeof(_shouldDie));
+        dataAt += sizeof(_shouldDie);
+        bytesRead += sizeof(_shouldDie);
+
+qDebug() << "readParticleDataFromBuffer().... _shouldDie()=" << _shouldDie;
+**/
+
         // script
         uint16_t scriptLength;
         memcpy(&scriptLength, dataAt, sizeof(scriptLength));
@@ -282,6 +300,9 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 
 
 Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree) {
+
+qDebug() << "Particle::fromEditPacket() length=" << length;
+
     Particle newParticle; // id and _lastUpdated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
@@ -289,6 +310,9 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     // the first part of the data is our octcode...
     int octets = numberOfThreeBitSectionsInCode(data);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+
+qDebug() << "Particle::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
+printOctalCode(data);
 
     // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
@@ -300,36 +324,38 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     dataAt += sizeof(editID);
     processedBytes += sizeof(editID);
 
+qDebug() << "editID:" << editID;
+
+    bool isNewParticle = (editID == NEW_PARTICLE);
+
     // special case for handling "new" particles
-    if (editID == NEW_PARTICLE) {
+    if (isNewParticle) {
+qDebug() << "editID == NEW_PARTICLE";
         // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         uint32_t creatorTokenID;
         memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
         dataAt += sizeof(creatorTokenID);
         processedBytes += sizeof(creatorTokenID);
+
+qDebug() << "creatorTokenID:" << creatorTokenID;
+
         newParticle.setCreatorTokenID(creatorTokenID);
         newParticle._newlyCreated = true;
 
         newParticle.setAge(0); // this guy is new!
-qDebug() << "fromEditPacket() NEW_PARTICLE";
 
     } else {
-        qDebug() << "fromEditPacket() existingParticle id=" << editID;
-
         // look up the existing particle
-
-        qDebug() << "fromEditPacket() existingParticle id=" << editID << "calling tree->findParticleByID(editID)";
         const Particle* existingParticle = tree->findParticleByID(editID, true);
-        qDebug() << "fromEditPacket() existingParticle id=" << editID << "DONE tree->findParticleByID(editID)";
 
         // copy existing properties before over-writing with new properties
         if (existingParticle) {
             newParticle = *existingParticle;
-            qDebug() << "found it...";
+
+qDebug() << "newParticle = *existingParticle... calling debugDump()...";
+
             existingParticle->debugDump();
-        } else {
-            qDebug() << "WHOA! Didn't find it...";
         }
 
         newParticle._id = editID;
@@ -342,84 +368,97 @@ qDebug() << "fromEditPacket() NEW_PARTICLE";
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
     dataAt += sizeof(newParticle._lastEdited);
     processedBytes += sizeof(newParticle._lastEdited);
+qDebug() << "newParticle._lastEdited:" << newParticle._lastEdited;
+
 
     // All of the remaining items are optional, and may or may not be included based on their included values in the
     // properties included bits
     uint16_t packetContainsBits = 0;
-    memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
-    dataAt += sizeof(packetContainsBits);
-    processedBytes += sizeof(packetContainsBits);
+    if (!isNewParticle) {
+        memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
+        dataAt += sizeof(packetContainsBits);
+        processedBytes += sizeof(packetContainsBits);
+        qDebug() << "packetContainsBits:" << packetContainsBits;
+    }
 
-qDebug() << "fromEditPacket() packetContainsBits=" << packetContainsBits;
 
     // radius
-    if ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_RADIUS";
-
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS)) {
         memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
         dataAt += sizeof(newParticle._radius);
         processedBytes += sizeof(newParticle._radius);
+qDebug() << "newParticle._radius:" << newParticle._radius;
     }
 
     // position
-    if ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_POSITION";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION)) {
         memcpy(&newParticle._position, dataAt, sizeof(newParticle._position));
         dataAt += sizeof(newParticle._position);
         processedBytes += sizeof(newParticle._position);
+qDebug() << "newParticle._position:";
     }
 
     // color
-    if ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_COLOR";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR)) {
         memcpy(newParticle._color, dataAt, sizeof(newParticle._color));
         dataAt += sizeof(newParticle._color);
         processedBytes += sizeof(newParticle._color);
+qDebug() << "newParticle._color:";
     }
 
     // velocity
-    if ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_VELOCITY";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY)) {
         memcpy(&newParticle._velocity, dataAt, sizeof(newParticle._velocity));
         dataAt += sizeof(newParticle._velocity);
         processedBytes += sizeof(newParticle._velocity);
+qDebug() << "newParticle._velocity:";
     }
 
     // gravity
-    if ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_GRAVITY";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY)) {
         memcpy(&newParticle._gravity, dataAt, sizeof(newParticle._gravity));
         dataAt += sizeof(newParticle._gravity);
         processedBytes += sizeof(newParticle._gravity);
+qDebug() << "newParticle._gravity:";
     }
 
     // damping
-    if ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_DAMPING";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING)) {
         memcpy(&newParticle._damping, dataAt, sizeof(newParticle._damping));
         dataAt += sizeof(newParticle._damping);
         processedBytes += sizeof(newParticle._damping);
+qDebug() << "newParticle._damping:" << newParticle._damping;
     }
 
     // lifetime
-    if ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_LIFETIME";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME)) {
         memcpy(&newParticle._lifetime, dataAt, sizeof(newParticle._lifetime));
         dataAt += sizeof(newParticle._lifetime);
         processedBytes += sizeof(newParticle._lifetime);
+qDebug() << "newParticle._lifetime:" << newParticle._lifetime;
     }
 
+    // TODO: make inHand and shouldDie into single bits
     // inHand
-    if ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_INHAND";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND)) {
         memcpy(&newParticle._inHand, dataAt, sizeof(newParticle._inHand));
         dataAt += sizeof(newParticle._inHand);
         processedBytes += sizeof(newParticle._inHand);
+qDebug() << "newParticle._inHand:" << newParticle._inHand;
     }
 
+/**
+    // shouldDie
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SHOULDDIE) == PACKET_CONTAINS_SHOULDDIE)) {
+        memcpy(&newParticle._shouldDie, dataAt, sizeof(newParticle._shouldDie));
+        dataAt += sizeof(newParticle._shouldDie);
+        processedBytes += sizeof(newParticle._shouldDie);
+qDebug() << "fromEditPacket().... newParticle._shouldDie=" << newParticle._shouldDie;
+    }
+**/
+
     // script
-    if ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT) {
-qDebug() << "fromEditPacket() PACKET_CONTAINS_SCRIPT";
+    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT)) {
         uint16_t scriptLength;
         memcpy(&scriptLength, dataAt, sizeof(scriptLength));
         dataAt += sizeof(scriptLength);
@@ -428,12 +467,13 @@ qDebug() << "fromEditPacket() PACKET_CONTAINS_SCRIPT";
         newParticle._script = tempString;
         dataAt += scriptLength;
         processedBytes += scriptLength;
+qDebug() << "newParticle._script:" << newParticle._script;
     }
 
     const bool wantDebugging = true;
     if (wantDebugging) {
         qDebug("Particle::fromEditPacket()...");
-        qDebug("   Particle id in packet:%u", editID);
+        qDebug() << "   Particle id in packet:" << editID;
         //qDebug() << "    position: " << newParticle._position;
         newParticle.debugDump();
     }
@@ -445,6 +485,7 @@ void Particle::debugDump() const {
     printf("Particle id  :%u\n", _id);
     printf(" age:%f\n", getAge());
     printf(" edited ago:%f\n", getEditedAgo());
+    printf(" should die:%s\n", debug::valueOf(getShouldDie()));
     printf(" position:%f,%f,%f\n", _position.x, _position.y, _position.z);
     printf(" radius:%f\n", getRadius());
     printf(" velocity:%f,%f,%f\n", _velocity.x, _velocity.y, _velocity.z);
@@ -486,18 +527,23 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
         sizeOut += lengthOfOctcode;
 
         // Now add our edit content details...
+        bool isNewParticle = (id.id == NEW_PARTICLE);
 
         // id
         memcpy(copyAt, &id.id, sizeof(id.id));
         copyAt += sizeof(id.id);
         sizeOut += sizeof(id.id);
+qDebug() << "encoding, id.id:" << id.id;
+
         // special case for handling "new" particles
-        if (id.id == NEW_PARTICLE) {
+        if (isNewParticle) {
+qDebug() << "encodeParticleEditMessageDetails()... isNewParticle...";
             // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
             // we want to send back to the creator as an map to the actual id
             memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
             copyAt += sizeof(id.creatorTokenID);
             sizeOut += sizeof(id.creatorTokenID);
+qDebug() << "encoding, id.creatorTokenID:" << id.creatorTokenID;
         }
 
         // lastEdited
@@ -505,89 +551,101 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
         memcpy(copyAt, &lastEdited, sizeof(lastEdited));
         copyAt += sizeof(lastEdited);
         sizeOut += sizeof(lastEdited);
+qDebug() << "encoding, lastEdited:" << lastEdited;
 
-        // All of the remaining items are optional, and may or may not be included based on their included values in the
-        // properties included bits
+
+        // For new particles, all remaining items are mandatory, for an edited particle, All of the remaining items are
+        // optional, and may or may not be included based on their included values in the properties included bits
         uint16_t packetContainsBits = properties.getChangedBits();
-        memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
-        copyAt += sizeof(packetContainsBits);
-        sizeOut += sizeof(packetContainsBits);
-
-qDebug() << " packetContainsBits = " << packetContainsBits;
+        if (!isNewParticle) {
+            memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
+            copyAt += sizeof(packetContainsBits);
+            sizeOut += sizeof(packetContainsBits);
+qDebug() << "encoding, packetContainsBits:" << packetContainsBits;
+        }
 
         // radius
-        if ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_RADIUS\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS)) {
             float radius = properties.getRadius();
             memcpy(copyAt, &radius, sizeof(radius));
             copyAt += sizeof(radius);
             sizeOut += sizeof(radius);
+qDebug() << "encoding, radius:" << radius;
         }
 
         // position
-        if ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_POSITION\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION)) {
             memcpy(copyAt, &properties.getPosition(), sizeof(properties.getPosition()));
             copyAt += sizeof(properties.getPosition());
             sizeOut += sizeof(properties.getPosition());
+qDebug() << "encoding, properties.getPosition():";
         }
 
         // color
-        if ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_COLOR\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR)) {
             rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
             memcpy(copyAt, color, sizeof(color));
             copyAt += sizeof(color);
             sizeOut += sizeof(color);
+qDebug() << "encoding, color:";
         }
 
         // velocity
-        if ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_VELOCITY\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY)) {
             memcpy(copyAt, &properties.getVelocity(), sizeof(properties.getVelocity()));
             copyAt += sizeof(properties.getVelocity());
             sizeOut += sizeof(properties.getVelocity());
+qDebug() << "encoding, getVelocity:";
         }
 
         // gravity
-        if ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_GRAVITY\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY)) {
             memcpy(copyAt, &properties.getGravity(), sizeof(properties.getGravity()));
             copyAt += sizeof(properties.getGravity());
             sizeOut += sizeof(properties.getGravity());
+qDebug() << "encoding, getGravity():";
         }
 
         // damping
-        if ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_DAMPING\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING)) {
             float damping = properties.getDamping();
             memcpy(copyAt, &damping, sizeof(damping));
             copyAt += sizeof(damping);
             sizeOut += sizeof(damping);
+qDebug() << "encoding, damping:" << damping;
         }
 
         // lifetime
-        if ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_LIFETIME\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME)) {
             float lifetime = properties.getLifetime();
             memcpy(copyAt, &lifetime, sizeof(lifetime));
             copyAt += sizeof(lifetime);
             sizeOut += sizeof(lifetime);
+qDebug() << "encoding, lifetime:" << lifetime;
         }
 
         // inHand
-        if ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND) {
-            printf("encodeParticleEditMessageDetails() including PACKET_CONTAINS_INHAND\n");
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND)) {
             bool inHand = properties.getInHand();
             memcpy(copyAt, &inHand, sizeof(inHand));
             copyAt += sizeof(inHand);
             sizeOut += sizeof(inHand);
+qDebug() << "encoding, inHand:" << inHand;
         }
 
-        // script
-        if ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT) {
-            printf("encodeParticleEditMessageDetails() including SCRIPT\n");
+/**
+        // shoulDie
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SHOULDDIE) == PACKET_CONTAINS_SHOULDDIE)) {
+            bool shouldDie = properties.getShouldDie();
+            memcpy(copyAt, &shouldDie, sizeof(shouldDie));
+            copyAt += sizeof(shouldDie);
+            sizeOut += sizeof(shouldDie);
+qDebug() << "encoding, shouldDie:" << shouldDie;
+        }
+**/
 
+        // script
+        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT)) {
             uint16_t scriptLength = properties.getScript().size() + 1;
             memcpy(copyAt, &scriptLength, sizeof(scriptLength));
             copyAt += sizeof(scriptLength);
@@ -595,6 +653,7 @@ qDebug() << " packetContainsBits = " << packetContainsBits;
             memcpy(copyAt, qPrintable(properties.getScript()), scriptLength);
             copyAt += scriptLength;
             sizeOut += scriptLength;
+qDebug() << "encoding, getScript:" << properties.getScript();
         }
 
         bool wantDebugging = false;
@@ -607,6 +666,8 @@ qDebug() << " packetContainsBits = " << packetContainsBits;
 
     // cleanup
     delete[] octcode;
+
+qDebug() << "encoding... sizeOut:" << sizeOut;
 
     return success;
 }
@@ -660,7 +721,11 @@ void Particle::update() {
 
     // Lifetime - even if you're moving, or in hand, if you're age is greater than your requested lifetime, you are going to die
     bool shouldDie = getShouldDie() || (getAge() > getLifetime()) || (!isInHand && !isStillMoving && isReallyOld);
+//qDebug() << "update()... getShouldDie()=" << getShouldDie();
+
     setShouldDie(shouldDie);
+
+//qDebug() << "update()... getShouldDie()=" << getShouldDie();
 
     runUpdateScript(); // allow the javascript to alter our state
 
@@ -808,7 +873,7 @@ void Particle::setProperties(const ParticleProperties& properties) {
 ParticleProperties::ParticleProperties() :
     _position(0),
     _color(),
-    _radius(0),
+    _radius(DEFAULT_RADIUS),
     _velocity(0),
     _gravity(DEFAULT_GRAVITY),
     _damping(DEFAULT_DAMPING),
@@ -870,12 +935,12 @@ uint16_t ParticleProperties::getChangedBits() const {
         changedBits += PACKET_CONTAINS_SCRIPT;
     }
 
+/**
     // how do we want to handle this?
-
-    //if (_shouldDieChanged) {
-    //    changedBits += PACKET_CONTAINS_SHOULDDIE;
-    //}
-
+    if (_shouldDieChanged) {
+        changedBits += PACKET_CONTAINS_SHOULDDIE;
+    }
+**/
     return changedBits;
 }
 
@@ -945,18 +1010,13 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     }
 
     QScriptValue radius = object.property("radius");
-qDebug() << "copyFromScriptValue() line:" << __LINE__;
     if (radius.isValid()) {
-qDebug() << "copyFromScriptValue() line:" << __LINE__;
         float newRadius;
         newRadius = radius.toVariant().toFloat();
-qDebug() << "copyFromScriptValue() line:" << __LINE__ << " newRadius=" << newRadius;
-qDebug() << "copyFromScriptValue() line:" << __LINE__ << " _radius=" << _radius;
         if (newRadius != _radius) {
             _radius = newRadius;
             _radiusChanged = true;
         }
-qDebug() << "copyFromScriptValue() line:" << __LINE__ << " _radiusChanged=" << _radiusChanged;
     }
 
     QScriptValue velocity = object.property("velocity");

@@ -55,7 +55,7 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
     // if we didn't find it in the tree, then store it...
     if (!args.found) {
         glm::vec3 position = particle.getPosition();
-        float size = particle.getRadius();
+        float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
         ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
         element->storeParticle(particle, senderNode);
@@ -127,7 +127,7 @@ public:
 
 
 bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
-qDebug() << "ParticleTree::findByIDOperation()....";
+//qDebug() << "ParticleTree::findByIDOperation()....";
 
     FindByIDArgs* args = static_cast<FindByIDArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
@@ -153,9 +153,9 @@ qDebug() << "ParticleTree::findByIDOperation()....";
 const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) {
     FindByIDArgs args = { id, false, NULL };
     if (!alreadyLocked) {
-        qDebug() << "ParticleTree::findParticleByID().... about to call lockForRead()....";
+        //qDebug() << "ParticleTree::findParticleByID().... about to call lockForRead()....";
         lockForRead();
-        qDebug() << "ParticleTree::findParticleByID().... after call lockForRead()....";
+        //qDebug() << "ParticleTree::findParticleByID().... after call lockForRead()....";
     }
     recurseTreeWithOperation(findByIDOperation, &args);
     if (!alreadyLocked) {
@@ -178,7 +178,7 @@ qDebug() << " got PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this);
 qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... calling storeParticle() ";
             storeParticle(newParticle, senderNode);
-qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... AFTER storeParticle() ";
+qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... AFTER storeParticle() newParticle.getShouldDie()=" << newParticle.getShouldDie();
             if (newParticle.isNewlyCreated()) {
 qDebug() << "PACKET_TYPE_PARTICLE_ADD_OR_EDIT... calling notifyNewlyCreatedParticle() ";
                 notifyNewlyCreatedParticle(newParticle, senderNode);

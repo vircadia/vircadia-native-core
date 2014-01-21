@@ -12,9 +12,6 @@
 
 void ParticlesScriptingInterface::queueParticleMessage(PACKET_TYPE packetType,
         ParticleID particleID, const ParticleProperties& properties) {
-
-qDebug() << "ParticlesScriptingInterface::queueParticleMessage()...";
-
     getParticlePacketSender()->queueParticleEditMessage(packetType, particleID, properties);
 }
 
@@ -32,9 +29,6 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
 }
 
 void ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
-
-qDebug() << "ParticlesScriptingInterface::editParticle() id.id=" << particleID.id << " id.creatorTokenID=" << particleID.creatorTokenID;
-
     uint32_t actualID = particleID.id;
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
@@ -43,7 +37,6 @@ qDebug() << "ParticlesScriptingInterface::editParticle() id.id=" << particleID.i
         if (actualID == UNKNOWN_PARTICLE_ID) {
             return; // bailing early
         }
-qDebug() << "ParticlesScriptingInterface::editParticle() actualID=" << actualID;
     }
 
     particleID.id = actualID;
@@ -54,4 +47,26 @@ qDebug() << "ParticlesScriptingInterface::editParticle() actualID=" << actualID;
 
 
 void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
+
+    // setup properties to kill the particle
+    ParticleProperties properties;
+    properties.setScript("print('here'); Particle.setShouldDie(true);");
+    //properties.setShouldDie(true);
+
+    uint32_t actualID = particleID.id;
+    if (!particleID.isKnownID) {
+        actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
+
+        // hmmm... we kind of want to bail if someone attempts to edit an unknown
+        if (actualID == UNKNOWN_PARTICLE_ID) {
+qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown particle...";
+            return; // bailing early
+        }
+    }
+
+    particleID.id = actualID;
+    particleID.isKnownID = true;
+
+qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
+    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 }

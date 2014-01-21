@@ -51,7 +51,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 3;
 
         case PACKET_TYPE_PARTICLE_DATA:
-            return 6;
+            return 7;
 
         case PACKET_TYPE_PING_REPLY:
             return 1;
