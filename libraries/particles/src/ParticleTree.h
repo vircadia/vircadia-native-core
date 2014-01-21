@@ -46,6 +46,13 @@ public:
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
 
+    bool hasAnyDeletedParitcles() const { return _recentlyDeletedParticleIDs.size() > 0; }
+    bool hasParitclesDeletedSince(uint64_t sinceTime);
+    bool encodeParitclesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    void forgetParitclesDeletedBefore(uint64_t sinceTime);
+
+    void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
+
 private:
 
     static bool updateOperation(OctreeElement* element, void* extraData);
@@ -53,11 +60,16 @@ private:
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
+    static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
 
     QReadWriteLock _newlyCreatedHooksLock;
     std::vector<NewlyCreatedParticleHook*> _newlyCreatedHooks;
+
+
+    QReadWriteLock _recentlyDeletedParticlesLock;
+    QMultiMap<uint64_t, uint32_t> _recentlyDeletedParticleIDs;
 };
 
 #endif /* defined(__hifi__ParticleTree__) */

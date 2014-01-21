@@ -4187,6 +4187,7 @@ void Application::processDatagrams() {
                     break;
 
                 case PACKET_TYPE_PARTICLE_DATA:
+                case PACKET_TYPE_PARTICLE_ERASE:
                 case PACKET_TYPE_VOXEL_DATA:
                 case PACKET_TYPE_VOXEL_ERASE:
                 case PACKET_TYPE_OCTREE_STATS:

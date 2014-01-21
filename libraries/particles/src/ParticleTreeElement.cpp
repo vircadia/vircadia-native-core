@@ -200,6 +200,20 @@ const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
     return foundParticle;
 }
 
+bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
+    bool foundParticle = false;
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        if ((*_particles)[i].getID() == id) {
+            foundParticle = true;
+            _particles->removeAt(i);
+            break;
+        }
+    }
+    return foundParticle;
+}
+
+
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
