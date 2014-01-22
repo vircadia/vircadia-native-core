@@ -331,19 +331,19 @@ int JurisdictionMap::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     // increment to push past the packet header
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
     sourceBuffer += numBytesPacketHeader;
-    int remaingingBytes = availableBytes - numBytesPacketHeader;
+    int remainingBytes = availableBytes - numBytesPacketHeader;
     
     // read the root jurisdiction
     int bytes = 0;
     memcpy(&bytes, sourceBuffer, sizeof(bytes));
     sourceBuffer += sizeof(bytes);
-    remaingingBytes -= sizeof(bytes);
+    remainingBytes -= sizeof(bytes);
 
-    if (bytes > 0 && bytes <= remaingingBytes) {
+    if (bytes > 0 && bytes <= remainingBytes) {
         _rootOctalCode = new unsigned char[bytes];
         memcpy(_rootOctalCode, sourceBuffer, bytes);
         sourceBuffer += bytes;
-        remaingingBytes -= bytes;
+        remainingBytes -= bytes;
         
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = 0;
@@ -353,13 +353,13 @@ int JurisdictionMap::unpackFromMessage(unsigned char* sourceBuffer, int availabl
             int bytes = 0;
             memcpy(&bytes, sourceBuffer, sizeof(bytes));
             sourceBuffer += sizeof(bytes);
-            remaingingBytes -= sizeof(bytes);
+            remainingBytes -= sizeof(bytes);
             
-            if (bytes <= remaingingBytes) {
+            if (bytes <= remainingBytes) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
                 memcpy(endNodeCode, sourceBuffer, bytes);
                 sourceBuffer += bytes;
-                remaingingBytes -= bytes;
+                remainingBytes -= bytes;
             
                 // if the endNodeCode was 0 length then don't add it
                 if (bytes > 0) {
