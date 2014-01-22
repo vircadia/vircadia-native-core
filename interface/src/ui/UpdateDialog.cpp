@@ -6,20 +6,13 @@
 //  Copyright (c) 2013, 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QApplication>
-#include <QDesktopWidget>
-#include <QTextBlock>
 #include <QtGui>
-#include <QtUiTools>
-#include <QPushButton>
-#include <QLabel>
-#include <QFrame>
 
 #include "Application.h"
-#include "SharedUtil.h"
+#include "ui_updateDialog.h"
+
 #include "UpdateDialog.h"
 
-#include "ui_updateDialog.h"
 
 UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL) :
     QDialog(parent),
