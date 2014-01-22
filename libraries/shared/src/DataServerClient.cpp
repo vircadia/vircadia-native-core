@@ -77,7 +77,8 @@ void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uu
     getValuesForKeysAndUUID(QStringList(key), uuid, callbackObject);
 }
 
-void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject) {
+void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid,
+                                               DataServerCallbackObject* callbackObject) {
     if (!uuid.isNull()) {
         getValuesForKeysAndUserString(keys, uuidStringWithoutCurlyBraces(uuid), callbackObject);
     }
@@ -137,7 +138,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
     
     quint8 sequenceNumber = *(packetData + numHeaderBytes);
     
-    if (_callbackObjects.find(_sequenceNumber) != _callbackObjects.end()) {
+    if (_callbackObjects.find(sequenceNumber) != _callbackObjects.end()) {
         // remove the packet from our two maps, it's matched
         DataServerCallbackObject* callbackObject = _callbackObjects.take(sequenceNumber);
         _unmatchedPackets.remove(sequenceNumber);
@@ -176,10 +177,14 @@ void DataServerClient::removeMatchedPacketFromMap(unsigned char* packetData) {
 }
 
 void DataServerClient::resendUnmatchedPackets() {
-    foreach (const QByteArray& packet, _unmatchedPackets) {
-        // send the unmatched packet to the data server
-        NodeList::getInstance()->getNodeSocket().writeDatagram(packet.data(), packet.size(),
-                                                               dataServerSockAddr().getAddress(),
-                                                               dataServerSockAddr().getPort());
+    if (_unmatchedPackets.size() > 0) {
+        qDebug() << "Resending" << _unmatchedPackets.size() << "packets to the data server.";
+        
+        foreach (const QByteArray& packet, _unmatchedPackets) {
+            // send the unmatched packet to the data server
+            NodeList::getInstance()->getNodeSocket().writeDatagram(packet.data(), packet.size(),
+                                                                   dataServerSockAddr().getAddress(),
+                                                                   dataServerSockAddr().getPort());
+        }
     }
 }
