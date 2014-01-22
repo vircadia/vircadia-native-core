@@ -306,7 +306,7 @@ void ParticleTree::update() {
 }
 
 
-bool ParticleTree::hasParitclesDeletedSince(uint64_t sinceTime) {
+bool ParticleTree::hasParticlesDeletedSince(uint64_t sinceTime) {
     // we can probably leverage the ordered nature of QMultiMap to do this quickly...
     bool hasSomethingNewer = false;
 
@@ -325,7 +325,7 @@ bool ParticleTree::hasParitclesDeletedSince(uint64_t sinceTime) {
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool ParticleTree::encodeParitclesDeletedSince(uint64_t& sinceTime, unsigned char* outputBuffer, size_t maxLength,
+bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned char* outputBuffer, size_t maxLength,
                                                     size_t& outputLength) {
 
     bool hasMoreToSend = true;
@@ -389,7 +389,7 @@ bool ParticleTree::encodeParitclesDeletedSince(uint64_t& sinceTime, unsigned cha
 }
 
 // called by the server when it knows all nodes have been sent deleted packets
-void ParticleTree::forgetParitclesDeletedBefore(uint64_t sinceTime) {
+void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
     _recentlyDeletedParticlesLock.lockForWrite();
     QMultiMap<uint64_t, uint32_t>::const_iterator iterator = _recentlyDeletedParticleIDs.constBegin();
     while (iterator != _recentlyDeletedParticleIDs.constEnd()) {

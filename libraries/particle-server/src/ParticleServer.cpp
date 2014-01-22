@@ -79,7 +79,7 @@ bool ParticleServer::hasSpecialPacketToSend(Node* node) {
         uint64_t deletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
 
         ParticleTree* tree = static_cast<ParticleTree*>(_tree);
-        shouldSendDeletedParticles = tree->hasParitclesDeletedSince(deletedParticlesSentAt);
+        shouldSendDeletedParticles = tree->hasParticlesDeletedSince(deletedParticlesSentAt);
     }
 
     return shouldSendDeletedParticles;
@@ -99,7 +99,7 @@ int ParticleServer::sendSpecialPacket(Node* node) {
 
         // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 particles?
         while (hasMoreToSend) {
-            hasMoreToSend = tree->encodeParitclesDeletedSince(deletedParticlesSentAt,
+            hasMoreToSend = tree->encodeParticlesDeletedSince(deletedParticlesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
             //qDebug() << "sending PACKET_TYPE_PARTICLE_ERASE packetLength:" << packetLength;
@@ -118,7 +118,7 @@ int ParticleServer::sendSpecialPacket(Node* node) {
 
 void ParticleServer::pruneDeletedParticles() {
     ParticleTree* tree = static_cast<ParticleTree*>(_tree);
-    if (tree->hasAnyDeletedParitcles()) {
+    if (tree->hasAnyDeletedParticles()) {
 
         //qDebug() << "there are some deleted particles to consider...";
         uint64_t earliestLastDeletedParticlesSent = usecTimestampNow() + 1; // in the future
@@ -132,7 +132,7 @@ void ParticleServer::pruneDeletedParticles() {
             }
         }
         //qDebug() << "earliestLastDeletedParticlesSent=" << earliestLastDeletedParticlesSent;
-        tree->forgetParitclesDeletedBefore(earliestLastDeletedParticlesSent);
+        tree->forgetParticlesDeletedBefore(earliestLastDeletedParticlesSent);
     }
 }
 

@@ -46,10 +46,10 @@ public:
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
 
-    bool hasAnyDeletedParitcles() const { return _recentlyDeletedParticleIDs.size() > 0; }
-    bool hasParitclesDeletedSince(uint64_t sinceTime);
-    bool encodeParitclesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
-    void forgetParitclesDeletedBefore(uint64_t sinceTime);
+    bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
+    bool hasParticlesDeletedSince(uint64_t sinceTime);
+    bool encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    void forgetParticlesDeletedBefore(uint64_t sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
