@@ -18,11 +18,12 @@
 
 /// Handles assignments of type ParticleServer - sending particles to various clients.
 class ParticleServer : public OctreeServer, public NewlyCreatedParticleHook {
-public:                
+    Q_OBJECT
+public:
     ParticleServer(const unsigned char* dataBuffer, int numBytes);
     ~ParticleServer();
 
-    // Subclasses must implement these methods    
+    // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode);
     virtual Octree* createTree();
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
@@ -30,11 +31,16 @@ public:
     virtual const char* getMyServerName() const { return PARTICLE_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return PARTICLE_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_PARTICLES_PERSIST_FILE; }
-    
+
     // subclass may implement these method
     virtual void beforeRun();
+    virtual bool hasSpecialPacketToSend(Node* node);
+    virtual int sendSpecialPacket(Node* node);
 
     virtual void particleCreated(const Particle& newParticle, Node* senderNode);
+
+public slots:
+    void pruneDeletedParticles();
 
 private:
 };

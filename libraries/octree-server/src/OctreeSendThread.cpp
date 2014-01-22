@@ -525,7 +525,8 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
-        if (_myServer->hasSpecialPacketToSend()) {
+        // TODO: should we turn this into a while loop to better handle sending multiple special packets
+        if (_myServer->hasSpecialPacketToSend(node)) {
             trueBytesSent += _myServer->sendSpecialPacket(node);
             truePacketsSent++;
             packetsSentThisInterval++;
