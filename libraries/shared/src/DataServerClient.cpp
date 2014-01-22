@@ -21,7 +21,7 @@ quint8 DataServerClient::_sequenceNumber = 0;
 
 const char MULTI_KEY_VALUE_SEPARATOR = '|';
 
-const char DATA_SERVER_HOSTNAME[] = "localhost";
+const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
 
 const HifiSockAddr& DataServerClient::dataServerSockAddr() {

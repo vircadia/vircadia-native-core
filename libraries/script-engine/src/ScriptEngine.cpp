@@ -71,14 +71,14 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
-void ScriptEngine::setAvatarData(AvatarData* avatarData) {
+void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     
     // remove the old Avatar property, if it exists
-    _engine.globalObject().setProperty("Avatar", QScriptValue());
+    _engine.globalObject().setProperty(objectName, QScriptValue());
     
     // give the script engine the new Avatar script property
-    registerGlobalObject("Avatar", _avatarData);
+    registerGlobalObject(objectName, _avatarData);
 }
 
 void ScriptEngine::setupMenuItems() {
