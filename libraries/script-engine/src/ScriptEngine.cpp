@@ -250,7 +250,7 @@ void ScriptEngine::run() {
                 
                 // pack the owner UUID for this script
                 QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-                memcpy(avatarPacket, ownerUUID.constData(), ownerUUID.size());
+                memcpy(avatarPacket + numAvatarHeaderBytes, ownerUUID.constData(), ownerUUID.size());
                 numAvatarHeaderBytes += ownerUUID.size();
             }
             
