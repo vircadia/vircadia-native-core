@@ -3565,6 +3565,7 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(statsHorizontalOffset, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
+    voxelStats.str("");
     voxelStats <<
         "Internal: " << serversInternalString.toLocal8Bit().constData() << "  " <<
         "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
@@ -3584,6 +3585,7 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(statsHorizontalOffset, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
+    voxelStats.str("");
     voxelStats <<
         "Internal: " << localInternalString.toLocal8Bit().constData() << "  " <<
         "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
