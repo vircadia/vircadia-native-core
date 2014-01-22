@@ -80,7 +80,6 @@ find_package(Qt5Svg REQUIRED)
 find_package(Qt5WebKit REQUIRED)
 find_package(Qt5WebKitWidgets REQUIRED)
 find_package(Qt5Xml REQUIRED)
-find_package(Qt5UiTools REQUIRED)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
