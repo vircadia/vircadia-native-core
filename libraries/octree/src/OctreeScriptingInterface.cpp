@@ -46,7 +46,7 @@ void OctreeScriptingInterface::init() {
     } else {
         _managedJurisdictionListener = true;
         _jurisdictionListener = new JurisdictionListener(getServerNodeType());
-        //printf("OctreeScriptingInterface::init() _managedJurisdictionListener=true, creating _jurisdictionListener=%p\n", _jurisdictionListener);
+        qDebug("OctreeScriptingInterface::init() _managedJurisdictionListener=true, creating _jurisdictionListener=%p", _jurisdictionListener);
         _jurisdictionListener->initialize(true);
     }
     
@@ -55,7 +55,7 @@ void OctreeScriptingInterface::init() {
     } else {
         _managedPacketSender = true;
         _packetSender = createPacketSender();
-        //printf("OctreeScriptingInterface::init() _managedPacketSender=true, creating _packetSender=%p\n", _packetSender);
+        printf("OctreeScriptingInterface::init() _managedPacketSender=true, creating _packetSender=%p", _packetSender);
         _packetSender->setServerJurisdictions(_jurisdictionListener->getJurisdictions());
     }
 }

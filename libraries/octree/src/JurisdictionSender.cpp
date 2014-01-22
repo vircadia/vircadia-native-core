@@ -17,9 +17,9 @@
 
 
 JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NODE_TYPE type, PacketSenderNotify* notify) : 
-    PacketSender(notify, JurisdictionSender::DEFAULT_PACKETS_PER_SECOND), 
     ReceivedPacketProcessor(),
-    _jurisdictionMap(map)
+    _jurisdictionMap(map),
+    _packetSender(notify, JurisdictionSender::DEFAULT_PACKETS_PER_SECOND)
 {
     _nodeType = type;
 }
@@ -30,9 +30,11 @@ JurisdictionSender::~JurisdictionSender() {
 
 void JurisdictionSender::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_JURISDICTION_REQUEST) {
+qDebug() << "JurisdictionSender::processPacket()... got PACKET_TYPE_JURISDICTION_REQUEST";
         SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
+qDebug() << "JurisdictionSender::processPacket()... nodeUUID=" << nodeUUID;
             lockRequestingNodes();
             _nodesRequestingJurisdictions.push(nodeUUID);
             unlockRequestingNodes();
@@ -66,16 +68,16 @@ bool JurisdictionSender::process() {
 
             if (node->getActiveSocket() != NULL) {
                 const HifiSockAddr* nodeAddress = node->getActiveSocket();
-                queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
+                _packetSender.queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
                 nodeCount++;
             }
         }
         unlockRequestingNodes();
 
         // set our packets per second to be the number of nodes
-        setPacketsPerSecond(nodeCount);
+        _packetSender.setPacketsPerSecond(nodeCount);
 
-        continueProcessing = PacketSender::process();
+        continueProcessing = _packetSender.process();
     }
     return continueProcessing;
 }

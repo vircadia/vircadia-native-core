@@ -11,7 +11,7 @@
 
 #include <QtCore/QObject>
 
-#include <JurisdictionListener.h>
+//#include <JurisdictionListener.h>
 #include <OctreeScriptingInterface.h>
 #include "VoxelEditPacketSender.h"
 

@@ -838,6 +838,7 @@ void AnimationServer::readPendingDatagrams() {
             int headerBytes = numBytesForPacketHeader(packetData);
             // PACKET_TYPE_JURISDICTION, first byte is the node type...
             if (packetData[headerBytes] == NODE_TYPE_VOXEL_SERVER && ::jurisdictionListener) {
+                //qDebug() << "calling ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);";
                 ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);
             }
         }

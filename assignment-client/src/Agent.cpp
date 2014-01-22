@@ -28,8 +28,12 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+qDebug() << "Agent::processDatagram()";
     if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
         int headerBytes = numBytesForPacketHeader((const unsigned char*) dataByteArray.constData());
+
+qDebug() << "Agent::processDatagram() PACKET_TYPE_JURISDICTION... dataByteArray[headerBytes]=" << (dataByteArray[headerBytes]);
+
         // PACKET_TYPE_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
             case NODE_TYPE_VOXEL_SERVER:
