@@ -41,12 +41,20 @@ void ParticlesScriptingInterface::editParticle(ParticleID particleID, const Part
 
         // hmmm... we kind of want to bail if someone attempts to edit an unknown
         if (actualID == UNKNOWN_PARTICLE_ID) {
+
+qDebug() << "ParticlesScriptingInterface::editParticle()... BAILING!!! particleID.creatorTokenID=" << particleID.creatorTokenID;
+
             return; // bailing early
         }
     }
 
     particleID.id = actualID;
     particleID.isKnownID = true;
+qDebug() << "ParticlesScriptingInterface::editParticle()... FOUND IT!!! actualID=" << actualID;
+qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getPositon()=" 
+    << properties.getPosition().x << ", "
+    << properties.getPosition().y << ", "
+    << properties.getPosition().z << "...";
 
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 }

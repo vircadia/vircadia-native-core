@@ -935,8 +935,8 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
         if (x.isValid() && y.isValid() && z.isValid()) {
             glm::vec3 newPosition;
             newPosition.x = x.toVariant().toFloat();
-            newPosition.y = x.toVariant().toFloat();
-            newPosition.z = x.toVariant().toFloat();
+            newPosition.y = y.toVariant().toFloat();
+            newPosition.z = z.toVariant().toFloat();
             if (newPosition != _position) {
                 _position = newPosition;
                 _positionChanged = true;
@@ -981,8 +981,8 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
         if (x.isValid() && y.isValid() && z.isValid()) {
             glm::vec3 newVelocity;
             newVelocity.x = x.toVariant().toFloat();
-            newVelocity.y = x.toVariant().toFloat();
-            newVelocity.z = x.toVariant().toFloat();
+            newVelocity.y = y.toVariant().toFloat();
+            newVelocity.z = z.toVariant().toFloat();
             if (newVelocity != _velocity) {
                 _velocity = newVelocity;
                 _velocityChanged = true;
@@ -998,8 +998,8 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
         if (x.isValid() && y.isValid() && z.isValid()) {
             glm::vec3 newGravity;
             newGravity.x = x.toVariant().toFloat();
-            newGravity.y = x.toVariant().toFloat();
-            newGravity.z = x.toVariant().toFloat();
+            newGravity.y = y.toVariant().toFloat();
+            newGravity.z = z.toVariant().toFloat();
             if (newGravity != _gravity) {
                 _gravity = newGravity;
                 _gravityChanged = true;

@@ -11,9 +11,9 @@
 var count = 0;
 
 var originalProperties = {
-    position: { x: 1/TREE_SCALE,
+    position: { x: 10/TREE_SCALE,
                 y: 0/TREE_SCALE,
-                z: 1/TREE_SCALE },
+                z: 0/TREE_SCALE },
 
     velocity: { x: 0,
                 y: 0,
@@ -32,7 +32,7 @@ var originalProperties = {
 
 };
 
-var positionDelta = { x: 0.5/TREE_SCALE, y: 0, z: 0 };
+var positionDelta = { x: 0.1/TREE_SCALE, y: 0, z: 0 };
 
 
 var particleID = Particles.addParticle(originalProperties);
@@ -74,7 +74,7 @@ function moveParticle() {
 
 
     //print("particleID = " + particleID);
-    print("newProperties.position.x = " + newProperties.position.x);
+    print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
     Particles.editParticle(particleID, newProperties);
     
