@@ -21,9 +21,8 @@ JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* n
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     
-//  connect(nodeList, &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
-
-    qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
+    connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
+    //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
 }
 
 void JurisdictionListener::nodeKilled(SharedNodePointer node) {
@@ -62,7 +61,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
-    qDebug() << "JurisdictionListener::processPacket()";
+    //qDebug() << "JurisdictionListener::processPacket()";
     if (packetData[0] == PACKET_TYPE_JURISDICTION) {
         SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {

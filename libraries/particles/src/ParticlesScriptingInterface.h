@@ -11,7 +11,6 @@
 
 #include <QtCore/QObject>
 
-//#include <JurisdictionListener.h>
 #include <OctreeScriptingInterface.h>
 #include "ParticleEditPacketSender.h"
 
