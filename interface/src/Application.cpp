@@ -221,9 +221,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER,
-        NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
-    nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
+                                                 << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                                                 << NODE_TYPE_METAVOXEL_SERVER);
 
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));

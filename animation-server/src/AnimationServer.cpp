@@ -807,7 +807,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     pthread_create(&::animateVoxelThread, NULL, animateVoxels, NULL);
 
-    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
+    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_VOXEL_SERVER);
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));

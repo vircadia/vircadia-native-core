@@ -55,10 +55,8 @@ void Agent::run() {
     // XXXBHG - this seems less than ideal. There might be classes (like jurisdiction listeners, that need access to
     // other node types, but for them to get access to those node types, we have to add them here. It seems like 
     // NodeList should support adding types of interest
-    const NODE_TYPE AGENT_NODE_TYPES_OF_INTEREST[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
-                                                       NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER };
-    
-    nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
+    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                                                 << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
