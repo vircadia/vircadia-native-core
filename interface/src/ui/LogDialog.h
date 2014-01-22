@@ -60,7 +60,6 @@ private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
     QPlainTextEdit* _logTextBox;
-    QMutex _mutex;
     QString _searchTerm;
     KeywordHighlighter* _highlighter;
 
