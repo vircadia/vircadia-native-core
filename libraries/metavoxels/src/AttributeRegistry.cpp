@@ -6,7 +6,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QColorDialog>
+#include <QPushButton>
 #include <QScriptEngine>
+#include <QVBoxLayout>
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
@@ -130,6 +133,31 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
 
 void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
     return encodeInline((QRgb)value.toUInt32());
+}
+
+QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
+    QRgbEditor* editor = new QRgbEditor(parent);
+    editor->setColor(_defaultValue);
+    return editor;
+}
+
+QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
+    setLayout(new QVBoxLayout());
+    layout()->addWidget(_button = new QPushButton());
+    connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
+}
+
+void QRgbEditor::setColor(int color) {
+    QString name = QColor::fromRgba(_color = color).name();
+    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color).name()));
+    _button->setText(name);
+}
+
+void QRgbEditor::selectColor() {
+    QColor color = QColorDialog::getColor(QColor::fromRgba(_color), this, QString(), QColorDialog::ShowAlphaChannel);
+    if (color.isValid()) {
+        setColor(color.rgba());
+    }
 }
 
 PolymorphicData::~PolymorphicData() {

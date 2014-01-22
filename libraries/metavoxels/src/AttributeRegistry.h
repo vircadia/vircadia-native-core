@@ -16,9 +16,11 @@
 #include <QSharedData>
 #include <QSharedPointer>
 #include <QString>
+#include <QWidget>
 
 #include "Bitstream.h"
 
+class QPushButton;
 class QScriptContext;
 class QScriptEngine;
 class QScriptValue;
@@ -51,6 +53,9 @@ public:
     
     /// Retrieves an attribute by name.
     AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
+    
+    /// Returns a reference to the attribute hash.
+    const QHash<QString, AttributePointer>& getAttributes() const { return _attributes; }
     
     /// Returns a reference to the standard PolymorphicDataPointer "guide" attribute.
     const AttributePointer& getGuideAttribute() const { return _guideAttribute; }
@@ -153,6 +158,10 @@ public:
     virtual void* getDefaultValue() const = 0;
 
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const { return create(); }
+    
+    /// Creates a widget to use to edit values of this attribute, or returns NULL if the attribute isn't editable.
+    /// The widget should have a single "user" property that will be used to get/set the value.
+    virtual QWidget* createEditor(QWidget* parent = NULL) const { return NULL; }
 };
 
 /// A simple attribute class that stores its values inline.
@@ -222,6 +231,31 @@ public:
     virtual bool merge(void*& parent, void* children[]) const;
     
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
+    
+    virtual QWidget* createEditor(QWidget* parent = NULL) const;
+};
+
+/// Editor for RGBA values.
+class QRgbEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(int color MEMBER _color WRITE setColor USER true)
+
+public:
+    
+    QRgbEditor(QWidget* parent);
+
+public slots:
+
+    void setColor(int color);
+        
+private slots:
+
+    void selectColor();    
+    
+private:
+    
+    QPushButton* _button;
+    QRgb _color;
 };
 
 /// An attribute class that stores pointers to its values.

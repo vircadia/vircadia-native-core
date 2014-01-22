@@ -1011,7 +1011,7 @@ void Menu::bandwidthDetails() {
 }
 
 void Menu::showMetavoxelEditor() {
-    if (_metavoxelEditorDialog.isNull()) {
+    if (!_metavoxelEditorDialog) {
         _metavoxelEditorDialog = new MetavoxelEditorDialog();
     }
     _metavoxelEditorDialog->raise();

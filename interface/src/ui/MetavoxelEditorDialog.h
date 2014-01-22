@@ -11,6 +11,9 @@
 
 #include <QDialog>
 
+class QGroupBox;
+class QListWidget;
+
 /// Allows editing metavoxels.
 class MetavoxelEditorDialog : public QDialog {
     Q_OBJECT
@@ -18,6 +21,19 @@ class MetavoxelEditorDialog : public QDialog {
 public:
     
     MetavoxelEditorDialog();
+
+private slots:
+    
+    void updateValueEditor();
+    void createNewAttribute();
+    
+private:
+    
+    void updateAttributes(const QString& select = QString());
+    QString getSelectedAttribute() const;
+    
+    QListWidget* _attributes;
+    QGroupBox* _value;
 };
 
 #endif /* defined(__interface__MetavoxelEditorDialog__) */
