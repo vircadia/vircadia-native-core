@@ -73,7 +73,7 @@ void BuckyBalls::grab(PalmData& palm, const glm::vec3& fingerTipPosition, glm::q
             diff = _bballPosition[_bballIsGrabbed[palm.getSixenseID()]] - fingerTipPosition;
             penetration = glm::length(diff) - (_bballRadius[_bballIsGrabbed[palm.getSixenseID()]] + COLLISION_RADIUS);
             _bballPosition[_bballIsGrabbed[palm.getSixenseID()]] -= glm::normalize(diff) * penetration;
-            glm::vec3 fingerTipVelocity = avatarOrientation * palm.getTipVelocity();
+            glm::vec3 fingerTipVelocity = palm.getTipVelocity();
             if (_bballElement[_bballIsGrabbed[palm.getSixenseID()]] != 1) {
                 _bballVelocity[_bballIsGrabbed[palm.getSixenseID()]] = fingerTipVelocity;
             }

@@ -101,7 +101,7 @@ void Agent::run() {
     scriptedAvatar.setUUID(_scriptEngine.getDataServerScriptingInterface().getUUID());
     
     // give this AvatarData object to the script engine
-    _scriptEngine.setAvatarData(&scriptedAvatar);
+    _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();    

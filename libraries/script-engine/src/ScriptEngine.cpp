@@ -71,14 +71,14 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
-void ScriptEngine::setAvatarData(AvatarData* avatarData) {
+void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     
     // remove the old Avatar property, if it exists
-    _engine.globalObject().setProperty("Avatar", QScriptValue());
+    _engine.globalObject().setProperty(objectName, QScriptValue());
     
     // give the script engine the new Avatar script property
-    registerGlobalObject("Avatar", _avatarData);
+    registerGlobalObject(objectName, _avatarData);
 }
 
 void ScriptEngine::setupMenuItems() {
@@ -115,6 +115,8 @@ void ScriptEngine::init() {
 
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&_engine);
+    qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
 
     QScriptValue agentValue = _engine.newQObject(this);
     _engine.globalObject().setProperty("Agent", agentValue);
@@ -167,7 +169,6 @@ void ScriptEngine::evaluate() {
     }
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script.");
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
@@ -182,8 +183,6 @@ void ScriptEngine::run() {
     _isRunning = true;
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script");
-
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();

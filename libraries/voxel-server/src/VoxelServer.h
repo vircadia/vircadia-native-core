@@ -24,7 +24,7 @@
 
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
 class VoxelServer : public OctreeServer {
-public:                
+public:
     VoxelServer(const unsigned char* dataBuffer, int numBytes);
     ~VoxelServer();
 
@@ -33,7 +33,7 @@ public:
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
     int getEnvironmentDataCount() const { return sizeof(_environmentData)/sizeof(EnvironmentData); }
 
-    // Subclasses must implement these methods    
+    // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode);
     virtual Octree* createTree();
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
@@ -41,10 +41,10 @@ public:
     virtual const char* getMyServerName() const { return VOXEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return VOXEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_VOXELS_PERSIST_FILE; }
-    
+
     // subclass may implement these method
     virtual void beforeRun();
-    virtual bool hasSpecialPacketToSend();
+    virtual bool hasSpecialPacketToSend(Node* node);
     virtual int sendSpecialPacket(Node* node);
 
 

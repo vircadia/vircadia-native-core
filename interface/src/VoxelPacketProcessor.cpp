@@ -17,7 +17,7 @@
 void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, unsigned char* packetData, ssize_t packetLength) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "VoxelPacketProcessor::processPacket()");
-                            
+
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
@@ -27,19 +27,19 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
 
     Application* app = Application::getInstance();
     bool wasStatsPacket = false;
-    
-    
+
+
     // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
     if (app->_wantToKillLocalVoxels) {
         app->_voxels.killLocalVoxels();
         app->_wantToKillLocalVoxels = false;
     }
-    
+
     // note: PACKET_TYPE_OCTREE_STATS can have PACKET_TYPE_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PACKET_TYPE_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
     if (packetData[0] == PACKET_TYPE_OCTREE_STATS) {
-    
+
         int statsMessageLength = app->parseOctreeStats(packetData, messageLength, senderSockAddr);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
@@ -56,20 +56,25 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         app->trackIncomingVoxelPacket(packetData, messageLength, senderSockAddr, wasStatsPacket);
-        
+
         SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         if (serverNode && serverNode->getActiveSocket() && *serverNode->getActiveSocket() == senderSockAddr) {
-        
+
             switch(packetData[0]) {
+                case PACKET_TYPE_PARTICLE_ERASE: {
+                    app->_particles.processEraseMessage(QByteArray((char*) packetData, messageLength),
+                                                    senderSockAddr, serverNode.data());
+                } break;
+
                 case PACKET_TYPE_PARTICLE_DATA: {
                     app->_particles.processDatagram(QByteArray((char*) packetData, messageLength),
                                                     senderSockAddr, serverNode.data());
                 } break;
-                
+
                 case PACKET_TYPE_ENVIRONMENT_DATA: {
                     app->_environment.parseData(senderSockAddr, packetData, messageLength);
                 } break;
-                
+
                 default : {
                     app->_voxels.setDataSourceUUID(serverNode->getUUID());
                     app->_voxels.parseData(packetData, messageLength);
