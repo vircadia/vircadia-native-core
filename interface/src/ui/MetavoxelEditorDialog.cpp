@@ -164,12 +164,32 @@ void MetavoxelEditorDialog::render() {
             break;
     }
     
+    // find the intersection of the rotated mouse ray with the plane
+    glm::vec3 rayOrigin = rotation * Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 rayDirection = rotation * Application::getInstance()->getMouseRayDirection();
+    float spacing = _gridSpacing->value();
+    float position = _gridPosition->value();
+    if (fabs(rayDirection.z) > EPSILON) {
+        float distance = (position - rayOrigin.z) / rayDirection.z;
+        glm::vec3 intersection = rayOrigin + rayDirection * distance;
+        
+        glLineWidth(4.0f);
+        glBegin(GL_LINE_LOOP);
+        float x = spacing * floorf(intersection.x / spacing);
+        float y = spacing * floorf(intersection.y / spacing);
+        glVertex3f(x, y, position);
+        glVertex3f(x + spacing, y, position);
+        glVertex3f(x + spacing, y + spacing, position);
+        glVertex3f(x, y + spacing, position);
+        glEnd();
+        glLineWidth(1.0f);
+    }
+    
     // center the grid around the camera position on the plane
     glm::vec3 rotated = rotation * Application::getInstance()->getCamera()->getPosition();
-    float spacing = _gridSpacing->value();
     const int GRID_DIVISIONS = 300;
-    glTranslatef(spacing * (floor(rotated.x / spacing) - GRID_DIVISIONS / 2),
-        spacing * (floor(rotated.y / spacing) - GRID_DIVISIONS / 2), _gridPosition->value());
+    glTranslatef(spacing * (floorf(rotated.x / spacing) - GRID_DIVISIONS / 2),
+        spacing * (floorf(rotated.y / spacing) - GRID_DIVISIONS / 2), position);
     
     float scale = GRID_DIVISIONS * spacing;
     glScalef(scale, scale, scale);
