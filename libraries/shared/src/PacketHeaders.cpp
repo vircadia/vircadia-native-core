@@ -45,10 +45,10 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
 
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:
-            return 3;
+            return 4;
 
         case PACKET_TYPE_PARTICLE_DATA:
-            return 7;
+            return 8;
 
         case PACKET_TYPE_PING_REPLY:
             return 1;
