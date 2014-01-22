@@ -3913,6 +3913,11 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 void Application::attachNewHeadToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new Avatar(newNode));
+        
+        // new UUID requires mesh and skeleton request to data-server
+        DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
+                                                  newNode->getUUID(), Application::getInstance()->getProfile());
+
     }
 }
 

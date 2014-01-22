@@ -20,7 +20,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 2;
             
         case PACKET_TYPE_HEAD_DATA:
-            return 15;
+            return 16;
 
         case PACKET_TYPE_OCTREE_STATS:
             return 2;
