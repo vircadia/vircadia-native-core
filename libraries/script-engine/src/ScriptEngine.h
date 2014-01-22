@@ -74,7 +74,6 @@ signals:
     void finished(const QString& fileNameString);
 
 protected:
-    void preEvaluateReset();
     
     QString _scriptContents;
     bool _isFinished;
