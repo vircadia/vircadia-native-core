@@ -21,7 +21,8 @@ Profile::Profile(const QString &username) :
     _lastDomain(),
     _lastPosition(0.0, 0.0, 0.0),
     _lastOrientationSend(0),
- 	_faceModelURL()
+ 	_faceModelURL(),
+    _skeletonModelURL()
 {
     if (!username.isEmpty()) {
         setUsername(username);
