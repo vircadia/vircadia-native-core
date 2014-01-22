@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QFile>
-#include <QTextStream>
 #include <QtDebug>
 
 #include <SharedUtil.h>
@@ -39,14 +37,6 @@ void MetavoxelSystem::init() {
     
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    
-    AttributeRegistry::getInstance()->configureScriptEngine(&_scriptEngine);
-    
-    QFile scriptFile("resources/scripts/sphere.js");
-    scriptFile.open(QIODevice::ReadOnly);
-    QScriptValue guideFunction = _scriptEngine.evaluate(QTextStream(&scriptFile).readAll());
-    _data.setAttributeValue(MetavoxelPath(), AttributeValue(AttributeRegistry::getInstance()->getGuideAttribute(),
-        encodeInline(PolymorphicDataPointer(new ScriptedMetavoxelGuide(guideFunction)))));
     
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();

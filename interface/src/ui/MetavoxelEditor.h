@@ -40,7 +40,9 @@ private:
     
     void updateAttributes(const QString& select = QString());
     QString getSelectedAttribute() const;
+    glm::quat getGridRotation() const;
     void resetState();
+    void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
     
     QListWidget* _attributes;
     QComboBox* _gridPlane;
