@@ -345,19 +345,10 @@ int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    // change in UUID requires mesh and skeleton request to data-server
-    
-    QUuid oldUuid = _uuid;
-    
     int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
-    
-    if (oldUuid != _uuid && !_uuid.isNull()) {
-        DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-                                                  _uuid, Application::getInstance()->getProfile());
-    }
     
     return bytesRead;
 }

@@ -642,6 +642,12 @@ void NodeList::sendAssignment(Assignment& assignment) {
                               assignmentServerSocket->getPort());
 }
 
+int NodeList::packOwnerUUID(unsigned char* packetData) {
+    QByteArray rfcUUID = _ownerUUID.toRfc4122();
+    memcpy(packetData, rfcUUID.constData(), rfcUUID.size());
+    return rfcUUID.size();
+}
+
 int NodeList::fillPingPacket(unsigned char* buffer) {
     int numHeaderBytes = populateTypeAndVersion(buffer, PACKET_TYPE_PING);
     uint64_t currentTime = usecTimestampNow();
