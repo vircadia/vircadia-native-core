@@ -158,10 +158,6 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     _engine.globalObject().setProperty(name, value);
 }
 
-void ScriptEngine::preEvaluateReset() {
-    _dataServerScriptingInterface.refreshUUID();
-}
-
 void ScriptEngine::evaluate() {
     if (!_isInitialized) {
         init();
