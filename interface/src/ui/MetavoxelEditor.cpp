@@ -211,13 +211,13 @@ void MetavoxelEditor::render() {
         glLineWidth(4.0f);  
         glm::vec3 eyePosition = rotation * Application::getInstance()->getViewFrustum()->getOffsetPosition();
         glm::vec3 mousePoint = glm::vec3(_mousePosition, position);
-        glm::vec3 right = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), mousePoint - eyePosition);
+        glm::vec3 right = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), eyePosition - mousePoint);
         glm::vec3 normal = glm::cross(right, glm::vec3(0.0f, 0.0f, 1.0f));
         float divisor = glm::dot(normal, rayDirection);
         if (fabs(divisor) > EPSILON) {
             float distance = (glm::dot(normal, mousePoint) - glm::dot(normal, rayOrigin)) / divisor;
             float projection = rayOrigin.z + distance * rayDirection.z;
-            _height = spacing * roundf(projection / spacing);
+            _height = spacing * roundf(projection / spacing) - position;
         }
     } else if (fabs(rayDirection.z) > EPSILON) {
         // find the intersection of the rotated mouse ray with the plane
