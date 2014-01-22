@@ -117,11 +117,11 @@ public:
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
 public slots:
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    void updateCollisionFlags();
 
     friend class MyAvatar;
 
@@ -140,10 +140,11 @@ protected:
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
-    bool _isCollisionsOn;
     float _stringLength;
 
     bool _moving; ///< set when position is changing
+
+    uint32_t _collisionFlags;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

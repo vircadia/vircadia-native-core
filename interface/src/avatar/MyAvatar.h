@@ -39,7 +39,6 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
     void setOrientation(const glm::quat& orientation);
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
 
     // getters
@@ -84,7 +83,6 @@ private:
     bool _speedBrakes;
     bool _isThrustOn;
     float _thrustMultiplier;
-    float _collisionRadius;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
 
@@ -93,8 +91,8 @@ private:
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime);
     void updateAvatarCollisions(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime);
-    void updateCollisionWithVoxels(float deltaTime);
+    void updateCollisionWithEnvironment(float deltaTime, float radius);
+    void updateCollisionWithVoxels(float deltaTime, float radius);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);

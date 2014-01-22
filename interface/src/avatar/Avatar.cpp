@@ -88,8 +88,8 @@ Avatar::Avatar(Node* owningNode) :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
-    _isCollisionsOn(true),
     _moving(false),
+    _collisionFlags(0),
     _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -435,6 +435,22 @@ void Avatar::decreaseSize() {
 void Avatar::resetSize() {
     _targetScale = 1.0f;
     qDebug("Reseted scale to %f", _targetScale);
+}
+
+void Avatar::updateCollisionFlags() {
+    _collisionFlags = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
+        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
+        _collisionFlags |= COLLISION_GROUP_AVATARS;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
+        _collisionFlags |= COLLISION_GROUP_VOXELS;
+    }
+    //if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
+    //    _collisionFlags |= COLLISION_GROUP_PARTICLES;
+    //}
 }
 
 void Avatar::setScale(float scale) {

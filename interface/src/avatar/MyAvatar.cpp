@@ -112,20 +112,24 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     // Only collide if we are not moving to a target
-    if (_isCollisionsOn && (glm::length(_moveTarget) < EPSILON)) {
-
+    if (_collisionFlags != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
+        float radius = getHeight() * COLLISION_RADIUS_SCALE;
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-            _collisionRadius *= COLLISION_RADIUS_SCALAR;
-        } else {
-            _collisionRadius = getHeight() * COLLISION_RADIUS_SCALE;
+            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            radius *= COLLISION_RADIUS_SCALAR;
         }
 
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            updateCollisionWithEnvironment(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            updateCollisionWithVoxels(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            updateAvatarCollisions(deltaTime);
+        }
     }
 
     // add thrust to velocity
@@ -661,9 +665,8 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
+void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
-    float radius = _collisionRadius;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 0.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
@@ -679,8 +682,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
 }
 
 
-void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
-    float radius = _collisionRadius;
+void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_ELASTICITY = 0.4f;
     const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
@@ -750,10 +752,9 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
 }
 
 void MyAvatar::updateAvatarCollisions(float deltaTime) {
-
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    // loop through all the other avatars for potential interactions
+    // TODO: loop through all the other avatars for potential interactions
 }
 
 class SortedAvatar {
