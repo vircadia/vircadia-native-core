@@ -1,5 +1,5 @@
 //
-//  This sample script watches your hydra hands and makes clapping sound when they come close together fast 
+//  This example musical instrument script plays 'air drums' when you move your hands downward
 //
 
 function length(v) {
@@ -18,11 +18,10 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-//var drum1 = new Sound("http://public.highfidelity.io/sounds/Colissions-hitsandslaps/Hit1.raw");
 var drum1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/MusicalInstruments/drums/snare.raw");
 var drum2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/MusicalInstruments/drums/snare.raw");
 
-//  State = 
+//  State Machine:
 //  0 = not triggered 
 //  1 = triggered, waiting to stop to play sound
 var state = new Array();
@@ -33,17 +32,14 @@ strokeSpeed[0] = 0.0;
 strokeSpeed[1] = 0.0; 
 
 function checkSticks() {
-	//  Set the location and other info for the sound to play
-
 	for (var palm = 0; palm < 2; palm++) {
 		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
 		var speed = length(palmVelocity);
 		
-		//  lower trigger speed let you 'drum' more slowly. 
-		const TRIGGER_SPEED = 0.30;
-		const STOP_SPEED = 0.01; 
-		const GAIN = 0.5;
-		const AVERAGING = 0.2;
+		const TRIGGER_SPEED = 0.30;			//    Lower this value to let you 'drum' more gently
+		const STOP_SPEED = 0.01; 			//    Speed below which a sound will trigger 
+		const GAIN = 0.5;					//    Loudness compared to stick velocity
+		const AVERAGING = 0.2;				//    How far back to sample trailing velocity
 
 		//   Measure trailing average stroke speed to ultimately set volume
 		strokeSpeed[palm] = (1.0 - AVERAGING) * strokeSpeed[palm] + AVERAGING * (speed * GAIN);
@@ -52,13 +48,11 @@ function checkSticks() {
 			//  Waiting for downward speed to indicate stroke
 			if ((palmVelocity.y < 0.0) && (strokeSpeed[palm] > TRIGGER_SPEED)) {
 				state[palm] = 1;
-				print("waiting\n");
 			}
 		} else if (state[palm] == 1) {
 			//   Waiting for change in velocity direction or slowing to trigger drum sound
 			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
 				state[palm] = 0;
-				print("boom, volume = " + strokeSpeed[palm] + "\n");
 				var options = new AudioInjectionOptions(); 
 				options.position = Controller.getSpatialControlPosition(palm * 2 + 1);
 				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
