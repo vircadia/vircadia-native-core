@@ -847,7 +847,8 @@ ParticleProperties::ParticleProperties() :
     _lifetimeChanged(false),
     _scriptChanged(false),
     _inHandChanged(false),
-    _shouldDieChanged(false)
+    _shouldDieChanged(false),
+    _defaultSettings(true)
 {
 }
 
@@ -937,7 +938,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
             newPosition.x = x.toVariant().toFloat();
             newPosition.y = y.toVariant().toFloat();
             newPosition.z = z.toVariant().toFloat();
-            if (newPosition != _position) {
+            if (_defaultSettings || newPosition != _position) {
                 _position = newPosition;
                 _positionChanged = true;
             }
@@ -954,9 +955,9 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
             newColor.red = red.toVariant().toInt();
             newColor.green = green.toVariant().toInt();
             newColor.blue = blue.toVariant().toInt();
-            if (newColor.red != _color.red ||
+            if (_defaultSettings || (newColor.red != _color.red ||
                 newColor.green != _color.green ||
-                newColor.blue != _color.blue) {
+                newColor.blue != _color.blue)) {
                 _color = newColor;
                 _colorChanged = true;
             }
@@ -967,7 +968,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (radius.isValid()) {
         float newRadius;
         newRadius = radius.toVariant().toFloat();
-        if (newRadius != _radius) {
+        if (_defaultSettings || newRadius != _radius) {
             _radius = newRadius;
             _radiusChanged = true;
         }
@@ -983,7 +984,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
             newVelocity.x = x.toVariant().toFloat();
             newVelocity.y = y.toVariant().toFloat();
             newVelocity.z = z.toVariant().toFloat();
-            if (newVelocity != _velocity) {
+            if (_defaultSettings || newVelocity != _velocity) {
                 _velocity = newVelocity;
                 _velocityChanged = true;
             }
@@ -1000,7 +1001,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
             newGravity.x = x.toVariant().toFloat();
             newGravity.y = y.toVariant().toFloat();
             newGravity.z = z.toVariant().toFloat();
-            if (newGravity != _gravity) {
+            if (_defaultSettings || newGravity != _gravity) {
                 _gravity = newGravity;
                 _gravityChanged = true;
             }
@@ -1011,7 +1012,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (damping.isValid()) {
         float newDamping;
         newDamping = damping.toVariant().toFloat();
-        if (newDamping != _damping) {
+        if (_defaultSettings || newDamping != _damping) {
             _damping = newDamping;
             _dampingChanged = true;
         }
@@ -1021,7 +1022,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (lifetime.isValid()) {
         float newLifetime;
         newLifetime = lifetime.toVariant().toFloat();
-        if (newLifetime != _lifetime) {
+        if (_defaultSettings || newLifetime != _lifetime) {
             _lifetime = newLifetime;
             _lifetimeChanged = true;
         }
@@ -1031,7 +1032,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (script.isValid()) {
         QString newScript;
         newScript = script.toVariant().toString();
-        if (newScript != _script) {
+        if (_defaultSettings || newScript != _script) {
             _script = newScript;
             _scriptChanged = true;
         }
@@ -1041,7 +1042,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (inHand.isValid()) {
         bool newInHand;
         newInHand = inHand.toVariant().toBool();
-        if (newInHand != _inHand) {
+        if (_defaultSettings || newInHand != _inHand) {
             _inHand = newInHand;
             _inHandChanged = true;
         }
@@ -1051,7 +1052,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
     if (shouldDie.isValid()) {
         bool newShouldDie;
         newShouldDie = shouldDie.toVariant().toBool();
-        if (newShouldDie != _shouldDie) {
+        if (_defaultSettings || newShouldDie != _shouldDie) {
             _shouldDie = newShouldDie;
             _shouldDieChanged = true;
         }
@@ -1124,6 +1125,7 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _scriptChanged = false;
     _inHandChanged = false;
     _shouldDieChanged = false;
+    _defaultSettings = false;
 }
 
 QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties) {

@@ -112,6 +112,7 @@ private:
     bool _scriptChanged;
     bool _inHandChanged;
     bool _shouldDieChanged;
+    bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ParticleProperties);
 QScriptValue ParticlePropertiesToScriptValue(QScriptEngine* engine, const ParticleProperties& properties);

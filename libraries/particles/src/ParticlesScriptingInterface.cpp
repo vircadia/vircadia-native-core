@@ -38,24 +38,38 @@ void ParticlesScriptingInterface::editParticle(ParticleID particleID, const Part
     uint32_t actualID = particleID.id;
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-
         // hmmm... we kind of want to bail if someone attempts to edit an unknown
         if (actualID == UNKNOWN_PARTICLE_ID) {
-
-qDebug() << "ParticlesScriptingInterface::editParticle()... BAILING!!! particleID.creatorTokenID=" << particleID.creatorTokenID;
-
+            //qDebug() << "ParticlesScriptingInterface::editParticle()... BAILING!!! particleID.creatorTokenID=" 
+            //            << particleID.creatorTokenID;
             return; // bailing early
         }
     }
 
     particleID.id = actualID;
     particleID.isKnownID = true;
-qDebug() << "ParticlesScriptingInterface::editParticle()... FOUND IT!!! actualID=" << actualID;
-qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getPositon()=" 
-    << properties.getPosition().x << ", "
-    << properties.getPosition().y << ", "
-    << properties.getPosition().z << "...";
+    //qDebug() << "ParticlesScriptingInterface::editParticle()... FOUND IT!!! actualID=" << actualID;
 
+    bool wantDebugging = false;
+    if (wantDebugging) {
+        uint16_t containsBits = properties.getChangedBits();
+        qDebug() << "ParticlesScriptingInterface::editParticle()... containsBits=" << containsBits;
+        if ((containsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION) {
+            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getPositon()=" 
+                << properties.getPosition().x << ", "
+                << properties.getPosition().y << ", "
+                << properties.getPosition().z << "...";
+        }
+        if ((containsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY) {
+            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getVelocity()=" 
+                << properties.getVelocity().x << ", "
+                << properties.getVelocity().y << ", "
+                << properties.getVelocity().z << "...";
+        }
+        if ((containsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND) {
+            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getInHand()=" << properties.getInHand();
+        }
+    }
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 }
 
