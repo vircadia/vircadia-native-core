@@ -37,6 +37,8 @@ public:
 
     ParticleTree* getTree() { return (ParticleTree*)_tree; }
 
+    void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
+
 protected:
 };
 

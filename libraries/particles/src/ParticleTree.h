@@ -21,14 +21,14 @@ class ParticleTree : public Octree {
     Q_OBJECT
 public:
     ParticleTree(bool shouldReaverage = false);
-    
+
     /// Implements our type specific root element factory
     virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL) const;
-    
+
     /// Type safe version of getRoot()
     ParticleTreeElement* getRoot() { return (ParticleTreeElement*)_rootNode; }
-    
-    
+
+
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
@@ -37,14 +37,21 @@ public:
     virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
                     unsigned char* editData, int maxLength, Node* senderNode);
 
-    virtual void update();    
+    virtual void update();
 
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
-    const Particle* findParticleByID(uint32_t id);
+    const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
+
+    bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
+    bool hasParticlesDeletedSince(uint64_t sinceTime);
+    bool encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    void forgetParticlesDeletedBefore(uint64_t sinceTime);
+
+    void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
 private:
 
@@ -53,11 +60,16 @@ private:
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
-    
+    static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
+
     void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
-    
+
     QReadWriteLock _newlyCreatedHooksLock;
     std::vector<NewlyCreatedParticleHook*> _newlyCreatedHooks;
+
+
+    QReadWriteLock _recentlyDeletedParticlesLock;
+    QMultiMap<uint64_t, uint32_t> _recentlyDeletedParticleIDs;
 };
 
 #endif /* defined(__hifi__ParticleTree__) */
