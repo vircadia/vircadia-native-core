@@ -40,8 +40,8 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 
 // Mute icon configration
 static const int ICON_SIZE = 24;
-static const int ICON_LEFT = 20;
-static const int BOTTOM_PADDING = 110;
+static const int ICON_LEFT = 0;
+static const int ICON_TOP = 115;
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
@@ -549,8 +549,8 @@ void Audio::render(int screenWidth, int screenHeight) {
 
         int startX = 20.0;
         int currentX = startX;
-        int topY = screenHeight - 40;
-        int bottomY = screenHeight - 20;
+        int topY = screenHeight - 45;
+        int bottomY = screenHeight - 25;
         float frameWidth = 20.0;
         float halfY = topY + ((bottomY - topY) / 2.0);
 
@@ -736,7 +736,7 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
 
 void Audio::renderToolIcon(int screenHeight) {
 
-    _iconBounds = QRect(ICON_LEFT, screenHeight - BOTTOM_PADDING, ICON_SIZE, ICON_SIZE);
+    _iconBounds = QRect(ICON_LEFT, ICON_TOP, ICON_SIZE, ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _micTextureId);

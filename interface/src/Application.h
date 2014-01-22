@@ -315,6 +315,7 @@ private:
 
     void updateShadowMap();
     void displayOverlay();
+    void displayStatsBackground(unsigned int rgba, int x, int y, int width, int height);
     void displayStats();
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);

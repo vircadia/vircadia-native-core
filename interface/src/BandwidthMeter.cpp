@@ -14,9 +14,9 @@
 namespace { // .cpp-local
 
     int const AREA_WIDTH = -280;            // Width of the area used. Aligned to the right when negative.
-    int const AREA_HEIGHT =  40;            // Height of the area used. Aligned to the bottom when negative.
-    int const BORDER_DISTANCE_HORIZ = -20;  // Distance to edge of screen (use negative value when width is negative).
-    int const BORDER_DISTANCE_VERT = 40;    // Distance to edge of screen (use negative value when height is negative).
+    int const AREA_HEIGHT =  -40;            // Height of the area used. Aligned to the bottom when negative.
+    int const BORDER_DISTANCE_HORIZ = -10;  // Distance to edge of screen (use negative value when width is negative).
+    int const BORDER_DISTANCE_VERT = -15;    // Distance to edge of screen (use negative value when height is negative).
 
     int SPACING_VERT_BARS = 2;              // Vertical distance between input and output bar
     int SPACING_RIGHT_CAPTION_IN_OUT = 4;   // IN/OUT <--> |######## :         |
@@ -27,8 +27,8 @@ namespace { // .cpp-local
     unsigned const COLOR_FRAME     = 0xe0e0e0b0; //        |         |         |
     unsigned const COLOR_INDICATOR = 0xc0c0c0b0; //                  |
     
-    char const* CAPTION_IN = "IN";
-    char const* CAPTION_OUT = "OUT";
+    char const* CAPTION_IN = "In";
+    char const* CAPTION_OUT = "Out";
     char const* CAPTION_UNIT = "Mbps";
 
     double const UNIT_SCALE = 8000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
