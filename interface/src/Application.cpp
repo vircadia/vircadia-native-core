@@ -4261,6 +4261,9 @@ void Application::loadScript(const QString& fileNameString){
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
+    
+    // hook our avatar object into this script engine
+    scriptEngine->setAvatarData(&_myAvatar, "MyAvatar");
 
     QThread* workerThread = new QThread(this);
 
