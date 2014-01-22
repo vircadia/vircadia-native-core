@@ -9,5 +9,7 @@
 //
 
 void main(void) {
-    gl_FragColor = vec4(gl_Color.rgb, exp(-0.25 / gl_FragCoord.w));
+    // use the standard exponential fog calculation
+    const float FOG_DENSITY = 0.5;
+    gl_FragColor = vec4(gl_Color.rgb, exp(-FOG_DENSITY / gl_FragCoord.w));
 }
