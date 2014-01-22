@@ -79,6 +79,13 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
     
     show();
+    
+    if (_gridProgram.isLinked()) {
+        return;
+    }
+    switchToResourcesParentIfRequired();
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/grid.frag");
+    _gridProgram.link();
 }
 
 void MetavoxelEditorDialog::updateValueEditor() {
@@ -138,7 +145,44 @@ void MetavoxelEditorDialog::updateGridPosition() {
 }
 
 void MetavoxelEditorDialog::render() {
+    const float GRID_BRIGHTNESS = 0.5f;
+    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
+    glDisable(GL_LIGHTING);
     
+    glPushMatrix();
+    
+    glm::quat rotation;
+    switch (_gridPlane->currentIndex()) {
+        case GRID_PLANE_XZ:
+            rotation = glm::angleAxis(90.0f, 1.0f, 0.0f, 0.0f);
+            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+            break;
+            
+        case GRID_PLANE_YZ:
+            rotation = glm::angleAxis(-90.0f, 0.0f, 1.0f, 0.0f);
+            glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+            break;
+    }
+    
+    // center the grid around the camera position on the plane
+    glm::vec3 rotated = rotation * Application::getInstance()->getCamera()->getPosition();
+    float spacing = _gridSpacing->value();
+    const int GRID_DIVISIONS = 300;
+    glTranslatef(spacing * (floor(rotated.x / spacing) - GRID_DIVISIONS / 2),
+        spacing * (floor(rotated.y / spacing) - GRID_DIVISIONS / 2), _gridPosition->value());
+    
+    float scale = GRID_DIVISIONS * spacing;
+    glScalef(scale, scale, scale);
+    
+    _gridProgram.bind();
+    
+    Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+    
+    _gridProgram.release();
+    
+    glPopMatrix();
+    
+    glEnable(GL_LIGHTING);
 }
 
 void MetavoxelEditorDialog::updateAttributes(const QString& select) {
@@ -164,3 +208,5 @@ QString MetavoxelEditorDialog::getSelectedAttribute() const {
     QList<QListWidgetItem*> selectedItems = _attributes->selectedItems();
     return selectedItems.isEmpty() ? QString() : selectedItems.first()->text();
 }
+
+ProgramObject MetavoxelEditorDialog::_gridProgram;

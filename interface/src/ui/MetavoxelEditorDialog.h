@@ -11,6 +11,8 @@
 
 #include <QDialog>
 
+#include "renderer/ProgramObject.h"
+
 class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
@@ -42,6 +44,8 @@ private:
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;
     QGroupBox* _value;
+    
+    static ProgramObject _gridProgram;
 };
 
 #endif /* defined(__interface__MetavoxelEditorDialog__) */
