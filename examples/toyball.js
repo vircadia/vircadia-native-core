@@ -2,8 +2,8 @@
 //  toyball.js
 //  hifi
 //
-//  Created by Brad Hefta-Gaub on 12/31/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 1/20/14.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 //  This is an example script that turns the hydra controllers into a toy ball catch and throw game.
 //  It reads the controller, watches for button presses and trigger pulls, and launches particles.
@@ -31,11 +31,20 @@ var rightHandParticle;
 
 var throwSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
+var targetRadius = 0.25;
 
-function getBallHoldPosition(leftHand) { 
+
+var wantDebugging = false;
+function debugPrint(message) {
+    if (wantDebugging) {
+        print(message);
+    }
+}
+
+function getBallHoldPosition(whichSide) { 
     var normal;
     var tipPosition;
-    if (leftHand) {
+    if (whichSide == LEFT_PALM) {
         normal = Controller.getSpatialControlNormal(LEFT_PALM);
         tipPosition = Controller.getSpatialControlPosition(LEFT_TIP);
     } else {
@@ -55,10 +64,144 @@ function getBallHoldPosition(leftHand) {
     return position;
 }
 
-var wantDebugging = false;
-function debugPrint(message) {
-    if (wantDebugging) {
-        print(message);
+function checkControllerSide(whichSide) {
+    var BUTTON_FWD;
+    var BUTTON_3;
+    var palmPosition;
+    var ballAlreadyInHand;
+    var handMessage;
+    
+    if (whichSide == LEFT_PALM) {
+        BUTTON_FWD = LEFT_BUTTON_FWD;
+        BUTTON_3 = LEFT_BUTTON_3;
+        palmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
+        ballAlreadyInHand = leftBallAlreadyInHand;
+        handMessage = "LEFT";
+    } else {
+        BUTTON_FWD = RIGHT_BUTTON_FWD;
+        BUTTON_3 = RIGHT_BUTTON_3;
+        palmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
+        ballAlreadyInHand = rightBallAlreadyInHand;
+        handMessage = "RIGHT";
+    }
+    
+    var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3));
+
+    // If I don't currently have a ball in my hand, then try to catch closest one
+    if (!ballAlreadyInHand && grabButtonPressed) {
+        var closestParticle = Particles.findClosestParticle(palmPosition, targetRadius);
+
+        if (closestParticle.isKnownID) {
+
+            debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
+
+            if (whichSide == LEFT_PALM) {
+                leftBallAlreadyInHand = true;
+                leftHandParticle = closestParticle;
+            } else {
+                rightBallAlreadyInHand = true;
+                rightHandParticle = closestParticle;
+            }
+            var ballPosition = getBallHoldPosition(whichSide);
+            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
+                                           y: ballPosition.y / TREE_SCALE, 
+                                           z: ballPosition.z / TREE_SCALE }, 
+                                velocity : { x: 0, y: 0, z: 0}, inHand: true };
+            Particles.editParticle(closestParticle, properties);
+            
+    		var options = new AudioInjectionOptions(); 
+			options.position = ballPosition;
+			options.volume = 1.0;
+			Audio.playSound(catchSound, options);
+            
+            return; // exit early
+        }
+    }
+
+    // change ball color logic...
+    //
+    //if (wasButtonJustPressed()) {
+    //    rotateColor();
+    //}
+
+    //  If '3' is pressed, and not holding a ball, make a new one
+    if (Controller.isButtonPressed(BUTTON_3) && !ballAlreadyInHand) {
+        var ballPosition = getBallHoldPosition(whichSide);
+        var properties = { position: { x: ballPosition.x / TREE_SCALE, 
+                                       y: ballPosition.y / TREE_SCALE, 
+                                       z: ballPosition.z / TREE_SCALE }, 
+                velocity: { x: 0, y: 0, z: 0}, 
+                gravity: { x: 0, y: 0, z: 0}, 
+                inHand: true,
+                radius: 0.05 / TREE_SCALE,
+                color: { red: 255, green: 0, blue: 0 },
+                lifetime: 10 // 10 seconds
+            };
+
+        newParticle = Particles.addParticle(properties);
+        if (whichSide == LEFT_PALM) {
+            leftBallAlreadyInHand = true;
+            leftHandParticle = newParticle;
+        } else {
+            rightBallAlreadyInHand = true;
+            rightHandParticle = newParticle;
+        }
+
+        // Play a new ball sound
+        var options = new AudioInjectionOptions(); 
+        options.position = ballPosition;
+        options.volume = 1.0;
+        Audio.playSound(catchSound, options);
+        
+        return; // exit early
+    }
+
+    if (ballAlreadyInHand) {
+        if (whichSide == LEFT_PALM) {
+            handParticle = leftHandParticle;
+            whichTip = LEFT_TIP;
+        } else {
+            handParticle = rightHandParticle;
+            whichTip = RIGHT_TIP;
+        }
+
+        //  If holding the ball keep it in the palm
+        if (grabButtonPressed) {
+            debugPrint(">>>>> " + handMessage + "-BALL IN HAND, grabbing, hold and move");
+            var ballPosition = getBallHoldPosition(whichSide);
+            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
+                                           y: ballPosition.y / TREE_SCALE, 
+                                           z: ballPosition.z / TREE_SCALE }, 
+                };
+            Particles.editParticle(handParticle, properties);
+        } else {
+            debugPrint(">>>>> " + handMessage + "-BALL IN HAND, not grabbing, THROW!!!");
+            //  If toy ball just released, add velocity to it!
+            var tipVelocity = Controller.getSpatialControlVelocity(whichTip);
+            var THROWN_VELOCITY_SCALING = 1.5;
+            var properties = { 
+                    velocity: { x: (tipVelocity.x * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
+                                y: (tipVelocity.y * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
+                                z: (tipVelocity.z * THROWN_VELOCITY_SCALING) / TREE_SCALE } ,
+                    inHand: false,
+                    gravity: { x: 0, y: -2 / TREE_SCALE, z: 0}, 
+                };
+
+            Particles.editParticle(handParticle, properties);
+
+            if (whichSide == LEFT_PALM) {
+                leftBallAlreadyInHand = false;
+                leftHandParticle = false;
+            } else {
+                rightBallAlreadyInHand = false;
+                rightHandParticle = false;
+            }
+
+    		var options = new AudioInjectionOptions(); 
+			options.position = ballPosition;
+			options.volume = 1.0;
+			Audio.playSound(throwSound, options);
+        }
     }
 }
 
@@ -75,207 +218,8 @@ function checkController() {
         return; // bail if no hydra
     }
 
-    var leftGrabButtonPressed = (Controller.isButtonPressed(LEFT_BUTTON_FWD) || Controller.isButtonPressed(LEFT_BUTTON_3));
-    var rightGrabButtonPressed = (Controller.isButtonPressed(RIGHT_BUTTON_FWD) || Controller.isButtonPressed(RIGHT_BUTTON_3));
-
-    var leftPalmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
-    var rightPalmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
-
-    var targetRadius = 3.0;
-    var exitEarly = false;
-
-    // If I don't currently have a ball in my left hand, then try to catch closest one
-    if (!leftBallAlreadyInHand && leftGrabButtonPressed) {
-        var closestParticle = Particles.findClosestParticle(leftPalmPosition, targetRadius);
-
-        if (closestParticle.isKnownID) {
-
-            debugPrint("LEFT HAND- CAUGHT SOMETHING!!");
-
-            leftBallAlreadyInHand = true;
-            leftHandParticle = closestParticle;
-            var ballPosition = getBallHoldPosition(true);
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
-                                velocity : { x: 0, y: 0, z: 0}, inHand: true };
-            Particles.editParticle(leftHandParticle, properties);
-            
-    		var options = new AudioInjectionOptions(); 
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(catchSound, options);
-            
-            exitEarly = true;
-        }
-    }
-
-    // If I don't currently have a ball in my right hand, then try to catch closest one
-    if (!rightBallAlreadyInHand && rightGrabButtonPressed) {
-        var closestParticle = Particles.findClosestParticle(rightPalmPosition, targetRadius);
-
-        if (closestParticle.isKnownID) {
-
-            debugPrint("RIGHT HAND- CAUGHT SOMETHING!!");
-
-            rightBallAlreadyInHand = true;
-            rightHandParticle = closestParticle;
-
-            var ballPosition = getBallHoldPosition(false); // false == right hand
-            
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
-                                velocity : { x: 0, y: 0, z: 0}, inHand: true };
-            Particles.editParticle(rightHandParticle, properties);
-            
-    		var options = new AudioInjectionOptions(); 
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(catchSound, options);
-            
-            exitEarly = true;
-        }
-    }
-
-    // If we did one of the actions above, then exit now
-    if (exitEarly) {
-        debugPrint("exiting early - caught something");
-        return;
-    }
-
-    // change ball color logic...
-    //
-    //if (wasButtonJustPressed()) {
-    //    rotateColor();
-    //}
-
-    //  LEFT HAND -- If '3' is pressed, and not holding a ball, make a new one
-    if (Controller.isButtonPressed(LEFT_BUTTON_3) && !leftBallAlreadyInHand) {
-        leftBallAlreadyInHand = true;
-        var ballPosition = getBallHoldPosition(true); // true == left hand
-        var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                       y: ballPosition.y / TREE_SCALE, 
-                                       z: ballPosition.z / TREE_SCALE }, 
-                velocity: { x: 0, y: 0, z: 0}, 
-                gravity: { x: 0, y: 0, z: 0}, 
-                inHand: true,
-                radius: 0.05 / TREE_SCALE,
-                color: { red: 255, green: 0, blue: 0 },
-                lifetime: 30
-            };
-
-        leftHandParticle = Particles.addParticle(properties);
-
-        // Play a new ball sound
-        var options = new AudioInjectionOptions(); 
-        options.position = ballPosition;
-        options.volume = 1.0;
-        Audio.playSound(catchSound, options);
-        
-        exitEarly = true;
-    }
-
-    // RIGHT HAND --  If '3' is pressed, and not holding a ball, make a new one
-    if (Controller.isButtonPressed(RIGHT_BUTTON_3) && !rightBallAlreadyInHand) {
-        rightBallAlreadyInHand = true;
-        var ballPosition = getBallHoldPosition(false); // false == right hand
-        var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                       y: ballPosition.y / TREE_SCALE, 
-                                       z: ballPosition.z / TREE_SCALE }, 
-                velocity: { x: 0, y: 0, z: 0}, 
-                gravity: { x: 0, y: 0, z: 0}, 
-                inHand: true,
-                radius: 0.05 / TREE_SCALE,
-                color: { red: 255, green: 255, blue: 0 },
-                lifetime: 30
-            };
-
-        rightHandParticle = Particles.addParticle(properties);
-
-        // Play a new ball sound
-        var options = new AudioInjectionOptions(); 
-        options.position = ballPosition;
-        options.volume = 1.0;
-        Audio.playSound(catchSound, options);
-
-        exitEarly = true;
-    }
-    
-    // If we did one of the actions above, then exit now
-    if (exitEarly) {
-        debugPrint("exiting early - ball created");
-        return;
-    }
-
-    if (leftBallAlreadyInHand) {
-        //  If holding the ball keep it in the palm
-        if (leftGrabButtonPressed) {
-            debugPrint(">>>>> LEFT-BALL IN HAND, grabbing, hold and move");
-            var ballPosition = getBallHoldPosition(true); // true == left hand
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
-                };
-            Particles.editParticle(leftHandParticle, properties);
-        } else {
-            debugPrint(">>>>> LEFT-BALL IN HAND, not grabbing, THROW!!!");
-            //  If toy ball just released, add velocity to it!
-            var tipVelocity = Controller.getSpatialControlVelocity(LEFT_TIP);
-            var THROWN_VELOCITY_SCALING = 1.5;
-            var properties = { 
-                    velocity: { x: (tipVelocity.x * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                y: (tipVelocity.y * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                z: (tipVelocity.z * THROWN_VELOCITY_SCALING) / TREE_SCALE } ,
-                    inHand: false,
-                    gravity: { x: 0, y: -2 / TREE_SCALE, z: 0}, 
-                };
-
-            Particles.editParticle(leftHandParticle, properties);
-            leftBallAlreadyInHand = false;
-            leftHandParticle = false;
-
-    		var options = new AudioInjectionOptions(); 
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(throwSound, options);
-        }
-    }
-
-    if (rightBallAlreadyInHand) {
-        //  If holding the ball keep it in the palm
-        if (rightGrabButtonPressed) {
-            debugPrint(">>>>> RIGHT-BALL IN HAND, grabbing, hold and move");
-            var ballPosition = getBallHoldPosition(false); // false == right hand
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
-                             };
-            Particles.editParticle(rightHandParticle, properties);
-        } else {
-            debugPrint(">>>>> RIGHT-BALL IN HAND, not grabbing, THROW!!!");
-
-            //  If toy ball just released, add velocity to it!
-            var tipVelocity = Controller.getSpatialControlVelocity(RIGHT_TIP);
-            var THROWN_VELOCITY_SCALING = 1.5;
-            var properties = { 
-                    velocity: { x: (tipVelocity.x * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                y: (tipVelocity.y * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                z: (tipVelocity.z * THROWN_VELOCITY_SCALING) / TREE_SCALE } ,
-                    inHand: false,
-                    gravity: { x: 0, y: -2 / TREE_SCALE, z: 0}, 
-                };
-
-            Particles.editParticle(rightHandParticle, properties);
-            rightBallAlreadyInHand = false;
-            rightHandParticle = false;
-
-    		var options = new AudioInjectionOptions(); 
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(throwSound, options);
-        }
-    }
+    checkControllerSide(LEFT_PALM);
+    checkControllerSide(RIGHT_PALM);
 }
 
 
