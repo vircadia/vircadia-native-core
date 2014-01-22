@@ -539,7 +539,7 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
 
         // radius
         if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS)) {
-            float radius = properties.getRadius();
+            float radius = properties.getRadius() / (float) TREE_SCALE;
             memcpy(copyAt, &radius, sizeof(radius));
             copyAt += sizeof(radius);
             sizeOut += sizeof(radius);
@@ -547,9 +547,10 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
 
         // position
         if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION)) {
-            memcpy(copyAt, &properties.getPosition(), sizeof(properties.getPosition()));
-            copyAt += sizeof(properties.getPosition());
-            sizeOut += sizeof(properties.getPosition());
+            glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
+            memcpy(copyAt, &position, sizeof(position));
+            copyAt += sizeof(position);
+            sizeOut += sizeof(position);
         }
 
         // color
@@ -562,16 +563,18 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
 
         // velocity
         if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY)) {
-            memcpy(copyAt, &properties.getVelocity(), sizeof(properties.getVelocity()));
-            copyAt += sizeof(properties.getVelocity());
-            sizeOut += sizeof(properties.getVelocity());
+            glm::vec3 velocity = properties.getVelocity() / (float)TREE_SCALE;
+            memcpy(copyAt, &velocity, sizeof(velocity));
+            copyAt += sizeof(velocity);
+            sizeOut += sizeof(velocity);
         }
 
         // gravity
         if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY)) {
-            memcpy(copyAt, &properties.getGravity(), sizeof(properties.getGravity()));
-            copyAt += sizeof(properties.getGravity());
-            sizeOut += sizeof(properties.getGravity());
+            glm::vec3 gravity = properties.getGravity() / (float)TREE_SCALE;
+            memcpy(copyAt, &gravity, sizeof(gravity));
+            copyAt += sizeof(gravity);
+            sizeOut += sizeof(gravity);
         }
 
         // damping
@@ -1063,7 +1066,7 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
 
 void ParticleProperties::copyToParticle(Particle& particle) const {
     if (_positionChanged) {
-        particle.setPosition(_position);
+        particle.setPosition(_position / (float) TREE_SCALE);
     }
 
     if (_colorChanged) {
@@ -1071,15 +1074,15 @@ void ParticleProperties::copyToParticle(Particle& particle) const {
     }
 
     if (_radiusChanged) {
-        particle.setRadius(_radius);
+        particle.setRadius(_radius / (float) TREE_SCALE);
     }
 
     if (_velocityChanged) {
-        particle.setVelocity(_velocity);
+        particle.setVelocity(_velocity / (float) TREE_SCALE);
     }
 
     if (_gravityChanged) {
-        particle.setGravity(_gravity);
+        particle.setGravity(_gravity / (float) TREE_SCALE);
     }
 
     if (_dampingChanged) {
@@ -1104,11 +1107,11 @@ void ParticleProperties::copyToParticle(Particle& particle) const {
 }
 
 void ParticleProperties::copyFromParticle(const Particle& particle) {
-    _position = particle.getPosition();
+    _position = particle.getPosition() * (float) TREE_SCALE;
     _color = particle.getXColor();
-    _radius = particle.getRadius();
-    _velocity = particle.getVelocity();
-    _gravity = particle.getGravity();
+    _radius = particle.getRadius() * (float) TREE_SCALE;
+    _velocity = particle.getVelocity() * (float) TREE_SCALE;
+    _gravity = particle.getGravity() * (float) TREE_SCALE;
     _damping = particle.getDamping();
     _lifetime = particle.getLifetime();
     _script = particle.getScript();

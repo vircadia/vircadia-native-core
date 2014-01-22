@@ -12,18 +12,21 @@ void VoxelsScriptingInterface::queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDet
     getVoxelPacketSender()->queueVoxelEditMessages(addPacketType, 1, &addVoxelDetails);
 }
 
-void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale, uchar red, uchar green, uchar blue) {
+void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z, float scale, 
+                                                        uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data
-    VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
+    VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
+                                    scale / (float)TREE_SCALE, red, green, blue};
 
     // queue the packet
     queueVoxelAdd(PACKET_TYPE_VOXEL_SET, addVoxelDetail);
 }
 
-void VoxelsScriptingInterface::destructiveSetVoxel(float x, float y, float z, float scale,
+void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
                                                         uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data
-    VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
+    VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
+                                    scale / (float)TREE_SCALE, red, green, blue};
 
     // queue the destructive add
     queueVoxelAdd(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE, addVoxelDetail);
@@ -32,7 +35,8 @@ void VoxelsScriptingInterface::destructiveSetVoxel(float x, float y, float z, fl
 void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale) {
 
     // setup a VoxelDetail struct with data
-    VoxelDetail deleteVoxelDetail = {x, y, z, scale, 0, 0, 0};
+    VoxelDetail deleteVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
+                                        scale / (float)TREE_SCALE, 0, 0, 0};
 
     getVoxelPacketSender()->queueVoxelEditMessages(PACKET_TYPE_VOXEL_ERASE, 1, &deleteVoxelDetail);
 }

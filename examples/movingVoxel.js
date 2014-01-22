@@ -28,9 +28,9 @@ function moveVoxel() {
             thisColor = colorEdge;
 		}
 		//  Create a new voxel
-		Voxels.queueDestructiveVoxelAdd(position.x / TREE_SCALE, position.y / TREE_SCALE, position.z / TREE_SCALE, size / TREE_SCALE, thisColor.r, thisColor.g, thisColor.b);
+		Voxels.setVoxel(position.x, position.y, position.z, size, thisColor.r, thisColor.g, thisColor.b);
 		//  delete old voxel 
-		Voxels.queueVoxelDelete(oldPosition.x / TREE_SCALE, oldPosition.y / TREE_SCALE, oldPosition.z / TREE_SCALE, size / TREE_SCALE);
+		Voxels.eraseVoxel(oldPosition.x, oldPosition.y, oldPosition.z, size);
 		//  Copy old location to new 
 		oldPosition.x = position.x;
         oldPosition.y = position.y;

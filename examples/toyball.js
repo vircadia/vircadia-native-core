@@ -103,9 +103,9 @@ function checkControllerSide(whichSide) {
                 rightHandParticle = closestParticle;
             }
             var ballPosition = getBallHoldPosition(whichSide);
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
+            var properties = { position: { x: ballPosition.x, 
+                                           y: ballPosition.y, 
+                                           z: ballPosition.z }, 
                                 velocity : { x: 0, y: 0, z: 0}, inHand: true };
             Particles.editParticle(closestParticle, properties);
             
@@ -127,13 +127,13 @@ function checkControllerSide(whichSide) {
     //  If '3' is pressed, and not holding a ball, make a new one
     if (Controller.isButtonPressed(BUTTON_3) && !ballAlreadyInHand) {
         var ballPosition = getBallHoldPosition(whichSide);
-        var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                       y: ballPosition.y / TREE_SCALE, 
-                                       z: ballPosition.z / TREE_SCALE }, 
+        var properties = { position: { x: ballPosition.x, 
+                                       y: ballPosition.y, 
+                                       z: ballPosition.z }, 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: 0.05 / TREE_SCALE,
+                radius: 0.05,
                 color: { red: 255, green: 0, blue: 0 },
                 lifetime: 10 // 10 seconds
             };
@@ -169,9 +169,9 @@ function checkControllerSide(whichSide) {
         if (grabButtonPressed) {
             debugPrint(">>>>> " + handMessage + "-BALL IN HAND, grabbing, hold and move");
             var ballPosition = getBallHoldPosition(whichSide);
-            var properties = { position: { x: ballPosition.x / TREE_SCALE, 
-                                           y: ballPosition.y / TREE_SCALE, 
-                                           z: ballPosition.z / TREE_SCALE }, 
+            var properties = { position: { x: ballPosition.x, 
+                                           y: ballPosition.y, 
+                                           z: ballPosition.z }, 
                 };
             Particles.editParticle(handParticle, properties);
         } else {
@@ -180,11 +180,11 @@ function checkControllerSide(whichSide) {
             var tipVelocity = Controller.getSpatialControlVelocity(whichTip);
             var THROWN_VELOCITY_SCALING = 1.5;
             var properties = { 
-                    velocity: { x: (tipVelocity.x * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                y: (tipVelocity.y * THROWN_VELOCITY_SCALING) / TREE_SCALE, 
-                                z: (tipVelocity.z * THROWN_VELOCITY_SCALING) / TREE_SCALE } ,
+                    velocity: { x: tipVelocity.x * THROWN_VELOCITY_SCALING, 
+                                y: tipVelocity.y * THROWN_VELOCITY_SCALING, 
+                                z: tipVelocity.z * THROWN_VELOCITY_SCALING } ,
                     inHand: false,
-                    gravity: { x: 0, y: -2 / TREE_SCALE, z: 0}, 
+                    gravity: { x: 0, y: -2, z: 0}, 
                 };
 
             Particles.editParticle(handParticle, properties);

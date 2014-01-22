@@ -54,6 +54,7 @@ const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
 /// particle properties via JavaScript hashes/QScriptValues
+/// all units for position, velocity, gravity, radius, etc are in meter units
 class ParticleProperties {
 public:
     ParticleProperties();
@@ -78,10 +79,15 @@ public:
     uint64_t getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
 
+    /// set position in meter units
     void setPosition(const glm::vec3& value) { _position = value; _positionChanged = true; }
+
+    /// set velocity in meter units
     void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true;  }
     void setColor(const xColor& value) { _color = value; _colorChanged = true; }
     void setRadius(float value) { _radius = value; _radiusChanged = true; }
+
+    /// set gravity in meter units
     void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true;  }
     void setInHand(bool inHand) { _inHand = inHand; _inHandChanged = true; }
     void setDamping(float value) { _damping = value; _dampingChanged = true;  }
@@ -146,6 +152,8 @@ class Particle  {
 
 public:
     Particle();
+    
+    /// all position, velocity, gravity, radius units are in domain units (0.0 to 1.0)
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
             glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, float lifetime = DEFAULT_LIFETIME,
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
@@ -158,13 +166,22 @@ public:
             glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, float lifetime = DEFAULT_LIFETIME,
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
+    /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; }
+
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+
+    /// get radius in domain scale units (0.0 - 1.0)
     float getRadius() const { return _radius; }
     float getMass() const { return _mass; }
+
+    /// get velocity in domain scale units (0.0 - 1.0)
     const glm::vec3& getVelocity() const { return _velocity; }
+
+    /// get gravity in domain scale units (0.0 - 1.0)
     const glm::vec3& getGravity() const { return _gravity; }
+
     bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
     float getLifetime() const { return _lifetime; }
@@ -185,7 +202,10 @@ public:
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     bool isNewlyCreated() const { return _newlyCreated; }
 
+    /// set position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; }
+
+    /// set velocity in domain scale units (0.0 - 1.0)
     void setVelocity(const glm::vec3& value) { _velocity = value; }
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
@@ -193,8 +213,11 @@ public:
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
     }
+    /// set radius in domain scale units (0.0 - 1.0)
     void setRadius(float value) { _radius = value; }
     void setMass(float value);
+
+    /// set gravity in domain scale units (0.0 - 1.0)
     void setGravity(const glm::vec3& value) { _gravity = value; }
     void setInHand(bool inHand) { _inHand = inHand; }
     void setDamping(float value) { _damping = value; }
@@ -291,23 +314,40 @@ public:
 
 public slots:
     unsigned int getID() const { return _particle->getID(); }
-    glm::vec3 getPosition() const { return _particle->getPosition(); }
-    glm::vec3 getVelocity() const { return _particle->getVelocity(); }
+    
+    /// get position in meter units
+    glm::vec3 getPosition() const { return _particle->getPosition() * (float)TREE_SCALE; }
+
+    /// get velocity in meter units
+    glm::vec3 getVelocity() const { return _particle->getVelocity() * (float)TREE_SCALE; }
     xColor getColor() const { return _particle->getXColor(); }
-    glm::vec3 getGravity() const { return _particle->getGravity(); }
+
+    /// get gravity in meter units
+    glm::vec3 getGravity() const { return _particle->getGravity() * (float)TREE_SCALE; }
+
     float getDamping() const { return _particle->getDamping(); }
-    float getRadius() const { return _particle->getRadius(); }
+
+    /// get radius in meter units
+    float getRadius() const { return _particle->getRadius() * (float)TREE_SCALE; }
     bool getShouldDie() { return _particle->getShouldDie(); }
     float getAge() const { return _particle->getAge(); }
     float getLifetime() const { return _particle->getLifetime(); }
     ParticleProperties getProperties() const { return _particle->getProperties(); }
 
-    void setPosition(glm::vec3 value) { _particle->setPosition(value); }
-    void setVelocity(glm::vec3 value) { _particle->setVelocity(value); }
-    void setGravity(glm::vec3 value) { _particle->setGravity(value); }
+    /// set position in meter units
+    void setPosition(glm::vec3 value) { _particle->setPosition(value / (float)TREE_SCALE); }
+
+    /// set velocity in meter units
+    void setVelocity(glm::vec3 value) { _particle->setVelocity(value / (float)TREE_SCALE); }
+
+    /// set gravity in meter units
+    void setGravity(glm::vec3 value) { _particle->setGravity(value / (float)TREE_SCALE); }
+    
     void setDamping(float value) { _particle->setDamping(value); }
     void setColor(xColor value) { _particle->setColor(value); }
-    void setRadius(float value) { _particle->setRadius(value); }
+
+    /// set radius in meter units
+    void setRadius(float value) { _particle->setRadius(value / (float)TREE_SCALE); }
     void setShouldDie(bool value) { _particle->setShouldDie(value); }
     void setScript(const QString& script) { _particle->setScript(script); }
     void setLifetime(float value) const { return _particle->setLifetime(value); }

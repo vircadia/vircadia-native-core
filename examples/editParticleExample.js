@@ -11,9 +11,9 @@
 var count = 0;
 
 var originalProperties = {
-    position: { x: 10/TREE_SCALE,
-                y: 0/TREE_SCALE,
-                z: 0/TREE_SCALE },
+    position: { x: 10,
+                y: 0,
+                z: 0 },
 
     velocity: { x: 0,
                 y: 0,
@@ -24,7 +24,7 @@ var originalProperties = {
                 z: 0 },
 
 
-    radius : 0.1/TREE_SCALE,
+    radius : 0.1,
 
     color: { red: 0,
              green: 255,
@@ -32,23 +32,23 @@ var originalProperties = {
 
 };
 
-var positionDelta = { x: 0.1/TREE_SCALE, y: 0, z: 0 };
+var positionDelta = { x: 0.05, y: 0, z: 0 };
 
 
 var particleID = Particles.addParticle(originalProperties);
 
 function moveParticle() {
-    if (count >= 10) {
+    if (count >= 100) {
         //Agent.stop();
 
         // delete it...
-        if (count == 10) {
+        if (count == 100) {
             print("calling Particles.deleteParticle()");
             Particles.deleteParticle(particleID);
         }
 
         // stop it...
-        if (count >= 100) {
+        if (count >= 200) {
             print("calling Agent.stop()");
             Agent.stop();
         }
@@ -68,7 +68,7 @@ function moveParticle() {
                 y: originalProperties.position.y + (count * positionDelta.y),
                 z: originalProperties.position.z + (count * positionDelta.z)
         },
-        radius : 0.25/TREE_SCALE,
+        radius : 0.25,
 
     };
 
@@ -79,11 +79,13 @@ function moveParticle() {
     Particles.editParticle(particleID, newProperties);
     
     // also check to see if we can "find" particles...
-    var searchAt = { x: 0, y: 0, z: 0};
+    var searchAt = { x: 9, y: 0, z: 0};
     var searchRadius = 2;
     var foundParticle = Particles.findClosestParticle(searchAt, searchRadius);
     if (foundParticle.isKnownID) {
         print("found particle:" + foundParticle.id);
+    } else {
+        print("could not find particle in or around x=9 to x=11:");
     }
 }
 
