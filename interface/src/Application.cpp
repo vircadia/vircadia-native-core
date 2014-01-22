@@ -1324,6 +1324,9 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    // send unmatched DataServerClient packets
+    DataServerClient::resendUnmatchedPackets();
 
     // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());
@@ -1414,55 +1417,6 @@ void Application::terminate() {
         _persistThread->deleteLater();
         _persistThread = NULL;
     }
-}
-
-static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
-    // record the packet for stats-tracking
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AVATARS).updateValue(dataBytes);
-    SharedNodePointer avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-    if (avatarMixerNode) {
-        avatarMixerNode->recordBytesReceived(dataBytes);
-    }
-
-    // skip the header
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    packetData += numBytesPacketHeader;
-    dataBytes -= numBytesPacketHeader;
-
-    // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData, NUM_BYTES_RFC4122_UUID));
-
-    packetData += NUM_BYTES_RFC4122_UUID;
-    dataBytes -= NUM_BYTES_RFC4122_UUID;
-
-    // make sure the node exists
-    SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
-    if (!node || !node->getLinkedData()) {
-        return NULL;
-    }
-    Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-    return avatar->isInitialized() ? avatar : NULL;
-}
-
-void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes) {
-    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
-    if (!avatar) {
-        return;
-    }
-    //  PER Note: message is no longer processed but used to trigger
-    //  Dataserver lookup - redesign this to instantly ask the
-    //  dataserver on first receipt of other avatar UUID, and also
-    //  don't ask over and over again.   Instead use this message to
-    //  Tell the other avatars that your dataserver data has
-    //  changed.
-
-    //QDataStream in(QByteArray((char*)packetData, dataBytes));
-    //QUrl voxelURL;
-    //in >> voxelURL;
-
-    // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
-    DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-        avatar->getUUID());
 }
 
 void Application::checkBandwidthMeterClick() {
@@ -1868,8 +1822,8 @@ void Application::init() {
 
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, _profile.getUserString(), &_profile);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, _profile.getUserString(), &_profile);
     }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
@@ -2558,11 +2512,6 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
-    const float AVATAR_URLS_SEND_INTERVAL = 1.0f;
-    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-        QUrl empty;
-        Avatar::sendAvatarURLsMessage(empty);
-    }
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -3969,13 +3918,16 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
+
     QString buildVersion = " (build " + applicationVersion() + ")";
+
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
-        title += _profile.getUsername();
+        title += username;
         title += " @ ";
     }
-    title += _profile.getLastDomain();
+    
+    title += NodeList::getInstance()->getDomainHostname();
     title += buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
@@ -4225,9 +4177,6 @@ void Application::processDatagrams() {
                                                                  _incomingPacket,
                                                                  bytesReceived);
                     getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
-                    break;
-                case PACKET_TYPE_AVATAR_URLS:
-                    processAvatarURLsMessage(_incomingPacket, bytesReceived);
                     break;
                 case PACKET_TYPE_DATA_SERVER_GET:
                 case PACKET_TYPE_DATA_SERVER_PUT:
