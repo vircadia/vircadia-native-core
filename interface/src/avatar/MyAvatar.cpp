@@ -578,11 +578,10 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
             _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
         }
         if (transmitter->getTouchState()->state == 'D') {
-            _thrust += TRANSMITTER_UP_FORCE_SCALE *
-            (float)(transmitter->getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
-            TRANSMITTER_LIFT_SCALE *
-            deltaTime *
-            up;
+            _thrust += (TRANSMITTER_UP_FORCE_SCALE *
+                (float)(transmitter->getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
+                TRANSMITTER_LIFT_SCALE * deltaTime) *
+                up;
         }
     }
     //  Add thrust and rotation from hand controllers
@@ -665,7 +664,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
     glm::vec3 up = getBodyUpDirection();
     float radius = _collisionRadius;
-    const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
+    const float ENVIRONMENT_SURFACE_ELASTICITY = 0.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
@@ -701,8 +700,8 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     //  Update the avatar in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
-    //  if elasticity = 1.0, collision is inelastic.
-    //  if elasticity > 1.0, collision is elastic.
+    //  if elasticity = 0.0, collision is 100% inelastic.
+    //  if elasticity = 1.0, collision is elastic.
     //
     _position -= penetration;
     static float HALTING_VELOCITY = 0.2f;
@@ -711,7 +710,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     if (penetrationLength > EPSILON) {
         _elapsedTimeSinceCollision = 0.0f;
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= glm::dot(_velocity, direction) * direction * elasticity;
+        _velocity -= glm::dot(_velocity, direction) * direction * (1.f + elasticity);
         _velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if ((glm::length(_velocity) < HALTING_VELOCITY) && (glm::length(_thrust) == 0.f)) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
