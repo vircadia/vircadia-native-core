@@ -2494,17 +2494,14 @@ void Application::updateAvatar(float deltaTime) {
     //  Get audio loudness data from audio input device
     _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
 
-    NodeList* nodeList = NodeList::getInstance();
-
     // send head/hand data to the avatar mixer and voxel server
     unsigned char broadcastString[MAX_PACKET_SIZE];
     unsigned char* endOfBroadcastStringWrite = broadcastString;
 
     endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
 
-    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-    memcpy(endOfBroadcastStringWrite, ownerUUID.constData(), ownerUUID.size());
-    endOfBroadcastStringWrite += ownerUUID.size();
+    // pack the NodeList owner UUID
+    endOfBroadcastStringWrite += NodeList::getInstance()->packOwnerUUID(endOfBroadcastStringWrite);
 
     endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
 

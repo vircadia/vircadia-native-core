@@ -68,9 +68,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         _handData = new HandData(this);
     }
     
-    // pack the NodeList owner UUID
-    destinationBuffer += NodeList::getInstance()->packOwnerUUID(destinationBuffer);
-    
     // Body world position
     memcpy(destinationBuffer, &_position, sizeof(float) * 3);
     destinationBuffer += sizeof(float) * 3;
