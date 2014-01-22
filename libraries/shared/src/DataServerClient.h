@@ -13,6 +13,7 @@
 
 #include <QtCore/QMap>
 #include <QtCore/QPointer>
+#include <QtCore/QStringList>
 #include <QtCore/QUuid>
 
 #include "HifiSockAddr.h"
