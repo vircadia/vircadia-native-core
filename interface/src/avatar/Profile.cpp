@@ -162,6 +162,9 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == QUuid(userString)) {
+                                qDebug() << "Changing mesh to" << valueList[i] << "for avatar with UUID"
+                                    << uuidStringWithoutCurlyBraces(avatar->getUUID());
+                                
                                 QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
                                                           "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                             }
@@ -179,6 +182,9 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == QUuid(userString)) {
+                                qDebug() << "Changing skeleton to" << valueList[i] << "for avatar with UUID"
+                                    << uuidStringWithoutCurlyBraces(avatar->getUUID());
+                                
                                 QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
                                                           Q_ARG(QUrl, QUrl(valueList[i])));
                             }

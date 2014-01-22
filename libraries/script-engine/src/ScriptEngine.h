@@ -59,7 +59,7 @@ public:
     void setIsAvatar(bool isAvatar) { _isAvatar = isAvatar; }
     bool isAvatar() const { return _isAvatar; }
     
-    void setAvatarData(AvatarData* avatarData);
+    void setAvatarData(AvatarData* avatarData, const QString& objectName);
 
 public slots:
     void init();

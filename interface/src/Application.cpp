@@ -4207,6 +4207,9 @@ void Application::loadScript(const QString& fileNameString){
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
+    
+    // hook our avatar object into this script engine
+    scriptEngine->setAvatarData(&_myAvatar, "MyAvatar");
 
     QThread* workerThread = new QThread(this);
 
