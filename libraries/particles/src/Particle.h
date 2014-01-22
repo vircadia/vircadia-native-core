@@ -136,6 +136,9 @@ public:
     ParticleID(uint32_t id, uint32_t creatorTokenID, bool isKnownID) :
             id(id), creatorTokenID(creatorTokenID), isKnownID(isKnownID) { };
 
+    ParticleID(uint32_t id) :
+            id(id), creatorTokenID(UNKNOWN_TOKEN), isKnownID(true) { };
+
     uint32_t id;
     uint32_t creatorTokenID;
     bool isKnownID;
