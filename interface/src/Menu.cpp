@@ -91,7 +91,7 @@ Menu::Menu() :
                                    SLOT(login())));
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadScript()));
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
     _activeScriptsMenu = fileMenu->addMenu("Running Scripts");
 
     addDisabledActionAndSeparator(fileMenu, "Voxels");

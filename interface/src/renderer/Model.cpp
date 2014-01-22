@@ -798,7 +798,10 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
     
     foreach (int index, freeLineage) {
-        _jointStates[index].rotation = safeMix(_jointStates[index].rotation, geometry.joints.at(index).rotation, percent);
+        JointState& state = _jointStates[index];
+        const FBXJoint& joint = geometry.joints.at(index);
+        state.rotation = safeMix(state.rotation, joint.rotation, percent);
+        state.translation = glm::mix(state.translation, joint.translation, percent);
     }
     return true;
 }

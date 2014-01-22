@@ -34,7 +34,7 @@ class ScriptEngine : public QObject {
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL,
+		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
                     AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
@@ -71,7 +71,7 @@ signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
     void scriptEnding();
-    void finished();
+    void finished(const QString& fileNameString);
 
 protected:
     void preEvaluateReset();
@@ -92,6 +92,7 @@ private:
     AvatarData* _avatarData;
     bool _wantMenuItems;
     QString _scriptMenuName;
+    QString _fileNameString;
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
 };

@@ -76,8 +76,8 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3 position) { _position = position; }
 
-    const glm::vec3& getHandPosition() const { return _handPosition; }
-    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
+    glm::vec3 getHandPosition() const;
+    void setHandPosition(const glm::vec3& handPosition);
 
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -92,6 +92,8 @@ public:
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
+
+    glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
 
     //  Scale
     float getTargetScale() const { return _targetScale; }
