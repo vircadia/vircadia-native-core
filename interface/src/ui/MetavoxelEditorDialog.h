@@ -11,6 +11,8 @@
 
 #include <QDialog>
 
+class QComboBox;
+class QDoubleSpinBox;
 class QGroupBox;
 class QListWidget;
 
@@ -26,6 +28,9 @@ private slots:
     
     void updateValueEditor();
     void createNewAttribute();
+    void updateGridPosition();
+    
+    void render();
     
 private:
     
@@ -33,6 +38,9 @@ private:
     QString getSelectedAttribute() const;
     
     QListWidget* _attributes;
+    QComboBox* _gridPlane;
+    QDoubleSpinBox* _gridSpacing;
+    QDoubleSpinBox* _gridPosition;
     QGroupBox* _value;
 };
 

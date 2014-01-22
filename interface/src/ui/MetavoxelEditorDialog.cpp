@@ -5,7 +5,9 @@
 //  Created by Andrzej Kapolka on 1/21/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 
+#include <QComboBox>
 #include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLineEdit>
@@ -17,6 +19,10 @@
 
 #include "Application.h"
 #include "MetavoxelEditorDialog.h"
+
+enum GridPlane {
+    GRID_PLANE_XY, GRID_PLANE_XZ, GRID_PLANE_YZ
+};
 
 MetavoxelEditorDialog::MetavoxelEditorDialog() :
     QDialog(Application::getInstance()->getGLWidget()) {
@@ -41,6 +47,26 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     attributeLayout->addWidget(newAttribute);
     connect(newAttribute, SIGNAL(clicked()), SLOT(createNewAttribute()));
 
+    QFormLayout* formLayout = new QFormLayout();
+    topLayout->addLayout(formLayout);
+    
+    formLayout->addRow("Grid Plane:", _gridPlane = new QComboBox());
+    _gridPlane->addItem("X/Y");
+    _gridPlane->addItem("X/Z");
+    _gridPlane->addItem("Y/Z");
+    _gridPlane->setCurrentIndex(GRID_PLANE_XZ);
+    
+    formLayout->addRow("Grid Spacing:", _gridSpacing = new QDoubleSpinBox());
+    _gridSpacing->setValue(0.1);
+    _gridSpacing->setMaximum(FLT_MAX);
+    _gridSpacing->setSingleStep(0.01);
+    connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(updateGridPosition()));
+
+    formLayout->addRow("Grid Position:", _gridPosition = new QDoubleSpinBox());
+    _gridPosition->setSingleStep(0.1);
+    _gridPosition->setMinimum(-FLT_MAX);
+    _gridPosition->setMaximum(FLT_MAX);
+
     _value = new QGroupBox();
     _value->setTitle("Value");
     topLayout->addWidget(_value);
@@ -49,6 +75,8 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     _value->setLayout(valueLayout);
 
     updateAttributes();
+    
+    connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
     
     show();
 }
@@ -98,6 +126,19 @@ void MetavoxelEditorDialog::createNewAttribute() {
     AttributeRegistry::getInstance()->registerAttribute(new QRgbAttribute(nameText));
     
     updateAttributes(nameText);
+}
+
+void MetavoxelEditorDialog::updateGridPosition() {
+    // make sure our grid position matches our grid spacing
+    double step = _gridSpacing->value();
+    if (step > 0.0) {
+        _gridPosition->setSingleStep(step);
+        _gridPosition->setValue(step * floor(_gridPosition->value() / step));
+    }
+}
+
+void MetavoxelEditorDialog::render() {
+    
 }
 
 void MetavoxelEditorDialog::updateAttributes(const QString& select) {

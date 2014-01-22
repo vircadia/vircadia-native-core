@@ -3138,6 +3138,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
             glPopMatrix();
         }
+        
+        // give external parties a change to hook in
+        emit renderingInWorldInterface();
     }
 }
 

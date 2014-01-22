@@ -210,6 +210,11 @@ public:
     
     void skipVersion(QString latestVersion);
 
+signals:
+
+    /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
+    void renderingInWorldInterface();
+    
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
