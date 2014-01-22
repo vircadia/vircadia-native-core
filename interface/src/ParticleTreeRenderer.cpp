@@ -11,7 +11,7 @@
 
 #include "ParticleTreeRenderer.h"
 
-ParticleTreeRenderer::ParticleTreeRenderer() : 
+ParticleTreeRenderer::ParticleTreeRenderer() :
     OctreeRenderer() {
 }
 
@@ -31,13 +31,13 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
     // actually render it here...
     // we need to iterate the actual particles of the element
     ParticleTreeElement* particleTreeElement = (ParticleTreeElement*)element;
-    
+
     const QList<Particle>& particles = particleTreeElement->getParticles();
-    
+
     uint16_t numberOfParticles = particles.size();
-    
+
     bool drawAsSphere = true;
-    
+
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle& particle = particles[i];
         // render particle aspoints
@@ -46,7 +46,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
         float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
 
         args->_renderedItems++;
-        
+
         if (drawAsSphere) {
             glPushMatrix();
                 glTranslatef(position.x, position.y, position.z);
@@ -59,4 +59,9 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
             glEnd();
         }
     }
+}
+
+void ParticleTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr,
+        Node* sourceNode) {
+    static_cast<ParticleTree*>(_tree)->processEraseMessage(dataByteArray, senderSockAddr, sourceNode);
 }

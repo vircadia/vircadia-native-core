@@ -27,7 +27,7 @@
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
-public:                
+public:
     OctreeServer(const unsigned char* dataBuffer, int numBytes);
     ~OctreeServer();
 
@@ -58,27 +58,27 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun() { };
-    virtual bool hasSpecialPacketToSend() { return false; }
+    virtual bool hasSpecialPacketToSend(Node* node) { return false; }
     virtual int sendSpecialPacket(Node* node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
-    
+
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
 public slots:
     /// runs the voxel server assignment
     void run();
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
-    
+
     void nodeKilled(SharedNodePointer node);
 
 protected:
     void parsePayload();
     void initHTTPManager(int port);
-    
+
     int _argc;
     const char** _argv;
     char** _parsedArgV;
-    
+
     HTTPManager* _httpManager;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
@@ -94,9 +94,9 @@ protected:
     OctreePersistThread* _persistThread;
 
     static OctreeServer* _instance;
-    
+
     time_t _started;
-    uint64_t _startedUSecs;    
+    uint64_t _startedUSecs;
 };
 
 #endif // __octree_server__OctreeServer__

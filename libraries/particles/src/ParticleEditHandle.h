@@ -34,18 +34,17 @@ public:
 
     bool isKnownID() const { return _isKnownID; }
 
-    void createParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, bool inHand, QString updateScript);
+    void createParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
+                           glm::vec3 gravity, float damping, float lifetime, bool inHand, QString updateScript);
 
-    bool updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity, 
-                           glm::vec3 gravity, float damping, bool inHand, QString updateScript);
-            
+    bool updateParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
+                           glm::vec3 gravity, float damping, float lifetime, bool inHand, QString updateScript);
+
     static void handleAddResponse(unsigned char* packetData , int packetLength);
 private:
     uint32_t _creatorTokenID;
     uint32_t _id;
     bool _isKnownID;
-    static uint32_t _nextCreatorTokenID;
     static std::map<uint32_t,ParticleEditHandle*> _allHandles;
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _localTree;
