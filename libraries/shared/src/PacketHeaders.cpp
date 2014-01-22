@@ -21,9 +21,6 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             
         case PACKET_TYPE_HEAD_DATA:
             return 15;
-        
-        case PACKET_TYPE_AVATAR_URLS:
-            return 2;
 
         case PACKET_TYPE_OCTREE_STATS:
             return 2;
@@ -55,7 +52,13 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         
         case PACKET_TYPE_PING_REPLY:
             return 1;
-        
+            
+        case PACKET_TYPE_DATA_SERVER_GET:
+        case PACKET_TYPE_DATA_SERVER_PUT:
+        case PACKET_TYPE_DATA_SERVER_SEND:
+        case PACKET_TYPE_DATA_SERVER_CONFIRM:
+            return 1;
+            
         default:
             return 0;
     }

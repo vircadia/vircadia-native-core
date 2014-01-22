@@ -33,8 +33,10 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
+#include <QObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -43,6 +45,8 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QXmlStreamReader>
+#include <QXmlStreamAttributes>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -90,6 +94,9 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+
+const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
+const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     QString messageWithNewLine = message + "\n";
@@ -160,8 +167,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
-    qDebug("[VERSION] Build sequence: %i", BUILD_VERSION);
-
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
@@ -195,9 +200,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     applicationInfo.beginGroup("INFO");
 
     setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
+    setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
     setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _settings = new QSettings(this);
 
@@ -256,7 +263,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-
+    
+    checkVersion();
 }
 
 Application::~Application() {
@@ -1316,6 +1324,9 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    // send unmatched DataServerClient packets
+    DataServerClient::resendUnmatchedPackets();
 
     // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
     _profile.updatePosition(_myAvatar.getPosition());
@@ -1385,6 +1396,7 @@ void Application::idle() {
         }
     }
 }
+
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
@@ -1405,55 +1417,6 @@ void Application::terminate() {
         _persistThread->deleteLater();
         _persistThread = NULL;
     }
-}
-
-static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
-    // record the packet for stats-tracking
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AVATARS).updateValue(dataBytes);
-    SharedNodePointer avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-    if (avatarMixerNode) {
-        avatarMixerNode->recordBytesReceived(dataBytes);
-    }
-
-    // skip the header
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    packetData += numBytesPacketHeader;
-    dataBytes -= numBytesPacketHeader;
-
-    // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData, NUM_BYTES_RFC4122_UUID));
-
-    packetData += NUM_BYTES_RFC4122_UUID;
-    dataBytes -= NUM_BYTES_RFC4122_UUID;
-
-    // make sure the node exists
-    SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
-    if (!node || !node->getLinkedData()) {
-        return NULL;
-    }
-    Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-    return avatar->isInitialized() ? avatar : NULL;
-}
-
-void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes) {
-    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
-    if (!avatar) {
-        return;
-    }
-    //  PER Note: message is no longer processed but used to trigger
-    //  Dataserver lookup - redesign this to instantly ask the
-    //  dataserver on first receipt of other avatar UUID, and also
-    //  don't ask over and over again.   Instead use this message to
-    //  Tell the other avatars that your dataserver data has
-    //  changed.
-
-    //QDataStream in(QByteArray((char*)packetData, dataBytes));
-    //QUrl voxelURL;
-    //in >> voxelURL;
-
-    // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
-    DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-        avatar->getUUID());
 }
 
 void Application::checkBandwidthMeterClick() {
@@ -1859,8 +1822,8 @@ void Application::init() {
 
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
-        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, _profile.getUserString(), &_profile);
+        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, _profile.getUserString(), &_profile);
     }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
@@ -2549,11 +2512,6 @@ void Application::updateAvatar(float deltaTime) {
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
-    const float AVATAR_URLS_SEND_INTERVAL = 1.0f;
-    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-        QUrl empty;
-        Avatar::sendAvatarURLsMessage(empty);
-    }
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -3960,13 +3918,16 @@ void Application::attachNewHeadToNode(Node* newNode) {
 
 void Application::updateWindowTitle(){
     QString title = "";
-    QString buildVersion = " (build " + QString::number(BUILD_VERSION) + ")";
+
+    QString buildVersion = " (build " + applicationVersion() + ")";
+
     QString username = _profile.getUsername();
     if(!username.isEmpty()){
-        title += _profile.getUsername();
+        title += username;
         title += " @ ";
     }
-    title += _profile.getLastDomain();
+    
+    title += NodeList::getInstance()->getDomainHostname();
     title += buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
@@ -4217,9 +4178,6 @@ void Application::processDatagrams() {
                                                                  bytesReceived);
                     getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                     break;
-                case PACKET_TYPE_AVATAR_URLS:
-                    processAvatarURLsMessage(_incomingPacket, bytesReceived);
-                    break;
                 case PACKET_TYPE_DATA_SERVER_GET:
                 case PACKET_TYPE_DATA_SERVER_PUT:
                 case PACKET_TYPE_DATA_SERVER_SEND:
@@ -4346,7 +4304,6 @@ void Application::toggleLogDialog() {
     }
 }
 
-
 void Application::initAvatarAndViewFrustum() {
     updateAvatar(0.f);
 }
@@ -4392,4 +4349,73 @@ void Application::updateLocalOctreeCache(bool firstTime) {
             _persistThread->initialize(true);
         }
     }
+}
+
+void Application::checkVersion() {
+    QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
+    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    connect(Application::getInstance()->getNetworkAccessManager()->get(latestVersionRequest), SIGNAL(finished()), SLOT(parseVersionXml()));
+}
+
+void Application::parseVersionXml() {
+    
+    #ifdef Q_OS_WIN32
+    QString operatingSystem("win");
+    #endif
+    
+    #ifdef Q_OS_MAC
+    QString operatingSystem("mac");
+    #endif
+    
+    #ifdef Q_OS_LINUX
+    QString operatingSystem("ubuntu");
+    #endif
+    
+    QString releaseDate;
+    QString releaseNotes;
+    QString latestVersion;
+    QUrl downloadUrl;
+    QObject* sender = QObject::sender();
+    
+    QXmlStreamReader xml(qobject_cast<QNetworkReply*>(sender));
+    while (!xml.atEnd() && !xml.hasError()) {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        
+        if (token == QXmlStreamReader::StartElement) {
+            if (xml.name() == "ReleaseDate") {
+                xml.readNext();
+                releaseDate = xml.text().toString();
+            }
+            if (xml.name() == "ReleaseNotes") {
+                xml.readNext();
+                releaseNotes = xml.text().toString();
+            }
+            if (xml.name() == "Version") {
+                xml.readNext();
+                latestVersion = xml.text().toString();
+            }
+            if (xml.name() == operatingSystem) {
+                xml.readNext();
+                downloadUrl = QUrl(xml.text().toString());
+            }
+        }
+    }
+    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
+        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+    }
+    sender->deleteLater();
+}
+
+bool Application::shouldSkipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::ReadWrite);
+    QString skipVersion(skipFile.readAll());
+    return (skipVersion == latestVersion || applicationVersion() == "dev");
+}
+
+void Application::skipVersion(QString latestVersion) {
+    QFile skipFile(SKIP_FILENAME);
+    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    skipFile.seek(0);
+    skipFile.write(latestVersion.toStdString().c_str());
 }

@@ -10,6 +10,7 @@
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
@@ -21,6 +22,10 @@
 #include "DomainServer.h"
 
 const int RESTART_HOLD_TIME_MSECS = 5 * 1000;
+
+const char* VOXEL_SERVER_CONFIG = "voxelServerConfig";
+const char* PARTICLE_SERVER_CONFIG = "particleServerConfig";
+const char* METAVOXEL_SERVER_CONFIG = "metavoxelServerConfig";
 
 void signalhandler(int sig){
     if (sig == SIGINT) {
@@ -47,17 +52,22 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
     unsigned short domainServerPort = customPortString ? atoi(customPortString) : DEFAULT_DOMAIN_SERVER_PORT;
 
+    const char CONFIG_FILE_OPTION[] = "-c";
+    const char* configFilePath = getCmdOption(argc, (const char**) argv, CONFIG_FILE_OPTION);
+
+    if (!readConfigFile(configFilePath)) {
+        QByteArray voxelConfigOption = QString("--%1").arg(VOXEL_SERVER_CONFIG).toLocal8Bit();
+        _voxelServerConfig = getCmdOption(argc, (const char**) argv, voxelConfigOption.constData());
+
+        QByteArray particleConfigOption = QString("--%1").arg(PARTICLE_SERVER_CONFIG).toLocal8Bit();
+        _particleServerConfig = getCmdOption(argc, (const char**) argv, particleConfigOption.constData());
+
+        QByteArray metavoxelConfigOption = QString("--%1").arg(METAVOXEL_SERVER_CONFIG).toLocal8Bit();
+        _metavoxelServerConfig = getCmdOption(argc, (const char**) argv, metavoxelConfigOption.constData());
+    }
+
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, domainServerPort);
 
-    const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
-    _voxelServerConfig = getCmdOption(argc, (const char**) argv, VOXEL_CONFIG_OPTION);
-
-    const char PARTICLE_CONFIG_OPTION[] = "--particleServerConfig";
-    _particleServerConfig = getCmdOption(argc, (const char**) argv, PARTICLE_CONFIG_OPTION);
-
-    const char METAVOXEL_CONFIG_OPTION[] = "--metavoxelServerConfig";
-    _metavoxelServerConfig = getCmdOption(argc, (const char**)argv, METAVOXEL_CONFIG_OPTION);
-    
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
 
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
@@ -273,6 +283,70 @@ QJsonObject jsonObjectForNode(Node* node) {
     }
 
     return nodeJson;
+}
+
+// Attempts to read configuration from specified path
+// returns true on success, false otherwise
+bool DomainServer::readConfigFile(const char* path) {
+    if (!path) {
+        // config file not specified
+        return false;
+    }
+
+    if (!QFile::exists(path)) {
+        qWarning("Specified configuration file does not exist!\n");
+        return false;
+    }
+
+    QFile configFile(path);
+    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("Can't open specified configuration file!\n");
+        return false;
+    } else {
+        qDebug("Reading configuration from %s\n", path);
+    }
+    QTextStream configStream(&configFile);
+    QByteArray configStringByteArray = configStream.readAll().toUtf8();
+    QJsonObject configDocObject = QJsonDocument::fromJson(configStringByteArray).object();
+    configFile.close();
+
+    QString voxelServerConfig = readServerAssignmentConfig(configDocObject, VOXEL_SERVER_CONFIG);
+    _voxelServerConfig = new char[strlen(voxelServerConfig.toLocal8Bit().constData()) +1];
+    _voxelServerConfig = strcpy((char *) _voxelServerConfig, voxelServerConfig.toLocal8Bit().constData() + '\0');
+
+    QString particleServerConfig = readServerAssignmentConfig(configDocObject, PARTICLE_SERVER_CONFIG);
+    _particleServerConfig = new char[strlen(particleServerConfig.toLocal8Bit().constData()) +1];
+    _particleServerConfig = strcpy((char *) _particleServerConfig, particleServerConfig.toLocal8Bit().constData() + '\0');
+
+    QString metavoxelServerConfig = readServerAssignmentConfig(configDocObject, METAVOXEL_SERVER_CONFIG);
+    _metavoxelServerConfig = new char[strlen(metavoxelServerConfig.toLocal8Bit().constData()) +1];
+    _metavoxelServerConfig = strcpy((char *) _metavoxelServerConfig, metavoxelServerConfig.toLocal8Bit().constData() + '\0');
+
+    return true;
+}
+
+// find assignment configurations on the specified node name and json object
+// returns a string in the form of its equivalent cmd line params
+QString DomainServer::readServerAssignmentConfig(QJsonObject jsonObject, const char* nodeName) {
+    QJsonArray nodeArray = jsonObject[nodeName].toArray();
+
+    QStringList serverConfig;
+    foreach (const QJsonValue & childValue, nodeArray) {
+        QString cmdParams;
+        QJsonObject childObject = childValue.toObject();
+        QStringList keys = childObject.keys();
+        for (int i = 0; i < keys.size(); i++) {
+            QString key = keys[i];
+            QString value = childObject[key].toString();
+            // both cmd line params and json keys are the same
+            cmdParams += QString("--%1 %2 ").arg(key, value);
+        }
+        serverConfig << cmdParams;
+    }
+
+    // according to split() calls from DomainServer::prepopulateStaticAssignmentFile
+    // we shold simply join them with semicolons
+    return serverConfig.join(';');
 }
 
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
