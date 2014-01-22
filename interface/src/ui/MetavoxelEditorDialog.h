@@ -26,6 +26,8 @@ public:
     
     MetavoxelEditorDialog();
 
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
 private slots:
     
     void updateValueEditor();
@@ -38,12 +40,23 @@ private:
     
     void updateAttributes(const QString& select = QString());
     QString getSelectedAttribute() const;
+    void resetState();
     
     QListWidget* _attributes;
     QComboBox* _gridPlane;
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;
     QGroupBox* _value;
+    
+    enum State { HOVERING_STATE, DRAGGING_STATE, RAISING_STATE };
+    
+    State _state;
+    
+    glm::vec2 _mousePosition; ///< the position of the mouse in rotated space
+    
+    glm::vec2 _startPosition; ///< the first corner of the selection base
+    glm::vec2 _endPosition; ///< the second corner of the selection base
+    float _height; ///< the selection height
     
     static ProgramObject _gridProgram;
 };

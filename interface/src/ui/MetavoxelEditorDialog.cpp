@@ -24,6 +24,8 @@ enum GridPlane {
     GRID_PLANE_XY, GRID_PLANE_XZ, GRID_PLANE_YZ
 };
 
+const glm::vec2 INVALID_VECTOR(FLT_MAX, FLT_MAX);
+
 MetavoxelEditorDialog::MetavoxelEditorDialog() :
     QDialog(Application::getInstance()->getGLWidget()) {
     
@@ -78,6 +80,10 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
     
+    Application::getInstance()->getGLWidget()->installEventFilter(this);
+    
+    resetState();
+    
     show();
     
     if (_gridProgram.isLinked()) {
@@ -86,6 +92,32 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     switchToResourcesParentIfRequired();
     _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/grid.frag");
     _gridProgram.link();
+}
+
+bool MetavoxelEditorDialog::eventFilter(QObject* watched, QEvent* event) {
+    switch (_state) {
+        case HOVERING_STATE:
+            if (event->type() == QEvent::MouseButtonPress && _startPosition != INVALID_VECTOR) {
+                _state = DRAGGING_STATE;
+                return true;
+            }
+            break;
+            
+        case DRAGGING_STATE:
+            if (event->type() == QEvent::MouseButtonRelease) {
+                _state = RAISING_STATE;
+                return true;
+            }
+            break;
+            
+        case RAISING_STATE:
+            if (event->type() == QEvent::MouseButtonPress) {
+                resetState();
+                return true;
+            }
+            break;
+    }
+    return false;
 }
 
 void MetavoxelEditorDialog::updateValueEditor() {
@@ -145,9 +177,14 @@ void MetavoxelEditorDialog::updateGridPosition() {
 }
 
 void MetavoxelEditorDialog::render() {
-    const float GRID_BRIGHTNESS = 0.5f;
-    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
+    QString selected = getSelectedAttribute();
+    if (selected.isNull()) {
+        resetState();
+        return;
+    }
+
     glDisable(GL_LIGHTING);
+    glDepthMask(GL_FALSE);
     
     glPushMatrix();
     
@@ -164,26 +201,66 @@ void MetavoxelEditorDialog::render() {
             break;
     }
     
-    // find the intersection of the rotated mouse ray with the plane
+    
     glm::vec3 rayOrigin = rotation * Application::getInstance()->getMouseRayOrigin();
     glm::vec3 rayDirection = rotation * Application::getInstance()->getMouseRayDirection();
     float spacing = _gridSpacing->value();
     float position = _gridPosition->value();
-    if (fabs(rayDirection.z) > EPSILON) {
+    if (_state == RAISING_STATE) {
+        // find the plane at the mouse position, orthogonal to the plane, facing the eye position
+        glLineWidth(4.0f);  
+        glm::vec3 eyePosition = rotation * Application::getInstance()->getViewFrustum()->getOffsetPosition();
+        glm::vec3 mousePoint = glm::vec3(_mousePosition, position);
+        glm::vec3 right = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), mousePoint - eyePosition);
+        glm::vec3 normal = glm::cross(right, glm::vec3(0.0f, 0.0f, 1.0f));
+        float divisor = glm::dot(normal, rayDirection);
+        if (fabs(divisor) > EPSILON) {
+            float distance = (glm::dot(normal, mousePoint) - glm::dot(normal, rayOrigin)) / divisor;
+            float projection = rayOrigin.z + distance * rayDirection.z;
+            _height = spacing * roundf(projection / spacing);
+        }
+    } else if (fabs(rayDirection.z) > EPSILON) {
+        // find the intersection of the rotated mouse ray with the plane
         float distance = (position - rayOrigin.z) / rayDirection.z;
-        glm::vec3 intersection = rayOrigin + rayDirection * distance;
+        _mousePosition = glm::vec2(rayOrigin + rayDirection * distance);
+        glm::vec2 snappedPosition = spacing * glm::floor(_mousePosition / spacing);
         
-        glLineWidth(4.0f);
-        glBegin(GL_LINE_LOOP);
-        float x = spacing * floorf(intersection.x / spacing);
-        float y = spacing * floorf(intersection.y / spacing);
-        glVertex3f(x, y, position);
-        glVertex3f(x + spacing, y, position);
-        glVertex3f(x + spacing, y + spacing, position);
-        glVertex3f(x, y + spacing, position);
-        glEnd();
-        glLineWidth(1.0f);
+        if (_state == HOVERING_STATE) {
+            _startPosition = _endPosition = snappedPosition;
+            glLineWidth(2.0f);
+            
+        } else if (_state == DRAGGING_STATE) {
+            _endPosition = snappedPosition;
+            glLineWidth(4.0f);
+        }
+    } else {
+        // cancel any operation in progress
+        resetState();
     }
+    
+    const float GRID_BRIGHTNESS = 0.5f;
+    if (_startPosition != INVALID_VECTOR) {   
+        glm::vec2 minimum = glm::min(_startPosition, _endPosition);
+        glm::vec2 maximum = glm::max(_startPosition, _endPosition);
+    
+        glPushMatrix();
+        glTranslatef(minimum.x, minimum.y, position);
+        glScalef(maximum.x + spacing - minimum.x, maximum.y + spacing - minimum.y, _height);
+    
+        glTranslatef(0.5f, 0.5f, 0.5f);
+        if (_state != HOVERING_STATE) {
+            const float BOX_ALPHA = 0.25f;
+            glColor4f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
+            glEnable(GL_CULL_FACE);
+            glutSolidCube(1.0);
+            glDisable(GL_CULL_FACE);
+        }
+        glutWireCube(1.0);
+    
+        glPopMatrix();
+    }
+    
+    glLineWidth(1.0f);
     
     // center the grid around the camera position on the plane
     glm::vec3 rotated = rotation * Application::getInstance()->getCamera()->getPosition();
@@ -196,6 +273,7 @@ void MetavoxelEditorDialog::render() {
     
     _gridProgram.bind();
     
+    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
     Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
@@ -203,6 +281,7 @@ void MetavoxelEditorDialog::render() {
     glPopMatrix();
     
     glEnable(GL_LIGHTING);
+    glDepthMask(GL_TRUE);
 }
 
 void MetavoxelEditorDialog::updateAttributes(const QString& select) {
@@ -227,6 +306,12 @@ void MetavoxelEditorDialog::updateAttributes(const QString& select) {
 QString MetavoxelEditorDialog::getSelectedAttribute() const {
     QList<QListWidgetItem*> selectedItems = _attributes->selectedItems();
     return selectedItems.isEmpty() ? QString() : selectedItems.first()->text();
+}
+
+void MetavoxelEditorDialog::resetState() {
+    _state = HOVERING_STATE;
+    _startPosition = INVALID_VECTOR;
+    _height = 0.0f;
 }
 
 ProgramObject MetavoxelEditorDialog::_gridProgram;

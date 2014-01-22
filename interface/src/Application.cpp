@@ -1122,13 +1122,12 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _seenMouseMove = true;
     }
 
+    int deltaX = event->x() - _mouseX;
+    int deltaY = event->y() - _mouseY;
+    _mouseX = event->x();
+    _mouseY = event->y();
+        
     if (activeWindow() == _window) {
-        int deltaX = event->x() - _mouseX;
-        int deltaY = event->y() - _mouseY;
-
-        _mouseX = event->x();
-        _mouseY = event->y();
-
         // orbit behavior
         if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
             if (_lookatTargetAvatar) {
