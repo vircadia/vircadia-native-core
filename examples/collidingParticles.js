@@ -18,14 +18,14 @@ var numberParticlesAdded = 0;
 var MAX_PARTICLES = 1;
 
 var velocity = {  
-  x: 1/TREE_SCALE, 
-  y: 0/TREE_SCALE,
-  z: 1/TREE_SCALE };
+  x: 1, 
+  y: 0,
+  z: 1 };
 
 var gravity = {  
-  x: 0/TREE_SCALE, 
-  y: 0/TREE_SCALE,
-  z: 0/TREE_SCALE };
+  x: 0, 
+  y: 0,
+  z: 0 };
 
 var damping = 0.1;
 
@@ -65,16 +65,27 @@ function draw() {
     if (currentIteration == 0) {
         var colorGreen = { red: 0, green: 255, blue: 0 };
         var startPosition = {  
-            x: 2/TREE_SCALE, 
-            y: 0/TREE_SCALE,
-            z: 2/TREE_SCALE };
-        var largeRadius = 0.5/TREE_SCALE;
+            x: 2, 
+            y: 0,
+            z: 2 };
+        var largeRadius = 0.5;
         var verySlow = {  
-            x: 0.01/TREE_SCALE, 
-            y: 0/TREE_SCALE,
-            z: 0.01/TREE_SCALE };
+            x: 0.01, 
+            y: 0,
+            z: 0.01 };
+
+        var properties = {
+            position: startPosition, 
+            radius: largeRadius, 
+            color: colorGreen, 
+            velocity: verySlow, 
+            gravity: gravity, 
+            damping: damping, 
+            inHand: false, 
+            script: scriptA
+        };
         
-        Particles.queueParticleAdd(startPosition, largeRadius, colorGreen,  verySlow, gravity, damping, false, scriptA);
+        Particles.addParticle(properties);
         print("hello... added particle... script=\n");
         print(scriptA);
         numberParticlesAdded++;
@@ -84,15 +95,15 @@ function draw() {
         print("draw()... sending another... currentIteration=" +currentIteration + "\n");
 
         var center = {  
-            x: 0/TREE_SCALE, 
-            y: 0/TREE_SCALE,
-            z: 0/TREE_SCALE };
+            x: 0, 
+            y: 0,
+            z: 0 };
 
-        var particleSize = 0.1 / TREE_SCALE;
+        var particleSize = 0.1;
 
         print("number of particles=" + numberParticlesAdded +"\n");
         
-        var velocityStep = 0.1/TREE_SCALE;
+        var velocityStep = 0.1;
         if (velocity.x > 0) {
           velocity.x -= velocityStep; 
           velocity.z += velocityStep; 
@@ -106,7 +117,17 @@ function draw() {
         }
         
         if (numberParticlesAdded <= MAX_PARTICLES) {
-            Particles.queueParticleAdd(center, particleSize, color,  velocity, gravity, damping, false, scriptB);
+            var properties = {
+                position: center, 
+                radius: particleSize, 
+                color: color, 
+                velocity: velocity, 
+                gravity: gravity, 
+                damping: damping, 
+                inHand: false, 
+                script: scriptB
+            };
+            Particles.addParticle(properties);
             print("hello... added particle... script=\n");
             print(scriptB);
             numberParticlesAdded++;
