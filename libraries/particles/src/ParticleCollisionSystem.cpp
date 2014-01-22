@@ -120,16 +120,18 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
 
             ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
-            particleEditHandle.updateParticle(particleA->getPosition(), particleA->getRadius(), particleA->getXColor(), particleA->getVelocity(),
+            penetration /= (float)(TREE_SCALE);
+            glm::vec3 position = particleA->getPosition() - 0.5f * penetration;
+            particleEditHandle.updateParticle(position, particleA->getRadius(), particleA->getXColor(), particleA->getVelocity(),
                            particleA->getGravity(), particleA->getDamping(), particleA->getInHand(), particleA->getScript());
 
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
 
             ParticleEditHandle penetratedparticleEditHandle(_packetSender, _particles, particleB->getID());
-            penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(), particleB->getXColor(), particleB->getVelocity(),
+            position = particleB->getPosition() + 0.5f * penetration;
+            penetratedparticleEditHandle.updateParticle(position, particleB->getRadius(), particleB->getXColor(), particleB->getVelocity(),
                            particleB->getGravity(), particleB->getDamping(), particleB->getInHand(), particleB->getScript());
 
-            penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
         }
     }
