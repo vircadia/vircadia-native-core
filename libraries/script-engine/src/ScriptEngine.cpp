@@ -71,7 +71,7 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
-void ScriptEngine::setAvatarData(AvatarData* avatarData, char* objectName) {
+void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     
     // remove the old Avatar property, if it exists
