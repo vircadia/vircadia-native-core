@@ -42,7 +42,7 @@ const uint16_t PACKET_CONTAINS_INHAND = 128;
 const uint16_t PACKET_CONTAINS_SCRIPT = 256;
 const uint16_t PACKET_CONTAINS_SHOULDDIE = 512;
 
-const float DEFAULT_LIFETIME = 10.f; //60.0f * 60.0f * 24.0f; // particles live for 1 day by default
+const float DEFAULT_LIFETIME = 60.0f * 60.0f * 24.0f; // particles live for 1 day by default
 const float DEFAULT_DAMPING = 0.99f;
 const float DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
