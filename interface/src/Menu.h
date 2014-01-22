@@ -38,7 +38,7 @@ class QSettings;
 
 class BandwidthDialog;
 class LodToolsDialog;
-class MetavoxelEditorDialog;
+class MetavoxelEditor;
 class VoxelStatsDialog;
 
 class Menu : public QMenuBar, public AbstractMenuInterface {
@@ -143,7 +143,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
-    QPointer<MetavoxelEditorDialog> _metavoxelEditorDialog;
+    QPointer<MetavoxelEditor> _MetavoxelEditor;
     VoxelStatsDialog* _voxelStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;

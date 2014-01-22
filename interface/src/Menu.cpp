@@ -32,7 +32,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
-#include "ui/MetavoxelEditorDialog.h"
+#include "ui/MetavoxelEditor.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -1013,10 +1013,10 @@ void Menu::bandwidthDetails() {
 }
 
 void Menu::showMetavoxelEditor() {
-    if (!_metavoxelEditorDialog) {
-        _metavoxelEditorDialog = new MetavoxelEditorDialog();
+    if (!_MetavoxelEditor) {
+        _MetavoxelEditor = new MetavoxelEditor();
     }
-    _metavoxelEditorDialog->raise();
+    _MetavoxelEditor->raise();
 }
 
 void Menu::audioMuteToggled() {

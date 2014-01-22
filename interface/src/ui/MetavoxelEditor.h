@@ -1,13 +1,13 @@
 //
-//  MetavoxelEditorDialog.h
+//  MetavoxelEditor.h
 //  interface
 //
 //  Created by Andrzej Kapolka on 1/21/14.
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__MetavoxelEditorDialog__
-#define __interface__MetavoxelEditorDialog__
+#ifndef __interface__MetavoxelEditor__
+#define __interface__MetavoxelEditor__
 
 #include <QDialog>
 
@@ -19,12 +19,12 @@ class QGroupBox;
 class QListWidget;
 
 /// Allows editing metavoxels.
-class MetavoxelEditorDialog : public QDialog {
+class MetavoxelEditor : public QDialog {
     Q_OBJECT
 
 public:
     
-    MetavoxelEditorDialog();
+    MetavoxelEditor();
 
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
@@ -61,4 +61,4 @@ private:
     static ProgramObject _gridProgram;
 };
 
-#endif /* defined(__interface__MetavoxelEditorDialog__) */
+#endif /* defined(__interface__MetavoxelEditor__) */

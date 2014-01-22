@@ -1,5 +1,5 @@
 //
-//  MetavoxelEditorDialog.cpp
+//  MetavoxelEditor.cpp
 //  interface
 //
 //  Created by Andrzej Kapolka on 1/21/14.
@@ -18,7 +18,7 @@
 #include <AttributeRegistry.h>
 
 #include "Application.h"
-#include "MetavoxelEditorDialog.h"
+#include "MetavoxelEditor.h"
 
 enum GridPlane {
     GRID_PLANE_XY, GRID_PLANE_XZ, GRID_PLANE_YZ
@@ -26,7 +26,7 @@ enum GridPlane {
 
 const glm::vec2 INVALID_VECTOR(FLT_MAX, FLT_MAX);
 
-MetavoxelEditorDialog::MetavoxelEditorDialog() :
+MetavoxelEditor::MetavoxelEditor() :
     QDialog(Application::getInstance()->getGLWidget()) {
     
     setWindowTitle("Metavoxel Editor");
@@ -94,7 +94,7 @@ MetavoxelEditorDialog::MetavoxelEditorDialog() :
     _gridProgram.link();
 }
 
-bool MetavoxelEditorDialog::eventFilter(QObject* watched, QEvent* event) {
+bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
     switch (_state) {
         case HOVERING_STATE:
             if (event->type() == QEvent::MouseButtonPress && _startPosition != INVALID_VECTOR) {
@@ -120,7 +120,7 @@ bool MetavoxelEditorDialog::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
-void MetavoxelEditorDialog::updateValueEditor() {
+void MetavoxelEditor::updateValueEditor() {
     QString selected = getSelectedAttribute();
     if (selected.isNull()) {
         _value->setVisible(false);
@@ -139,7 +139,7 @@ void MetavoxelEditorDialog::updateValueEditor() {
     }
 }
 
-void MetavoxelEditorDialog::createNewAttribute() {
+void MetavoxelEditor::createNewAttribute() {
     QDialog dialog(this);
     dialog.setWindowTitle("New Attribute");
     
@@ -167,7 +167,7 @@ void MetavoxelEditorDialog::createNewAttribute() {
     updateAttributes(nameText);
 }
 
-void MetavoxelEditorDialog::updateGridPosition() {
+void MetavoxelEditor::updateGridPosition() {
     // make sure our grid position matches our grid spacing
     double step = _gridSpacing->value();
     if (step > 0.0) {
@@ -176,7 +176,7 @@ void MetavoxelEditorDialog::updateGridPosition() {
     }
 }
 
-void MetavoxelEditorDialog::render() {
+void MetavoxelEditor::render() {
     QString selected = getSelectedAttribute();
     if (selected.isNull()) {
         resetState();
@@ -284,7 +284,7 @@ void MetavoxelEditorDialog::render() {
     glDepthMask(GL_TRUE);
 }
 
-void MetavoxelEditorDialog::updateAttributes(const QString& select) {
+void MetavoxelEditor::updateAttributes(const QString& select) {
     // remember the selection in order to preserve it
     QString selected = select.isNull() ? getSelectedAttribute() : select;
     _attributes->clear();
@@ -303,15 +303,15 @@ void MetavoxelEditorDialog::updateAttributes(const QString& select) {
     }
 }
 
-QString MetavoxelEditorDialog::getSelectedAttribute() const {
+QString MetavoxelEditor::getSelectedAttribute() const {
     QList<QListWidgetItem*> selectedItems = _attributes->selectedItems();
     return selectedItems.isEmpty() ? QString() : selectedItems.first()->text();
 }
 
-void MetavoxelEditorDialog::resetState() {
+void MetavoxelEditor::resetState() {
     _state = HOVERING_STATE;
     _startPosition = INVALID_VECTOR;
     _height = 0.0f;
 }
 
-ProgramObject MetavoxelEditorDialog::_gridProgram;
+ProgramObject MetavoxelEditor::_gridProgram;
