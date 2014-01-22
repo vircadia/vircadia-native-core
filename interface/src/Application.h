@@ -17,6 +17,7 @@
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
+#include <QStringList>
 #include <QPointer>
 
 #include <NetworkPacket.h>
@@ -64,6 +65,7 @@
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
+#include "ui/UpdateDialog.h"
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ControllerScriptingInterface.h"
@@ -102,7 +104,10 @@ public:
     ~Application();
 
     void restoreSizeAndPosition();
+    void loadScript(const QString& fileNameString);    
+    void loadScripts();
     void storeSizeAndPosition();
+    void saveScripts();
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
@@ -196,6 +201,8 @@ public:
     /// set a voxel which is to be rendered with a highlight
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
+    
+    void skipVersion(QString latestVersion);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -215,7 +222,7 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void loadScript();
+    void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
 
@@ -243,6 +250,10 @@ private slots:
     void restoreMirrorView();
     void shrinkMirrorView();
     void resetSensors();
+    
+    void parseVersionXml();
+
+    void removeScriptName(const QString& fileNameString);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -250,7 +261,6 @@ private:
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
-    static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
 
     void initDisplay();
@@ -367,6 +377,7 @@ private:
     Faceshift _faceshift;
 
     SixenseManager _sixenseManager;
+    QStringList _activeScripts;
 
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
@@ -489,6 +500,10 @@ private:
 
     QString getLocalVoxelCacheFileName();
     void updateLocalOctreeCache(bool firstTime = false);
+    
+    void checkVersion();
+    void displayUpdateDialog();
+    bool shouldSkipVersion(QString latestVersion);
 };
 
 #endif /* defined(__interface__Application__) */

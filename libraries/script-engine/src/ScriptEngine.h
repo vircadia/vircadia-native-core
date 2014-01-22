@@ -19,17 +19,22 @@
 #include <AudioScriptingInterface.h>
 #include <VoxelsScriptingInterface.h>
 
+#include <AvatarData.h>
+
 class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
+#include "DataServerScriptingInterface.h"
 
 const QString NO_SCRIPT("");
 
 class ScriptEngine : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-                    const char* scriptMenuName = NULL, AbstractMenuInterface* menu = NULL,
+		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
                     AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
@@ -39,6 +44,9 @@ public:
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
+    
+    /// Access the DataServerScriptingInterface for access to its underlying UUID
+    const DataServerScriptingInterface& getDataServerScriptingInterface() { return _dataServerScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents);
@@ -47,6 +55,11 @@ public:
     void cleanMenuItems();
 
     void registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
+    
+    void setIsAvatar(bool isAvatar) { _isAvatar = isAvatar; }
+    bool isAvatar() const { return _isAvatar; }
+    
+    void setAvatarData(AvatarData* avatarData);
 
 public slots:
     void init();
@@ -58,22 +71,28 @@ signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
     void scriptEnding();
-    void finished();
+    void finished(const QString& fileNameString);
 
 protected:
+    void preEvaluateReset();
+    
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
     QScriptEngine _engine;
+    bool _isAvatar;
 
 private:
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
+    DataServerScriptingInterface _dataServerScriptingInterface;
+    AvatarData* _avatarData;
     bool _wantMenuItems;
     QString _scriptMenuName;
+    QString _fileNameString;
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
 };

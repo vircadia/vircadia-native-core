@@ -137,19 +137,6 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             }
         }
         case PACKET_TYPE_KILL_NODE:
-        case PACKET_TYPE_AVATAR_URLS: {
-            QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
-                                                                  NUM_BYTES_RFC4122_UUID));
-            // let everyone else know about the update
-            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-                if (node->getActiveSocket() && node->getUUID() != nodeUUID) {
-                    nodeList->getNodeSocket().writeDatagram(dataByteArray,
-                                                            node->getActiveSocket()->getAddress(),
-                                                            node->getActiveSocket()->getPort());
-                }
-            }
-            // let node kills fall through to default behavior
-        }
         default:
             // hand this off to the NodeList
             nodeList->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());

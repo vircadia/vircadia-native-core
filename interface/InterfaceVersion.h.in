@@ -6,4 +6,4 @@
 //  Copyright (c) 2013 High Fidelity, Inc.. All rights reserved.
 //
 
-const int BUILD_VERSION = @BUILD_SEQ@;
+const QString BUILD_VERSION = "@BUILD_SEQ@";
