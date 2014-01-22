@@ -58,21 +58,6 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
-void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
-    QByteArray message;
-    
-    char packetHeader[MAX_PACKET_HEADER_BYTES];
-    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
-    
-    message.append(packetHeader, numBytesPacketHeader);
-    message.append(NodeList::getInstance()->getOwnerUUID().toRfc4122());
-    
-    QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
-    out << voxelURL;
-    
-    Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
-}
-
 Avatar::Avatar(Node* owningNode) :
     AvatarData(owningNode),
     _head(this),
@@ -359,9 +344,21 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
+    
+    // change in UUID requires mesh and skeleton request to data-server
+    
+    QUuid oldUuid = _uuid;
+    
     int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
+    
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    
+    if (oldUuid != _uuid && !_uuid.isNull()) {
+        DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
+                                                  _uuid, Application::getInstance()->getProfile());
+    }
+    
     return bytesRead;
 }
 

@@ -56,7 +56,7 @@ void Agent::run() {
     // other node types, but for them to get access to those node types, we have to add them here. It seems like 
     // NodeList should support adding types of interest
     const NODE_TYPE AGENT_NODE_TYPES_OF_INTEREST[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
-        NODE_TYPE_AUDIO_MIXER };
+                                                       NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER };
     
     nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
     
@@ -93,6 +93,15 @@ void Agent::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
+    
+    // setup an Avatar for the script to use
+    AvatarData scriptedAvatar;
+    
+    // match the scripted avatar's UUID to the DataServerScriptingInterface UUID
+    scriptedAvatar.setUUID(_scriptEngine.getDataServerScriptingInterface().getUUID());
+    
+    // give this AvatarData object to the script engine
+    _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();    
