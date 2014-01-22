@@ -1367,7 +1367,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
             PACKET_TYPE expectedType = expectedDataPacketType();
             PACKET_VERSION expectedVersion = versionForPacketType(expectedType);
             file.write(&expectedType, sizeof(expectedType));
-            file.write(&expectedVersion, sizeof(expectedType));
+            file.write(&expectedVersion, sizeof(expectedVersion));
         }
 
         OctreeElementBag nodeBag;

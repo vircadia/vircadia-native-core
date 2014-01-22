@@ -24,7 +24,7 @@ function checkController() {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-    
+
     // this is expected for hydras
     if (numberOfTriggers == 2 && controllersPerTrigger == 2) {
         for (var t = 0; t < numberOfTriggers; t++) {
@@ -43,7 +43,7 @@ function checkController() {
                     shootABullet = true;
                 }
             }
-        
+
             if (shootABullet) {
                 var palmController = t * controllersPerTrigger; 
                 var palmPosition = Controller.getSpatialControlPosition(palmController);
@@ -51,38 +51,21 @@ function checkController() {
                 var fingerTipController = palmController + 1; 
                 var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
                 
-                var bulletSize = 0.05/TREE_SCALE;
-
-                var palmInParticleSpace = 
-                                  { x: palmPosition.x/TREE_SCALE, 
-                                    y: palmPosition.y/TREE_SCALE, 
-                                    z: palmPosition.z/TREE_SCALE };
-                
-                var tipInParticleSpace = 
-                                  { x: fingerTipPosition.x/TREE_SCALE, 
-                                    y: fingerTipPosition.y/TREE_SCALE, 
-                                    z: fingerTipPosition.z/TREE_SCALE };
-
                 var palmToFingerTipVector = 
-                        {   x: (tipInParticleSpace.x - palmInParticleSpace.x),
-                            y: (tipInParticleSpace.y - palmInParticleSpace.y),
-                            z: (tipInParticleSpace.z - palmInParticleSpace.z)  };
+                        {   x: (fingerTipPosition.x - palmPosition.x),
+                            y: (fingerTipPosition.y - palmPosition.y),
+                            z: (fingerTipPosition.z - palmPosition.z)  };
                                     
                 // just off the front of the finger tip
-                var position = { x: tipInParticleSpace.x + palmToFingerTipVector.x/2, 
-                                 y: tipInParticleSpace.y + palmToFingerTipVector.y/2, 
-                                 z: tipInParticleSpace.z  + palmToFingerTipVector.z/2};   
+                var position = { x: fingerTipPosition.x + palmToFingerTipVector.x/2, 
+                                 y: fingerTipPosition.y + palmToFingerTipVector.y/2, 
+                                 z: fingerTipPosition.z  + palmToFingerTipVector.z/2};   
 
-                var linearVelocity = 5; 
+                var linearVelocity = 25; 
                                     
                 var velocity = { x: palmToFingerTipVector.x * linearVelocity,
                                  y: palmToFingerTipVector.y * linearVelocity,
                                  z: palmToFingerTipVector.z * linearVelocity };
-
-                var gravity = {  x: 0, y: -0.1/TREE_SCALE, z: 0 }; // gravity has no effect on these bullets
-                var color = {  red: 128, green: 128, blue: 128 };
-                var damping = 0; // no damping
-                var inHand = false;
 
                 // This is the script for the particles that this gun shoots.
                 var script = 
@@ -96,17 +79,24 @@ function checkController() {
                          "   Particle.setColor(voxelColor); " +
                          "   var voxelAt = voxel.getPosition();" +
                          "   var voxelScale = voxel.getScale();" +
-                         "   Voxels.queueVoxelDelete(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  " +
-                         "   print('Voxels.queueVoxelDelete(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); " +
+                         "   Voxels.eraseVoxel(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  " +
+                         "   print('Voxels.eraseVoxel(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); " +
                          " } " +
                          " Particle.collisionWithVoxel.connect(collisionWithVoxel); ";
                 
-                Particles.queueParticleAdd(position, bulletSize, color,  velocity, gravity, damping, inHand, script);
+                Particles.addParticle(
+                    { position: position, 
+                      radius: 0.05, 
+                      color: {  red: 128, green: 128, blue: 128 },  
+                      velocity: velocity, 
+                      gravity: {  x: 0, y: -0.1, z: 0 }, 
+                      damping: 0, 
+                      script: script });
             }
         }
     }
 }
 
- 
+
 // register the call back so it fires before each data send
 Agent.willSendVisualDataCallback.connect(checkController);

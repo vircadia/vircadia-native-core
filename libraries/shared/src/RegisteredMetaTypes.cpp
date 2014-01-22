@@ -56,3 +56,4 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     color.green = object.property("green").toVariant().toInt();
     color.blue = object.property("blue").toVariant().toInt();
 }
+

@@ -28,11 +28,11 @@ public:
 
 class ParticleTreeElement : public OctreeElement {
     friend class ParticleTree; // to allow createElement to new us...
-    
+
     ParticleTreeElement(unsigned char* octalCode = NULL);
 
     virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
-    
+
 public:
     virtual ~ParticleTreeElement();
 
@@ -40,31 +40,31 @@ public:
     ParticleTreeElement* getChildAtIndex(int index) { return (ParticleTreeElement*)OctreeElement::getChildAtIndex(index); }
 
     // methods you can and should override to implement your tree functionality
-    
+
     /// Adds a child to the current element. Override this if there is additional child initialization your class needs.
     virtual ParticleTreeElement* addChildAtIndex(int index);
 
-    /// Override this to implement LOD averaging on changes to the tree. 
+    /// Override this to implement LOD averaging on changes to the tree.
     virtual void calculateAverageFromChildren();
 
-    /// Override this to implement LOD collapsing and identical child pruning on changes to the tree. 
+    /// Override this to implement LOD collapsing and identical child pruning on changes to the tree.
     virtual bool collapseChildren();
 
     /// Should this element be considered to have content in it. This will be used in collision and ray casting methods.
     /// By default we assume that only leaves are actual content, but some octrees may have different semantics.
     virtual bool hasContent() const { return isLeaf(); }
-    
+
     /// Override this to break up large octree elements when an edit operation is performed on a smaller octree element.
-    /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the 
+    /// For example, if the octrees represent solid cubes and a delete of a smaller octree element is done then the
     /// meaningful split would be to break the larger cube into smaller cubes of the same color/texture.
     virtual void splitChildren() { }
-    
+
     /// Override to indicate that this element requires a split before editing lower elements in the octree
     virtual bool requiresSplit() const { return false; }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual bool appendElementData(OctreePacketData* packetData) const;
-    
+
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
     virtual int readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
@@ -76,21 +76,23 @@ public:
     virtual bool isRendered() const { return getShouldRender(); }
     virtual bool deleteApproved() const { return !hasParticles(); }
 
-    virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
+    virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
     const QList<Particle>& getParticles() const { return *_particles; }
     QList<Particle>& getParticles() { return *_particles; }
     bool hasParticles() const { return _particles->size() > 0; }
-    
+
     void update(ParticleTreeUpdateArgs& args);
     void setTree(ParticleTree* tree) { _myTree = tree; }
-    
+
     bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
     const Particle* getClosestParticle(glm::vec3 position) const;
     const Particle* getParticleWithID(uint32_t id) const;
-    
+
+    bool removeParticleWithID(uint32_t id);
+
 
 protected:
     virtual void init(unsigned char * octalCode);
