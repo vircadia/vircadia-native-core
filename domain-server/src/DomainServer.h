@@ -35,6 +35,9 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private:
+    bool readConfigFile(const char* path);
+    QString readServerAssignmentConfig(QJsonObject jsonObj, const char* nodeName);
+
     void prepopulateStaticAssignmentFile();
     Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);

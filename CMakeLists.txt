@@ -35,6 +35,7 @@ endif (NOT WIN32)
 
 # targets on all platforms
 add_subdirectory(assignment-client)
+add_subdirectory(data-server)
 add_subdirectory(domain-server)
 add_subdirectory(interface)
 add_subdirectory(pairing-server)
