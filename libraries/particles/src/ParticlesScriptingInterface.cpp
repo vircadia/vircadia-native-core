@@ -13,7 +13,6 @@ ParticlesScriptingInterface::ParticlesScriptingInterface() :
     _nextCreatorTokenID(0),
     _particleTree(NULL)
 {
-    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_PARTICLE_SERVER);
 }
 
 
