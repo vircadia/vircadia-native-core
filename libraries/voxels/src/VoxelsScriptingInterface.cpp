@@ -8,6 +8,10 @@
 
 #include "VoxelsScriptingInterface.h"
 
+VoxelsScriptingInterface::VoxelsScriptingInterface() {
+    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_VOXEL_SERVER);
+}
+
 void VoxelsScriptingInterface::queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails) {
     getVoxelPacketSender()->queueVoxelEditMessages(addPacketType, 1, &addVoxelDetails);
 }

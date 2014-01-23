@@ -569,7 +569,7 @@ void OctreeServer::run() {
     nodeList->setOwnerType(getMyNodeType());
 
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AGENT << NODE_TYPE_ANIMATION_SERVER);
+    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
 
     setvbuf(stdout, NULL, _IOLBF, 0);
 

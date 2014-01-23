@@ -20,6 +20,8 @@
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
+    VoxelsScriptingInterface();
+    
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
     virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
