@@ -56,7 +56,7 @@ NodeList* NodeList::getInstance() {
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
-    _nodeHashMutex(),
+    _nodeHashMutex(QMutex::Recursive),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(this),
