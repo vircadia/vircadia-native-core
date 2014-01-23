@@ -257,7 +257,7 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     // naively returns the first node that has a matching active HifiSockAddr
     // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return node;
         }
@@ -738,7 +738,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
 
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
             if (getNodeActiveSocketOrPing(node.data())) {
