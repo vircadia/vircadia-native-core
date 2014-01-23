@@ -42,7 +42,8 @@ void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeC
 }
 
 
-void ParticleEditPacketSender::queueParticleEditMessage(PACKET_TYPE type, ParticleID particleID, const ParticleProperties& properties) {
+void ParticleEditPacketSender::queueParticleEditMessage(PACKET_TYPE type, ParticleID particleID, 
+                                                                const ParticleProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }

@@ -11,7 +11,7 @@
 
 #include <QWidget>
 
-class UpdateDialog : public QWidget {
+class UpdateDialog : public QDialog {
     Q_OBJECT
     
 public:

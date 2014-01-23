@@ -41,6 +41,7 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -159,10 +160,6 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     _engine.globalObject().setProperty(name, value);
 }
 
-void ScriptEngine::preEvaluateReset() {
-    _dataServerScriptingInterface.refreshUUID();
-}
-
 void ScriptEngine::evaluate() {
     if (!_isInitialized) {
         init();
@@ -248,9 +245,7 @@ void ScriptEngine::run() {
                 numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
                 
                 // pack the owner UUID for this script
-                QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-                memcpy(avatarPacket + numAvatarHeaderBytes, ownerUUID.constData(), ownerUUID.size());
-                numAvatarHeaderBytes += ownerUUID.size();
+                numAvatarHeaderBytes += NodeList::getInstance()->packOwnerUUID(avatarPacket);
             }
             
             int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
