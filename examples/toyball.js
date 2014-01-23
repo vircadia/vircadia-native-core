@@ -135,7 +135,7 @@ function checkControllerSide(whichSide) {
                 inHand: true,
                 radius: 0.05,
                 color: { red: 255, green: 0, blue: 0 },
-                lifetime: 10 // 10 seconds
+                lifetime: 10 // 10 seconds - same as default, not needed but here as an example
             };
 
         newParticle = Particles.addParticle(properties);
