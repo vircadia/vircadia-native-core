@@ -16,7 +16,6 @@
 
 #include "Particle.h"
 #include "ParticleCollisionSystem.h"
-#include "ParticleEditHandle.h"
 #include "ParticleEditPacketSender.h"
 #include "ParticleTree.h"
 
@@ -117,20 +116,27 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             float massB = (particleB->getInHand()) ? MAX_MASS : particleB->getMass();
             float totalMass = massA + massB;
 
+            // handle A particle
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
+            particleA->setPosition(particleA->getPosition() - 0.5f * penetration);
+            ParticleProperties propertiesA;
+            ParticleID particleAid(particleA->getID());
+            propertiesA.copyFromParticle(*particleA);
+            propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
+            propertiesA.setPosition(particleA->getPosition() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleAid, propertiesA);
 
-            ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
-            penetration /= (float)(TREE_SCALE);
-            glm::vec3 position = particleA->getPosition() - 0.5f * penetration;
-            particleEditHandle.updateParticle(position, particleA->getRadius(), particleA->getXColor(), particleA->getVelocity(),
-                           particleA->getGravity(), particleA->getDamping(), particleA->getInHand(), particleA->getScript());
-
+            // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
+            particleA->setPosition(particleB->getPosition() + 0.5f * penetration);
+            ParticleProperties propertiesB;
+            ParticleID particleBid(particleB->getID());
+            propertiesB.copyFromParticle(*particleB);
+            propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
+            propertiesB.setPosition(particleB->getPosition() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleBid, propertiesB);
 
-            ParticleEditHandle penetratedparticleEditHandle(_packetSender, _particles, particleB->getID());
-            position = particleB->getPosition() + 0.5f * penetration;
-            penetratedparticleEditHandle.updateParticle(position, particleB->getRadius(), particleB->getXColor(), particleB->getVelocity(),
-                           particleB->getGravity(), particleB->getDamping(), particleB->getInHand(), particleB->getScript());
+            _packetSender->releaseQueuedMessages();
 
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
         }
@@ -139,7 +145,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
 
 // MIN_VALID_SPEED is obtained by computing speed gained at one gravity after the shortest expected frame
 const float MIN_EXPECTED_FRAME_PERIOD = 0.0167f;  // 1/60th of a second
-const float HALTING_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE); 
+const float HALTING_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
@@ -165,7 +171,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 // only collide when particle and collision point are moving toward each other
                 // (doing this prevents some "collision snagging" when particle penetrates the object)
 
-                // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.  
+                // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
                 // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
                 // TODO: make this less hacky when we have more per-collision details
                 float elasticity = ELASTICITY;
@@ -174,7 +180,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 if (attenuationFactor < 1.f) {
                     collisionInfo._addedVelocity *= attenuationFactor;
                     elasticity *= attenuationFactor;
-                    // NOTE: the math below keeps the damping piecewise continuous, 
+                    // NOTE: the math below keeps the damping piecewise continuous,
                     // while ramping it up to 1.0 when attenuationFactor = 0
                     damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
                 }
@@ -197,7 +203,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 collisionInfo._addedVelocity /= (float)(TREE_SCALE);
                 glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
                 if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
-                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.  
+                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
                     // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
                     // TODO: make this less hacky when we have more per-collision details
                     float elasticity = ELASTICITY;
@@ -206,7 +212,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                     if (attenuationFactor < 1.f) {
                         collisionInfo._addedVelocity *= attenuationFactor;
                         elasticity *= attenuationFactor;
-                        // NOTE: the math below keeps the damping piecewise continuous, 
+                        // NOTE: the math below keeps the damping piecewise continuous,
                         // while ramping it up to 1.0 when attenuationFactor = 0
                         damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
                     }
@@ -214,7 +220,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
                     collisionInfo._penetration /= (float)(TREE_SCALE);
                     updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);    
+                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
                 }
             }
         }
@@ -255,9 +261,17 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elast
             particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
     }
 
-    ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
-    particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getInHand(), particle->getScript());
+    // send off the result to the particle server
+    ParticleProperties properties;
+    ParticleID particleID(particle->getID());
+    properties.copyFromParticle(*particle);
+    properties.setPosition(position * (float)TREE_SCALE);
+    properties.setVelocity(velocity * (float)TREE_SCALE);
+    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+
+    // change the local particle too...
+    particle->setPosition(position);
+    particle->setVelocity(velocity);
 }
 
 

@@ -15,7 +15,7 @@ set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
 else ()
-  set(BUILD_SEQ "0")
+  set(BUILD_SEQ "dev")
 endif ()
 
 if (APPLE)
@@ -71,7 +71,6 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
-
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5Multimedia REQUIRED)
@@ -80,6 +79,15 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
 find_package(Qt5WebKit REQUIRED)
 find_package(Qt5WebKitWidgets REQUIRED)
+find_package(Qt5Xml REQUIRED)
+
+# grab the ui files in resources/ui
+file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
+# have qt5 wrap them and generate the appropriate header files
+qt5_wrap_ui(QT_UI_HEADERS ${QT_UI_FILES})
+
+# add them to the interface source files
+set(INTERFACE_SRCS ${INTERFACE_SRCS} ${QT_UI_HEADERS})
 
 if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
@@ -146,7 +154,7 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # include headers for interface and InterfaceConfig.
 include_directories(

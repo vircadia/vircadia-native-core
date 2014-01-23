@@ -16,7 +16,7 @@
 #include "Particle.h"
 
 
-void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, const ParticleDetail& detail) {
+void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, ParticleID particleID, const ParticleProperties& properties) {
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early
@@ -26,7 +26,7 @@ void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, const P
     int sizeOut = 0;
 
     // This encodes the voxel edit message into a buffer...
-    if (Particle::encodeParticleEditMessageDetails(type, 1, &detail, &bufferOut[0], _maxPacketSize, sizeOut)){
+    if (Particle::encodeParticleEditMessageDetails(type, particleID, properties, &bufferOut[0], _maxPacketSize, sizeOut)){
         // If we don't have voxel jurisdictions, then we will simply queue up these packets and wait till we have
         // jurisdictions for processing
         if (!serversExist()) {
@@ -37,24 +37,23 @@ void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, const P
     }
 }
 
-void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) { 
+void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew) {
     Particle::adjustEditPacketForClockSkew(codeColorBuffer, length, clockSkew);
-} 
+}
 
 
-void ParticleEditPacketSender::queueParticleEditMessages(PACKET_TYPE type, int numberOfDetails, ParticleDetail* details) {
+void ParticleEditPacketSender::queueParticleEditMessage(PACKET_TYPE type, ParticleID particleID, 
+                                                                const ParticleProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }
 
-    for (int i = 0; i < numberOfDetails; i++) {
-        // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-        static unsigned char bufferOut[MAX_PACKET_SIZE]; 
-        int sizeOut = 0;
-        
-        if (Particle::encodeParticleEditMessageDetails(type, 1, &details[i], &bufferOut[0], _maxPacketSize, sizeOut)) {
-            queueOctreeEditMessage(type, bufferOut, sizeOut);
-        }
-    }    
+    // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
+    static unsigned char bufferOut[MAX_PACKET_SIZE];
+    int sizeOut = 0;
+
+    if (Particle::encodeParticleEditMessageDetails(type, particleID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+        queueOctreeEditMessage(type, bufferOut, sizeOut);
+    }
 }
 

@@ -38,8 +38,12 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
     return soundScriptValue;
 }
 
+
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
-                                AbstractControllerScriptingInterface* controllerScriptingInterface) {
+                           AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _dataServerScriptingInterface(),
+    _avatarData(NULL)
+{
     _scriptContents = scriptContents;
     _isFinished = false;
     _isRunning = false;
@@ -68,6 +72,15 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
+void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
+    _avatarData = avatarData;
+    
+    // remove the old Avatar property, if it exists
+    _engine.globalObject().setProperty(objectName, QScriptValue());
+    
+    // give the script engine the new Avatar script property
+    registerGlobalObject(objectName, _avatarData);
+}
 
 void ScriptEngine::setupMenuItems() {
     if (_menu && _wantMenuItems) {
@@ -103,6 +116,8 @@ void ScriptEngine::init() {
 
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&_engine);
+    qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
 
     QScriptValue agentValue = _engine.newQObject(this);
     _engine.globalObject().setProperty("Agent", agentValue);
@@ -122,6 +137,8 @@ void ScriptEngine::init() {
 
     QScriptValue audioScriptingInterfaceValue = _engine.newQObject(&_audioScriptingInterface);
     _engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
+    
+    registerGlobalObject("Data", &_dataServerScriptingInterface);
 
     if (_controllerScriptingInterface) {
         QScriptValue controllerScripterValue =  _engine.newQObject(_controllerScriptingInterface);
@@ -149,7 +166,6 @@ void ScriptEngine::evaluate() {
     }
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script.");
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
@@ -164,8 +180,6 @@ void ScriptEngine::run() {
     _isRunning = true;
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script");
-
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
@@ -175,6 +189,8 @@ void ScriptEngine::run() {
     gettimeofday(&startTime, NULL);
 
     int thisFrame = 0;
+    
+    NodeList* nodeList = NodeList::getInstance();
 
     while (!_isFinished) {
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
@@ -217,6 +233,24 @@ void ScriptEngine::run() {
             if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
                 _particlesScriptingInterface.getParticlePacketSender()->process();
             }
+        }
+        
+        if (_isAvatar && _avatarData) {
+            static unsigned char avatarPacket[MAX_PACKET_SIZE];
+            static int numAvatarHeaderBytes = 0;
+            
+            if (numAvatarHeaderBytes == 0) {
+                // pack the avatar header bytes the first time
+                // unlike the _avatar.getBroadcastData these won't change
+                numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
+                
+                // pack the owner UUID for this script
+                numAvatarHeaderBytes += NodeList::getInstance()->packOwnerUUID(avatarPacket);
+            }
+            
+            int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
+            
+            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, &NODE_TYPE_AVATAR_MIXER, 1);
         }
 
         if (willSendVisualDataCallBack) {

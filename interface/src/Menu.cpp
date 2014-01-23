@@ -834,8 +834,9 @@ void Menu::editPreferences() {
             applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
 
             // send the new face mesh URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
-                                             faceModelURL.toString().toLocal8Bit().constData());
+            DataServerClient::putValueForKeyAndUserString(DataServerKey::FaceMeshURL,
+                                                          faceModelURL.toString().toLocal8Bit().constData(),
+                                                          applicationInstance->getProfile()->getUserString());
         }
 
         QUrl skeletonModelURL(skeletonURLEdit->text());
@@ -845,8 +846,9 @@ void Menu::editPreferences() {
             applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
 
             // send the new skeleton model URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
-                                             skeletonModelURL.toString().toLocal8Bit().constData());
+            DataServerClient::putValueForKeyAndUserString(DataServerKey::SkeletonURL,
+                                                          skeletonModelURL.toString().toLocal8Bit().constData(),
+                                                          applicationInstance->getProfile()->getUserString());
         }
 
         applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
@@ -967,7 +969,7 @@ void Menu::goToUser() {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString(
             QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
-            userDialog.textValue());
+                                                        userDialog.textValue(), Application::getInstance()->getProfile());
     }
 
     sendFakeEnterEvent();

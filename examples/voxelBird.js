@@ -110,17 +110,17 @@ function moveBird() {
 		if (tweeting > 0) {
 			//  Change color of voxel to blinky red a bit while playing the sound
 			var blinkColor = { r: Math.random() * 255, g: 0, b: 0 };
-			Voxels.queueDestructiveVoxelAdd(position.x / TREE_SCALE, 
-											position.y / TREE_SCALE, 
-											position.z / TREE_SCALE, 
-											size / TREE_SCALE, 
-											blinkColor.r, blinkColor.g, blinkColor.b);
+			Voxels.setVoxel(position.x, 
+                            position.y, 
+                            position.z, 
+                            size, 
+                            blinkColor.r, blinkColor.g, blinkColor.b);
 		}
 		if (moved) {
-			Voxels.queueDestructiveVoxelAdd(position.x / TREE_SCALE, position.y / TREE_SCALE, position.z / TREE_SCALE, size / TREE_SCALE, thisColor.r, thisColor.g, thisColor.b);
+			Voxels.setVoxel(position.x, position.y, position.z, size, thisColor.r, thisColor.g, thisColor.b);
 			//  delete old voxel 
 			
-			Voxels.queueVoxelDelete(oldPosition.x / TREE_SCALE, oldPosition.y / TREE_SCALE, oldPosition.z / TREE_SCALE, size / TREE_SCALE);
+			Voxels.eraseVoxel(oldPosition.x, oldPosition.y, oldPosition.z, size);
 			//  Copy old location to new 
 			vCopy(oldPosition, position);
 			moved = false; 

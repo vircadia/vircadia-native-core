@@ -19,7 +19,6 @@
 #include <AvatarData.h>
 #include <AudioScriptingInterface.h>
 #include <HandData.h>
-#include <ParticleEditHandle.h>
 
 #include "BuckyBalls.h"
 #include "InterfaceConfig.h"
@@ -102,23 +101,12 @@ private:
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
     
-    void simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime);
-    
-    bool _toyBallInHand[NUM_HANDS];
-    int _whichBallColor[NUM_HANDS];
-    ParticleEditHandle* _ballParticleEditHandles[NUM_HANDS];
-    int _lastControllerButtons;
-    
     float _pitchUpdate;
     
     glm::vec3 _grabDelta;
     glm::vec3 _grabDeltaVelocity;
     glm::quat _grabStartRotation;
     glm::quat _grabCurrentRotation;
-    
-    Sound _throwSound;
-    Sound _catchSound;
-    
 };
 
 #endif

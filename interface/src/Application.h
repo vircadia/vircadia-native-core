@@ -65,9 +65,9 @@
 #include "ui/RearMirrorTools.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
+#include "ui/UpdateDialog.h"
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
-#include "ParticleEditHandle.h"
 #include "ControllerScriptingInterface.h"
 
 
@@ -126,11 +126,6 @@ public:
     void updateWindowTitle();
 
     void wheelEvent(QWheelEvent* event);
-
-    void shootParticle(); // shoots a particle in the direction you're looking
-    ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
-    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
-            glm::vec3 gravity, float damping, bool inHand, QString updateScript);
 
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -206,6 +201,8 @@ public:
     /// set a voxel which is to be rendered with a highlight
     void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
     void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
+    
+    void skipVersion(QString latestVersion);
 
 public slots:
     void domainChanged(const QString& domainHostname);
@@ -253,6 +250,8 @@ private slots:
     void restoreMirrorView();
     void shrinkMirrorView();
     void resetSensors();
+    
+    void parseVersionXml();
 
     void removeScriptName(const QString& fileNameString);
 
@@ -262,7 +261,6 @@ private:
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
-    static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
 
     void initDisplay();
@@ -502,6 +500,10 @@ private:
 
     QString getLocalVoxelCacheFileName();
     void updateLocalOctreeCache(bool firstTime = false);
+    
+    void checkVersion();
+    void displayUpdateDialog();
+    bool shouldSkipVersion(QString latestVersion);
 };
 
 #endif /* defined(__interface__Application__) */
