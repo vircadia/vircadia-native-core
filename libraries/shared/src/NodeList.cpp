@@ -59,7 +59,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHashMutex(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _nodeSocket(),
+    _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerUUID(QUuid::createUuid()),
