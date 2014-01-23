@@ -15,7 +15,7 @@
 #include "VoxelSystem.h"
 
 /// Generalized threaded processor for handling received inbound packets. 
-class VoxelHideShowThread : public virtual GenericThread {
+class VoxelHideShowThread : public GenericThread {
 public:
 
     VoxelHideShowThread(VoxelSystem* theSystem);
