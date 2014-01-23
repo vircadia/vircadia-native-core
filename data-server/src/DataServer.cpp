@@ -137,9 +137,9 @@ void DataServer::readPendingDatagrams() {
                     
                     packetData[0] = PACKET_TYPE_DATA_SERVER_SEND;
                     
-                    const char MULTI_KEY_VALUE_SEPARATOR = '|';
-                    
                     if (strcmp((char*) packetData + readBytes, "uuid") != 0) {
+                        
+                        const char MULTI_KEY_VALUE_SEPARATOR = '|';
                         
                         // the user has sent one or more keys - make the associated requests
                         for (int j = 0; j < numKeys; j++) {
@@ -184,7 +184,7 @@ void DataServer::readPendingDatagrams() {
                     } else {
                         // user is asking for a UUID matching username, copy the UUID we found
                         QString uuidString = uuidStringWithoutCurlyBraces(parsedUUID);
-                        memcpy(packetData + numSendPacketBytes, uuidString.constData(), uuidString.size() + sizeof('\0'));
+                        memcpy(packetData + numSendPacketBytes, qPrintable(uuidString), uuidString.size() + sizeof('\0'));
                         numSendPacketBytes += uuidString.size() + sizeof('\0');
                     }
                     
