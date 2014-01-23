@@ -42,7 +42,7 @@ Voxels.setVoxel(position.x, 0, position.z, 0.5, 0, 0, 255);
 	
 var totalParticles = 0;
 function makeFountain() {
-	if (Math.random() < 0.06) {
+	if (Math.random() < 0.10) {
 	    //print("Made particle!\n");
         var properties = {
             position: position, 
@@ -51,9 +51,9 @@ function makeFountain() {
             velocity: { x: (Math.random() * 1.0 - 0.5),
                          y: (1.0 + (Math.random() * 2.0)),
                          z: (Math.random() * 1.0 - 0.5) }, 
-            gravity: {  x: 0, y: -0.5, z: 0 }, 
+            gravity: {  x: 0, y: -0.1, z: 0 }, 
             damping: 0.25, 
-            lifetime: 2
+            lifetime: 1
         }
 
         Particles.addParticle(properties);
