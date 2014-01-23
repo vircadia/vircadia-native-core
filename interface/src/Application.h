@@ -230,7 +230,6 @@ private slots:
 
     void timer();
     void idle();
-    void terminate();
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);

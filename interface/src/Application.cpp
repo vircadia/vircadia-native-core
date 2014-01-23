@@ -174,6 +174,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         listenPort = atoi(portStr);
     }
     
+    // start the nodeThread so its event loop is running
+    _nodeThread->start();
+    
+    // make sure the node thread is given highest priority
+    _nodeThread->setPriority(QThread::TimeCriticalPriority);
+    
     // put the NodeList and datagram processing on the node thread
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
@@ -182,12 +188,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), _datagramProcessor, SLOT(processDatagrams()));
-    
-    // make sure the node thread is given highest priority
-    _nodeThread->setPriority(QThread::TimeCriticalPriority);
-    
-    // start the nodeThread so its event loop is running
-    _nodeThread->start();
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
@@ -236,7 +236,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
     // move the silentNodeTimer to the _nodeThread
-    QTimer* silentNodeTimer = new QTimer(this);
+    QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
@@ -282,17 +282,35 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
 
     qInstallMessageHandler(NULL);
-
+    
     // make sure we don't call the idle timer any more
     delete idleTimer;
     
+    Menu::getInstance()->saveSettings();
+    
+    _rearMirrorTools->saveSettings(_settings);
+    _settings->sync();
+    
+    // let the avatar mixer know we're out
+    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+    
     // ask the datagram processing thread to quit and wait until it is done
-    _nodeThread->thread()->quit();
-    _nodeThread->thread()->wait();
-
+    _nodeThread->quit();
+    _nodeThread->wait();
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
+    
+    _voxelProcessor.terminate();
+    _voxelHideShowThread.terminate();
+    _voxelEditSender.terminate();
+    _particleEditSender.terminate();
+    if (_persistThread) {
+        _persistThread->terminate();
+        _persistThread->deleteLater();
+        _persistThread = NULL;
+    }
 
     storeSizeAndPosition();
     saveScripts();
@@ -376,9 +394,6 @@ void Application::initializeGL() {
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
     }
-
-    // call terminate before exiting
-    connect(this, SIGNAL(aboutToQuit()), SLOT(terminate()));
 
     // call our timer function every second
     QTimer* timer = new QTimer(this);
@@ -1409,28 +1424,6 @@ void Application::idle() {
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }
-    }
-}
-
-void Application::terminate() {
-    // Close serial port
-    // close(serial_fd);
-
-    Menu::getInstance()->saveSettings();
-    _rearMirrorTools->saveSettings(_settings);
-    _settings->sync();
-
-    // let the avatar mixer know we're out
-    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
-
-    _voxelProcessor.terminate();
-    _voxelHideShowThread.terminate();
-    _voxelEditSender.terminate();
-    _particleEditSender.terminate();
-    if (_persistThread) {
-        _persistThread->terminate();
-        _persistThread->deleteLater();
-        _persistThread = NULL;
     }
 }
 

@@ -236,7 +236,11 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     node->setLastHeardMicrostamp(usecTimestampNow());
 
     if (!senderSockAddr.isNull()) {
-        activateSocketFromNodeCommunication(senderSockAddr);
+        if (senderSockAddr == node->getPublicSocket()) {
+            node->activatePublicSocket();
+        } else if (senderSockAddr == node->getLocalSocket()) {
+            node->activateLocalSocket();
+        }
     }
 
     if (node->getActiveSocket() || senderSockAddr.isNull()) {
@@ -754,7 +758,7 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
 }
 
 void NodeList::pingInactiveNodes() {
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
             pingPublicAndLocalSocketsForInactiveNode(node.data());
@@ -791,7 +795,7 @@ void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddre
 SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
-        foreach (const SharedNodePointer& node, _nodeHash) {
+        foreach (const SharedNodePointer& node, getNodeHash()) {
             if (node->getType() == nodeType) {
                 return node;
             }
