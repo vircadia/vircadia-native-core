@@ -398,7 +398,9 @@ void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
             //qDebug() << "YES older... time/key:" << iterator.key();
             _recentlyDeletedParticleIDs.remove(iterator.key());
         }
-        ++iterator;
+        if (iterator != _recentlyDeletedParticleIDs.constEnd()) {
+            ++iterator;
+        }
     }
     _recentlyDeletedParticlesLock.unlock();
 }
