@@ -18,9 +18,6 @@
 JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* notify) : 
     _packetSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
-    //qDebug() << "JurisdictionListener::JurisdictionListener() this=" << this;
-    //qDebug() << "JurisdictionListener::JurisdictionListener() this=" << this << " _packetSender=" << &_packetSender;
-
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     

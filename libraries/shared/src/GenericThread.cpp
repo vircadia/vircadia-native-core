@@ -17,12 +17,9 @@ GenericThread::GenericThread() :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
-    //qDebug() << "GenericThread::GenericThread() this=" << this;
 }
 
 GenericThread::~GenericThread() {
-    //qDebug() << "GenericThread::~GenericThread() this=" << this;
-    
     // we only need to call terminate() if we're actually threaded and still running
     if (isStillRunning() && isThreaded()) {
         terminate();
@@ -45,7 +42,6 @@ void GenericThread::initialize(bool isThreaded) {
 }
 
 void GenericThread::terminate() {
-    //qDebug() << "GenericThread::terminate()... this=" << this;
     if (_isThreaded) {
         _stopThread = true;
 
@@ -74,7 +70,6 @@ void GenericThread::threadRoutine() {
 
     // If we were on a thread, then quit our thread
     if (_isThreaded && _thread) {
-        //qDebug() << "GenericThread::threadRoutine()... about to call _thread->quit() this=" << this << " _thread=" << _thread;
         _thread->quit();
     }
 

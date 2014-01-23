@@ -14,7 +14,6 @@
 
 ReceivedPacketProcessor::ReceivedPacketProcessor() {
     _dontSleep = false;
-    //qDebug() << "ReceivedPacketProcessor::ReceivedPacketProcessor()... this=" << this;
 }
 
 void ReceivedPacketProcessor::queueReceivedPacket(const HifiSockAddr& address, unsigned char* packetData, ssize_t packetLength) {

@@ -42,7 +42,6 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
     _totalPacketsQueued(0),
     _totalBytesQueued(0)
 {
-    //qDebug() << "PacketSender::PacketSender()... this=" << this;
 }
 
 PacketSender::~PacketSender() {
