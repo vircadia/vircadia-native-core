@@ -118,7 +118,7 @@ int ParticleServer::sendSpecialPacket(Node* node) {
 
 void ParticleServer::pruneDeletedParticles() {
     ParticleTree* tree = static_cast<ParticleTree*>(_tree);
-    if (tree && tree->hasAnyDeletedParticles()) {
+    if (tree->hasAnyDeletedParticles()) {
 
         //qDebug() << "there are some deleted particles to consider...";
         uint64_t earliestLastDeletedParticlesSent = usecTimestampNow() + 1; // in the future
