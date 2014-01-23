@@ -139,8 +139,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _nudgeStarted(false),
         _lookingAlongX(false),
         _lookingAwayFromOrigin(true),
-        _lookatTargetAvatar(NULL),
-        _lookatIndicatorScale(1.0f),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
@@ -222,9 +220,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
-
-    // the callback for our instance of NodeList is attachNewHeadToNode
-    nodeList->linkedDataCreateCallback = &attachNewHeadToNode;
 
     #ifdef _WIN32
     WSADATA WsaData;
@@ -1146,8 +1141,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
         // orbit behavior
         if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
-            if (_lookatTargetAvatar) {
-                _myAvatar.orbit(_lookatTargetAvatar->getPosition(), deltaX, deltaY);
+            if (_avatarManager.getLookAtTargetAvatar()) {
+                _myAvatar.orbit(_avatarManager.getLookAtTargetAvatar()->getPosition(), deltaX, deltaY);
                 return;
             }
             if (_isHoverVoxel) {
@@ -1198,7 +1193,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 return;
             }
 
-            if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
+            if (!_palette.isActive() && (!_isHoverVoxel || _avatarManager.getLookAtTargetAvatar())) {
                 // disable for now
                 // _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
@@ -1422,7 +1417,7 @@ void Application::terminate() {
     _settings->sync();
 
     // let the avatar mixer know we're out
-    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+    _myAvatar.sendKillAvatar();
 
     _voxelProcessor.terminate();
     _voxelHideShowThread.terminate();
@@ -1858,40 +1853,6 @@ const float HEAD_SPHERE_RADIUS = 0.07f;
 
 static QUuid DEFAULT_NODE_ID_REF;
 
-void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
-
-    if (!_mousePressed) {
-        _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
-    }
-}
-
-Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
-
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* avatar = (Avatar*)node->getLinkedData();
-            float distance;
-
-            if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
-                // rescale to compensate for head embiggening
-                eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
-                (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
-
-                _lookatIndicatorScale = avatar->getHead().getScale();
-                _lookatOtherPosition = avatar->getHead().getPosition();
-                nodeUUID = avatar->getOwningNode()->getUUID();
-                return avatar;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
     glm::vec3 myHeadPosition = _myAvatar.getHead().getPosition();
@@ -1900,17 +1861,6 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
         return true;
     }
     return false;
-}
-
-void Application::renderLookatIndicator(glm::vec3 pointOfInterest) {
-
-    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
-    const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
-    const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
-    const int NUM_SEGMENTS = 30;
-    glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
-    glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
 void Application::renderHighlightVoxel(VoxelDetail voxel) {
@@ -1927,40 +1877,6 @@ void Application::renderHighlightVoxel(VoxelDetail voxel) {
     glPopMatrix();
 }
 
-void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
-
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        QMutexLocker locker(&node->getMutex());
-        if (node->getLinkedData()) {
-            Avatar *avatar = (Avatar *)node->getLinkedData();
-            if (!avatar->isInitialized()) {
-                avatar->init();
-            }
-            avatar->simulate(deltaTime, NULL);
-            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
-        }
-    }
-
-    // simulate avatar fades
-    for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
-        Avatar* avatar = *fade;
-        const float SHRINK_RATE = 0.9f;
-
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
-
-        const float MIN_FADE_SCALE = 0.001f;
-
-        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
-            delete avatar;
-            _avatarFades.erase(fade--);
-
-        } else {
-            avatar->simulate(deltaTime, NULL);
-        }
-    }
-}
 
 void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection) {
 
@@ -2016,7 +1932,7 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
 
-    } else if (!_lookatTargetAvatar) {
+    } else if (!_avatarManager.getLookAtTargetAvatar()) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
@@ -2381,7 +2297,7 @@ void Application::update(float deltaTime) {
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
-    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    _avatarManager.updateLookAtTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
     updateMyAvatarLookAtPosition(lookAtSpot, mouseRayOrigin, mouseRayDirection);
 
     //  Find the voxel we are hovering over, and respond if clicked
@@ -2396,7 +2312,7 @@ void Application::update(float deltaTime) {
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-    updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection); //loop through all the other avatars and simulate them...
+    _avatarManager.updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection); //loop through all the other avatars and simulate them...
     updateMyAvatarSimulation(deltaTime); // Simulate myself
     updateParticles(deltaTime); // Simulate particle cloud movements
     updateMetavoxels(deltaTime); // update metavoxels
@@ -3145,11 +3061,8 @@ void Application::displayOverlay() {
         glPointSize(1.0f);
         char nodes[100];
 
-        int totalAvatars = 0, totalServers = 0;
-
-        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-            node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
-        }
+        int totalAvatars = _avatarManager.size();
+        int totalServers = NodeList::getInstance()->size();
 
         sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
         drawtext(_glWidget->width() - 150, 20, 0.10f, 0, 1.0f, 0, nodes, 1, 0, 0);
@@ -3566,43 +3479,7 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
 }
 
 void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        return;
-    }
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-        "Application::renderAvatars()");
-
-    if (!selfAvatarOnly) {
-        //  Render avatars of other nodes
-        NodeList* nodeList = NodeList::getInstance();
-
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            QMutexLocker locker(&node->getMutex());
-
-            if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-                Avatar *avatar = (Avatar *)node->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
-                }
-                avatar->render(false);
-                avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
-            }
-        }
-
-        // render avatar fades
-        Glower glower;
-        for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
-            (*fade)->render(false);
-        }
-    }
-
-    // Render my own Avatar
-    _myAvatar.render(forceRenderHead);
-    _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
-        renderLookatIndicator(_lookatOtherPosition);
-    }
+    
 }
 
 // renderViewFrustum()
@@ -3869,17 +3746,6 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
 }
 
-void Application::attachNewHeadToNode(Node* newNode) {
-    if (newNode->getLinkedData() == NULL) {
-        newNode->setLinkedData(new Avatar(newNode));
-        
-        // new UUID requires mesh and skeleton request to data-server
-        DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-                                                  newNode->getUUID(), Application::getInstance()->getProfile());
-
-    }
-}
-
 void Application::updateWindowTitle(){
     QString title = "";
 
@@ -3980,16 +3846,9 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
         _voxelSceneStatsLock.unlock();
 
-    } else if (node->getType() == NODE_TYPE_AGENT) {
-        Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-        if (avatar == _lookatTargetAvatar) {
-            _lookatTargetAvatar = NULL;
-        }
-
-        // take over the avatar in order to fade it out
-        node->setLinkedData(NULL);
-
-        _avatarFades.push_back(avatar);
+    } else if (node->getType() == NODE_TYPE_AVATAR_MIXER) {
+        // our avatar mixer has gone away - clear the hash of avatars
+        _avatarManager.clearHash();
     }
 }
 

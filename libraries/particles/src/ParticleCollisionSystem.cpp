@@ -192,37 +192,37 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     }
 
     // loop through all the other avatars for potential interactions...
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
-            CollisionInfo collisionInfo;
-            if (avatar->findSphereCollision(center, radius, collisionInfo)) {
-                collisionInfo._addedVelocity /= (float)(TREE_SCALE);
-                glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
-                if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
-                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
-                    // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
-                    // TODO: make this less hacky when we have more per-collision details
-                    float elasticity = ELASTICITY;
-                    float attenuationFactor = glm::length(collisionInfo._addedVelocity) / HALTING_SPEED;
-                    float damping = DAMPING;
-                    if (attenuationFactor < 1.f) {
-                        collisionInfo._addedVelocity *= attenuationFactor;
-                        elasticity *= attenuationFactor;
-                        // NOTE: the math below keeps the damping piecewise continuous,
-                        // while ramping it up to 1.0 when attenuationFactor = 0
-                        damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
-                    }
-                    // HACK END
-
-                    collisionInfo._penetration /= (float)(TREE_SCALE);
-                    updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
-                }
-            }
-        }
-    }
+//    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+//        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
+//        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+//            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
+//            CollisionInfo collisionInfo;
+//            if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+//                collisionInfo._addedVelocity /= (float)(TREE_SCALE);
+//                glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
+//                if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
+//                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
+//                    // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
+//                    // TODO: make this less hacky when we have more per-collision details
+//                    float elasticity = ELASTICITY;
+//                    float attenuationFactor = glm::length(collisionInfo._addedVelocity) / HALTING_SPEED;
+//                    float damping = DAMPING;
+//                    if (attenuationFactor < 1.f) {
+//                        collisionInfo._addedVelocity *= attenuationFactor;
+//                        elasticity *= attenuationFactor;
+//                        // NOTE: the math below keeps the damping piecewise continuous,
+//                        // while ramping it up to 1.0 when attenuationFactor = 0
+//                        damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
+//                    }
+//                    // HACK END
+//
+//                    collisionInfo._penetration /= (float)(TREE_SCALE);
+//                    updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+//                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
+//                }
+//            }
+//        }
+//    }
 }
 
 // TODO: convert applyHardCollision() to take a CollisionInfo& instead of penetration + addedVelocity

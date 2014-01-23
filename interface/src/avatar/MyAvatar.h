@@ -63,7 +63,7 @@ public:
     bool getDriveKeys(int key) { return _driveKeys[key]; };
     void jump() { _shouldJump = true; };
     
-    void sendKillAvatar();
+    static void sendKillAvatar();
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };

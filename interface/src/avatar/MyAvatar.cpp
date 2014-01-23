@@ -791,16 +791,16 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            SortedAvatar sortedAvatar;
-            sortedAvatar.avatar = (Avatar*)node->getLinkedData();
-            if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
-                continue;
-            }
-            sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
-            sortedAvatars.append(sortedAvatar);
+    foreach (const AvatarSharedPointer& avatar, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        SortedAvatar sortedAvatar;
+        sortedAvatar.avatar = avatar.data();
+        
+        if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
+            continue;
         }
+        
+        sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
+        sortedAvatars.append(sortedAvatar);
     }
     
     qSort(sortedAvatars.begin(), sortedAvatars.end());

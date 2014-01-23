@@ -87,6 +87,7 @@ Avatar::Avatar(Node* owningNode) :
 
 
 Avatar::~Avatar() {
+    qDebug() << "Avatar" << this << "going away";
     _headData = NULL;
     _handData = NULL;
 }

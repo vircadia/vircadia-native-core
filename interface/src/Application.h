@@ -151,6 +151,7 @@ public:
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
+    bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
@@ -167,7 +168,6 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
 
-    Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
     AvatarManager& getAvatarManager() { return _avatarManager; }
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
@@ -275,8 +275,6 @@ private:
             float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
             float& distance, BoxFace& face);
-    void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -299,7 +297,6 @@ private:
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -438,10 +435,6 @@ private:
     bool _lookingAwayFromOrigin;
     glm::vec3 _nudgeGuidePosition;
 
-    Avatar* _lookatTargetAvatar;
-    glm::vec3 _lookatOtherPosition;
-    float _lookatIndicatorScale;
-
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
@@ -490,7 +483,6 @@ private:
     QReadWriteLock _voxelSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
-    std::vector<Avatar*> _avatarFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 
