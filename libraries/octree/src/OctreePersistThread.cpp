@@ -20,6 +20,7 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
     _loadTimeUSecs(0) {
+    //qDebug() << "OctreePersistThread::OctreePersistThread()... this=" << this;
 }
 
 bool OctreePersistThread::process() {

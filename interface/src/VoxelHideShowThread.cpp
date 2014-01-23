@@ -18,6 +18,7 @@
 
 VoxelHideShowThread::VoxelHideShowThread(VoxelSystem* theSystem) :
     _theSystem(theSystem) {
+    //qDebug() << "VoxelHideShowThread::VoxelHideShowThread() this=" << this;
 }
 
 bool VoxelHideShowThread::process() {
