@@ -18,8 +18,8 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-var drum1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/MusicalInstruments/drums/snare.raw");
-var drum2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/MusicalInstruments/drums/snare.raw");
+var drum1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Drums/RackTomHi.raw");
+var drum2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Drums/RackTomLo.raw");
 
 //  State Machine:
 //  0 = not triggered 

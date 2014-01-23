@@ -168,7 +168,7 @@ void AvatarMixer::run() {
     commonInit(AVATAR_MIXER_LOGGING_NAME, NODE_TYPE_AVATAR_MIXER);
     
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     

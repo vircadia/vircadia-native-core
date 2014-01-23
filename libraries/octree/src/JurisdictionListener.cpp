@@ -23,6 +23,9 @@ JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* n
     
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
     //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
+    
+    // tell our NodeList we want to hear about nodes with our node type
+    NodeList::getInstance()->addNodeTypeToInterestSet(type);
 }
 
 void JurisdictionListener::nodeKilled(SharedNodePointer node) {

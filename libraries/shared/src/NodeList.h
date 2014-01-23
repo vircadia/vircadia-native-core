@@ -22,6 +22,7 @@
 #endif
 
 #include <QtCore/QMutex>
+#include <QtCore/QSet>
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
@@ -87,10 +88,10 @@ public:
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
 
-    void clear();
     void reset();
-
-    void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
+    
+    void addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd);
+    void addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes);
 
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
 
@@ -149,7 +150,7 @@ private:
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;
     char _ownerType;
-    char* _nodeTypesOfInterest;
+    QSet<NODE_TYPE> _nodeTypesOfInterest;
     QUuid _ownerUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
@@ -161,6 +162,7 @@ private:
     void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
+    void clear();
 };
 
 #endif /* defined(__hifi__NodeList__) */

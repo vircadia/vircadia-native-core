@@ -443,6 +443,15 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     QByteArray outputBuffer;
     outputBuffer.resize(numRequiredOutputSamples * sizeof(int16_t));
 
+    
+    if (!_ringBuffer.isStarved() && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
+        // we don't have any audio data left in the output buffer
+        // we just starved
+        qDebug() << "Audio output just starved.";
+        _ringBuffer.setIsStarved(true);
+        _numFramesDisplayStarve = 10;
+    }
+    
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
@@ -515,12 +524,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
             }
         }
 
-    } else if (_audioOutput->bytesFree() == _audioOutput->bufferSize()) {
-        // we don't have any audio data left in the output buffer, and the ring buffer from
-        // the network has nothing in it either - we just starved
-        qDebug() << "Audio output just starved.";
-        _ringBuffer.setIsStarved(true);
-        _numFramesDisplayStarve = 10;
     }
 
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO).updateValue(audioByteArray.size());
