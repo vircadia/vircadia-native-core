@@ -754,7 +754,18 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
 void MyAvatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    // TODO: loop through all the other avatars for potential interactions
+    float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
+            float theirRadius = (0.5f + COLLISION_RADIUS_SCALE) * avatar->getHeight();
+            float distance = glm::length(_position - avatar->_position);        
+            if (distance < myRadius + theirRadius) {
+                //printf("potential avatar collision d = %e\n", distance);
+            }
+        }
+    }
 }
 
 class SortedAvatar {

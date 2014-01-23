@@ -157,9 +157,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
     // first check the selfAvatar if set...
     if (_selfAvatar) {
-        AvatarData* avatar = (AvatarData*)_selfAvatar;
         CollisionInfo collisionInfo;
-        if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+        if (_selfAvatar->findSphereCollision(center, radius, collisionInfo)) {
             collisionInfo._addedVelocity /= (float)(TREE_SCALE);
             glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
             if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
