@@ -59,9 +59,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHashMutex(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _nodeSocket(),
+    _nodeSocket(this),
     _ownerType(newOwnerType),
-    _nodeTypesOfInterest(NULL),
+    _nodeTypesOfInterest(),
     _ownerUUID(QUuid::createUuid()),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
@@ -75,8 +75,6 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 
 
 NodeList::~NodeList() {
-    delete _nodeTypesOfInterest;
-
     clear();
 }
 
@@ -236,7 +234,11 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     node->setLastHeardMicrostamp(usecTimestampNow());
 
     if (!senderSockAddr.isNull()) {
-        activateSocketFromNodeCommunication(senderSockAddr);
+        if (senderSockAddr == node->getPublicSocket()) {
+            node->activatePublicSocket();
+        } else if (senderSockAddr == node->getLocalSocket()) {
+            node->activateLocalSocket();
+        }
     }
 
     if (node->getActiveSocket() || senderSockAddr.isNull()) {
@@ -257,7 +259,7 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     // naively returns the first node that has a matching active HifiSockAddr
     // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return node;
         }
@@ -293,19 +295,18 @@ void NodeList::reset() {
     clear();
     _numNoReplyDomainCheckIns = 0;
 
-    delete _nodeTypesOfInterest;
-    _nodeTypesOfInterest = NULL;
+    _nodeTypesOfInterest.clear();
 
     // refresh the owner UUID
     _ownerUUID = QUuid::createUuid();
 }
 
-void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
-    delete _nodeTypesOfInterest;
+void NodeList::addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd) {
+    _nodeTypesOfInterest << nodeTypeToAdd;
+}
 
-    _nodeTypesOfInterest = new char[numNodeTypesOfInterest + sizeof(char)];
-    memcpy(_nodeTypesOfInterest, nodeTypesOfInterest, numNodeTypesOfInterest);
-    _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
+void NodeList::addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes) {
+    _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
@@ -522,7 +523,7 @@ void NodeList::sendDomainServerCheckIn() {
         sendSTUNRequest();
     } else {
         // construct the DS check in packet if we need to
-        int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+        int numBytesNodesOfInterest = _nodeTypesOfInterest.size();
 
         const int IP_ADDRESS_BYTES = 4;
 
@@ -563,11 +564,8 @@ void NodeList::sendDomainServerCheckIn() {
         *(packetPosition++) = numBytesNodesOfInterest;
 
         // copy over the bytes for node types of interest, if required
-        if (numBytesNodesOfInterest > 0) {
-            memcpy(packetPosition,
-                   _nodeTypesOfInterest,
-                   numBytesNodesOfInterest);
-            packetPosition += numBytesNodesOfInterest;
+        foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {
+            *(packetPosition++) = nodeTypeOfInterest;
         }
 
         _nodeSocket.writeDatagram((char*) checkInPacket, packetPosition - checkInPacket,
@@ -738,7 +736,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
 
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
             if (getNodeActiveSocketOrPing(node.data())) {
@@ -754,7 +752,7 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
 }
 
 void NodeList::pingInactiveNodes() {
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
             pingPublicAndLocalSocketsForInactiveNode(node.data());
@@ -791,7 +789,7 @@ void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddre
 SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
-        foreach (const SharedNodePointer& node, _nodeHash) {
+        foreach (const SharedNodePointer& node, getNodeHash()) {
             if (node->getType() == nodeType) {
                 return node;
             }

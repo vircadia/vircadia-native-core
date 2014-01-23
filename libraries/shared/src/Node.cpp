@@ -74,8 +74,6 @@ const char* Node::getTypeName() const {
 			return NODE_TYPE_NAME_AUDIO_MIXER;
         case NODE_TYPE_AVATAR_MIXER:
             return NODE_TYPE_NAME_AVATAR_MIXER;
-        case NODE_TYPE_AUDIO_INJECTOR:
-            return NODE_TYPE_NAME_AUDIO_INJECTOR;
         case NODE_TYPE_ANIMATION_SERVER:
             return NODE_TYPE_NAME_ANIMATION_SERVER;
         case NODE_TYPE_UNASSIGNED:
