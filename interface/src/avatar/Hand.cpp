@@ -21,25 +21,7 @@ using namespace std;
 
 const float FINGERTIP_COLLISION_RADIUS = 0.01f;
 const float FINGERTIP_VOXEL_SIZE = 0.05f;
-const int TOY_BALL_HAND = 1;
-const float TOY_BALL_RADIUS = 0.05f;
-const float TOY_BALL_DAMPING = 0.1f;
-const glm::vec3 NO_VELOCITY = glm::vec3(0,0,0);
-const glm::vec3 NO_GRAVITY = glm::vec3(0,0,0);
-const float NO_DAMPING = 0.f;
-const glm::vec3 TOY_BALL_GRAVITY = glm::vec3(0,-2.0f,0);
-const QString TOY_BALL_UPDATE_SCRIPT("");
 const float PALM_COLLISION_RADIUS = 0.03f;
-const float CATCH_RADIUS = 0.3f;
-const xColor TOY_BALL_ON_SERVER_COLOR[] = 
-    {
-        { 255, 0, 0 },
-        { 0, 255, 0 },
-        { 0, 0, 255 },
-        { 255, 255, 0 },
-        { 0, 255, 255 },
-        { 255, 0, 255 },
-    };
 
 
 Hand::Hand(Avatar* owningAvatar) :
@@ -55,16 +37,8 @@ Hand::Hand(Avatar* owningAvatar) :
     _grabDelta(0, 0, 0),
     _grabDeltaVelocity(0, 0, 0),
     _grabStartRotation(0, 0, 0, 1),
-    _grabCurrentRotation(0, 0, 0, 1),
-    _throwSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw")),
-    _catchSound(QUrl("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw"))
+    _grabCurrentRotation(0, 0, 0, 1)
 {
-    for (int i = 0; i < MAX_HANDS; i++) {
-        _toyBallInHand[i] = false;
-        _ballParticleEditHandles[i] = NULL;
-        _whichBallColor[i] = 0;
-    }
-    _lastControllerButtons = 0;
 }
 
 void Hand::init() {
@@ -80,157 +54,7 @@ void Hand::init() {
 void Hand::reset() {
 }
 
-void Hand::simulateToyBall(PalmData& palm, const glm::vec3& fingerTipPosition, float deltaTime) {
-    Application* app = Application::getInstance();
-    ParticleTree* particles = app->getParticles()->getTree();
-    int handID = palm.getSixenseID();
-    
-    const int NEW_BALL_BUTTON = BUTTON_3;
-    
-    bool grabButtonPressed = ((palm.getControllerButtons() & BUTTON_FWD) ||
-                              (palm.getControllerButtons() & BUTTON_3));
-    
-    bool ballAlreadyInHand = _toyBallInHand[handID];
 
-    glm::vec3 targetPosition;
-    palm.getBallHoldPosition(targetPosition);
-    float targetRadius = CATCH_RADIUS / (float)TREE_SCALE;
-
-    // If I don't currently have a ball in my hand, then try to catch closest one
-    if (!ballAlreadyInHand && grabButtonPressed) {
-
-        const Particle* closestParticle = particles->findClosestParticle(targetPosition, targetRadius);
-
-        if (closestParticle) {
-            ParticleEditHandle* caughtParticle = app->newParticleEditHandle(closestParticle->getID());
-            glm::vec3 newPosition = targetPosition;
-            glm::vec3 newVelocity = NO_VELOCITY;
-            
-            // update the particle with it's new state...
-            caughtParticle->updateParticle(newPosition,
-                                            closestParticle->getRadius(),
-                                            closestParticle->getXColor(),
-                                            newVelocity,
-                                            NO_GRAVITY,
-                                            NO_DAMPING,
-                                            IN_HAND, // we just grabbed it!
-                                            closestParticle->getScript());
-            
-                                            
-            // now tell our hand about us having caught it...
-            _toyBallInHand[handID] = true;
-
-            //printf(">>>>>>> caught... handID:%d particle ID:%d _toyBallInHand[handID] = true\n", handID, closestParticle->getID());
-            _ballParticleEditHandles[handID] = caughtParticle;
-            caughtParticle = NULL;
-            
-            // use the threadSound static method to inject the catch sound
-            // pass an AudioInjectorOptions struct to set position and disable loopback
-            AudioInjectorOptions injectorOptions;
-            injectorOptions.setPosition(newPosition);
-            injectorOptions.setLoopbackAudioInterface(app->getAudio());
-    
-            AudioScriptingInterface::playSound(&_catchSound, &injectorOptions);
-        }
-    }
-    
-    // If there's a ball in hand, and the user presses the skinny button, then change the color of the ball
-    int currentControllerButtons = palm.getControllerButtons();
-    
-    if (currentControllerButtons != _lastControllerButtons && (currentControllerButtons & BUTTON_0)) {
-        _whichBallColor[handID]++;
-        if (_whichBallColor[handID] >= sizeof(TOY_BALL_ON_SERVER_COLOR)/sizeof(TOY_BALL_ON_SERVER_COLOR[0])) {
-            _whichBallColor[handID] = 0;
-        }
-    }
-
-    //  If '3' is pressed, and not holding a ball, make a new one
-    if ((palm.getControllerButtons() & NEW_BALL_BUTTON) && (_toyBallInHand[handID] == false)) {
-        _toyBallInHand[handID] = true;
-        //  Create a particle on the particle server
-        glm::vec3 ballPosition;
-        palm.getBallHoldPosition(ballPosition);
-        _ballParticleEditHandles[handID] = app->makeParticle(
-                                                             ballPosition / (float)TREE_SCALE,
-                                                             TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                             TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]],
-                                                             NO_VELOCITY / (float)TREE_SCALE,
-                                                             TOY_BALL_GRAVITY / (float) TREE_SCALE,
-                                                             TOY_BALL_DAMPING,
-                                                             IN_HAND,
-                                                             TOY_BALL_UPDATE_SCRIPT);
-        // Play a new ball sound
-        app->getAudio()->startDrumSound(1.0f, 2000, 0.5f, 0.02f);
-    }
-
-    if (grabButtonPressed) {
-        // If we don't currently have a ball in hand, then create it...
-        if (_toyBallInHand[handID]) {
-            // Update ball that is in hand
-            uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
-            const Particle* particleInHand = particles->findParticleByID(particleInHandID);
-            xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
-                                                    : TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]];
-
-            glm::vec3 ballPosition;
-            palm.getBallHoldPosition(ballPosition);
-            _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
-                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         colorForParticleInHand, 
-                                                         NO_VELOCITY / (float)TREE_SCALE,
-                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
-                                                         TOY_BALL_DAMPING,
-                                                         IN_HAND,
-                                                         TOY_BALL_UPDATE_SCRIPT);
-        }
-    } else {
-        //  If toy ball just released, add velocity to it!
-        if (_toyBallInHand[handID]) {
-        
-            const float THROWN_VELOCITY_SCALING = 1.5f;
-            _toyBallInHand[handID] = false;
-            palm.updateCollisionlessPaddleExpiry();
-            glm::vec3 ballPosition;
-            palm.getBallHoldPosition(ballPosition);
-            glm::vec3 ballVelocity = palm.getTipVelocity();
-            glm::quat avatarRotation = _owningAvatar->getOrientation();
-            ballVelocity = avatarRotation * ballVelocity;
-            ballVelocity *= THROWN_VELOCITY_SCALING;
-
-            uint32_t particleInHandID = _ballParticleEditHandles[handID]->getID();
-            const Particle* particleInHand = particles->findParticleByID(particleInHandID);
-            xColor colorForParticleInHand = particleInHand ? particleInHand->getXColor() 
-                                                    : TOY_BALL_ON_SERVER_COLOR[_whichBallColor[handID]];
-
-            _ballParticleEditHandles[handID]->updateParticle(ballPosition / (float)TREE_SCALE,
-                                                         TOY_BALL_RADIUS / (float) TREE_SCALE,
-                                                         colorForParticleInHand,
-                                                         ballVelocity / (float)TREE_SCALE,
-                                                         TOY_BALL_GRAVITY / (float) TREE_SCALE, 
-                                                         TOY_BALL_DAMPING,
-                                                         NOT_IN_HAND,
-                                                         TOY_BALL_UPDATE_SCRIPT);
-
-            // after releasing the ball, we free our ParticleEditHandle so we can't edit it further
-            // note: deleting the edit handle doesn't effect the actual particle
-            delete _ballParticleEditHandles[handID];
-            _ballParticleEditHandles[handID] = NULL;
-            
-            // use the threadSound static method to inject the throw sound
-            // pass an AudioInjectorOptions struct to set position and disable loopback
-            AudioInjectorOptions injectorOptions;
-            injectorOptions.setPosition(ballPosition);
-            injectorOptions.setLoopbackAudioInterface(app->getAudio());
-            
-            AudioScriptingInterface::playSound(&_throwSound, &injectorOptions);
-        }
-    }
-    
-    // remember the last pressed button state
-    if (currentControllerButtons != 0) {
-        _lastControllerButtons = currentControllerButtons;
-    }
-}
 
 glm::vec3 Hand::getAndResetGrabDelta() {
     const float HAND_GRAB_SCALE_DISTANCE = 2.f;
@@ -276,8 +100,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
             if (palm.isActive()) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
-                
-                simulateToyBall(palm, fingerTipPosition, deltaTime);
                 
                 _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
                 
@@ -512,7 +334,6 @@ void Hand::render(bool isMine) {
             glPopMatrix();
         }
     }
-
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         renderLeapHands(isMine);
@@ -541,7 +362,6 @@ void Hand::render(bool isMine) {
 void Hand::renderLeapHands(bool isMine) {
 
     const float alpha = 1.0f;
-    const float TARGET_ALPHA = 0.5f;
     
     //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
@@ -559,19 +379,6 @@ void Hand::renderLeapHands(bool isMine) {
             palm.getBallHoldPosition(targetPosition);
             glPushMatrix();
         
-            ParticleTree* particles = Application::getInstance()->getParticles()->getTree();
-            const Particle* closestParticle = particles->findClosestParticle(targetPosition / (float)TREE_SCALE,
-                                                                                         CATCH_RADIUS / (float)TREE_SCALE);
-                                                                                         
-            // If we are hitting a particle then draw the target green, otherwise yellow
-            if (closestParticle) {
-                glColor4f(0,1,0, TARGET_ALPHA);
-            } else {
-                glColor4f(1,1,0, TARGET_ALPHA);
-            }
-            glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
-            glutWireSphere(CATCH_RADIUS, 10.f, 10.f);
-            
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
             glutWireSphere(collisionRadius, 10.f, 10.f);

@@ -22,7 +22,7 @@
 /// the PACKET_TYPE_JURISDICTION packets it receives in order to maintain an accurate state of all jurisidictions
 /// within the domain. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
-class JurisdictionListener : public PacketSender, public ReceivedPacketProcessor {
+class JurisdictionListener : public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
@@ -55,5 +55,7 @@ private:
     NODE_TYPE _nodeType;
 
     bool queueJurisdictionRequest();
+
+    PacketSender _packetSender;
 };
 #endif // __shared__JurisdictionListener__

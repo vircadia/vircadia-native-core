@@ -661,8 +661,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
-            case Qt::Key_N:
-                shootParticle();
                 break;
             case Qt::Key_Shift:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
@@ -1467,60 +1465,6 @@ void Application::removeVoxel(glm::vec3 position,
     _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
 }
 
-void Application::shootParticle() {
-
-    glm::vec3 position  = _viewFrustum.getPosition();
-    glm::vec3 direction = _viewFrustum.getDirection();
-    const float LINEAR_VELOCITY = 5.f;
-    glm::vec3 lookingAt = position + (direction * LINEAR_VELOCITY);
-
-    const float radius = 0.125 / TREE_SCALE;
-    xColor color = { 0, 255, 255};
-    glm::vec3 velocity = lookingAt - position;
-    glm::vec3 gravity = DEFAULT_GRAVITY * 0.f;
-    float damping = DEFAULT_DAMPING * 0.01f;
-    QString script(
-                 " function collisionWithVoxel(voxel) { "
-                 "   print('collisionWithVoxel(voxel)... '); "
-                 "   print('myID=' + Particle.getID() + '\\n'); "
-                 "   var voxelColor = voxel.getColor();"
-                 "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); "
-                 "   var myColor = Particle.getColor();"
-                 "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); "
-                 "   Particle.setColor(voxelColor); "
-                 "   var voxelAt = voxel.getPosition();"
-                 "   var voxelScale = voxel.getScale();"
-                 "   Voxels.queueVoxelDelete(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  "
-                 "   print('Voxels.queueVoxelDelete(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); "
-                 " } "
-                 " Particle.collisionWithVoxel.connect(collisionWithVoxel); " );
-
-
-    ParticleEditHandle* particleEditHandle = makeParticle(position / (float)TREE_SCALE, radius, color,
-                                     velocity / (float)TREE_SCALE,  gravity, damping, NOT_IN_HAND, script);
-
-    // If we wanted to be able to edit this particle after shooting, then we could store this value
-    // and use it for editing later. But we don't care about that for "shooting" and therefore we just
-    // clean up our memory now. deleting a ParticleEditHandle does not effect the underlying particle,
-    // it just removes your ability to edit that particle later.
-    delete particleEditHandle;
-}
-
-// Caller is responsible for managing this EditableParticle
-ParticleEditHandle* Application::newParticleEditHandle(uint32_t id) {
-    ParticleEditHandle* particleEditHandle = new ParticleEditHandle(&_particleEditSender, _particles.getTree(), id);
-    return particleEditHandle;
-}
-
-// Caller is responsible for managing this EditableParticle
-ParticleEditHandle* Application::makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
-            glm::vec3 gravity, float damping, bool inHand, QString updateScript) {
-
-    ParticleEditHandle* particleEditHandle = newParticleEditHandle();
-    particleEditHandle->createParticle(position, radius, color, velocity,  gravity, damping, inHand, updateScript);
-    return particleEditHandle;
-}
-
 
 void Application::makeVoxel(glm::vec3 position,
                             float scale,
@@ -2053,14 +1997,14 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         glm::vec3 rayOrigin, rayDirection;
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
-    
+
     } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
 
         } else {
-            //  Just look in direction of the mouse ray            
+            //  Just look in direction of the mouse ray
             lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         }
     }
@@ -2494,17 +2438,14 @@ void Application::updateAvatar(float deltaTime) {
     //  Get audio loudness data from audio input device
     _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
 
-    NodeList* nodeList = NodeList::getInstance();
-
     // send head/hand data to the avatar mixer and voxel server
     unsigned char broadcastString[MAX_PACKET_SIZE];
     unsigned char* endOfBroadcastStringWrite = broadcastString;
 
     endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
 
-    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-    memcpy(endOfBroadcastStringWrite, ownerUUID.constData(), ownerUUID.size());
-    endOfBroadcastStringWrite += ownerUUID.size();
+    // pack the NodeList owner UUID
+    endOfBroadcastStringWrite += NodeList::getInstance()->packOwnerUUID(endOfBroadcastStringWrite);
 
     endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
 
@@ -3913,6 +3854,11 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 void Application::attachNewHeadToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new Avatar(newNode));
+        
+        // new UUID requires mesh and skeleton request to data-server
+        DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
+                                                  newNode->getUUID(), Application::getInstance()->getProfile());
+
     }
 }
 
@@ -4137,11 +4083,12 @@ void Application::processDatagrams() {
                     break;
 
                 case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
-                    // look up our ParticleEditHanders....
-                    ParticleEditHandle::handleAddResponse(_incomingPacket, bytesReceived);
+                    // this will keep creatorTokenIDs to IDs mapped correctly
+                    Particle::handleAddParticleResponse(_incomingPacket, bytesReceived);
                     break;
 
                 case PACKET_TYPE_PARTICLE_DATA:
+                case PACKET_TYPE_PARTICLE_ERASE:
                 case PACKET_TYPE_VOXEL_DATA:
                 case PACKET_TYPE_VOXEL_ERASE:
                 case PACKET_TYPE_OCTREE_STATS:
@@ -4261,6 +4208,10 @@ void Application::loadScript(const QString& fileNameString){
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
+    scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
+    
+    // hook our avatar object into this script engine
+    scriptEngine->setAvatarData(&_myAvatar, "MyAvatar");
 
     QThread* workerThread = new QThread(this);
 

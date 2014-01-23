@@ -98,6 +98,8 @@ public:
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+    
+    int packOwnerUUID(unsigned char* packetData);
 
     int fillPingPacket(unsigned char* buffer);
     int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);

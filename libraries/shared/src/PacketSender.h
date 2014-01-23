@@ -23,7 +23,7 @@ public:
 
 
 /// Generalized threaded processor for queueing and sending of outbound packets.
-class PacketSender : public virtual GenericThread {
+class PacketSender : public GenericThread {
 public:
 
     static const uint64_t USECS_PER_SECOND;

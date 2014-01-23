@@ -41,6 +41,7 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -71,14 +72,14 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
-void ScriptEngine::setAvatarData(AvatarData* avatarData) {
+void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     
     // remove the old Avatar property, if it exists
-    _engine.globalObject().setProperty("Avatar", QScriptValue());
+    _engine.globalObject().setProperty(objectName, QScriptValue());
     
     // give the script engine the new Avatar script property
-    registerGlobalObject("Avatar", _avatarData);
+    registerGlobalObject(objectName, _avatarData);
 }
 
 void ScriptEngine::setupMenuItems() {
@@ -115,6 +116,8 @@ void ScriptEngine::init() {
 
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&_engine);
+    qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
+    qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
 
     QScriptValue agentValue = _engine.newQObject(this);
     _engine.globalObject().setProperty("Agent", agentValue);
@@ -157,17 +160,12 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     _engine.globalObject().setProperty(name, value);
 }
 
-void ScriptEngine::preEvaluateReset() {
-    _dataServerScriptingInterface.refreshUUID();
-}
-
 void ScriptEngine::evaluate() {
     if (!_isInitialized) {
         init();
     }
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script.");
 
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
@@ -182,8 +180,6 @@ void ScriptEngine::run() {
     _isRunning = true;
 
     QScriptValue result = _engine.evaluate(_scriptContents);
-    qDebug("Evaluated script");
-
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
@@ -249,9 +245,7 @@ void ScriptEngine::run() {
                 numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
                 
                 // pack the owner UUID for this script
-                QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-                memcpy(avatarPacket + numAvatarHeaderBytes, ownerUUID.constData(), ownerUUID.size());
-                numAvatarHeaderBytes += ownerUUID.size();
+                numAvatarHeaderBytes += NodeList::getInstance()->packOwnerUUID(avatarPacket);
             }
             
             int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;

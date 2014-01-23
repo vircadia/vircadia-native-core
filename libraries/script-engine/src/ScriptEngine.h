@@ -59,7 +59,7 @@ public:
     void setIsAvatar(bool isAvatar) { _isAvatar = isAvatar; }
     bool isAvatar() const { return _isAvatar; }
     
-    void setAvatarData(AvatarData* avatarData);
+    void setAvatarData(AvatarData* avatarData, const QString& objectName);
 
 public slots:
     void init();
@@ -74,7 +74,6 @@ signals:
     void finished(const QString& fileNameString);
 
 protected:
-    void preEvaluateReset();
     
     QString _scriptContents;
     bool _isFinished;

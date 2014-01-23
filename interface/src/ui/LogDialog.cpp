@@ -97,7 +97,7 @@ void LogDialog::initControls() {
 }
 
 void LogDialog::showEvent(QShowEvent*)  {
-    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)));
+    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
     showLogData();
 }
 
@@ -111,11 +111,9 @@ void LogDialog::resizeEvent(QResizeEvent*) {
 
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
-        _mutex.lock();
         if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
             _logTextBox->appendPlainText(logLine.simplified());
         }
-        _mutex.unlock();
         _logTextBox->ensureCursorVisible();
     }
 }
@@ -140,12 +138,10 @@ void LogDialog::handleSearchTextChanged(const QString searchText) {
 
 void LogDialog::showLogData() {
     _logTextBox->clear();
-    _mutex.lock();
     QStringList _logData = _logger->getLogData();
     for (int i = 0; i < _logData.size(); ++i) {
         appendLogLine(_logData[i]);
     }
-    _mutex.unlock();
 }
 
 KeywordHighlighter::KeywordHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent), keywordFormat() {

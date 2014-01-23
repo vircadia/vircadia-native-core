@@ -48,8 +48,8 @@ QString Profile::getUserString() const {
 void Profile::setUUID(const QUuid& uuid) {
     _uuid = uuid;
     
-    // when the UUID is changed we need set it appropriately on our avatar instance
-    Application::getInstance()->getAvatar()->setUUID(_uuid);
+    // when the UUID is changed we need set it appropriately on the NodeList instance
+    NodeList::getInstance()->setOwnerUUID(uuid);
 }
 
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
@@ -156,16 +156,15 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                     Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
                 } else {
                     // mesh URL for a UUID, find avatar in our list
-                    
-                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-                        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-                            Avatar* avatar = (Avatar *) node->getLinkedData();
-                            
-                            if (avatar->getUUID() == QUuid(userString)) {
-                                QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-                                                          "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-                            }
-                        }
+                    SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(QUuid(userString));
+                    if (matchingNode && matchingNode->getType() == NODE_TYPE_AGENT) {
+                        qDebug() << "Changing mesh to" << valueList[i] << "for avatar with UUID"
+                            << uuidStringWithoutCurlyBraces(matchingNode->getUUID());
+                        
+                        Avatar* avatar = (Avatar *) matchingNode->getLinkedData();
+                        
+                        QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
+                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                     }
                 }
             } else if (keyList[i] == DataServerKey::SkeletonURL) {
@@ -174,15 +173,15 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
-                    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-                        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-                            Avatar* avatar = (Avatar *) node->getLinkedData();
-                            
-                            if (avatar->getUUID() == QUuid(userString)) {
-                                QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
-                                                          Q_ARG(QUrl, QUrl(valueList[i])));
-                            }
-                        }
+                    SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(QUuid(userString));
+                    if (matchingNode && matchingNode->getType() == NODE_TYPE_AGENT) {
+                        qDebug() << "Changing skeleton to" << valueList[i] << "for avatar with UUID"
+                            << uuidStringWithoutCurlyBraces(matchingNode->getUUID());
+                        
+                        Avatar* avatar = (Avatar *) matchingNode->getLinkedData();
+                        
+                        QMetaObject::invokeMethod(&avatar->getSkeletonModel(),
+                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                     }
                 }
             } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&

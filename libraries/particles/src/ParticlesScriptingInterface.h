@@ -11,7 +11,6 @@
 
 #include <QtCore/QObject>
 
-#include <JurisdictionListener.h>
 #include <OctreeScriptingInterface.h>
 #include "ParticleEditPacketSender.h"
 
@@ -19,23 +18,26 @@
 class ParticlesScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
 public:
+    ParticlesScriptingInterface();
+    
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
     virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
 
-public slots:
-    /// queues the creation of a Particle which will be sent by calling process on the PacketSender
-    /// returns the creatorTokenID for the newly created particle
-    unsigned int queueParticleAdd(glm::vec3 position, float radius, 
-            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script);
+    void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
+    ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
 
-    void queueParticleEdit(unsigned int particleID, glm::vec3 position, float radius, 
-            xColor color, glm::vec3 velocity, glm::vec3 gravity, float damping, bool inHand, QString script);
+public slots:
+    ParticleID addParticle(const ParticleProperties& properties);
+    void editParticle(ParticleID particleID, const ParticleProperties& properties);
+    void deleteParticle(ParticleID particleID);
+    ParticleID findClosestParticle(const glm::vec3& center, float radius) const;
 
 private:
-    void queueParticleMessage(PACKET_TYPE packetType, ParticleDetail& particleDetails);
-    
+    void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
+
     uint32_t _nextCreatorTokenID;
+    ParticleTree* _particleTree;
 };
 
 #endif /* defined(__hifi__ParticlesScriptingInterface__) */

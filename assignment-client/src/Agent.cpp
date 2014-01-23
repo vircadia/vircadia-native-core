@@ -95,11 +95,8 @@ void Agent::run() {
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
     
-    // match the scripted avatar's UUID to the DataServerScriptingInterface UUID
-    scriptedAvatar.setUUID(_scriptEngine.getDataServerScriptingInterface().getUUID());
-    
     // give this AvatarData object to the script engine
-    _scriptEngine.setAvatarData(&scriptedAvatar);
+    _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();    
