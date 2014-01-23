@@ -69,8 +69,6 @@ public slots:
     void run();
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 
-    void nodeKilled(SharedNodePointer node);
-
 protected:
     void parsePayload();
     void initHTTPManager(int port);

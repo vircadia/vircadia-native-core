@@ -21,8 +21,6 @@ public:
     virtual ~NodeData() = 0;
     virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
     
-    virtual void deleteOrDeleteLater();
-    
     Node* getOwningNode() { return _owningNode; }
 protected:
     Node* _owningNode;

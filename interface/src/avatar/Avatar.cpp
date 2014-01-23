@@ -92,11 +92,6 @@ Avatar::~Avatar() {
     _handData = NULL;
 }
 
-void Avatar::deleteOrDeleteLater() {
-    this->deleteLater();
-}
-
-
 void Avatar::init() {
     _head.init();
     _hand.init();
