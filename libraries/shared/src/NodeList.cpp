@@ -61,7 +61,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(this),
     _ownerType(newOwnerType),
-    _nodeTypesOfInterest(NULL),
+    _nodeTypesOfInterest(),
     _ownerUUID(QUuid::createUuid()),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
@@ -75,8 +75,6 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 
 
 NodeList::~NodeList() {
-    delete _nodeTypesOfInterest;
-
     clear();
 }
 
@@ -297,19 +295,18 @@ void NodeList::reset() {
     clear();
     _numNoReplyDomainCheckIns = 0;
 
-    delete _nodeTypesOfInterest;
-    _nodeTypesOfInterest = NULL;
+    _nodeTypesOfInterest.clear();
 
     // refresh the owner UUID
     _ownerUUID = QUuid::createUuid();
 }
 
-void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
-    delete _nodeTypesOfInterest;
+void NodeList::addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd) {
+    _nodeTypesOfInterest << nodeTypeToAdd;
+}
 
-    _nodeTypesOfInterest = new char[numNodeTypesOfInterest + sizeof(char)];
-    memcpy(_nodeTypesOfInterest, nodeTypesOfInterest, numNodeTypesOfInterest);
-    _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
+void NodeList::addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes) {
+    _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
@@ -526,7 +523,7 @@ void NodeList::sendDomainServerCheckIn() {
         sendSTUNRequest();
     } else {
         // construct the DS check in packet if we need to
-        int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+        int numBytesNodesOfInterest = _nodeTypesOfInterest.size();
 
         const int IP_ADDRESS_BYTES = 4;
 
@@ -567,11 +564,8 @@ void NodeList::sendDomainServerCheckIn() {
         *(packetPosition++) = numBytesNodesOfInterest;
 
         // copy over the bytes for node types of interest, if required
-        if (numBytesNodesOfInterest > 0) {
-            memcpy(packetPosition,
-                   _nodeTypesOfInterest,
-                   numBytesNodesOfInterest);
-            packetPosition += numBytesNodesOfInterest;
+        foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {
+            *(packetPosition++) = nodeTypeOfInterest;
         }
 
         _nodeSocket.writeDatagram((char*) checkInPacket, packetPosition - checkInPacket,
