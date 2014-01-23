@@ -34,7 +34,7 @@ public:
                                   glm::vec3& eyePosition);
     
     void updateAvatars(float deltaTime, const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection);
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly);
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
     void clearHash();
     

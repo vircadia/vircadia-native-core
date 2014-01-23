@@ -304,7 +304,6 @@ private:
     void updateShadowMap();
     void displayOverlay();
     void displayStats();
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();

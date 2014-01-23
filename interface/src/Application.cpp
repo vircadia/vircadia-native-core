@@ -2668,7 +2668,7 @@ void Application::updateShadowMap() {
 
     glTranslatef(translation.x, translation.y, translation.z);
 
-    renderAvatars(true);
+    _avatarManager.renderAvatars(true);
     _particles.render();
 
     glPopMatrix();
@@ -2896,7 +2896,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
+    _avatarManager.renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3462,10 +3462,6 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
             renderCoverageMapsRecursively(childMap);
         }
     }
-}
-
-void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
-    
 }
 
 // renderViewFrustum()
