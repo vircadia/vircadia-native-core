@@ -28,8 +28,9 @@ public:
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
+    Q_OBJECT
 public:
-    OctreeEditPacketSender(PacketSenderNotify* notify = NULL);
+    OctreeEditPacketSender();
     ~OctreeEditPacketSender();
     
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server

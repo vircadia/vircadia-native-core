@@ -92,7 +92,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public PacketSenderNotify {
+class Application : public QApplication {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -188,9 +188,6 @@ public:
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-
-    virtual void packetSentNotification(ssize_t length);
-
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
@@ -209,7 +206,8 @@ public:
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-
+    void packetSent(quint64 length);
+    
     void exportVoxels();
     void importVoxels();
     void cutVoxels();

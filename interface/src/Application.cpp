@@ -145,8 +145,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _enableProcessVoxelsThread(true),
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
-        _voxelEditSender(this),
-        _particleEditSender(this),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _recentMaxPackets(0),
@@ -234,6 +232,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
                                                  << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
                                                  << NODE_TYPE_METAVOXEL_SERVER);
+    
+    // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
+    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -4052,7 +4054,7 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
     return statsMessageLength;
 }
 
-void Application::packetSentNotification(ssize_t length) {
+void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 

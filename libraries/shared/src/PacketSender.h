@@ -15,15 +15,9 @@
 #include "NetworkPacket.h"
 #include "SharedUtil.h"
 
-/// Notification Hook for packets being sent by a PacketSender
-class PacketSenderNotify {
-public:
-    virtual void packetSentNotification(ssize_t length) = 0;
-};
-
-
 /// Generalized threaded processor for queueing and sending of outbound packets.
 class PacketSender : public GenericThread {
+    Q_OBJECT
 public:
 
     static const uint64_t USECS_PER_SECOND;
@@ -35,7 +29,7 @@ public:
     static const int MINIMUM_PACKETS_PER_SECOND;
     static const int MINIMAL_SLEEP_INTERVAL;
 
-    PacketSender(PacketSenderNotify* notify = NULL, int packetsPerSecond = DEFAULT_PACKETS_PER_SECOND);
+    PacketSender(int packetsPerSecond = DEFAULT_PACKETS_PER_SECOND);
     ~PacketSender();
 
     /// Add packet to outbound queue.
@@ -47,9 +41,6 @@ public:
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
-
-    void setPacketSenderNotify(PacketSenderNotify* notify) { _notify = notify; }
-    PacketSenderNotify* getPacketSenderNotify() const { return _notify; }
 
     virtual bool process();
 
@@ -97,7 +88,8 @@ public:
 
     /// returns the total bytes queued by this object over its lifetime
     uint64_t getLifetimeBytesQueued() const { return _totalBytesQueued; }
-
+signals:
+    void packetSent(quint64);
 protected:
     int _packetsPerSecond;
     int _usecsPerProcessCallHint;
@@ -107,7 +99,6 @@ protected:
 private:
     std::vector<NetworkPacket> _packets;
     uint64_t _lastSendTime;
-    PacketSenderNotify* _notify;
 
     bool threadedProcess();
     bool nonThreadedProcess();
