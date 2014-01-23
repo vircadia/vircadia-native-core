@@ -15,7 +15,7 @@
 #include "NetworkPacket.h"
 
 /// Generalized threaded processor for handling received inbound packets. 
-class ReceivedPacketProcessor : public virtual GenericThread {
+class ReceivedPacketProcessor : public GenericThread {
 public:
     ReceivedPacketProcessor();
 

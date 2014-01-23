@@ -16,7 +16,6 @@
 
 #include "Particle.h"
 #include "ParticleCollisionSystem.h"
-#include "ParticleEditHandle.h"
 #include "ParticleEditPacketSender.h"
 #include "ParticleTree.h"
 
@@ -117,19 +116,23 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             float massB = (particleB->getInHand()) ? MAX_MASS : particleB->getMass();
             float totalMass = massA + massB;
 
+            // handle A particle
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
+            ParticleProperties propertiesA;
+            ParticleID particleAid(particleA->getID());
+            propertiesA.copyFromParticle(*particleA);
+            propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleAid, propertiesA);
 
-            ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
-            particleEditHandle.updateParticle(particleA->getPosition(), particleA->getRadius(), particleA->getXColor(),
-                particleA->getVelocity(), particleA->getGravity(), particleA->getDamping(), particleA->getLifetime(),
-                particleA->getInHand(), particleA->getScript());
-
+            // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
+            ParticleProperties propertiesB;
+            ParticleID particleBid(particleB->getID());
+            propertiesB.copyFromParticle(*particleB);
+            propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleBid, propertiesB);
 
-            ParticleEditHandle penetratedparticleEditHandle(_packetSender, _particles, particleB->getID());
-            penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(),
-                            particleB->getXColor(), particleB->getVelocity(), particleB->getGravity(), particleB->getDamping(),
-                            particleB->getLifetime(), particleB->getInHand(), particleB->getScript());
+            _packetSender->releaseQueuedMessages();
 
             penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
@@ -256,10 +259,17 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elast
             particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
     }
 
-    ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
-    particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getLifetime(),
-                           particle->getInHand(), particle->getScript());
+    // send off the result to the particle server
+    ParticleProperties properties;
+    ParticleID particleID(particle->getID());
+    properties.copyFromParticle(*particle);
+    properties.setPosition(position * (float)TREE_SCALE);
+    properties.setVelocity(velocity * (float)TREE_SCALE);
+    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+
+    // change the local particle too...
+    particle->setPosition(position);
+    particle->setVelocity(velocity);
 }
 
 
