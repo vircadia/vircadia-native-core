@@ -171,8 +171,8 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                           const char* nodeTypes, int numNodeTypes);
+    void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+                                    const QSet<NODE_TYPE>& destinationNodeTypes);
 
     void setupWorldLight();
 

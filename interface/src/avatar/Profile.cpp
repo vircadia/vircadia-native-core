@@ -198,7 +198,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 if (coordinateItems.size() == 3 && orientationItems.size() == 3) {
                     
                     // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                    NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
                     
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         ", position to" << valueList[i + 1].toLocal8Bit().constData() <<

@@ -460,7 +460,7 @@ NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItem
     return _nodeHash.erase(nodeItemToKill);
 }
 
-void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
+void NodeList::sendKillNode(const QSet<NODE_TYPE>& destinationNodeTypes) {
     unsigned char packet[MAX_PACKET_SIZE];
     unsigned char* packetPosition = packet;
 
@@ -470,7 +470,7 @@ void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
     memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
     packetPosition += rfcUUID.size();
 
-    broadcastToNodes(packet, packetPosition - packet, nodeTypes, numNodeTypes);
+    broadcastToNodes(packet, packetPosition - packet, destinationNodeTypes);
 }
 
 void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
@@ -733,12 +733,13 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     }
 }
 
-unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
+unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+                                    const QSet<NODE_TYPE>& destinationNodeTypes) {
     unsigned n = 0;
 
     foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
-        if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+        if (destinationNodeTypes.contains(node->getType())) {
             if (getNodeActiveSocketOrPing(node.data())) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.writeDatagram((char*) broadcastData, dataBytes,
