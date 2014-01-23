@@ -250,7 +250,7 @@ public:
 /// Editor for RGBA values.
 class QRgbEditor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(int color MEMBER _color WRITE setColor USER true)
+    Q_PROPERTY(QColor color MEMBER _color WRITE setColor USER true)
 
 public:
     
@@ -258,7 +258,7 @@ public:
 
 public slots:
 
-    void setColor(int color);
+    void setColor(const QColor& color);
         
 private slots:
 
@@ -267,7 +267,7 @@ private slots:
 private:
     
     QPushButton* _button;
-    QRgb _color;
+    QColor _color;
 };
 
 /// An attribute class that stores pointers to its values.

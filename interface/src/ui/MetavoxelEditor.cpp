@@ -255,7 +255,12 @@ void MetavoxelEditor::render() {
         glTranslatef(0.5f, 0.5f, 0.5f);
         if (_state != HOVERING_STATE) {
             const float BOX_ALPHA = 0.25f;
-            glColor4f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
+            QColor color = getValue().value<QColor>();
+            if (color.isValid()) {
+                glColor4f(color.redF(), color.greenF(), color.blueF(), BOX_ALPHA);
+            } else {
+                glColor4f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS, BOX_ALPHA);
+            }
             glEnable(GL_CULL_FACE);
             glutSolidCube(1.0);
             glDisable(GL_CULL_FACE);
@@ -383,11 +388,18 @@ void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maxi
     if (!attribute) {
         return;
     }
-    QWidget* editor = _value->layout()->itemAt(0)->widget();
-    OwnedAttributeValue value(attribute, attribute->createFromVariant(editor->metaObject()->userProperty().read(editor)));
+    OwnedAttributeValue value(attribute, attribute->createFromVariant(getValue()));
     
     Applier applier(minimum, maximum, _gridSpacing->value(), value);
     Application::getInstance()->getMetavoxels()->getData().guide(applier);
+}
+
+QVariant MetavoxelEditor::getValue() const {
+    if (_value->layout()->isEmpty()) {
+        return QVariant();
+    }
+    QWidget* editor = _value->layout()->itemAt(0)->widget();
+    return editor->metaObject()->userProperty().read(editor);
 }
 
 ProgramObject MetavoxelEditor::_gridProgram;

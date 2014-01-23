@@ -147,7 +147,7 @@ void* QRgbAttribute::createFromVariant(const QVariant& value) const {
 
 QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
     QRgbEditor* editor = new QRgbEditor(parent);
-    editor->setColor(_defaultValue);
+    editor->setColor(QColor::fromRgba(_defaultValue));
     return editor;
 }
 
@@ -157,16 +157,16 @@ QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
     connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
 }
 
-void QRgbEditor::setColor(int color) {
-    QString name = QColor::fromRgba(_color = color).name();
-    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color).name()));
+void QRgbEditor::setColor(const QColor& color) {
+    QString name = (_color = color).name();
+    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color.rgb()).name()));
     _button->setText(name);
 }
 
 void QRgbEditor::selectColor() {
-    QColor color = QColorDialog::getColor(QColor::fromRgba(_color), this, QString(), QColorDialog::ShowAlphaChannel);
+    QColor color = QColorDialog::getColor(_color, this, QString(), QColorDialog::ShowAlphaChannel);
     if (color.isValid()) {
-        setColor(color.rgba());
+        setColor(color);
     }
 }
 

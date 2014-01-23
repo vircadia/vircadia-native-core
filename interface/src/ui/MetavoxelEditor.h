@@ -43,6 +43,7 @@ private:
     glm::quat getGridRotation() const;
     void resetState();
     void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
+    QVariant getValue() const;
     
     QListWidget* _attributes;
     QComboBox* _gridPlane;
