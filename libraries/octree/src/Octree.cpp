@@ -1390,9 +1390,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
 
-            // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
-            // and reinsert the node in our bag and try again...
-            if (bytesWritten == 0) {
+            // if the subTree couldn't fit, and so we should reset the packet and reinsert the node in our bag and try again...
+            if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
                 if (packetData.hasContent()) {
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
                     lastPacketWritten = true;

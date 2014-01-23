@@ -48,8 +48,12 @@ QString Profile::getUserString() const {
 void Profile::setUUID(const QUuid& uuid) {
     _uuid = uuid;
     
-    // when the UUID is changed we need set it appropriately on the NodeList instance
-    NodeList::getInstance()->setOwnerUUID(uuid);
+    if (!_uuid.isNull()) {
+        qDebug() << "Changing NodeList owner UUID to" << uuid;
+        
+        // when the UUID is changed we need set it appropriately on the NodeList instance
+        NodeList::getInstance()->setOwnerUUID(uuid);
+    }    
 }
 
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
@@ -220,7 +224,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 
             } else if (keyList[i] == DataServerKey::UUID) {
                 // this is the user's UUID - set it on the profile
-                _uuid = QUuid(valueList[i]);
+                setUUID(QUuid(valueList[i]));
             }
         }
     }

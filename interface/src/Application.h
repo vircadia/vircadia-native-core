@@ -33,6 +33,7 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Cloud.h"
+#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "MetavoxelSystem.h"
@@ -96,6 +97,7 @@ class Application : public QApplication, public PacketSenderNotify {
 
     friend class VoxelPacketProcessor;
     friend class VoxelEditPacketSender;
+    friend class DatagramProcessor;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -216,8 +218,6 @@ public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
 
-    void processDatagrams();
-
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
@@ -335,6 +335,9 @@ private:
     QGLWidget* _glWidget;
 
     BandwidthMeter _bandwidthMeter;
+    
+    QThread* _nodeThread;
+    DatagramProcessor* _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -468,11 +471,8 @@ private:
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
 
-    unsigned char _incomingPacket[MAX_PACKET_SIZE];
-    int _packetCount;
     int _packetsPerSecond;
     int _bytesPerSecond;
-    int _bytesCount;
 
     int _recentMaxPackets; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon;
