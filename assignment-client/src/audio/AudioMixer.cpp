@@ -241,8 +241,7 @@ void AudioMixer::run() {
 
     NodeList* nodeList = NodeList::getInstance();
 
-    const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
-    nodeList->setNodeTypesOfInterest(AUDIO_MIXER_NODE_TYPES_OF_INTEREST, sizeof(AUDIO_MIXER_NODE_TYPES_OF_INTEREST));
+    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
 
