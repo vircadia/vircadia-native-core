@@ -20,6 +20,8 @@ public:
     AvatarManager(QObject* parent = 0);
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram);
+    void processKillAvatar(const QByteArray& datagram);
+    void clearHash();
 private:
     QHash<QUuid, Avatar*> _hash;
 };

@@ -52,3 +52,18 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram) {
                                                datagram.size() - bytesRead);
     }
 }
+
+void AvatarManager::processKillAvatar(const QByteArray& datagram) {
+    // read the node id
+    QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(numBytesForPacketHeader(reinterpret_cast<const unsigned char*>
+                                                                             (datagram.data())),
+                                                     NUM_BYTES_RFC4122_UUID));
+    
+    // kill the avatar with that UUID from our hash, if it exists
+    _hash.remove(nodeUUID);
+}
+
+void AvatarManager::clearHash() {
+    // clear the AvatarManager hash - typically happens on the removal of the avatar-mixer
+    _hash.clear();
+}

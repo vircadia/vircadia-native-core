@@ -180,10 +180,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char
             processSTUNResponse(packetData, dataBytes);
             break;
         }
-        case PACKET_TYPE_KILL_NODE: {
-            processKillNode(packetData, dataBytes);
-            break;
-        }
     }
 }
 
@@ -416,30 +412,13 @@ NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItem
     return _nodeHash.erase(nodeItemToKill);
 }
 
-void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
-    unsigned char packet[MAX_PACKET_SIZE];
-    unsigned char* packetPosition = packet;
-
-    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_KILL_NODE);
-
-    QByteArray rfcUUID = _ownerUUID.toRfc4122();
-    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
-    packetPosition += rfcUUID.size();
-
-    broadcastToNodes(packet, packetPosition - packet, nodeTypes, numNodeTypes);
-}
-
-void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
-    // skip the header
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    packetData += numBytesPacketHeader;
-    dataBytes -= numBytesPacketHeader;
-
+void NodeList::processKillNode(const QByteArray& dataByteArray) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData, NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader(reinterpret_cast
+                                                                                  <const unsigned char*>(dataByteArray.data())),
+                                                          NUM_BYTES_RFC4122_UUID));
 
-    packetData += NUM_BYTES_RFC4122_UUID;
-    dataBytes -= NUM_BYTES_RFC4122_UUID;
+    
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
 }

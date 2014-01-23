@@ -472,6 +472,21 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+void MyAvatar::sendKillAvatar() {
+    unsigned char packet[MAX_PACKET_SIZE];
+    unsigned char* packetPosition = packet;
+    
+    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_KILL_AVATAR);
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    QByteArray rfcUUID = nodeList->getOwnerUUID().toRfc4122();
+    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
+    packetPosition += rfcUUID.size();
+    
+    nodeList->broadcastToNodes(packet, packetPosition - packet, &NODE_TYPE_AVATAR_MIXER, 1);
+}
+
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     // first orbit horizontally
     glm::quat orientation = getOrientation();

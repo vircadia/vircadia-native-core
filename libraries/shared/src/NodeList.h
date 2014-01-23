@@ -111,6 +111,8 @@ public:
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, size_t dataBytes);
+    
+    void processKillNode(const QByteArray& datagram);
 
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
 
@@ -141,7 +143,6 @@ private:
     void sendSTUNRequest();
     void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
 
-    void processKillNode(unsigned char* packetData, size_t dataBytes);
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
     NodeHash _nodeHash;

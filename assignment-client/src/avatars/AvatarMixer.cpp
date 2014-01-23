@@ -30,7 +30,8 @@ const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes)
 {
-    
+    // make sure we hear about node kills so we can tell the other nodes
+    connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 }
 
 unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
@@ -116,6 +117,21 @@ void broadcastAvatarData() {
     }
 }
 
+void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
+    if (killedNode->getType() == NODE_TYPE_AGENT
+        && killedNode->getLinkedData()) {
+        // this was an avatar we were sending to other people
+        // send a kill packet for it to our other nodes
+        unsigned char packetData[MAX_PACKET_SIZE];
+        int numHeaderBytes = populateTypeAndVersion(packetData, PACKET_TYPE_KILL_AVATAR);
+        
+        QByteArray rfcUUID = killedNode->getUUID().toRfc4122();
+        memcpy(packetData + numHeaderBytes, rfcUUID.constData(), rfcUUID.size());
+        
+        NodeList::getInstance()->broadcastToNodes(packetData, numHeaderBytes + NUM_BYTES_RFC4122_UUID, &NODE_TYPE_AGENT, 1);
+    }
+}
+
 void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     
     NodeList* nodeList = NodeList::getInstance();
@@ -136,7 +152,10 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                 break;
             }
         }
-        case PACKET_TYPE_KILL_NODE:
+        case PACKET_TYPE_KILL_AVATAR: {
+            nodeList->processKillNode(dataByteArray);
+            break;
+        }
         default:
             // hand this off to the NodeList
             nodeList->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
