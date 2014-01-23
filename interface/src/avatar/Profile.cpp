@@ -220,7 +220,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 
             } else if (keyList[i] == DataServerKey::UUID) {
                 // this is the user's UUID - set it on the profile
-                _uuid = QUuid(valueList[i]);
+                setUUID(QUuid(valueList[i]));
             }
         }
     }
