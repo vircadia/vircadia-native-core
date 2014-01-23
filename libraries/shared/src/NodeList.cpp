@@ -59,7 +59,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHashMutex(),
     _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _nodeSocket(),
+    _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerUUID(QUuid::createUuid()),
@@ -257,7 +257,7 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
     // naively returns the first node that has a matching active HifiSockAddr
     // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
             return node;
         }
@@ -642,6 +642,12 @@ void NodeList::sendAssignment(Assignment& assignment) {
                               assignmentServerSocket->getPort());
 }
 
+int NodeList::packOwnerUUID(unsigned char* packetData) {
+    QByteArray rfcUUID = _ownerUUID.toRfc4122();
+    memcpy(packetData, rfcUUID.constData(), rfcUUID.size());
+    return rfcUUID.size();
+}
+
 int NodeList::fillPingPacket(unsigned char* buffer) {
     int numHeaderBytes = populateTypeAndVersion(buffer, PACKET_TYPE_PING);
     uint64_t currentTime = usecTimestampNow();
@@ -732,7 +738,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
 
-    foreach (const SharedNodePointer& node, _nodeHash) {
+    foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
             if (getNodeActiveSocketOrPing(node.data())) {

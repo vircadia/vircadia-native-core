@@ -33,6 +33,7 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Cloud.h"
+#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "MetavoxelSystem.h"
@@ -68,7 +69,6 @@
 #include "ui/UpdateDialog.h"
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
-#include "ParticleEditHandle.h"
 #include "ControllerScriptingInterface.h"
 
 
@@ -97,6 +97,7 @@ class Application : public QApplication, public PacketSenderNotify {
 
     friend class VoxelPacketProcessor;
     friend class VoxelEditPacketSender;
+    friend class DatagramProcessor;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -127,11 +128,6 @@ public:
     void updateWindowTitle();
 
     void wheelEvent(QWheelEvent* event);
-
-    void shootParticle(); // shoots a particle in the direction you're looking
-    ParticleEditHandle* newParticleEditHandle(uint32_t id = NEW_PARTICLE);
-    ParticleEditHandle* makeParticle(glm::vec3 position, float radius, xColor color, glm::vec3 velocity,
-            glm::vec3 gravity, float damping, bool inHand, QString updateScript);
 
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -213,8 +209,6 @@ public:
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-
-    void processDatagrams();
 
     void exportVoxels();
     void importVoxels();
@@ -338,6 +332,9 @@ private:
     QGLWidget* _glWidget;
 
     BandwidthMeter _bandwidthMeter;
+    
+    QThread* _nodeThread;
+    DatagramProcessor* _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -468,11 +465,8 @@ private:
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
 
-    unsigned char _incomingPacket[MAX_PACKET_SIZE];
-    int _packetCount;
     int _packetsPerSecond;
     int _bytesPerSecond;
-    int _bytesCount;
 
     int _recentMaxPackets; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon;

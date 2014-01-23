@@ -415,7 +415,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     _totalPacketsReceived++;
 
     double timeDiff = diffclock(&_lastReceiveTime, &currentReceiveTime);
-
+    
     //  Discard first few received packets for computing jitter (often they pile up on start)
     if (_totalPacketsReceived > NUM_INITIAL_PACKETS_DISCARD) {
         _stdev.addValue(timeDiff);

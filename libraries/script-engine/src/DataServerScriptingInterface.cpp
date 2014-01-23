@@ -7,15 +7,15 @@
 //
 
 #include <DataServerClient.h>
+#include <NodeList.h>
 
 #include "DataServerScriptingInterface.h"
 
-DataServerScriptingInterface::DataServerScriptingInterface() :
-    _uuid(QUuid::createUuid())
+DataServerScriptingInterface::DataServerScriptingInterface()
 {
     
 }
 
 void DataServerScriptingInterface::setValueForKey(const QString& key, const QString& value) {
-    DataServerClient::putValueForKeyAndUUID(key, value, _uuid);
+    DataServerClient::putValueForKeyAndUUID(key, value, NodeList::getInstance()->getOwnerUUID());
 }

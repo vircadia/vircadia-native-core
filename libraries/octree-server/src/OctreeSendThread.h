@@ -17,7 +17,7 @@
 #include "OctreeServer.h"
 
 /// Threaded processor for sending voxel packets to a single client
-class OctreeSendThread : public virtual GenericThread {
+class OctreeSendThread : public GenericThread {
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
 
