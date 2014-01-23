@@ -35,16 +35,21 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
     MetavoxelVisitation firstVisitation = { visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
-        { glm::vec3(), TOP_LEVEL_SIZE, QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
+        QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(), TOP_LEVEL_SIZE,
+            QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
-        MetavoxelNode* node = _roots.value(inputs[i]);
-        firstVisitation.nodes[i] = node;
+        MetavoxelNode* node = _roots.value(inputs.at(i));
+        firstVisitation.inputNodes[i] = node;
         firstVisitation.info.inputValues[i] = node ? node->getAttributeValue(inputs[i]) : inputs[i];
     }
     AttributePointer guideAttribute = AttributeRegistry::getInstance()->getGuideAttribute();
     MetavoxelNode* node = _roots.value(guideAttribute);
-    firstVisitation.nodes.last() = node;
+    firstVisitation.inputNodes.last() = node;
     firstVisitation.info.inputValues.last() = node ? node->getAttributeValue(guideAttribute) : guideAttribute;
+    for (int i = 0; i < outputs.size(); i++) {
+        MetavoxelNode* node = _roots.value(outputs.at(i));
+        firstVisitation.outputNodes[i] = node;
+    }
     static_cast<MetavoxelGuide*>(firstVisitation.info.inputValues.last().getInlineValue<
         PolymorphicDataPointer>().data())->guide(firstVisitation);
 }
@@ -384,19 +389,25 @@ const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;
 
 void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    visitation.info.isLeaf = visitation.allNodesLeaves();
+    visitation.info.isLeaf = visitation.allInputNodesLeaves();
     if (!visitation.visitor.visit(visitation.info)) {
         return;
     }
-    MetavoxelVisitation nextVisitation = { visitation.visitor, QVector<MetavoxelNode*>(visitation.nodes.size()),
-        { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.nodes.size()) } };
+    MetavoxelVisitation nextVisitation = { visitation.visitor, QVector<MetavoxelNode*>(visitation.inputNodes.size()),
+        QVector<MetavoxelNode*>(visitation.outputNodes.size()), { glm::vec3(), visitation.info.size * 0.5f,
+            QVector<AttributeValue>(visitation.inputNodes.size()), QVector<AttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
-        for (int j = 0; j < visitation.nodes.size(); j++) {
-            MetavoxelNode* node = visitation.nodes.at(j);
+        for (int j = 0; j < visitation.inputNodes.size(); j++) {
+            MetavoxelNode* node = visitation.inputNodes.at(j);
             MetavoxelNode* child = node ? node->getChild(i) : NULL;
-            nextVisitation.info.inputValues[j] = ((nextVisitation.nodes[j] = child)) ?
+            nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
                 child->getAttributeValue(visitation.info.inputValues[j].getAttribute()) :
                     visitation.info.inputValues[j];
+        }
+        for (int j = 0; j < visitation.outputNodes.size(); j++) {
+            MetavoxelNode* node = visitation.outputNodes.at(j);
+            MetavoxelNode* child = node ? node->getChild(i) : NULL;
+            nextVisitation.outputNodes[j] = child;
         }
         nextVisitation.info.minimum = visitation.info.minimum + glm::vec3(
             (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
@@ -505,8 +516,8 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     }
 }
 
-bool MetavoxelVisitation::allNodesLeaves() const {
-    foreach (MetavoxelNode* node, nodes) {
+bool MetavoxelVisitation::allInputNodesLeaves() const {
+    foreach (MetavoxelNode* node, inputNodes) {
         if (node != NULL && !node->isLeaf()) {
             return false;
         }

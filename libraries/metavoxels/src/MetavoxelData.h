@@ -159,7 +159,7 @@ public:
     /// Visits a metavoxel.
     /// \param info the metavoxel data
     /// \return if true, continue descending; if false, stop
-    virtual bool visit(const MetavoxelInfo& info) = 0;
+    virtual bool visit(MetavoxelInfo& info) = 0;
 
 protected:
 
@@ -221,10 +221,11 @@ class MetavoxelVisitation {
 public:
 
     MetavoxelVisitor& visitor;
-    QVector<MetavoxelNode*> nodes;
+    QVector<MetavoxelNode*> inputNodes;
+    QVector<MetavoxelNode*> outputNodes;
     MetavoxelInfo info;
     
-    bool allNodesLeaves() const;
+    bool allInputNodesLeaves() const;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

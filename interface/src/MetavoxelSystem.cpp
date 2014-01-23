@@ -151,7 +151,7 @@ MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
     _points(points) {
 }
 
-bool MetavoxelSystem::PointVisitor::visit(const MetavoxelInfo& info) {
+bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return true;
     }

@@ -72,12 +72,12 @@ bool AttributeValue::operator==(void* other) const {
     return _attribute && _attribute->equal(_value, other);
 }
 
-OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute) :
-    AttributeValue(attribute, attribute ? attribute->create() : NULL) {
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
+    AttributeValue(attribute, value) {
 }
 
-OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
-    AttributeValue(attribute, attribute ? attribute->create(value) : NULL) {
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute) :
+    AttributeValue(attribute, attribute ? attribute->create() : NULL) {
 }
 
 OwnedAttributeValue::OwnedAttributeValue(const AttributeValue& other) :
@@ -95,7 +95,7 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other)
         _attribute->destroy(_value);
     }
     if ((_attribute = other.getAttribute())) {
-        _value = _attribute->create(other.getValue());
+        _value = other.copy();
     }
     return *this;
 }
@@ -133,6 +133,16 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
 
 void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
     return encodeInline((QRgb)value.toUInt32());
+}
+
+void* QRgbAttribute::createFromVariant(const QVariant& value) const {
+    switch (value.userType()) {
+        case QMetaType::QColor:
+            return encodeInline(value.value<QColor>().rgba());
+        
+        default:
+            return encodeInline((QRgb)value.toUInt());
+    } 
 }
 
 QWidget* QRgbAttribute::createEditor(QWidget* parent) const {

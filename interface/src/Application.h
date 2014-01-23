@@ -145,6 +145,7 @@ public:
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
+    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }

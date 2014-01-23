@@ -34,6 +34,8 @@ public:
 
     void init();
     
+    MetavoxelData& getData() { return _data; }
+    
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
     void simulate(float deltaTime);
@@ -60,7 +62,7 @@ private:
     class PointVisitor : public MetavoxelVisitor {
     public:
         PointVisitor(QVector<Point>& points);
-        virtual bool visit(const MetavoxelInfo& info);
+        virtual bool visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;

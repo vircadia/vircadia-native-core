@@ -118,11 +118,19 @@ protected:
 class OwnedAttributeValue : public AttributeValue {
 public:
     
-    OwnedAttributeValue(const AttributePointer& attribute = AttributePointer());
+    /// Assumes ownership of the specified value.  It will be destroyed when this is destroyed or reassigned.
     OwnedAttributeValue(const AttributePointer& attribute, void* value);
+    
+    /// Creates an owned attribute with a copy of the specified attribute's default value.
+    OwnedAttributeValue(const AttributePointer& attribute = AttributePointer());
+    
+    /// Creates an owned attribute with a copy of the specified other value.
     OwnedAttributeValue(const AttributeValue& other);
+    
+    /// Destroys the current value, if any.
     ~OwnedAttributeValue();
     
+    /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const AttributeValue& other);
 };
 
@@ -158,6 +166,8 @@ public:
     virtual void* getDefaultValue() const = 0;
 
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const { return create(); }
+    
+    virtual void* createFromVariant(const QVariant& value) const { return create(); }
     
     /// Creates a widget to use to edit values of this attribute, or returns NULL if the attribute isn't editable.
     /// The widget should have a single "user" property that will be used to get/set the value.
@@ -231,6 +241,8 @@ public:
     virtual bool merge(void*& parent, void* children[]) const;
     
     virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
+    
+    virtual void* createFromVariant(const QVariant& value) const;
     
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 };
