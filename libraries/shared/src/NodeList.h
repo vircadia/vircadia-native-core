@@ -111,7 +111,6 @@ public:
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, size_t dataBytes);
-    void processBulkNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, int numTotalBytes);
 
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
 

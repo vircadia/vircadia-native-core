@@ -187,49 +187,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char
     }
 }
 
-void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned char *packetData, int numTotalBytes) {
-    SharedNodePointer bulkSendNode = nodeWithAddress(senderAddress);
-
-    // find the avatar mixer in our node list and update the lastRecvTime from it
-    if (bulkSendNode) {
-
-        bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
-        bulkSendNode->recordBytesReceived(numTotalBytes);
-
-        int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-
-        unsigned char* startPosition = packetData;
-        unsigned char* currentPosition = startPosition + numBytesPacketHeader;
-        unsigned char* packetHolder = new unsigned char[numTotalBytes];
-
-        // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
-        populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
-
-        while ((currentPosition - startPosition) < numTotalBytes) {
-
-            memcpy(packetHolder + numBytesPacketHeader,
-                   currentPosition,
-                   numTotalBytes - (currentPosition - startPosition));
-
-            QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)currentPosition, NUM_BYTES_RFC4122_UUID));
-            SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
-
-            if (!matchingNode) {
-                // we're missing this node, we need to add it to the list
-                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, HifiSockAddr(), HifiSockAddr());
-            }
-
-            currentPosition += updateNodeWithData(matchingNode.data(),
-                                                  HifiSockAddr(),
-                                                  packetHolder,
-                                                  numTotalBytes - (currentPosition - startPosition));
-
-        }
-
-        delete[] packetHolder;
-    }
-}
-
 int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
     QMutexLocker locker(&node->getMutex());
 

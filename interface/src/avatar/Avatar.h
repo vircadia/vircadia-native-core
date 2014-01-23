@@ -111,7 +111,7 @@ public:
     /// \return whether or not the sphere collided
     virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
 
-    virtual int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 

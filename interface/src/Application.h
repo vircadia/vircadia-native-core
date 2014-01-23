@@ -50,6 +50,7 @@
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
 #include "avatar/Avatar.h"
+#include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
@@ -167,7 +168,7 @@ public:
     GlowEffect* getGlowEffect() { return &_glowEffect; }
 
     Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
-
+    AvatarManager& getAvatarManager() { return _avatarManager; }
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
@@ -227,15 +228,13 @@ public slots:
     void initAvatarAndViewFrustum();
 
 private slots:
-
     void timer();
     void idle();
     void terminate();
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
-
-
+    
     void renderThrustAtVoxel(const glm::vec3& thrust);
 
     void renderCoverageMap();
@@ -372,6 +371,7 @@ private:
 
     VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
 
+    AvatarManager _avatarManager;
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
     Profile _profile;                    // The data-server linked profile for this user
 

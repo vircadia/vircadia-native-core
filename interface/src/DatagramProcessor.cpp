@@ -89,12 +89,23 @@ void DatagramProcessor::processDatagrams() {
                     application->_metavoxels.processData(QByteArray((const char*) incomingPacket, bytesReceived),
                                                          senderSockAddr);
                     break;
-                case PACKET_TYPE_BULK_AVATAR_DATA:
-                    NodeList::getInstance()->processBulkNodeData(senderSockAddr,
-                                                                 incomingPacket,
-                                                                 bytesReceived);
+                case PACKET_TYPE_BULK_AVATAR_DATA: {
+                    // update having heard from the avatar-mixer and record the bytes received
+                    SharedNodePointer avatarMixer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+                    
+                    if (avatarMixer) {
+                        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+                        avatarMixer->recordBytesReceived(bytesReceived);
+                        
+                        
+                        QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
+                                                  Q_ARG(const QByteArray&,
+                                                        QByteArray(reinterpret_cast<char*>(incomingPacket), bytesReceived)));
+                    }
+                    
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                     break;
+                }
                 case PACKET_TYPE_DATA_SERVER_GET:
                 case PACKET_TYPE_DATA_SERVER_PUT:
                 case PACKET_TYPE_DATA_SERVER_SEND:

@@ -116,6 +116,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
+        _avatarManager(),
         _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
