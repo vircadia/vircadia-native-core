@@ -148,9 +148,9 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                 // parse positional data from an node
                 nodeList->updateNodeWithData(avatarNode.data(), senderSockAddr,
                                              (unsigned char*) dataByteArray.data(), dataByteArray.size());
-            } else {
-                break;
+                
             }
+            break;
         }
         case PACKET_TYPE_KILL_AVATAR: {
             nodeList->processKillNode(dataByteArray);
