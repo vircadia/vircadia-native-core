@@ -233,7 +233,7 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 
     node->setLastHeardMicrostamp(usecTimestampNow());
 
-    if (!senderSockAddr.isNull()) {
+    if (!senderSockAddr.isNull() && !node->getActiveSocket()) {
         if (senderSockAddr == node->getPublicSocket()) {
             node->activatePublicSocket();
         } else if (senderSockAddr == node->getLocalSocket()) {
