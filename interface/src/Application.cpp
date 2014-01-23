@@ -109,7 +109,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
-        _datagramProcessor(new DatagramProcessor()),
+        _datagramProcessor(),
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
@@ -184,10 +184,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
     nodeList->moveToThread(_nodeThread);
-    _datagramProcessor->moveToThread(_nodeThread);
+    _datagramProcessor.moveToThread(_nodeThread);
     
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), _datagramProcessor, SLOT(processDatagrams()));
+    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
@@ -1344,11 +1344,11 @@ void Application::timer() {
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     
-    _packetsPerSecond = (float) _datagramProcessor->getPacketCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
-    _bytesPerSecond = (float) _datagramProcessor->getByteCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _frameCount = 0;
     
-    _datagramProcessor->resetCounters();
+    _datagramProcessor.resetCounters();
 
     gettimeofday(&_timerStart, NULL);
 

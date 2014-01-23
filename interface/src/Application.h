@@ -332,7 +332,7 @@ private:
     BandwidthMeter _bandwidthMeter;
     
     QThread* _nodeThread;
-    DatagramProcessor* _datagramProcessor;
+    DatagramProcessor _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
