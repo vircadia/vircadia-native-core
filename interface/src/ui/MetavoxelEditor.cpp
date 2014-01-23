@@ -12,6 +12,7 @@
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMetaProperty>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -333,7 +334,8 @@ void MetavoxelEditor::resetState() {
 }
 
 void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
-    
+    QWidget* editor = _value->layout()->itemAt(0)->widget();
+    QVariant value = editor->metaObject()->userProperty().read(editor);
 }
 
 ProgramObject MetavoxelEditor::_gridProgram;
