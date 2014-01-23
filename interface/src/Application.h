@@ -238,7 +238,6 @@ private slots:
 
     void timer();
     void idle();
-    void terminate();
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
@@ -337,7 +336,7 @@ private:
     BandwidthMeter _bandwidthMeter;
     
     QThread* _nodeThread;
-    DatagramProcessor* _datagramProcessor;
+    DatagramProcessor _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
