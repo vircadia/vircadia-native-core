@@ -188,6 +188,7 @@ namespace MenuOption {
     const QString ExportVoxels = "Export Voxels";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
+    const QString HandsCollideWithSelf = "Collide With Self";
     const QString FaceshiftTCP = "Faceshift (TCP)";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
