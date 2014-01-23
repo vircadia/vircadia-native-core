@@ -87,7 +87,6 @@ public:
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
 
-    void clear();
     void reset();
 
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
@@ -163,6 +162,7 @@ private:
     void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
+    void clear();
 };
 
 #endif /* defined(__hifi__NodeList__) */
