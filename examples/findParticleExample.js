@@ -2,10 +2,10 @@
 //  editParticleExample.js
 //  hifi
 //
-//  Created by Brad Hefta-Gaub on 12/31/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Created by Brad Hefta-Gaub on 1/24/14.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  This is an example script that demonstrates creating and editing a particle
+//  This is an example script that demonstrates "finding" particles
 //
 
 var iteration = 0;
