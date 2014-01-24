@@ -27,7 +27,7 @@ const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AUDIO_MIXER
 };
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
+const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
 NodeList* NodeList::_sharedInstance = NULL;
