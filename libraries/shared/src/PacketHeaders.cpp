@@ -20,7 +20,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 2;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 16;
+            return 17;
 
         case PACKET_TYPE_OCTREE_STATS:
             return 2;
@@ -64,13 +64,15 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
     }
 }
 
-bool packetVersionMatch(unsigned char* packetHeader) {
+bool packetVersionMatch(unsigned char* packetHeader, const HifiSockAddr& senderSockAddr) {
     // currently this just checks if the version in the packet matches our return from versionForPacketType
     // may need to be expanded in the future for types and versions that take > than 1 byte
     if (packetHeader[1] == versionForPacketType(packetHeader[0]) || packetHeader[0] == PACKET_TYPE_STUN_RESPONSE) {
         return true;
     } else {
-        qDebug("There is a packet version mismatch for packet with header %c", packetHeader[0]);
+        qDebug() << "Packet mismatch on" << packetHeader[0] << "- Sender"
+        << senderSockAddr << "sent" << qPrintable(QString::number(packetHeader[1])) << "but"
+        << qPrintable(QString::number(versionForPacketType(packetHeader[0]))) << "expected.";
         return false;
     }
 }

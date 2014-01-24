@@ -116,7 +116,7 @@ void DomainServer::readAvailableDatagrams() {
         if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
                                                    senderSockAddr.getAddressPointer(),
                                                    senderSockAddr.getPortPointer()))
-            && packetVersionMatch((unsigned char*) packetData)) {
+            && packetVersionMatch((unsigned char*) packetData, senderSockAddr)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
                 // this is an RFD or domain list request packet, and there is a version match
 
