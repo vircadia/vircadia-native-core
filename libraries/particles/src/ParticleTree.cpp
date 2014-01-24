@@ -250,13 +250,14 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     // we handle these types of "edit" packets
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
-            //qDebug() << " got PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
-            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this);
-            storeParticle(newParticle, senderNode);
-            if (newParticle.isNewlyCreated()) {
-                notifyNewlyCreatedParticle(newParticle, senderNode);
+            bool isValid;
+            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
+            if (isValid) {
+                storeParticle(newParticle, senderNode);
+                if (newParticle.isNewlyCreated()) {
+                    notifyNewlyCreatedParticle(newParticle, senderNode);
+                }
             }
-            //qDebug() << " DONE... PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
         } break;
 
         // TODO: wire in support here for server to get PACKET_TYPE_PARTICLE_ERASE messages

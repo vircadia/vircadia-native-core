@@ -168,7 +168,7 @@ public:
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree);
+    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
 
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
