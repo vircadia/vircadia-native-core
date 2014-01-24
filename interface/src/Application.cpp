@@ -3049,15 +3049,6 @@ void Application::displayOverlay() {
             displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
-        //  Stats at upper right of screen about who domain server is telling us about
-        glPointSize(1.0f);
-        char nodes[100];
-
-        int totalAvatars = _avatarManager.size();
-        int totalServers = NodeList::getInstance()->size();
-
-        sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-        drawtext(_glWidget->width() - 150, 20, 0.10f, 0, 1.0f, 0, nodes, 1, 0, 0);
     }
 
     // testing rendering coverage map
