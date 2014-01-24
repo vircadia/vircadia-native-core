@@ -2859,10 +2859,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     if (!selfAvatarOnly) {
         // draw a red sphere
-        float sphereRadius = 0.25f;
+        float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
         glPushMatrix();
-            glutSolidSphere(sphereRadius, 15, 15);
+            glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
         // disable specular lighting for ground and voxels

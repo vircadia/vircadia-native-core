@@ -682,7 +682,7 @@ void Particle::update(const uint64_t& now) {
     const uint64_t REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
     bool isReallyOld = ((now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
-    bool shouldDie = getShouldDie() || (!isInHand && isStopped && isReallyOld);
+    bool shouldDie = (getAge() > getLifetime()) || getShouldDie() || (!isInHand && isStopped && isReallyOld);
     setShouldDie(shouldDie);
 
     runUpdateScript(); // allow the javascript to alter our state
