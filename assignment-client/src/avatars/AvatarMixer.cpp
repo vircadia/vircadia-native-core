@@ -132,9 +132,9 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                 // parse positional data from an node
                 nodeList->updateNodeWithData(avatarNode.data(), senderSockAddr,
                                              (unsigned char*) dataByteArray.data(), dataByteArray.size());
-            } else {
-                break;
+                
             }
+            break;
         }
         case PACKET_TYPE_KILL_NODE:
         default:
@@ -149,7 +149,7 @@ void AvatarMixer::run() {
     commonInit(AVATAR_MIXER_LOGGING_NAME, NODE_TYPE_AVATAR_MIXER);
     
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     

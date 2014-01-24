@@ -16,10 +16,8 @@
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
 class ParticleEditPacketSender :  public OctreeEditPacketSender {
+    Q_OBJECT
 public:
-    ParticleEditPacketSender(PacketSenderNotify* notify = NULL) : OctreeEditPacketSender(notify) { }
-    ~ParticleEditPacketSender() { }
-
     /// Send particle add message immediately
     /// NOTE: ParticleProperties assumes that all distances are in meter units
     void sendEditParticleMessage(PACKET_TYPE type, ParticleID particleID, const ParticleProperties& properties);

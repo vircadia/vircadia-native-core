@@ -22,6 +22,7 @@
 #endif
 
 #include <QtCore/QMutex>
+#include <QtCore/QSet>
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
@@ -87,10 +88,11 @@ public:
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
 
-    void clear();
     void reset();
-
-    void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
+    
+    const QSet<NODE_TYPE>& getNodeInterestSet() const { return _nodeTypesOfInterest; }
+    void addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd);
+    void addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes);
 
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
 
@@ -103,7 +105,7 @@ public:
     int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
     
-    void sendKillNode(const char* nodeTypes, int numNodeTypes);
+    void sendKillNode(const QSet<NODE_TYPE>& destinationNodeTypes);
 
     SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
@@ -115,7 +117,7 @@ public:
 
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
 
-    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
+    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const QSet<NODE_TYPE>& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
@@ -151,7 +153,7 @@ private:
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;
     char _ownerType;
-    char* _nodeTypesOfInterest;
+    QSet<NODE_TYPE> _nodeTypesOfInterest;
     QUuid _ownerUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
@@ -163,6 +165,7 @@ private:
     void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
+    void clear();
 };
 
 #endif /* defined(__hifi__NodeList__) */

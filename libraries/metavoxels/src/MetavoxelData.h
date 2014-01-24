@@ -24,7 +24,6 @@
 class QScriptContext;
 
 class MetavoxelNode;
-class MetavoxelPath;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 
@@ -41,12 +40,6 @@ public:
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
 
-    /// Sets the attribute value corresponding to the specified path.
-    void setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue);
-
-    /// Retrieves the attribute value corresponding to the specified path.
-    AttributeValue getAttributeValue(const MetavoxelPath& path, const AttributePointer& attribute) const;
-
     void read(Bitstream& in);
     void write(Bitstream& out) const;
 
@@ -54,6 +47,8 @@ public:
     void writeDelta(const MetavoxelData& reference, Bitstream& out) const;
 
 private:
+
+    friend class MetavoxelVisitation;
    
     void incrementRootReferenceCounts();
     void decrementRootReferenceCounts();
@@ -74,16 +69,12 @@ public:
     static const int CHILD_COUNT = 8;
 
     MetavoxelNode(const AttributeValue& attributeValue);
-
-    /// Descends the voxel tree in order to set the value of a node.
-    /// \param path the path to follow
-    /// \param index the position in the path
-    /// \return whether or not the node is entirely equal to the value
-    bool setAttributeValue(const MetavoxelPath& path, int index, const AttributeValue& attributeValue);
-
+    
     void setAttributeValue(const AttributeValue& attributeValue);
 
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
+
+    void mergeChildren(const AttributePointer& attribute);
 
     MetavoxelNode* getChild(int index) const { return _children[index]; }
     void setChild(int index, MetavoxelNode* child) { _children[index] = child; }
@@ -108,29 +99,13 @@ public:
 private:
     Q_DISABLE_COPY(MetavoxelNode)
     
+    friend class MetavoxelVisitation;
+    
     void clearChildren(const AttributePointer& attribute);
     
     int _referenceCount;
     void* _attributeValue;
     MetavoxelNode* _children[CHILD_COUNT];
-};
-
-/// A path down an octree.
-class MetavoxelPath {
-public:
-    
-    int getSize() const { return _array.size() / BITS_PER_ELEMENT; }
-    bool isEmpty() const { return _array.isEmpty(); }
-    
-    int operator[](int index) const;
-    
-    MetavoxelPath& operator+=(int element);
-    
-private:
-    
-    static const int BITS_PER_ELEMENT = 3;
-    
-    QBitArray _array;    
 };
 
 /// Contains information about a metavoxel (explicit or procedural).
@@ -139,7 +114,8 @@ public:
     
     glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
     float size; ///< the size of the voxel in all dimensions
-    QVector<AttributeValue> attributeValues;
+    QVector<AttributeValue> inputValues;
+    QVector<AttributeValue> outputValues;
     bool isLeaf;
 };
 
@@ -147,19 +123,23 @@ public:
 class MetavoxelVisitor {
 public:
     
-    MetavoxelVisitor(const QVector<AttributePointer>& attributes) : _attributes(attributes) { }
-        
-    /// Returns a reference to the list of attributes desired.
-    const QVector<AttributePointer>& getAttributes() const { return _attributes; }
+    MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs);
+    
+    /// Returns a reference to the list of input attributes desired.
+    const QVector<AttributePointer>& getInputs() const { return _inputs; }
+    
+    /// Returns a reference to the list of output attributes provided.
+    const QVector<AttributePointer>& getOutputs() const { return _outputs; }
     
     /// Visits a metavoxel.
-    /// \param info the metavoxel ata
-    /// \param if true, continue descending; if false, stop
-    virtual bool visit(const MetavoxelInfo& info) = 0;
+    /// \param info the metavoxel data
+    /// \return if true, continue descending; if false, stop
+    virtual bool visit(MetavoxelInfo& info) = 0;
 
 protected:
 
-    QVector<AttributePointer> _attributes;
+    QVector<AttributePointer> _inputs;
+    QVector<AttributePointer> _outputs;
 };
 
 /// Interface for objects that guide metavoxel visitors.
@@ -191,16 +171,19 @@ public:
 
 private:
 
-    static QScriptValue getAttributes(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue getInputs(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue getOutputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
 
     QScriptValue _guideFunction;
     QScriptString _minimumHandle;
     QScriptString _sizeHandle;
-    QScriptString _attributeValuesHandle;
+    QScriptString _inputValuesHandle;
+    QScriptString _outputValuesHandle;
     QScriptString _isLeafHandle;
     QScriptValueList _arguments;
-    QScriptValue _getAttributesFunction;
+    QScriptValue _getInputsFunction;
+    QScriptValue _getOutputsFunction;
     QScriptValue _visitFunction;
     QScriptValue _info;
     QScriptValue _minimum;
@@ -212,11 +195,16 @@ private:
 class MetavoxelVisitation {
 public:
 
+    MetavoxelData* data;
+    MetavoxelVisitation* previous;
     MetavoxelVisitor& visitor;
-    QVector<MetavoxelNode*> nodes;
+    QVector<MetavoxelNode*> inputNodes;
+    QVector<MetavoxelNode*> outputNodes;
     MetavoxelInfo info;
+    int childIndex;
     
-    bool allNodesLeaves() const;
+    bool allInputNodesLeaves() const;
+    MetavoxelNode* createOutputNode(int index);
 };
 
 #endif /* defined(__interface__MetavoxelData__) */
