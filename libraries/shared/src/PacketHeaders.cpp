@@ -70,9 +70,9 @@ bool packetVersionMatch(unsigned char* packetHeader, const HifiSockAddr& senderS
     if (packetHeader[1] == versionForPacketType(packetHeader[0]) || packetHeader[0] == PACKET_TYPE_STUN_RESPONSE) {
         return true;
     } else {
-        qDebug() << "Packet version mismatch for" << packetHeader[0] << ". Sender"
+        qDebug() << "Packet version mismatch on" << packetHeader[0] << ". Sender"
             << senderSockAddr << "sent" << packetHeader[1] << "but" << versionForPacketType(packetHeader[0])
-            << "was expected.";
+            << "expected.";
         return false;
     }
 }
