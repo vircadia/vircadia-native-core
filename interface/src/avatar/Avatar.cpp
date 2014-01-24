@@ -85,6 +85,11 @@ Avatar::Avatar() :
     _handData = &_hand;
 }
 
+Avatar::~Avatar() {
+    _headData = NULL;
+    _handData = NULL;
+}
+
 void Avatar::init() {
     _head.init();
     _hand.init();

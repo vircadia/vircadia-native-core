@@ -70,6 +70,7 @@ class Avatar : public AvatarData {
 
 public:
     Avatar();
+    ~Avatar();
 
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
