@@ -53,6 +53,12 @@ public:
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
+    /// finds all particles that touch a box
+    /// \param box the query box
+    /// \param particles[out] vector of Particle pointer
+    /// \remark Side effect: any initial contents in particles will be lost
+    void findParticles(const AABox& box, QVector<Particle*> particles);
+
 private:
 
     static bool updateOperation(OctreeElement* element, void* extraData);

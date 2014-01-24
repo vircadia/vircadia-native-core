@@ -458,3 +458,31 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }
+
+class FindParticlesArgs {
+public:
+    FindParticlesArgs(const AABox& box) 
+        : _box(box), _foundParticles() {
+    }
+
+    AABox _box;
+    QVector<Particle*> _foundParticles;
+};
+
+bool findOperation(OctreeElement* element, void* extraData) {
+    FindParticlesArgs* args = static_cast< FindParticlesArgs*>(extraData);
+    const AABox& elementBox = element->getAABox();
+    if (elementBox.touches(args->_box)) {
+        ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+        particleTreeElement->findParticles(args->_box, args->_foundParticles);
+        return true;
+    }
+    return false;
+}
+
+void ParticleTree::findParticles(const AABox& box, QVector<Particle*> foundParticles) {
+    FindParticlesArgs args(box);
+    recurseTreeWithOperation(findOperation, &args);
+    // swap the two lists of particle pointers instead of copy
+    foundParticles.swap(args._foundParticles);
+}
