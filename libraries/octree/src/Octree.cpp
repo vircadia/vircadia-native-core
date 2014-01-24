@@ -592,6 +592,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
+            // NOTE: it is possible for this penetration accumulation algorithm to produce a final penetration vector with zero length.
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
             args->found = true;
         }
@@ -1390,9 +1391,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
 
-            // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
-            // and reinsert the node in our bag and try again...
-            if (bytesWritten == 0) {
+            // if the subTree couldn't fit, and so we should reset the packet and reinsert the node in our bag and try again...
+            if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
                 if (packetData.hasContent()) {
                     file.write((const char*)packetData.getFinalizedData(), packetData.getFinalizedSize());
                     lastPacketWritten = true;

@@ -27,8 +27,8 @@ EditPacketBuffer::EditPacketBuffer(PACKET_TYPE type, unsigned char* buffer, ssiz
 const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND;
 
 
-OctreeEditPacketSender::OctreeEditPacketSender(PacketSenderNotify* notify) :
-    PacketSender(notify),
+OctreeEditPacketSender::OctreeEditPacketSender() :
+    PacketSender(),
     _shouldSend(true),
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),

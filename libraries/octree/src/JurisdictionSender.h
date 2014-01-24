@@ -26,7 +26,7 @@ class JurisdictionSender : public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
-    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER, PacketSenderNotify* notify = NULL);
+    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER);
     ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }

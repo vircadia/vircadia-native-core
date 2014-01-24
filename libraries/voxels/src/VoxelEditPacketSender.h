@@ -15,10 +15,8 @@
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
 class VoxelEditPacketSender :  public OctreeEditPacketSender {
+    Q_OBJECT
 public:
-    VoxelEditPacketSender(PacketSenderNotify* notify = NULL) : OctreeEditPacketSender(notify) { }
-    ~VoxelEditPacketSender() { }
-    
     /// Send voxel edit message immediately
     void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
 
