@@ -6,9 +6,8 @@
 //  Copyright (c) 2013, 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include "Application.h"  // HACK ATTACK WARNING: for windows build to work, we need this ahead of QtGui
 #include <QtGui>
-
-#include "Application.h"
 #include "ui_updateDialog.h"
 
 #include "UpdateDialog.h"
