@@ -3347,13 +3347,15 @@ void Application::displayStats() {
     glm::vec3 avatarPos = _myAvatar.getPosition();
 
     lines = _statsExpanded ? 4 : 3;
-    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - 411 - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
+    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - (mirrorEnabled ? 301 : 411) - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
     char avatarPosition[200];
     if (mirrorEnabled) {
-        sprintf(avatarPosition, "Pos: %.3f,%.3f,%.3f", avatarPos.x, avatarPos.y, avatarPos.z);
+        // shorthand formatting
+        sprintf(avatarPosition, "Pos: %.0f,%.0f,%.0f", avatarPos.x, avatarPos.y, avatarPos.z);
     } else {
+        // longhand way
         sprintf(avatarPosition, "Position: %.3f, %.3f, %.3f", avatarPos.x, avatarPos.y, avatarPos.z);
     }    
     char avatarVelocity[30];
@@ -3384,7 +3386,7 @@ void Application::displayStats() {
     }
 
     verticalOffset = 0;
-    horizontalOffset = _glWidget->width() - 410;
+    horizontalOffset = _glWidget->width() - (mirrorEnabled ? 300 : 410);
 
     lines = _statsExpanded ? 11 : 3;
     displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
