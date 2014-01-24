@@ -840,6 +840,8 @@ ParticleProperties::ParticleProperties() :
     _inHand(false),
     _shouldDie(false),
 
+    _id(UNKNOWN_PARTICLE_ID),
+    _idSet(false),
     _lastEdited(usecTimestampNow()),
     _positionChanged(false),
     _colorChanged(false),
@@ -925,6 +927,11 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
     properties.setProperty("script", _script);
     properties.setProperty("inHand", _inHand);
     properties.setProperty("shouldDie", _shouldDie);
+    
+    if (_idSet) {
+        properties.setProperty("id", _id);
+        properties.setProperty("isKnownID", (_id == UNKNOWN_PARTICLE_ID));
+    }
 
     return properties;
 }
@@ -1117,6 +1124,9 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _script = particle.getScript();
     _inHand = particle.getInHand();
     _shouldDie = particle.getShouldDie();
+
+    _id = particle.getID();
+    _idSet = true;
 
     _positionChanged = false;
     _colorChanged = false;

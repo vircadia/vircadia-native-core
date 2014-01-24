@@ -94,6 +94,9 @@ public:
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
     void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true;  }
     void setScript(QString updateScript) { _script = updateScript; _scriptChanged = true;  }
+    
+    /// used by ParticleScriptingInterface to return ParticleProperties for unknown particles
+    void setIsUnknownID() { _id = UNKNOWN_PARTICLE_ID; _idSet = true; }
 
 private:
     glm::vec3 _position;
@@ -107,6 +110,8 @@ private:
     bool _inHand;
     bool _shouldDie;
 
+    uint32_t _id;
+    bool _idSet;
     uint64_t _lastEdited;
     bool _positionChanged;
     bool _colorChanged;

@@ -34,6 +34,10 @@ public slots:
     /// identify a recently created particle to determine its true ID
     ParticleID identifyParticle(ParticleID particleID);
 
+    /// gets the current particle properties for a specific particle
+    /// this function will not find return results in script engine contexts which don't have access to particles
+    ParticleProperties getParticleProperties(ParticleID particleID);
+
     /// edits a particle updating only the included properties, will return the identified ParticleID in case of
     /// successful edit, if the input particleID is for an unknown particle this function will have no effect
     ParticleID editParticle(ParticleID particleID, const ParticleProperties& properties);

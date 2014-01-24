@@ -49,6 +49,22 @@ ParticleID ParticlesScriptingInterface::identifyParticle(ParticleID particleID) 
     return particleID;
 }
 
+ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID particleID) {
+    ParticleProperties results;
+    ParticleID identity = identifyParticle(particleID);
+    if (!identity.isKnownID) {
+        results.setIsUnknownID();
+        return results;
+    }
+    if (_particleTree) {
+        const Particle* particle = _particleTree->findParticleByID(identity.id);
+        results.copyFromParticle(*particle);
+    }
+    
+    return results;
+}
+
+
 
 ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
     uint32_t actualID = particleID.id;
