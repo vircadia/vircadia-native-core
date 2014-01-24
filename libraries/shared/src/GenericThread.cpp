@@ -20,7 +20,10 @@ GenericThread::GenericThread() :
 }
 
 GenericThread::~GenericThread() {
-    terminate();
+    // we only need to call terminate() if we're actually threaded and still running
+    if (isStillRunning() && isThreaded()) {
+        terminate();
+    }
 }
 
 void GenericThread::initialize(bool isThreaded) {
@@ -45,6 +48,7 @@ void GenericThread::terminate() {
         if (_thread) {
             _thread->wait();
             _thread->deleteLater();
+            _thread = NULL;
         }
     }
 }

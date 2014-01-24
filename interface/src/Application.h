@@ -33,6 +33,7 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Cloud.h"
+#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "MetavoxelSystem.h"
@@ -91,11 +92,12 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public PacketSenderNotify {
+class Application : public QApplication {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
     friend class VoxelEditPacketSender;
+    friend class DatagramProcessor;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -145,10 +147,13 @@ public:
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
+    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     bool isMouseHidden() const { return _mouseHidden; }
+    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
+    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -169,8 +174,8 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                           const char* nodeTypes, int numNodeTypes);
+    void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+                                    const QSet<NODE_TYPE>& destinationNodeTypes);
 
     void setupWorldLight();
 
@@ -185,9 +190,6 @@ public:
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
-
-
-    virtual void packetSentNotification(ssize_t length);
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -204,12 +206,16 @@ public:
     
     void skipVersion(QString latestVersion);
 
+signals:
+
+    /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
+    void renderingInWorldInterface();
+    
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-
-    void processDatagrams();
-
+    void packetSent(quint64 length);
+    
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
@@ -230,7 +236,6 @@ private slots:
 
     void timer();
     void idle();
-    void terminate();
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
@@ -269,15 +274,12 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
+    void updateMouseRay();
     void updateFaceshift();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
-    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-            float& distance, BoxFace& face);
-    void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-            float& distance, BoxFace& face);
-    void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition);
+    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
+    void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
+    void updateLookatTargetAvatar(glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -292,15 +294,14 @@ private:
     void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
-    Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition, QUuid &nodeUUID);
+    Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
+    void updateAvatars(float deltaTime);
     void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -331,6 +332,9 @@ private:
     QGLWidget* _glWidget;
 
     BandwidthMeter _bandwidthMeter;
+    
+    QThread* _nodeThread;
+    DatagramProcessor _datagramProcessor;
 
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -402,6 +406,9 @@ private:
     bool _mouseHidden;
     bool _seenMouseMove;
 
+    glm::vec3 _mouseRayOrigin;
+    glm::vec3 _mouseRayDirection;
+
     float _touchAvgX;
     float _touchAvgY;
     float _lastTouchAvgX;
@@ -461,11 +468,8 @@ private:
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
 
-    unsigned char _incomingPacket[MAX_PACKET_SIZE];
-    int _packetCount;
     int _packetsPerSecond;
     int _bytesPerSecond;
-    int _bytesCount;
 
     int _recentMaxPackets; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon;

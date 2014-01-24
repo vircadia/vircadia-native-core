@@ -68,4 +68,6 @@ void VoxelServer::beforeRun() {
         qDebug("Using Minimal Environment=%s", debug::valueOf(_sendMinimalEnvironment));
     }
     qDebug("Sending environments=%s", debug::valueOf(_sendEnvironments));
+    
+    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_ANIMATION_SERVER);
 }

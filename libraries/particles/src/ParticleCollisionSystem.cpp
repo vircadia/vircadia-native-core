@@ -16,7 +16,6 @@
 
 #include "Particle.h"
 #include "ParticleCollisionSystem.h"
-#include "ParticleEditHandle.h"
 #include "ParticleEditPacketSender.h"
 #include "ParticleTree.h"
 
@@ -80,8 +79,8 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
 
-        collisionInfo._penetration /= (float)(TREE_SCALE);
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+        collisionInfo._penetration /= (float)(TREE_SCALE);
         applyHardCollision(particle, ELASTICITY, DAMPING, collisionInfo);
 
         delete voxelDetails; // cleanup returned details
@@ -117,21 +116,24 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             float massB = (particleB->getInHand()) ? MAX_MASS : particleB->getMass();
             float totalMass = massA + massB;
 
+            // handle A particle
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
+            ParticleProperties propertiesA;
+            ParticleID particleAid(particleA->getID());
+            propertiesA.copyFromParticle(*particleA);
+            propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleAid, propertiesA);
 
-            ParticleEditHandle particleEditHandle(_packetSender, _particles, particleA->getID());
-            particleEditHandle.updateParticle(particleA->getPosition(), particleA->getRadius(), particleA->getXColor(),
-                particleA->getVelocity(), particleA->getGravity(), particleA->getDamping(), particleA->getLifetime(),
-                particleA->getInHand(), particleA->getScript());
-
+            // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
+            ParticleProperties propertiesB;
+            ParticleID particleBid(particleB->getID());
+            propertiesB.copyFromParticle(*particleB);
+            propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
+            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleBid, propertiesB);
 
-            ParticleEditHandle penetratedparticleEditHandle(_packetSender, _particles, particleB->getID());
-            penetratedparticleEditHandle.updateParticle(particleB->getPosition(), particleB->getRadius(),
-                            particleB->getXColor(), particleB->getVelocity(), particleB->getGravity(), particleB->getDamping(),
-                            particleB->getLifetime(), particleB->getInHand(), particleB->getScript());
+            _packetSender->releaseQueuedMessages();
 
-            penetration /= (float)(TREE_SCALE);
             updateCollisionSound(particleA, penetration, COLLISION_FREQUENCY);
         }
     }
@@ -181,8 +183,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 }
                 // HACK END
 
-                collisionInfo._penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+                collisionInfo._penetration /= (float)(TREE_SCALE);
                 applyHardCollision(particle, elasticity, damping, collisionInfo);
             }
         }
@@ -213,8 +215,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                     }
                     // HACK END
 
-                    collisionInfo._penetration /= (float)(TREE_SCALE);
                     updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
+                    collisionInfo._penetration /= (float)(TREE_SCALE);
                     applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
                 }
             }
@@ -256,17 +258,24 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elast
             particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
     }
 
-    ParticleEditHandle particleEditHandle(_packetSender, _particles, particle->getID());
-    particleEditHandle.updateParticle(position, particle->getRadius(), particle->getXColor(), velocity,
-                           particle->getGravity(), particle->getDamping(), particle->getLifetime(),
-                           particle->getInHand(), particle->getScript());
+    // send off the result to the particle server
+    ParticleProperties properties;
+    ParticleID particleID(particle->getID());
+    properties.copyFromParticle(*particle);
+    properties.setPosition(position * (float)TREE_SCALE);
+    properties.setVelocity(velocity * (float)TREE_SCALE);
+    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+
+    // change the local particle too...
+    particle->setPosition(position);
+    particle->setVelocity(velocity);
 }
 
 
 void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency) {
 
     //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.1f;
+    const float AUDIBLE_COLLISION_THRESHOLD = 0.3f;
     const float COLLISION_LOUDNESS = 1.f;
     const float DURATION_SCALING = 0.004f;
     const float NOISE_SCALING = 0.1f;
@@ -283,18 +292,20 @@ void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm
         velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
     }
     */
-    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
+    float normalSpeed = glm::dot(velocity, glm::normalize(penetration));
+    // NOTE: it is possible for normalSpeed to be NaN at this point 
+    // (sometimes the average penetration of a bunch of voxels is a zero length vector which cannot be normalized) 
+    // however the check below will fail (NaN comparisons always fail) and everything will be fine.
 
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
+    if (normalSpeed > AUDIBLE_COLLISION_THRESHOLD) {
         //  Volume is proportional to collision velocity
         //  Base frequency is modified upward by the angle of the collision
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
-        _audio->startCollisionSound(
-                    std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
-                    frequency * (1.f + velocityTangentToCollision / velocityTowardCollision),
-                    std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
-                    1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
+        float tangentialSpeed = glm::length(velocity) - normalSpeed;
+        _audio->startCollisionSound( std::min(COLLISION_LOUDNESS * normalSpeed, 1.f),
+            frequency * (1.f + tangentialSpeed / normalSpeed),
+            std::min(tangentialSpeed / normalSpeed * NOISE_SCALING, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / normalSpeed, false);
     }
 }

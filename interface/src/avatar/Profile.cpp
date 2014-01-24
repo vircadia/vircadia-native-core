@@ -48,8 +48,12 @@ QString Profile::getUserString() const {
 void Profile::setUUID(const QUuid& uuid) {
     _uuid = uuid;
     
-    // when the UUID is changed we need set it appropriately on the NodeList instance
-    NodeList::getInstance()->setOwnerUUID(uuid);
+    if (!_uuid.isNull()) {
+        qDebug() << "Changing NodeList owner UUID to" << uuid;
+        
+        // when the UUID is changed we need set it appropriately on the NodeList instance
+        NodeList::getInstance()->setOwnerUUID(uuid);
+    }    
 }
 
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
@@ -194,7 +198,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 if (coordinateItems.size() == 3 && orientationItems.size() == 3) {
                     
                     // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                    NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
                     
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
@@ -220,7 +224,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 
             } else if (keyList[i] == DataServerKey::UUID) {
                 // this is the user's UUID - set it on the profile
-                _uuid = QUuid(valueList[i]);
+                setUUID(QUuid(valueList[i]));
             }
         }
     }

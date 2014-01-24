@@ -6,7 +6,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QColorDialog>
+#include <QPushButton>
 #include <QScriptEngine>
+#include <QVBoxLayout>
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
@@ -69,12 +72,12 @@ bool AttributeValue::operator==(void* other) const {
     return _attribute && _attribute->equal(_value, other);
 }
 
-OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute) :
-    AttributeValue(attribute, attribute ? attribute->create() : NULL) {
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
+    AttributeValue(attribute, value) {
 }
 
-OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
-    AttributeValue(attribute, attribute ? attribute->create(value) : NULL) {
+OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute) :
+    AttributeValue(attribute, attribute ? attribute->create() : NULL) {
 }
 
 OwnedAttributeValue::OwnedAttributeValue(const AttributeValue& other) :
@@ -92,7 +95,7 @@ OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other)
         _attribute->destroy(_value);
     }
     if ((_attribute = other.getAttribute())) {
-        _value = _attribute->create(other.getValue());
+        _value = other.copy();
     }
     return *this;
 }
@@ -130,6 +133,41 @@ bool QRgbAttribute::merge(void*& parent, void* children[]) const {
 
 void* QRgbAttribute::createFromScript(const QScriptValue& value, QScriptEngine* engine) const {
     return encodeInline((QRgb)value.toUInt32());
+}
+
+void* QRgbAttribute::createFromVariant(const QVariant& value) const {
+    switch (value.userType()) {
+        case QMetaType::QColor:
+            return encodeInline(value.value<QColor>().rgba());
+        
+        default:
+            return encodeInline((QRgb)value.toUInt());
+    } 
+}
+
+QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
+    QRgbEditor* editor = new QRgbEditor(parent);
+    editor->setColor(QColor::fromRgba(_defaultValue));
+    return editor;
+}
+
+QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
+    setLayout(new QVBoxLayout());
+    layout()->addWidget(_button = new QPushButton());
+    connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
+}
+
+void QRgbEditor::setColor(const QColor& color) {
+    QString name = (_color = color).name();
+    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color.rgb()).name()));
+    _button->setText(name);
+}
+
+void QRgbEditor::selectColor() {
+    QColor color = QColorDialog::getColor(_color, this, QString(), QColorDialog::ShowAlphaChannel);
+    if (color.isValid()) {
+        setColor(color);
+    }
 }
 
 PolymorphicData::~PolymorphicData() {

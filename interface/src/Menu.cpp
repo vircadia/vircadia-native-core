@@ -32,6 +32,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
+#include "ui/MetavoxelEditor.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -220,6 +221,8 @@ Menu::Menu() :
                                   SLOT(increaseVoxelSize()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ResetSwatchColors, 0, this, SLOT(resetSwatchColors()));
 
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
+
 
     QMenu* viewMenu = addMenu("View");
 
@@ -352,6 +355,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandsCollideWithSelf, 0, false);
 
     addDisabledActionAndSeparator(developerMenu, "Testing");
 
@@ -898,7 +902,7 @@ void Menu::goToDomain() {
         }
 
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+        NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
         // give our nodeList the new domain-server hostname
         NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
@@ -940,7 +944,7 @@ void Menu::goToLocation() {
 
             if (newAvatarPos != avatarPos) {
                 // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
                 qDebug("Going To Location: %f, %f, %f...", x, y, z);
                 myAvatar->setPosition(newAvatarPos);
@@ -1007,6 +1011,13 @@ void Menu::bandwidthDetails() {
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
+}
+
+void Menu::showMetavoxelEditor() {
+    if (!_MetavoxelEditor) {
+        _MetavoxelEditor = new MetavoxelEditor();
+    }
+    _MetavoxelEditor->raise();
 }
 
 void Menu::audioMuteToggled() {

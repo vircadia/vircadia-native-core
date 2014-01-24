@@ -11,7 +11,6 @@
 
 #include <QtCore/QObject>
 
-#include <JurisdictionListener.h>
 #include <OctreeScriptingInterface.h>
 
 #include "VoxelConstants.h"
@@ -20,7 +19,7 @@
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
-public:
+public:    
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
     virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_VOXEL_SERVER; }

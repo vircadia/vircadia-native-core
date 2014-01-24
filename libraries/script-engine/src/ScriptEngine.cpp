@@ -250,7 +250,7 @@ void ScriptEngine::run() {
             
             int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
             
-            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, &NODE_TYPE_AVATAR_MIXER, 1);
+            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
         }
 
         if (willSendVisualDataCallBack) {

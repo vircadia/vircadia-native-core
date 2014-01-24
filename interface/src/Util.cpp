@@ -332,27 +332,29 @@ void renderWorldBox() {
     glVertex3f(TREE_SCALE, 0, TREE_SCALE);
     glVertex3f(TREE_SCALE, 0, 0);
     glEnd();
-    //  Draw marker dots at very end
+    //  Draw meter markers along the 3 axis to help with measuring things
+    const float MARKER_DISTANCE = 1.f;
+    const float MARKER_RADIUS = 0.05f;
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(TREE_SCALE, 0, 0);
+    glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    glutSolidSphere(0.125, 10, 10);
+    glutSolidSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, TREE_SCALE, 0);
+    glTranslatef(0, MARKER_DISTANCE, 0);
     glColor3fv(green);
-    glutSolidSphere(0.125, 10, 10);
+    glutSolidSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, 0, TREE_SCALE);
+    glTranslatef(0, 0, MARKER_DISTANCE);
     glColor3fv(blue);
-    glutSolidSphere(0.125, 10, 10);
+    glutSolidSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glColor3fv(gray);
-    glTranslatef(TREE_SCALE, 0, TREE_SCALE);
-    glutSolidSphere(0.125, 10, 10);
+    glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
+    glutSolidSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
 
 }

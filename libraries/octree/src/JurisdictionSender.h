@@ -21,12 +21,12 @@
 /// Will process PACKET_TYPE_JURISDICTION_REQUEST packets and send out PACKET_TYPE_JURISDICTION packets
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
-class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {
+class JurisdictionSender : public ReceivedPacketProcessor {
     Q_OBJECT
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
-    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER, PacketSenderNotify* notify = NULL);
+    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER);
     ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
@@ -51,5 +51,7 @@ private:
     JurisdictionMap* _jurisdictionMap;
     std::queue<QUuid> _nodesRequestingJurisdictions;
     NODE_TYPE _nodeType;
+    
+    PacketSender _packetSender;
 };
 #endif // __shared__JurisdictionSender__

@@ -15,14 +15,17 @@
 #include <PacketHeaders.h>
 #include "JurisdictionListener.h"
 
-JurisdictionListener::JurisdictionListener(NODE_TYPE type, PacketSenderNotify* notify) : 
-    PacketSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
+JurisdictionListener::JurisdictionListener(NODE_TYPE type) :
+    _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     
-//  connect(nodeList, &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
-//  qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)\n", type);
+    connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
+    //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
+    
+    // tell our NodeList we want to hear about nodes with our node type
+    NodeList::getInstance()->addNodeTypeToInterestSet(type);
 }
 
 void JurisdictionListener::nodeKilled(SharedNodePointer node) {
@@ -32,7 +35,7 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
-    //qDebug() << "JurisdictionListener::queueJurisdictionRequest()\n";
+    //qDebug() << "JurisdictionListener::queueJurisdictionRequest()";
 
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
@@ -45,15 +48,15 @@ bool JurisdictionListener::queueJurisdictionRequest() {
         if (nodeList->getNodeActiveSocketOrPing(node.data()) &&
             node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();
-            PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
+            _packetSender.queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
             nodeCount++;
         }
     }
 
     if (nodeCount > 0){
-        setPacketsPerSecond(nodeCount);
+        _packetSender.setPacketsPerSecond(nodeCount);
     } else {
-        setPacketsPerSecond(NO_SERVER_CHECK_RATE);
+        _packetSender.setPacketsPerSecond(NO_SERVER_CHECK_RATE);
     }
     
     // keep going if still running
@@ -61,6 +64,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
+    //qDebug() << "JurisdictionListener::processPacket()";
     if (packetData[0] == PACKET_TYPE_JURISDICTION) {
         SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
@@ -73,12 +77,17 @@ void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsi
 }
 
 bool JurisdictionListener::process() {
+    //qDebug() << "JurisdictionListener::process()";
     bool continueProcessing = isStillRunning();
 
     // If we're still running, and we don't have any requests waiting to be sent, then queue our jurisdiction requests
-    if (continueProcessing && !hasPacketsToSend()) {
+    if (continueProcessing && !_packetSender.hasPacketsToSend()) {
         queueJurisdictionRequest();
-        continueProcessing = PacketSender::process();
+    }
+    
+    if (continueProcessing) {
+        //qDebug() << "JurisdictionListener::process() calling _packetSender.process()";
+        continueProcessing = _packetSender.process();
     }
     if (continueProcessing) {
         // NOTE: This will sleep if there are no pending packets to process
