@@ -375,7 +375,7 @@ bool Applier::visit(MetavoxelInfo& info) {
         return false; // entirely contained
     }
     if (info.size <= _granularity) {
-        if (volume > 0.5f) {
+        if (volume >= 0.5f) {
             info.outputValues[0] = _value;
         }
         return false; // reached granularity limit; take best guess

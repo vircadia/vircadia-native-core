@@ -334,6 +334,9 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, cons
     _outputs(outputs) {
 }
 
+MetavoxelVisitor::~MetavoxelVisitor() {
+}
+
 PolymorphicData* DefaultMetavoxelGuide::clone() const {
     return new DefaultMetavoxelGuide();
 }

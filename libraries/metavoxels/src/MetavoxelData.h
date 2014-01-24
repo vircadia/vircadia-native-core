@@ -124,6 +124,7 @@ class MetavoxelVisitor {
 public:
     
     MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs);
+    virtual ~MetavoxelVisitor();
     
     /// Returns a reference to the list of input attributes desired.
     const QVector<AttributePointer>& getInputs() const { return _inputs; }
@@ -141,6 +142,8 @@ protected:
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
 };
+
+typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
 
 /// Interface for objects that guide metavoxel visitors.
 class MetavoxelGuide : public PolymorphicData {

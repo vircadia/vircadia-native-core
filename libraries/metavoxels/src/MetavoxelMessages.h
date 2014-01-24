@@ -29,4 +29,17 @@ class MetavoxelDeltaMessage {
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
 
+/// A simple streamable edit.
+class MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    glm::vec3 minimum;
+    glm::vec3 maximum;
+    float granularity;
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelEdit)
+
 #endif /* defined(__interface__MetavoxelMessages__) */

@@ -23,6 +23,7 @@ struct QMetaObject;
 class QObject;
 
 class Attribute;
+class AttributeValue;
 class Bitstream;
 class TypeStreamer;
 
@@ -230,6 +231,9 @@ public:
     
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
+    
+    Bitstream& operator<<(const AttributeValue& value);
+    Bitstream& operator>>(AttributeValue& value);
     
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);

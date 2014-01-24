@@ -48,13 +48,12 @@ void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& se
 
 void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
-    foreach (MetavoxelClient* client, _clients) {
-        client->simulate(deltaTime);
-    }
-
     _points.clear();
     _data.guide(_pointVisitor);
-    
+    foreach (MetavoxelClient* client, _clients) {
+        client->simulate(deltaTime, _pointVisitor);
+    }
+
     _buffer.bind();
     int bytes = _points.size() * sizeof(Point);
     if (_buffer.size() < bytes) {
@@ -188,11 +187,13 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     _receiveRecords.append(record);
 }
 
-void MetavoxelClient::simulate(float deltaTime) {
+void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
     Bitstream& out = _sequencer.startPacket();
     ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
+    
+    _data->guide(visitor);
 }
 
 void MetavoxelClient::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
