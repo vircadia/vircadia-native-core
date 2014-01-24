@@ -7,8 +7,3 @@
 //
 
 #include "VoxelQuery.h"
-
-VoxelQuery::VoxelQuery(Node* owningNode) : OctreeQuery(owningNode) {
-}
-
-

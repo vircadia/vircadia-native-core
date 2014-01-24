@@ -532,7 +532,7 @@ void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignme
 void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this node has linked data it was from an assignment
     if (node->getLinkedData()) {
-        Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
+        Assignment* nodeAssignment = (Assignment*) node->getLinkedData();
 
         addReleasedAssignmentBackToQueue(nodeAssignment);
     }

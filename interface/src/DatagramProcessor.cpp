@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QWeakPointer>
+
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -90,11 +92,30 @@ void DatagramProcessor::processDatagrams() {
                                                          senderSockAddr);
                     break;
                 case PACKET_TYPE_BULK_AVATAR_DATA:
-                    NodeList::getInstance()->processBulkNodeData(senderSockAddr,
-                                                                 incomingPacket,
-                                                                 bytesReceived);
+                case PACKET_TYPE_KILL_AVATAR: {
+                    // update having heard from the avatar-mixer and record the bytes received
+                    SharedNodePointer avatarMixer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+                    
+                    if (avatarMixer) {
+                        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+                        avatarMixer->recordBytesReceived(bytesReceived);
+                        
+                        QByteArray datagram(reinterpret_cast<char*>(incomingPacket), bytesReceived);
+                        
+                        if (incomingPacket[0] == PACKET_TYPE_BULK_AVATAR_DATA) {                            
+                            QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
+                                                      Q_ARG(const QByteArray&, datagram),
+                                                      Q_ARG(const QWeakPointer<Node>&, avatarMixer));
+                        } else {
+                            // this is an avatar kill, pass it to the application AvatarManager
+                            QMetaObject::invokeMethod(&application->getAvatarManager(), "processKillAvatar",
+                                                      Q_ARG(const QByteArray&, datagram));
+                        }
+                    }
+                    
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                     break;
+                }                    
                 case PACKET_TYPE_DATA_SERVER_GET:
                 case PACKET_TYPE_DATA_SERVER_PUT:
                 case PACKET_TYPE_DATA_SERVER_SEND:

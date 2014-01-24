@@ -8,16 +8,6 @@
 
 #include "NodeData.h"
 
-NodeData::NodeData(Node* owningNode) :
-    _owningNode(owningNode)
-{
-    
-}
-
 NodeData::~NodeData() {
-
-}
-
-void NodeData::deleteOrDeleteLater() {
-    delete this;
+    
 }
