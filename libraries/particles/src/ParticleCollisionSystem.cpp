@@ -303,10 +303,9 @@ void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
         float tangentialSpeed = glm::length(velocity) - normalSpeed;
-        _audio->startCollisionSound(
-                    std::min(COLLISION_LOUDNESS * normalSpeed, 1.f),
-                    frequency * (1.f + tangentialSpeed / normalSpeed),
-                    std::min(tangentialSpeed / normalSpeed * NOISE_SCALING, 1.f),
-                    1.f - DURATION_SCALING * powf(frequency, 0.5f) / normalSpeed, false);
+        _audio->startCollisionSound( std::min(COLLISION_LOUDNESS * normalSpeed, 1.f),
+            frequency * (1.f + tangentialSpeed / normalSpeed),
+            std::min(tangentialSpeed / normalSpeed * NOISE_SCALING, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / normalSpeed, false);
     }
 }
