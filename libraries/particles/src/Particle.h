@@ -145,6 +145,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(ParticleID);
+Q_DECLARE_METATYPE(QVector<ParticleID>);
 QScriptValue ParticleIDtoScriptValue(QScriptEngine* engine, const ParticleID& properties);
 void ParticleIDfromScriptValue(const QScriptValue &object, ParticleID& properties);
 

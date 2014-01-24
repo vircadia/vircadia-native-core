@@ -34,15 +34,28 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
     return id;
 }
 
-void ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
+ParticleID ParticlesScriptingInterface::identifyParticle(ParticleID particleID) {
     uint32_t actualID = particleID.id;
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-        // hmmm... we kind of want to bail if someone attempts to edit an unknown
         if (actualID == UNKNOWN_PARTICLE_ID) {
-            //qDebug() << "ParticlesScriptingInterface::editParticle()... BAILING!!! particleID.creatorTokenID=" 
-            //            << particleID.creatorTokenID;
-            return; // bailing early
+            return particleID; // bailing early
+        }
+        
+        // found it!
+        particleID.id = actualID;
+        particleID.isKnownID = true;
+    }
+    return particleID;
+}
+
+
+ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
+    uint32_t actualID = particleID.id;
+    if (!particleID.isKnownID) {
+        actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
+        if (actualID == UNKNOWN_PARTICLE_ID) {
+            return particleID; // bailing early
         }
     }
 
@@ -71,6 +84,7 @@ void ParticlesScriptingInterface::editParticle(ParticleID particleID, const Part
         }
     }
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    return particleID;
 }
 
 
@@ -111,6 +125,20 @@ ParticleID ParticlesScriptingInterface::findClosestParticle(const glm::vec3& cen
         if (closestParticle) {
             result.id = closestParticle->getID();
             result.isKnownID = true;
+        }
+    }
+    return result;
+}
+
+
+QVector<ParticleID> ParticlesScriptingInterface::findParticles(const glm::vec3& center, float radius) const {
+    QVector<ParticleID> result;
+    if (_particleTree) {
+        QVector<const Particle*> particles = _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE);
+
+        foreach (const Particle* particle, particles) {
+            ParticleID thisParticleID(particle->getID(), UNKNOWN_TOKEN, true);
+            result << thisParticleID;
         }
     }
     return result;

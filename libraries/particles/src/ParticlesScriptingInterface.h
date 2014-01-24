@@ -28,10 +28,28 @@ public:
     ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
 
 public slots:
+    /// adds a particle with the specific properties
     ParticleID addParticle(const ParticleProperties& properties);
-    void editParticle(ParticleID particleID, const ParticleProperties& properties);
+
+    /// identify a recently created particle to determine its true ID
+    ParticleID identifyParticle(ParticleID particleID);
+
+    /// edits a particle updating only the included properties, will return the identified ParticleID in case of
+    /// successful edit, if the input particleID is for an unknown particle this function will have no effect
+    ParticleID editParticle(ParticleID particleID, const ParticleProperties& properties);
+
+    /// deletes a particle
     void deleteParticle(ParticleID particleID);
+
+    /// finds the closest particle to the center point, within the radius
+    /// will return a ParticleID.isKnownID = false if no particles are in the radius
+    /// this function will not find any particles in script engine contexts which don't have access to particles
     ParticleID findClosestParticle(const glm::vec3& center, float radius) const;
+
+    /// finds particles within the search sphere specified by the center point and radius
+    /// this function will not find any particles in script engine contexts which don't have access to particles
+    QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
+    
 
 private:
     void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
