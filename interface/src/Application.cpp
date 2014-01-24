@@ -2008,15 +2008,9 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
 
-    } else if (!_lookatTargetAvatar) {
-        if (_isHoverVoxel) {
-            //  Look at the hovered voxel
-            lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
-
-        } else {
-            //  Just look in direction of the mouse ray
-            lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
-        }
+    } else {
+        // just look in direction of the mouse ray
+        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
@@ -2872,10 +2866,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     if (!selfAvatarOnly) {
         // draw a red sphere
-        float sphereRadius = 0.25f;
+        float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
         glPushMatrix();
-            glutSolidSphere(sphereRadius, 15, 15);
+            glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
         // disable specular lighting for ground and voxels
