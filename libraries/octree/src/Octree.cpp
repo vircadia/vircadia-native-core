@@ -592,6 +592,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
+            // NOTE: it is possible for this penetration accumulation algorithm to produce a final penetration vector with zero length.
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
             args->found = true;
         }
