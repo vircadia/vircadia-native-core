@@ -47,7 +47,7 @@ unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *no
 
 void attachAvatarDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        newNode->setLinkedData(new AvatarData(newNode));
+        newNode->setLinkedData(new AvatarData());
     }
 }
 

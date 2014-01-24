@@ -58,8 +58,8 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
-Avatar::Avatar(Node* owningNode) :
-    AvatarData(owningNode),
+Avatar::Avatar() :
+    AvatarData(),
     _head(this),
     _hand(this),
     _skeletonModel(this),

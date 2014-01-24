@@ -69,9 +69,7 @@ class Avatar : public AvatarData {
     Q_OBJECT
 
 public:
-
-    Avatar(Node* owningNode = NULL);
-    ~Avatar();
+    Avatar();
 
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
@@ -109,6 +107,8 @@ public:
     /// \param collision[out] the details of the collision point
     /// \return whether or not the sphere collided
     virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+    
+    virtual bool isMyAvatar() { return false; }
 
     int parseData(unsigned char* sourceBuffer, int numBytes);
 

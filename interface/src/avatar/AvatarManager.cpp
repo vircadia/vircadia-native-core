@@ -203,6 +203,7 @@ void AvatarManager::processKillAvatar(const QByteArray& datagram) {
 }
 
 void AvatarManager::clearHash() {
+    qDebug() << "clear the hash!";
     // clear the AvatarManager hash - typically happens on the removal of the avatar-mixer
     _avatarHash.clear();
 }

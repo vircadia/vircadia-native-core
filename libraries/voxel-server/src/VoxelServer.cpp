@@ -24,8 +24,8 @@ VoxelServer::~VoxelServer() {
     // nothing special to do here...
 }
 
-OctreeQueryNode* VoxelServer::createOctreeQueryNode(Node* newNode) {
-    return new VoxelNodeData(newNode);
+OctreeQueryNode* VoxelServer::createOctreeQueryNode() {
+    return new VoxelNodeData();
 }
 
 Octree* VoxelServer::createTree() {

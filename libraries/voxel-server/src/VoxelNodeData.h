@@ -14,7 +14,7 @@
 
 class VoxelNodeData : public OctreeQueryNode {
 public:
-    VoxelNodeData(Node* owningNode) : OctreeQueryNode(owningNode) {  };
+    VoxelNodeData() : OctreeQueryNode() {  };
     virtual PACKET_TYPE getMyPacketType() const { return PACKET_TYPE_VOXEL_DATA; }
 };
 

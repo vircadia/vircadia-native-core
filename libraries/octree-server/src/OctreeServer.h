@@ -48,7 +48,7 @@ public:
     uint64_t getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode) = 0;
+    virtual OctreeQueryNode* createOctreeQueryNode() = 0;
     virtual Octree* createTree() = 0;
     virtual unsigned char getMyNodeType() const = 0;
     virtual PACKET_TYPE getMyQueryMessageType() const = 0;

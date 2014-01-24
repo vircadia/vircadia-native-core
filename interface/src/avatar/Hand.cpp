@@ -43,7 +43,7 @@ Hand::Hand(Avatar* owningAvatar) :
 
 void Hand::init() {
     // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->getOwningNode() == NULL) {
+    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
         _ballColor = glm::vec3(0.0, 0.4, 0.0);
     }
     else {
@@ -53,8 +53,6 @@ void Hand::init() {
 
 void Hand::reset() {
 }
-
-
 
 glm::vec3 Hand::getAndResetGrabDelta() {
     const float HAND_GRAB_SCALE_DISTANCE = 2.f;

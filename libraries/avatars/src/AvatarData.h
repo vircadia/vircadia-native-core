@@ -70,7 +70,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 public:
-    AvatarData(Node* owningNode = NULL);
+    AvatarData();
     ~AvatarData();
 
     const glm::vec3& getPosition() const { return _position; }

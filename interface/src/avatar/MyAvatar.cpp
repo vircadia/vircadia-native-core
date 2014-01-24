@@ -37,8 +37,8 @@ const bool USING_HEAD_LEAN = false;
 const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
 const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
-MyAvatar::MyAvatar(Node* owningNode) :
-	Avatar(owningNode),
+MyAvatar::MyAvatar() :
+	Avatar(),
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),

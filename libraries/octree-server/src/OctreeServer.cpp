@@ -22,7 +22,7 @@ OctreeServer* OctreeServer::_instance = NULL;
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode(newNode);
+        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->resetOctreePacket(true); // don't bump sequence
         newNode->setLinkedData(newQueryNodeData);
     }
@@ -488,7 +488,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
             }
             OctreeQueryNode* nodeData = (OctreeQueryNode*) node->getLinkedData();
             if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                nodeData->initializeOctreeSendThread(this);
+                nodeData->initializeOctreeSendThread(this, nodeUUID);
             }
         }
     } else if (packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
