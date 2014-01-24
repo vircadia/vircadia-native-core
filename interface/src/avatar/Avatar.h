@@ -90,6 +90,9 @@ public:
     Head& getHead() { return _head; }
     Hand& getHand() { return _hand; }
     glm::quat getWorldAlignedOrientation() const;
+    
+    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
+    void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
@@ -141,8 +144,8 @@ protected:
     glm::vec3 _mouseRayDirection;
     bool _isCollisionsOn;
     float _stringLength;
-
     bool _moving; ///< set when position is changing
+    QWeakPointer<Node> _owningAvatarMixer;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

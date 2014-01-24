@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QWeakPointer>
+
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -100,9 +102,10 @@ void DatagramProcessor::processDatagrams() {
                         
                         QByteArray datagram(reinterpret_cast<char*>(incomingPacket), bytesReceived);
                         
-                        if (incomingPacket[0] == PACKET_TYPE_BULK_AVATAR_DATA) {
+                        if (incomingPacket[0] == PACKET_TYPE_BULK_AVATAR_DATA) {                            
                             QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
-                                                      Q_ARG(const QByteArray&, datagram));
+                                                      Q_ARG(const QByteArray&, datagram),
+                                                      Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                         } else {
                             // this is an avatar kill, pass it to the application AvatarManager
                             QMetaObject::invokeMethod(&application->getAvatarManager(), "processKillAvatar",

@@ -23,7 +23,8 @@ AvatarManager::AvatarManager(QObject* parent) :
     _avatarHash(),
     _avatarFades()
 {
-    
+    // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
+    qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 }
 
 void AvatarManager::updateLookAtTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
@@ -59,9 +60,17 @@ void AvatarManager::updateAvatars(float deltaTime, const glm::vec3& mouseRayOrig
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
     
     // simulate avatars
-    foreach (const AvatarSharedPointer& avatar, _avatarHash) {
-        avatar->simulate(deltaTime, NULL);
-        avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
+    AvatarHash::iterator avatar = _avatarHash.begin();
+    if (avatar != _avatarHash.end()) {
+        if (avatar->data()->getOwningAvatarMixer()) {
+            // this avatar's mixer is still around, go ahead and simulate it
+            avatar->data()->simulate(deltaTime, NULL);
+            avatar->data()->setMouseRay(mouseRayOrigin, mouseRayDirection);
+        } else {
+            // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
+            _avatarFades.push_back(*avatar);
+            avatar = _avatarHash.erase(avatar);
+        }
     }
     
     // simulate avatar fades
@@ -106,6 +115,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         const float MIN_FADE_SCALE = 0.001f;
         
         if (fadingAvatar->data()->getTargetScale() < MIN_FADE_SCALE) {
+        
             fadingAvatar = _avatarFades.erase(fadingAvatar);
         } else {
             fadingAvatar->data()->simulate(deltaTime, NULL);
@@ -149,7 +159,7 @@ void AvatarManager::processDataServerResponse(const QString& userString, const Q
     }
 }
 
-void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram) {
+void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
     unsigned char packetData[MAX_PACKET_SIZE];
     memcpy(packetData, datagram.data(), datagram.size());
     
@@ -160,7 +170,9 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram) {
     unsigned char avatarData[MAX_PACKET_SIZE];
     int numBytesDummyPacketHeader = populateTypeAndVersion(avatarData, PACKET_TYPE_HEAD_DATA);
 
-    while (bytesRead < datagram.size()) {
+    // enumerate over all of the avatars in this packet
+    // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
+    while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
         
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
@@ -168,6 +180,7 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram) {
         if (!matchingAvatar) {
             // construct a new Avatar for this node
             matchingAvatar = AvatarSharedPointer(new Avatar());
+            matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);
             
             // insert the new avatar into our hash
             _avatarHash.insert(nodeUUID, matchingAvatar);
@@ -203,7 +216,6 @@ void AvatarManager::processKillAvatar(const QByteArray& datagram) {
 }
 
 void AvatarManager::clearHash() {
-    qDebug() << "clear the hash!";
     // clear the AvatarManager hash - typically happens on the removal of the avatar-mixer
     _avatarHash.clear();
 }

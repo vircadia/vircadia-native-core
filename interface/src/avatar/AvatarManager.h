@@ -41,7 +41,7 @@ public:
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
     
-    void processAvatarMixerDatagram(const QByteArray& datagram);
+    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     void processKillAvatar(const QByteArray& datagram);
 
 private:

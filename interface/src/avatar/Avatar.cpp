@@ -75,6 +75,7 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _isCollisionsOn(true),
     _moving(false),
+    _owningAvatarMixer(),
     _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
