@@ -390,17 +390,29 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
 
 // called by the server when it knows all nodes have been sent deleted packets
 void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
+    //qDebug() << "forgetParticlesDeletedBefore()";
+    QSet<uint64_t> keysToRemove;
+
     _recentlyDeletedParticlesLock.lockForWrite();
-    QMultiMap<uint64_t, uint32_t>::const_iterator iterator = _recentlyDeletedParticleIDs.constBegin();
-    while (iterator != _recentlyDeletedParticleIDs.constEnd()) {
+    QMultiMap<uint64_t, uint32_t>::iterator iterator = _recentlyDeletedParticleIDs.begin();
+    // First find all the keys in the map that are older and need to be deleted    
+    while (iterator != _recentlyDeletedParticleIDs.end()) {
         //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() <= sinceTime) {
             //qDebug() << "YES older... time/key:" << iterator.key();
-            _recentlyDeletedParticleIDs.remove(iterator.key());
+            keysToRemove << iterator.key();
         }
         ++iterator;
     }
+
+    // Now run through the keysToRemove and remove them    
+    foreach (uint64_t value, keysToRemove) {
+        //qDebug() << "removing the key, _recentlyDeletedParticleIDs.remove(value); time/key:" << value;
+        _recentlyDeletedParticleIDs.remove(value);
+    }
+    
     _recentlyDeletedParticlesLock.unlock();
+    //qDebug() << "DONE forgetParticlesDeletedBefore()";
 }
 
 

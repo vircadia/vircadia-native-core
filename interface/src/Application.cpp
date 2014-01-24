@@ -108,6 +108,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _nodeThread(new QThread(this)),
+        _datagramProcessor(),
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
@@ -145,10 +147,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelHideShowThread(&_voxels),
         _voxelEditSender(this),
         _particleEditSender(this),
-        _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
@@ -173,11 +173,21 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
-
+    
+    // start the nodeThread so its event loop is running
+    _nodeThread->start();
+    
+    // make sure the node thread is given highest priority
+    _nodeThread->setPriority(QThread::TimeCriticalPriority);
+    
+    // put the NodeList and datagram processing on the node thread
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
-
-    // connect our processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(processDatagrams()));
+    
+    nodeList->moveToThread(_nodeThread);
+    _datagramProcessor.moveToThread(_nodeThread);
+    
+    // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
+    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), &_datagramProcessor, SLOT(processDatagrams()));
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread(this);
@@ -192,7 +202,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
-
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -221,12 +231,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER,
-        NODE_TYPE_PARTICLE_SERVER, NODE_TYPE_METAVOXEL_SERVER};
-    nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
+                                                 << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                                                 << NODE_TYPE_METAVOXEL_SERVER);
 
-    QTimer* silentNodeTimer = new QTimer(this);
+    // move the silentNodeTimer to the _nodeThread
+    QTimer* silentNodeTimer = new QTimer();
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
+    silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
@@ -270,13 +282,35 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
 
     qInstallMessageHandler(NULL);
-
+    
     // make sure we don't call the idle timer any more
     delete idleTimer;
-
+    
+    Menu::getInstance()->saveSettings();
+    
+    _rearMirrorTools->saveSettings(_settings);
+    _settings->sync();
+    
+    // let the avatar mixer know we're out
+    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+    
+    // ask the datagram processing thread to quit and wait until it is done
+    _nodeThread->quit();
+    _nodeThread->wait();
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
+    
+    _voxelProcessor.terminate();
+    _voxelHideShowThread.terminate();
+    _voxelEditSender.terminate();
+    _particleEditSender.terminate();
+    if (_persistThread) {
+        _persistThread->terminate();
+        _persistThread->deleteLater();
+        _persistThread = NULL;
+    }
 
     storeSizeAndPosition();
     saveScripts();
@@ -360,9 +394,6 @@ void Application::initializeGL() {
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
     }
-
-    // call terminate before exiting
-    connect(this, SIGNAL(aboutToQuit()), SLOT(terminate()));
 
     // call our timer function every second
     QTimer* timer = new QTimer(this);
@@ -1312,11 +1343,12 @@ void Application::timer() {
     }
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
-    _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
-    _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    
+    _packetsPerSecond = (float) _datagramProcessor.getPacketCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
+    _bytesPerSecond = (float) _datagramProcessor.getByteCount() / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _frameCount = 0;
-    _packetCount = 0;
-    _bytesCount = 0;
+    
+    _datagramProcessor.resetCounters();
 
     gettimeofday(&_timerStart, NULL);
 
@@ -1392,28 +1424,6 @@ void Application::idle() {
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
         }
-    }
-}
-
-void Application::terminate() {
-    // Close serial port
-    // close(serial_fd);
-
-    Menu::getInstance()->saveSettings();
-    _rearMirrorTools->saveSettings(_settings);
-    _settings->sync();
-
-    // let the avatar mixer know we're out
-    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
-
-    _voxelProcessor.terminate();
-    _voxelHideShowThread.terminate();
-    _voxelEditSender.terminate();
-    _particleEditSender.terminate();
-    if (_persistThread) {
-        _persistThread->terminate();
-        _persistThread->deleteLater();
-        _persistThread = NULL;
     }
 }
 
@@ -1998,15 +2008,9 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
 
-    } else if (!_lookatTargetAvatar) {
-        if (_isHoverVoxel) {
-            //  Look at the hovered voxel
-            lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
-
-        } else {
-            //  Just look in direction of the mouse ray
-            lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
-        }
+    } else {
+        // just look in direction of the mouse ray
+        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
@@ -2862,10 +2866,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     if (!selfAvatarOnly) {
         // draw a red sphere
-        float sphereRadius = 0.25f;
+        float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
         glPushMatrix();
-            glutSolidSphere(sphereRadius, 15, 15);
+            glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
         // disable specular lighting for ground and voxels
@@ -4050,93 +4054,6 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
         (*jurisdiction)[nodeUUID] = jurisdictionMap;
     }
     return statsMessageLength;
-}
-
-//  Receive packets from other nodes/servers and decide what to do with them!
-void Application::processDatagrams() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-        "Application::networkReceive()");
-
-    HifiSockAddr senderSockAddr;
-    ssize_t bytesReceived;
-
-    while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams() &&
-        (bytesReceived = NodeList::getInstance()->getNodeSocket().readDatagram((char*) _incomingPacket,
-                                                                               MAX_PACKET_SIZE,
-                                                                               senderSockAddr.getAddressPointer(),
-                                                                               senderSockAddr.getPortPointer()))) {
-
-        _packetCount++;
-        _bytesCount += bytesReceived;
-
-        if (packetVersionMatch(_incomingPacket)) {
-            // only process this packet if we have a match on the packet version
-            switch (_incomingPacket[0]) {
-                case PACKET_TYPE_TRANSMITTER_DATA_V2:
-                    //  V2 = IOS transmitter app
-                    _myTransmitter.processIncomingData(_incomingPacket, bytesReceived);
-
-                    break;
-                case PACKET_TYPE_MIXED_AUDIO:
-                    QMetaObject::invokeMethod(&_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
-                                              Q_ARG(QByteArray, QByteArray((char*) _incomingPacket, bytesReceived)));
-                    break;
-
-                case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
-                    // this will keep creatorTokenIDs to IDs mapped correctly
-                    Particle::handleAddParticleResponse(_incomingPacket, bytesReceived);
-                    break;
-
-                case PACKET_TYPE_PARTICLE_DATA:
-                case PACKET_TYPE_PARTICLE_ERASE:
-                case PACKET_TYPE_VOXEL_DATA:
-                case PACKET_TYPE_VOXEL_ERASE:
-                case PACKET_TYPE_OCTREE_STATS:
-                case PACKET_TYPE_ENVIRONMENT_DATA: {
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                            "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
-
-                    bool wantExtraDebugging = getLogger()->extraDebugging();
-                    if (wantExtraDebugging && _incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
-                        int numBytesPacketHeader = numBytesForPacketHeader(_incomingPacket);
-                        unsigned char* dataAt = _incomingPacket + numBytesPacketHeader;
-                        dataAt += sizeof(VOXEL_PACKET_FLAGS);
-                        VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
-                        dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
-                        VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
-                        dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
-                        VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-                        int flightTime = arrivedAt - sentAt;
-
-                        printf("got PACKET_TYPE_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
-                    }
-
-                    // add this packet to our list of voxel packets and process them on the voxel processing
-                    _voxelProcessor.queueReceivedPacket(senderSockAddr, _incomingPacket, bytesReceived);
-                    break;
-                }
-                case PACKET_TYPE_METAVOXEL_DATA:
-                    _metavoxels.processData(QByteArray((const char*) _incomingPacket, bytesReceived),
-                                                 senderSockAddr);
-                    break;
-                case PACKET_TYPE_BULK_AVATAR_DATA:
-                    NodeList::getInstance()->processBulkNodeData(senderSockAddr,
-                                                                 _incomingPacket,
-                                                                 bytesReceived);
-                    getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
-                    break;
-                case PACKET_TYPE_DATA_SERVER_GET:
-                case PACKET_TYPE_DATA_SERVER_PUT:
-                case PACKET_TYPE_DATA_SERVER_SEND:
-                case PACKET_TYPE_DATA_SERVER_CONFIRM:
-                    DataServerClient::processMessageFromDataServer(_incomingPacket, bytesReceived);
-                    break;
-                default:
-                    NodeList::getInstance()->processNodeData(senderSockAddr, _incomingPacket, bytesReceived);
-                    break;
-            }
-        }
-    }
 }
 
 void Application::packetSentNotification(ssize_t length) {

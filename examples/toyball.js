@@ -134,8 +134,10 @@ function checkControllerSide(whichSide) {
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
                 radius: 0.05,
+                damping: 0.999,
                 color: { red: 255, green: 0, blue: 0 },
-                lifetime: 10 // 10 seconds
+
+                lifetime: 10 // 10 seconds - same as default, not needed but here as an example
             };
 
         newParticle = Particles.addParticle(properties);

@@ -231,14 +231,16 @@ void Hand::updateCollisions() {
             }
         }
             
-        // and the current avatar (ignoring everything below the parent of the parent of the last free joint)
-        glm::vec3 owningPenetration;
-        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
-        int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
-            skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
-                (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
-        if (_owningAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, owningPenetration, skipIndex)) {
-            totalPenetration = addPenetrations(totalPenetration, owningPenetration);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::HandsCollideWithSelf)) {
+            // and the current avatar (ignoring everything below the parent of the parent of the last free joint)
+            glm::vec3 owningPenetration;
+            const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+            int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
+                skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
+                    (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
+            if (_owningAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, owningPenetration, skipIndex)) {
+                totalPenetration = addPenetrations(totalPenetration, owningPenetration);
+            }
         }
         
         // un-penetrate
