@@ -42,6 +42,7 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 static const int ICON_SIZE = 24;
 static const int ICON_LEFT = 0;
 static const int ICON_TOP = 115;
+static const int ICON_TOP_MIRROR = 220;
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
@@ -554,7 +555,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         int currentX = startX;
         int topY = screenHeight - 45;
         int bottomY = screenHeight - 25;
-        float frameWidth = 20.0;
+        float frameWidth = 23.0;
         float halfY = topY + ((bottomY - topY) / 2.0);
 
         // draw the lines for the base of the ring buffer
@@ -739,7 +740,9 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
 
 void Audio::renderToolIcon(int screenHeight) {
 
-    _iconBounds = QRect(ICON_LEFT, ICON_TOP, ICON_SIZE, ICON_SIZE);
+    int iconTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? ICON_TOP_MIRROR : ICON_TOP;
+
+    _iconBounds = QRect(ICON_LEFT, iconTop, ICON_SIZE, ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _micTextureId);

@@ -3072,10 +3072,11 @@ void Application::displayOverlay() {
         }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            displayStatsBackground(0x33333399, 0, _glWidget->height() - 70, 300, 70);
+            displayStatsBackground(0x33333399, 0, _glWidget->height() - 68, 296, 68);
             _audio.render(_glWidget->width(), _glWidget->height());
             if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-                _audioScope.render(25, 25);
+                int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
+                _audioScope.render(25, oscilloscopeTop);
             }
         }
 
@@ -3130,7 +3131,7 @@ void Application::displayOverlay() {
         displayStats();
         //  Bandwidth meter
         if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-            displayStatsBackground(0x33333399, _glWidget->width() - 300, _glWidget->height() - 70, 300, 70);
+            displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
     }
@@ -3243,8 +3244,12 @@ void Application::displayStats() {
         node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
     }
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+    }
+
     lines = _statsExpanded ? 5 : 3;
-    displayStatsBackground(backgroundColor, 0, 0, 165, lines * STATS_PELS_PER_LINE + 10);
+    displayStatsBackground(backgroundColor, horizontalOffset, 0, 165, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
     char serverNodes[30];
@@ -3532,6 +3537,10 @@ void Application::checkStatsClick() {
     }
 
     int statsHeight = 0, statsWidth = 0, statsX = 0, statsY = 0, lines = 0;
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        statsX += MIRROR_VIEW_WIDTH;
+    }
 
     // top-left stats click
     lines = _statsExpanded ? 5 : 3;
