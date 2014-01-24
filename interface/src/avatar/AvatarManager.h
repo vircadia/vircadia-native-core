@@ -48,6 +48,8 @@ private:
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades();
     
+    AvatarHash::iterator removeAvatarAtHashIterator(const AvatarHash::iterator& iterator);
+    
     QWeakPointer<Avatar> _lookAtTargetAvatar;
     glm::vec3 _lookAtOtherPosition;
     float _lookAtIndicatorScale;

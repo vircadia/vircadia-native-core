@@ -68,8 +68,7 @@ void AvatarManager::updateAvatars(float deltaTime, const glm::vec3& mouseRayOrig
             avatar->data()->setMouseRay(mouseRayOrigin, mouseRayDirection);
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
-            _avatarFades.push_back(*avatar);
-            avatar = _avatarHash.erase(avatar);
+            avatar = removeAvatarAtHashIterator(avatar);
         }
     }
     
@@ -115,7 +114,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         const float MIN_FADE_SCALE = 0.001f;
         
         if (fadingAvatar->data()->getTargetScale() < MIN_FADE_SCALE) {
-        
             fadingAvatar = _avatarFades.erase(fadingAvatar);
         } else {
             fadingAvatar->data()->simulate(deltaTime, NULL);
@@ -207,15 +205,23 @@ void AvatarManager::processKillAvatar(const QByteArray& datagram) {
                                                      NUM_BYTES_RFC4122_UUID));
     
     // remove the avatar with that UUID from our hash, if it exists
-    AvatarSharedPointer removedAvatar = _avatarHash.take(nodeUUID);
-    
-    if (removedAvatar) {
-        // add this avatar to our vector of fades
-        _avatarFades.push_back(removedAvatar);
+    AvatarHash::iterator matchedAvatar = _avatarHash.find(nodeUUID);
+    if (matchedAvatar != _avatarHash.end()) {
+        removeAvatarAtHashIterator(matchedAvatar);
     }
+}
+
+AvatarHash::iterator AvatarManager::removeAvatarAtHashIterator(const AvatarHash::iterator& iterator) {
+    qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarManager hash.";
+    _avatarFades.push_back(iterator.value());
+    return _avatarHash.erase(iterator);
 }
 
 void AvatarManager::clearHash() {
     // clear the AvatarManager hash - typically happens on the removal of the avatar-mixer
-    _avatarHash.clear();
+    AvatarHash::iterator removeAvatar =  _avatarHash.begin();
+    
+    while (removeAvatar != _avatarHash.end()) {
+        removeAvatar = removeAvatarAtHashIterator(removeAvatar);
+    }
 }
