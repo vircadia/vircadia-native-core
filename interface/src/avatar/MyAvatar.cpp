@@ -484,7 +484,7 @@ void MyAvatar::sendKillAvatar() {
     memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
     packetPosition += rfcUUID.size();
     
-    nodeList->broadcastToNodes(packet, packetPosition - packet, &NODE_TYPE_AVATAR_MIXER, 1);
+    nodeList->broadcastToNodes(packet, packetPosition - packet, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {

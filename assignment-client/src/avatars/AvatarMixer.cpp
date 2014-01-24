@@ -128,7 +128,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         QByteArray rfcUUID = killedNode->getUUID().toRfc4122();
         memcpy(packetData + numHeaderBytes, rfcUUID.constData(), rfcUUID.size());
         
-        NodeList::getInstance()->broadcastToNodes(packetData, numHeaderBytes + NUM_BYTES_RFC4122_UUID, &NODE_TYPE_AGENT, 1);
+        NodeList::getInstance()->broadcastToNodes(packetData, numHeaderBytes + NUM_BYTES_RFC4122_UUID,
+                                                  QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
     }
 }
 
