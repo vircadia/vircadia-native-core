@@ -54,14 +54,13 @@ void DataServer::readPendingDatagrams() {
     qint64 receivedBytes = 0;
     static unsigned char packetData[MAX_PACKET_SIZE];
 
-    QHostAddress senderAddress;
-    quint16 senderPort;
+    HifiSockAddr senderSockAddr;
     
     while (_socket.hasPendingDatagrams() &&
            (receivedBytes = _socket.readDatagram(reinterpret_cast<char*>(packetData), MAX_PACKET_SIZE,
-                                                 &senderAddress, &senderPort))) {
+                                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer()))) {
         if ((packetData[0] == PACKET_TYPE_DATA_SERVER_PUT || packetData[0] == PACKET_TYPE_DATA_SERVER_GET) &&
-            packetVersionMatch(packetData)) {
+            packetVersionMatch(packetData, senderSockAddr)) {
                 
             int readBytes = numBytesForPacketHeader(packetData);
             
@@ -126,7 +125,7 @@ void DataServer::readPendingDatagrams() {
                         // which is the sent packet with the header replaced
                         packetData[0] = PACKET_TYPE_DATA_SERVER_CONFIRM;
                         _socket.writeDatagram(reinterpret_cast<char*>(packetData), receivedBytes,
-                                              senderAddress, senderPort);
+                                              senderSockAddr.getAddress(), senderSockAddr.getPort());
                     }
                     
                     freeReplyObject(reply);
@@ -190,7 +189,7 @@ void DataServer::readPendingDatagrams() {
                     
                     // reply back with the send packet
                     _socket.writeDatagram(reinterpret_cast<char*>(packetData), numSendPacketBytes,
-                                          senderAddress, senderPort);
+                                          senderSockAddr.getAddress(), senderSockAddr.getPort());
                     
                     
                 }
