@@ -23,7 +23,7 @@ namespace { // .cpp-local
     int SPACING_LEFT_CAPTION_UNIT = 4;      //             |######## :         | <--> UNIT
     int PADDING_HORIZ_VALUE = 2;            //             |<-->X.XX<:->#      |
     
-    unsigned const COLOR_TEXT      = 0xe0e0e0e0; // ^      ^     ^   ^         ^       ^
+    unsigned const COLOR_TEXT      = 0xedededff; // ^      ^     ^   ^         ^       ^
     unsigned const COLOR_FRAME     = 0xe0e0e0b0; //        |         |         |
     unsigned const COLOR_INDICATOR = 0xc0c0c0b0; //                  |
     
@@ -38,13 +38,13 @@ namespace { // .cpp-local
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
-    { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x40ff40d0 },
+    { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x33cc99ff },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
     { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
-    _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
+    _textRenderer(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false),
     _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
     _channels = static_cast<ChannelInfo*>( malloc(sizeof(_CHANNELS)) );

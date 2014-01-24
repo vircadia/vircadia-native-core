@@ -548,7 +548,7 @@ void Audio::render(int screenWidth, int screenHeight) {
     if (_audioInput) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
-        glColor3f(1,1,1);
+        glColor3f(.93f, .93f, .93f);
 
         int startX = 20.0;
         int currentX = startX;
@@ -583,9 +583,9 @@ void Audio::render(int screenWidth, int screenHeight) {
         float msLeftForAudioOutput = (secondsLeftForAudioOutput + secondsLeftForRingBuffer) * 1000;
 
         if (_numFramesDisplayStarve == 0) {
-            glColor3f(0, 1, 0);
+            glColor3f(0, .8f, .4f);
         } else {
-            glColor3f(0.5 + (_numFramesDisplayStarve / 20.0f), 0, 0);
+            glColor3f(0.5 + (_numFramesDisplayStarve / 20.0f), .2f, .4f);
             _numFramesDisplayStarve--;
         }
 
@@ -596,44 +596,44 @@ void Audio::render(int screenWidth, int screenHeight) {
         }
 
         glBegin(GL_QUADS);
-        glVertex2f(startX, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth, bottomY - 2);
-        glVertex2f(startX, bottomY - 2);
+        glVertex2f(startX + 1, topY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, topY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, bottomY - 2);
+        glVertex2f(startX + 1, bottomY - 2);
         glEnd();
 
         //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
-        glColor3f(1,1,0);
+        glColor3f(1, .8f, 0);
         glBegin(GL_QUADS);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 2, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 2, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 2, bottomY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 2, bottomY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, topY - 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, topY - 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, bottomY + 2);
+        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, bottomY + 2);
         glEnd();
 
         char out[40];
         sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10f, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10f, 0, 1, 2, out, 1, .8f, 0);
 
         //  Show a red bar with the 'start' point of one frame plus the jitter buffer
 
-        glColor3f(1, 0, 0);
+        glColor3f(1, .2f, .4f);
         int jitterBufferPels = (1.f + (float)getJitterBufferSamples()
                                 / (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
-        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10f, 0, 1, 0, out, 1, 0, 0);
+        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
         sprintf(out, "j %.1f\n", _measuredJitter);
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10f, 0, 1, 0, out, 1, 0, 0);
+            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
         } else {
-            drawtext(startX, bottomY + 12, 0.10f, 0, 1, 0, out, 1, 0, 0);
+            drawtext(startX, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
         }
 
         glBegin(GL_QUADS);
-        glVertex2f(startX + jitterBufferPels - 2, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 2, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 2, bottomY + 2);
-        glVertex2f(startX + jitterBufferPels - 2, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 1, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 3, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 3, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 1, bottomY + 2);
         glEnd();
 
     }
@@ -743,7 +743,7 @@ void Audio::renderToolIcon(int screenHeight) {
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _micTextureId);
-    glColor3f(1, 1, 1);
+    glColor3f(.93f, .93f, .93f);
     glBegin(GL_QUADS);
 
     glTexCoord2f(1, 1);
