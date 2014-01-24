@@ -3155,8 +3155,12 @@ void Application::displayOverlay() {
         char frameTimer[10];
         uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
-        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
-        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
+        int timerBottom = 
+            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
+            Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
+                ? 80 : 20;
+        drawtext(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
+        drawtext(_glWidget->width() - 102, _glWidget->height() - timerBottom - 2, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
     }
 
     _palette.render(_glWidget->width(), _glWidget->height());
@@ -3233,6 +3237,7 @@ void Application::displayStatsBackground(unsigned int rgba, int x, int y, int wi
 void Application::displayStats() {
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, horizontalOffset = 0, lines = 0;
+    bool mirrorEnabled = Menu::getInstance()->isOptionChecked(MenuOption::Mirror);
 
     QLocale locale(QLocale::English);
     std::stringstream voxelStats;
@@ -3244,7 +3249,7 @@ void Application::displayStats() {
         node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (mirrorEnabled) {
         horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
     }
 
@@ -3346,7 +3351,11 @@ void Application::displayStats() {
     horizontalOffset += 5;
 
     char avatarPosition[200];
-    sprintf(avatarPosition, "Position: %.3f, %.3f, %.3f", avatarPos.x, avatarPos.y, avatarPos.z);
+    if (mirrorEnabled) {
+        sprintf(avatarPosition, "Pos: %.3f,%.3f,%.3f", avatarPos.x, avatarPos.y, avatarPos.z);
+    } else {
+        sprintf(avatarPosition, "Position: %.3f, %.3f, %.3f", avatarPos.x, avatarPos.y, avatarPos.z);
+    }    
     char avatarVelocity[30];
     sprintf(avatarVelocity, "Velocity: %.1f", glm::length(_myAvatar.getVelocity()));
     char avatarBodyYaw[30];
