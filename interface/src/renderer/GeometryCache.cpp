@@ -12,6 +12,7 @@
 
 #include <QNetworkReply>
 #include <QOpenGLBuffer>
+#include <QTimer>
 
 #include "Application.h"
 #include "GeometryCache.h"
