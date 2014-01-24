@@ -106,7 +106,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         const float MIN_FADE_SCALE = 0.001f;
         
         if (fadingAvatar->data()->getTargetScale() < MIN_FADE_SCALE) {
-            qDebug() << "Fade for" << fadingAvatar->data() << "over";
             fadingAvatar = _avatarFades.erase(fadingAvatar);
         } else {
             fadingAvatar->data()->simulate(deltaTime, NULL);
