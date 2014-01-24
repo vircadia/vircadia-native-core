@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QCoreApplication>
+
 #include "OctreeScriptingInterface.h"
 
 OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packetSender, 
@@ -16,18 +18,21 @@ OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packe
 }
 
 OctreeScriptingInterface::~OctreeScriptingInterface() {
-    //printf("OctreeScriptingInterface::~OctreeScriptingInterface()\n");
+    cleanupManagedObjects();
+}
+
+void OctreeScriptingInterface::cleanupManagedObjects() {
     if (_managedJurisdictionListener) {
-        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJurisdictionListener... _jurisdictionListener->terminate()\n");
         _jurisdictionListener->terminate();
-        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJurisdictionListener... deleting _jurisdictionListener\n");
-        delete _jurisdictionListener;
+        _jurisdictionListener->deleteLater();
+        _managedJurisdictionListener = false;
+        _jurisdictionListener = NULL;
     }
     if (_managedPacketSender) {
-        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedJurisdictionListener... _packetSender->terminate()\n");
         _packetSender->terminate();
-        //printf("OctreeScriptingInterface::~OctreeScriptingInterface() _managedPacketSender... deleting _packetSender\n");
-        delete _packetSender;
+        _packetSender->deleteLater();
+        _managedPacketSender = false;
+        _packetSender = NULL;
     }
 }
 
@@ -40,13 +45,11 @@ void OctreeScriptingInterface::setJurisdictionListener(JurisdictionListener* jur
 }
 
 void OctreeScriptingInterface::init() {
-    //printf("OctreeScriptingInterface::init()\n");
     if (_jurisdictionListener) {
         _managedJurisdictionListener = false;
     } else {
         _managedJurisdictionListener = true;
         _jurisdictionListener = new JurisdictionListener(getServerNodeType());
-        //qDebug("OctreeScriptingInterface::init() _managedJurisdictionListener=true, creating _jurisdictionListener=%p", _jurisdictionListener);
         _jurisdictionListener->initialize(true);
     }
     
@@ -55,7 +58,11 @@ void OctreeScriptingInterface::init() {
     } else {
         _managedPacketSender = true;
         _packetSender = createPacketSender();
-        //qDebug("OctreeScriptingInterface::init() _managedPacketSender=true, creating _packetSender=%p", _packetSender);
         _packetSender->setServerJurisdictions(_jurisdictionListener->getJurisdictions());
     }
+
+    if (QCoreApplication::instance()) {
+        connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(cleanupManagedObjects()));
+    }
+
 }
