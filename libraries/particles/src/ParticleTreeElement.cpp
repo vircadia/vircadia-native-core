@@ -211,7 +211,21 @@ bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
     return foundParticle;
 }
 
-
+void ParticleTreeElement::findParticles(const AABox& box, QVector<Particle*>& foundParticles) {
+    QList<Particle>::iterator particleItr = _particles->begin();
+    QList<Particle>::iterator particleEnd = _particles->end();
+    AABox particleBox;
+    while(particleItr != particleEnd) {
+        Particle* particle = &(*particleItr);
+        float radius = particle->getRadius();
+        particleBox.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
+        // TODO: replace particleBox-box query with sphere-box
+        if (particleBox.touches(_box)) {
+            foundParticles.push_back(particle);
+        }
+        ++particleItr;
+    }
+}
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
