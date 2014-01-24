@@ -111,7 +111,7 @@ void AssignmentClient::readPendingDatagrams() {
         if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
                                                                     senderSockAddr.getAddressPointer(),
                                                                     senderSockAddr.getPortPointer()))
-            && packetVersionMatch(packetData)) {
+            && packetVersionMatch(packetData, senderSockAddr)) {
             
             if (_currentAssignment) {
                 // have the threaded current assignment handle this datagram

@@ -45,7 +45,7 @@ void VoxelPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, uns
         if (messageLength > statsMessageLength) {
             packetData += statsMessageLength;
             messageLength -= statsMessageLength;
-            if (!packetVersionMatch(packetData)) {
+            if (!packetVersionMatch(packetData, senderSockAddr)) {
                 return; // bail since piggyback data doesn't match our versioning
             }
         } else {

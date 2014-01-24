@@ -27,7 +27,7 @@ const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AUDIO_MIXER
 };
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
+const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
 NodeList* NodeList::_sharedInstance = NULL;
@@ -178,53 +178,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char
             processSTUNResponse(packetData, dataBytes);
             break;
         }
-        case PACKET_TYPE_KILL_NODE: {
-            processKillNode(packetData, dataBytes);
-            break;
-        }
-    }
-}
-
-void NodeList::processBulkNodeData(const HifiSockAddr& senderAddress, unsigned char *packetData, int numTotalBytes) {
-    SharedNodePointer bulkSendNode = nodeWithAddress(senderAddress);
-
-    // find the avatar mixer in our node list and update the lastRecvTime from it
-    if (bulkSendNode) {
-
-        bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
-        bulkSendNode->recordBytesReceived(numTotalBytes);
-
-        int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-
-        unsigned char* startPosition = packetData;
-        unsigned char* currentPosition = startPosition + numBytesPacketHeader;
-        unsigned char* packetHolder = new unsigned char[numTotalBytes];
-
-        // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
-        populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
-
-        while ((currentPosition - startPosition) < numTotalBytes) {
-
-            memcpy(packetHolder + numBytesPacketHeader,
-                   currentPosition,
-                   numTotalBytes - (currentPosition - startPosition));
-
-            QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)currentPosition, NUM_BYTES_RFC4122_UUID));
-            SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
-
-            if (!matchingNode) {
-                // we're missing this node, we need to add it to the list
-                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, HifiSockAddr(), HifiSockAddr());
-            }
-
-            currentPosition += updateNodeWithData(matchingNode.data(),
-                                                  HifiSockAddr(),
-                                                  packetHolder,
-                                                  numTotalBytes - (currentPosition - startPosition));
-
-        }
-
-        delete[] packetHolder;
     }
 }
 
@@ -460,30 +413,13 @@ NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItem
     return _nodeHash.erase(nodeItemToKill);
 }
 
-void NodeList::sendKillNode(const QSet<NODE_TYPE>& destinationNodeTypes) {
-    unsigned char packet[MAX_PACKET_SIZE];
-    unsigned char* packetPosition = packet;
-
-    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_KILL_NODE);
-
-    QByteArray rfcUUID = _ownerUUID.toRfc4122();
-    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
-    packetPosition += rfcUUID.size();
-
-    broadcastToNodes(packet, packetPosition - packet, destinationNodeTypes);
-}
-
-void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
-    // skip the header
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    packetData += numBytesPacketHeader;
-    dataBytes -= numBytesPacketHeader;
-
+void NodeList::processKillNode(const QByteArray& dataByteArray) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData, NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader(reinterpret_cast
+                                                                                  <const unsigned char*>(dataByteArray.data())),
+                                                          NUM_BYTES_RFC4122_UUID));
 
-    packetData += NUM_BYTES_RFC4122_UUID;
-    dataBytes -= NUM_BYTES_RFC4122_UUID;
+    
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
 }

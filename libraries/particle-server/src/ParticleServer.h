@@ -24,7 +24,7 @@ public:
     ~ParticleServer();
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode);
+    virtual OctreeQueryNode* createOctreeQueryNode();
     virtual Octree* createTree();
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
     virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_PARTICLE_QUERY; }

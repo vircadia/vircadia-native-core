@@ -15,8 +15,8 @@
 
 class ParticleNodeData : public OctreeQueryNode {
 public:
-    ParticleNodeData(Node* owningNode) :
-        OctreeQueryNode(owningNode),
+    ParticleNodeData() :
+        OctreeQueryNode(),
         _lastDeletedParticlesSentAt(0) {  };
 
     virtual PACKET_TYPE getMyPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }

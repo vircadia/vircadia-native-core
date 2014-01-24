@@ -12,13 +12,15 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#include "HifiSockAddr.h"
+
 typedef char PACKET_TYPE;
 const PACKET_TYPE PACKET_TYPE_UNKNOWN = 0;
 const PACKET_TYPE PACKET_TYPE_STUN_RESPONSE = 1;
 const PACKET_TYPE PACKET_TYPE_DOMAIN = 'D';
 const PACKET_TYPE PACKET_TYPE_PING = 'P';
 const PACKET_TYPE PACKET_TYPE_PING_REPLY = 'R';
-const PACKET_TYPE PACKET_TYPE_KILL_NODE = 'K';
+const PACKET_TYPE PACKET_TYPE_KILL_AVATAR = 'K';
 const PACKET_TYPE PACKET_TYPE_HEAD_DATA = 'H';
 const PACKET_TYPE PACKET_TYPE_INJECT_AUDIO = 'I';
 const PACKET_TYPE PACKET_TYPE_MIXED_AUDIO = 'A';
@@ -55,7 +57,7 @@ typedef char PACKET_VERSION;
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type);
 
-bool packetVersionMatch(unsigned char* packetHeader);
+bool packetVersionMatch(unsigned char* packetHeader, const HifiSockAddr& senderSockAddr);
 
 int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type);
 int numBytesForPacketHeader(const unsigned char* packetHeader);
