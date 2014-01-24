@@ -84,6 +84,9 @@ public slots:
     /// returns the total bytes queued by this object over its lifetime
     long long unsigned int getLifetimeBytesQueued() const { return _packetSender->getLifetimeBytesQueued(); }
 
+    // TODO: hmmm... we don't want this called from JS, how to handle that?
+    void cleanupManagedObjects();
+    
 protected:
     /// attached OctreeEditPacketSender that handles queuing and sending of packets to VS
     OctreeEditPacketSender* _packetSender;
