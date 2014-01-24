@@ -25,7 +25,7 @@ VoxelTreeElement::~VoxelTreeElement() {
 // own type to our own tree. This means we should initialize that child with any tree and type
 // specific settings that our children must have. One example is out VoxelSystem, which
 // we know must match ours.
-OctreeElement* VoxelTreeElement::createNewElement(unsigned char* octalCode) const {
+OctreeElement* VoxelTreeElement::createNewElement(unsigned char* octalCode) {
     VoxelTreeElement* newChild = new VoxelTreeElement(octalCode);
     newChild->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
     return newChild;

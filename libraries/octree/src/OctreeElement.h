@@ -47,7 +47,7 @@ protected:
     // can only be constructed by derived implementation
     OctreeElement();
 
-    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
+    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
     
 public:
     virtual void init(unsigned char * octalCode); /// Your subclass must call init on construction.
