@@ -129,7 +129,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         memcpy(packetData + numHeaderBytes, rfcUUID.constData(), rfcUUID.size());
         
         NodeList::getInstance()->broadcastToNodes(packetData, numHeaderBytes + NUM_BYTES_RFC4122_UUID,
-                                                  QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+                                                  QSet<NODE_TYPE>() << NODE_TYPE_AGENT);
     }
 }
 
