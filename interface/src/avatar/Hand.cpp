@@ -43,7 +43,7 @@ Hand::Hand(Avatar* owningAvatar) :
 
 void Hand::init() {
     // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->getOwningNode() == NULL) {
+    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
         _ballColor = glm::vec3(0.0, 0.4, 0.0);
     }
     else {
@@ -53,8 +53,6 @@ void Hand::init() {
 
 void Hand::reset() {
 }
-
-
 
 glm::vec3 Hand::getAndResetGrabDelta() {
     const float HAND_GRAB_SCALE_DISTANCE = 2.f;
@@ -185,49 +183,46 @@ void Hand::updateCollisions() {
         glm::vec3 totalPenetration;
         
         // check other avatars
-        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-            if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-                Avatar* otherAvatar = (Avatar*)node->getLinkedData();
-                if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
-                    //  Check for palm collisions
-                    glm::vec3 myPalmPosition = palm.getPosition();
-                    float palmCollisionDistance = 0.1f;
-                    bool wasColliding = palm.getIsCollidingWithPalm();
-                    palm.setIsCollidingWithPalm(false);
-                    //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
-                    for (size_t j = 0; j < otherAvatar->getHand().getNumPalms(); j++) {
-                        PalmData& otherPalm = otherAvatar->getHand().getPalms()[j];
-                        if (!otherPalm.isActive()) {
-                            continue;
-                        }
-                        glm::vec3 otherPalmPosition = otherPalm.getPosition();
-                        if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
-                            palm.setIsCollidingWithPalm(true);
-                            if (!wasColliding) {
-                                const float PALM_COLLIDE_VOLUME = 1.f;
-                                const float PALM_COLLIDE_FREQUENCY = 1000.f;
-                                const float PALM_COLLIDE_DURATION_MAX = 0.75f;
-                                const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
-                                Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                                       PALM_COLLIDE_FREQUENCY,
-                                                                                       PALM_COLLIDE_DURATION_MAX,
-                                                                                       PALM_COLLIDE_DECAY_PER_SAMPLE);
-                                //  If the other person's palm is in motion, move mine downward to show I was hit
-                                const float MIN_VELOCITY_FOR_SLAP = 0.05f;
-                                if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
-                                    // add slapback here
-                                }
+        foreach (const AvatarSharedPointer& avatar, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+                //  Check for palm collisions
+                glm::vec3 myPalmPosition = palm.getPosition();
+                float palmCollisionDistance = 0.1f;
+                bool wasColliding = palm.getIsCollidingWithPalm();
+                palm.setIsCollidingWithPalm(false);
+                //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
+                for (size_t j = 0; j < avatar->getHand().getNumPalms(); j++) {
+                    PalmData& otherPalm = avatar->getHand().getPalms()[j];
+                    if (!otherPalm.isActive()) {
+                        continue;
+                    }
+                    glm::vec3 otherPalmPosition = otherPalm.getPosition();
+                    if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
+                        palm.setIsCollidingWithPalm(true);
+                        if (!wasColliding) {
+                            const float PALM_COLLIDE_VOLUME = 1.f;
+                            const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                            const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                            const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
+                            Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                                   PALM_COLLIDE_FREQUENCY,
+                                                                                   PALM_COLLIDE_DURATION_MAX,
+                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
+                            //  If the other person's palm is in motion, move mine downward to show I was hit
+                            const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                            if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
+                                // add slapback here
                             }
-                            
-                            
                         }
+                        
+                        
                     }
                 }
-                glm::vec3 avatarPenetration;
-                if (otherAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
-                    totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
-                    //  Check for collisions with the other avatar's leap palms
-                }
+            }
+            glm::vec3 avatarPenetration;
+            if (avatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
+                totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
+                //  Check for collisions with the other avatar's leap palms
             }
         }
             

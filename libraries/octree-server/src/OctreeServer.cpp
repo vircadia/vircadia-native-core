@@ -22,22 +22,11 @@ OctreeServer* OctreeServer::_instance = NULL;
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode(newNode);
+        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->resetOctreePacket(true); // don't bump sequence
         newNode->setLinkedData(newQueryNodeData);
     }
 }
-
-void OctreeServer::nodeKilled(SharedNodePointer node) {
-    // Use this to cleanup our node
-    if (node->getType() == NODE_TYPE_AGENT) {
-        OctreeQueryNode* nodeData = (OctreeQueryNode*)node->getLinkedData();
-        if (nodeData) {
-            node->setLinkedData(NULL);
-            delete nodeData;
-        }
-    }
-};
 
 OctreeServer::OctreeServer(const unsigned char* dataBuffer, int numBytes) :
     ThreadedAssignment(dataBuffer, numBytes),
@@ -499,7 +488,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
             }
             OctreeQueryNode* nodeData = (OctreeQueryNode*) node->getLinkedData();
             if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                nodeData->initializeOctreeSendThread(this);
+                nodeData->initializeOctreeSendThread(this, nodeUUID);
             }
         }
     } else if (packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
@@ -573,8 +562,6 @@ void OctreeServer::run() {
 
     setvbuf(stdout, NULL, _IOLBF, 0);
 
-    // tell our NodeList about our desire to get notifications
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
     nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
 
     srand((unsigned)time(0));

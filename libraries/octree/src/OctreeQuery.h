@@ -51,7 +51,7 @@ class OctreeQuery : public NodeData {
     Q_OBJECT
 
 public:
-    OctreeQuery(Node* owningNode = NULL);
+    OctreeQuery();
     virtual ~OctreeQuery();
 
     int getBroadcastData(unsigned char* destinationBuffer);

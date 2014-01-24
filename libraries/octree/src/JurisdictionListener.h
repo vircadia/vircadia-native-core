@@ -23,6 +23,7 @@
 /// within the domain. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionListener : public ReceivedPacketProcessor {
+    Q_OBJECT
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
