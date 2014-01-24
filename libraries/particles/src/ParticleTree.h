@@ -23,7 +23,7 @@ public:
     ParticleTree(bool shouldReaverage = false);
 
     /// Implements our type specific root element factory
-    virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL) const;
+    virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL);
 
     /// Type safe version of getRoot()
     ParticleTreeElement* getRoot() { return (ParticleTreeElement*)_rootNode; }

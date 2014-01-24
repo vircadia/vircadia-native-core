@@ -31,7 +31,7 @@ class VoxelTreeElement : public OctreeElement {
     
     VoxelTreeElement(unsigned char* octalCode = NULL);
 
-    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
+    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
     
 public:
     virtual ~VoxelTreeElement();

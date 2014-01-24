@@ -31,7 +31,7 @@ class ParticleTreeElement : public OctreeElement {
 
     ParticleTreeElement(unsigned char* octalCode = NULL);
 
-    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
+    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
 
 public:
     virtual ~ParticleTreeElement();
