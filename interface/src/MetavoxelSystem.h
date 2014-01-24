@@ -11,7 +11,6 @@
 
 #include <QList>
 #include <QOpenGLBuffer>
-#include <QScriptEngine>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -30,9 +29,12 @@ class MetavoxelSystem : public QObject {
     Q_OBJECT
 
 public:
+
     MetavoxelSystem();
 
     void init();
+    
+    MetavoxelData& getData() { return _data; }
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
@@ -40,8 +42,10 @@ public:
     void render();
     
 public slots:
+
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
+    
 private:
 
     Q_INVOKABLE void addClient(const QUuid& uuid, const HifiSockAddr& address);
@@ -58,7 +62,7 @@ private:
     class PointVisitor : public MetavoxelVisitor {
     public:
         PointVisitor(QVector<Point>& points);
-        virtual bool visit(const MetavoxelInfo& info);
+        virtual bool visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;
@@ -67,7 +71,6 @@ private:
     static ProgramObject _program;
     static int _pointScaleLocation;
     
-    QScriptEngine _scriptEngine;
     MetavoxelData _data;
     QVector<Point> _points;
     PointVisitor _pointVisitor;

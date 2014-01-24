@@ -145,8 +145,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _enableProcessVoxelsThread(true),
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
-        _voxelEditSender(this),
-        _particleEditSender(this),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _recentMaxPackets(0),
@@ -234,6 +232,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
                                                  << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
                                                  << NODE_TYPE_METAVOXEL_SERVER);
+    
+    // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
+    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -292,7 +294,7 @@ Application::~Application() {
     _settings->sync();
     
     // let the avatar mixer know we're out
-    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+    NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
     
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
@@ -643,21 +645,20 @@ void Application::resetProfile(const QString& username) {
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                             const char* nodeTypes, int numNodeTypes) {
-    Application* self = getInstance();
-    for (int i = 0; i < numNodeTypes; ++i) {
-
+                                             const QSet<NODE_TYPE>& destinationNodeTypes) {
+    foreach(NODE_TYPE type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
-        if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+        if (type == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-
+        
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
-
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes,
+                                                                        QSet<NODE_TYPE>() << type);
+        
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
-        switch (nodeTypes[i]) {
+        switch (type) {
             case NODE_TYPE_AGENT:
             case NODE_TYPE_AVATAR_MIXER:
                 channel = BandwidthMeter::AVATARS;
@@ -668,7 +669,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
             default:
                 continue;
         }
-        self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes);
+        _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes);
     }
 }
 
@@ -1151,13 +1152,12 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _seenMouseMove = true;
     }
 
+    int deltaX = event->x() - _mouseX;
+    int deltaY = event->y() - _mouseY;
+    _mouseX = event->x();
+    _mouseY = event->y();
+        
     if (activeWindow() == _window) {
-        int deltaX = event->x() - _mouseX;
-        int deltaY = event->y() - _mouseY;
-
-        _mouseX = event->x();
-        _mouseY = event->y();
-
         // orbit behavior
         if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
             if (_lookatTargetAvatar) {
@@ -1323,15 +1323,13 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::sendPingPackets() {
-
-    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
-        NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_METAVOXEL_SERVER};
-
     unsigned char pingPacket[MAX_PACKET_SIZE];
     int length = NodeList::getInstance()->fillPingPacket(pingPacket);
 
-    getInstance()->controlledBroadcastToNodes(pingPacket, length,
-                                              nodesToPing, sizeof(nodesToPing));
+    getInstance()->controlledBroadcastToNodes(pingPacket, length, QSet<NODE_TYPE>()
+                                              << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                                              << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
+                                              << NODE_TYPE_METAVOXEL_SERVER);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1850,25 +1848,23 @@ const float HEAD_SPHERE_RADIUS = 0.07f;
 
 static QUuid DEFAULT_NODE_ID_REF;
 
-void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition) {
+void Application::updateLookatTargetAvatar(glm::vec3& eyePosition) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
 
     if (!_mousePressed) {
-        _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
+        _lookatTargetAvatar = findLookatTargetAvatar(eyePosition, DEFAULT_NODE_ID_REF);
     }
 }
 
-Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
+Avatar* Application::findLookatTargetAvatar(glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar*)node->getLinkedData();
             float distance;
 
-            if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
+            if (avatar->findRayIntersection(_mouseRayOrigin, _mouseRayDirection, distance)) {
                 // rescale to compensate for head embiggening
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
                 (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
@@ -1919,7 +1915,7 @@ void Application::renderHighlightVoxel(VoxelDetail voxel) {
     glPopMatrix();
 }
 
-void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
+void Application::updateAvatars(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
@@ -1931,7 +1927,7 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
                 avatar->init();
             }
             avatar->simulate(deltaTime, NULL);
-            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
+            avatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
         }
     }
 
@@ -1954,28 +1950,28 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     }
 }
 
-void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection) {
+void Application::updateMouseRay() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
     _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(), _mouseY / (float)_glWidget->height(),
-                                mouseRayOrigin, mouseRayDirection);
+        _mouseRayOrigin, _mouseRayDirection);
 
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        glm::vec3 mouseRayOffset = mouseRayOrigin - _viewFrustum.getPosition();
-        mouseRayOrigin -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayOffset) +
+        glm::vec3 mouseRayOffset = _mouseRayOrigin - _viewFrustum.getPosition();
+        _mouseRayOrigin -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayOffset) +
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayOffset));
-        mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayDirection) +
-            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayDirection));
+        _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
+            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
     }
 
     // tell my avatar if the mouse is being pressed...
     _myAvatar.setMousePressed(_mousePressed);
 
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position
-    _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
+    _myAvatar.setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
 void Application::updateFaceshift() {
@@ -1992,8 +1988,7 @@ void Application::updateFaceshift() {
     }
 }
 
-void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin,
-        glm::vec3& lookAtRayDirection) {
+void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
@@ -2010,7 +2005,7 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
 
     } else {
         // just look in direction of the mouse ray
-        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * FAR_AWAY_STARE;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
@@ -2024,8 +2019,7 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     _myAvatar.getHead().setLookAtPosition(lookAtSpot);
 }
 
-void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                    float& distance, BoxFace& face) {
+void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& face) {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
@@ -2056,7 +2050,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
         if (!(_voxels.treeIsBusy() || _mousePressed)) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+                _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
             }
             if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel &&
                     glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
@@ -2072,8 +2066,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
     }
 }
 
-void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                    float& distance, BoxFace& face) {
+void Application::updateMouseVoxels(float deltaTime, float& distance, BoxFace& face) {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
@@ -2085,7 +2078,7 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
 
-        if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
+        if (_voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // set the voxel scale to that of the first moused-over voxel
                 if (!wasInitialized) {
@@ -2105,7 +2098,7 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
                     glm::vec3 faceVector = getFaceVector(face);
                     if (_mouseVoxelScale < _mouseVoxel.s) {
                         // find the closest contained voxel
-                        glm::vec3 pt = (mouseRayOrigin + mouseRayDirection * distance) / (float)TREE_SCALE -
+                        glm::vec3 pt = (_mouseRayOrigin + _mouseRayDirection * distance) / (float)TREE_SCALE -
                         faceVector * (_mouseVoxelScale * 0.5f);
                         _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale);
                         _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale);
@@ -2126,7 +2119,7 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
                    || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
             // place the voxel a fixed distance away
             float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
-            glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
+            glm::vec3 pt = _mouseRayOrigin + _mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
             _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
             _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
             _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
@@ -2360,29 +2353,28 @@ void Application::update(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::update()");
 
     // check what's under the mouse and update the mouse voxel
-    glm::vec3 mouseRayOrigin, mouseRayDirection;
-    updateMouseRay(deltaTime, mouseRayOrigin, mouseRayDirection);
+    updateMouseRay();
 
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
-    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
-    updateMyAvatarLookAtPosition(lookAtSpot, mouseRayOrigin, mouseRayDirection);
+    updateLookatTargetAvatar(lookAtSpot);
+    updateMyAvatarLookAtPosition(lookAtSpot);
 
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
     BoxFace face;
 
-    updateHoverVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // clicking on voxels and making sounds
-    updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
+    updateHoverVoxels(deltaTime, distance, face); // clicking on voxels and making sounds
+    updateMouseVoxels(deltaTime, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
     updateSixense(deltaTime); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-    updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection); //loop through all the other avatars and simulate them...
+    updateAvatars(deltaTime); //loop through all the other avatars and simulate them...
     updateMyAvatarSimulation(deltaTime); // Simulate myself
     updateParticles(deltaTime); // Simulate particle cloud movements
     updateMetavoxels(deltaTime); // update metavoxels
@@ -2453,9 +2445,8 @@ void Application::updateAvatar(float deltaTime) {
 
     endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
 
-    const char nodeTypesOfInterest[] = { NODE_TYPE_AVATAR_MIXER };
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
-                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+                               QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -3032,6 +3023,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
             glPopMatrix();
         }
+        
+        // give external parties a change to hook in
+        emit renderingInWorldInterface();
     }
 }
 
@@ -4056,7 +4050,7 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
     return statsMessageLength;
 }
 
-void Application::packetSentNotification(ssize_t length) {
+void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 

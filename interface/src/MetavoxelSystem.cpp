@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QFile>
-#include <QTextStream>
 #include <QtDebug>
 
 #include <SharedUtil.h>
@@ -39,14 +37,6 @@ void MetavoxelSystem::init() {
     
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    
-    AttributeRegistry::getInstance()->configureScriptEngine(&_scriptEngine);
-    
-    QFile scriptFile("resources/scripts/sphere.js");
-    scriptFile.open(QIODevice::ReadOnly);
-    QScriptValue guideFunction = _scriptEngine.evaluate(QTextStream(&scriptFile).readAll());
-    _data.setAttributeValue(MetavoxelPath(), AttributeValue(AttributeRegistry::getInstance()->getGuideAttribute(),
-        encodeInline(PolymorphicDataPointer(new ScriptedMetavoxelGuide(guideFunction)))));
     
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
@@ -156,16 +146,17 @@ void MetavoxelSystem::receivedData(const QByteArray& data, const HifiSockAddr& s
 MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
     MetavoxelVisitor(QVector<AttributePointer>() <<
         AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute()),
+        AttributeRegistry::getInstance()->getNormalAttribute(),
+        QVector<AttributePointer>()),
     _points(points) {
 }
 
-bool MetavoxelSystem::PointVisitor::visit(const MetavoxelInfo& info) {
+bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return true;
     }
-    QRgb color = info.attributeValues.at(0).getInlineValue<QRgb>();
-    QRgb normal = info.attributeValues.at(1).getInlineValue<QRgb>();
+    QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
+    QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
     int alpha = qAlpha(color);
     if (alpha > 0) {
         Point point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),

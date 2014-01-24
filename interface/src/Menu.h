@@ -12,6 +12,7 @@
 #include <QMenuBar>
 #include <QHash>
 #include <QKeySequence>
+#include <QPointer>
 
 #include <AbstractMenuInterface.h>
 
@@ -36,8 +37,9 @@ struct ViewFrustumOffset {
 class QSettings;
 
 class BandwidthDialog;
-class VoxelStatsDialog;
 class LodToolsDialog;
+class MetavoxelEditor;
+class VoxelStatsDialog;
 
 class Menu : public QMenuBar, public AbstractMenuInterface {
     Q_OBJECT
@@ -107,6 +109,7 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void showMetavoxelEditor();
     void audioMuteToggled();
 
 private:
@@ -140,6 +143,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
+    QPointer<MetavoxelEditor> _MetavoxelEditor;
     VoxelStatsDialog* _voxelStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
@@ -223,6 +227,7 @@ namespace MenuOption {
     const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
+    const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
