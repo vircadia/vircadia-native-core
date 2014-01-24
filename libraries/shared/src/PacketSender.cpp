@@ -27,13 +27,12 @@ const int PacketSender::MINIMAL_SLEEP_INTERVAL = (USECS_PER_SECOND / TARGET_FPS)
 
 const int AVERAGE_CALL_TIME_SAMPLES = 10;
 
-PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
+PacketSender::PacketSender(int packetsPerSecond) :
     _packetsPerSecond(packetsPerSecond),
     _usecsPerProcessCallHint(0),
     _lastProcessCallTime(0),
     _averageProcessCallTime(AVERAGE_CALL_TIME_SAMPLES),
     _lastSendTime(0), // Note: we set this to 0 to indicate we haven't yet sent something
-    _notify(notify),
     _lastPPSCheck(0),
     _packetsOverCheckInterval(0),
     _started(usecTimestampNow()),
@@ -271,10 +270,9 @@ bool PacketSender::nonThreadedProcess() {
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
         _totalBytesSent += temporary.getLength();
-
-        if (_notify) {
-            _notify->packetSentNotification(temporary.getLength());
-        }
+        
+        emit packetSent(temporary.getLength());
+        
         _lastSendTime = now;
     }
     return isStillRunning();

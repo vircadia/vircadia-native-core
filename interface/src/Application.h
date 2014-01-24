@@ -92,7 +92,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public PacketSenderNotify {
+class Application : public QApplication {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -171,8 +171,8 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                           const char* nodeTypes, int numNodeTypes);
+    void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+                                    const QSet<NODE_TYPE>& destinationNodeTypes);
 
     void setupWorldLight();
 
@@ -187,9 +187,6 @@ public:
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
-
-
-    virtual void packetSentNotification(ssize_t length);
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -209,7 +206,8 @@ public:
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
-
+    void packetSent(quint64 length);
+    
     void exportVoxels();
     void importVoxels();
     void cutVoxels();
