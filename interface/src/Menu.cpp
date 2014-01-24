@@ -902,7 +902,7 @@ void Menu::goToDomain() {
         }
 
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+        NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
         // give our nodeList the new domain-server hostname
         NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
@@ -944,7 +944,7 @@ void Menu::goToLocation() {
 
             if (newAvatarPos != avatarPos) {
                 // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
                 qDebug("Going To Location: %f, %f, %f...", x, y, z);
                 myAvatar->setPosition(newAvatarPos);

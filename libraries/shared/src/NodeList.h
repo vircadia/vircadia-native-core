@@ -90,6 +90,7 @@ public:
 
     void reset();
     
+    const QSet<NODE_TYPE>& getNodeInterestSet() const { return _nodeTypesOfInterest; }
     void addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd);
     void addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes);
 
@@ -104,7 +105,7 @@ public:
     int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
     
-    void sendKillNode(const char* nodeTypes, int numNodeTypes);
+    void sendKillNode(const QSet<NODE_TYPE>& destinationNodeTypes);
 
     SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
@@ -116,7 +117,7 @@ public:
 
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
 
-    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
+    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const QSet<NODE_TYPE>& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
