@@ -39,7 +39,7 @@ void DatagramProcessor::processDatagrams() {
         _packetCount++;
         _byteCount += bytesReceived;
         
-        if (packetVersionMatch(incomingPacket)) {
+        if (packetVersionMatch(incomingPacket, senderSockAddr)) {
             // only process this packet if we have a match on the packet version
             switch (incomingPacket[0]) {
                 case PACKET_TYPE_TRANSMITTER_DATA_V2:

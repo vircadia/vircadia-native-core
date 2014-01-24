@@ -832,7 +832,7 @@ void AnimationServer::readPendingDatagrams() {
         && (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
                                                                    nodeSockAddr.getAddressPointer(),
                                                                    nodeSockAddr.getPortPointer())) &&
-        packetVersionMatch(packetData)) {
+        packetVersionMatch(packetData, nodeSockAddr)) {
         
         if (packetData[0] == PACKET_TYPE_JURISDICTION) {
             int headerBytes = numBytesForPacketHeader(packetData);
