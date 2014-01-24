@@ -28,7 +28,7 @@ public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
 
-    JurisdictionListener(NODE_TYPE type = NODE_TYPE_VOXEL_SERVER, PacketSenderNotify* notify = NULL);
+    JurisdictionListener(NODE_TYPE type = NODE_TYPE_VOXEL_SERVER);
     
     virtual bool process();
 

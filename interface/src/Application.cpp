@@ -144,8 +144,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _enableProcessVoxelsThread(true),
         _voxelProcessor(),
         _voxelHideShowThread(&_voxels),
-        _voxelEditSender(this),
-        _particleEditSender(this),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _recentMaxPackets(0),
@@ -230,6 +228,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
                                                  << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
                                                  << NODE_TYPE_METAVOXEL_SERVER);
+    
+    // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
+    connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -639,21 +641,20 @@ void Application::resetProfile(const QString& username) {
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                             const char* nodeTypes, int numNodeTypes) {
-    Application* self = getInstance();
-    for (int i = 0; i < numNodeTypes; ++i) {
-
+                                             const QSet<NODE_TYPE>& destinationNodeTypes) {
+    foreach(NODE_TYPE type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
-        if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+        if (type == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-
+        
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
-
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes,
+                                                                        QSet<NODE_TYPE>() << type);
+        
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
-        switch (nodeTypes[i]) {
+        switch (type) {
             case NODE_TYPE_AGENT:
             case NODE_TYPE_AVATAR_MIXER:
                 channel = BandwidthMeter::AVATARS;
@@ -664,7 +665,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
             default:
                 continue;
         }
-        self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes);
+        _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes);
     }
 }
 
@@ -1319,15 +1320,13 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::sendPingPackets() {
-
-    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_PARTICLE_SERVER,
-        NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_METAVOXEL_SERVER};
-
     unsigned char pingPacket[MAX_PACKET_SIZE];
     int length = NodeList::getInstance()->fillPingPacket(pingPacket);
 
-    getInstance()->controlledBroadcastToNodes(pingPacket, length,
-                                              nodesToPing, sizeof(nodesToPing));
+    getInstance()->controlledBroadcastToNodes(pingPacket, length, QSet<NODE_TYPE>()
+                                              << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                                              << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
+                                              << NODE_TYPE_METAVOXEL_SERVER);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -2369,9 +2368,8 @@ void Application::updateAvatar(float deltaTime) {
 
     endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
 
-    const char nodeTypesOfInterest[] = { NODE_TYPE_AVATAR_MIXER };
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
-                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+                               QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -3911,7 +3909,7 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
     return statsMessageLength;
 }
 
-void Application::packetSentNotification(ssize_t length) {
+void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 
