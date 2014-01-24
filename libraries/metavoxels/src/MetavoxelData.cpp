@@ -34,7 +34,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     const float TOP_LEVEL_SIZE = 1.0f;
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
-    MetavoxelVisitation firstVisitation = { visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
+    MetavoxelVisitation firstVisitation = { this, NULL, visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
         QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(), TOP_LEVEL_SIZE,
             QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
@@ -52,32 +52,16 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     }
     static_cast<MetavoxelGuide*>(firstVisitation.info.inputValues.last().getInlineValue<
         PolymorphicDataPointer>().data())->guide(firstVisitation);
-}
-
-void MetavoxelData::setAttributeValue(const MetavoxelPath& path, const AttributeValue& attributeValue) {
-    MetavoxelNode*& node = _roots[attributeValue.getAttribute()];
-    if (node == NULL) {
-        node = new MetavoxelNode(attributeValue.getAttribute());
-    }
-    if (node->setAttributeValue(path, 0, attributeValue) && attributeValue.isDefault()) {
-        node->decrementReferenceCount(attributeValue.getAttribute());
-        _roots.remove(attributeValue.getAttribute());
-    }
-}
-
-AttributeValue MetavoxelData::getAttributeValue(const MetavoxelPath& path, const AttributePointer& attribute) const {
-    MetavoxelNode* node = _roots.value(attribute);
-    if (node == NULL) {
-        return AttributeValue(attribute);
-    }
-    for (int i = 0, n = path.getSize(); i < n; i++) {
-        MetavoxelNode* child = node->getChild(path[i]);
-        if (child == NULL) {
-            return node->getAttributeValue(attribute);
+    for (int i = 0; i < outputs.size(); i++) {
+        AttributeValue& value = firstVisitation.info.outputValues[i];
+        if (value.getAttribute()) {
+            MetavoxelNode* node = firstVisitation.outputNodes.at(i);
+            if (node->isLeaf() && value.isDefault()) {
+                node->decrementReferenceCount(value.getAttribute());
+                _roots.remove(value.getAttribute());
+            }
         }
-        node = child;
     }
-    return node->getAttributeValue(attribute);
 }
 
 void MetavoxelData::read(Bitstream& in) {
@@ -221,34 +205,6 @@ MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceC
     }
 }
 
-bool MetavoxelNode::setAttributeValue(const MetavoxelPath& path, int index, const AttributeValue& attributeValue) {
-    if (index == path.getSize()) {
-        setAttributeValue(attributeValue);
-        return true;
-    }
-    int element = path[index];
-    if (_children[element] == NULL) {
-        AttributeValue ownAttributeValue = getAttributeValue(attributeValue.getAttribute());
-        for (int i = 0; i < CHILD_COUNT; i++) {
-            _children[i] = new MetavoxelNode(ownAttributeValue);
-        }
-    }
-    _children[element]->setAttributeValue(path, index + 1, attributeValue);
-    
-    void* childValues[CHILD_COUNT];
-    bool allLeaves = true;
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        childValues[i] = _children[i]->_attributeValue;
-        allLeaves &= _children[i]->isLeaf();
-    }
-    if (attributeValue.getAttribute()->merge(_attributeValue, childValues) && allLeaves) {
-        clearChildren(attributeValue.getAttribute());
-        return true;
-    }
-    
-    return false;
-}
-
 void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
     attributeValue.getAttribute()->destroy(_attributeValue);
     _attributeValue = attributeValue.copy();
@@ -257,6 +213,18 @@ void MetavoxelNode::setAttributeValue(const AttributeValue& attributeValue) {
 
 AttributeValue MetavoxelNode::getAttributeValue(const AttributePointer& attribute) const {
     return AttributeValue(attribute, _attributeValue);
+}
+
+void MetavoxelNode::mergeChildren(const AttributePointer& attribute) {
+    void* childValues[CHILD_COUNT];
+    bool allLeaves = true;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        childValues[i] = _children[i]->_attributeValue;
+        allLeaves &= _children[i]->isLeaf();
+    }
+    if (attribute->merge(_attributeValue, childValues) && allLeaves) {
+        clearChildren(attribute);
+    }
 }
 
 bool MetavoxelNode::isLeaf() const {
@@ -361,20 +329,6 @@ void MetavoxelNode::clearChildren(const AttributePointer& attribute) {
     }
 }
 
-int MetavoxelPath::operator[](int index) const {
-    return (int)_array.at(index * BITS_PER_ELEMENT) | ((int)_array.at(index * BITS_PER_ELEMENT + 1) << 1) |
-        ((int)_array.at(index * BITS_PER_ELEMENT + 2) << 2);
-}
-
-MetavoxelPath& MetavoxelPath::operator+=(int element) {
-    int offset = _array.size();
-    _array.resize(offset + BITS_PER_ELEMENT);
-    _array.setBit(offset, element & 0x01);
-    _array.setBit(offset + 1, (element >> 1) & 0x01);
-    _array.setBit(offset + 2, element >> 2);
-    return *this;
-}
-
 MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs) :
     _inputs(inputs),
     _outputs(outputs) {
@@ -390,12 +344,24 @@ const int Z_MAXIMUM_FLAG = 4;
 
 void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     visitation.info.isLeaf = visitation.allInputNodesLeaves();
-    if (!visitation.visitor.visit(visitation.info)) {
+    bool keepGoing = visitation.visitor.visit(visitation.info);
+    for (int i = 0; i < visitation.outputNodes.size(); i++) {
+        AttributeValue& value = visitation.info.outputValues[i];
+        if (value.getAttribute()) {
+            MetavoxelNode*& node = visitation.outputNodes[i];
+            if (!node) {
+                node = visitation.createOutputNode(i);
+            }
+            node->setAttributeValue(value);
+        }
+    }
+    if (!keepGoing) {
         return;
     }
-    MetavoxelVisitation nextVisitation = { visitation.visitor, QVector<MetavoxelNode*>(visitation.inputNodes.size()),
-        QVector<MetavoxelNode*>(visitation.outputNodes.size()), { glm::vec3(), visitation.info.size * 0.5f,
-            QVector<AttributeValue>(visitation.inputNodes.size()), QVector<AttributeValue>(visitation.outputNodes.size()) } };
+    MetavoxelVisitation nextVisitation = { visitation.data, &visitation, visitation.visitor,
+        QVector<MetavoxelNode*>(visitation.inputNodes.size()), QVector<MetavoxelNode*>(visitation.outputNodes.size()),
+        { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.inputNodes.size()),
+            QVector<AttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
@@ -413,8 +379,24 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             (i & X_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
             (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
             (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
+        nextVisitation.childIndex = i;
         static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
             PolymorphicDataPointer>().data())->guide(nextVisitation);
+        for (int j = 0; j < nextVisitation.outputNodes.size(); j++) {
+            AttributeValue& value = nextVisitation.info.outputValues[j];
+            if (value.getAttribute()) {
+                visitation.info.outputValues[j] = value;
+                value = AttributeValue();
+            }
+        }
+    }
+    for (int i = 0; i < visitation.outputNodes.size(); i++) {
+        AttributeValue& value = visitation.info.outputValues[i];
+        if (value.getAttribute()) {
+            MetavoxelNode* node = visitation.outputNodes.at(i);
+            node->mergeChildren(value.getAttribute());
+            value = node->getAttributeValue(value.getAttribute()); 
+        }
     }
 }
 
@@ -523,4 +505,22 @@ bool MetavoxelVisitation::allInputNodesLeaves() const {
         }
     }
     return true;
+}
+
+MetavoxelNode* MetavoxelVisitation::createOutputNode(int index) {
+    const AttributePointer& attribute = visitor.getOutputs().at(index);
+    if (previous) {
+        MetavoxelNode*& parent = previous->outputNodes[index];
+        if (!parent) {
+            parent = previous->createOutputNode(index);
+        }
+        AttributeValue value = parent->getAttributeValue(attribute);
+        for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+            parent->_children[i] = new MetavoxelNode(value);
+        }
+        return parent->_children[childIndex];
+        
+    } else {    
+        return data->_roots[attribute] = new MetavoxelNode(attribute);
+    }
 }

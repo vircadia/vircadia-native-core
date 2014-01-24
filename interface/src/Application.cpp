@@ -2004,15 +2004,9 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
         _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
         lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
 
-    } else if (!_lookatTargetAvatar) {
-        if (_isHoverVoxel) {
-            //  Look at the hovered voxel
-            lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
-
-        } else {
-            //  Just look in direction of the mouse ray            
-            lookAtSpot = _mouseRayOrigin + _mouseRayDirection * FAR_AWAY_STARE;
-        }
+    } else {
+        // just look in direction of the mouse ray
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * FAR_AWAY_STARE;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
