@@ -93,6 +93,10 @@ public:
 
     bool removeParticleWithID(uint32_t id);
 
+    /// finds all particles that touch a box
+    /// \param box the query box
+    /// \param particles[out] vector of Particle pointers
+    void findParticles(const AABox& box, QVector<Particle*>& foundParticles);
 
 protected:
     virtual void init(unsigned char * octalCode);
