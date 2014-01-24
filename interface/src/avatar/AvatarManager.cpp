@@ -27,19 +27,21 @@ AvatarManager::AvatarManager(QObject* parent) :
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 }
 
-void AvatarManager::updateLookAtTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-                                             glm::vec3 &eyePosition) {
+void AvatarManager::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
     
-    if (!Application::getInstance()->isMousePressed()) {
+    Application* applicationInstance = Application::getInstance();
+    
+    if (!applicationInstance->isMousePressed()) {
         foreach (const AvatarSharedPointer& avatar, _avatarHash) {
             float distance;
             
-            if (avatar->findRayIntersection(mouseRayOrigin, mouseRayDirection, distance)) {
+            if (avatar->findRayIntersection(applicationInstance->getMouseRayOrigin(),
+                                            applicationInstance->getMouseRayDirection(), distance)) {
                 // rescale to compensate for head embiggening
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
-                (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
+                    (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
                 
                 _lookAtIndicatorScale = avatar->getHead().getScale();
                 _lookAtOtherPosition = avatar->getHead().getPosition();
@@ -55,7 +57,7 @@ void AvatarManager::updateLookAtTargetAvatar(const glm::vec3& mouseRayOrigin, co
     }
 }
 
-void AvatarManager::updateAvatars(float deltaTime, const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection) {
+void AvatarManager::updateAvatars(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
     
@@ -65,7 +67,11 @@ void AvatarManager::updateAvatars(float deltaTime, const glm::vec3& mouseRayOrig
         if (avatar->data()->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->data()->simulate(deltaTime, NULL);
-            avatar->data()->setMouseRay(mouseRayOrigin, mouseRayDirection);
+            
+            Application* applicationInstance = Application::getInstance();
+            
+            avatar->data()->setMouseRay(applicationInstance->getMouseRayOrigin(),
+                                        applicationInstance->getMouseRayDirection());
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
             avatar = removeAvatarAtHashIterator(avatar);

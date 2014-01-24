@@ -35,11 +35,11 @@ function setNormal(vector) {
     if (normalIndex != -1) {
         var length = Math.sqrt(lengthSquared(vector[0], vector[1], vector[2]));
         if (length == 0.0) {
-            info.attributeValues[normalIndex] = 0x007F00;
+            info.inputValues[normalIndex] = 0x007F00;
             
         } else {
             var scale = 127.0 / length;
-            info.attributeValues[normalIndex] =
+            info.inputValues[normalIndex] =
                 (Math.floor(vector[0] * scale) & 0xFF) << 16 |
                 (Math.floor(vector[1] * scale) & 0xFF) << 8 |
                 Math.floor(vector[2] * scale) & 0xFF;
@@ -61,7 +61,7 @@ function guide(minimum, size, depth) {
             maximum[2] <= sphereCenter[2] - sphereRadius) {
         info.isLeaf = true;
         if (colorIndex != -1) {
-            info.attributeValues[colorIndex] = 0x0;
+            info.inputValues[colorIndex] = 0x0;
         }
         visitor.visit(info);
         return;
@@ -110,7 +110,7 @@ function guide(minimum, size, depth) {
     if (inside == 8) {
         info.isLeaf = true;
         if (colorIndex != -1) {
-            info.attributeValues[colorIndex] = sphereColor;
+            info.inputValues[colorIndex] = sphereColor;
         }
         setNormal(vector);
         visitor.visit(info);
@@ -122,13 +122,13 @@ function guide(minimum, size, depth) {
         info.isLeaf = true;
         if (inside >= 3) {
             if (colorIndex != -1) {
-                info.attributeValues[colorIndex] = sphereColor;
+                info.inputValues[colorIndex] = sphereColor;
             }
             setNormal(vector);
         
         } else {
             if (colorIndex != -1) {
-                info.attributeValues[colorIndex] = 0x0;
+                info.inputValues[colorIndex] = 0x0;
             }
         }
         visitor.visit(info);
@@ -152,11 +152,11 @@ function guide(minimum, size, depth) {
 }
 
 (function(visitation) {
-    var attributes = visitation.visitor.getAttributes();
-    colorIndex = strictIndexOf(attributes, AttributeRegistry.colorAttribute);
-    normalIndex = strictIndexOf(attributes, AttributeRegistry.normalAttribute);
+    var inputs = visitation.visitor.getInputs();
+    colorIndex = strictIndexOf(inputs, AttributeRegistry.colorAttribute);
+    normalIndex = strictIndexOf(inputs, AttributeRegistry.normalAttribute);
     visitor = visitation.visitor;
-    info = { attributeValues: new Array(attributes.length) };
+    info = { inputValues: new Array(inputs.length) };
     
     // have the sphere orbit the center and pulse in size
     var time = new Date().getTime();

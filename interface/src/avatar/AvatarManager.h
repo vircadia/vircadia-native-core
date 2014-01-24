@@ -30,10 +30,9 @@ public:
     
     Avatar* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     
-    void updateLookAtTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-                                  glm::vec3& eyePosition);
+    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
     
-    void updateAvatars(float deltaTime, const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection);
+    void updateAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
     void clearHash();

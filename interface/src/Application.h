@@ -148,11 +148,14 @@ public:
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
     ParticleTreeRenderer* getParticles() { return &_particles; }
+    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
+    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
+    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -204,6 +207,11 @@ public:
     
     void skipVersion(QString latestVersion);
 
+signals:
+
+    /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
+    void renderingInWorldInterface();
+    
 public slots:
     void domainChanged(const QString& domainHostname);
     void nodeKilled(SharedNodePointer node);
@@ -265,13 +273,11 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
+    void updateMouseRay();
     void updateFaceshift();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
-    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-            float& distance, BoxFace& face);
-    void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-            float& distance, BoxFace& face);
+    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
+    void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -286,8 +292,7 @@ private:
     void updateAudio(float deltaTime);
     void updateCursor(float deltaTime);
 
-    Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition, QUuid &nodeUUID);
+    Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
@@ -397,6 +402,9 @@ private:
     uint64_t _lastMouseMove;
     bool _mouseHidden;
     bool _seenMouseMove;
+
+    glm::vec3 _mouseRayOrigin;
+    glm::vec3 _mouseRayDirection;
 
     float _touchAvgX;
     float _touchAvgY;
