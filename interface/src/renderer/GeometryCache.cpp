@@ -7,7 +7,11 @@
 
 #include <cmath>
 
+// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QNetworkReply>
+#include <QOpenGLBuffer>
 
 #include "Application.h"
 #include "GeometryCache.h"
@@ -239,6 +243,50 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
+    QOpenGLBuffer& buffer = _gridBuffers[IntPair(xDivisions, yDivisions)];
+    int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
+    if (!buffer.isCreated()) {
+        GLfloat* vertexData = new GLfloat[vertices * 2];
+        GLfloat* vertex = vertexData;
+        for (int i = 0; i <= xDivisions; i++) {
+            float x = (float)i / xDivisions;
+        
+            *(vertex++) = x;
+            *(vertex++) = 0.0f;
+            
+            *(vertex++) = x;
+            *(vertex++) = 1.0f;
+        }
+        for (int i = 0; i <= yDivisions; i++) {
+            float y = (float)i / yDivisions;
+            
+            *(vertex++) = 0.0f;
+            *(vertex++) = y;
+            
+            *(vertex++) = 1.0f;
+            *(vertex++) = y;
+        }
+        buffer.create();
+        buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        buffer.bind();
+        buffer.allocate(vertexData, vertices * 2 * sizeof(GLfloat));
+        delete[] vertexData;
+        
+    } else {
+        buffer.bind();
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    
+    glDrawArrays(GL_LINES, 0, vertices);
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    buffer.release();
 }
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
