@@ -1722,7 +1722,7 @@ void Application::init() {
     _sharedVoxelSystem.changeTree(&_clipboard);
     delete tmpTree;
 
-    _voxelImporter.init();
+    _voxelImporter.init(_settings);
 
     _environment.init();
 

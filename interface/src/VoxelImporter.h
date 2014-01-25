@@ -23,8 +23,9 @@ public:
     VoxelImporter(QWidget* parent = NULL);
     ~VoxelImporter();
 
-    void init();
+    void init(QSettings* settings);
     void reset();
+    void saveSettings(QSettings* settings);
 
     VoxelTree* getVoxelTree() { return &_voxelTree; }
 
