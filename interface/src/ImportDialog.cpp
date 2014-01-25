@@ -25,6 +25,8 @@ const QString INFO_LABEL_TEXT = QObject::tr("<div style='line-height:20px;'>"
                                             "add mode (S or V keys will toggle mode) to place.</div>");
 
 const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+const int SHORT_FILE_EXTENSION = 4;
+const int SECOND_INDEX_LETTER = 1;
 
 QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
     
@@ -83,8 +85,9 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
 
 QString HiFiIconProvider::type(const QFileInfo &info) const {
     if (info.isFile()) {
-        if (info.suffix().size() > 4) {
-            return info.suffix().at(0).toUpper() + info.suffix().mid(1);
+        if (info.suffix().size() > SHORT_FILE_EXTENSION) {
+            // Capitalize extension
+            return info.suffix().left(SECOND_INDEX_LETTER).toUpper() + info.suffix().mid(SECOND_INDEX_LETTER);
         }
         return info.suffix().toUpper();
     }
@@ -92,10 +95,10 @@ QString HiFiIconProvider::type(const QFileInfo &info) const {
     return QFileIconProvider::type(info);
 }
 
-ImportDialog::ImportDialog(QWidget *parent) :
-QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
-_importButton(IMPORT_BUTTON_NAME, this),
-_cancelButton(CANCEL_BUTTON_NAME, this) {
+ImportDialog::ImportDialog(QWidget* parent) :
+    QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
+    _importButton(IMPORT_BUTTON_NAME, this),
+    _cancelButton(CANCEL_BUTTON_NAME, this) {
     
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
@@ -106,7 +109,7 @@ _cancelButton(CANCEL_BUTTON_NAME, this) {
 #else
     QString cmdString = ("Control");
 #endif
-    QLabel *infoLabel = new QLabel(QString(INFO_LABEL_TEXT).arg(cmdString));
+    QLabel* infoLabel = new QLabel(QString(INFO_LABEL_TEXT).arg(cmdString));
     infoLabel->setObjectName("infoLabel");
     
     QGridLayout* gridLayout = (QGridLayout*) layout();
@@ -206,7 +209,7 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("buttonBox");
     widget->hide();
  
-    QSplitter *splitter = findChild<QSplitter*>("splitter");
+    QSplitter* splitter = findChild<QSplitter*>("splitter");
     splitter->setHandleWidth(0);
     
     // remove blue outline on Mac
@@ -243,7 +246,7 @@ void ImportDialog::setImportTypes() {
         QJsonObject configObject = document.object();
         if (!configObject.isEmpty()) {
             QJsonArray fileFormats = configObject["importFormats"].toArray();
-            int ff = 0;
+            int formatsCounter = 0;
             foreach (const QJsonValue& fileFormat, fileFormats) {
                 QJsonObject fileFormatObject = fileFormat.toObject();
 
@@ -251,19 +254,19 @@ void ImportDialog::setImportTypes() {
                 QString description(fileFormatObject.value("description").toString());
                 QString icon(fileFormatObject.value("icon").toString());
 
-                if (ff > 0) {
+                if (formatsCounter > 0) {
                     importFormatsInfo.append(",");
                 }
 
                 // set ' or' on last import type text
-                if (ff == fileFormats.count() - 1) {
+                if (formatsCounter == fileFormats.count() - 1) {
                     importFormatsInfo.append(" or");
                 }
 
                 importFormatsFilterList.append(QString("*.%1 ").arg(ext));
                 importFormatsInfo.append(" .").append(ext);
                 iconsMap[ext] = icon;
-                ff++;
+                formatsCounter++;
             }
         }
 
