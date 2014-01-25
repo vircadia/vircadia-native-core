@@ -24,7 +24,7 @@ class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
 public:
-    OctreeQueryNode(Node* owningNode);
+    OctreeQueryNode();
     virtual ~OctreeQueryNode();
     
     virtual PACKET_TYPE getMyPacketType() const = 0;
@@ -80,7 +80,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(OctreeServer* octreeServer);
+    void initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();

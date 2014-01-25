@@ -69,10 +69,8 @@ class Avatar : public AvatarData {
     Q_OBJECT
 
 public:
-
-    Avatar(Node* owningNode = NULL);
+    Avatar();
     ~Avatar();
-    void deleteOrDeleteLater();
 
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
@@ -92,6 +90,9 @@ public:
     Head& getHead() { return _head; }
     Hand& getHand() { return _hand; }
     glm::quat getWorldAlignedOrientation() const;
+    
+    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
+    void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
@@ -110,8 +111,10 @@ public:
     /// \param collision[out] the details of the collision point
     /// \return whether or not the sphere collided
     virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+    
+    virtual bool isMyAvatar() { return false; }
 
-    virtual int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
@@ -141,8 +144,8 @@ protected:
     glm::vec3 _mouseRayDirection;
     bool _isCollisionsOn;
     float _stringLength;
-
     bool _moving; ///< set when position is changing
+    QWeakPointer<Node> _owningAvatarMixer;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

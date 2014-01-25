@@ -50,6 +50,7 @@
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
 #include "avatar/Avatar.h"
+#include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
@@ -151,6 +152,7 @@ public:
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
+    bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
@@ -169,8 +171,7 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
 
-    Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
-
+    AvatarManager& getAvatarManager() { return _avatarManager; }
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
@@ -233,14 +234,12 @@ public slots:
     void initAvatarAndViewFrustum();
 
 private slots:
-
     void timer();
     void idle();
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
-
-
+    
     void renderThrustAtVoxel(const glm::vec3& thrust);
 
     void renderCoverageMap();
@@ -279,7 +278,6 @@ private:
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
-    void updateLookatTargetAvatar(glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -301,7 +299,6 @@ private:
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void updateAvatars(float deltaTime);
     void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -310,7 +307,6 @@ private:
     void updateShadowMap();
     void displayOverlay();
     void displayStats();
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();
@@ -373,6 +369,7 @@ private:
 
     VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
 
+    AvatarManager _avatarManager;
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
     Profile _profile;                    // The data-server linked profile for this user
 
@@ -442,10 +439,6 @@ private:
     bool _lookingAwayFromOrigin;
     glm::vec3 _nudgeGuidePosition;
 
-    Avatar* _lookatTargetAvatar;
-    glm::vec3 _lookatOtherPosition;
-    float _lookatIndicatorScale;
-
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
@@ -494,7 +487,6 @@ private:
     QReadWriteLock _voxelSceneStatsLock;
 
     std::vector<VoxelFade> _voxelFades;
-    std::vector<Avatar*> _avatarFades;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
 

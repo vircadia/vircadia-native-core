@@ -26,8 +26,8 @@ ParticleServer::~ParticleServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-OctreeQueryNode* ParticleServer::createOctreeQueryNode(Node* newNode) {
-    return new ParticleNodeData(newNode);
+OctreeQueryNode* ParticleServer::createOctreeQueryNode() {
+    return new ParticleNodeData();
 }
 
 Octree* ParticleServer::createTree() {

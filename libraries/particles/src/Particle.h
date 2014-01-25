@@ -94,6 +94,9 @@ public:
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
     void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true;  }
     void setScript(QString updateScript) { _script = updateScript; _scriptChanged = true;  }
+    
+    /// used by ParticleScriptingInterface to return ParticleProperties for unknown particles
+    void setIsUnknownID() { _id = UNKNOWN_PARTICLE_ID; _idSet = true; }
 
 private:
     glm::vec3 _position;
@@ -107,6 +110,8 @@ private:
     bool _inHand;
     bool _shouldDie;
 
+    uint32_t _id;
+    bool _idSet;
     uint64_t _lastEdited;
     bool _positionChanged;
     bool _colorChanged;
@@ -145,6 +150,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(ParticleID);
+Q_DECLARE_METATYPE(QVector<ParticleID>);
 QScriptValue ParticleIDtoScriptValue(QScriptEngine* engine, const ParticleID& properties);
 void ParticleIDfromScriptValue(const QScriptValue &object, ParticleID& properties);
 
@@ -162,7 +168,7 @@ public:
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree);
+    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
 
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
