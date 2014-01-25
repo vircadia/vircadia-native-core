@@ -3317,10 +3317,10 @@ void Application::displayStats() {
         voxelStats.str("");
         voxelStats << 
                 "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
-                "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB" <<
-                _voxels.hasVoxelMemoryUsageGPU() 
-                    ? voxelStats << " / GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB"
-                    : "";
+                "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB";
+        if (_voxels.hasVoxelMemoryUsageGPU()) {
+            voxelStats << " / GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB";
+        }
         verticalOffset += STATS_PELS_PER_LINE;
         drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
 
