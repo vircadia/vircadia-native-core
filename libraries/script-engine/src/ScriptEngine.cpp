@@ -118,6 +118,7 @@ void ScriptEngine::init() {
     registerMetaTypes(&_engine);
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
 
     QScriptValue agentValue = _engine.newQObject(this);
     _engine.globalObject().setProperty("Agent", agentValue);

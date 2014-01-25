@@ -221,7 +221,6 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
-    const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";

@@ -8,11 +8,9 @@
 function vLength(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
-
 function printVector(v) {
     print(v.x + ", " + v.y + ", " + v.z + "\n");
 }
-
 //  Create a random vector with individual lengths between a,b
 function randVector(a, b) {
     var rval = { x: a + Math.random() * (b - a), y: a + Math.random() * (b - a), z: a + Math.random() * (b - a) };
@@ -69,49 +67,53 @@ if (which < 0.2) {
     size = 0.15;
 } 
 
-var startPosition = { x: 0, y: 0, z: 0 };
-var targetPosition = { x: 0, y: 0, z: 0 };
 
-var range = 0.7;       //   Over what distance in meters do you want your bird to fly around 
+var startTimeInSeconds = new Date().getTime() / 1000;
+
+var birdLifetime = 20; // lifetime of the bird in seconds!
+var position  = { x: 0, y: 0, z: 0 };
+var targetPosition = { x: 0, y: 0, z: 0 };
+var range = 1.0;       //   Over what distance in meters do you want your bird to fly around 
 var frame = 0;
 var moving = false;
 var tweeting = 0;
 var moved = false;
 
-var CHANCE_OF_MOVING = 0.02;
-var CHANCE_OF_TWEETING = 0.01;
-var START_HEIGHT_ABOVE_ME = 2.0;
-
+var CHANCE_OF_MOVING = 0.05;
+var CHANCE_OF_TWEETING = 0.05;
+var START_HEIGHT_ABOVE_ME = 1.5;
 var myPosition = MyAvatar.position;
-
 var properties = {
+    lifetime: birdLifetime,
     position: { x: myPosition.x, y: myPosition.y + START_HEIGHT_ABOVE_ME, z: myPosition.z },  
     velocity: { x: 0, y: 0, z: 0 },
     gravity: { x: 0, y: 0, z: 0 },
     radius : 0.1,
     color: { red: 0,
-             green: 255,
-             blue: 0 },
-    lifetime: 60
+         green: 255,
+         blue: 0 }
 };
-
-position = properties.position; 
-
 var range = 1.0;   //  Distance around avatar where I can move 
-
 //  Create the actual bird 
 var particleID = Particles.addParticle(properties);
-
 function moveBird() {
+
+    // check to see if we've been running long enough that our bird is dead
+    var nowTimeInSeconds = new Date().getTime() / 1000;
+    if ((nowTimeInSeconds - startTimeInSeconds) >= birdLifetime) {
+        print("our bird is dying, stop our script");
+        Agent.stop();
+        return;
+    }
+
     myPosition = MyAvatar.position;
-    myPosition.y += START_HEIGHT_ABOVE_ME;
-   frame++;
+    frame++;
     if (frame % 3 == 0) {
         // Tweeting behavior
         if (tweeting == 0) {
             if (Math.random() < CHANCE_OF_TWEETING) {
                 //print("tweet!" + "\n");
-                var options = new AudioInjectionOptions(); 
+                var options = new AudioInjectionOptions();
                 options.position = position;
                 options.volume = 0.75;
                 Audio.playSound(tweet, options);
@@ -125,6 +127,25 @@ function moveBird() {
             if (Math.random() < CHANCE_OF_MOVING) {
                 targetPosition = randVector(- range, range);
                 targetPosition = vPlus(targetPosition, myPosition);
+
+                if (targetPosition.x < 0) {
+                    targetPosition.x = 0;
+                }
+                if (targetPosition.y < 0) {
+                    targetPosition.y = 0;
+                }
+                if (targetPosition.z < 0) {
+                    targetPosition.z = 0;
+                }
+                if (targetPosition.x > TREE_SCALE) {
+                    targetPosition.x = TREE_SCALE;
+                }
+                if (targetPosition.y > TREE_SCALE) {
+                    targetPosition.y = TREE_SCALE;
+                }
+                if (targetPosition.z > TREE_SCALE) {
+                    targetPosition.z = TREE_SCALE;
+                }
                 //printVector(position);
                 moving = true;
             }
@@ -141,17 +162,16 @@ function moveBird() {
         if (moved || (tweeting > 0)) {
             if (tweeting > 0) {
                 var newProperties = {
-                    position: position, 
-                    velocity: { x: 0, y: 0, z: 0 },
-                    gravity: { x: 0, y: 0, z: 0 },
+
+                    position: position,
+
                     radius : size * 1.5,
                     color: { red: Math.random() * 255, green: 0, blue: 0 }
                 };
             } else {
                 var newProperties = {
-                    position: position, 
-                    velocity: { x: 0, y: 0, z: 0 },
-                    gravity: { x: 0, y: 0, z: 0 },                   
+
+                    position: position,
                     radius : size,
                     color: { red: color.r, green: color.g, blue: color.b }
                     };
@@ -162,11 +182,5 @@ function moveBird() {
     }
 }
 
-function killBird() {
-    deleteParticle(particleID);
-}
-
 // register the call back so it fires before each data send
 Agent.willSendVisualDataCallback.connect(moveBird);
-Agent.scriptEnding.connect(killBird);
-

@@ -23,7 +23,7 @@ public:
     ParticleTree(bool shouldReaverage = false);
 
     /// Implements our type specific root element factory
-    virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL) const;
+    virtual ParticleTreeElement* createNewElement(unsigned char * octalCode = NULL);
 
     /// Type safe version of getRoot()
     ParticleTreeElement* getRoot() { return (ParticleTreeElement*)_rootNode; }
@@ -42,6 +42,7 @@ public:
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
     const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
+    QVector<const Particle*> findParticles(const glm::vec3& center, float radius);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
@@ -58,6 +59,7 @@ private:
     static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
+    static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);

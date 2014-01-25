@@ -57,7 +57,7 @@ GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
 GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
-    : NodeData(NULL),
+    : NodeData(),
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
       _initialized(false) {

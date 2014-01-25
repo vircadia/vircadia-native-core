@@ -25,7 +25,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 // own type to our own tree. This means we should initialize that child with any tree and type
 // specific settings that our children must have. One example is out VoxelSystem, which
 // we know must match ours.
-OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
+OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) {
     ParticleTreeElement* newChild = new ParticleTreeElement(octalCode);
     newChild->setTree(_myTree);
     return newChild;
@@ -183,6 +183,23 @@ const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) cons
         }
     }
     return closestParticle;
+}
+
+QVector<const Particle*> ParticleTreeElement::getParticles(glm::vec3 searchPosition, float searchRadius) const {
+    QVector<const Particle*> results;
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        const Particle* particle = &(*_particles)[i];
+        glm::vec3 particlePosition = particle->getPosition();
+        float particleRadius = particle->getRadius();
+        glm::vec3 penetration;
+
+        // check to see that the particle (penetrator) penetrates the search area
+        if (findSphereSpherePenetration(particlePosition, particleRadius, searchPosition, searchRadius, penetration)) {
+            results << particle;
+        }
+    }
+    return results;
 }
 
 const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {

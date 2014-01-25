@@ -34,7 +34,7 @@ public:
     int getEnvironmentDataCount() const { return sizeof(_environmentData)/sizeof(EnvironmentData); }
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode(Node* newNode);
+    virtual OctreeQueryNode* createOctreeQueryNode();
     virtual Octree* createTree();
     virtual unsigned char getMyNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
     virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_VOXEL_QUERY; }

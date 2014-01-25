@@ -31,7 +31,7 @@ class ParticleTreeElement : public OctreeElement {
 
     ParticleTreeElement(unsigned char* octalCode = NULL);
 
-    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL) const;
+    virtual OctreeElement* createNewElement(unsigned char* octalCode = NULL);
 
 public:
     virtual ~ParticleTreeElement();
@@ -89,6 +89,7 @@ public:
     bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
     const Particle* getClosestParticle(glm::vec3 position) const;
+    QVector<const Particle*> getParticles(glm::vec3 position, float radius) const;
     const Particle* getParticleWithID(uint32_t id) const;
 
     bool removeParticleWithID(uint32_t id);
