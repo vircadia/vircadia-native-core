@@ -10,12 +10,12 @@
 
 ParticleTree::ParticleTree(bool shouldReaverage) : Octree(shouldReaverage) {
     ParticleTreeElement* rootNode = createNewElement();
-    rootNode->setTree(this);
     _rootNode = rootNode;
 }
 
-ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) const {
+ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) {
     ParticleTreeElement* newElement = new ParticleTreeElement(octalCode);
+    newElement->setTree(this);
     return newElement;
 }
 

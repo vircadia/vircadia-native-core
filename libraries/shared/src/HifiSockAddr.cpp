@@ -81,7 +81,7 @@ bool HifiSockAddr::operator==(const HifiSockAddr &rhsSockAddr) const {
 
 QDebug operator<<(QDebug debug, const HifiSockAddr &hifiSockAddr) {
     debug.nospace() << hifiSockAddr._address.toString().toLocal8Bit().constData() << ":" << hifiSockAddr._port;
-    return debug;
+    return debug.space();
 }
 
 quint32 getHostOrderLocalAddress() {

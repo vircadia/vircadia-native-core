@@ -132,3 +132,12 @@ void OctreeRenderer::render() {
         _tree->unlock();
     }
 }
+
+void OctreeRenderer::clear() { 
+    if (_tree) {
+        _tree->lockForWrite();
+        _tree->eraseAllOctreeElements(); 
+        _tree->unlock();
+    }
+}
+

@@ -16,7 +16,7 @@
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples) :
-    NodeData(NULL),
+    NodeData(),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _isStarved(true),
     _hasStarted(false)

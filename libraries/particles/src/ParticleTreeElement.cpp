@@ -25,7 +25,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 // own type to our own tree. This means we should initialize that child with any tree and type
 // specific settings that our children must have. One example is out VoxelSystem, which
 // we know must match ours.
-OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
+OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) {
     ParticleTreeElement* newChild = new ParticleTreeElement(octalCode);
     newChild->setTree(_myTree);
     return newChild;

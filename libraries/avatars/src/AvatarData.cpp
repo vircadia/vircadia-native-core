@@ -22,8 +22,8 @@ using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
 
-AvatarData::AvatarData(Node* owningNode) :
-    NodeData(owningNode),
+AvatarData::AvatarData() :
+    NodeData(),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),

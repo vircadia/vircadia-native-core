@@ -13,8 +13,7 @@
 #include <cstdio>
 #include "OctreeSendThread.h"
 
-OctreeQueryNode::OctreeQueryNode(Node* owningNode) :
-    OctreeQuery(owningNode),
+OctreeQueryNode::OctreeQueryNode() :
     _viewSent(false),
     _octreePacketAvailableBytes(MAX_PACKET_SIZE),
     _maxSearchLevel(1),
@@ -38,9 +37,8 @@ OctreeQueryNode::OctreeQueryNode(Node* owningNode) :
     _sequenceNumber = 0;
 }
 
-void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer) {
+void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID) {
     // Create octree sending thread...
-    QUuid nodeUUID = getOwningNode()->getUUID();
     _octreeSendThread = new OctreeSendThread(nodeUUID, octreeServer);
     _octreeSendThread->initialize(true);
 }

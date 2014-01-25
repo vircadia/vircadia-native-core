@@ -22,8 +22,8 @@ using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
 
-OctreeQuery::OctreeQuery(Node* owningNode) :
-    NodeData(owningNode),
+OctreeQuery::OctreeQuery() :
+    NodeData(),
     _uuid(),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
