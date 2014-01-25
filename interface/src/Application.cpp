@@ -3955,6 +3955,9 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _octreeServerSceneStats.clear();
     _particleServerJurisdictions.clear();
+    
+    // reset the particle renderer
+    _particles.clear();
 
     // reset our persist thread
     qDebug() << "Domain changed to" << domainHostname << ". Swapping persist cache.";
