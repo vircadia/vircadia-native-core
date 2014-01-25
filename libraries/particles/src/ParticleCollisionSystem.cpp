@@ -73,6 +73,8 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float DAMPING = 0.05f;
     const float COLLISION_FREQUENCY = 0.5f;
     CollisionInfo collisionInfo;
+    collisionInfo._damping = DAMPING;
+    collisionInfo._elasticity = ELASTICITY;
     VoxelDetail* voxelDetails = NULL;
     if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
 
@@ -81,7 +83,8 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
 
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
         collisionInfo._penetration /= (float)(TREE_SCALE);
-        applyHardCollision(particle, ELASTICITY, DAMPING, collisionInfo);
+        particle->applyHardCollision(collisionInfo);
+        queueParticlePropertiesUpdate(particle);
 
         delete voxelDetails; // cleanup returned details
     }
@@ -161,6 +164,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     if (_selfAvatar) {
         AvatarData* avatar = (AvatarData*)_selfAvatar;
         CollisionInfo collisionInfo;
+        collisionInfo._damping = DAMPING;
+        collisionInfo._elasticity = ELASTICITY;
         if (avatar->findSphereCollision(center, radius, collisionInfo)) {
             collisionInfo._addedVelocity /= (float)(TREE_SCALE);
             glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
@@ -185,7 +190,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 
                 updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
                 collisionInfo._penetration /= (float)(TREE_SCALE);
-                applyHardCollision(particle, elasticity, damping, collisionInfo);
+                particle->applyHardCollision(collisionInfo);
+                queueParticlePropertiesUpdate(particle);
             }
         }
     }
@@ -224,51 +230,14 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
 //    }
 }
 
-// TODO: convert applyHardCollision() to take a CollisionInfo& instead of penetration + addedVelocity
-void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elasticity, float damping, const CollisionInfo& collisionInfo) {
-    //
-    //  Update the particle in response to a hard collision.  Position will be reset exactly
-    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
-    //
-    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
-    //  if elasticity = 1.0, collision is 100% elastic.
-    //
-    glm::vec3 position = particle->getPosition();
-    glm::vec3 velocity = particle->getVelocity();
-
-    const float EPSILON = 0.0f;
-    glm::vec3 relativeVelocity = collisionInfo._addedVelocity - velocity;
-    float velocityDotPenetration = glm::dot(relativeVelocity, collisionInfo._penetration);
-    if (velocityDotPenetration < EPSILON) {
-        // particle is moving into collision surface
-        position -= collisionInfo._penetration;
-
-        if (glm::length(relativeVelocity) < HALTING_SPEED) {
-            // static friction kicks in and particle moves with colliding object
-            velocity = collisionInfo._addedVelocity;
-        } else {
-            glm::vec3 direction = glm::normalize(collisionInfo._penetration);
-            velocity += glm::dot(relativeVelocity, direction) * (1.0f + elasticity) * direction;    // dynamic reflection
-            velocity += glm::clamp(damping, 0.0f, 1.0f) * (relativeVelocity - glm::dot(relativeVelocity, direction) * direction);   // dynamic friction
-        }
-    }
-    const bool wantDebug = false;
-    if (wantDebug) {
-        printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
-            particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
-    }
-
-    // send off the result to the particle server
+void ParticleCollisionSystem::queueParticlePropertiesUpdate(Particle* particle) {
+    // queue the result for sending to the particle server
     ParticleProperties properties;
     ParticleID particleID(particle->getID());
     properties.copyFromParticle(*particle);
-    properties.setPosition(position * (float)TREE_SCALE);
-    properties.setVelocity(velocity * (float)TREE_SCALE);
+    properties.setPosition(particle->getPosition() * (float)TREE_SCALE);
+    properties.setVelocity(particle->getVelocity() * (float)TREE_SCALE);
     _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
-
-    // change the local particle too...
-    particle->setPosition(position);
-    particle->setVelocity(velocity);
 }
 
 

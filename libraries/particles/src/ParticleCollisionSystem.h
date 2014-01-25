@@ -47,7 +47,7 @@ public:
     void updateCollisionWithVoxels(Particle* particle);
     void updateCollisionWithParticles(Particle* particle);
     void updateCollisionWithAvatars(Particle* particle);
-    void applyHardCollision(Particle* particle, float elasticity, float damping, const CollisionInfo& collisionInfo);
+    void queueParticlePropertiesUpdate(Particle* particle);
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
 private:
