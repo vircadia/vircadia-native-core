@@ -160,6 +160,42 @@ const Particle* ParticleTree::findClosestParticle(glm::vec3 position, float targ
     return args.closestParticle;
 }
 
+class FindAllNearPointArgs {
+public:
+    glm::vec3 position;
+    float targetRadius;
+    QVector<const Particle*> particles;
+};
+
+
+bool ParticleTree::findInSphereOperation(OctreeElement* element, void* extraData) {
+    FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+
+    glm::vec3 penetration;
+    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position,
+                                                                    args->targetRadius, penetration);
+
+    // If this particleTreeElement contains the point, then search it...
+    if (sphereIntersection) {
+        QVector<const Particle*> moreParticles = particleTreeElement->getParticles(args->position, args->targetRadius);
+        args->particles << moreParticles;
+        return true; // keep searching in case children have closer particles
+    }
+
+    // if this element doesn't contain the point, then none of it's children can contain the point, so stop searching
+    return false;
+}
+
+QVector<const Particle*> ParticleTree::findParticles(const glm::vec3& center, float radius) {
+    QVector<Particle*> result;
+    FindAllNearPointArgs args = { center, radius };
+    lockForRead();
+    recurseTreeWithOperation(findInSphereOperation, &args);
+    unlock();
+    return args.particles;
+}
+
 class FindByIDArgs {
 public:
     uint32_t id;
@@ -214,13 +250,14 @@ int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* p
     // we handle these types of "edit" packets
     switch (packetType) {
         case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
-            //qDebug() << " got PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
-            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this);
-            storeParticle(newParticle, senderNode);
-            if (newParticle.isNewlyCreated()) {
-                notifyNewlyCreatedParticle(newParticle, senderNode);
+            bool isValid;
+            Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this, isValid);
+            if (isValid) {
+                storeParticle(newParticle, senderNode);
+                if (newParticle.isNewlyCreated()) {
+                    notifyNewlyCreatedParticle(newParticle, senderNode);
+                }
             }
-            //qDebug() << " DONE... PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
         } break;
 
         // TODO: wire in support here for server to get PACKET_TYPE_PARTICLE_ERASE messages
