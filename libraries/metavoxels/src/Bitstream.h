@@ -25,6 +25,7 @@ class QObject;
 class Attribute;
 class AttributeValue;
 class Bitstream;
+class OwnedAttributeValue;
 class TypeStreamer;
 
 typedef QSharedPointer<Attribute> AttributePointer;
@@ -232,8 +233,8 @@ public:
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
     
-    Bitstream& operator<<(const AttributeValue& value);
-    Bitstream& operator>>(AttributeValue& value);
+    Bitstream& operator<<(const AttributeValue& attributeValue);
+    Bitstream& operator>>(OwnedAttributeValue& attributeValue);
     
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);

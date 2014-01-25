@@ -1,0 +1,54 @@
+//
+//  MetavoxelMessages.cpp
+//  metavoxels
+//
+//  Created by Andrzej Kapolka on 1/24/14.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
+
+#include "MetavoxelMessages.h"
+
+class EditVisitor : public MetavoxelVisitor {
+public:
+    
+    EditVisitor(const MetavoxelEdit& edit);
+    
+    virtual bool visit(MetavoxelInfo& info);
+
+private:
+    
+    const MetavoxelEdit& _edit;
+};
+
+EditVisitor::EditVisitor(const MetavoxelEdit& edit) :
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute()),
+    _edit(edit) {
+}
+
+bool EditVisitor::visit(MetavoxelInfo& info) {
+    // find the intersection between volume and voxel
+    glm::vec3 minimum = glm::max(info.minimum, _edit.minimum);
+    glm::vec3 maximum = glm::min(info.minimum + glm::vec3(info.size, info.size, info.size), _edit.maximum);
+    glm::vec3 size = maximum - minimum;
+    if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f) {
+        return false; // disjoint
+    }
+    float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
+    if (volume >= 1.0f) {
+        info.outputValues[0] = _edit.value;
+        return false; // entirely contained
+    }
+    if (info.size <= _edit.granularity) {
+        if (volume >= 0.5f) {
+            info.outputValues[0] = _edit.value;
+        }
+        return false; // reached granularity limit; take best guess
+    }
+    return true; // subdivide
+}
+
+void MetavoxelEdit::apply(MetavoxelDataPointer& data) const {
+    //data.detach();
+    EditVisitor visitor(*this);
+    data->guide(visitor);
+}

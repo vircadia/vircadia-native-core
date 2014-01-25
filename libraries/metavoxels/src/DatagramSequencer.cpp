@@ -25,7 +25,8 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _outgoingDatagramStream(&_outgoingDatagramBuffer),
     _incomingPacketNumber(0),
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
-    _inputStream(_incomingPacketStream) {
+    _inputStream(_incomingPacketStream),
+    _receivedHighPriorityMessages(0) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -33,6 +34,34 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _outgoingDatagramStream.setByteOrder(QDataStream::LittleEndian);
 
     memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
+}
+
+void DatagramSequencer::sendHighPriorityMessage(const QVariant& data) {
+    HighPriorityMessage message = { data, _outgoingPacketNumber + 1 };
+    _highPriorityMessages.append(message);
+}
+
+Bitstream& DatagramSequencer::startPacket() {
+    // start with the list of acknowledgements
+    _outgoingPacketStream << (quint32)_receiveRecords.size();
+    foreach (const ReceiveRecord& record, _receiveRecords) {
+        _outgoingPacketStream << (quint32)record.packetNumber;
+    }
+    
+    // write the high-priority messages
+    _outgoingPacketStream << (quint32)_highPriorityMessages.size();
+    foreach (const HighPriorityMessage& message, _highPriorityMessages) {
+        _outputStream << message.data;
+    }
+    
+    // return the stream, allowing the caller to write the rest
+    return _outputStream;
+}
+
+void DatagramSequencer::endPacket() {
+    _outputStream.flush();
+    sendPacket(QByteArray::fromRawData(_outgoingPacketData.constData(), _outgoingPacketStream.device()->pos()));
+    _outgoingPacketStream.device()->seek(0);
 }
 
 /// Simple RAII-style object to keep a device open when in scope.
@@ -46,21 +75,6 @@ private:
     
     QIODevice* _device;
 };
-
-Bitstream& DatagramSequencer::startPacket() {
-    // start with the list of acknowledgements
-    _outgoingPacketStream << (quint32)_receiveRecords.size();
-    foreach (const ReceiveRecord& record, _receiveRecords) {
-        _outgoingPacketStream << (quint32)record.packetNumber;
-    }
-    return _outputStream;
-}
-
-void DatagramSequencer::endPacket() {
-    _outputStream.flush();
-    sendPacket(QByteArray::fromRawData(_outgoingPacketData.constData(), _outgoingPacketStream.device()->pos()));
-    _outgoingPacketStream.device()->seek(0);
-}
 
 void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     _incomingDatagramBuffer.setData(datagram.constData() + _datagramHeaderSize, datagram.size() - _datagramHeaderSize);
@@ -123,12 +137,26 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
+    // read and dispatch the high-priority messages
+    quint32 highPriorityMessageCount;
+    _incomingPacketStream >> highPriorityMessageCount;
+    int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
+    for (int i = 0; i < highPriorityMessageCount; i++) {
+        QVariant data;
+        _inputStream >> data;
+        if (i >= _receivedHighPriorityMessages) {
+            emit receivedHighPriorityMessage(data);
+        }
+    }
+    _receivedHighPriorityMessages = highPriorityMessageCount;
+    
+    // alert external parties so that they can read the rest
     emit readyToRead(_inputStream);
     _incomingPacketStream.device()->seek(0);
     _inputStream.reset();
     
     // record the receipt
-    ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings() };
+    ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
     _receiveRecords.append(record);
 }
 
@@ -138,10 +166,19 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     QList<ReceiveRecord>::iterator it = qBinaryFind(_receiveRecords.begin(), _receiveRecords.end(), compare);
     if (it != _receiveRecords.end()) {
         _inputStream.persistReadMappings(it->mappings);
+        _receivedHighPriorityMessages -= it->newHighPriorityMessages;
         emit receiveAcknowledged(it - _receiveRecords.begin());
         _receiveRecords.erase(_receiveRecords.begin(), it + 1);
     }
     _outputStream.persistWriteMappings(record.mappings);
+    
+    // remove the received high priority messages
+    for (int i = _highPriorityMessages.size() - 1; i >= 0; i--) {
+        if (_highPriorityMessages.at(i).firstPacketNumber <= record.packetNumber) {
+            _highPriorityMessages.erase(_highPriorityMessages.begin(), _highPriorityMessages.begin() + i + 1);
+            break;
+        }
+    }
 }
 
 void DatagramSequencer::sendPacket(const QByteArray& packet) {

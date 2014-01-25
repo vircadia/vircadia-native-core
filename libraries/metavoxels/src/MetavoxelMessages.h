@@ -9,7 +9,9 @@
 #ifndef __interface__MetavoxelMessages__
 #define __interface__MetavoxelMessages__
 
+#include "AttributeRegistry.h"
 #include "Bitstream.h"
+#include "MetavoxelData.h"
 
 /// A message containing the state of a client.
 class ClientStateMessage {
@@ -35,9 +37,12 @@ class MetavoxelEdit {
 
 public:
     
-    glm::vec3 minimum;
-    glm::vec3 maximum;
-    float granularity;
+    STREAM glm::vec3 minimum;
+    STREAM glm::vec3 maximum;
+    STREAM float granularity;
+    STREAM OwnedAttributeValue value;
+    
+    void apply(MetavoxelDataPointer& data) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelEdit)

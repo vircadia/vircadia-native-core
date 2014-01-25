@@ -339,60 +339,14 @@ void MetavoxelEditor::resetState() {
     _height = 0.0f;
 }
 
-class Applier : public MetavoxelVisitor {
-public:
-    
-    Applier(const glm::vec3& minimum, const glm::vec3& maximum, float granularity, const AttributeValue& value);
-    
-    virtual bool visit(MetavoxelInfo& info);
-
-protected:
-    
-    glm::vec3 _minimum;
-    glm::vec3 _maximum;
-    float _granularity;
-    AttributeValue _value;
-};
-
-Applier::Applier(const glm::vec3& minimum, const glm::vec3& maximum, float granularity, const AttributeValue& value) :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << value.getAttribute()),
-    _minimum(minimum),
-    _maximum(maximum),
-    _granularity(granularity),
-    _value(value) {
-}
-
-bool Applier::visit(MetavoxelInfo& info) {
-    // find the intersection between volume and voxel
-    glm::vec3 minimum = glm::max(info.minimum, _minimum);
-    glm::vec3 maximum = glm::min(info.minimum + glm::vec3(info.size, info.size, info.size), _maximum);
-    glm::vec3 size = maximum - minimum;
-    if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f) {
-        return false; // disjoint
-    }
-    float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
-    if (volume >= 1.0f) {
-        info.outputValues[0] = _value;
-        return false; // entirely contained
-    }
-    if (info.size <= _granularity) {
-        if (volume >= 0.5f) {
-            info.outputValues[0] = _value;
-        }
-        return false; // reached granularity limit; take best guess
-    }
-    return true; // subdivide
-}
-
 void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(getSelectedAttribute());
     if (!attribute) {
         return;
     }
     OwnedAttributeValue value(attribute, attribute->createFromVariant(getValue()));
-    
-    Applier applier(minimum, maximum, _gridSpacing->value(), value);
-    Application::getInstance()->getMetavoxels()->getData().guide(applier);
+    MetavoxelEdit edit = { minimum, maximum, _gridSpacing->value(), value };
+    Application::getInstance()->getMetavoxels()->applyEdit(edit);
 }
 
 QVariant MetavoxelEditor::getValue() const {

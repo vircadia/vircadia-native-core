@@ -19,6 +19,7 @@
 
 #include <DatagramSequencer.h>
 #include <MetavoxelData.h>
+#include <MetavoxelMessages.h>
 
 #include "renderer/ProgramObject.h"
 
@@ -34,7 +35,7 @@ public:
 
     void init();
     
-    MetavoxelData& getData() { return _data; }
+    void applyEdit(const MetavoxelEdit& edit);
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
@@ -89,6 +90,8 @@ public:
     MetavoxelClient(const HifiSockAddr& address);
 
     const QUuid& getSessionID() const { return _sessionID; }
+
+    void applyEdit(const MetavoxelEdit& edit);
 
     void simulate(float deltaTime, MetavoxelVisitor& visitor);
 

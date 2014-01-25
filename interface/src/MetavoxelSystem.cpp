@@ -10,7 +10,6 @@
 
 #include <SharedUtil.h>
 
-#include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 
 #include "Application.h"
@@ -40,6 +39,12 @@ void MetavoxelSystem::init() {
     
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
+}
+
+void MetavoxelSystem::applyEdit(const MetavoxelEdit& edit) {
+    foreach (MetavoxelClient* client, _clients) {
+        client->applyEdit(edit);
+    }
 }
 
 void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& sender) {
@@ -185,6 +190,14 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     // insert the baseline receive record
     ReceiveRecord record = { 0, _data };
     _receiveRecords.append(record);
+}
+
+void MetavoxelClient::applyEdit(const MetavoxelEdit& edit) {
+    // apply immediately to local tree
+    edit.apply(_data);
+
+    // start sending it out
+    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
 }
 
 void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
