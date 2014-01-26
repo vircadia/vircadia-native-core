@@ -9,54 +9,53 @@
 #ifndef __hifi__ImportDialog__
 #define __hifi__ImportDialog__
 
-#include <VoxelSystem.h>
-
 #include <QFileDialog>
 #include <QPushButton>
-#include <QCheckBox>
-#include <QProgressBar>
-#include <QGLWidget>
-#include <QTimer>
+#include <QLabel>
+#include <QFileIconProvider>
+#include <QHash>
 
-class GLWidget;
+#include <SharedUtil.h>
+
+class HiFiIconProvider : public QFileIconProvider {
+public:
+    HiFiIconProvider(const QHash<QString, QString> map) { iconsMap = map; };
+    virtual QIcon icon(IconType type) const;
+    virtual QIcon icon(const QFileInfo &info) const;
+    virtual QString type(const QFileInfo &info) const;
+    QHash<QString, QString> iconsMap;
+};
 
 class ImportDialog : public QFileDialog {
     Q_OBJECT
+    
 public:
     ImportDialog(QWidget* parent = NULL);
     ~ImportDialog();
 
-    void init();
     void reset();
 
-    bool getWantPreview() const { return _previewBox.isChecked(); }
     QString getCurrentFile() const { return _currentFile; }
-    bool getImportIntoClipboard() const { return _clipboardImportBox.isChecked(); }
 
 signals:
-    void previewToggled(bool);
     void accepted();
 
 public slots:
     int  exec();
-    void setGLCamera(float x, float y, float z);
     void import();
     void accept();
     void reject();
 
 private slots:
-    void preview(bool preview);
     void saveCurrentFile(QString);
-    void timer();
 
 private:
-    QString      _currentFile;
-    QPushButton  _importButton;
-    QCheckBox    _clipboardImportBox;
-    QCheckBox    _previewBox;
-    QProgressBar _previewBar;
-    GLWidget*    _glPreview;
-    QTimer       _glTimer;
+    QString _currentFile;
+    QPushButton _importButton;
+    QPushButton _cancelButton;
+    
+    void setLayout();
+    void setImportTypes();
 };
 
 #endif /* defined(__hifi__ImportDialog__) */

@@ -182,7 +182,7 @@ public:
     ~Octree();
 
     /// Your tree class must implement this to create the correct element type
-    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) const = 0;
+    virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing

@@ -30,7 +30,7 @@ public:
 
     VoxelTree(bool shouldReaverage = false);
 
-    virtual VoxelTreeElement* createNewElement(unsigned char * octalCode = NULL) const;
+    virtual VoxelTreeElement* createNewElement(unsigned char * octalCode = NULL);
     VoxelTreeElement* getRoot() { return (VoxelTreeElement*)_rootNode; }
 
     void deleteVoxelAt(float x, float y, float z, float s);

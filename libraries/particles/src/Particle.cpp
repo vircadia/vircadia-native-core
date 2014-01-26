@@ -292,10 +292,7 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 
-Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree) {
-
-    //qDebug() << "Particle::fromEditPacket() length=" << length;
-
+Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid) {
     Particle newParticle; // id and _lastUpdated will get set here...
     unsigned char* dataAt = data;
     processedBytes = 0;
@@ -303,9 +300,6 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
     // the first part of the data is our octcode...
     int octets = numberOfThreeBitSectionsInCode(data);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-
-    //qDebug() << "Particle::fromEditPacket() lengthOfOctcode=" << lengthOfOctcode;
-    //printOctalCode(data);
 
     // we don't actually do anything with this octcode...
     dataAt += lengthOfOctcode;
@@ -323,8 +317,6 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
     // special case for handling "new" particles
     if (isNewParticle) {
-        //qDebug() << "editID == NEW_PARTICLE";
-        
         // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
         // we want to send back to the creator as an map to the actual id
         uint32_t creatorTokenID;
@@ -332,11 +324,8 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         dataAt += sizeof(creatorTokenID);
         processedBytes += sizeof(creatorTokenID);
 
-        //qDebug() << "creatorTokenID:" << creatorTokenID;
-
         newParticle.setCreatorTokenID(creatorTokenID);
         newParticle._newlyCreated = true;
-
         newParticle.setAge(0); // this guy is new!
 
     } else {
@@ -346,15 +335,19 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         // copy existing properties before over-writing with new properties
         if (existingParticle) {
             newParticle = *existingParticle;
-            //qDebug() << "newParticle = *existingParticle... calling debugDump()...";
-            //existingParticle->debugDump();
+        } else {
+            // the user attempted to edit a particle that doesn't exist
+            qDebug() << "user attempted to edit a particle that doesn't exist...";
+            valid = false;
+            return newParticle;
         }
-
         newParticle._id = editID;
         newParticle._newlyCreated = false;
-
-
     }
+    
+    // if we got this far, then our result will be valid
+    valid = true;
+    
 
     // lastEdited
     memcpy(&newParticle._lastEdited, dataAt, sizeof(newParticle._lastEdited));
@@ -883,6 +876,8 @@ ParticleProperties::ParticleProperties() :
     _inHand(false),
     _shouldDie(false),
 
+    _id(UNKNOWN_PARTICLE_ID),
+    _idSet(false),
     _lastEdited(usecTimestampNow()),
     _positionChanged(false),
     _colorChanged(false),
@@ -968,6 +963,11 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
     properties.setProperty("script", _script);
     properties.setProperty("inHand", _inHand);
     properties.setProperty("shouldDie", _shouldDie);
+    
+    if (_idSet) {
+        properties.setProperty("id", _id);
+        properties.setProperty("isKnownID", (_id == UNKNOWN_PARTICLE_ID));
+    }
 
     return properties;
 }
@@ -1160,6 +1160,9 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _script = particle.getScript();
     _inHand = particle.getInHand();
     _shouldDie = particle.getShouldDie();
+
+    _id = particle.getID();
+    _idSet = true;
 
     _positionChanged = false;
     _colorChanged = false;

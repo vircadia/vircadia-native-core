@@ -58,6 +58,8 @@ public:
 
     static bool renderOperation(OctreeElement* element, void* extraData);
 
+    /// clears the tree
+    void clear();
 protected:
     Octree* _tree;
     QUuid _dataSourceUUID;
