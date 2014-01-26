@@ -97,7 +97,8 @@ QString HiFiIconProvider::type(const QFileInfo &info) const {
 ImportDialog::ImportDialog(QWidget* parent) :
     QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, NULL),
     _importButton(IMPORT_BUTTON_NAME, this),
-    _cancelButton(CANCEL_BUTTON_NAME, this) {
+    _cancelButton(CANCEL_BUTTON_NAME, this),
+    fileAccepted(false) {
 
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
@@ -131,11 +132,17 @@ ImportDialog::~ImportDialog() {
 }
 
 void ImportDialog::import() {
+    fileAccepted = true;
     emit accepted();
 }
 
 void ImportDialog::accept() {
-    QFileDialog::accept();
+    if (!fileAccepted) {
+        fileAccepted = true;
+        emit accepted();        
+    } else {
+        QFileDialog::accept();
+    }
 }
 
 void ImportDialog::reject() {
