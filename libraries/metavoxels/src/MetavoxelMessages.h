@@ -11,7 +11,8 @@
 
 #include "AttributeRegistry.h"
 #include "Bitstream.h"
-#include "MetavoxelData.h"
+
+class MetavoxelData;
 
 /// A message containing the state of a client.
 class ClientStateMessage {
@@ -42,7 +43,7 @@ public:
     STREAM float granularity;
     STREAM OwnedAttributeValue value;
     
-    void apply(MetavoxelDataPointer& data) const;
+    void apply(MetavoxelData& data) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelEdit)

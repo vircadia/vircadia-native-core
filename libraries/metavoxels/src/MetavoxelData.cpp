@@ -176,28 +176,6 @@ void MetavoxelData::decrementRootReferenceCounts() {
     }
 }
 
-void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out) {
-    if (data == reference) {
-        out << false;
-    
-    } else {
-        out << true;
-        data->writeDelta(*reference, out);
-    }
-}
-
-void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in) {
-    bool changed;
-    in >> changed;
-    if (changed) {
-        data.detach();
-        data->readDelta(*reference, in);
-    
-    } else {
-        data = reference;
-    }
-}
-
 MetavoxelNode::MetavoxelNode(const AttributeValue& attributeValue) : _referenceCount(1) {
     _attributeValue = attributeValue.copy();
     for (int i = 0; i < CHILD_COUNT; i++) {

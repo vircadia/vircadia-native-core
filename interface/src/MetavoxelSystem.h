@@ -72,7 +72,6 @@ private:
     static ProgramObject _program;
     static int _pointScaleLocation;
     
-    MetavoxelData _data;
     QVector<Point> _points;
     PointVisitor _pointVisitor;
     QOpenGLBuffer _buffer;
@@ -112,7 +111,7 @@ private:
     class ReceiveRecord {
     public:
         int packetNumber;
-        MetavoxelDataPointer data;
+        MetavoxelData data;
     };
     
     HifiSockAddr _address;
@@ -120,7 +119,7 @@ private:
     
     DatagramSequencer _sequencer;
     
-    MetavoxelDataPointer _data;
+    MetavoxelData _data;
     
     QList<ReceiveRecord> _receiveRecords;
 };

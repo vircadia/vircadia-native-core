@@ -40,6 +40,7 @@ private:
     
     void updateAttributes(const QString& select = QString());
     QString getSelectedAttribute() const;
+    double getGridSpacing() const;
     glm::quat getGridRotation() const;
     void resetState();
     void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);

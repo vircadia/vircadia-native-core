@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include "MetavoxelData.h"
 #include "MetavoxelMessages.h"
 
 class EditVisitor : public MetavoxelVisitor {
@@ -47,8 +48,7 @@ bool EditVisitor::visit(MetavoxelInfo& info) {
     return true; // subdivide
 }
 
-void MetavoxelEdit::apply(MetavoxelDataPointer& data) const {
-    //data.detach();
+void MetavoxelEdit::apply(MetavoxelData& data) const {
     EditVisitor visitor(*this);
-    data->guide(visitor);
+    data.guide(visitor);
 }

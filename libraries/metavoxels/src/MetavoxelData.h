@@ -10,7 +10,6 @@
 #define __interface__MetavoxelData__
 
 #include <QBitArray>
-#include <QExplicitlySharedDataPointer>
 #include <QHash>
 #include <QSharedData>
 #include <QScriptString>
@@ -28,7 +27,7 @@ class MetavoxelVisitation;
 class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
-class MetavoxelData : public QSharedData {
+class MetavoxelData {
 public:
 
     MetavoxelData();
@@ -55,12 +54,6 @@ private:
     
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
-
-typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
-
-void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out);
-
-void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in);
 
 /// A single node within a metavoxel layer.
 class MetavoxelNode {

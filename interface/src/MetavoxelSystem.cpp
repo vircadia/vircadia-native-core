@@ -54,7 +54,6 @@ void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& se
 void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
     _points.clear();
-    _data.guide(_pointVisitor);
     foreach (MetavoxelClient* client, _clients) {
         client->simulate(deltaTime, _pointVisitor);
     }
@@ -180,8 +179,7 @@ static QByteArray createDatagramHeader(const QUuid& sessionID) {
 MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     _address(address),
     _sessionID(QUuid::createUuid()),
-    _sequencer(createDatagramHeader(_sessionID)),
-    _data(new MetavoxelData()) {
+    _sequencer(createDatagramHeader(_sessionID)) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
@@ -197,7 +195,7 @@ void MetavoxelClient::applyEdit(const MetavoxelEdit& edit) {
     edit.apply(_data);
 
     // start sending it out
-    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+    // _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
 }
 
 void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
@@ -206,7 +204,7 @@ void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
     
-    _data->guide(visitor);
+    _data.guide(visitor);
 }
 
 void MetavoxelClient::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
@@ -238,7 +236,7 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        readDelta(_data, _receiveRecords.first().data, in);
+        // readDelta(_data, _receiveRecords.first().data, in);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {
