@@ -62,6 +62,7 @@ public:
     static const int CHILD_COUNT = 8;
 
     MetavoxelNode(const AttributeValue& attributeValue);
+    MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
     
     void setAttributeValue(const AttributeValue& attributeValue);
 
@@ -191,16 +192,14 @@ private:
 class MetavoxelVisitation {
 public:
 
-    MetavoxelData* data;
     MetavoxelVisitation* previous;
     MetavoxelVisitor& visitor;
     QVector<MetavoxelNode*> inputNodes;
     QVector<MetavoxelNode*> outputNodes;
     MetavoxelInfo info;
-    int childIndex;
     
     bool allInputNodesLeaves() const;
-    MetavoxelNode* createOutputNode(int index);
+    AttributeValue getInheritedOutputValue(int index) const;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */
