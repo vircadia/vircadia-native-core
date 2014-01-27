@@ -161,14 +161,13 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
 }
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
-    // stop acknowledging the recorded packets (TODO: replace with interpolation search?)
-    ReceiveRecord compare = { record.lastReceivedPacketNumber };
-    QList<ReceiveRecord>::iterator it = qBinaryFind(_receiveRecords.begin(), _receiveRecords.end(), compare);
-    if (it != _receiveRecords.end()) {
-        _inputStream.persistReadMappings(it->mappings);
-        _receivedHighPriorityMessages -= it->newHighPriorityMessages;
-        emit receiveAcknowledged(it - _receiveRecords.begin());
-        _receiveRecords.erase(_receiveRecords.begin(), it + 1);
+    // stop acknowledging the recorded packets
+    while (!_receiveRecords.isEmpty() && _receiveRecords.first().packetNumber <= record.lastReceivedPacketNumber) {
+        const ReceiveRecord& received = _receiveRecords.first();
+        _inputStream.persistReadMappings(received.mappings);
+        _receivedHighPriorityMessages -= received.newHighPriorityMessages;
+        emit receiveAcknowledged(0);
+        _receiveRecords.removeFirst();
     }
     _outputStream.persistWriteMappings(record.mappings);
     

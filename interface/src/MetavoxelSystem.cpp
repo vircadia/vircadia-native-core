@@ -195,7 +195,7 @@ void MetavoxelClient::applyEdit(const MetavoxelEdit& edit) {
     edit.apply(_data);
 
     // start sending it out
-    // _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
 }
 
 void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
