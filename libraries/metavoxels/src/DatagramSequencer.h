@@ -23,6 +23,12 @@ class DatagramSequencer : public QObject {
 
 public:
     
+    class HighPriorityMessage {
+    public:
+        QVariant data;
+        int firstPacketNumber;
+    };
+    
     DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
     
     /// Returns the packet number of the last packet sent.
@@ -36,6 +42,9 @@ public:
     
     /// Adds a message to the high priority queue.  Will be sent with every outgoing packet until received.
     void sendHighPriorityMessage(const QVariant& data);
+    
+    /// Returns a reference to the list of high priority messages not yet acknowledged.
+    const QList<HighPriorityMessage>& getHighPriorityMessages() const { return _highPriorityMessages; }
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -83,12 +92,6 @@ private:
         int newHighPriorityMessages;
     
         bool operator<(const ReceiveRecord& other) const { return packetNumber < other.packetNumber; }
-    };
-    
-    class HighPriorityMessage {
-    public:
-        QVariant data;
-        int firstPacketNumber;
     };
     
     /// Notes that the described send was acknowledged by the other party.

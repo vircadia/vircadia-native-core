@@ -41,7 +41,7 @@ void MetavoxelSystem::init() {
     _buffer.create();
 }
 
-void MetavoxelSystem::applyEdit(const MetavoxelEdit& edit) {
+void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
     foreach (MetavoxelClient* client, _clients) {
         client->applyEdit(edit);
     }
@@ -190,7 +190,14 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     _receiveRecords.append(record);
 }
 
-void MetavoxelClient::applyEdit(const MetavoxelEdit& edit) {
+MetavoxelClient::~MetavoxelClient() {
+    // close the session
+    Bitstream& out = _sequencer.startPacket();
+    out << QVariant::fromValue(CloseSessionMessage());
+    _sequencer.endPacket();
+}
+
+void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     // apply immediately to local tree
     edit.apply(_data);
 
@@ -227,6 +234,13 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     // record the receipt
     ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data };
     _receiveRecords.append(record);
+    
+    // reapply local edits
+    foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
+        if (message.data.userType() == MetavoxelEditMessage::Type) {
+            message.data.value<MetavoxelEditMessage>().apply(_data);
+        }
+    }
 }
 
 void MetavoxelClient::clearReceiveRecordsBefore(int index) {
@@ -236,7 +250,7 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        // readDelta(_data, _receiveRecords.first().data, in);
+        _data.readDelta(_receiveRecords.first().data, in);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {

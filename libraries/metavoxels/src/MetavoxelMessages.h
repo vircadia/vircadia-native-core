@@ -14,6 +14,13 @@
 
 class MetavoxelData;
 
+/// Requests to close the session.
+class CloseSessionMessage {
+    STREAMABLE
+};
+
+DECLARE_STREAMABLE_METATYPE(CloseSessionMessage)
+
 /// A message containing the state of a client.
 class ClientStateMessage {
     STREAMABLE
@@ -33,7 +40,7 @@ class MetavoxelDeltaMessage {
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
 
 /// A simple streamable edit.
-class MetavoxelEdit {
+class MetavoxelEditMessage {
     STREAMABLE
 
 public:
@@ -46,6 +53,6 @@ public:
     void apply(MetavoxelData& data) const;
 };
 
-DECLARE_STREAMABLE_METATYPE(MetavoxelEdit)
+DECLARE_STREAMABLE_METATYPE(MetavoxelEditMessage)
 
 #endif /* defined(__interface__MetavoxelMessages__) */

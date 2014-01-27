@@ -24,6 +24,10 @@ MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) 
     connect(&_sendTimer, SIGNAL(timeout()), SLOT(sendDeltas()));
 }
 
+void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
+    edit.apply(_data);
+}
+
 void MetavoxelServer::removeSession(const QUuid& sessionId) {
     delete _sessions.take(sessionId);
 }
@@ -74,16 +78,18 @@ void MetavoxelServer::processData(const QByteArray& data, const HifiSockAddr& se
     // forward to session, creating if necessary
     MetavoxelSession*& session = _sessions[sessionID];
     if (!session) {
-        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize));
+        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize), sender);
     }
     session->receivedData(data, sender);
 }
 
-MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId, const QByteArray& datagramHeader) :
+MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
+        const QByteArray& datagramHeader, const HifiSockAddr& sender) :
     QObject(server),
     _server(server),
     _sessionId(sessionId),
-    _sequencer(datagramHeader) {
+    _sequencer(datagramHeader),
+    _sender(sender) {
     
     const int TIMEOUT_INTERVAL = 30 * 1000;
     _timeoutTimer.setInterval(TIMEOUT_INTERVAL);
@@ -98,6 +104,8 @@ MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& session
     // insert the baseline send record
     SendRecord record = { 0 };
     _sendRecords.append(record);
+    
+    qDebug() << "Opened session [sessionId=" << _sessionId << ", sender=" << _sender << "]";
 }
 
 void MetavoxelSession::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
@@ -114,7 +122,7 @@ void MetavoxelSession::receivedData(const QByteArray& data, const HifiSockAddr& 
 void MetavoxelSession::sendDelta() {
     Bitstream& out = _sequencer.startPacket();
     out << QVariant::fromValue(MetavoxelDeltaMessage());
-    //writeDelta(_server->getData(), _sendRecords.first().data, out);
+    _server->getData().writeDelta(_sendRecords.first().data, out);
     _sequencer.endPacket();
     
     // record the send
@@ -143,13 +151,16 @@ void MetavoxelSession::clearSendRecordsBefore(int index) {
 
 void MetavoxelSession::handleMessage(const QVariant& message) {
     int userType = message.userType();
-    if (userType == ClientStateMessage::Type) {
+    if (userType == CloseSessionMessage::Type) {
+        qDebug() << "Session closed [sessionId=" << _sessionId << ", sender=" << _sender << "]";
+        _server->removeSession(_sessionId);
+    
+    } else if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
         _position = state.position;
     
-    } else if (userType == MetavoxelEdit::Type) {
-        MetavoxelEdit edit = message.value<MetavoxelEdit>();
-        qDebug() << "got edit " << edit.granularity;
+    } else if (userType == MetavoxelEditMessage::Type) {
+        _server->applyEdit(message.value<MetavoxelEditMessage>());
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {

@@ -67,6 +67,7 @@ public:
     void setAttributeValue(const AttributeValue& attributeValue);
 
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
+    void* getAttributeValue() const { return _attributeValue; }
 
     void mergeChildren(const AttributePointer& attribute);
 

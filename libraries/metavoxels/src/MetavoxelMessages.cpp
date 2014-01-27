@@ -12,16 +12,16 @@
 class EditVisitor : public MetavoxelVisitor {
 public:
     
-    EditVisitor(const MetavoxelEdit& edit);
+    EditVisitor(const MetavoxelEditMessage& edit);
     
     virtual bool visit(MetavoxelInfo& info);
 
 private:
     
-    const MetavoxelEdit& _edit;
+    const MetavoxelEditMessage& _edit;
 };
 
-EditVisitor::EditVisitor(const MetavoxelEdit& edit) :
+EditVisitor::EditVisitor(const MetavoxelEditMessage& edit) :
     MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute()),
     _edit(edit) {
 }
@@ -48,7 +48,7 @@ bool EditVisitor::visit(MetavoxelInfo& info) {
     return true; // subdivide
 }
 
-void MetavoxelEdit::apply(MetavoxelData& data) const {
+void MetavoxelEditMessage::apply(MetavoxelData& data) const {
     EditVisitor visitor(*this);
     data.guide(visitor);
 }

@@ -35,7 +35,7 @@ public:
 
     void init();
     
-    void applyEdit(const MetavoxelEdit& edit);
+    void applyEdit(const MetavoxelEditMessage& edit);
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
@@ -87,10 +87,11 @@ class MetavoxelClient : public QObject {
 public:
     
     MetavoxelClient(const HifiSockAddr& address);
+    virtual ~MetavoxelClient();
 
     const QUuid& getSessionID() const { return _sessionID; }
 
-    void applyEdit(const MetavoxelEdit& edit);
+    void applyEdit(const MetavoxelEditMessage& edit);
 
     void simulate(float deltaTime, MetavoxelVisitor& visitor);
 

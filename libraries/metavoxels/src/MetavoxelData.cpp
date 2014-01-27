@@ -72,27 +72,19 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
 }
 
 void MetavoxelData::read(Bitstream& in) {
-    // save the old roots and clear
-    QHash<AttributePointer, MetavoxelNode*> oldRoots = _roots;
+    // clear out any existing roots
+    decrementRootReferenceCounts();
     _roots.clear();
-    
-    // read in the new roots, reusing old ones where appropriate
+
+    // read in the new roots
     int rootCount;
     in >> rootCount;
     for (int i = 0; i < rootCount; i++) {
         AttributePointer attribute;
         in.getAttributeStreamer() >> attribute;
-        MetavoxelNode* root = oldRoots.take(attribute);
-        if (!root) {
-            root = new MetavoxelNode(attribute);
-        }
-        _roots.insert(attribute, root);
+        MetavoxelNode*& root = _roots[attribute];
+        root = new MetavoxelNode(attribute);
         root->read(attribute, in);
-    }
-    
-    // clear out the remaining old roots
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = oldRoots.constBegin(); it != oldRoots.constEnd(); it++) {
-        it.value()->decrementReferenceCount(it.key());
     }
 }
 
@@ -105,22 +97,25 @@ void MetavoxelData::write(Bitstream& out) const {
 }
 
 void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
+    // shallow copy the reference
+    *this = reference;
+
     int changedCount;
     in >> changedCount;
     for (int i = 0; i < changedCount; i++) {
         AttributePointer attribute;
         in.getAttributeStreamer() >> attribute;
         MetavoxelNode*& root = _roots[attribute];
-        if (!root) {
+        if (root) {
+            MetavoxelNode* oldRoot = root;
             root = new MetavoxelNode(attribute);
-        }
-        MetavoxelNode* referenceRoot = reference._roots.value(attribute);
-        if (referenceRoot) {
-            root->readDelta(attribute, *referenceRoot, in);    
-                
+            root->readDelta(attribute, *oldRoot, in);
+            oldRoot->decrementReferenceCount(attribute);
+            
         } else {
+            root = new MetavoxelNode(attribute);
             root->read(attribute, in);
-        }
+        } 
     }
     
     int removedCount;
@@ -128,7 +123,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
     for (int i = 0; i < removedCount; i++) {
         AttributePointer attribute;
         in.getAttributeStreamer() >> attribute;
-        
+        _roots.take(attribute)->decrementReferenceCount(attribute);
     }
 }
 
@@ -231,22 +226,16 @@ bool MetavoxelNode::isLeaf() const {
 }
 
 void MetavoxelNode::read(const AttributePointer& attribute, Bitstream& in) {
+    clearChildren(attribute);
+    
     bool leaf;
     in >> leaf;
     attribute->read(in, _attributeValue, leaf);
-    if (leaf) {
-        clearChildren(attribute);
-        
-    } else {
-        void* childValues[CHILD_COUNT];
+    if (!leaf) {
         for (int i = 0; i < CHILD_COUNT; i++) {
-            if (!_children[i]) {
-                _children[i] = new MetavoxelNode(attribute);
-            }
+            _children[i] = new MetavoxelNode(attribute);
             _children[i]->read(attribute, in);
-            childValues[i] = _children[i]->_attributeValue;
         }
-        attribute->merge(_attributeValue, childValues);
     }
 }
 
@@ -262,20 +251,28 @@ void MetavoxelNode::write(const AttributePointer& attribute, Bitstream& out) con
 }
 
 void MetavoxelNode::readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in) {
+    clearChildren(attribute);
+
     bool leaf;
     in >> leaf;
     attribute->readDelta(in, _attributeValue, reference._attributeValue, leaf);
-    if (leaf) {
-        clearChildren(attribute);
-        
-    } else {
+    if (!leaf) {
         if (reference.isLeaf()) {
             for (int i = 0; i < CHILD_COUNT; i++) {
+                _children[i] = new MetavoxelNode(attribute);
                 _children[i]->read(attribute, in);
             }
         } else {
             for (int i = 0; i < CHILD_COUNT; i++) {
-                _children[i]->readDelta(attribute, *reference._children[i], in);
+                bool changed;
+                in >> changed;
+                if (changed) {
+                    _children[i] = new MetavoxelNode(attribute);
+                    _children[i]->readDelta(attribute, *reference._children[i], in);
+                } else {
+                    _children[i] = reference._children[i];
+                    _children[i]->incrementReferenceCount();
+                }
             }
         }  
     }
@@ -292,7 +289,12 @@ void MetavoxelNode::writeDelta(const AttributePointer& attribute, const Metavoxe
             }
         } else {
             for (int i = 0; i < CHILD_COUNT; i++) {
-                _children[i]->writeDelta(attribute, *reference._children[i], out);
+                if (_children[i] == reference._children[i]) {
+                    out << false;
+                } else {
+                    out << true;
+                    _children[i]->writeDelta(attribute, *reference._children[i], out);
+                }
             }
         }
     }
@@ -343,9 +345,16 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     visitation.info.isLeaf = visitation.allInputNodesLeaves();
     bool keepGoing = visitation.visitor.visit(visitation.info);
     for (int i = 0; i < visitation.outputNodes.size(); i++) {
-        const AttributeValue& value = visitation.info.outputValues[i];
-        if (value.getAttribute()) {
-            visitation.outputNodes[i] = new MetavoxelNode(value);
+        AttributeValue& value = visitation.info.outputValues[i];
+        if (!value.getAttribute()) {
+            continue;
+        }
+        MetavoxelNode*& node = visitation.outputNodes[i];
+        if (node && node->isLeaf() && value.getAttribute()->equal(value.getValue(), node->getAttributeValue())) {
+            // "set" to same value; disregard
+            value = AttributeValue();
+        } else {
+            node = new MetavoxelNode(value);
         }
     }
     if (!keepGoing) {
