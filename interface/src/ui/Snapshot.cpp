@@ -11,12 +11,14 @@
 #include <FileUtils.h>
 
 #include <QDateTime>
-#include <QStandardPaths>
+#include <QFileInfo>
+#include <QDebug>
 
-// filename format: hifi-snap_username_current-coordinates_date_time-with-seconds.jpg
-// %1 <= username, %2 <= current location, %3 <= date and time
-const QString FILENAME_PATH_FORMAT = "hifi-snap_%1_%2_%3.jpg";
-const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
+// filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
+// %1 <= username, %2 <= date and time, %3 <= current location
+const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2@%3.jpg";
+
+const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
 
 void Snapshot::saveSnapshot(QGLWidget* widget, QString username, glm::vec3 location) {
@@ -27,11 +29,17 @@ void Snapshot::saveSnapshot(QGLWidget* widget, QString username, glm::vec3 locat
     shot.setText("location-y", QString::number(location.y));
     shot.setText("location-z", QString::number(location.z));
 
-    QString formattedLocation = QString("%1-%2-%3").arg(location.x).arg(location.y).arg(location.z);
+    QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
+    // replace decimal . with '-'
+    formattedLocation.replace('.', '-');
+    
+    // normalize username, replace all non alphanumeric with '-'
+    username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
+    
     QDateTime now = QDateTime::currentDateTime();
     
     QString fileName = FileUtils::standardPath(SNAPSHOTS_DIRECTORY);
-    fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, formattedLocation, now.toString(DATETIME_FORMAT))));
+    fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
     shot.save(fileName);
 }
 

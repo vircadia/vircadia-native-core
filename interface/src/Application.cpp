@@ -699,7 +699,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
-        bool isControl = event->modifiers().testFlag(Qt::MetaModifier);
         switch (event->key()) {
                 break;
             case Qt::Key_Shift:
@@ -778,7 +777,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     _voxels.collectStatsForTreesAndVBOs();
                 } else if (isShifted && isMeta)  {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (!isShifted && !isMeta && isControl)  {
+                } else if (!isShifted && isMeta)  {
                     takeSnapshot();
                 } else if (_nudgeStarted) {
                     if (_lookingAlongX) {
