@@ -46,6 +46,9 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
     } else if (dataByteArray[0] == PACKET_TYPE_PARTICLE_ADD_RESPONSE) {
         // this will keep creatorTokenIDs to IDs mapped correctly
         Particle::handleAddParticleResponse((unsigned char*) dataByteArray.data(), dataByteArray.size());
+        
+        // also give our local particle tree a chance to remap any internal locally created particles
+        _particleTree.handleAddParticleResponse((unsigned char*) dataByteArray.data(), dataByteArray.size());
     } else {
         NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
     }

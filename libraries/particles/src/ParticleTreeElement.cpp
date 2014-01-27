@@ -161,31 +161,60 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
 }
 
 bool ParticleTreeElement::updateParticle(const ParticleID& particleID, const ParticleProperties& properties) {
-    // currently only known IDs are in the tree... in the future we might support local storage of creatorTokenID particles
-    if (particleID.isKnownID) {
-        uint16_t numberOfParticles = _particles->size();
-        uint32_t searchID = particleID.id;
-        for (uint16_t i = 0; i < numberOfParticles; i++) {
-            // note: unlike storeParticle() which is called from inbound packets, this is only called by local editors
-            // and therefore we can be confident that this change is higher priority and should be honored
-            Particle& thisParticle = (*_particles)[i];
-            if (thisParticle.getID() == searchID) {
-                thisParticle.setProperties(properties);
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        // note: unlike storeParticle() which is called from inbound packets, this is only called by local editors
+        // and therefore we can be confident that this change is higher priority and should be honored
+        Particle& thisParticle = (*_particles)[i];
+        
+        bool found = false;
+        if (particleID.isKnownID) {
+            found = thisParticle.getID() == particleID.id;
+        } else {
+            found = thisParticle.getCreatorTokenID() == particleID.creatorTokenID;
+        }
+        if (found) {
+            thisParticle.setProperties(properties);
 
-                const bool wantDebug = false;
-                if (wantDebug) {
-                    uint64_t now = usecTimestampNow();
-                    int elapsed = now - thisParticle.getLastEdited();
+            const bool wantDebug = false;
+            if (wantDebug) {
+                uint64_t now = usecTimestampNow();
+                int elapsed = now - thisParticle.getLastEdited();
 
-                    qDebug() << "ParticleTreeElement::updateParticle() AFTER update... edited AGO=" << elapsed <<
-                            "now=" << now << " thisParticle.getLastEdited()=" << thisParticle.getLastEdited();
-                }                
-                return true;
-            }
+                qDebug() << "ParticleTreeElement::updateParticle() AFTER update... edited AGO=" << elapsed <<
+                        "now=" << now << " thisParticle.getLastEdited()=" << thisParticle.getLastEdited();
+            }                
+            return true;
         }
     }
     return false;
 }
+
+void ParticleTreeElement::updateParticleID(FindAndUpdateParticleIDArgs* args) {
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        Particle& thisParticle = (*_particles)[i];
+        
+        if (!args->creatorTokenFound) {
+            // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
+            if (thisParticle.getCreatorTokenID() == args->creatorTokenID) {
+                thisParticle.setID(args->particleID);
+                args->creatorTokenFound = true;
+            }
+        }
+        
+        // if we're in an isViewing tree, we also need to look for an kill any viewed particles
+        if (!args->viewedParticleFound && args->isViewing) {
+            if (thisParticle.getCreatorTokenID() == UNKNOWN_TOKEN && thisParticle.getID() == args->particleID) {
+                _particles->removeAt(i); // remove the particle at this index
+                numberOfParticles--; // this means we have 1 fewer particle in this list
+                i--; // and we actually want to back up i as well.
+                args->viewedParticleFound = true;
+            }
+        }
+    }
+}
+
 
 
 const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {

@@ -31,6 +31,13 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
     // queue the packet
     queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, id, properties);
 
+    // If we have a local particle tree set, then also update it.
+    if (_particleTree) {
+        _particleTree->lockForWrite();
+        _particleTree->addParticle(id, properties);
+        _particleTree->unlock();
+    }
+
     return id;
 }
 
@@ -70,18 +77,21 @@ ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID
 
 ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
     uint32_t actualID = particleID.id;
+    
+    // if the particle is unknown, attempt to look it up
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-        if (actualID == UNKNOWN_PARTICLE_ID) {
-            return particleID; // bailing early
-        }
     }
 
-    particleID.id = actualID;
-    particleID.isKnownID = true;
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    // if at this point, we know the id, send the update to the particle server
+    if (actualID != UNKNOWN_PARTICLE_ID) {
+        particleID.id = actualID;
+        particleID.isKnownID = true;
+        queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    }
     
-    // If we have a local particle tree set, then also update it.
+    // If we have a local particle tree set, then also update it. We can do this even if we don't know
+    // the actual id, because we can edit out local particles just with creatorTokenID
     if (_particleTree) {
         _particleTree->lockForWrite();
         _particleTree->updateParticle(particleID, properties);

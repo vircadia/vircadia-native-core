@@ -78,6 +78,33 @@ Particle::Particle() {
             DEFAULT_GRAVITY, DEFAULT_DAMPING, DEFAULT_LIFETIME, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
 
+Particle::Particle(const ParticleID& particleID, const ParticleProperties& properties) {
+    _id = particleID.id;
+    _creatorTokenID = particleID.creatorTokenID;
+
+    // init values with defaults before calling setProperties
+    uint64_t now = usecTimestampNow();
+    _lastEdited = now;
+    _lastUpdated = now;
+    _created = now; // will get updated as appropriate in setAge()
+
+    _position = glm::vec3(0,0,0);
+    _radius = 0;
+    _mass = 1.0f;
+    rgbColor noColor = { 0, 0, 0 };
+    memcpy(_color, noColor, sizeof(_color));
+    _velocity = glm::vec3(0,0,0);
+    _damping = DEFAULT_DAMPING;
+    _lifetime = DEFAULT_LIFETIME;
+    _gravity = DEFAULT_GRAVITY;
+    _script = DEFAULT_SCRIPT;
+    _inHand = NOT_IN_HAND;
+    _shouldDie = false;
+    
+    setProperties(properties);
+}
+
+
 Particle::~Particle() {
 }
 
@@ -86,10 +113,8 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     if (id == NEW_PARTICLE) {
         _id = _nextID;
         _nextID++;
-        //qDebug() << "Particle::init()... assigning new id... _id=" << _id;
     } else {
         _id = id;
-        //qDebug() << "Particle::init()... assigning id from init... _id=" << _id;
     }
     uint64_t now = usecTimestampNow();
     _lastEdited = now;

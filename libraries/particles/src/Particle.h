@@ -161,6 +161,8 @@ class Particle  {
 
 public:
     Particle();
+
+    Particle(const ParticleID& particleID, const ParticleProperties& properties);
     
     /// all position, velocity, gravity, radius units are in domain units (0.0 to 1.0)
     Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
@@ -207,6 +209,7 @@ public:
     float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
+    void setID(uint32_t id) { _id = id; }
     bool getShouldDie() const { return _shouldDie; }
     QString getScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }

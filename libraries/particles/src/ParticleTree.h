@@ -41,6 +41,7 @@ public:
 
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
     void updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
+    void addParticle(const ParticleID& particleID, const ParticleProperties& properties);
     void deleteParticle(const ParticleID& particleID);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
     const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
@@ -55,6 +56,7 @@ public:
     void forgetParticlesDeletedBefore(uint64_t sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
+    void handleAddParticleResponse(unsigned char* packetData , int packetLength);
 
 private:
 
@@ -66,6 +68,7 @@ private:
     static bool pruneOperation(OctreeElement* element, void* extraData);
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
+    static bool findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
 

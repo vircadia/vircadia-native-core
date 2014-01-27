@@ -121,6 +121,12 @@ bool ParticleTree::findAndUpdateWithIDandPropertiesOperation(OctreeElement* elem
         args->found = true;
         return false; // stop searching
     }
+
+    // if we've found our particle stop searching
+    if (args->found) {
+        return false;
+    }
+
     return true;
 }
 
@@ -134,12 +140,82 @@ void ParticleTree::updateParticle(const ParticleID& particleID, const ParticlePr
     }
 }
 
+void ParticleTree::addParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    // This only operates on locally created particles
+    if (particleID.isKnownID) {
+        return; // not allowed
+    }
+    Particle particle(particleID, properties);
+    glm::vec3 position = particle.getPosition();
+    float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
+    ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+
+    element->storeParticle(particle);
+    
+    _isDirty = true;
+}
+
 void ParticleTree::deleteParticle(const ParticleID& particleID) {
     if (particleID.isKnownID) {
         FindAndDeleteParticlesArgs args;
         args._idsToDelete.push_back(particleID.id);
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
+}
+
+// scans the tree and handles mapping locally created particles to know IDs.
+// in the event that this tree is also viewing the scene, then we need to also
+// search the tree to make sure we don't have a duplicate particle from the viewing
+// operation.
+bool ParticleTree::findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData) {
+    bool keepSearching = true;
+
+    FindAndUpdateParticleIDArgs* args = static_cast<FindAndUpdateParticleIDArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+
+    // Note: updateParticleID() will only operate on correctly found particles
+    particleTreeElement->updateParticleID(args);
+
+    // if we've found and replaced both the creatorTokenID and the viewedParticle, then we
+    // can stop looking, otherwise we will keep looking    
+    if (args->creatorTokenFound && args->viewedParticleFound) {
+        keepSearching = false;
+    }
+    
+    return keepSearching;
+}
+
+void ParticleTree::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
+    unsigned char* dataAt = packetData;
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    dataAt += numBytesPacketHeader;
+
+    uint32_t creatorTokenID;
+    memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
+    dataAt += sizeof(creatorTokenID);
+
+    uint32_t particleID;
+    memcpy(&particleID, dataAt, sizeof(particleID));
+    dataAt += sizeof(particleID);
+
+    // update particles in our tree
+    bool assumeParticleFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual particle
+    FindAndUpdateParticleIDArgs args = { 
+        particleID, 
+        creatorTokenID, 
+        false, 
+        assumeParticleFound,
+        getIsViewing() 
+    };
+    
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "looking for creatorTokenID=" << creatorTokenID << " particleID=" << particleID 
+                << " getIsViewing()=" << getIsViewing();
+    }
+    lockForWrite();
+    recurseTreeWithOperation(findAndUpdateParticleIDOperation, &args);
+    unlock();
 }
 
 
