@@ -170,16 +170,14 @@ public:
 
 bool ParticleTree::findInSphereOperation(OctreeElement* element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
-    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-
     glm::vec3 penetration;
-    bool sphereIntersection = particleTreeElement->getAABox().findSpherePenetration(args->position,
+    bool sphereIntersection = element->getAABox().findSpherePenetration(args->position,
                                                                     args->targetRadius, penetration);
 
-    // If this particleTreeElement contains the point, then search it...
+    // If this element contains the point, then search it...
     if (sphereIntersection) {
-        QVector<const Particle*> moreParticles = particleTreeElement->getParticles(args->position, args->targetRadius);
-        args->particles << moreParticles;
+        ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+        particleTreeElement->getParticles(args->position, args->targetRadius, args->particles);
         return true; // keep searching in case children have closer particles
     }
 
@@ -187,13 +185,43 @@ bool ParticleTree::findInSphereOperation(OctreeElement* element, void* extraData
     return false;
 }
 
-QVector<const Particle*> ParticleTree::findParticles(const glm::vec3& center, float radius) {
-    QVector<Particle*> result;
+void ParticleTree::findParticles(const glm::vec3& center, float radius, QVector<const Particle*>& foundParticles) {
     FindAllNearPointArgs args = { center, radius };
     lockForRead();
     recurseTreeWithOperation(findInSphereOperation, &args);
     unlock();
-    return args.particles;
+    // swap the two lists of particle pointers instead of copy
+    foundParticles.swap(args.particles);
+}
+
+class FindParticlesInBoxArgs {
+public:
+    FindParticlesInBoxArgs(const AABox& box) 
+        : _box(box), _foundParticles() {
+    }
+
+    AABox _box;
+    QVector<Particle*> _foundParticles;
+};
+
+bool findInBoxForUpdateOperation(OctreeElement* element, void* extraData) {
+    FindParticlesInBoxArgs* args = static_cast< FindParticlesInBoxArgs*>(extraData);
+    const AABox& elementBox = element->getAABox();
+    if (elementBox.touches(args->_box)) {
+        ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+        particleTreeElement->getParticlesForUpdate(args->_box, args->_foundParticles);
+        return true;
+    }
+    return false;
+}
+
+void ParticleTree::findParticlesForUpdate(const AABox& box, QVector<Particle*> foundParticles) {
+    FindParticlesInBoxArgs args(box);
+    lockForRead();
+    recurseTreeWithOperation(findInBoxForUpdateOperation, &args);
+    unlock();
+    // swap the two lists of particle pointers instead of copy
+    foundParticles.swap(args._foundParticles);
 }
 
 class FindByIDArgs {
@@ -494,32 +522,4 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
         //qDebug() << "calling recurse to actually delete the particles";
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
-}
-
-class FindParticlesArgs {
-public:
-    FindParticlesArgs(const AABox& box) 
-        : _box(box), _foundParticles() {
-    }
-
-    AABox _box;
-    QVector<Particle*> _foundParticles;
-};
-
-bool findOperation(OctreeElement* element, void* extraData) {
-    FindParticlesArgs* args = static_cast< FindParticlesArgs*>(extraData);
-    const AABox& elementBox = element->getAABox();
-    if (elementBox.touches(args->_box)) {
-        ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-        particleTreeElement->findParticles(args->_box, args->_foundParticles);
-        return true;
-    }
-    return false;
-}
-
-void ParticleTree::findParticles(const AABox& box, QVector<Particle*> foundParticles) {
-    FindParticlesArgs args(box);
-    recurseTreeWithOperation(findOperation, &args);
-    // swap the two lists of particle pointers instead of copy
-    foundParticles.swap(args._foundParticles);
 }
