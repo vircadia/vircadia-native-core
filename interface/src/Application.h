@@ -505,6 +505,7 @@ private:
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
+    void takeSnapshot();
 };
 
 #endif /* defined(__interface__Application__) */
