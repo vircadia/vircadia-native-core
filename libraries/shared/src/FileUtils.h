@@ -14,7 +14,8 @@
 class FileUtils {
 
 public:
-    static void LocateFile(QString);
+    static void locateFile(QString fileName);
+    static QString standardPath(QString subfolder);
 
 };
 

@@ -373,9 +373,18 @@ const glm::vec3 randVector() {
 }
 
 static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY);
-    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    return mono ? monoRenderer : proportionalRenderer;
+    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY); 
+    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT); 
+    static TextRenderer* inconsolataRenderer = new TextRenderer(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false);
+    switch (mono) {
+        case 1:
+            return monoRenderer;
+        case 2:
+            return inconsolataRenderer;
+        case 0:
+        default:
+            return proportionalRenderer;
+    }
 }
 
 int widthText(float scale, int mono, char const* string) {
