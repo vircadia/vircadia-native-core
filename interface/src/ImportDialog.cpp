@@ -137,6 +137,11 @@ void ImportDialog::import() {
 }
 
 void ImportDialog::accept() {
+    // do nothing if import is not enable
+    if (!_importButton.isEnabled()) {
+        return;
+    }
+    
     if (!fileAccepted) {
         fileAccepted = true;
         emit accepted();        
