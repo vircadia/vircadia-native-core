@@ -43,6 +43,9 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
                                                                                 dataByteArray.size());
                 break;
         }
+    } else if (dataByteArray[0] == PACKET_TYPE_PARTICLE_ADD_RESPONSE) {
+        // this will keep creatorTokenIDs to IDs mapped correctly
+        Particle::handleAddParticleResponse((unsigned char*) dataByteArray.data(), dataByteArray.size());
     } else {
         NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
     }
@@ -87,6 +90,9 @@ void Agent::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
+    
+    // tell our script engine about our local particle tree
+    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(&_particleTree);
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
