@@ -47,9 +47,7 @@
 #include <QDesktopServices>
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
-#include <QSound>
 #include <QMediaPlayer>
-
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
