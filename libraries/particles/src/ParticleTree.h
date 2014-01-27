@@ -40,6 +40,8 @@ public:
     virtual void update();
 
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
+    void updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
+    void deleteParticle(const ParticleID& particleID);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
     const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
     QVector<const Particle*> findParticles(const glm::vec3& center, float radius);
@@ -58,6 +60,7 @@ private:
 
     static bool updateOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateOperation(OctreeElement* element, void* extraData);
+    static bool findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool pruneOperation(OctreeElement* element, void* extraData);

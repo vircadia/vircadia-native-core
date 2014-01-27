@@ -125,18 +125,6 @@ bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float r
     return false;
 }
 
-bool ParticleTreeElement::containsParticle(const Particle& particle) const {
-    // TODO: remove this method and force callers to use getParticleWithID() instead
-    uint16_t numberOfParticles = _particles->size();
-    uint32_t particleID = particle.getID();
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if ((*_particles)[i].getID() == particleID) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
     // NOTE: this method must first lookup the particle by ID, hence it is O(N)
     // and "particle is not found" is worst-case (full N) but maybe we don't care?
@@ -171,6 +159,34 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     }
     return false;
 }
+
+bool ParticleTreeElement::updateParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    // currently only known IDs are in the tree... in the future we might support local storage of creatorTokenID particles
+    if (particleID.isKnownID) {
+        uint16_t numberOfParticles = _particles->size();
+        uint32_t searchID = particleID.id;
+        for (uint16_t i = 0; i < numberOfParticles; i++) {
+            // note: unlike storeParticle() which is called from inbound packets, this is only called by local editors
+            // and therefore we can be confident that this change is higher priority and should be honored
+            Particle& thisParticle = (*_particles)[i];
+            if (thisParticle.getID() == searchID) {
+                thisParticle.setProperties(properties);
+
+                const bool wantDebug = false;
+                if (wantDebug) {
+                    uint64_t now = usecTimestampNow();
+                    int elapsed = now - thisParticle.getLastEdited();
+
+                    qDebug() << "ParticleTreeElement::updateParticle() AFTER update... edited AGO=" << elapsed <<
+                            "now=" << now << " thisParticle.getLastEdited()=" << thisParticle.getLastEdited();
+                }                
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {
     const Particle* closestParticle = NULL;

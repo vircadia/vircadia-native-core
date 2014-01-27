@@ -201,6 +201,7 @@ public:
 
     /// The last edited time of this particle from the time perspective of the authoritative server/source
     uint64_t getLastEdited() const { return _lastEdited; }
+    void setLastEdited(uint64_t lastEdited) { _lastEdited = lastEdited; }
 
     /// lifetime of the particle in seconds
     float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }

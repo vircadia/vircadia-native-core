@@ -1065,44 +1065,66 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
 }
 
 void ParticleProperties::copyToParticle(Particle& particle) const {
+    bool somethingChanged = false;
     if (_positionChanged) {
         particle.setPosition(_position / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_colorChanged) {
         particle.setColor(_color);
+        somethingChanged = true;
     }
 
     if (_radiusChanged) {
         particle.setRadius(_radius / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_velocityChanged) {
         particle.setVelocity(_velocity / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_gravityChanged) {
         particle.setGravity(_gravity / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_dampingChanged) {
         particle.setDamping(_damping);
+        somethingChanged = true;
     }
 
     if (_lifetimeChanged) {
         particle.setLifetime(_lifetime);
+        somethingChanged = true;
     }
 
     if (_scriptChanged) {
         particle.setScript(_script);
+        somethingChanged = true;
     }
 
     if (_inHandChanged) {
         particle.setInHand(_inHand);
+        somethingChanged = true;
     }
 
     if (_shouldDieChanged) {
         particle.setShouldDie(_shouldDie);
+        somethingChanged = true;
+    }
+    
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - _lastEdited;
+            qDebug() << "ParticleProperties::copyToParticle() AFTER update... edited AGO=" << elapsed <<
+                    "now=" << now << " _lastEdited=" << _lastEdited;
+        }
+        particle.setLastEdited(_lastEdited);
     }
 }
 

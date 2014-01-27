@@ -110,6 +110,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _statsExpanded(false),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
@@ -153,8 +154,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _swatch(NULL),
         _pasteMode(false),
         _logger(new FileLogger()),
-        _persistThread(NULL),
-        _statsExpanded(false)
+        _persistThread(NULL)
 {
     _applicationStartupTime = startup_time;
 
@@ -252,7 +252,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
-    loadScripts();
 
     QFontDatabase fontDatabase; 
     fontDatabase.addApplicationFont("resources/styles/Inconsolata.otf");
@@ -282,6 +281,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
     
     checkVersion();
+
+    // do this as late as possible so that all required subsystems are inialized
+    loadScripts();
 }
 
 Application::~Application() {

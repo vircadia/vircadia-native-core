@@ -81,8 +81,8 @@ public:
 bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
     FindAndUpdateParticleArgs* args = static_cast<FindAndUpdateParticleArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-    if (particleTreeElement->containsParticle(args->searchParticle)) {
-        particleTreeElement->updateParticle(args->searchParticle);
+    // Note: updateParticle() will only operate on correctly found particles
+    if (particleTreeElement->updateParticle(args->searchParticle)) {
         args->found = true;
         return false; // stop searching
     }
@@ -105,6 +105,43 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
 }
+
+class FindAndUpdateParticleWithIDandPropertiesArgs {
+public:
+    const ParticleID& particleID;
+    const ParticleProperties& properties;
+    bool found;
+};
+
+bool ParticleTree::findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData) {
+    FindAndUpdateParticleWithIDandPropertiesArgs* args = static_cast<FindAndUpdateParticleWithIDandPropertiesArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    // Note: updateParticle() will only operate on correctly found particles
+    if (particleTreeElement->updateParticle(args->particleID, args->properties)) {
+        args->found = true;
+        return false; // stop searching
+    }
+    return true;
+}
+
+void ParticleTree::updateParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    // First, look for the existing particle in the tree..
+    FindAndUpdateParticleWithIDandPropertiesArgs args = { particleID, properties, false };
+    recurseTreeWithOperation(findAndUpdateWithIDandPropertiesOperation, &args);
+    // if we found it in the tree, then mark the tree as dirty
+    if (args.found) {
+        _isDirty = true;
+    }
+}
+
+void ParticleTree::deleteParticle(const ParticleID& particleID) {
+    if (particleID.isKnownID) {
+        FindAndDeleteParticlesArgs args;
+        args._idsToDelete.push_back(particleID.id);
+        recurseTreeWithOperation(findAndDeleteOperation, &args);
+    }
+}
+
 
 class FindNearPointArgs {
 public:

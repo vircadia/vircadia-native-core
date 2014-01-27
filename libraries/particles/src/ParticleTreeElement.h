@@ -86,8 +86,9 @@ public:
     void update(ParticleTreeUpdateArgs& args);
     void setTree(ParticleTree* tree) { _myTree = tree; }
 
-    bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
+    bool updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
+
     const Particle* getClosestParticle(glm::vec3 position) const;
     QVector<const Particle*> getParticles(glm::vec3 position, float radius) const;
     const Particle* getParticleWithID(uint32_t id) const;
