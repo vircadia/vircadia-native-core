@@ -16,6 +16,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <AvatarHashMap.h>
 #include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
@@ -37,13 +38,11 @@ public:
                                 AbstractAudioInterface* audio = NULL);
 
     void init(ParticleEditPacketSender* packetSender, ParticleTree* particles, VoxelTree* voxels, 
-                                AbstractAudioInterface* audio = NULL);
+                                AbstractAudioInterface* audio = NULL, AvatarHashMap* _avatars = NULL);
                                 
     ~ParticleCollisionSystem();
 
-    /// Compute collisions for particles against: other particles, voxels, and avatars
-    /// \param avatars the list of avatars to collide against during this frame
-    void update(QVector<AvatarData*>& avatars);
+    void update();
 
     void checkParticle(Particle* particle);
     void updateCollisionWithVoxels(Particle* particle);
@@ -60,7 +59,7 @@ private:
     ParticleTree* _particles;
     VoxelTree* _voxels;
     AbstractAudioInterface* _audio;
-    QVector<AvatarData*> _avatars;  // only used during update() 
+    AvatarHashMap* _avatars;
 };
 
 #endif /* defined(__hifi__ParticleCollisionSystem__) */

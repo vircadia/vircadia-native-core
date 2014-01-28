@@ -1754,6 +1754,7 @@ void Application::init() {
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);
+    _avatarManager.setMyAvatar(&_myAvatar);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
@@ -1800,7 +1801,7 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio);
+    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -2314,12 +2315,7 @@ void Application::update(float deltaTime) {
     updateCursor(deltaTime); // Handle cursor updates
 
     _particles.update(); // update the particles...
-
-    // collide the particles...
-    QVector<AvatarData*> avatars;
-    avatars.push_back(&_myAvatar);
-    _avatarManager.getAvatarBasePointers(avatars);
-    _particleCollisionSystem.update(avatars);
+    _particleCollisionSystem.update(); // collide the particles...
 }
 
 void Application::updateAvatar(float deltaTime) {

@@ -25,11 +25,13 @@ ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packe
 }
 
 void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio,
+    AvatarHashMap* avatars) {
     _packetSender = packetSender;
     _particles = particles;
     _voxels = voxels;
     _audio = audio;
+    _avatars = avatars;
 }
 
 ParticleCollisionSystem::~ParticleCollisionSystem() {
@@ -51,9 +53,8 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
 }
 
 
-void ParticleCollisionSystem::update(QVector<AvatarData*>& avatars) {
+void ParticleCollisionSystem::update() {
     // update all particles
-    _avatars.swap(avatars);
     _particles->lockForWrite();
     _particles->recurseTreeWithOperation(updateOperation, this);
     _particles->unlock();
@@ -147,9 +148,8 @@ const float MIN_EXPECTED_FRAME_PERIOD = 0.0167f;  // 1/60th of a second
 const float HALTING_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
-
     // particles that are in hand, don't collide with avatars
-    if (particle->getInHand()) {
+    if (!_avatars || particle->getInHand()) {
         return;
     }
 
@@ -160,9 +160,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
 
-    // first check the selfAvatar if set...
-    for (int i = 0; i < _avatars.size(); ++i) {
-        AvatarData* avatar = _avatars[i];
+    foreach (const AvatarSharedPointer& avatarPointer, _avatars->getAvatarHash()) {
+        AvatarData* avatar = avatarPointer.data();
         CollisionInfo collisionInfo;
         collisionInfo._damping = DAMPING;
         collisionInfo._elasticity = ELASTICITY;
