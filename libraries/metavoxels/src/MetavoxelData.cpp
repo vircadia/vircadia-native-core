@@ -100,6 +100,12 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
     // shallow copy the reference
     *this = reference;
 
+    bool changed;
+    in >> changed;
+    if (!changed) {
+        return;
+    }
+
     int changedCount;
     in >> changedCount;
     for (int i = 0; i < changedCount; i++) {
@@ -128,6 +134,13 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
 }
 
 void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
+    // first things first: there might be no change whatsoever
+    if (_roots == reference._roots) {
+        out << false;
+        return;
+    }
+    out << true;
+
     // count the number of roots added/changed, then write
     int changedCount = 0;
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
