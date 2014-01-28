@@ -55,7 +55,7 @@ public:
     virtual ~OctreeQuery();
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 
     QUuid& getUUID() { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }

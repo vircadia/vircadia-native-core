@@ -18,8 +18,8 @@
 
 #include "JurisdictionMap.h"
 
-/// Sends out PACKET_TYPE_JURISDICTION_REQUEST packets to all voxel servers and then listens for and processes
-/// the PACKET_TYPE_JURISDICTION packets it receives in order to maintain an accurate state of all jurisidictions
+/// Sends out PacketType_JURISDICTION_REQUEST packets to all voxel servers and then listens for and processes
+/// the PacketType_JURISDICTION packets it receives in order to maintain an accurate state of all jurisidictions
 /// within the domain. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionListener : public ReceivedPacketProcessor {
@@ -43,13 +43,13 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 protected:
-    /// Callback for processing of received packets. Will process any queued PACKET_TYPE_JURISDICTION and update the
+    /// Callback for processing of received packets. Will process any queued PacketType_JURISDICTION and update the
     /// jurisdiction map member variable
     /// \param sockaddr& senderAddress the address of the sender
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread "this" individual processing thread
-    virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet);
 
 private:
     NodeToJurisdictionMap _jurisdictions;

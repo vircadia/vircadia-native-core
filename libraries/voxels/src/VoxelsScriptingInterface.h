@@ -54,7 +54,7 @@ public slots:
     void eraseVoxel(float x, float y, float z, float scale);
 
 private:
-    void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
+    void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
 };
 
 class VoxelDetailScriptObject  : public QObject {

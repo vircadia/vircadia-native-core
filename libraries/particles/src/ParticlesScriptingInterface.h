@@ -34,7 +34,7 @@ public slots:
     ParticleID findClosestParticle(const glm::vec3& center, float radius) const;
 
 private:
-    void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
+    void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);
 
     uint32_t _nextCreatorTokenID;
     ParticleTree* _particleTree;

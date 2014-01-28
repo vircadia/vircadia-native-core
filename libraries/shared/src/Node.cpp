@@ -16,7 +16,6 @@
 #endif
 
 #include "Node.h"
-#include "NodeTypes.h"
 #include "SharedUtil.h"
 
 #include <QtCore/QDebug>
@@ -133,6 +132,24 @@ float Node::getAverageKilobitsPerSecond() {
     } else {
         return 0;
     }
+}
+
+QDataStream& operator>>(QDataStream& out, const Node& node) {
+    out << node._type;
+    out << node._uuid;
+    out << node._publicSocket;
+    out << node._localSocket;
+    
+    return out;
+}
+
+QDataStream& operator<<(QDataStream& in, Node& node) {
+    in >> node._type;
+    in >> node._uuid;
+    in >> node._publicSocket;
+    in >> node._localSocket;
+    
+    return in;
 }
 
 QDebug operator<<(QDebug debug, const Node &node) {

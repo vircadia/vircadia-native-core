@@ -122,7 +122,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             ParticleID particleAid(particleA->getID());
             propertiesA.copyFromParticle(*particleA);
             propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleAid, propertiesA);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleAid, propertiesA);
 
             // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
@@ -130,7 +130,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             ParticleID particleBid(particleB->getID());
             propertiesB.copyFromParticle(*particleB);
             propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleBid, propertiesB);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleBid, propertiesB);
 
             _packetSender->releaseQueuedMessages();
 
@@ -264,7 +264,7 @@ void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elast
     properties.copyFromParticle(*particle);
     properties.setPosition(position * (float)TREE_SCALE);
     properties.setVelocity(velocity * (float)TREE_SCALE);
-    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleID, properties);
 
     // change the local particle too...
     particle->setPosition(position);

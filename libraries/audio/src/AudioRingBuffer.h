@@ -44,7 +44,7 @@ public:
     
     int getSampleCapacity() const { return _sampleCapacity; }
     
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 
     qint64 readSamples(int16_t* destination, qint64 maxSamples);
     qint64 writeSamples(const int16_t* source, qint64 maxSamples);

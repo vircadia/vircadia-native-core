@@ -17,7 +17,7 @@ const char* PARTICLE_SERVER_NAME = "Particle";
 const char* PARTICLE_SERVER_LOGGING_TARGET_NAME = "particle-server";
 const char* LOCAL_PARTICLES_PERSIST_FILE = "resources/particles.svo";
 
-ParticleServer::ParticleServer(const unsigned char* dataBuffer, int numBytes) : OctreeServer(dataBuffer, numBytes) {
+ParticleServer::ParticleServer(const QByteArray& packet) : OctreeServer(packet) {
     // nothing special to do here...
 }
 
@@ -47,7 +47,7 @@ void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 
-    int numBytesPacketHeader = populateTypeAndVersion(outputBuffer, PACKET_TYPE_PARTICLE_ADD_RESPONSE);
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeParticleAddResponse);
     int packetLength = numBytesPacketHeader;
     copyAt += numBytesPacketHeader;
 
@@ -102,7 +102,7 @@ int ParticleServer::sendSpecialPacket(Node* node) {
             hasMoreToSend = tree->encodeParticlesDeletedSince(deletedParticlesSentAt,
                                                 outputBuffer, MAX_PACKET_SIZE, packetLength);
 
-            //qDebug() << "sending PACKET_TYPE_PARTICLE_ERASE packetLength:" << packetLength;
+            //qDebug() << "sending PacketType_PARTICLE_ERASE packetLength:" << packetLength;
 
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) outputBuffer, packetLength,
                                                                    node->getActiveSocket()->getAddress(),

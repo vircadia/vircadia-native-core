@@ -27,7 +27,7 @@ public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
     
-    virtual PACKET_TYPE getMyPacketType() const = 0;
+    virtual PacketType getMyPacketType() const = 0;
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
 

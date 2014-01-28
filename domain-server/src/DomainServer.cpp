@@ -102,39 +102,39 @@ void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
 
     HifiSockAddr senderSockAddr, nodePublicAddress, nodeLocalAddress;
-
-    static unsigned char packetData[MAX_PACKET_SIZE];
-
-    static unsigned char broadcastPacket[MAX_PACKET_SIZE];
-
-    static unsigned char* currentBufferPos;
-    static unsigned char* startPointer;
-
-    int receivedBytes = 0;
+    
+    static QByteArray broadcastPacket = byteArrayWithPopluatedHeader(PacketTypeDomainList);
+    static int numBroadcastPacketHeaderBytes = broadcastPacket.size();
+    
+    static QByteArray assignmentPacket = byteArrayWithPopluatedHeader(PacketTypeCreateAssignment);
+    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
+    
+    QByteArray receivedPacket;
+    NODE_TYPE nodeType;
+    QUuid nodeUUID;
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
-        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
-                                                   senderSockAddr.getAddressPointer(),
-                                                   senderSockAddr.getPortPointer()))
-            && packetVersionMatch((unsigned char*) packetData, senderSockAddr)) {
-            if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
+        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
+                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        
+        if (packetVersionMatch(receivedPacket)) {
+            PacketType requestType = packetTypeForPacket(receivedPacket);
+            if (requestType == PacketTypeDomainListRequest) {
+                
                 // this is an RFD or domain list request packet, and there is a version match
-
-                int numBytesSenderHeader = numBytesForPacketHeader((unsigned char*) packetData);
-
-                NODE_TYPE nodeType = *(packetData + numBytesSenderHeader);
-
-                int packetIndex = numBytesSenderHeader + sizeof(NODE_TYPE);
-                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray(((char*) packetData + packetIndex), NUM_BYTES_RFC4122_UUID));
-                packetIndex += NUM_BYTES_RFC4122_UUID;
-
-                int numBytesPrivateSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodePublicAddress);
-                packetIndex += numBytesPrivateSocket;
-
+                QDataStream packetStream(receivedPacket);
+                packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
+                
+                deconstructPacketHeader(receivedPacket, nodeUUID);
+                packetStream >> nodeType;
+                
+                packetStream >> nodePublicAddress >> nodeLocalAddress;
+                
                 if (nodePublicAddress.getAddress().isNull()) {
                     // this node wants to use us its STUN server
                     // so set the node public address to whatever we perceive the public address to be
-
+                    
                     // if the sender is on our box then leave its public address to 0 so that
                     // other users attempt to reach it on the same address they have for the domain-server
                     if (senderSockAddr.getAddress().isLoopback()) {
@@ -143,20 +143,14 @@ void DomainServer::readAvailableDatagrams() {
                         nodePublicAddress.setAddress(senderSockAddr.getAddress());
                     }
                 }
-
-                int numBytesPublicSocket = HifiSockAddr::unpackSockAddr(packetData + packetIndex, nodeLocalAddress);
-                packetIndex += numBytesPublicSocket;
-
-                const char STATICALLY_ASSIGNED_NODES[] = {
-                    NODE_TYPE_AUDIO_MIXER,
-                    NODE_TYPE_AVATAR_MIXER,
-                    NODE_TYPE_VOXEL_SERVER,
-                    NODE_TYPE_METAVOXEL_SERVER
-                };
-
+                
+                const QSet<NODE_TYPE> STATICALLY_ASSIGNED_NODES = QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER
+                    << NODE_TYPE_AVATAR_MIXER << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+                    << NODE_TYPE_METAVOXEL_SERVER;
+                
                 Assignment* matchingStaticAssignment = NULL;
-
-                if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL
+                
+                if (!STATICALLY_ASSIGNED_NODES.contains(nodeType)
                     || ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
                         || checkInWithUUIDMatchesExistingNode(nodePublicAddress,
                                                               nodeLocalAddress,
@@ -166,80 +160,81 @@ void DomainServer::readAvailableDatagrams() {
                                                                               nodeType,
                                                                               nodePublicAddress,
                                                                               nodeLocalAddress);
-
+                    
+                    // resize our broadcast packet in preparation to set it up again
+                    broadcastPacket.resize(numBroadcastPacketHeaderBytes);
+                    
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
-
+                        
                         if (_hasCompletedRestartHold) {
                             // remove the matching assignment from the assignment queue so we don't take the next check in
                             removeAssignmentFromQueue(matchingStaticAssignment);
                         }
-
+                        
                         // set the linked data for this node to a copy of the matching assignment
                         // so we can re-queue it should the node die
                         Assignment* nodeCopyOfMatchingAssignment = new Assignment(*matchingStaticAssignment);
-
+                        
                         checkInNode->setLinkedData(nodeCopyOfMatchingAssignment);
                     }
-
-                    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_DOMAIN);
-
-                    currentBufferPos = broadcastPacket + numHeaderBytes;
-                    startPointer = currentBufferPos;
-
-                    unsigned char* nodeTypesOfInterest = packetData + packetIndex + sizeof(unsigned char);
-                    int numInterestTypes = *(nodeTypesOfInterest - 1);
-
+                    
+                    
+                    quint8 numInterestTypes = 0;
+                    packetStream >> numInterestTypes;
+                    
+                    NODE_TYPE* nodeTypesOfInterest = reinterpret_cast<NODE_TYPE*>(receivedPacket.data()
+                                                                                  + packetStream.device()->pos());
+                    
                     if (numInterestTypes > 0) {
+                        QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
+                        
                         // if the node has sent no types of interest, assume they want nothing but their own ID back
                         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                             if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
-
+                                
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
-                                if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, node.data());
-                                }
-
+                                broadcastDataStream << *node.data();
                             }
                         }
                     }
-
+                    
                     // update last receive to now
                     uint64_t timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
-
+                    
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket,
-                                                            (currentBufferPos - startPointer) + numHeaderBytes,
+                    nodeList->getNodeSocket().writeDatagram(broadcastPacket,
                                                             senderSockAddr.getAddress(), senderSockAddr.getPort());
                 }
-            } else if (packetData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
-
+            } else if (requestType == PacketTypeRequestAssignment) {
+                
                 if (_assignmentQueue.size() > 0) {
                     // construct the requested assignment from the packet data
-                    Assignment requestAssignment(packetData, receivedBytes);
-
+                    Assignment requestAssignment(receivedPacket);
+                    
                     qDebug("Received a request for assignment type %i from %s.",
                            requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
-
+                    
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
-
+                    
                     if (assignmentToDeploy) {
-
                         // give this assignment out, either the type matches or the requestor said they will take any
-                        int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
-                        int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);
-
-                        nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, numHeaderBytes + numAssignmentBytes,
+                        assignmentPacket.resize(numAssignmentPacketHeaderBytes);
+                        QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
+                        
+                        assignmentStream << *assignmentToDeploy;
+                        
+                        nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                                 senderSockAddr.getAddress(), senderSockAddr.getPort());
-
+                        
                         if (assignmentToDeploy->getNumberOfInstances() == 0) {
                             // there are no more instances of this script to send out, delete it
                             delete assignmentToDeploy;
                         }
                     }
-
+                    
                 } else {
                     qDebug() << "Received an invalid assignment request from" << senderSockAddr.getAddress();
                 }
@@ -278,8 +273,8 @@ QJsonObject jsonObjectForNode(Node* node) {
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
 
     // if the node has pool information, add it
-    if (node->getLinkedData() && ((Assignment*) node->getLinkedData())->hasPool()) {
-        nodeJson[JSON_KEY_POOL] = QString(((Assignment*) node->getLinkedData())->getPool());
+    if (node->getLinkedData() && !((Assignment*) node->getLinkedData())->getPool().isEmpty()) {
+        nodeJson[JSON_KEY_POOL] = ((Assignment*) node->getLinkedData())->getPool();
     }
 
     return nodeJson;
@@ -386,8 +381,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
                 queuedAssignmentJSON[JSON_KEY_TYPE] = QString((*assignment)->getTypeName());
                 
                 // if the assignment has a pool, add it
-                if ((*assignment)->hasPool()) {
-                    queuedAssignmentJSON[JSON_KEY_POOL] = QString((*assignment)->getPool());
+                if (!(*assignment)->getPool().isEmpty()) {
+                    queuedAssignmentJSON[JSON_KEY_POOL] = (*assignment)->getPool();
                 }
                 
                 // add this queued assignment to the JSON
@@ -538,21 +533,6 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     }
 }
 
-unsigned char* DomainServer::addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
-    *currentPosition++ = nodeToAdd->getType();
-
-
-    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
-    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
-    currentPosition += rfcUUID.size();
-
-    currentPosition += HifiSockAddr::packSockAddr(currentPosition, nodeToAdd->getPublicSocket());
-    currentPosition += HifiSockAddr::packSockAddr(currentPosition, nodeToAdd->getLocalSocket());
-
-    // return the new unsigned char * for broadcast packet
-    return currentPosition;
-}
-
 void DomainServer::prepopulateStaticAssignmentFile() {
     int numFreshStaticAssignments = 0;
 
@@ -595,9 +575,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             Assignment voxelServerAssignment(Assignment::CreateCommand,
                                              Assignment::VoxelServerType,
                                              (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
-
-            int payloadLength = config.length() + sizeof(char);
-            voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+            
+            voxelServerAssignment.setPayload(config.toUtf8());
 
             freshStaticAssignments[numFreshStaticAssignments++] = voxelServerAssignment;
         }
@@ -637,9 +616,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             Assignment particleServerAssignment(Assignment::CreateCommand,
                                              Assignment::ParticleServerType,
                                              (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
-
-            int payloadLength = config.length() + sizeof(char);
-            particleServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+            
+            particleServerAssignment.setPayload(config.toLocal8Bit());
 
             freshStaticAssignments[numFreshStaticAssignments++] = particleServerAssignment;
         }
@@ -652,7 +630,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     Assignment& metavoxelAssignment = (freshStaticAssignments[numFreshStaticAssignments++] =
         Assignment(Assignment::CreateCommand, Assignment::MetavoxelServerType));
     if (_metavoxelServerConfig) {
-        metavoxelAssignment.setPayload((const unsigned char*)_metavoxelServerConfig, strlen(_metavoxelServerConfig));
+        metavoxelAssignment.setPayload(QByteArray(_metavoxelServerConfig));
     }
 
     qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.";
@@ -708,10 +686,8 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
     while (assignment != _assignmentQueue.end()) {
         bool requestIsAllTypes = requestAssignment.getType() == Assignment::AllTypes;
         bool assignmentTypesMatch = (*assignment)->getType() == requestAssignment.getType();
-        bool nietherHasPool = !(*assignment)->hasPool() && !requestAssignment.hasPool();
-        bool assignmentPoolsMatch = memcmp((*assignment)->getPool(),
-                                           requestAssignment.getPool(),
-                                           MAX_ASSIGNMENT_POOL_BYTES) == 0;
+        bool nietherHasPool = (*assignment)->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
+        bool assignmentPoolsMatch = (*assignment)->getPool() == requestAssignment.getPool();
 
         if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
 

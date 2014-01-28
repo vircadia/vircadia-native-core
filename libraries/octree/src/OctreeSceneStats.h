@@ -88,7 +88,7 @@ public:
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
 
     /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -153,8 +153,7 @@ public:
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, 
-                                        bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
 
     unsigned int getIncomingPackets() const { return _incomingPacket; }
     unsigned long getIncomingBytes() const { return _incomingBytes; } 

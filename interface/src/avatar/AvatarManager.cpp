@@ -164,15 +164,11 @@ void AvatarManager::processDataServerResponse(const QString& userString, const Q
 }
 
 void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
-    unsigned char packetData[MAX_PACKET_SIZE];
-    memcpy(packetData, datagram.data(), datagram.size());
     
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    int bytesRead = numBytesForPacketHeader(datagram);
     
-    int bytesRead = numBytesPacketHeader;
-    
-    unsigned char avatarData[MAX_PACKET_SIZE];
-    int numBytesDummyPacketHeader = populateTypeAndVersion(avatarData, PACKET_TYPE_HEAD_DATA);
+    QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    int numDummyByteArrayHeaderBytes = dummyAvatarByteArray.size();
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
@@ -197,18 +193,17 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         }
         
         // copy the rest of the packet to the avatarData holder so we can read the next Avatar from there
-        memcpy(avatarData + numBytesDummyPacketHeader, packetData + bytesRead, datagram.size() - bytesRead);
+        dummyAvatarByteArray.resize(numDummyByteArrayHeaderBytes);
+        dummyAvatarByteArray += datagram.mid(bytesRead);
         
         // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatar->parseData(avatarData, datagram.size() - bytesRead);
+        bytesRead += matchingAvatar->parseData(dummyAvatarByteArray);
     }
 }
 
 void AvatarManager::processKillAvatar(const QByteArray& datagram) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(numBytesForPacketHeader(reinterpret_cast<const unsigned char*>
-                                                                             (datagram.data())),
-                                                     NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(numBytesForPacketHeader(datagram), NUM_BYTES_RFC4122_UUID));
     
     // remove the avatar with that UUID from our hash, if it exists
     AvatarHash::iterator matchedAvatar = _avatarHash.find(nodeUUID);

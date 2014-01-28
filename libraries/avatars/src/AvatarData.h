@@ -79,8 +79,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    QByteArray toByteArray();
+    int parseData(const QByteArray& packet);
 
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }

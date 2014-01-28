@@ -22,7 +22,6 @@
 
 #include <AngleUtil.h>
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
@@ -285,8 +284,8 @@ void Audio::start() {
 void Audio::handleAudioInput() {
     static char monoAudioDataPacket[MAX_PACKET_SIZE];
 
-    static int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
-    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat) +  NUM_BYTES_RFC4122_UUID;
+    static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
+    static int leadingBytes = numBytesPacketHeader + sizeof(glm::vec3) + sizeof(glm::quat);
 
     static int16_t* monoAudioSamples = (int16_t*) (monoAudioDataPacket + leadingBytes);
 
@@ -375,16 +374,10 @@ void Audio::handleAudioInput() {
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
 
-            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
-                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+            PacketType packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)
+                ? PacketTypeMicrophoneAudioWithEcho : PacketTypeMicrophoneAudioNoEcho;
 
-            char* currentPacketPtr = monoAudioDataPacket + populateTypeAndVersion((unsigned char*) monoAudioDataPacket,
-                                                                                  packetType);
-
-            // pack Source Data
-            QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-            memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
-            currentPacketPtr += rfcUUID.size();
+            char* currentPacketPtr = monoAudioDataPacket + populatePacketHeader(monoAudioDataPacket, packetType);
 
             // memcpy the three float positions
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
@@ -433,7 +426,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         }
     }
 
-    _ringBuffer.parseData((unsigned char*) audioByteArray.data(), audioByteArray.size());
+    _ringBuffer.parseData(audioByteArray);
 
     static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());

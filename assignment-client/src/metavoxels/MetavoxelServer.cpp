@@ -17,8 +17,8 @@
 
 const int SEND_INTERVAL = 50;
 
-MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes),
+MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
+    ThreadedAssignment(packet),
     _data(new MetavoxelData()) {
     
     _sendTimer.setSingleShot(true);
@@ -40,12 +40,12 @@ void MetavoxelServer::run() {
 
 void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     switch (dataByteArray.at(0)) {
-        case PACKET_TYPE_METAVOXEL_DATA:
+        case PacketTypeMetavoxelData:
             processData(dataByteArray, senderSockAddr);
             break;
         
         default:
-            NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*)dataByteArray.data(), dataByteArray.size());
+            NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
             break;
     }
 }

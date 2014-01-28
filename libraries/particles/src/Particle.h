@@ -161,8 +161,8 @@ public:
             glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, float lifetime = DEFAULT_LIFETIME,
             bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
 
-    /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree);
+    /// creates an NEW particle from an PacketType_PARTICLE_ADD_OR_EDIT edit data buffer
+    static Particle fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree);
 
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
@@ -235,7 +235,7 @@ public:
     static int expectedBytes();
     static int expectedEditMessageBytes();
 
-    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& details,
+    static bool encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
@@ -262,7 +262,7 @@ public:
     // these methods allow you to create particles, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
-    static void handleAddParticleResponse(unsigned char* packetData , int packetLength);
+    static void handleAddParticleResponse(const QByteArray& packet);
 
 protected:
     static VoxelEditPacketSender* _voxelEditSender;

@@ -37,7 +37,7 @@ public:
     /// \param packetData pointer to data
     /// \param ssize_t packetLength size of data
     /// \thread any thread, typically the application thread
-    void queuePacketForSending(const HifiSockAddr& address, unsigned char*  packetData, ssize_t packetLength);
+    void queuePacketForSending(const HifiSockAddr& address, const QByteArray& packet);
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }

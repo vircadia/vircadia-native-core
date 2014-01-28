@@ -47,13 +47,13 @@ PacketSender::~PacketSender() {
 }
 
 
-void PacketSender::queuePacketForSending(const HifiSockAddr& address, unsigned char* packetData, ssize_t packetLength) {
-    NetworkPacket packet(address, packetData, packetLength);
+void PacketSender::queuePacketForSending(const HifiSockAddr& address, const QByteArray& packet) {
+    NetworkPacket networkPacket(address, packet);
     lock();
-    _packets.push_back(packet);
+    _packets.push_back(networkPacket);
     unlock();
     _totalPacketsQueued++;
-    _totalBytesQueued += packetLength;
+    _totalBytesQueued += packet.size();
 }
 
 void PacketSender::setPacketsPerSecond(int packetsPerSecond) {
@@ -263,15 +263,15 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) temporary.getData(), temporary.getLength(),
+        NodeList::getInstance()->getNodeSocket().writeDatagram(temporary.getByteArray(),
                                                                temporary.getSockAddr().getAddress(),
                                                                temporary.getSockAddr().getPort());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
-        _totalBytesSent += temporary.getLength();
+        _totalBytesSent += temporary.getByteArray().size();
         
-        emit packetSent(temporary.getLength());
+        emit packetSent(temporary.getByteArray().size());
         
         _lastSendTime = now;
     }

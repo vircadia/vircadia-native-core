@@ -45,45 +45,28 @@ void AudioInjector::injectAudio() {
         NodeList* nodeList = NodeList::getInstance();
         
         // setup the packet for injected audio
-        unsigned char injectedAudioPacket[MAX_PACKET_SIZE];
-        unsigned char* currentPacketPosition = injectedAudioPacket;
+        QByteArray injectAudioPacket = byteArrayWithPopluatedHeader(PacketTypeInjectAudio);
+        QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
-        int numBytesPacketHeader = populateTypeAndVersion(injectedAudioPacket, PACKET_TYPE_INJECT_AUDIO);
-        currentPacketPosition += numBytesPacketHeader;
-        
-        // pack the session UUID for this Node
-        QByteArray rfcSessionUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-        memcpy(currentPacketPosition, rfcSessionUUID.constData(), rfcSessionUUID.size());
-        currentPacketPosition += rfcSessionUUID.size();
-        
-        // pick a random UUID to use for this stream
-        QUuid randomStreamUUID = QUuid::createUuid();
-        QByteArray rfcStreamUUID = randomStreamUUID.toRfc4122();
-        memcpy(currentPacketPosition, rfcStreamUUID, rfcStreamUUID.size());
-        currentPacketPosition += rfcStreamUUID.size();
+        packetStream << QUuid::createUuid();
         
         // pack the flag for loopback
-        bool loopbackFlag = (_options.getLoopbackAudioInterface() == NULL);
-        memcpy(currentPacketPosition, &loopbackFlag, sizeof(loopbackFlag));
-        currentPacketPosition += sizeof(loopbackFlag);
+        uchar loopbackFlag = (uchar) (_options.getLoopbackAudioInterface() == NULL);
+        packetStream << loopbackFlag;
         
         // pack the position for injected audio
-        memcpy(currentPacketPosition, &_options.getPosition(), sizeof(_options.getPosition()));
-        currentPacketPosition += sizeof(_options.getPosition());
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()), sizeof(_options.getPosition()));
         
         // pack our orientation for injected audio
-        memcpy(currentPacketPosition, &_options.getOrientation(), sizeof(_options.getOrientation()));
-        currentPacketPosition += sizeof(_options.getOrientation());
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()), sizeof(_options.getOrientation()));
         
         // pack zero for radius
         float radius = 0;
-        memcpy(currentPacketPosition, &radius, sizeof(radius));
-        currentPacketPosition += sizeof(radius);
+        packetStream << radius;
         
         // pack 255 for attenuation byte
-        uchar volume = MAX_INJECTOR_VOLUME * _options.getVolume();
-        memcpy(currentPacketPosition, &volume, sizeof(volume));
-        currentPacketPosition += sizeof(volume);
+        quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+        packetStream << volume;
         
         timeval startTime = {};
         gettimeofday(&startTime, NULL);
@@ -91,24 +74,26 @@ void AudioInjector::injectAudio() {
         
         int currentSendPosition = 0;
         
+        int numPreAudioDataBytes = injectAudioPacket.size();
+        
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         while (currentSendPosition < soundByteArray.size()) {
             
             int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - currentSendPosition);
             
-            // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-            memcpy(currentPacketPosition, soundByteArray.data() + currentSendPosition,
-                   bytesToCopy);
+            // resize the QByteArray to the right size
+            injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
             
+            // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
+            memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
             
             if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
                 // send off this audio packet
-                nodeList->getNodeSocket().writeDatagram((char*) injectedAudioPacket,
-                                                        (currentPacketPosition - injectedAudioPacket) + bytesToCopy,
+                nodeList->getNodeSocket().writeDatagram(injectAudioPacket,
                                                         audioMixer->getActiveSocket()->getAddress(),
                                                         audioMixer->getActiveSocket()->getPort());
             }

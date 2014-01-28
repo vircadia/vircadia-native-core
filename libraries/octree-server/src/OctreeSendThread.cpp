@@ -101,7 +101,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
     }
 
     const unsigned char* messageData = nodeData->getPacket();
-    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
     const unsigned char* dataAt = messageData + numBytesPacketHeader;
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
     OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);

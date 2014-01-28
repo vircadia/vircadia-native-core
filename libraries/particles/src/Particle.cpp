@@ -45,9 +45,9 @@ uint32_t Particle::getNextCreatorTokenID() {
     return creatorTokenID;
 }
 
-void Particle::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
-    unsigned char* dataAt = packetData;
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+void Particle::handleAddParticleResponse(const QByteArray& packet) {
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
@@ -63,8 +63,6 @@ void Particle::handleAddParticleResponse(unsigned char* packetData , int packetL
     // add our token to id mapping
     _tokenIDsToIDs[creatorTokenID] = particleID;
 }
-
-
 
 Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
                     float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
@@ -292,12 +290,12 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 
-Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree) {
+Particle Particle::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree) {
 
     //qDebug() << "Particle::fromEditPacket() length=" << length;
 
     Particle newParticle; // id and _lastUpdated will get set here...
-    unsigned char* dataAt = data;
+    const unsigned char* dataAt = data;
     processedBytes = 0;
 
     // the first part of the data is our octcode...
@@ -471,7 +469,7 @@ void Particle::debugDump() const {
     printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
 }
 
-bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& properties,
+bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best

@@ -49,7 +49,7 @@ public:
     void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
     const QUuid&  getDataSourceUUID() const { return _dataSourceUUID; }
 
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 
     virtual void init();
     void simulate(float deltaTime) { }

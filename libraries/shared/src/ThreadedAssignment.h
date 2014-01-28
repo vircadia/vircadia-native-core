@@ -14,7 +14,7 @@
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(const unsigned char* dataBuffer, int numBytes);
+    ThreadedAssignment(const QByteArray& packet);
     
     void setFinished(bool isFinished);
 public slots:

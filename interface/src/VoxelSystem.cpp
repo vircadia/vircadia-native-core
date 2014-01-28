@@ -16,7 +16,6 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <NodeList.h>
-#include <NodeTypes.h>
 
 #include "Application.h"
 #include "CoverageMap.h"
@@ -550,17 +549,17 @@ bool VoxelSystem::readFromSchematicFile(const char* filename) {
     return result;
 }
 
-int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
+int VoxelSystem::parseData(const QByteArray& packet) {
     bool showTimingDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData()",showTimingDetails);
 
-    unsigned char command = *sourceBuffer;
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    PacketType command = packetTypeForPacket(packet);
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     switch(command) {
-        case PACKET_TYPE_VOXEL_DATA: {
-            PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() PACKET_TYPE_VOXEL_DATA part...",showTimingDetails);
-
-            unsigned char* dataAt = sourceBuffer + numBytesPacketHeader;
+        case PacketTypeVoxelData: {
+            PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() PacketType_VOXEL_DATA part...",showTimingDetails);
+            
+            const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
             VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
             dataAt += sizeof(VOXEL_PACKET_FLAGS);
@@ -577,7 +576,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             int flightTime = arrivedAt - sentAt;
 
             VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-            int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
+            int dataBytes = packet.size() - VOXEL_PACKET_HEADER_SIZE;
 
             int subsection = 1;
             while (dataBytes > 0) {
@@ -605,7 +604,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
                                " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                            sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
+                            sequence, flightTime, packet.size(), dataBytes, subsection, sectionLength,
+                               packetData.getUncompressedSize());
                     }
                     _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                     unlockTree();
@@ -616,7 +616,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             }
             subsection++;
         }
-        break;
+        default:
+            break;
     }
     if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
         setupNewVoxelsForDrawing();
@@ -624,9 +625,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
 
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(packet.size());
 
-    return numBytes;
+    return packet.size();
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {

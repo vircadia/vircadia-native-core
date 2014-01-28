@@ -22,29 +22,27 @@
 
 #include "Agent.h"
 
-Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes)
+Agent::Agent(const QByteArray& packet) :
+    ThreadedAssignment(packet)
 {
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
-        int headerBytes = numBytesForPacketHeader((const unsigned char*) dataByteArray.constData());
-        // PACKET_TYPE_JURISDICTION, first byte is the node type...
+    if (packetTypeForPacket(dataByteArray) == PacketTypeJurisdiction) {
+        int headerBytes = numBytesForPacketHeader(dataByteArray);
+        // PacketType_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
             case NODE_TYPE_VOXEL_SERVER:
                 _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                (unsigned char*) dataByteArray.data(),
-                                                                                dataByteArray.size());
+                                                                                                            dataByteArray);
                 break;
             case NODE_TYPE_PARTICLE_SERVER:
                 _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                (unsigned char*) dataByteArray.data(),
-                                                                                dataByteArray.size());
+                                                                                                               dataByteArray);
                 break;
         }
     } else {
-        NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 

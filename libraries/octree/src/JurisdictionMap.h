@@ -16,7 +16,7 @@
 #include <QtCore/QString>
 #include <QtCore/QUuid>
 
-#include <NodeTypes.h>
+#include <Node.h>
 
 class JurisdictionMap {
 public:
@@ -56,7 +56,7 @@ public:
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 
-    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
     
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available

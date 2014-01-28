@@ -28,8 +28,8 @@ void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     }
 }
 
-OctreeServer::OctreeServer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes),
+OctreeServer::OctreeServer(const QByteArray& packet) :
+    ThreadedAssignment(packet),
     _argc(0),
     _argv(NULL),
     _parsedArgV(NULL),
@@ -432,7 +432,7 @@ void OctreeServer::setArguments(int argc, char** argv) {
 
 void OctreeServer::parsePayload() {
 
-    if (getNumPayloadBytes() > 0) {
+    if (getPayload().size() > 0) {
         QString config((const char*) _payload);
 
         // Now, parse the config
@@ -461,26 +461,23 @@ void OctreeServer::parsePayload() {
 void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
 
-    PACKET_TYPE packetType = dataByteArray[0];
+    PacketType packetType = packetTypeForPacket(dataByteArray);
 
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
-            qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at" << usecTimestampNow();
+            qDebug() << "Got PacketType_VOXEL_QUERY at" << usecTimestampNow();
         }
-
-        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
-
-        // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
+       
+        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
         // need to make sure we have it in our nodeList.
-        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
-                                                              NUM_BYTES_RFC4122_UUID));
+        QUuid nodeUUID;
+        deconstructPacketHeader(dataByteArray, nodeUUID);
 
         SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
 
         if (node) {
-            nodeList->updateNodeWithData(node.data(), senderSockAddr, (unsigned char *) dataByteArray.data(),
-                                         dataByteArray.size());
+            nodeList->updateNodeWithData(node.data(), senderSockAddr, dataByteArray);
             if (!node->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
                 // this means they've heard from us and can reply, let's assume public is active
@@ -491,16 +488,13 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
                 nodeData->initializeOctreeSendThread(this, nodeUUID);
             }
         }
-    } else if (packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
-        _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                 dataByteArray.size());
+    } else if (packetType == PacketTypeJurisdictionRequest) {
+        _jurisdictionSender->queueReceivedPacket(senderSockAddr, dataByteArray);
     } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-       _octreeInboundPacketProcessor->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                                    dataByteArray.size());
+       _octreeInboundPacketProcessor->queueReceivedPacket(senderSockAddr, dataByteArray);
    } else {
        // let processNodeData handle it.
-       NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                dataByteArray.size());
+       NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
@@ -512,7 +506,7 @@ void OctreeServer::run() {
     Logging::setTargetName(getMyLoggingServerTargetName());
 
     // Now would be a good time to parse our arguments, if we got them as assignment
-    if (getNumPayloadBytes() > 0) {
+    if (getPayload().size() > 0) {
         parsePayload();
     }
 

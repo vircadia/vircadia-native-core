@@ -47,8 +47,6 @@ private:
                                             const QUuid& checkInUUI);
     void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
-    unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
-    
     HTTPManager _HTTPManager;
     
     QMutex _assignmentQueueMutex;

@@ -27,22 +27,11 @@ const char AVATAR_MIXER_LOGGING_NAME[] = "avatar-mixer";
 
 const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 
-AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes)
+AvatarMixer::AvatarMixer(const QByteArray& packet) :
+    ThreadedAssignment(packet)
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
-}
-
-unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
-    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
-    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
-    currentPosition += rfcUUID.size();
-    
-    AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
-    currentPosition += nodeData->getBroadcastData(currentPosition);
-    
-    return currentPosition;
 }
 
 void attachAvatarDataToNode(Node* newNode) {
@@ -59,11 +48,10 @@ void attachAvatarDataToNode(Node* newNode) {
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
 void broadcastAvatarData() {
-    static unsigned char broadcastPacket[MAX_PACKET_SIZE];
-    static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
-    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
-    unsigned char* currentBufferPosition = broadcastPacket + numHeaderBytes;
-    int packetLength = currentBufferPosition - broadcastPacket;
+    static QByteArray mixedAvatarByteArray;
+    
+    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
+    
     int packetsSent = 0;
     
     NodeList* nodeList = NodeList::getInstance();
@@ -72,45 +60,39 @@ void broadcastAvatarData() {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
             
             // reset packet pointers for this node
-            currentBufferPosition = broadcastPacket + numHeaderBytes;
-            packetLength = currentBufferPosition - broadcastPacket;
+            mixedAvatarByteArray.resize(numPacketHeaderBytes);
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
                     
-                    unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0],
-                                                                                 otherNode.data());
-                    int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
+                    QByteArray avatarByteArray;
+                    avatarByteArray.append(otherNode->getUUID().toRfc4122());
                     
-                    if (avatarDataLength + packetLength <= MAX_PACKET_SIZE) {
-                        memcpy(currentBufferPosition, &avatarDataBuffer[0], avatarDataLength);
-                        packetLength += avatarDataLength;
-                        currentBufferPosition += avatarDataLength;
-                    } else {
+                    
+                    AvatarData *nodeData = (AvatarData *)otherNode->getLinkedData();
+                    avatarByteArray.append(nodeData->toByteArray());
+                    
+                    if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
                         packetsSent++;
                         //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-                        nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket,
-                                                                currentBufferPosition - broadcastPacket,
+                        nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
                                                                 node->getActiveSocket()->getAddress(),
                                                                 node->getActiveSocket()->getPort());
                         
                         // reset the packet
-                        currentBufferPosition = broadcastPacket + numHeaderBytes;
-                        packetLength = currentBufferPosition - broadcastPacket;
-                        
-                        // copy the avatar that didn't fit into the next packet
-                        memcpy(currentBufferPosition, &avatarDataBuffer[0], avatarDataLength);
-                        packetLength += avatarDataLength;
-                        currentBufferPosition += avatarDataLength;
+                        mixedAvatarByteArray.resize(numPacketHeaderBytes);
                     }
+                    
+                    // copy the avatar into the mixedAvatarByteArray packet
+                    mixedAvatarByteArray.append(avatarByteArray);
                 }
             }
             
             packetsSent++;
             //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-            nodeList->getNodeSocket().writeDatagram((char*) broadcastPacket, currentBufferPosition - broadcastPacket,
+            nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
                                                     node->getActiveSocket()->getAddress(),
                                                     node->getActiveSocket()->getPort());
         }
@@ -122,13 +104,10 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         && killedNode->getLinkedData()) {
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        unsigned char packetData[MAX_PACKET_SIZE];
-        int numHeaderBytes = populateTypeAndVersion(packetData, PACKET_TYPE_KILL_AVATAR);
+        QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
+        killPacket += killedNode->getUUID().toRfc4122();
         
-        QByteArray rfcUUID = killedNode->getUUID().toRfc4122();
-        memcpy(packetData + numHeaderBytes, rfcUUID.constData(), rfcUUID.size());
-        
-        NodeList::getInstance()->broadcastToNodes(packetData, numHeaderBytes + NUM_BYTES_RFC4122_UUID,
+        NodeList::getInstance()->broadcastToNodes(killPacket,
                                                   QSet<NODE_TYPE>() << NODE_TYPE_AGENT);
     }
 }
@@ -137,29 +116,28 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
     
     NodeList* nodeList = NodeList::getInstance();
     
-    switch (dataByteArray[0]) {
-        case PACKET_TYPE_HEAD_DATA: {
-            QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
-                                                                  NUM_BYTES_RFC4122_UUID));
+    switch (packetTypeForPacket(dataByteArray)) {
+        case PacketTypeAvatarData: {
+            QUuid nodeUUID;
+            deconstructPacketHeader(dataByteArray, nodeUUID);
             
             // add or update the node in our list
             SharedNodePointer avatarNode = nodeList->nodeWithUUID(nodeUUID);
             
             if (avatarNode) {
                 // parse positional data from an node
-                nodeList->updateNodeWithData(avatarNode.data(), senderSockAddr,
-                                             (unsigned char*) dataByteArray.data(), dataByteArray.size());
+                nodeList->updateNodeWithData(avatarNode.data(), senderSockAddr, dataByteArray);
                 
             }
             break;
         }
-        case PACKET_TYPE_KILL_AVATAR: {
+        case PacketTypeKillAvatar: {
             nodeList->processKillNode(dataByteArray);
             break;
         }
         default:
             // hand this off to the NodeList
-            nodeList->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            nodeList->processNodeData(senderSockAddr, dataByteArray);
             break;
     }
     

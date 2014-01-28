@@ -175,8 +175,7 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                    const QSet<NODE_TYPE>& destinationNodeTypes);
+    void controlledBroadcastToNodes(const QByteArray& packet, const QSet<NODE_TYPE>& destinationNodeTypes);
 
     void setupWorldLight();
 
@@ -299,7 +298,7 @@ private:
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NODE_TYPE serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
@@ -477,9 +476,8 @@ private:
 
     PieMenu _pieMenu;
 
-    int parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
-    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
-                                  const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
+    int parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderAddress);
+    void trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;

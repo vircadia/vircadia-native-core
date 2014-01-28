@@ -48,19 +48,18 @@ Assignment::Assignment() :
     _type(Assignment::AllTypes),
     _location(Assignment::LocalLocation),
     _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
     setPool(NULL);
 }
 
-Assignment::Assignment(Assignment::Command command, Assignment::Type type, const char* pool, Assignment::Location location) :
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
     _command(command),
     _type(type),
+    _pool(pool),
     _location(location),
     _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
@@ -70,45 +69,33 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     setPool(pool);
 }
 
-Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
+Assignment::Assignment(const QByteArray& packet) :
     _location(GlobalLocation),
     _numberOfInstances(1),
-    _payload(),
-    _numPayloadBytes(0)
+    _payload()
 {
-    int numBytesRead = 0;
+    PacketType packetType = packetTypeForPacket(packet);
     
-    if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
+    if (packetType == PacketTypeRequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (dataBuffer[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+    } else if (packetType == PacketTypeCreateAssignment) {
         _command = Assignment::CreateCommand;
-    } else if (dataBuffer[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT) {
-        _command = Assignment::DeployCommand;
     }
     
-    numBytesRead += numBytesForPacketHeader(dataBuffer);
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
-    numBytesRead += sizeof(Assignment::Type);
+    packetStream.readRawData(reinterpret_cast<char*>(&_type), sizeof(Assignment::Type));
     
     if (_command != Assignment::RequestCommand) {
         // read the GUID for this assignment
-        _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
-        numBytesRead += NUM_BYTES_RFC4122_UUID;
+        packetStream >> _uuid;
     }
     
-    if (dataBuffer[numBytesRead] != '\0') {
-        // read the pool from the data buffer
-        setPool((const char*) dataBuffer + numBytesRead);
-        numBytesRead += strlen(_pool) + sizeof('\0');
-    } else {
-        // skip past the null pool and null out our pool
-        setPool(NULL);
-        numBytesRead++;
-    }
+    packetStream >> _pool;
     
-    if (numBytes > numBytesRead) {
-        setPayload(dataBuffer + numBytesRead, numBytes - numBytesRead);
+    if (!packetStream.atEnd()) {
+        _payload = packet.mid(packetStream.device()->pos());
     }
 }
 
@@ -124,10 +111,9 @@ Assignment::Assignment(const Assignment& otherAssignment) {
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
-    setPool(otherAssignment._pool);
+    _pool = otherAssignment._pool;
     _numberOfInstances = otherAssignment._numberOfInstances;
-    
-    setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
+    _payload = otherAssignment._payload;
 }
 
 Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
@@ -143,42 +129,10 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_command, otherAssignment._command);
     swap(_type, otherAssignment._type);
     swap(_location, otherAssignment._location);
-    
-    for (int i = 0; i < sizeof(_pool); i++) {
-        swap(_pool[i], otherAssignment._pool[i]);
-    }
+    swap(_pool, otherAssignment._pool);
     
     swap(_numberOfInstances, otherAssignment._numberOfInstances);
-    
-    for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
-        swap(_payload[i], otherAssignment._payload[i]);
-    }
-    
-    swap(_numPayloadBytes, otherAssignment._numPayloadBytes);
-}
-
-void Assignment::setPayload(const uchar* payload, int numBytes) {
-    
-    if (numBytes > MAX_PAYLOAD_BYTES) {
-        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.",
-               MAX_PAYLOAD_BYTES,
-               MAX_PAYLOAD_BYTES);
-        
-        _numPayloadBytes = 1024;
-    } else {
-        _numPayloadBytes = numBytes;
-    }
-    
-    memset(_payload, 0, MAX_PAYLOAD_BYTES);
-    memcpy(_payload, payload, _numPayloadBytes);
-}
-
-void Assignment::setPool(const char* pool) {
-    memset(_pool, '\0', sizeof(_pool));
-    
-    if (pool) {
-        strcpy(_pool, pool);
-    }
+    swap(_payload, otherAssignment._payload);
 }
 
 const char* Assignment::getTypeName() const {
@@ -200,38 +154,21 @@ const char* Assignment::getTypeName() const {
     }
 }
 
-int Assignment::packToBuffer(unsigned char* buffer) {
-    int numPackedBytes = 0;
-    
-    memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
-    numPackedBytes += sizeof(_type);
-    
-    // pack the UUID for this assignment, if this is an assignment create or deploy
-    if (_command != Assignment::RequestCommand) {
-        memcpy(buffer + numPackedBytes, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-        numPackedBytes += NUM_BYTES_RFC4122_UUID;
-    }
-    
-    if (hasPool()) {
-        // pack the pool for this assignment, it exists
-        int numBytesNullTerminatedPool = strlen(_pool) + sizeof('\0');
-        memcpy(buffer + numPackedBytes, _pool, numBytesNullTerminatedPool);
-        numPackedBytes += numBytesNullTerminatedPool;
-    } else {
-        // otherwise pack the null character
-        buffer[numPackedBytes++] = '\0';
-    }
-    
-    if (_numPayloadBytes) {
-        memcpy(buffer + numPackedBytes, _payload, _numPayloadBytes);
-        numPackedBytes += _numPayloadBytes;
-    }
-    
-    return numPackedBytes;
-}
-
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
     debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
         ", Type: " << assignment.getType();
     return debug.nospace();
+}
+
+QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
+    out << (char) assignment._type;
+    
+    // pack the UUID for this assignment, if this is an assignment create or deploy
+    if (assignment._command != Assignment::RequestCommand) {
+        out << assignment._uuid;
+    }
+    
+    out << assignment._pool << assignment._payload;
+    
+    return out;
 }

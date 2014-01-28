@@ -19,7 +19,7 @@ public:
         OctreeQueryNode(),
         _lastDeletedParticlesSentAt(0) {  };
 
-    virtual PACKET_TYPE getMyPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
+    virtual PacketType getMyPacketType() const { return PacketTypeParticleData; }
 
     uint64_t getLastDeletedParticlesSentAt() const { return _lastDeletedParticlesSentAt; }
     void setLastDeletedParticlesSentAt(uint64_t sentAt) { _lastDeletedParticlesSentAt = sentAt; }

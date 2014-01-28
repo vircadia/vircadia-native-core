@@ -13,9 +13,9 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+
 #include "Octree.h"
 #include "OctreePacketData.h"
 #include "ViewFrustum.h"
@@ -38,8 +38,8 @@ public:
 
     virtual Octree* createTree() = 0;
     virtual NODE_TYPE getMyNodeType() const = 0;
-    virtual PACKET_TYPE getMyQueryMessageType() const = 0;
-    virtual PACKET_TYPE getExpectedPacketType() const = 0;
+    virtual PacketType getMyQueryMessageType() const = 0;
+    virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
     
     /// process incoming data

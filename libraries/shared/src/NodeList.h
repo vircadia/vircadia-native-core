@@ -29,7 +29,6 @@
 #include <QtNetwork/QUdpSocket>
 
 #include "Node.h"
-#include "NodeTypes.h"
 
 const int MAX_NUM_NODES = 10000;
 const int NODES_PER_BUCKET = 100;
@@ -94,15 +93,15 @@ public:
     void addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd);
     void addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes);
 
-    int processDomainServerList(unsigned char *packetData, size_t dataBytes);
+    int processDomainServerList(const QByteArray& packet);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
     
     int packOwnerUUID(unsigned char* packetData);
 
-    int fillPingPacket(unsigned char* buffer);
-    int fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer);
+    QByteArray constructPingPacket();
+    QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
 
     SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
@@ -110,13 +109,12 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
-    void processNodeData(const HifiSockAddr& senderSockAddr, unsigned char *packetData, size_t dataBytes);
-    
+    void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes);
+    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
-    unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const QSet<NODE_TYPE>& destinationNodeTypes);
+    unsigned broadcastToNodes(const QByteArray& packet, const QSet<NODE_TYPE>& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
@@ -141,7 +139,7 @@ private:
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void sendSTUNRequest();
-    void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
+    void processSTUNResponse(const QByteArray& packet);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
@@ -160,7 +158,7 @@ private:
     unsigned int _stunRequestsSinceSuccess;
 
     void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
-    void timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData);
+    void timePingReply(const QByteArray& packet);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
     void clear();

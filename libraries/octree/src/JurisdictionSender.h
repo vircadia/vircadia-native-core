@@ -18,7 +18,7 @@
 #include <ReceivedPacketProcessor.h>
 #include "JurisdictionMap.h"
 
-/// Will process PACKET_TYPE_JURISDICTION_REQUEST packets and send out PACKET_TYPE_JURISDICTION packets
+/// Will process PacketType_JURISDICTION_REQUEST packets and send out PacketType_JURISDICTION packets
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public ReceivedPacketProcessor {
@@ -37,7 +37,7 @@ public:
     void setNodeType(NODE_TYPE type) { _nodeType = type; }
 
 protected:
-    virtual void processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet);
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { _requestingNodeMutex.lock(); }

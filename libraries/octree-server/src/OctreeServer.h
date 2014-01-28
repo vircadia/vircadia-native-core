@@ -28,7 +28,7 @@
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
 public:
-    OctreeServer(const unsigned char* dataBuffer, int numBytes);
+    OctreeServer(const QByteArray& packet);
     ~OctreeServer();
 
     /// allows setting of run arguments
@@ -51,7 +51,7 @@ public:
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
     virtual Octree* createTree() = 0;
     virtual unsigned char getMyNodeType() const = 0;
-    virtual PACKET_TYPE getMyQueryMessageType() const = 0;
+    virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;

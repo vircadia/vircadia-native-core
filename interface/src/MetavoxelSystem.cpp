@@ -167,8 +167,7 @@ bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
 }
 
 static QByteArray createDatagramHeader(const QUuid& sessionID) {
-    QByteArray header(MAX_PACKET_HEADER_BYTES, 0);
-    populateTypeAndVersion(reinterpret_cast<unsigned char*>(header.data()), PACKET_TYPE_METAVOXEL_DATA);
+    QByteArray header = byteArrayWithPopluatedHeader(PacketTypeMetavoxelData);
     header += sessionID.toRfc4122();
     return header;
 }

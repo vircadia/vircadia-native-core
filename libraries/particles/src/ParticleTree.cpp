@@ -19,14 +19,15 @@ ParticleTreeElement* ParticleTree::createNewElement(unsigned char * octalCode) {
     return newElement;
 }
 
-bool ParticleTree::handlesEditPacketType(PACKET_TYPE packetType) const {
+bool ParticleTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT:
-        case PACKET_TYPE_PARTICLE_ERASE:
+        case PacketTypeParticleAddOrEdit:
+        case PacketTypeParticleErase:
             return true;
+        default:
+            return false;
     }
-    return false;
 }
 
 class FindAndDeleteParticlesArgs {
@@ -207,29 +208,30 @@ const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) 
 }
 
 
-int ParticleTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength, Node* senderNode) {
+int ParticleTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+                    const unsigned char* editData, int maxLength, Node* senderNode) {
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_PARTICLE_ADD_OR_EDIT: {
-            //qDebug() << " got PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
+        case PacketTypeParticleAddOrEdit: {
+            //qDebug() << " got PacketType_PARTICLE_ADD_OR_EDIT... ";
             Particle newParticle = Particle::fromEditPacket(editData, maxLength, processedBytes, this);
             storeParticle(newParticle, senderNode);
             if (newParticle.isNewlyCreated()) {
                 notifyNewlyCreatedParticle(newParticle, senderNode);
             }
-            //qDebug() << " DONE... PACKET_TYPE_PARTICLE_ADD_OR_EDIT... ";
-        } break;
+            //qDebug() << " DONE... PacketType_PARTICLE_ADD_OR_EDIT... ";
+            return processedBytes;
+        }
 
-        // TODO: wire in support here for server to get PACKET_TYPE_PARTICLE_ERASE messages
-        // instead of using PACKET_TYPE_PARTICLE_ADD_OR_EDIT messages to delete particles
-        case PACKET_TYPE_PARTICLE_ERASE: {
-            processedBytes = 0;
-        } break;
+        // TODO: wire in support here for server to get PacketType_PARTICLE_ERASE messages
+        // instead of using PacketType_PARTICLE_ADD_OR_EDIT messages to delete particles
+        case PacketTypeParticleErase:
+            return 0;
+        default:
+            return 0;
     }
-    return processedBytes;
 }
 
 void ParticleTree::notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode) {
@@ -331,7 +333,7 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populateTypeAndVersion(outputBuffer, PACKET_TYPE_PARTICLE_ERASE);
+    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeParticleErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -424,7 +426,7 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
 
-    size_t numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    size_t numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     size_t processedBytes = numBytesPacketHeader;
     dataAt += numBytesPacketHeader;
 

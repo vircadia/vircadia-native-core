@@ -12,8 +12,8 @@
 #include "Logging.h"
 #include "ThreadedAssignment.h"
 
-ThreadedAssignment::ThreadedAssignment(const unsigned char* dataBuffer, int numBytes) :
-    Assignment(dataBuffer, numBytes),
+ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
+    Assignment(packet),
     _isFinished(false)
 {
     

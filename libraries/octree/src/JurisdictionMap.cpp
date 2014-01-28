@@ -265,7 +265,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 int JurisdictionMap::packEmptyJurisdictionIntoMessage(NODE_TYPE type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
+    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -283,7 +283,7 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(NODE_TYPE type, unsigned c
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_JURISDICTION);
+    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -324,12 +324,12 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
     return destinationBuffer - bufferStart; // includes header!
 }
 
-int JurisdictionMap::unpackFromMessage(unsigned char* sourceBuffer, int availableBytes) {
+int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
     clear();
-    unsigned char* startPosition = sourceBuffer;
+    const unsigned char* startPosition = sourceBuffer;
 
     // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
     sourceBuffer += numBytesPacketHeader;
     int remainingBytes = availableBytes - numBytesPacketHeader;
     

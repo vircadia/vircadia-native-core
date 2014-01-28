@@ -110,7 +110,7 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     }
 
     _octreePacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = populateTypeAndVersion(_octreePacket, getMyPacketType());
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), getMyPacketType());
     _octreePacketAt = _octreePacket + numBytesPacketHeader;
     _octreePacketAvailableBytes -= numBytesPacketHeader;
 

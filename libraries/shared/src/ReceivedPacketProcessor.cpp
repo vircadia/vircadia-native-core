@@ -16,16 +16,16 @@ ReceivedPacketProcessor::ReceivedPacketProcessor() {
     _dontSleep = false;
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(const HifiSockAddr& address, unsigned char* packetData, ssize_t packetLength) {
+void ReceivedPacketProcessor::queueReceivedPacket(const HifiSockAddr& address, const QByteArray& packet) {
     // Make sure our Node and NodeList knows we've heard from this node.
     SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(address);
     if (node) {
         node->setLastHeardMicrostamp(usecTimestampNow());
     }
 
-    NetworkPacket packet(address, packetData, packetLength);
+    NetworkPacket networkPacket(address, packet);
     lock();
-    _packets.push_back(packet);
+    _packets.push_back(networkPacket);
     unlock();
 }
 
@@ -44,7 +44,7 @@ bool ReceivedPacketProcessor::process() {
         NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
         _packets.erase(_packets.begin()); // remove the oldest packet
         unlock(); // let others add to the packets
-        processPacket(temporary.getSockAddr(), temporary.getData(), temporary.getLength()); // process our temporary copy
+        processPacket(temporary.getSockAddr(), temporary.getByteArray()); // process our temporary copy
     }
     return isStillRunning();  // keep running till they terminate us
 }

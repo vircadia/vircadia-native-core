@@ -35,23 +35,24 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::
 PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
-int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    currentBuffer += NUM_BYTES_RFC4122_UUID; // the source UUID
-    currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
-    currentBuffer += writeData((char*) currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
+    QDataStream packetStream(packet);
+    
+    // skip the source UUID
+    packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
+    
+    packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
+    packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),
+                                       packet.size() - packetStream.device()->pos()));
 
-    return currentBuffer - sourceBuffer;
+    return packetStream.device()->pos();
 }
 
-int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer = sourceBuffer;
-
-    memcpy(&_position, currentBuffer, sizeof(_position));
-    currentBuffer += sizeof(_position);
-
-    memcpy(&_orientation, currentBuffer, sizeof(_orientation));
-    currentBuffer += sizeof(_orientation);
+int PositionalAudioRingBuffer::parsePositionalData(const QByteArray& positionalByteArray) {
+    QDataStream packetStream(positionalByteArray);
+    
+    packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
+    packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (isnan(_orientation.x)) {
@@ -59,7 +60,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
         return 0;
     }
 
-    return currentBuffer - sourceBuffer;
+    return packetStream.device()->pos();
 }
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {

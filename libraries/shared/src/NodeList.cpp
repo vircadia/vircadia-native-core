@@ -17,7 +17,6 @@
 #include "HifiSockAddr.h"
 #include "Logging.h"
 #include "NodeList.h"
-#include "NodeTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
@@ -109,79 +108,83 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
     }
 }
 
-void NodeList::timePingReply(const HifiSockAddr& nodeAddress, unsigned char *packetData) {
-    foreach (const SharedNodePointer& node, _nodeHash) {
-        if (node->getPublicSocket() == nodeAddress ||
-            node->getLocalSocket() == nodeAddress) {
-
-            unsigned char* dataAt = packetData + numBytesForPacketHeader(packetData);
-            uint64_t ourOriginalTime = *(uint64_t*)(dataAt);
-            dataAt += sizeof(ourOriginalTime);
-            uint64_t othersReplyTime = *(uint64_t*)(dataAt);
-            uint64_t now = usecTimestampNow();
-            int pingTime = now - ourOriginalTime;
-            int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
-
-            // The other node's expected time should be our original time plus the one way flight time
-            // anything other than that is clock skew
-            uint64_t othersExprectedReply = ourOriginalTime + oneWayFlightTime;
-            int clockSkew = othersReplyTime - othersExprectedReply;
-
-            node->setPingMs(pingTime / 1000);
-            node->setClockSkewUsec(clockSkew);
-
-            const bool wantDebug = false;
-            if (wantDebug) {
-                qDebug() << "PING_REPLY from node " << *node << "\n" <<
-                    "                     now: " << now << "\n" <<
-                    "                 ourTime: " << ourOriginalTime << "\n" <<
-                    "                pingTime: " << pingTime << "\n" <<
-                    "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
-                    "         othersReplyTime: " << othersReplyTime << "\n" <<
-                    "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-                    "               clockSkew: " << clockSkew;
-            }
-            break;
+void NodeList::timePingReply(const QByteArray& packet) {
+    QUuid nodeUUID;
+    deconstructPacketHeader(packet, nodeUUID);
+    
+    SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
+    
+    if (matchingNode) {
+        QDataStream packetStream(packet);
+        packetStream.device()->seek(numBytesForPacketHeader(packet));
+        
+        qint64 ourOriginalTime, othersReplyTime;
+        
+        packetStream >> ourOriginalTime >> othersReplyTime;
+        
+        qint64 now = usecTimestampNow();
+        int pingTime = now - ourOriginalTime;
+        int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+        
+        // The other node's expected time should be our original time plus the one way flight time
+        // anything other than that is clock skew
+        uint64_t othersExprectedReply = ourOriginalTime + oneWayFlightTime;
+        int clockSkew = othersReplyTime - othersExprectedReply;
+        
+        matchingNode->setPingMs(pingTime / 1000);
+        matchingNode->setClockSkewUsec(clockSkew);
+        
+        const bool wantDebug = false;
+        
+        if (wantDebug) {
+            qDebug() << "PING_REPLY from node " << *matchingNode << "\n" <<
+            "                     now: " << now << "\n" <<
+            "                 ourTime: " << ourOriginalTime << "\n" <<
+            "                pingTime: " << pingTime << "\n" <<
+            "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+            "         othersReplyTime: " << othersReplyTime << "\n" <<
+            "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+            "               clockSkew: " << clockSkew;
         }
     }
 }
 
-void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, unsigned char* packetData, size_t dataBytes) {
-    switch (packetData[0]) {
-        case PACKET_TYPE_DOMAIN: {
+void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
+    switch (packetTypeForPacket(packet)) {
+        case PacketTypeDomainList: {
             // only process the DS if this is our current domain server
             if (_domainSockAddr == senderSockAddr) {
-                processDomainServerList(packetData, dataBytes);
+                processDomainServerList(packet);
             }
 
             break;
         }
-        case PACKET_TYPE_PING: {
+        case PacketTypePing: {
             // send back a reply
-            unsigned char replyPacket[MAX_PACKET_SIZE];
-            int replyPacketLength = fillPingReplyPacket(packetData, replyPacket);
-            _nodeSocket.writeDatagram((char*)replyPacket, replyPacketLength,
-                            senderSockAddr.getAddress(), senderSockAddr.getPort());
+            QByteArray replyPacket = constructPingReplyPacket(packet);
+            _nodeSocket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
             break;
         }
-        case PACKET_TYPE_PING_REPLY: {
+        case PacketTypePingReply: {
             // activate the appropriate socket for this node, if not yet updated
             activateSocketFromNodeCommunication(senderSockAddr);
 
             // set the ping time for this node for stat collection
-            timePingReply(senderSockAddr, packetData);
+            timePingReply(packet);
             break;
         }
-        case PACKET_TYPE_STUN_RESPONSE: {
+        case PacketTypeStunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
             // pass it along so it can be processed into our public address and port
-            processSTUNResponse(packetData, dataBytes);
+            processSTUNResponse(packet);
             break;
         }
+        default:
+            break;
     }
 }
 
-int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, unsigned char *packetData, int dataBytes) {
+int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     QMutexLocker locker(&node->getMutex());
 
     node->setLastHeardMicrostamp(usecTimestampNow());
@@ -195,13 +198,13 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     }
 
     if (node->getActiveSocket() || senderSockAddr.isNull()) {
-        node->recordBytesReceived(dataBytes);
+        node->recordBytesReceived(packet.size());
 
         if (!node->getLinkedData() && linkedDataCreateCallback) {
             linkedDataCreateCallback(node);
         }
 
-        int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
+        int numParsedBytes = node->getLinkedData()->parseData(packet);
         return numParsedBytes;
     } else {
         // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
@@ -323,7 +326,7 @@ void NodeList::sendSTUNRequest() {
     }
 }
 
-void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) {
+void NodeList::processSTUNResponse(const QByteArray& packet) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
@@ -333,13 +336,13 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 
     size_t attributeStartIndex = NUM_BYTES_STUN_HEADER;
 
-    if (memcmp(packetData + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
+    if (memcmp(packet.data() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
                sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
 
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < dataBytes) {
-            if (memcmp(packetData + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
+        while (attributeStartIndex < packet.size()) {
+            if (memcmp(packet.data() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
                 const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
@@ -347,17 +350,17 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                 // reset the number of failed STUN requests since last success
                 _stunRequestsSinceSuccess = 0;
 
-                int byteIndex = attributeStartIndex +  NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
-
+                int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
+                
                 uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packetData + byteIndex, sizeof(addressFamily));
+                memcpy(&addressFamily, packet.data(), sizeof(addressFamily));
 
                 byteIndex += sizeof(addressFamily);
 
                 if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
                     // grab the X-Port
                     uint16_t xorMappedPort = 0;
-                    memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
+                    memcpy(&xorMappedPort, packet.data() + byteIndex, sizeof(xorMappedPort));
 
                     uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
 
@@ -365,7 +368,7 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
 
                     // grab the X-Address
                     uint32_t xorMappedAddress = 0;
-                    memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
+                    memcpy(&xorMappedAddress, packet.data() + byteIndex, sizeof(xorMappedAddress));
 
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
 
@@ -389,7 +392,8 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                 const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
 
                 uint16_t attributeLength = 0;
-                memcpy(&attributeLength, packetData + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE, sizeof(attributeLength));
+                memcpy(&attributeLength, packet.data() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
+                       sizeof(attributeLength));
                 attributeLength = ntohs(attributeLength);
 
                 attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
@@ -415,11 +419,8 @@ NodeHash::iterator NodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItem
 
 void NodeList::processKillNode(const QByteArray& dataByteArray) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader(reinterpret_cast
-                                                                                  <const unsigned char*>(dataByteArray.data())),
-                                                          NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader(dataByteArray), NUM_BYTES_RFC4122_UUID));
 
-    
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
 }
@@ -459,53 +460,22 @@ void NodeList::sendDomainServerCheckIn() {
         sendSTUNRequest();
     } else {
         // construct the DS check in packet if we need to
-        int numBytesNodesOfInterest = _nodeTypesOfInterest.size();
-
-        const int IP_ADDRESS_BYTES = 4;
 
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        #ifdef _WIN32
-        const int numPacketBytes = MAX_PACKET_SIZE;
-        #else
-        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-            NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
-            numBytesNodesOfInterest + sizeof(unsigned char);
-        #endif
-
-        unsigned char checkInPacket[numPacketBytes];
-        unsigned char* packetPosition = checkInPacket;
-
-        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
-
-        packetPosition += populateTypeAndVersion(packetPosition, nodePacketType);
-
-        *(packetPosition++) = _ownerType;
-
-        // send our owner UUID or the null one
-        QByteArray rfcOwnerUUID = _ownerUUID.toRfc4122();
-        memcpy(packetPosition, rfcOwnerUUID.constData(), rfcOwnerUUID.size());
-        packetPosition += rfcOwnerUUID.size();
-
-        // pack our public address to send to domain-server
-        packetPosition += HifiSockAddr::packSockAddr(checkInPacket + (packetPosition - checkInPacket), _publicSockAddr);
-
-        // pack our local address to send to domain-server
-        packetPosition += HifiSockAddr::packSockAddr(checkInPacket + (packetPosition - checkInPacket),
-                                                     HifiSockAddr(QHostAddress(getHostOrderLocalAddress()),
-                                                                  _nodeSocket.localPort()));
-
-        // add the number of bytes for node types of interest
-        *(packetPosition++) = numBytesNodesOfInterest;
-
+        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
+        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+        
+        // pack our data to send to the domain-server
+        packetStream << _ownerType << _publicSockAddr
+            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+            << (char) _nodeTypesOfInterest.size();
+        
         // copy over the bytes for node types of interest, if required
         foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {
-            *(packetPosition++) = nodeTypeOfInterest;
+            packetStream << nodeTypeOfInterest;
         }
 
-        _nodeSocket.writeDatagram((char*) checkInPacket, packetPosition - checkInPacket,
-                                  _domainSockAddr.getAddress(), _domainSockAddr.getPort());
+        _nodeSocket.writeDatagram(domainServerPacket, _domainSockAddr.getAddress(), _domainSockAddr.getPort());
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
 
@@ -519,28 +489,25 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
-int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
+int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
     int readNodes = 0;
+    
+    // setup variables to read into from QDataStream
+    qint8 nodeType;
+    
+    QUuid nodeUUID;
 
-    char nodeType;
-
-    // assumes only IPv4 addresses
     HifiSockAddr nodePublicSocket;
     HifiSockAddr nodeLocalSocket;
+    
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
 
-    unsigned char* readPtr = packetData + numBytesForPacketHeader(packetData);
-    unsigned char* startPtr = packetData;
-
-    while((size_t)(readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
-        nodeType = *readPtr++;
-        QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) readPtr, NUM_BYTES_RFC4122_UUID));
-        readPtr += NUM_BYTES_RFC4122_UUID;
-
-        readPtr += HifiSockAddr::unpackSockAddr(readPtr, nodePublicSocket);
-        readPtr += HifiSockAddr::unpackSockAddr(readPtr, nodeLocalSocket);
+    while(!packetStream.atEnd()) {
+        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket;
 
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
@@ -551,19 +518,19 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
     }
 
-
     return readNodes;
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
-    unsigned char assignmentPacket[MAX_PACKET_SIZE];
-
-    PACKET_TYPE assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
-        ? PACKET_TYPE_CREATE_ASSIGNMENT
-        : PACKET_TYPE_REQUEST_ASSIGNMENT;
-
-    int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
-    int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
+    
+    PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
+        ? PacketTypeCreateAssignment
+        : PacketTypeRequestAssignment;
+    
+    QByteArray packet = byteArrayWithPopluatedHeader(assignmentPacketType);
+    QDataStream packetStream(&packet, QIODevice::Append);
+    
+    packetStream << assignment;
 
     static HifiSockAddr DEFAULT_ASSIGNMENT_SOCKET(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, DEFAULT_DOMAIN_SERVER_PORT);
 
@@ -571,9 +538,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? &DEFAULT_ASSIGNMENT_SOCKET
         : &_assignmentServerSocket;
 
-    _nodeSocket.writeDatagram((char*) assignmentPacket, numHeaderBytes + numAssignmentBytes,
-                              assignmentServerSocket->getAddress(),
-                              assignmentServerSocket->getPort());
+    _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
 }
 
 int NodeList::packOwnerUUID(unsigned char* packetData) {
@@ -582,43 +547,36 @@ int NodeList::packOwnerUUID(unsigned char* packetData) {
     return rfcUUID.size();
 }
 
-int NodeList::fillPingPacket(unsigned char* buffer) {
-    int numHeaderBytes = populateTypeAndVersion(buffer, PACKET_TYPE_PING);
-    uint64_t currentTime = usecTimestampNow();
-    memcpy(buffer + numHeaderBytes, &currentTime, sizeof(currentTime));
-    return numHeaderBytes + sizeof(currentTime);
+QByteArray NodeList::constructPingPacket() {
+    QByteArray pingPacket = byteArrayWithPopluatedHeader(PacketTypePing);
+    
+    QDataStream packetStream(&pingPacket, QIODevice::Append);
+    packetStream << usecTimestampNow();
+    
+    return pingPacket;
 }
 
-int NodeList::fillPingReplyPacket(unsigned char* pingBuffer, unsigned char* replyBuffer) {
-    int numHeaderBytesOriginal = numBytesForPacketHeader(pingBuffer);
-    uint64_t timeFromOriginalPing = *(uint64_t*)(pingBuffer + numHeaderBytesOriginal);
-
-    int numHeaderBytesReply = populateTypeAndVersion(replyBuffer, PACKET_TYPE_PING_REPLY);
-    int length = numHeaderBytesReply;
-    uint64_t ourReplyTime = usecTimestampNow();
-
-    unsigned char* dataAt = replyBuffer + numHeaderBytesReply;
-    memcpy(dataAt, &timeFromOriginalPing, sizeof(timeFromOriginalPing));
-    dataAt += sizeof(timeFromOriginalPing);
-    length += sizeof(timeFromOriginalPing);
-
-    memcpy(dataAt, &ourReplyTime, sizeof(ourReplyTime));
-    dataAt += sizeof(ourReplyTime);
-    length += sizeof(ourReplyTime);
-
-    return length;
+QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+    QByteArray replyPacket;
+    
+    uint64_t timeFromOriginalPing;
+    memcpy(&timeFromOriginalPing, pingPacket.data() + numBytesForPacketHeader(pingPacket), sizeof(timeFromOriginalPing));
+    
+    QDataStream packetStream(replyPacket);
+    
+    packetStream.device()->seek(populatePacketHeader(replyPacket, PacketTypePingReply));
+    
+    packetStream << timeFromOriginalPing << usecTimestampNow();
+    
+    return replyPacket;
 }
-
 
 void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
-    unsigned char pingPacket[MAX_PACKET_SIZE];
-    int pingPacketLength = fillPingPacket(pingPacket);
+    QByteArray pingPacket = constructPingPacket();
 
     // send the ping packet to the local and public sockets for this node
-    _nodeSocket.writeDatagram((char*) pingPacket, pingPacketLength,
-                              node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
-    _nodeSocket.writeDatagram((char*) pingPacket, pingPacketLength,
-                              node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
+    _nodeSocket.writeDatagram(pingPacket, node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
+    _nodeSocket.writeDatagram(pingPacket, node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -669,7 +627,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     }
 }
 
-unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+unsigned NodeList::broadcastToNodes(const QByteArray& packet,
                                     const QSet<NODE_TYPE>& destinationNodeTypes) {
     unsigned n = 0;
 
@@ -678,8 +636,7 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
         if (destinationNodeTypes.contains(node->getType())) {
             if (getNodeActiveSocketOrPing(node.data())) {
                 // we know which socket is good for this node, send there
-                _nodeSocket.writeDatagram((char*) broadcastData, dataBytes,
-                                          node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
+                _nodeSocket.writeDatagram(packet, node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
                 ++n;
             }
         }

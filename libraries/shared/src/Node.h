@@ -27,6 +27,18 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
+typedef quint8 NODE_TYPE;
+const NODE_TYPE NODE_TYPE_DOMAIN = 'D';
+const NODE_TYPE NODE_TYPE_VOXEL_SERVER = 'V';
+const NODE_TYPE NODE_TYPE_PARTICLE_SERVER = 'P';
+const NODE_TYPE NODE_TYPE_METAVOXEL_SERVER = 'm';
+const NODE_TYPE NODE_TYPE_ENVIRONMENT_SERVER = 'E';
+const NODE_TYPE NODE_TYPE_AGENT = 'I';
+const NODE_TYPE NODE_TYPE_AUDIO_MIXER = 'M';
+const NODE_TYPE NODE_TYPE_AVATAR_MIXER = 'W';
+const NODE_TYPE NODE_TYPE_ANIMATION_SERVER = 'a';
+const NODE_TYPE NODE_TYPE_UNASSIGNED = 1;
+
 class Node : public QObject {
     Q_OBJECT
 public:
@@ -75,13 +87,16 @@ public:
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
     QMutex& getMutex() { return _mutex; }
+    
+    friend QDataStream& operator>>(QDataStream& out, const Node& node);
+    friend QDataStream& operator<<(QDataStream& in, Node& node);
 
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
 
-    char _type;
+    NODE_TYPE _type;
     QUuid _uuid;
     uint64_t _wakeMicrostamp;
     uint64_t _lastHeardMicrostamp;

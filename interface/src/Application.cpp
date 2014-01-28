@@ -49,7 +49,6 @@
 #include <QXmlStreamAttributes>
 
 #include <AudioInjector.h>
-#include <NodeTypes.h>
 #include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
@@ -640,7 +639,7 @@ void Application::resetProfile(const QString& username) {
     updateWindowTitle();
 }
 
-void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+void Application::controlledBroadcastToNodes(const QByteArray& packet,
                                              const QSet<NODE_TYPE>& destinationNodeTypes) {
     foreach(NODE_TYPE type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
@@ -649,8 +648,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         }
         
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes,
-                                                                        QSet<NODE_TYPE>() << type);
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, QSet<NODE_TYPE>() << type);
         
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
@@ -665,7 +663,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
             default:
                 continue;
         }
-        _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes);
+        _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
 }
 
@@ -1319,11 +1317,9 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::sendPingPackets() {
-    unsigned char pingPacket[MAX_PACKET_SIZE];
-    int length = NodeList::getInstance()->fillPingPacket(pingPacket);
-
-    getInstance()->controlledBroadcastToNodes(pingPacket, length, QSet<NODE_TYPE>()
-                                              << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
+    QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
+    getInstance()->controlledBroadcastToNodes(pingPacket, QSet<NODE_TYPE>() << NODE_TYPE_VOXEL_SERVER
+                                              << NODE_TYPE_PARTICLE_SERVER
                                               << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
                                               << NODE_TYPE_METAVOXEL_SERVER);
 }
@@ -1463,7 +1459,7 @@ void Application::removeVoxel(glm::vec3 position,
     voxel.y = position.y / TREE_SCALE;
     voxel.z = position.z / TREE_SCALE;
     voxel.s = scale / TREE_SCALE;
-    _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, voxel);
+    _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
 
     // delete it locally to see the effect immediately (and in case no voxel server is present)
     _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
@@ -1484,7 +1480,7 @@ void Application::makeVoxel(glm::vec3 position,
     voxel.red = red;
     voxel.green = green;
     voxel.blue = blue;
-    PACKET_TYPE message = isDestructive ? PACKET_TYPE_VOXEL_SET_DESTRUCTIVE : PACKET_TYPE_VOXEL_SET;
+    PacketType message = isDestructive ? PacketTypeVoxelSetDestructive : PacketTypeVoxelSet;
     _voxelEditSender.sendVoxelEditMessage(message, voxel);
 
     // create the voxel locally so it appears immediately
@@ -1554,7 +1550,7 @@ bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
         codeColorBuffer[bytesInCode + RED_INDEX] = voxel->getColor()[RED_INDEX];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = voxel->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX] = voxel->getColor()[BLUE_INDEX];
-        getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE,
+        getInstance()->_voxelEditSender.queueVoxelEditMessage(PacketTypeVoxelSetDestructive,
                 codeColorBuffer, codeAndColorLength);
 
         delete[] codeColorBuffer;
@@ -2350,18 +2346,10 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
 
     // send head/hand data to the avatar mixer and voxel server
-    unsigned char broadcastString[MAX_PACKET_SIZE];
-    unsigned char* endOfBroadcastStringWrite = broadcastString;
+    QByteArray avatarData = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    avatarData.append(_myAvatar.toByteArray());
 
-    endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
-
-    // pack the NodeList owner UUID
-    endOfBroadcastStringWrite += NodeList::getInstance()->packOwnerUUID(endOfBroadcastStringWrite);
-
-    endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
-
-    controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
-                               QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+    controlledBroadcastToNodes(avatarData, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2372,11 +2360,11 @@ void Application::updateAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
 
     // Update my voxel servers with my current voxel query...
-    queryOctree(NODE_TYPE_VOXEL_SERVER, PACKET_TYPE_VOXEL_QUERY, _voxelServerJurisdictions);
-    queryOctree(NODE_TYPE_PARTICLE_SERVER, PACKET_TYPE_PARTICLE_QUERY, _particleServerJurisdictions);
+    queryOctree(NODE_TYPE_VOXEL_SERVER, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+    queryOctree(NODE_TYPE_PARTICLE_SERVER, PacketTypeParticleQuery, _particleServerJurisdictions);
 }
 
-void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NODE_TYPE serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     // if voxels are disabled, then don't send this at all...
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -2544,10 +2532,7 @@ void Application::queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, Node
             unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
 
             // insert packet type/version and node UUID
-            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, packetType);
-            QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-            memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-            endOfVoxelQueryPacket += ownerUUID.size();
+            endOfVoxelQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfVoxelQueryPacket), packetType);
 
             // encode the query data...
             endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
@@ -3658,7 +3643,7 @@ bool Application::maybeEditVoxelUnderCursor() {
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, _mouseVoxel);
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
         _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -3830,8 +3815,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
-                        const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
+void Application::trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
     SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
@@ -3842,13 +3826,13 @@ void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t m
         _voxelSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(messageData, messageLength, wasStatsPacket, serverNode->getClockSkewUsec());
+            stats.trackIncomingOctreePacket(packet, wasStatsPacket, serverNode->getClockSkewUsec());
         }
         _voxelSceneStatsLock.unlock();
     }
 }
 
-int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderSockAddr) {
+int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
     SharedNodePointer server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
@@ -3856,7 +3840,7 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
     VoxelSceneStats temp;
-    int statsMessageLength = temp.unpackFromMessage(messageData, messageLength);
+    int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
 
     // quick fix for crash... why would voxelServer be NULL?
     if (server) {
@@ -3865,7 +3849,8 @@ int Application::parseOctreeStats(unsigned char* messageData, ssize_t messageLen
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
+            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
+                                                                packet.size());
         } else {
             _octreeServerSceneStats[nodeUUID] = temp;
         }

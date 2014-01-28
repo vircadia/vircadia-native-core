@@ -61,8 +61,8 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     return destinationBuffer - bufferStart;
 }
 
-int EnvironmentData::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* startPosition = sourceBuffer;
+int EnvironmentData::parseData(const unsigned char* sourceBuffer, int numBytes) {
+    const unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_id, sourceBuffer, sizeof(_id));
     sourceBuffer += sizeof(_id);

@@ -39,25 +39,26 @@ void OctreeInboundPacketProcessor::resetStats() {
 }
 
 
-void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr,
-                                               unsigned char* packetData, ssize_t packetLength) {
+void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
-        printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
+        printf("OctreeInboundPacketProcessor::processPacket() packetData=%p packetLength=%d\n", &packet, packet.size());
     }
 
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
 
 
     // Ask our tree subclass if it can handle the incoming packet...
-    PACKET_TYPE packetType = packetData[0];
+    PacketType packetType = packetTypeForPacket(packet);
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
 
         SharedNodePointer senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
+        
+        const unsigned char* packetData = reinterpret_cast<const unsigned char*>(packet.data());
 
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
@@ -69,26 +70,26 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
 
         if (_myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
-                    << " command from client receivedBytes=" << packetLength
+                    << " command from client receivedBytes=" << packet.size()
                     << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
         }
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* editData = (unsigned char*)&packetData[atByte];
-        while (atByte < packetLength) {
-            int maxSize = packetLength - atByte;
+        while (atByte < packet.size()) {
+            int maxSize = packet.size() - atByte;
 
             if (debugProcessPacket) {
                 printf("OctreeInboundPacketProcessor::processPacket() %c "
-                       "packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
-                        packetType, packetData, packetLength, editData, atByte, maxSize);
+                       "packetData=%p packetLength=%d voxelData=%p atByte=%d maxSize=%d\n",
+                        packetType, packetData, packet.size(), editData, atByte, maxSize);
             }
 
             uint64_t startLock = usecTimestampNow();
             _myServer->getOctree()->lockForWrite();
             uint64_t startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
-                                                                                  packetData,
-                                                                                  packetLength,
+                                                                                  reinterpret_cast<const unsigned char*>(packet.data()),
+                                                                                  packet.size(),
                                                                                   editData, maxSize, senderNode.data());
             _myServer->getOctree()->unlock();
             uint64_t endProcess = usecTimestampNow();
@@ -106,8 +107,8 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
 
         if (debugProcessPacket) {
             printf("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %c "
-                   "packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
-                    packetType, packetData, packetLength, editData, atByte);
+                   "packetData=%p packetLength=%d voxelData=%p atByte=%d\n",
+                    packetType, packetData, packet.size(), editData, atByte);
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
@@ -125,7 +126,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         }
         trackInboundPackets(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
-        qDebug("unknown packet ignored... packetData[0]=%c", packetData[0]);
+        qDebug("unknown packet ignored... packetType=%d", packetType);
     }
 }
 
