@@ -222,6 +222,7 @@ void DomainServer::readAvailableDatagrams() {
                     if (assignmentToDeploy) {
                         // give this assignment out, either the type matches or the requestor said they will take any
                         assignmentPacket.resize(numAssignmentPacketHeaderBytes);
+                        
                         QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                         
                         assignmentStream << *assignmentToDeploy;

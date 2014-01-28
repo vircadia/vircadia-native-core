@@ -70,6 +70,7 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
 }
 
 Assignment::Assignment(const QByteArray& packet) :
+    _pool(),
     _location(GlobalLocation),
     _numberOfInstances(1),
     _payload()
@@ -85,7 +86,9 @@ Assignment::Assignment(const QByteArray& packet) :
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    packetStream.readRawData(reinterpret_cast<char*>(&_type), sizeof(Assignment::Type));
+    uchar assignmentType;
+    packetStream >> assignmentType;
+    _type = (Assignment::Type) assignmentType;
     
     if (_command != Assignment::RequestCommand) {
         // read the GUID for this assignment
@@ -155,13 +158,13 @@ const char* Assignment::getTypeName() const {
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
+    debug.nospace() << "UUID: " << qPrintable(assignment.getUUID().toString()) <<
         ", Type: " << assignment.getType();
     return debug.nospace();
 }
 
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
-    out << (char) assignment._type;
+    out << (quint8) assignment._type;
     
     // pack the UUID for this assignment, if this is an assignment create or deploy
     if (assignment._command != Assignment::RequestCommand) {

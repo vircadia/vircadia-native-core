@@ -124,32 +124,36 @@ void AssignmentClient::readPendingDatagrams() {
                     // construct the deployed assignment from the packet data
                     _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
                     
-                    qDebug() << "Received an assignment -" << *_currentAssignment;
-                    
-                    // switch our nodelist domain IP and port to whoever sent us the assignment
-                    
-                    nodeList->setDomainSockAddr(senderSockAddr);
-                    nodeList->setOwnerUUID(_currentAssignment->getUUID());
-                    
-                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainIP().toString();
-                    
-                    // start the deployed assignment
-                    QThread* workerThread = new QThread(this);
-                    
-                    connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
-                    
-                    connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-                    connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                    connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
-                    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-                    
-                    _currentAssignment->moveToThread(workerThread);
-                    
-                    // move the NodeList to the thread used for the _current assignment
-                    nodeList->moveToThread(workerThread);
-                    
-                    // Starts an event loop, and emits workerThread->started()
-                    workerThread->start();
+                    if (_currentAssignment) {
+                        qDebug() << "Received an assignment -" << *_currentAssignment;
+                        
+                        // switch our nodelist domain IP and port to whoever sent us the assignment
+                        
+                        nodeList->setDomainSockAddr(senderSockAddr);
+                        nodeList->setOwnerUUID(_currentAssignment->getUUID());
+                        
+                        qDebug() << "Destination IP for assignment is" << nodeList->getDomainIP().toString();
+                        
+                        // start the deployed assignment
+                        QThread* workerThread = new QThread(this);
+                        
+                        connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
+                        
+                        connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
+                        connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
+                        connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
+                        connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                        
+                        _currentAssignment->moveToThread(workerThread);
+                        
+                        // move the NodeList to the thread used for the _current assignment
+                        nodeList->moveToThread(workerThread);
+                        
+                        // Starts an event loop, and emits workerThread->started()
+                        workerThread->start();
+                    } else {
+                        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
+                    }
                 }
             } else {
                 // have the NodeList attempt to handle it

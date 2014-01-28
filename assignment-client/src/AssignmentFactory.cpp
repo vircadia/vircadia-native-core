@@ -21,10 +21,12 @@
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
     int headerBytes = numBytesForPacketHeader(packet);
     
-    Assignment::Type assignmentType = Assignment::AllTypes;
-    memcpy(&assignmentType, packet.data() + headerBytes, sizeof(Assignment::Type));
+    quint8 packedType;
+    memcpy(&packedType, packet.data() + headerBytes, sizeof(packedType));
     
-    switch (assignmentType) {
+    Assignment::Type unpackedType = (Assignment::Type) packedType;
+    
+    switch (unpackedType) {
         case Assignment::AudioMixerType:
             return new AudioMixer(packet);
         case Assignment::AvatarMixerType:

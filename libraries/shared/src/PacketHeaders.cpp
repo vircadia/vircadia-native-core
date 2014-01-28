@@ -16,7 +16,7 @@
 #include "PacketHeaders.h"
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
-    if (((int) *checkValue) < 255) {
+    if (((uchar) *checkValue) < 255) {
         return *checkValue;
     } else {
         return 255 + arithmeticCodingValueFromBuffer(checkValue + 1);
@@ -24,8 +24,8 @@ int arithmeticCodingValueFromBuffer(const char* checkValue) {
 }
 
 int numBytesArithmeticCodingFromBuffer(const char* checkValue) {
-    if (((int) *checkValue) < 255) {
-        return *checkValue;
+    if (((uchar) *checkValue) < 255) {
+        return 1;
     } else {
         return 1 + numBytesArithmeticCodingFromBuffer(checkValue + 1);
     }
@@ -50,13 +50,19 @@ PacketVersion versionForPacketType(PacketType type) {
     }
 }
 
+const int MAX_HEADER_BYTES = sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+
 QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connectionUUID) {
-    QByteArray freshByteArray;
-    populatePacketHeader(freshByteArray, type, connectionUUID);
+    QByteArray freshByteArray(MAX_HEADER_BYTES, 0);
+    freshByteArray.resize(populatePacketHeader(freshByteArray, type, connectionUUID));
     return freshByteArray;
 }
 
 int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID) {
+    if (packet.size() < MAX_HEADER_BYTES) {
+        packet.resize(numBytesForPacketHeaderGivenPacketType(type));
+    }
+    
     return populatePacketHeader(packet.data(), type, connectionUUID);
 }
 
@@ -110,7 +116,7 @@ int numBytesForPacketHeaderGivenPacketType(PacketType type) {
 }
 
 void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID) {
-    senderUUID = QUuid::fromRfc4122(packet.mid(arithmeticCodingValueFromBuffer(packet.data()) + sizeof(PacketVersion)));
+    senderUUID = QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion)));
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {
