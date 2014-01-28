@@ -551,7 +551,7 @@ QByteArray NodeList::constructPingPacket() {
 }
 
 QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
-    uint64_t timeFromOriginalPing;
+    quint64 timeFromOriginalPing;
     memcpy(&timeFromOriginalPing, pingPacket.data() + numBytesForPacketHeader(pingPacket), sizeof(timeFromOriginalPing));
     
     QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
