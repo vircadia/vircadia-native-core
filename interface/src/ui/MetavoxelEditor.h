@@ -32,7 +32,8 @@ private slots:
     
     void updateValueEditor();
     void createNewAttribute();
-    void updateGridPosition();
+    void centerGridPosition();
+    void alignGridPosition();
     
     void render();
     

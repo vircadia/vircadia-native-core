@@ -58,19 +58,21 @@ MetavoxelEditor::MetavoxelEditor() :
     _gridPlane->addItem("X/Z");
     _gridPlane->addItem("Y/Z");
     _gridPlane->setCurrentIndex(GRID_PLANE_XZ);
+    connect(_gridPlane, SIGNAL(currentIndexChanged(int)), SLOT(centerGridPosition()));
     
     formLayout->addRow("Grid Spacing:", _gridSpacing = new QDoubleSpinBox());
     _gridSpacing->setMinimum(-FLT_MAX);
     _gridSpacing->setMaximum(FLT_MAX);
     _gridSpacing->setPrefix("2^");
     _gridSpacing->setValue(-3.0);
-    connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(updateGridPosition()));
+    connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(alignGridPosition()));
 
     formLayout->addRow("Grid Position:", _gridPosition = new QDoubleSpinBox());
     _gridPosition->setMinimum(-FLT_MAX);
     _gridPosition->setMaximum(FLT_MAX);
-    updateGridPosition();
-
+    alignGridPosition();
+    centerGridPosition();
+    
     _value = new QGroupBox();
     _value->setTitle("Value");
     topLayout->addWidget(_value);
@@ -182,7 +184,15 @@ void MetavoxelEditor::createNewAttribute() {
     updateAttributes(nameText);
 }
 
-void MetavoxelEditor::updateGridPosition() {
+void MetavoxelEditor::centerGridPosition() {
+    const float CENTER_OFFSET = 0.5f;
+    float eyePosition = (glm::inverse(getGridRotation()) * Application::getInstance()->getCamera()->getPosition()).z -
+        Application::getInstance()->getAvatar()->getScale() * CENTER_OFFSET;
+    double step = getGridSpacing();
+    _gridPosition->setValue(step * floor(eyePosition / step));
+}
+
+void MetavoxelEditor::alignGridPosition() {
     // make sure our grid position matches our grid spacing
     double step = getGridSpacing();
     _gridPosition->setSingleStep(step);
