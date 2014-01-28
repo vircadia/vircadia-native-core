@@ -150,7 +150,8 @@ ParticleID ParticlesScriptingInterface::findClosestParticle(const glm::vec3& cen
 QVector<ParticleID> ParticlesScriptingInterface::findParticles(const glm::vec3& center, float radius) const {
     QVector<ParticleID> result;
     if (_particleTree) {
-        QVector<const Particle*> particles = _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE);
+        QVector<const Particle*> particles;
+        _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, particles);
 
         foreach (const Particle* particle, particles) {
             ParticleID thisParticleID(particle->getID(), UNKNOWN_TOKEN, true);

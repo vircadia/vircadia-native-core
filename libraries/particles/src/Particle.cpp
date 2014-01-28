@@ -661,7 +661,50 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     }
 }
 
+// HALTING_* params are determined using expected acceleration of gravity over some timescale.  
+// This is a HACK for particles that bounce in a 1.0 gravitational field and should eventually be made more universal.
+const float HALTING_PARTICLE_PERIOD = 0.0167f;  // ~1/60th of a second
+const float HALTING_PARTICLE_SPEED = 9.8 * HALTING_PARTICLE_PERIOD / (float)(TREE_SCALE);
+
+void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
+    //
+    //  Update the particle in response to a hard collision.  Position will be reset exactly
+    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
+    //
+    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
+    //  if elasticity = 1.0, collision is 100% elastic.
+    //
+    glm::vec3 position = getPosition();
+    glm::vec3 velocity = getVelocity();
+
+    const float EPSILON = 0.0f;
+    glm::vec3 relativeVelocity = collisionInfo._addedVelocity - velocity;
+    float velocityDotPenetration = glm::dot(relativeVelocity, collisionInfo._penetration);
+    if (velocityDotPenetration < EPSILON) {
+        // particle is moving into collision surface
+        //
+        // TODO: do something smarter here by comparing the mass of the particle vs that of the other thing 
+        // (other's mass could be stored in the Collision Info).  The smaller mass should surrender more 
+        // position offset and should slave more to the other's velocity in the static-friction case.
+        position -= collisionInfo._penetration;
+
+        if (glm::length(relativeVelocity) < HALTING_PARTICLE_SPEED) {
+            // static friction kicks in and particle moves with colliding object
+            velocity = collisionInfo._addedVelocity;
+        } else {
+            glm::vec3 direction = glm::normalize(collisionInfo._penetration);
+            velocity += glm::dot(relativeVelocity, direction) * (1.0f + collisionInfo._elasticity) * direction;    // dynamic reflection
+            velocity += glm::clamp(collisionInfo._damping, 0.0f, 1.0f) * (relativeVelocity - glm::dot(relativeVelocity, direction) * direction);   // dynamic friction
+        }
+    }
+
+    // change the local particle too...
+    setPosition(position);
+    setVelocity(velocity);
+}
+
 // MIN_VALID_SPEED is obtained by computing speed gained at one gravity during the shortest expected frame period
+// This is a HACK for particles that bounce in a 1.0 gravitational field and should eventually be made more universal.
 const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
 const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
