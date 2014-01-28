@@ -34,7 +34,8 @@ void DatagramProcessor::processDatagrams() {
     
     while (NodeList::getInstance()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size());
+        nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
+                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
         _packetCount++;
         _byteCount += incomingPacket.size();

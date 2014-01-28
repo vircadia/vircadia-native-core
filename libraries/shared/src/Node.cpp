@@ -134,7 +134,7 @@ float Node::getAverageKilobitsPerSecond() {
     }
 }
 
-QDataStream& operator>>(QDataStream& out, const Node& node) {
+QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;
     out << node._publicSocket;
@@ -143,7 +143,7 @@ QDataStream& operator>>(QDataStream& out, const Node& node) {
     return out;
 }
 
-QDataStream& operator<<(QDataStream& in, Node& node) {
+QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._type;
     in >> node._uuid;
     in >> node._publicSocket;

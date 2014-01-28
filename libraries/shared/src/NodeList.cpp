@@ -506,7 +506,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
 
-    while(!packetStream.atEnd()) {
+    while(packetStream.device()->pos() < packet.size()) {
         packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket;
 
         // if the public socket address is 0 then it's reachable at the same IP
@@ -551,14 +551,11 @@ QByteArray NodeList::constructPingPacket() {
 }
 
 QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
-    QByteArray replyPacket;
-    
     uint64_t timeFromOriginalPing;
     memcpy(&timeFromOriginalPing, pingPacket.data() + numBytesForPacketHeader(pingPacket), sizeof(timeFromOriginalPing));
     
-    QDataStream packetStream(replyPacket);
-    
-    packetStream.device()->seek(populatePacketHeader(replyPacket, PacketTypePingReply));
+    QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
+    QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << timeFromOriginalPing << usecTimestampNow();
     
@@ -574,7 +571,7 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
-                                const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+                                            const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     
     SharedNodePointer matchingNode = _nodeHash.value(uuid);

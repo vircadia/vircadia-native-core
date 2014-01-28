@@ -46,11 +46,12 @@ Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
     _type(Assignment::AllTypes),
+    _pool(),
     _location(Assignment::LocalLocation),
     _numberOfInstances(1),
     _payload()
 {
-    setPool(NULL);
+    
 }
 
 Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
@@ -65,8 +66,6 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     }
-    
-    setPool(pool);
 }
 
 Assignment::Assignment(const QByteArray& packet) :

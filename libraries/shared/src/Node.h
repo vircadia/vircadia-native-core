@@ -88,8 +88,8 @@ public:
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
     QMutex& getMutex() { return _mutex; }
     
-    friend QDataStream& operator>>(QDataStream& out, const Node& node);
-    friend QDataStream& operator<<(QDataStream& in, Node& node);
+    friend QDataStream& operator<<(QDataStream& out, const Node& node);
+    friend QDataStream& operator>>(QDataStream& in, Node& node);
 
 private:
     // privatize copy and assignment operator to disallow Node copying
