@@ -38,8 +38,6 @@ const quint64 PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
-const int MAX_HOSTNAME_BYTES = 256;
-
 extern const QString DEFAULT_DOMAIN_HOSTNAME;
 extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
 
