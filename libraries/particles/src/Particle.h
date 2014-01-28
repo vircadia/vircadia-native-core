@@ -76,7 +76,7 @@ public:
     bool getInHand() const { return _inHand; }
     bool getShouldDie() const { return _shouldDie; }
 
-    uint64_t getLastEdited() const { return _lastEdited; }
+    quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
 
     /// set position in meter units
@@ -112,7 +112,7 @@ private:
 
     uint32_t _id;
     bool _idSet;
-    uint64_t _lastEdited;
+    quint64 _lastEdited;
     bool _positionChanged;
     bool _colorChanged;
     bool _radiusChanged;
@@ -198,10 +198,10 @@ public:
     ParticleProperties getProperties() const;
 
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
-    uint64_t getLastUpdated() const { return _lastUpdated; }
+    quint64 getLastUpdated() const { return _lastUpdated; }
 
     /// The last edited time of this particle from the time perspective of the authoritative server/source
-    uint64_t getLastEdited() const { return _lastEdited; }
+    quint64 getLastEdited() const { return _lastEdited; }
 
     /// lifetime of the particle in seconds
     float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
@@ -247,7 +247,7 @@ public:
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 
-    void update(const uint64_t& now);
+    void update(const quint64& now);
     void collisionWithParticle(Particle* other);
     void collisionWithVoxel(VoxelDetail* voxel);
 
@@ -300,11 +300,11 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
 
-    uint64_t _lastUpdated;
-    uint64_t _lastEdited;
+    quint64 _lastUpdated;
+    quint64 _lastEdited;
 
     // this doesn't go on the wire, we send it as lifetime
-    uint64_t _created;
+    quint64 _created;
 
     // used by the static interfaces for creator token ids
     static uint32_t _nextCreatorTokenID;

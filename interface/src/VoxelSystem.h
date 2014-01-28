@@ -229,10 +229,10 @@ private:
     bool _readRenderFullVBO;
 
     int _setupNewVoxelsForDrawingLastElapsed;
-    uint64_t _setupNewVoxelsForDrawingLastFinished;
-    uint64_t _lastViewCulling;
-    uint64_t _lastViewIsChanging;
-    uint64_t _lastAudit;
+    quint64 _setupNewVoxelsForDrawingLastFinished;
+    quint64 _lastViewCulling;
+    quint64 _lastViewIsChanging;
+    quint64 _lastAudit;
     int _lastViewCullingElapsed;
     bool _hasRecentlyChanged;
 

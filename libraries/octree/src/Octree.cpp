@@ -445,7 +445,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
 
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(bitstream));
     unsigned short int sequence = (*((unsigned short int*)(bitstream + numBytesPacketHeader)));
-    uint64_t sentAt = (*((uint64_t*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
+    quint64 sentAt = (*((quint64*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
 
     int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
 

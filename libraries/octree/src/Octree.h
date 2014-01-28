@@ -47,7 +47,7 @@ const bool WANT_OCCLUSION_CULLING = true;
 const int DONT_CHOP              = 0;
 const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
-const uint64_t IGNORE_LAST_SENT  = 0;
+const quint64 IGNORE_LAST_SENT  = 0;
 
 #define IGNORE_SCENE_STATS       NULL
 #define IGNORE_VIEW_FRUSTUM      NULL
@@ -67,7 +67,7 @@ public:
     bool wantOcclusionCulling;
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
-    uint64_t lastViewFrustumSent;
+    quint64 lastViewFrustumSent;
     bool forceSendScene;
     OctreeSceneStats* stats;
     CoverageMap* map;
@@ -100,7 +100,7 @@ public:
         CoverageMap* map = IGNORE_COVERAGE_MAP,
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
-        uint64_t lastViewFrustumSent = IGNORE_LAST_SENT,
+        quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP) :

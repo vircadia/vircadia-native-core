@@ -128,7 +128,7 @@ void NodeList::timePingReply(const QByteArray& packet) {
         
         // The other node's expected time should be our original time plus the one way flight time
         // anything other than that is clock skew
-        uint64_t othersExprectedReply = ourOriginalTime + oneWayFlightTime;
+        quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
         int clockSkew = othersReplyTime - othersExprectedReply;
         
         matchingNode->setPingMs(pingTime / 1000);

@@ -45,7 +45,7 @@ public:
 
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
-    uint64_t getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
+    quint64 getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
@@ -94,7 +94,7 @@ protected:
     static OctreeServer* _instance;
 
     time_t _started;
-    uint64_t _startedUSecs;
+    quint64 _startedUSecs;
 };
 
 #endif // __octree_server__OctreeServer__

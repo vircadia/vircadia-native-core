@@ -591,8 +591,8 @@ double start = 0;
 
 void* animateVoxels(void* args) {
     
-    uint64_t lastAnimateTime = 0;
-    uint64_t lastProcessTime = 0;
+    quint64 lastAnimateTime = 0;
+    quint64 lastProcessTime = 0;
     int processesPerAnimate = 0;
     
     bool firstTime = true;
@@ -622,8 +622,8 @@ void* animateVoxels(void* args) {
             
             // The while loop will be running at PROCESSING_FPS, but we only want to call these animation functions at
             // ANIMATE_FPS. So we check out last animate time and only call these if we've elapsed that time.
-            uint64_t now = usecTimestampNow();
-            uint64_t animationElapsed = now - lastAnimateTime;
+            quint64 now = usecTimestampNow();
+            quint64 animationElapsed = now - lastAnimateTime;
             int withinAnimationTarget = ANIMATE_VOXELS_INTERVAL_USECS - animationElapsed;
             const int CLOSE_ENOUGH_TO_ANIMATE = 2000; // approximately 2 ms
             
@@ -676,7 +676,7 @@ void* animateVoxels(void* args) {
             processesPerAnimate++;
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        uint64_t usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
+        quint64 usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
         if (usecToSleep > PROCESSING_INTERVAL_USECS) {
             usecToSleep = PROCESSING_INTERVAL_USECS;
         }

@@ -20,21 +20,21 @@ class SingleSenderStats {
 public:
     SingleSenderStats();
 
-    uint64_t getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
-    uint64_t getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
-    uint64_t getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
-    uint64_t getTotalElementsProcessed() const { return _totalElementsInPacket; }
-    uint64_t getTotalPacketsProcessed() const { return _totalPackets; }
-    uint64_t getAverageProcessTimePerElement() const 
+    quint64 getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
+    quint64 getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
+    quint64 getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
+    quint64 getTotalElementsProcessed() const { return _totalElementsInPacket; }
+    quint64 getTotalPacketsProcessed() const { return _totalPackets; }
+    quint64 getAverageProcessTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
-    uint64_t getAverageLockWaitTimePerElement() const 
+    quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
         
-    uint64_t _totalTransitTime; 
-    uint64_t _totalProcessTime;
-    uint64_t _totalLockWaitTime;
-    uint64_t _totalElementsInPacket;
-    uint64_t _totalPackets;
+    quint64 _totalTransitTime; 
+    quint64 _totalProcessTime;
+    quint64 _totalLockWaitTime;
+    quint64 _totalElementsInPacket;
+    quint64 _totalPackets;
 };
 
 typedef std::map<QUuid, SingleSenderStats> NodeToSenderStatsMap;
@@ -48,14 +48,14 @@ class OctreeInboundPacketProcessor : public ReceivedPacketProcessor {
 public:
     OctreeInboundPacketProcessor(OctreeServer* myServer);
 
-    uint64_t getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
-    uint64_t getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
-    uint64_t getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
-    uint64_t getTotalElementsProcessed() const { return _totalElementsInPacket; }
-    uint64_t getTotalPacketsProcessed() const { return _totalPackets; }
-    uint64_t getAverageProcessTimePerElement() const 
+    quint64 getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
+    quint64 getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
+    quint64 getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
+    quint64 getTotalElementsProcessed() const { return _totalElementsInPacket; }
+    quint64 getTotalPacketsProcessed() const { return _totalPackets; }
+    quint64 getAverageProcessTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
-    uint64_t getAverageLockWaitTimePerElement() const 
+    quint64 getAverageLockWaitTimePerElement() const 
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
 
     void resetStats();
@@ -66,17 +66,17 @@ protected:
     virtual void processPacket(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
 private:
-    void trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
-            int voxelsInPacket, uint64_t processTime, uint64_t lockWaitTime);
+    void trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime, 
+            int voxelsInPacket, quint64 processTime, quint64 lockWaitTime);
 
     OctreeServer* _myServer;
     int _receivedPacketCount;
     
-    uint64_t _totalTransitTime; 
-    uint64_t _totalProcessTime;
-    uint64_t _totalLockWaitTime;
-    uint64_t _totalElementsInPacket;
-    uint64_t _totalPackets;
+    quint64 _totalTransitTime; 
+    quint64 _totalProcessTime;
+    quint64 _totalLockWaitTime;
+    quint64 _totalElementsInPacket;
+    quint64 _totalPackets;
     
     NodeToSenderStatsMap _singleSenderStats;
 };

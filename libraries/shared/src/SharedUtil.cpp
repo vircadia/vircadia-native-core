@@ -26,7 +26,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-uint64_t usecTimestamp(const timeval *time) {
+quint64 usecTimestamp(const timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
@@ -35,7 +35,7 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-uint64_t usecTimestampNow() {
+quint64 usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;

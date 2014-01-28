@@ -691,7 +691,7 @@ OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {
 };
 
 const char* OctreeSceneStats::getItemValue(Item item) {
-    const uint64_t USECS_PER_SECOND = 1000 * 1000;
+    const quint64 USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
         case ITEM_ELAPSED: {

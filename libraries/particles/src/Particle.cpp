@@ -89,7 +89,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
         _id = id;
         //qDebug() << "Particle::init()... assigning id from init... _id=" << _id;
     }
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
     _created = now; // will get updated as appropriate in setAge()
@@ -169,8 +169,8 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // age
-                + sizeof(uint64_t) // last updated
-                + sizeof(uint64_t) // lasted edited
+                + sizeof(quint64) // last updated
+                + sizeof(quint64) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -185,7 +185,7 @@ int Particle::expectedBytes() {
 
 int Particle::expectedEditMessageBytes() {
     int expectedBytes = sizeof(uint32_t) // id
-                + sizeof(uint64_t) // lasted edited
+                + sizeof(quint64) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -514,7 +514,7 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
         }
 
         // lastEdited
-        uint64_t lastEdited = properties.getLastEdited();
+        quint64 lastEdited = properties.getLastEdited();
         memcpy(copyAt, &lastEdited, sizeof(lastEdited));
         copyAt += sizeof(lastEdited);
         sizeOut += sizeof(lastEdited);
@@ -646,9 +646,9 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     }
 
     // lastEdited
-    uint64_t lastEditedInLocalTime;
+    quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    uint64_t lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
@@ -663,14 +663,14 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
 const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
 const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
-void Particle::update(const uint64_t& now) {
+void Particle::update(const quint64& now) {
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
 
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float speed = glm::length(_velocity);
     bool isStopped = (speed < MIN_VALID_SPEED);
-    const uint64_t REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
+    const quint64 REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
     bool isReallyOld = ((now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
     bool shouldDie = (getAge() > getLifetime()) || getShouldDie() || (!isInHand && isStopped && isReallyOld);
@@ -799,7 +799,7 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 
 
 void Particle::setAge(float age) {
-    uint64_t ageInUsecs = age * USECS_PER_SECOND;
+    quint64 ageInUsecs = age * USECS_PER_SECOND;
     _created = usecTimestampNow() - ageInUsecs;
 }
 

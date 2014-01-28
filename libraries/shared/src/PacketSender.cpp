@@ -16,8 +16,8 @@
 #include "PacketSender.h"
 #include "SharedUtil.h"
 
-const uint64_t PacketSender::USECS_PER_SECOND = 1000 * 1000;
-const uint64_t PacketSender::SENDING_INTERVAL_ADJUST = 200; // approaximate 200us
+const quint64 PacketSender::USECS_PER_SECOND = 1000 * 1000;
+const quint64 PacketSender::SENDING_INTERVAL_ADJUST = 200; // approaximate 200us
 const int PacketSender::TARGET_FPS = 60;
 const int PacketSender::MAX_SLEEP_INTERVAL = PacketSender::USECS_PER_SECOND;
 
@@ -82,13 +82,13 @@ bool PacketSender::threadedProcess() {
         int packetsPerSecondTarget = (_packetsPerSecond > MINIMUM_PACKETS_PER_SECOND)
                                             ? _packetsPerSecond : MINIMUM_PACKETS_PER_SECOND;
 
-        uint64_t intervalBetweenSends = USECS_PER_SECOND / packetsPerSecondTarget;
-        uint64_t sleepInterval = (intervalBetweenSends > SENDING_INTERVAL_ADJUST) ?
+        quint64 intervalBetweenSends = USECS_PER_SECOND / packetsPerSecondTarget;
+        quint64 sleepInterval = (intervalBetweenSends > SENDING_INTERVAL_ADJUST) ?
                     intervalBetweenSends - SENDING_INTERVAL_ADJUST : intervalBetweenSends;
 
         // We'll sleep before we send, this way, we can set our last send time to be our ACTUAL last send time
-        uint64_t now = usecTimestampNow();
-        uint64_t elapsed = now - _lastSendTime;
+        quint64 now = usecTimestampNow();
+        quint64 elapsed = now - _lastSendTime;
         int usecToSleep =  sleepInterval - elapsed;
 
         // If we've never sent, or it's been a long time since we sent, then our elapsed time will be quite large
@@ -132,18 +132,18 @@ bool PacketSender::threadedProcess() {
 // We also keep a running total of packets sent over multiple calls to process() so that we can adjust up or down for
 // possible rounding error that would occur if we only considered whole integer packet counts per call to process
 bool PacketSender::nonThreadedProcess() {
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
 
     if (_lastProcessCallTime == 0) {
         _lastProcessCallTime = now - _usecsPerProcessCallHint;
     }
 
-    const uint64_t MINIMUM_POSSIBLE_CALL_TIME = 10; // in usecs
-    const uint64_t USECS_PER_SECOND = 1000 * 1000;
+    const quint64 MINIMUM_POSSIBLE_CALL_TIME = 10; // in usecs
+    const quint64 USECS_PER_SECOND = 1000 * 1000;
     const float ZERO_RESET_CALLS_PER_SECOND = 1; // used in guard against divide by zero
 
     // keep track of our process call times, so we have a reliable account of how often our caller calls us
-    uint64_t elapsedSinceLastCall = now - _lastProcessCallTime;
+    quint64 elapsedSinceLastCall = now - _lastProcessCallTime;
     _lastProcessCallTime = now;
     _averageProcessCallTime.updateAverage(elapsedSinceLastCall);
 
@@ -165,7 +165,7 @@ bool PacketSender::nonThreadedProcess() {
     if (_lastPPSCheck == 0) {
         _lastPPSCheck = now;
         // pretend like our lifetime began once call cycle for now, this makes our lifetime PPS start out most accurately
-        _started = now - (uint64_t)averageCallTime;
+        _started = now - (quint64)averageCallTime;
     }
 
 
@@ -215,7 +215,7 @@ bool PacketSender::nonThreadedProcess() {
 
     // So no mater whether or not we're getting called more or less than once per second, we still need to do some bookkeeping
     // to make sure we send a few extra packets to even out our flow rate.
-    uint64_t elapsedSinceLastCheck = now - _lastPPSCheck;
+    quint64 elapsedSinceLastCheck = now - _lastPPSCheck;
 
     // we might want to tun this in the future and only check after a certain number of call intervals. for now we check
     // each time and adjust accordingly

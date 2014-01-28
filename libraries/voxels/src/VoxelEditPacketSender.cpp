@@ -44,8 +44,8 @@ bool createVoxelEditMessage(PacketType command, short int sequence,
     *sequenceAt = sequence;
     
     // pack in timestamp
-    uint64_t now = usecTimestampNow();
-    uint64_t* timeAt = (uint64_t*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
+    quint64 now = usecTimestampNow();
+    quint64* timeAt = (quint64*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
     *timeAt = now;
     
     unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence) + sizeof(now)];

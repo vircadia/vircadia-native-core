@@ -76,7 +76,7 @@ bool ParticleServer::hasSpecialPacketToSend(Node* node) {
     // check to see if any new particles have been added since we last sent to this node...
     ParticleNodeData* nodeData = static_cast<ParticleNodeData*>(node->getLinkedData());
     if (nodeData) {
-        uint64_t deletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
+        quint64 deletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
 
         ParticleTree* tree = static_cast<ParticleTree*>(_tree);
         shouldSendDeletedParticles = tree->hasParticlesDeletedSince(deletedParticlesSentAt);
@@ -91,8 +91,8 @@ int ParticleServer::sendSpecialPacket(Node* node) {
 
     ParticleNodeData* nodeData = static_cast<ParticleNodeData*>(node->getLinkedData());
     if (nodeData) {
-        uint64_t deletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
-        uint64_t deletePacketSentAt = usecTimestampNow();
+        quint64 deletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
+        quint64 deletePacketSentAt = usecTimestampNow();
 
         ParticleTree* tree = static_cast<ParticleTree*>(_tree);
         bool hasMoreToSend = true;
@@ -121,11 +121,11 @@ void ParticleServer::pruneDeletedParticles() {
     if (tree->hasAnyDeletedParticles()) {
 
         //qDebug() << "there are some deleted particles to consider...";
-        uint64_t earliestLastDeletedParticlesSent = usecTimestampNow() + 1; // in the future
+        quint64 earliestLastDeletedParticlesSent = usecTimestampNow() + 1; // in the future
         foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
             if (otherNode->getLinkedData()) {
                 ParticleNodeData* nodeData = static_cast<ParticleNodeData*>(otherNode->getLinkedData());
-                uint64_t nodeLastDeletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
+                quint64 nodeLastDeletedParticlesSentAt = nodeData->getLastDeletedParticlesSentAt();
                 if (nodeLastDeletedParticlesSentAt < earliestLastDeletedParticlesSent) {
                     earliestLastDeletedParticlesSent = nodeLastDeletedParticlesSentAt;
                 }

@@ -638,8 +638,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         return; // bail early if we're not initialized
     }
 
-    uint64_t start = usecTimestampNow();
-    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    quint64 start = usecTimestampNow();
+    quint64 sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
@@ -685,7 +685,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     _bufferWriteLock.unlock();
 
-    uint64_t end = usecTimestampNow();
+    quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
@@ -702,8 +702,8 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "setupNewVoxelsForDrawingSingleNode() xxxxx");
 
-    uint64_t start = usecTimestampNow();
-    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    quint64 start = usecTimestampNow();
+    quint64 sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (allowBailEarly && !iAmDebugging &&
@@ -728,7 +728,7 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 
     _bufferWriteLock.unlock();
 
-    uint64_t end = usecTimestampNow();
+    quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
@@ -737,14 +737,14 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 void VoxelSystem::checkForCulling() {
 
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
-    uint64_t start = usecTimestampNow();
+    quint64 start = usecTimestampNow();
 
     // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
     // it's been a long time since we last moved, then go ahead and do a full frustum cull.
     if (isViewChanging()) {
         _lastViewIsChanging = start;
     }
-    uint64_t sinceLastMoving = (start - _lastViewIsChanging) / 1000;
+    quint64 sinceLastMoving = (start - _lastViewIsChanging) / 1000;
     bool enoughTime = (sinceLastMoving >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS));
 
     // These has changed events will occur before we stop. So we need to remember this for when we finally have stopped
@@ -766,7 +766,7 @@ void VoxelSystem::checkForCulling() {
     hideOutOfView(forceFullFrustum);
 
     if (forceFullFrustum) {
-        uint64_t endViewCulling = usecTimestampNow();
+        quint64 endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000;
     }
 
@@ -775,7 +775,7 @@ void VoxelSystem::checkForCulling() {
     // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
     cleanupRemovedVoxels();
 
-    uint64_t sinceLastAudit = (start - _lastAudit) / 1000;
+    quint64 sinceLastAudit = (start - _lastAudit) / 1000;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
         if (sinceLastAudit >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) {

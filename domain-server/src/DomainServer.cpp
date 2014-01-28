@@ -201,7 +201,7 @@ void DomainServer::readAvailableDatagrams() {
                     }
                     
                     // update last receive to now
-                    uint64_t timeNow = usecTimestampNow();
+                    quint64 timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
                     
                     // send the constructed list back to this node

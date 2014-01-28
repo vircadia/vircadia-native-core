@@ -403,7 +403,7 @@ private:
     int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
-    uint64_t _lastMouseMove;
+    quint64 _lastMouseMove;
     bool _mouseHidden;
     bool _seenMouseMove;
 

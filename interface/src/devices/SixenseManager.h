@@ -25,7 +25,7 @@ public slots:
 
 private:
     
-    uint64_t _lastMovement;
+    quint64 _lastMovement;
 };
 
 #endif /* defined(__interface__SixenseManager__) */

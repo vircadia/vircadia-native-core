@@ -100,9 +100,9 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 if (wantDebugging) {
                     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<char*>(buffer));
                     unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
-                    uint64_t createdAt = (*((uint64_t*)(buffer + numBytesPacketHeader + sizeof(sequence))));
-                    uint64_t queuedAt = usecTimestampNow();
-                    uint64_t transitTime = queuedAt - createdAt;
+                    quint64 createdAt = (*((quint64*)(buffer + numBytesPacketHeader + sizeof(sequence))));
+                    quint64 queuedAt = usecTimestampNow();
+                    quint64 transitTime = queuedAt - createdAt;
 
                     qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
                             " - command to node bytes=" << length <<
@@ -163,7 +163,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
 
     assert(serversExist()); // we must have jurisdictions to be here!!
 
-    int headerBytes = numBytesForPacketHeader(reinterpret_cast<char*>(buffer)) + sizeof(short) + sizeof(uint64_t);
+    int headerBytes = numBytesForPacketHeader(reinterpret_cast<char*>(buffer)) + sizeof(short) + sizeof(quint64);
     unsigned char* octCode = buffer + headerBytes; // skip the packet header to get to the octcode
 
     // We want to filter out edit messages for servers based on the server's Jurisdiction
@@ -307,10 +307,10 @@ void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, Pa
     _sequenceNumber++;
 
     // pack in timestamp
-    uint64_t now = usecTimestampNow();
-    uint64_t* timeAt = (uint64_t*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
+    quint64 now = usecTimestampNow();
+    quint64* timeAt = (quint64*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
     *timeAt = now;
-    packetBuffer._currentSize += sizeof(uint64_t); // nudge past timestamp
+    packetBuffer._currentSize += sizeof(quint64); // nudge past timestamp
 
     packetBuffer._currentType = type;
 }

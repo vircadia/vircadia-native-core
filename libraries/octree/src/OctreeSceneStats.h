@@ -172,17 +172,17 @@ private:
 
     // scene timing data in usecs
     bool _isStarted;
-    uint64_t _start;
-    uint64_t _end;
-    uint64_t _elapsed;
-    uint64_t _lastFullElapsed;
+    quint64 _start;
+    quint64 _end;
+    quint64 _elapsed;
+    quint64 _lastFullElapsed;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
 
-    uint64_t _totalEncodeTime;
-    uint64_t _lastFullTotalEncodeTime;
-    uint64_t _encodeStart;
+    quint64 _totalEncodeTime;
+    quint64 _lastFullTotalEncodeTime;
+    quint64 _encodeStart;
     
     // scene octree related data
     unsigned long _totalElements;

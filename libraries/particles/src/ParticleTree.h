@@ -48,9 +48,9 @@ public:
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
 
     bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
-    bool hasParticlesDeletedSince(uint64_t sinceTime);
-    bool encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
-    void forgetParticlesDeletedBefore(uint64_t sinceTime);
+    bool hasParticlesDeletedSince(quint64 sinceTime);
+    bool encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    void forgetParticlesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
@@ -71,7 +71,7 @@ private:
 
 
     QReadWriteLock _recentlyDeletedParticlesLock;
-    QMultiMap<uint64_t, uint32_t> _recentlyDeletedParticleIDs;
+    QMultiMap<quint64, uint32_t> _recentlyDeletedParticleIDs;
 };
 
 #endif /* defined(__hifi__ParticleTree__) */

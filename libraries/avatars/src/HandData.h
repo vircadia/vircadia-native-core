@@ -228,7 +228,7 @@ private:
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
     bool      _isCollidingWithPalm;
-    uint64_t  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
+    quint64  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
 #endif /* defined(__hifi__HandData__) */

@@ -25,7 +25,7 @@ OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, 
 bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
-        uint64_t loadStarted = usecTimestampNow();
+        quint64 loadStarted = usecTimestampNow();
         qDebug() << "loading Octrees from file: " << _filename << "...";
 
         bool persistantFileRead;
@@ -37,7 +37,7 @@ bool OctreePersistThread::process() {
         }
         _tree->unlock();
 
-        uint64_t loadDone = usecTimestampNow();
+        quint64 loadDone = usecTimestampNow();
         _loadTimeUSecs = loadDone - loadStarted;
 
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
@@ -63,8 +63,8 @@ bool OctreePersistThread::process() {
     }
 
     if (isStillRunning()) {
-        uint64_t MSECS_TO_USECS = 1000;
-        uint64_t USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
+        quint64 MSECS_TO_USECS = 1000;
+        quint64 USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
         usleep(USECS_TO_SLEEP);
 
         // do our updates then check to save...
@@ -72,9 +72,9 @@ bool OctreePersistThread::process() {
         _tree->update();
         _tree->unlock();
 
-        uint64_t now = usecTimestampNow();
-        uint64_t sinceLastSave = now - _lastCheck;
-        uint64_t intervalToCheck = _persistInterval * MSECS_TO_USECS;
+        quint64 now = usecTimestampNow();
+        quint64 sinceLastSave = now - _lastCheck;
+        quint64 intervalToCheck = _persistInterval * MSECS_TO_USECS;
 
         if (sinceLastSave > intervalToCheck) {
             // check the dirty bit and persist here...

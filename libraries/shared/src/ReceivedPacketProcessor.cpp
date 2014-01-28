@@ -34,7 +34,7 @@ bool ReceivedPacketProcessor::process() {
     // If a derived class handles process sleeping, like the JurisdiciontListener, then it can set
     // this _dontSleep member and we will honor that request.
     if (_packets.size() == 0 && !_dontSleep) {
-        const uint64_t RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
+        const quint64 RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
         usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
     }
     while (_packets.size() > 0) {

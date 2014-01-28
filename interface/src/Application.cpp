@@ -2256,7 +2256,7 @@ void Application::updateCursor(float deltaTime) {
     // watch mouse position, if it hasn't moved, hide the cursor
     bool underMouse = _glWidget->underMouse();
     if (!_mouseHidden) {
-        uint64_t now = usecTimestampNow();
+        quint64 now = usecTimestampNow();
         int elapsed = now - _lastMouseMove;
         const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
         if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
@@ -3057,7 +3057,7 @@ void Application::displayOverlay() {
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
         char frameTimer[10];
-        uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        quint64 mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         int timerBottom = 
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 

@@ -61,12 +61,12 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
         const unsigned char* packetData = reinterpret_cast<const unsigned char*>(packet.data());
 
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
-        uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
-        uint64_t arrivedAt = usecTimestampNow();
-        uint64_t transitTime = arrivedAt - sentAt;
+        quint64 sentAt = (*((quint64*)(packetData + numBytesPacketHeader + sizeof(sequence))));
+        quint64 arrivedAt = usecTimestampNow();
+        quint64 transitTime = arrivedAt - sentAt;
         int editsInPacket = 0;
-        uint64_t processTime = 0;
-        uint64_t lockWaitTime = 0;
+        quint64 processTime = 0;
+        quint64 lockWaitTime = 0;
 
         if (_myServer->wantsDebugReceiving()) {
             qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
@@ -84,19 +84,19 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
                         packetType, packetData, packet.size(), editData, atByte, maxSize);
             }
 
-            uint64_t startLock = usecTimestampNow();
+            quint64 startLock = usecTimestampNow();
             _myServer->getOctree()->lockForWrite();
-            uint64_t startProcess = usecTimestampNow();
+            quint64 startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
                                                                                   reinterpret_cast<const unsigned char*>(packet.data()),
                                                                                   packet.size(),
                                                                                   editData, maxSize, senderNode.data());
             _myServer->getOctree()->unlock();
-            uint64_t endProcess = usecTimestampNow();
+            quint64 endProcess = usecTimestampNow();
 
             editsInPacket++;
-            uint64_t thisProcessTime = endProcess - startProcess;
-            uint64_t thisLockWaitTime = startProcess - startLock;
+            quint64 thisProcessTime = endProcess - startProcess;
+            quint64 thisLockWaitTime = startProcess - startLock;
             processTime += thisProcessTime;
             lockWaitTime += thisLockWaitTime;
 
@@ -130,8 +130,8 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
     }
 }
 
-void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime,
-            int editsInPacket, uint64_t processTime, uint64_t lockWaitTime) {
+void OctreeInboundPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime,
+            int editsInPacket, quint64 processTime, quint64 lockWaitTime) {
 
     _totalTransitTime += transitTime;
     _totalProcessTime += processTime;

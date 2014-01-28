@@ -120,7 +120,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     }
 
     if (showStats) {
-        uint64_t checkSum;
+        quint64 checkSum;
         // return a 200
         QString statsString("<html><doc>\r\n<pre>\r\n");
         statsString += QString("<b>Your %1 Server is running... <a href='/'>[RELOAD]</a></b>\r\n").arg(getMyServerName());
@@ -140,9 +140,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
         statsString += "\r\n";
 
-        uint64_t now  = usecTimestampNow();
+        quint64 now  = usecTimestampNow();
         const int USECS_PER_MSEC = 1000;
-        uint64_t msecsElapsed = (now - _startedUSecs) / USECS_PER_MSEC;
+        quint64 msecsElapsed = (now - _startedUSecs) / USECS_PER_MSEC;
         const int MSECS_PER_SEC = 1000;
         const int SECS_PER_MIN = 60;
         const int MIN_PER_HOUR = 60;
@@ -175,7 +175,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
             statsString += "\r\n";
 
-            uint64_t msecsElapsed = getLoadElapsedTime() / USECS_PER_MSEC;;
+            quint64 msecsElapsed = getLoadElapsedTime() / USECS_PER_MSEC;;
             float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
             int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
             int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
@@ -226,12 +226,12 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
         // display outbound packet stats
         statsString += QString("<b>%1 Outbound Packet Statistics...</b>\r\n").arg(getMyServerName());
-        uint64_t totalOutboundPackets = OctreeSendThread::_totalPackets;
-        uint64_t totalOutboundBytes = OctreeSendThread::_totalBytes;
-        uint64_t totalWastedBytes = OctreeSendThread::_totalWastedBytes;
-        uint64_t totalBytesOfOctalCodes = OctreePacketData::getTotalBytesOfOctalCodes();
-        uint64_t totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
-        uint64_t totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
+        quint64 totalOutboundPackets = OctreeSendThread::_totalPackets;
+        quint64 totalOutboundBytes = OctreeSendThread::_totalBytes;
+        quint64 totalWastedBytes = OctreeSendThread::_totalWastedBytes;
+        quint64 totalBytesOfOctalCodes = OctreePacketData::getTotalBytesOfOctalCodes();
+        quint64 totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
+        quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
         const int COLUMN_WIDTH = 10;
         statsString += QString("           Total Outbound Packets: %1 packets\r\n")
@@ -256,13 +256,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         // display inbound packet stats
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
-        uint64_t averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-        uint64_t averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-        uint64_t averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-        uint64_t averageProcessTimePerElement = _octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-        uint64_t averageLockWaitTimePerElement = _octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
-        uint64_t totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
-        uint64_t totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        quint64 averageProcessTimePerElement = _octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        quint64 averageLockWaitTimePerElement = _octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+        quint64 totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
+        quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
 
