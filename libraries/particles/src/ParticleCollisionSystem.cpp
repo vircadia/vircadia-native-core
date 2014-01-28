@@ -20,17 +20,16 @@
 #include "ParticleTree.h"
 
 ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
-    init(packetSender, particles, voxels, audio, selfAvatar);
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
+    init(packetSender, particles, voxels, audio);
 }
 
 void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
     _packetSender = packetSender;
     _particles = particles;
     _voxels = voxels;
     _audio = audio;
-    _selfAvatar = selfAvatar;
 }
 
 ParticleCollisionSystem::~ParticleCollisionSystem() {
@@ -52,8 +51,9 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
 }
 
 
-void ParticleCollisionSystem::update() {
+void ParticleCollisionSystem::update(QVector<AvatarData*>& avatars) {
     // update all particles
+    _avatars.swap(avatars);
     _particles->lockForWrite();
     _particles->recurseTreeWithOperation(updateOperation, this);
     _particles->unlock();
@@ -161,8 +161,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     glm::vec3 penetration;
 
     // first check the selfAvatar if set...
-    if (_selfAvatar) {
-        AvatarData* avatar = (AvatarData*)_selfAvatar;
+    for (int i = 0; i < _avatars.size(); ++i) {
+        AvatarData* avatar = _avatars[i];
         CollisionInfo collisionInfo;
         collisionInfo._damping = DAMPING;
         collisionInfo._elasticity = ELASTICITY;
@@ -195,39 +195,6 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
             }
         }
     }
-
-    // loop through all the other avatars for potential interactions...
-//    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-//        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
-//        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-//            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
-//            CollisionInfo collisionInfo;
-//            if (avatar->findSphereCollision(center, radius, collisionInfo)) {
-//                collisionInfo._addedVelocity /= (float)(TREE_SCALE);
-//                glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
-//                if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
-//                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
-//                    // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
-//                    // TODO: make this less hacky when we have more per-collision details
-//                    float elasticity = ELASTICITY;
-//                    float attenuationFactor = glm::length(collisionInfo._addedVelocity) / HALTING_SPEED;
-//                    float damping = DAMPING;
-//                    if (attenuationFactor < 1.f) {
-//                        collisionInfo._addedVelocity *= attenuationFactor;
-//                        elasticity *= attenuationFactor;
-//                        // NOTE: the math below keeps the damping piecewise continuous,
-//                        // while ramping it up to 1.0 when attenuationFactor = 0
-//                        damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
-//                    }
-//                    // HACK END
-//
-//                    updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-//                    collisionInfo._penetration /= (float)(TREE_SCALE);
-//                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
-//                }
-//            }
-//        }
-//    }
 }
 
 void ParticleCollisionSystem::queueParticlePropertiesUpdate(Particle* particle) {

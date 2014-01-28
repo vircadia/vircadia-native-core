@@ -34,15 +34,17 @@ class ParticleCollisionSystem {
 public:
     ParticleCollisionSystem(ParticleEditPacketSender* packetSender = NULL, ParticleTree* particles = NULL, 
                                 VoxelTree* voxels = NULL, 
-                                AbstractAudioInterface* audio = NULL,
-                                AvatarData* selfAvatar = NULL);
+                                AbstractAudioInterface* audio = NULL);
 
     void init(ParticleEditPacketSender* packetSender, ParticleTree* particles, VoxelTree* voxels, 
-                                AbstractAudioInterface* audio = NULL, AvatarData* selfAvatar = NULL);
+                                AbstractAudioInterface* audio = NULL);
                                 
     ~ParticleCollisionSystem();
 
-    void update();
+    /// Compute collisions for particles against: other particles, voxels, and avatars
+    /// \param avatars the list of avatars to collide against during this frame
+    void update(QVector<AvatarData*>& avatars);
+
     void checkParticle(Particle* particle);
     void updateCollisionWithVoxels(Particle* particle);
     void updateCollisionWithParticles(Particle* particle);
@@ -58,7 +60,7 @@ private:
     ParticleTree* _particles;
     VoxelTree* _voxels;
     AbstractAudioInterface* _audio;
-    AvatarData* _selfAvatar;
+    QVector<AvatarData*> _avatars;  // only used during update() 
 };
 
 #endif /* defined(__hifi__ParticleCollisionSystem__) */

@@ -231,3 +231,10 @@ void AvatarManager::clearHash() {
         removeAvatar = removeAvatarAtHashIterator(removeAvatar);
     }
 }
+
+void AvatarManager::getAvatarBasePointers(QVector<AvatarData*>& avatars) {
+    AvatarHash::iterator avatarItr =  _avatarHash.begin();
+    while (avatarItr != _avatarHash.end()) {
+        avatars.push_back( static_cast<AvatarData*>(avatarItr.value().data()) );
+    }
+}

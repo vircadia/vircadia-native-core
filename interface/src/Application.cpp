@@ -1796,7 +1796,7 @@ void Application::init() {
 
     _metavoxels.init();
 
-    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_myAvatar);
+    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio);
 
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -2310,7 +2310,12 @@ void Application::update(float deltaTime) {
     updateCursor(deltaTime); // Handle cursor updates
 
     _particles.update(); // update the particles...
-    _particleCollisionSystem.update(); // handle collisions for the particles...
+
+    // collide the particles...
+    QVector<AvatarData*> avatars;
+    avatars.push_back(&_myAvatar);
+    _avatarManager.getAvatarBasePointers(avatars);
+    _particleCollisionSystem.update(avatars);
 }
 
 void Application::updateAvatar(float deltaTime) {

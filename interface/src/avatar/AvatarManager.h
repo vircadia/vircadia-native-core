@@ -36,6 +36,8 @@ public:
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
     void clearHash();
+
+    void getAvatarBasePointers(QVector<AvatarData*>& avatars);
     
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
