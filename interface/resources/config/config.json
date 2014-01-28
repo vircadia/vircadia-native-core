@@ -1,0 +1,19 @@
+{
+	"importFormats" : [
+		{
+			"extension": "png",
+			"description": "Square PNG",
+			"icon": "raster.svg"
+		},
+		{
+			"extension": "svo",
+			"description": "Sparse Voxel Octree Files",
+			"icon": "voxel.svg"
+		},
+		{
+			"extension": "schematic",
+			"description": "Schematic Files",
+			"icon": "voxel.svg"
+		}
+	]
+}

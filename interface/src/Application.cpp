@@ -47,6 +47,7 @@
 #include <QDesktopServices>
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
+#include <QMediaPlayer>
 
 #include <AudioInjector.h>
 #include <Logging.h>
@@ -69,6 +70,7 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
+#include "ui/Snapshot.h"
 
 using namespace std;
 
@@ -97,6 +99,8 @@ const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
+const int STATS_PELS_PER_LINE = 20;
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     QString messageWithNewLine = message + "\n";
     fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
@@ -107,6 +111,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _statsExpanded(false),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _frameCount(0),
@@ -249,6 +254,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     restoreSizeAndPosition();
     loadScripts();
+
+    QFontDatabase fontDatabase; 
+    fontDatabase.addApplicationFont("resources/styles/Inconsolata.otf");
+
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -764,6 +773,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     _voxels.collectStatsForTreesAndVBOs();
                 } else if (isShifted && isMeta)  {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
+                } else if (!isShifted && isMeta)  {
+                    takeSnapshot();
                 } else if (_nudgeStarted) {
                     if (_lookingAlongX) {
                         if (_lookingAwayFromOrigin) {
@@ -1258,6 +1269,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+                checkStatsClick();
+            }            
 
             _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
@@ -1718,7 +1732,7 @@ void Application::init() {
     _sharedVoxelSystem.changeTree(&_clipboard);
     delete tmpTree;
 
-    _voxelImporter.init();
+    _voxelImporter.init(_settings);
 
     _environment.init();
 
@@ -2962,9 +2976,11 @@ void Application::displayOverlay() {
         }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            displayStatsBackground(0x33333399, 0, _glWidget->height() - 68, 296, 68);
             _audio.render(_glWidget->width(), _glWidget->height());
             if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-                _audioScope.render(45, _glWidget->height() - 200);
+                int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
+                _audioScope.render(25, oscilloscopeTop);
             }
         }
 
@@ -3019,17 +3035,9 @@ void Application::displayOverlay() {
         displayStats();
         //  Bandwidth meter
         if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
+            displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
-        //  Stats at upper right of screen about who domain server is telling us about
-        glPointSize(1.0f);
-        char nodes[100];
-
-        int totalAvatars = _avatarManager.size();
-        int totalServers = NodeList::getInstance()->size();
-
-        sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-        drawtext(_glWidget->width() - 150, 20, 0.10f, 0, 1.0f, 0, nodes, 1, 0, 0);
     }
 
     // testing rendering coverage map
@@ -3051,8 +3059,12 @@ void Application::displayOverlay() {
         char frameTimer[10];
         uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
-        drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
-        drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
+        int timerBottom = 
+            (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
+            Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
+                ? 80 : 20;
+        drawtext(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
+        drawtext(_glWidget->width() - 102, _glWidget->height() - timerBottom - 2, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
     }
 
     _palette.render(_glWidget->width(), _glWidget->height());
@@ -3110,15 +3122,73 @@ void Application::displayOverlay() {
     glPopMatrix();
 }
 
+// translucent background box that makes stats more readable
+void Application::displayStatsBackground(unsigned int rgba, int x, int y, int width, int height) {
+    glBegin(GL_QUADS);
+    glColor4f(((rgba >> 24) & 0xff) / 255.0f,
+              ((rgba >> 16) & 0xff) / 255.0f, 
+              ((rgba >> 8) & 0xff)  / 255.0f,
+              (rgba & 0xff) / 255.0f);
+    glVertex3f(x, y, 0);
+    glVertex3f(x + width, y, 0);
+    glVertex3f(x + width, y + height, 0);
+    glVertex3f(x , y + height, 0);
+    glEnd();
+    glColor4f(1, 1, 1, 1); 
+}
 
+// display expanded or contracted stats
 void Application::displayStats() {
-    int statsVerticalOffset = 8;
-    const int PELS_PER_LINE = 15;
-    char stats[200];
-    statsVerticalOffset += PELS_PER_LINE;
-    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps   ",
-            _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, stats);
+    unsigned int backgroundColor = 0x33333399;
+    int verticalOffset = 0, horizontalOffset = 0, lines = 0;
+    bool mirrorEnabled = Menu::getInstance()->isOptionChecked(MenuOption::Mirror);
+
+    QLocale locale(QLocale::English);
+    std::stringstream voxelStats;
+
+    glPointSize(1.0f);
+
+    int totalAvatars = 0, totalServers = 0;
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
+    }
+
+    if (mirrorEnabled) {
+        horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+    }
+
+    lines = _statsExpanded ? 5 : 3;
+    displayStatsBackground(backgroundColor, horizontalOffset, 0, 165, lines * STATS_PELS_PER_LINE + 10);
+    horizontalOffset += 5;
+
+    char serverNodes[30];
+    sprintf(serverNodes, "Servers: %d", totalServers);
+    char avatarNodes[30];
+    sprintf(avatarNodes, "Avatars: %d", totalAvatars);
+    char framesPerSecond[30];
+    sprintf(framesPerSecond, "Framerate: %3.0f FPS", _fps);
+
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0f, 2, serverNodes, .93f, .93f, .93f);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0f, 2, avatarNodes, .93f, .93f, .93f);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, framesPerSecond, .93f, .93f, .93f);
+
+    if (_statsExpanded) {
+        char packetsPerSecond[30];
+        sprintf(packetsPerSecond, "Pkts/sec: %d", _packetsPerSecond);
+        char averageMegabitsPerSecond[30];
+        sprintf(averageMegabitsPerSecond, "Avg Mbps: %3.2f", (float)_bytesPerSecond * 8.f / 1000000.f);        
+
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, packetsPerSecond, .93f, .93f, .93f);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, averageMegabitsPerSecond, .93f, .93f, .93f);
+    }
+
+    verticalOffset = 0;
+    horizontalOffset += 161;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
@@ -3129,7 +3199,6 @@ void Application::displayStats() {
 
         pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
-
 
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
@@ -3149,35 +3218,115 @@ void Application::displayStats() {
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-        char pingStats[200];
-        statsVerticalOffset += PELS_PER_LINE;
-        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
-        drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, pingStats);
+        lines = _statsExpanded ? 4 : 3;
+        displayStatsBackground(backgroundColor, horizontalOffset, 0, 175, lines * STATS_PELS_PER_LINE + 10);
+        horizontalOffset += 5;
+
+        char audioPing[30];
+        sprintf(audioPing, "Audio ping: %d", pingAudio);
+        char avatarPing[30];
+        sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
+        char voxelAvgPing[30];
+        sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
+
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, audioPing, .93f, .93f, .93f);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarPing, .93f, .93f, .93f);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, voxelAvgPing, .93f, .93f, .93f);
+
+        if (_statsExpanded) {
+            char voxelMaxPing[30];
+            sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
+
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, voxelMaxPing, .93f, .93f, .93f);
+        }
+
+        verticalOffset = 0;
+        horizontalOffset += 171;
     }
 
-    char avatarStats[200];
-    statsVerticalOffset += PELS_PER_LINE;
     glm::vec3 avatarPos = _myAvatar.getPosition();
-    sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
-    SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-    char avatarMixerStats[200];
-    if (avatarMixer) {
-        sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                roundf(avatarMixer->getAveragePacketsPerSecond()));
+    lines = _statsExpanded ? 4 : 3;
+    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - (mirrorEnabled ? 301 : 411) - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
+    horizontalOffset += 5;
+
+    char avatarPosition[200];
+    if (mirrorEnabled) {
+        // shorthand formatting
+        sprintf(avatarPosition, "Pos: %.0f,%.0f,%.0f", avatarPos.x, avatarPos.y, avatarPos.z);
     } else {
-        sprintf(avatarMixerStats, "No Avatar Mixer");
+        // longhand way
+        sprintf(avatarPosition, "Position: %.3f, %.3f, %.3f", avatarPos.x, avatarPos.y, avatarPos.z);
+    }    
+    char avatarVelocity[30];
+    sprintf(avatarVelocity, "Velocity: %.1f", glm::length(_myAvatar.getVelocity()));
+    char avatarBodyYaw[30];
+    sprintf(avatarBodyYaw, "Yaw: %.2f", _myAvatar.getBodyYaw());
+    char avatarMixerStats[200];
+
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarPosition, .93f, .93f, .93f);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarVelocity, .93f, .93f, .93f);
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarBodyYaw, .93f, .93f, .93f);
+
+    if (_statsExpanded) {
+        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+        if (avatarMixer) {
+            sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
+                    roundf(avatarMixer->getAverageKilobitsPerSecond()),
+                    roundf(avatarMixer->getAveragePacketsPerSecond()));
+        } else {
+            sprintf(avatarMixerStats, "No Avatar Mixer");
+        }
+
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarMixerStats, .93f, .93f, .93f);
     }
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
+    verticalOffset = 0;
+    horizontalOffset = _glWidget->width() - (mirrorEnabled ? 300 : 410);
 
-    // Used for formatting voxel stats details
-    statsVerticalOffset += PELS_PER_LINE; // skip a line for voxels
-    QLocale locale(QLocale::English);
-    std::stringstream voxelStats;
+    lines = _statsExpanded ? 11 : 3;
+    displayStatsBackground(backgroundColor, horizontalOffset, 0, _glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
+    horizontalOffset += 5;
+
+    if (_statsExpanded) {
+        // Local Voxel Memory Usage
+        voxelStats.str("");
+        voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+
+        voxelStats.str("");
+        voxelStats << 
+                "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
+                "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB";
+        if (_voxels.hasVoxelMemoryUsageGPU()) {
+            voxelStats << " / GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB";
+        }
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+
+        // Voxel Rendering
+        voxelStats.str("");
+        voxelStats.precision(4);
+        voxelStats << "Voxel Rendering Slots Max: " << _voxels.getMaxVoxels() / 1000.f << "K";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);        
+    }
+
+    voxelStats.str("");
+    voxelStats.precision(4);
+    voxelStats << "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
+        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
     std::stringstream sendingMode("");
@@ -3191,93 +3340,50 @@ void Application::displayStats() {
         //const QUuid& uuid = i->first;
         VoxelSceneStats& stats = i->second;
         serverCount++;
-        if (serverCount > 1) {
-            sendingMode << ",";
-        }
-        if (stats.isMoving()) {
-            sendingMode << "M";
-            movingServerCount++;
-        } else {
-            sendingMode << "S";
+        if (_statsExpanded) {
+            if (serverCount > 1) {
+                sendingMode << ",";
+            }
+            if (stats.isMoving()) {
+                sendingMode << "M";
+                movingServerCount++;
+            } else {
+                sendingMode << "S";
+            }
         }
 
         // calculate server node totals
         totalNodes += stats.getTotalElements();
-        totalInternal += stats.getTotalInternal();
-        totalLeaves += stats.getTotalLeaves();
+        if (_statsExpanded) {
+            totalInternal += stats.getTotalInternal();
+            totalLeaves += stats.getTotalLeaves();                
+        }
     }
-    if (serverCount == 0) {
-        sendingMode << "---";
+    if (_statsExpanded) {
+        if (serverCount == 0) {
+            sendingMode << "---";
+        }
+        sendingMode << "] " << serverCount << " servers";
+        if (movingServerCount > 0) {
+            sendingMode << " <SCENE NOT STABLE>";
+        } else {
+            sendingMode << " <SCENE STABLE>";
+        }
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)sendingMode.str().c_str(), .93f, .93f, .93f);
     }
-    sendingMode << "] " << serverCount << " servers";
-    if (movingServerCount > 0) {
-        sendingMode << " <SCENE NOT STABLE>";
-    } else {
-        sendingMode << " <SCENE STABLE>";
-    }
-
-    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-    QString serversInternalString = locale.toString((uint)totalInternal);
-    QString serversLeavesString = locale.toString((uint)totalLeaves);
-
-    // Server Voxels
-    voxelStats.str("");
-    voxelStats <<
-        "Server Voxels Total: " << serversTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    unsigned long localTotal = VoxelTreeElement::getNodeCount();
-    unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
-    unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
-    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-    QString localInternalString = locale.toString((uint)localInternal);
-    QString localLeavesString = locale.toString((uint)localLeaves);
-
-    // Local Voxels
-    voxelStats.str("");
-    voxelStats <<
-        "Local Voxels Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    // Local Voxel Memory Usage
-    voxelStats.str("");
-    voxelStats <<
-        "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
-        "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
-        "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
-    if (_voxels.hasVoxelMemoryUsageGPU()) {
-        voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
-    }
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    // Voxel Rendering
-    voxelStats.str("");
-    voxelStats.precision(4);
-    voxelStats << "Voxel Rendering Slots " <<
-        "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " <<
-        "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    // draw Sending mode AFTER server node stats
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)sendingMode.str().c_str());
 
     // Incoming packets
-    voxelStats.str("");
     int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
-    QString packetsString = locale.toString((int)voxelPacketsToProcess);
-    QString maxString = locale.toString((int)_recentMaxPackets);
-    voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData()
-                << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";
+    if (_statsExpanded) {
+        voxelStats.str("");
+        QString packetsString = locale.toString((int)voxelPacketsToProcess);
+        QString maxString = locale.toString((int)_recentMaxPackets);
+        voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData()
+                    << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";        
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+    }
 
     if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
         _recentMaxPackets = 0;
@@ -3290,8 +3396,109 @@ void Application::displayStats() {
             _recentMaxPackets = voxelPacketsToProcess;
         }
     }
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
+
+    verticalOffset += (_statsExpanded ? STATS_PELS_PER_LINE : 0);
+
+    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
+
+    // Server Voxels
+    voxelStats.str("");
+    voxelStats << "Server voxels: " << serversTotalString.toLocal8Bit().constData();
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+
+    if (_statsExpanded) {
+        QString serversInternalString = locale.toString((uint)totalInternal);
+        QString serversLeavesString = locale.toString((uint)totalLeaves);
+
+        voxelStats.str("");
+        voxelStats <<
+            "Internal: " << serversInternalString.toLocal8Bit().constData() << "  " <<
+            "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);        
+    }
+
+    unsigned long localTotal = VoxelTreeElement::getNodeCount();
+    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
+
+    // Local Voxels
+    voxelStats.str("");
+    voxelStats << "Local voxels: " << localTotalString.toLocal8Bit().constData();
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+
+    if (_statsExpanded) {
+        unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
+        unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
+        QString localInternalString = locale.toString((uint)localInternal);
+        QString localLeavesString = locale.toString((uint)localLeaves);
+
+        voxelStats.str("");
+        voxelStats <<
+            "Internal: " << localInternalString.toLocal8Bit().constData() << "  " <<
+            "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, (char*)voxelStats.str().c_str(), .93f, .93f, .93f);
+    }
+}
+
+// called on mouse click release
+// check for clicks over stats  in order to expand or contract them
+void Application::checkStatsClick() {
+    if (0 != glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))) {
+        // not worried about dragging on stats
+        return;
+    }
+
+    int statsHeight = 0, statsWidth = 0, statsX = 0, statsY = 0, lines = 0;
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        statsX += MIRROR_VIEW_WIDTH;
+    }
+
+    // top-left stats click
+    lines = _statsExpanded ? 5 : 3;
+    statsHeight = lines * STATS_PELS_PER_LINE + 10;
+    statsWidth = 165;
+    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
+        toggleStatsExpanded();
+        return;
+    }
+
+    // ping stats click
+    lines = _statsExpanded ? 4 : 3;
+    statsX += statsWidth;
+    statsHeight = lines * STATS_PELS_PER_LINE + 10;
+    statsWidth = 175;
+    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
+        toggleStatsExpanded();
+        return;
+    }
+
+    // top-center stats panel click
+    lines = _statsExpanded ? 4 : 3;
+    statsX += statsWidth;
+    statsHeight = lines * STATS_PELS_PER_LINE + 10;
+    statsWidth = _glWidget->width() - 411 - statsX;
+    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
+        toggleStatsExpanded();
+        return;
+    }
+
+    // top-right stats click
+    lines = _statsExpanded ? 11 : 3;
+    statsX = _glWidget->width() - 410;
+    statsHeight = lines * STATS_PELS_PER_LINE + 10;
+    statsWidth = _glWidget->width() - statsX;
+    if (_mouseX > statsX && _mouseX < statsX + statsWidth  && _mouseY > statsY && _mouseY < statsY + statsHeight) {
+        toggleStatsExpanded();
+        return;
+    }
+}
+
+void Application::toggleStatsExpanded() {
+    _statsExpanded = !_statsExpanded;
 }
 
 void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
@@ -4123,3 +4330,14 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
 }
+
+void Application::takeSnapshot() {
+    switchToResourcesParentIfRequired();
+    QMediaPlayer* player = new QMediaPlayer();
+    QFileInfo inf = QFileInfo("resources/sounds/snap.wav");
+    player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+    player->play();
+
+    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar.getPosition());
+}
+

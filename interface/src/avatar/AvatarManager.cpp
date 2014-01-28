@@ -63,7 +63,7 @@ void AvatarManager::updateAvatars(float deltaTime) {
     
     // simulate avatars
     AvatarHash::iterator avatar = _avatarHash.begin();
-    if (avatar != _avatarHash.end()) {
+    while (avatar != _avatarHash.end()) {
         if (avatar->data()->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->data()->simulate(deltaTime, NULL);
@@ -72,6 +72,7 @@ void AvatarManager::updateAvatars(float deltaTime) {
             
             avatar->data()->setMouseRay(applicationInstance->getMouseRayOrigin(),
                                         applicationInstance->getMouseRayDirection());
+            avatar++;
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
             avatar = removeAvatarAtHashIterator(avatar);

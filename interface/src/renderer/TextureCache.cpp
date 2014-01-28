@@ -11,6 +11,7 @@
 #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
+#include <QTimer>
 
 #include <glm/gtc/random.hpp>
 

@@ -305,7 +305,11 @@ private:
 
     void updateShadowMap();
     void displayOverlay();
+    void displayStatsBackground(unsigned int rgba, int x, int y, int width, int height);
     void displayStats();
+    void checkStatsClick();
+    void toggleStatsExpanded();
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();
@@ -326,6 +330,7 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
 
+    bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
     
     QThread* _nodeThread;
@@ -498,6 +503,7 @@ private:
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
+    void takeSnapshot();
 };
 
 #endif /* defined(__interface__Application__) */
