@@ -144,7 +144,7 @@ void DomainServer::readAvailableDatagrams() {
                     }
                 }
                 
-                const QSet<NodeType_t> STATICALLY_ASSIGNED_NODES = QSet<NodeType_t>() << NodeType::AudioMixer
+                const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
                     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
                     << NodeType::MetavoxelServer;
                 

@@ -263,7 +263,7 @@ void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
     _nodeTypesOfInterest << nodeTypeToAdd;
 }
 
-void NodeList::addSetOfNodeTypesToNodeInterestSet(const QSet<NodeType_t>& setOfNodeTypes) {
+void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes) {
     _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
@@ -621,7 +621,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 }
 
 unsigned NodeList::broadcastToNodes(const QByteArray& packet,
-                                    const QSet<NodeType_t>& destinationNodeTypes) {
+                                    const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
 
     foreach (const SharedNodePointer& node, getNodeHash()) {

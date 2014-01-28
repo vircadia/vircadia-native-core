@@ -175,7 +175,7 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    void controlledBroadcastToNodes(const QByteArray& packet, const QSet<NodeType_t>& destinationNodeTypes);
+    void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
     void setupWorldLight();
 

@@ -229,7 +229,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NodeType_t>() << NodeType::AudioMixer << NodeType::AvatarMixer
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer << NodeType::ParticleServer
                                                  << NodeType::MetavoxelServer);
     
@@ -648,8 +648,7 @@ void Application::resetProfile(const QString& username) {
     updateWindowTitle();
 }
 
-void Application::controlledBroadcastToNodes(const QByteArray& packet,
-                                             const QSet<NodeType_t>& destinationNodeTypes) {
+void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
         if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -657,7 +656,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet,
         }
         
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, QSet<NodeType_t>() << type);
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, NodeSet() << type);
         
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
@@ -1332,7 +1331,7 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    getInstance()->controlledBroadcastToNodes(pingPacket, QSet<NodeType_t>() << NodeType::VoxelServer
+    getInstance()->controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
                                               << NodeType::ParticleServer
                                               << NodeType::AudioMixer << NodeType::AvatarMixer
                                               << NodeType::MetavoxelServer);
@@ -2363,7 +2362,7 @@ void Application::updateAvatar(float deltaTime) {
     QByteArray avatarData = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
     avatarData.append(_myAvatar.toByteArray());
 
-    controlledBroadcastToNodes(avatarData, QSet<NodeType_t>() << NodeType::AvatarMixer);
+    controlledBroadcastToNodes(avatarData, NodeSet() << NodeType::AvatarMixer);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
