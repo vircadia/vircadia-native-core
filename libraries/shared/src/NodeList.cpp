@@ -464,11 +464,11 @@ void NodeList::sendDomainServerCheckIn() {
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
         QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-        
+
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr
             << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-            << (char) _nodeTypesOfInterest.size();
+            << (quint8) _nodeTypesOfInterest.size();
         
         // copy over the bytes for node types of interest, if required
         foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {

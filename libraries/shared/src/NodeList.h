@@ -146,7 +146,7 @@ private:
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;
-    char _ownerType;
+    NODE_TYPE _ownerType;
     QSet<NODE_TYPE> _nodeTypesOfInterest;
     QUuid _ownerUUID;
     int _numNoReplyDomainCheckIns;

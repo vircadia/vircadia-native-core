@@ -128,7 +128,6 @@ void DomainServer::readAvailableDatagrams() {
                 
                 deconstructPacketHeader(receivedPacket, nodeUUID);
                 packetStream >> nodeType;
-                
                 packetStream >> nodePublicAddress >> nodeLocalAddress;
                 
                 if (nodePublicAddress.getAddress().isNull()) {

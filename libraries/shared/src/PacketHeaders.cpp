@@ -34,7 +34,7 @@ int numBytesArithmeticCodingFromBuffer(const char* checkValue) {
 int packArithmeticallyCodedValue(int value, char* destination) {
     if (value < 255) {
         // less than 255, just pack our value
-        destination[0] = (char) value;
+        destination[0] = (uchar) value;
         return 1;
     } else {
         // pack 255 and then recursively pack on
