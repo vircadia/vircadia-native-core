@@ -607,7 +607,7 @@ int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput
     return sizeof(quatParts);
 }
 
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput) {
+int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput) {
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
 

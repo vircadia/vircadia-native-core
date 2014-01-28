@@ -192,11 +192,6 @@ public:
 
     Particle(const ParticleID& particleID, const ParticleProperties& properties);
     
-    /// all position, velocity, gravity, radius units are in domain units (0.0 to 1.0)
-    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
-            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, float lifetime = DEFAULT_LIFETIME,
-            bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
-
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
     static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
 
@@ -286,7 +281,6 @@ public:
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
-    static int expectedEditMessageBytes();
 
     static bool encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
