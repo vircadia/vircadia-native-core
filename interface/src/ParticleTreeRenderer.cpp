@@ -72,7 +72,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
         // render particle aspoints
         glm::vec3 position = particle.getPosition() * (float)TREE_SCALE;
         glColor3ub(particle.getColor()[RED_INDEX],particle.getColor()[GREEN_INDEX],particle.getColor()[BLUE_INDEX]);
-        float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
+        float radius = particle.getRadius() * (float)TREE_SCALE;
 
         bool drawAsModel = particle.hasModel();
 
@@ -90,24 +90,24 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 glm::vec3 translation(position.x, position.y, position.z);
                 model->setTranslation(translation + translationAdjustment);
 
-                // glm::angleAxis(-90.0f, 1.0f, 0.0f, 0.0f)
                 // set the rotation
                 glm::quat rotation = particle.getModelRotation();
                 model->setRotation(rotation);
 
                 // scale
-                const float MODEL_SCALE = 0.0006f; // need to figure out correct scale adjust
+                // TODO: need to figure out correct scale adjust, this was arbitrarily set to make a couple models work
+                const float MODEL_SCALE = 0.00575f;
                 glm::vec3 scale(1.0f,1.0f,1.0f);
-                model->setScale(scale * MODEL_SCALE);
+                model->setScale(scale * MODEL_SCALE * radius * particle.getModelScale());
 
                 model->simulate(0.0f);
-                model->render(alpha);
-                //qDebug() << "called _testModel->render(alpha);";
+                model->render(alpha); // TODO: should we allow particles to have alpha on their models?
+
             glPopMatrix();
         } else {
             glPushMatrix();
                 glTranslatef(position.x, position.y, position.z);
-                glutSolidSphere(sphereRadius, 15, 15);
+                glutSolidSphere(radius, 15, 15);
             glPopMatrix();
         }
     }

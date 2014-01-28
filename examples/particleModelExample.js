@@ -12,21 +12,23 @@ var count = 0;
 var stopAfter = 100;
 
 var modelProperties = {
-    position: { x: 0, y: 1, z: 0 },
+    position: { x: 1, y: 1, z: 1 },
     velocity: { x: 0.5, y: 0, z: 0.5 },
     gravity: { x: 0, y: 0, z: 0 },
     damping: 0, 
-    radius : 0.1,
+    radius : 0.25,
     modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+    lifetime: 20
 };
 
 var ballProperties = {
-    position: { x: 0, y: 0.75, z: 0 },
+    position: { x: 1, y: 0.5, z: 1 },
     velocity: { x: 0.5, y: 0, z: 0.5 },
     gravity: { x: 0, y: 0, z: 0 },
     damping: 0, 
-    radius : 0.1,
+    radius : 0.25,
     color: { red: 255, green: 0, blue: 0 },
+    lifetime: 20
 };
 
 var modelParticleID = Particles.addParticle(modelProperties);
