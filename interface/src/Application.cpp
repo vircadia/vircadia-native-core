@@ -681,6 +681,9 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
+
+    _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
+
     if (activeWindow() == _window) {
         if (_chatEntryOn) {
             if (_chatEntry.keyPressEvent(event)) {
@@ -1092,6 +1095,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
+
+    _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
+
     if (activeWindow() == _window) {
         if (_chatEntryOn) {
             _myAvatar.setKeyState(NO_KEY_DOWN);
@@ -1154,6 +1160,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+    _controllerScriptingInterface.emitMouseMoveEvent(event); // send events to any registered scripts
+
     _lastMouseMove = usecTimestampNow();
     if (_mouseHidden) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
@@ -1200,6 +1208,7 @@ const float HOVER_VOXEL_FREQUENCY = 7040.f;
 const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
+    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
             _mouseX = event->x();
@@ -1267,6 +1276,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event) {
+    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
             _mouseX = event->x();
@@ -1283,6 +1293,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
+    _controllerScriptingInterface.emitTouchUpdateEvent(event); // send events to any registered scripts
     bool validTouch = false;
     if (activeWindow() == _window) {
         const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
@@ -1307,12 +1318,15 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
+    _controllerScriptingInterface.emitTouchBeginEvent(event); // send events to any registered scripts
+
     touchUpdateEvent(event);
     _lastTouchAvgX = _touchAvgX;
     _lastTouchAvgY = _touchAvgY;
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
+    _controllerScriptingInterface.emitTouchEndEvent(event); // send events to any registered scripts
     _touchDragStartedAvgX = _touchAvgX;
     _touchDragStartedAvgY = _touchAvgY;
     _isTouchPressed = false;
@@ -1320,6 +1334,9 @@ void Application::touchEndEvent(QTouchEvent* event) {
 
 const bool USE_MOUSEWHEEL = false;
 void Application::wheelEvent(QWheelEvent* event) {
+
+    _controllerScriptingInterface.emitWheelEvent(event); // send events to any registered scripts
+    
     //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.
     if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
         if (!Menu::getInstance()->isVoxelModeActionChecked()) {

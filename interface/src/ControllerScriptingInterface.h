@@ -18,6 +18,25 @@ class PalmData;
 class ControllerScriptingInterface : public AbstractControllerScriptingInterface {
     Q_OBJECT
 
+public:    
+    void emitKeyPressEvent(QKeyEvent* x) {
+            KeyEvent event(x);
+            emit keyPressEvent(event);
+    }
+    
+    /**
+    void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(*event); }
+
+    void emitMouseMoveEvent(QMouseEvent* event) { emit mouseMoveEvent(*event); }
+    void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(*event); }
+    void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(*event); }
+
+    void emitTouchBeginEvent(QTouchEvent* event) { emit touchBeginEvent(event); }
+    void emitTouchEndEvent(QTouchEvent* event) { emit touchEndEvent(event); }
+    void emitTouchUpdateEvent(QTouchEvent* event) { emit touchUpdateEvent(event); }
+    void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(event); }
+     **/
+
 public slots:
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
@@ -35,6 +54,12 @@ public slots:
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const;
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
+
+// The following signals are defined by AbstractControllerScriptingInterface
+//
+// signals:
+//      void keyPressEvent();
+//      void keyPressEvent();
 
 private:
     const PalmData* getPrimaryPalm() const;
