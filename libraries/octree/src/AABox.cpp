@@ -119,10 +119,10 @@ bool AABox::contains(const AABox& otherBox) const {
 
 bool AABox::touches(const AABox& otherBox) const {
     glm::vec3 relativeCenter = _corner - otherBox._corner + (glm::vec3(_scale - otherBox._scale) * 0.5f);
-    float totalScale = _scale + otherBox._scale;
-    return fabs(relativeCenter.x) <= totalScale && 
-        fabs(relativeCenter.y) <= totalScale && 
-        fabs(relativeCenter.z) <= totalScale;
+    float totalHalfScale = 0.5f * (_scale + otherBox._scale);
+    return fabs(relativeCenter.x) <= totalHalfScale && 
+        fabs(relativeCenter.y) <= totalHalfScale && 
+        fabs(relativeCenter.z) <= totalHalfScale;
 }
 
 // determines whether a value is within the expanded extents
