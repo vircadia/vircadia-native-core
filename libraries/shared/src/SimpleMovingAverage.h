@@ -26,7 +26,7 @@ public:
     float getAverageSampleValuePerSecond();
 private:
     int _numSamples;
-    quint64 _lastEventTimestamp;
+    uint64_t _lastEventTimestamp;
     float _average;
     float _eventDeltaAverage;
     
