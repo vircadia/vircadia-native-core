@@ -9,9 +9,9 @@
 #ifndef __hifi__Snapshot__
 #define __hifi__Snapshot__
 
-#import <QString>
-#import <QImage>
-#import <QGLWidget>
+#include <QString>
+#include <QImage>
+#include <QGLWidget>
 
 #include <glm/glm.hpp>
 

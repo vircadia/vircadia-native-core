@@ -183,7 +183,12 @@ void Hand::updateCollisions() {
         glm::vec3 totalPenetration;
         
         // check other avatars
-        foreach (const AvatarSharedPointer& avatar, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+            if (avatar == _owningAvatar) {
+                // don't collid with our own hands
+                continue;
+            }
             if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
                 //  Check for palm collisions
                 glm::vec3 myPalmPosition = palm.getPosition();
@@ -205,9 +210,9 @@ void Hand::updateCollisions() {
                             const float PALM_COLLIDE_DURATION_MAX = 0.75f;
                             const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
                             Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                                   PALM_COLLIDE_FREQUENCY,
-                                                                                   PALM_COLLIDE_DURATION_MAX,
-                                                                                   PALM_COLLIDE_DECAY_PER_SAMPLE);
+                                                                                PALM_COLLIDE_FREQUENCY,
+                                                                                PALM_COLLIDE_DURATION_MAX,
+                                                                                PALM_COLLIDE_DECAY_PER_SAMPLE);
                             //  If the other person's palm is in motion, move mine downward to show I was hit
                             const float MIN_VELOCITY_FOR_SLAP = 0.05f;
                             if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
