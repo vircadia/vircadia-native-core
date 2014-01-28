@@ -11,7 +11,6 @@
 #include <QtCore/QDebug>
 
 #include "NodeList.h"
-#include "UUID.h"
 
 #include "PacketHeaders.h"
 
@@ -50,10 +49,8 @@ PacketVersion versionForPacketType(PacketType type) {
     }
 }
 
-const int MAX_HEADER_BYTES = sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
-
 QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connectionUUID) {
-    QByteArray freshByteArray(MAX_HEADER_BYTES, 0);
+    QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
     freshByteArray.resize(populatePacketHeader(freshByteArray, type, connectionUUID));
     return freshByteArray;
 }
@@ -73,7 +70,7 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     QUuid packUUID = connectionUUID.isNull() ? NodeList::getInstance()->getOwnerUUID() : connectionUUID;
     
     QByteArray rfcUUID = packUUID.toRfc4122();
-    memcpy(packet + numTypeBytes + sizeof(PacketVersion), rfcUUID, NUM_BYTES_RFC4122_UUID);
+    memcpy(packet + numTypeBytes + sizeof(PacketVersion), rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
     
     // return the number of bytes written for pointer pushing
     return numTypeBytes + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;

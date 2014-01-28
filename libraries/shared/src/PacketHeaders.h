@@ -14,6 +14,8 @@
 
 #include <QtCore/QUuid>
 
+#include "UUID.h"
+
 enum PacketType {
     PacketTypeUnknown,
     PacketTypeStunResponse,
@@ -53,6 +55,8 @@ enum PacketType {
 };
 
 typedef char PacketVersion;
+
+const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;;
 
 PacketVersion versionForPacketType(PacketType type);
 

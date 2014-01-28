@@ -30,8 +30,8 @@ typedef uint16_t OCTREE_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_OCTREE_PACKET_SIZE = MAX_PACKET_SIZE;
 
 // this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType could be as small as one byte
-const int OCTREE_PACKET_HEADER_SIZE = (sizeof(PacketType) + sizeof(PacketVersion) + sizeof(OCTREE_PACKET_FLAGS)
-                + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
+const int OCTREE_PACKET_HEADER_SIZE = MAX_PACKET_HEADER_BYTES +  sizeof(OCTREE_PACKET_FLAGS)
+                + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 
 const int MAX_OCTREE_PACKET_DATA_SIZE = MAX_PACKET_SIZE - OCTREE_PACKET_HEADER_SIZE;
             

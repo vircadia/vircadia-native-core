@@ -33,8 +33,8 @@ typedef uint16_t VOXEL_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_VOXEL_PACKET_SIZE = MAX_PACKET_SIZE;
 
 // this is overly conservative - uses 8 bytes for PacketType which could be as compact as a single byte
-const int VOXEL_PACKET_HEADER_SIZE = (sizeof(PacketType) + sizeof(PacketVersion) + sizeof(VOXEL_PACKET_FLAGS) 
-                + sizeof(VOXEL_PACKET_SEQUENCE) + sizeof(VOXEL_PACKET_SENT_TIME));
+const int VOXEL_PACKET_HEADER_SIZE = MAX_PACKET_HEADER_BYTES + sizeof(VOXEL_PACKET_FLAGS)
+                + sizeof(VOXEL_PACKET_SEQUENCE) + sizeof(VOXEL_PACKET_SENT_TIME);
 
 const int MAX_VOXEL_PACKET_DATA_SIZE = MAX_PACKET_SIZE - VOXEL_PACKET_HEADER_SIZE;
             
