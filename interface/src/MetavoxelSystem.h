@@ -49,7 +49,7 @@ public slots:
     
 private:
 
-    Q_INVOKABLE void addClient(const QUuid& uuid, const HifiSockAddr& address);
+    Q_INVOKABLE void addClient(const SharedNodePointer& node);
     Q_INVOKABLE void removeClient(const QUuid& uuid);
     Q_INVOKABLE void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
@@ -86,7 +86,7 @@ class MetavoxelClient : public QObject {
     
 public:
     
-    MetavoxelClient(const HifiSockAddr& address);
+    MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
 
     const QUuid& getSessionID() const { return _sessionID; }
@@ -95,7 +95,7 @@ public:
 
     void simulate(float deltaTime, MetavoxelVisitor& visitor);
 
-    void receivedData(const QByteArray& data, const HifiSockAddr& sender);
+    void receivedData(const QByteArray& data);
 
 private slots:
     
@@ -115,7 +115,7 @@ private:
         MetavoxelData data;
     };
     
-    HifiSockAddr _address;
+    SharedNodePointer _node;
     QUuid _sessionID;
     
     DatagramSequencer _sequencer;

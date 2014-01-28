@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QMutexLocker>
 #include <QtDebug>
 
 #include <SharedUtil.h>
@@ -111,8 +112,7 @@ void MetavoxelSystem::render() {
 
 void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
-        QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
-            Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
+        QMetaObject::invokeMethod(this, "addClient", Q_ARG(const SharedNodePointer&, node));
     }
 }
 
@@ -122,9 +122,9 @@ void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void MetavoxelSystem::addClient(const QUuid& uuid, const HifiSockAddr& address) {
-    MetavoxelClient* client = new MetavoxelClient(address);
-    _clients.insert(uuid, client);
+void MetavoxelSystem::addClient(const SharedNodePointer& node) {
+    MetavoxelClient* client = new MetavoxelClient(node);
+    _clients.insert(node->getUUID(), client);
     _clientsBySessionID.insert(client->getSessionID(), client);
 }
 
@@ -142,7 +142,7 @@ void MetavoxelSystem::receivedData(const QByteArray& data, const HifiSockAddr& s
     }
     MetavoxelClient* client = _clientsBySessionID.value(sessionID);
     if (client) {
-        client->receivedData(data, sender);
+        client->receivedData(data);
     }
 }
 
@@ -176,8 +176,8 @@ static QByteArray createDatagramHeader(const QUuid& sessionID) {
     return header;
 }
 
-MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
-    _address(address),
+MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
+    _node(node),
     _sessionID(QUuid::createUuid()),
     _sequencer(createDatagramHeader(_sessionID)) {
     
@@ -214,16 +214,17 @@ void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
     _data.guide(visitor);
 }
 
-void MetavoxelClient::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
-    // save the most recent sender
-    _address = sender;
-    
+void MetavoxelClient::receivedData(const QByteArray& data) {
     // process through sequencer
     _sequencer.receivedDatagram(data);
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
-    NodeList::getInstance()->getNodeSocket().writeDatagram(data, _address.getAddress(), _address.getPort());
+    QMutexLocker locker(&_node->getMutex());
+    const HifiSockAddr* address = _node->getActiveSocket();
+    if (address) {
+        NodeList::getInstance()->getNodeSocket().writeDatagram(data, address->getAddress(), address->getPort());
+    }
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
