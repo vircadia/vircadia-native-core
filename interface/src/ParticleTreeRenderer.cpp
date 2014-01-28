@@ -43,19 +43,6 @@ void ParticleTreeRenderer::render() {
     OctreeRenderer::render();
 }
 
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/lotus.fbx"));
-//_testModel->setURL(QUrl("http://www.fungibleinsight.com/faces/tie.fbx"));
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Angie1.fbx"));
-//_testModel->setURL(QUrl("http://public.highfidelity.io/meshes/orb_model.fbx"));
-//_testModel->setURL(QUrl("http://public.highfidelity.io/meshes/space_frigate_6.FBX"));
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/soccer_ball.fbx"));
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/top%20fbx.FBX"));
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/golfball_FBX2010.fbx"));
-//_testModel->setURL(QUrl("http://public.highfidelity.io/meshes/Combat_tank_V01.FBX"));
-
-//_testModel->setURL(QUrl("http://public.highfidelity.io/meshes/orc.fbx"));
-//_testModel->setURL(QUrl("http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX"));
-
 Model* ParticleTreeRenderer::getModel(const QString& url) {
     Model* model = NULL;
     
@@ -63,9 +50,8 @@ Model* ParticleTreeRenderer::getModel(const QString& url) {
     if (_particleModels.find(url) == _particleModels.end()) {
         model = new Model();
         model->init();
-        qDebug() << "calling model->setURL()";
         model->setURL(QUrl(url));
-        qDebug() << "after calling setURL()";
+        _particleModels[url] = model;
     } else {
         model = _particleModels[url];
     }
