@@ -38,8 +38,8 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 int PositionalAudioRingBuffer::parseData(const QByteArray& packet) {
     QDataStream packetStream(packet);
     
-    // skip the source UUID
-    packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
+    // skip the packet header (includes the source UUID)
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
     packetStream.skipRawData(parsePositionalData(packet.mid(packetStream.device()->pos())));
     packetStream.skipRawData(writeData(packet.data() + packetStream.device()->pos(),

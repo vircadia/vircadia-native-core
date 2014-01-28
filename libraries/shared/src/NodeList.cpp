@@ -541,12 +541,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
     _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
 }
 
-int NodeList::packOwnerUUID(unsigned char* packetData) {
-    QByteArray rfcUUID = _ownerUUID.toRfc4122();
-    memcpy(packetData, rfcUUID.constData(), rfcUUID.size());
-    return rfcUUID.size();
-}
-
 QByteArray NodeList::constructPingPacket() {
     QByteArray pingPacket = byteArrayWithPopluatedHeader(PacketTypePing);
     

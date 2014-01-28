@@ -97,8 +97,6 @@ public:
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
-    
-    int packOwnerUUID(unsigned char* packetData);
 
     QByteArray constructPingPacket();
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
