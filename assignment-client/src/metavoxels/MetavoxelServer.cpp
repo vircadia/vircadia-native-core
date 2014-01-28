@@ -29,7 +29,7 @@ void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
 }
 
 void MetavoxelServer::removeSession(const QUuid& sessionId) {
-    delete _sessions.take(sessionId);
+    _sessions.take(sessionId)->deleteLater();
 }
 
 const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";

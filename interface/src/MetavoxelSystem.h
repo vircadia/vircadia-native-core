@@ -32,6 +32,7 @@ class MetavoxelSystem : public QObject {
 public:
 
     MetavoxelSystem();
+    ~MetavoxelSystem();
 
     void init();
     

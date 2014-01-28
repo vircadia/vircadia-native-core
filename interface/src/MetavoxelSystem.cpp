@@ -24,6 +24,12 @@ MetavoxelSystem::MetavoxelSystem() :
     _buffer(QOpenGLBuffer::VertexBuffer) {
 }
 
+MetavoxelSystem::~MetavoxelSystem() {
+    for (QHash<QUuid, MetavoxelClient*>::const_iterator it = _clients.begin(); it != _clients.end(); it++) {
+        delete it.value();
+    }
+}
+
 void MetavoxelSystem::init() {
     if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();
