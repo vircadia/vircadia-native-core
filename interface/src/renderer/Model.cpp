@@ -272,7 +272,7 @@ bool Model::render(float alpha) {
     
     glDisable(GL_ALPHA_TEST);
     
-    // render translucent meshes afterwards, with back face culling and no depth writes
+    // render translucent meshes afterwards, with back face culling
     
     glEnable(GL_CULL_FACE);
     
