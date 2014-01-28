@@ -83,13 +83,13 @@ void AvatarManager::updateAvatars(float deltaTime) {
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        if (MY_AVATAR_KEY == avatarIterator.key()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
+        if (avatar == static_cast<Avatar*>(_myAvatar)) {
             // for now skip updates to _myAvatar because it is done explicitly in Application
             // TODO: update _myAvatar in this context
             ++avatarIterator;
             continue;
         }
-        Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
         if (avatar->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime, NULL);
@@ -271,4 +271,3 @@ void AvatarManager::clearHash() {
         removeAvatar = erase(removeAvatar);
     }
 }
-
