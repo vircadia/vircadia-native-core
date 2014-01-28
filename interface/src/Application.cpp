@@ -47,6 +47,7 @@
 #include <QDesktopServices>
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
+#include <QMediaPlayer>
 
 #include <AudioInjector.h>
 #include <NodeTypes.h>
@@ -70,6 +71,7 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
+#include "ui/Snapshot.h"
 
 using namespace std;
 
@@ -775,6 +777,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     _voxels.collectStatsForTreesAndVBOs();
                 } else if (isShifted && isMeta)  {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
+                } else if (!isShifted && isMeta)  {
+                    takeSnapshot();
                 } else if (_nudgeStarted) {
                     if (_lookingAlongX) {
                         if (_lookingAwayFromOrigin) {
@@ -4343,3 +4347,14 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
 }
+
+void Application::takeSnapshot() {
+    switchToResourcesParentIfRequired();
+    QMediaPlayer* player = new QMediaPlayer();
+    QFileInfo inf = QFileInfo("resources/sounds/snap.wav");
+    player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+    player->play();
+
+    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar.getPosition());
+}
+

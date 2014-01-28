@@ -56,6 +56,7 @@ private:
     
     void setLayout();
     void setImportTypes();
+    bool fileAccepted;
 };
 
 #endif /* defined(__hifi__ImportDialog__) */
