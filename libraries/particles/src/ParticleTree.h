@@ -42,7 +42,19 @@ public:
     void storeParticle(const Particle& particle, Node* senderNode = NULL);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
     const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
-    QVector<const Particle*> findParticles(const glm::vec3& center, float radius);
+
+    /// finds all particles that touch a sphere
+    /// \param center the center of the sphere
+    /// \param radius the radius of the sphere
+    /// \param foundParticles[out] vector of const Particle*
+    /// \remark Side effect: any initial contents in foundParticles will be lost
+    void findParticles(const glm::vec3& center, float radius, QVector<const Particle*>& foundParticles);
+
+    /// finds all particles that touch a box
+    /// \param box the query box
+    /// \param foundParticles[out] vector of non-const Particle*
+    /// \remark Side effect: any initial contents in particles will be lost
+    void findParticlesForUpdate(const AABox& box, QVector<Particle*> foundParticles);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);

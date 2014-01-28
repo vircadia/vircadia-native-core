@@ -791,14 +791,15 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const AvatarSharedPointer& avatar, Application::getInstance()->getAvatarManager().getAvatarHash()) {
-        SortedAvatar sortedAvatar;
-        sortedAvatar.avatar = avatar.data();
-        
-        if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if ( ! avatar->isChatCirclingEnabled() ||
+                avatar == static_cast<Avatar*>(this)) {
             continue;
         }
-        
+    
+        SortedAvatar sortedAvatar;
+        sortedAvatar.avatar = avatar;
         sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
         sortedAvatars.append(sortedAvatar);
     }

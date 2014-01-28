@@ -16,6 +16,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
@@ -245,6 +246,8 @@ public:
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+
+    void applyHardCollision(const CollisionInfo& collisionInfo);
 
     void update(const uint64_t& now);
     void collisionWithParticle(Particle* other);
