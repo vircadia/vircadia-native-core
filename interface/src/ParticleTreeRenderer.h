@@ -20,6 +20,7 @@
 #include <OctreeRenderer.h>
 #include <ParticleTree.h>
 #include <ViewFrustum.h>
+#include "renderer/Model.h"
 
 // Generic client side Octree renderer class.
 class ParticleTreeRenderer : public OctreeRenderer {
@@ -39,7 +40,13 @@ public:
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
+    virtual void init();
+    virtual void render();
+
 protected:
+    Model* getModel(const QString& url);
+
+    QMap<QString, Model*> _particleModels;
 };
 
 #endif /* defined(__hifi__ParticleTreeRenderer__) */
