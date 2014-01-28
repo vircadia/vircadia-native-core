@@ -16,6 +16,8 @@
 
 #include "AvatarManager.h"
 
+// We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
+const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
     _lookAtTargetAvatar(),

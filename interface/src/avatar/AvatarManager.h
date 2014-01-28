@@ -20,8 +20,6 @@
 
 class MyAvatar;
 
-const QUuid MY_AVATAR_KEY;  // NULL key
-
 class AvatarManager : public QObject, public DataServerCallbackObject, public AvatarHashMap {
     Q_OBJECT
 public:
