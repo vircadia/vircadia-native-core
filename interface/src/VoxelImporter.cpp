@@ -102,7 +102,22 @@ int VoxelImporter::preImport() {
     if (!QFileInfo(filename).isFile()) {
         return 0;
     }
-
+    
+    _filename = filename;
+    
+    if (_nextTask) {
+        delete _nextTask;
+    }
+    
+    _nextTask = new ImportTask(_filename);
+    connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
+    
+    if (_currentTask != NULL) {
+        _voxelTree.cancelImport();
+    } else {
+        launchTask();
+    }
+    
     return 1;
 }
 
