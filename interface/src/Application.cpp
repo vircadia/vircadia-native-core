@@ -3148,10 +3148,8 @@ void Application::displayStats() {
 
     glPointSize(1.0f);
 
-    int totalAvatars = 0, totalServers = 0;
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
-    }
+    int totalAvatars = _avatarManager.size();
+    int totalServers = NodeList::getInstance()->size();
 
     if (mirrorEnabled) {
         horizontalOffset += MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
