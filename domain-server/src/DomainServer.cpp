@@ -127,6 +127,7 @@ void DomainServer::readAvailableDatagrams() {
                 packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                 
                 deconstructPacketHeader(receivedPacket, nodeUUID);
+                
                 packetStream >> nodeType;
                 packetStream >> nodePublicAddress >> nodeLocalAddress;
                 

@@ -474,7 +474,7 @@ void NodeList::sendDomainServerCheckIn() {
         foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {
             packetStream << nodeTypeOfInterest;
         }
-
+        
         _nodeSocket.writeDatagram(domainServerPacket, _domainSockAddr.getAddress(), _domainSockAddr.getPort());
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;

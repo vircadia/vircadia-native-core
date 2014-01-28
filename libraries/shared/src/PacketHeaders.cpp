@@ -59,7 +59,7 @@ QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connection
 }
 
 int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID) {
-    if (packet.size() < MAX_HEADER_BYTES) {
+    if (packet.size() < numBytesForPacketHeaderGivenPacketType(type)) {
         packet.resize(numBytesForPacketHeaderGivenPacketType(type));
     }
     
@@ -77,7 +77,6 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     
     // return the number of bytes written for pointer pushing
     return numTypeBytes + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
-    
 }
 
 bool packetVersionMatch(const QByteArray& packet) {
@@ -112,11 +111,12 @@ int numBytesForPacketHeader(const char* packet) {
 }
 
 int numBytesForPacketHeaderGivenPacketType(PacketType type) {
-    return (int) ceilf((float)type) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    return (int) ceilf((float)type / 255) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
 }
 
 void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID) {
-    senderUUID = QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion)));
+    senderUUID = QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
+                                               NUM_BYTES_RFC4122_UUID));
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {
