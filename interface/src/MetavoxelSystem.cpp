@@ -107,14 +107,14 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+    if (node->getType() == NodeType::MetavoxelServer) {
         QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
             Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
     }
 }
 
 void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+    if (node->getType() == NodeType::MetavoxelServer) {
         QMetaObject::invokeMethod(this, "removeClient", Q_ARG(const QUuid&, node->getUUID()));
     }
 }

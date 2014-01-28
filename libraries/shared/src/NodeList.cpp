@@ -22,8 +22,8 @@
 #include "UUID.h"
 
 const char SOLO_NODE_TYPES[2] = {
-    NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER
+    NodeType::AvatarMixer,
+    NodeType::AudioMixer
 };
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
@@ -33,6 +33,8 @@ NodeList* NodeList::_sharedInstance = NULL;
 
 NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
     if (!_sharedInstance) {
+        NodeType::init();
+        
         _sharedInstance = new NodeList(ownerType, socketListenPort);
 
         // register the SharedNodePointer meta-type for signals/slots
@@ -257,11 +259,11 @@ void NodeList::reset() {
     _ownerUUID = QUuid::createUuid();
 }
 
-void NodeList::addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd) {
+void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
     _nodeTypesOfInterest << nodeTypeToAdd;
 }
 
-void NodeList::addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes) {
+void NodeList::addSetOfNodeTypesToNodeInterestSet(const QSet<NodeType_t>& setOfNodeTypes) {
     _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
@@ -471,7 +473,7 @@ void NodeList::sendDomainServerCheckIn() {
             << (quint8) _nodeTypesOfInterest.size();
         
         // copy over the bytes for node types of interest, if required
-        foreach (NODE_TYPE nodeTypeOfInterest, _nodeTypesOfInterest) {
+        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
             packetStream << nodeTypeOfInterest;
         }
         
@@ -595,9 +597,9 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         
         QMutexLocker locker(&matchingNode->getMutex());
 
-        if (matchingNode->getType() == NODE_TYPE_AUDIO_MIXER ||
-            matchingNode->getType() == NODE_TYPE_VOXEL_SERVER ||
-            matchingNode->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+        if (matchingNode->getType() == NodeType::AudioMixer ||
+            matchingNode->getType() == NodeType::VoxelServer ||
+            matchingNode->getType() == NodeType::MetavoxelServer) {
             // until the Audio class also uses our nodeList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             matchingNode->setLastHeardMicrostamp(usecTimestampNow());
@@ -619,7 +621,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
 }
 
 unsigned NodeList::broadcastToNodes(const QByteArray& packet,
-                                    const QSet<NODE_TYPE>& destinationNodeTypes) {
+                                    const QSet<NodeType_t>& destinationNodeTypes) {
     unsigned n = 0;
 
     foreach (const SharedNodePointer& node, getNodeHash()) {

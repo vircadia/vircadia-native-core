@@ -27,17 +27,23 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
-typedef quint8 NODE_TYPE;
-const NODE_TYPE NODE_TYPE_DOMAIN = 'D';
-const NODE_TYPE NODE_TYPE_VOXEL_SERVER = 'V';
-const NODE_TYPE NODE_TYPE_PARTICLE_SERVER = 'P';
-const NODE_TYPE NODE_TYPE_METAVOXEL_SERVER = 'm';
-const NODE_TYPE NODE_TYPE_ENVIRONMENT_SERVER = 'E';
-const NODE_TYPE NODE_TYPE_AGENT = 'I';
-const NODE_TYPE NODE_TYPE_AUDIO_MIXER = 'M';
-const NODE_TYPE NODE_TYPE_AVATAR_MIXER = 'W';
-const NODE_TYPE NODE_TYPE_ANIMATION_SERVER = 'a';
-const NODE_TYPE NODE_TYPE_UNASSIGNED = 1;
+typedef quint8 NodeType_t;
+
+namespace NodeType {
+    const NodeType_t DomainServer = 'D';
+    const NodeType_t VoxelServer = 'V';
+    const NodeType_t ParticleServer = 'P';
+    const NodeType_t MetavoxelServer = 'm';
+    const NodeType_t EnvironmentServer = 'E';
+    const NodeType_t Agent = 'I';
+    const NodeType_t AudioMixer = 'M';
+    const NodeType_t AvatarMixer = 'W';
+    const NodeType_t AnimationServer = 'a';
+    const NodeType_t Unassigned = 1;
+    
+    void init();
+    const QString& getNodeTypeName(NodeType_t nodeType);
+}
 
 class Node : public QObject {
     Q_OBJECT
@@ -50,7 +56,7 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-    const char* getTypeName() const;
+    
 
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
@@ -96,7 +102,7 @@ private:
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
 
-    NODE_TYPE _type;
+    NodeType_t _type;
     QUuid _uuid;
     quint64 _wakeMicrostamp;
     quint64 _lastHeardMicrostamp;

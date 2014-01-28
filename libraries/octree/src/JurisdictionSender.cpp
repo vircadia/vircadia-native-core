@@ -16,7 +16,7 @@
 #include "JurisdictionSender.h"
 
 
-JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NODE_TYPE type) :
+JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
     ReceivedPacketProcessor(),
     _jurisdictionMap(map),
     _packetSender(JurisdictionSender::DEFAULT_PACKETS_PER_SECOND)

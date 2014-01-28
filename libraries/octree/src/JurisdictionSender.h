@@ -26,15 +26,15 @@ class JurisdictionSender : public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
-    JurisdictionSender(JurisdictionMap* map, NODE_TYPE type = NODE_TYPE_VOXEL_SERVER);
+    JurisdictionSender(JurisdictionMap* map, NodeType_t type = NodeType::VoxelServer);
     ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
 
     virtual bool process();
 
-    NODE_TYPE getNodeType() const { return _nodeType; }
-    void setNodeType(NODE_TYPE type) { _nodeType = type; }
+    NodeType_t getNodeType() const { return _nodeType; }
+    void setNodeType(NodeType_t type) { _nodeType = type; }
 
 protected:
     virtual void processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet);
@@ -50,7 +50,7 @@ private:
     QMutex _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
     std::queue<QUuid> _nodesRequestingJurisdictions;
-    NODE_TYPE _nodeType;
+    NodeType_t _nodeType;
     
     PacketSender _packetSender;
 };

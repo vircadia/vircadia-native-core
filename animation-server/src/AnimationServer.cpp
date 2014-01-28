@@ -694,7 +694,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
 {
     ::start = usecTimestampNow();
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NodeType::AnimationServer, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     // Handle Local Domain testing with the --local command line
@@ -806,7 +806,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     pthread_create(&::animateVoxelThread, NULL, animateVoxels, NULL);
 
-    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_VOXEL_SERVER);
+    NodeList::getInstance()->addNodeTypeToInterestSet(NodeType::VoxelServer);
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));
@@ -834,7 +834,7 @@ void AnimationServer::readPendingDatagrams() {
             if (packetTypeForPacket(receivedPacket) == PacketTypeJurisdiction) {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);
                 // PacketType_JURISDICTION, first byte is the node type...
-                if (receivedPacket.data()[headerBytes] == NODE_TYPE_VOXEL_SERVER && ::jurisdictionListener) {
+                if (receivedPacket.data()[headerBytes] == NodeType::VoxelServer && ::jurisdictionListener) {
                     ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, receivedPacket);
                 }
             }

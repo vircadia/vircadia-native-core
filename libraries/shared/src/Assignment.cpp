@@ -17,19 +17,19 @@
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
 
-Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
+Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
-        case NODE_TYPE_AUDIO_MIXER:
+        case NodeType::AudioMixer:
             return Assignment::AudioMixerType;
-        case NODE_TYPE_AVATAR_MIXER:
+        case NodeType::AvatarMixer:
             return Assignment::AvatarMixerType;
-        case NODE_TYPE_AGENT:
+        case NodeType::Agent:
             return Assignment::AgentType;
-        case NODE_TYPE_VOXEL_SERVER:
+        case NodeType::VoxelServer:
             return Assignment::VoxelServerType;
-        case NODE_TYPE_PARTICLE_SERVER:
+        case NodeType::ParticleServer:
             return Assignment::ParticleServerType;
-        case NODE_TYPE_METAVOXEL_SERVER:
+        case NodeType::MetavoxelServer:
             return Assignment::MetavoxelServerType;
         default:
             return Assignment::AllTypes;

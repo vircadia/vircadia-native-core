@@ -28,15 +28,15 @@ public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
 
-    JurisdictionListener(NODE_TYPE type = NODE_TYPE_VOXEL_SERVER);
+    JurisdictionListener(NodeType_t type = NodeType::VoxelServer);
     
     virtual bool process();
 
     NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; };
 
 
-    NODE_TYPE getNodeType() const { return _nodeType; }
-    void setNodeType(NODE_TYPE type) { _nodeType = type; }
+    NodeType_t getNodeType() const { return _nodeType; }
+    void setNodeType(NodeType_t type) { _nodeType = type; }
 
 public slots:
     /// Called by NodeList to inform us that a node has been killed.
@@ -53,7 +53,7 @@ protected:
 
 private:
     NodeToJurisdictionMap _jurisdictions;
-    NODE_TYPE _nodeType;
+    NodeType_t _nodeType;
 
     bool queueJurisdictionRequest();
 

@@ -69,5 +69,5 @@ void VoxelServer::beforeRun() {
     }
     qDebug("Sending environments=%s", debug::valueOf(_sendEnvironments));
     
-    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_ANIMATION_SERVER);
+    NodeList::getInstance()->addNodeTypeToInterestSet(NodeType::AnimationServer);
 }

@@ -175,7 +175,7 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    void controlledBroadcastToNodes(const QByteArray& packet, const QSet<NODE_TYPE>& destinationNodeTypes);
+    void controlledBroadcastToNodes(const QByteArray& packet, const QSet<NodeType_t>& destinationNodeTypes);
 
     void setupWorldLight();
 
@@ -298,7 +298,7 @@ private:
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void queryOctree(NODE_TYPE serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();

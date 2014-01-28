@@ -32,11 +32,11 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
         int headerBytes = numBytesForPacketHeader(dataByteArray);
         // PacketType_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
-            case NODE_TYPE_VOXEL_SERVER:
+            case NodeType::VoxelServer:
                 _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                                             dataByteArray);
                 break;
-            case NODE_TYPE_PARTICLE_SERVER:
+            case NodeType::ParticleServer:
                 _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
                                                                                                                dataByteArray);
                 break;
@@ -48,9 +48,9 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
 
 void Agent::run() {
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NODE_TYPE_AGENT);
+    nodeList->setOwnerType(NodeType::Agent);
     
-    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");

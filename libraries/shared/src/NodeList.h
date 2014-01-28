@@ -30,9 +30,6 @@
 
 #include "Node.h"
 
-const int MAX_NUM_NODES = 10000;
-const int NODES_PER_BUCKET = 100;
-
 const int MAX_PACKET_SIZE = 1500;
 
 const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
@@ -53,6 +50,8 @@ const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 class Assignment;
 class HifiSockAddr;
 
+typedef QSet<NodeType_t> NodeSet;
+
 typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
@@ -62,8 +61,8 @@ class NodeList : public QObject {
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
-    NODE_TYPE getOwnerType() const { return _ownerType; }
-    void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
+    NodeType_t getOwnerType() const { return _ownerType; }
+    void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
     const QString& getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const QString& domainHostname);
@@ -89,9 +88,9 @@ public:
 
     void reset();
     
-    const QSet<NODE_TYPE>& getNodeInterestSet() const { return _nodeTypesOfInterest; }
-    void addNodeTypeToInterestSet(NODE_TYPE nodeTypeToAdd);
-    void addSetOfNodeTypesToNodeInterestSet(const QSet<NODE_TYPE>& setOfNodeTypes);
+    const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
+    void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
+    void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
 
     int processDomainServerList(const QByteArray& packet);
 
@@ -112,7 +111,7 @@ public:
 
     int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
-    unsigned broadcastToNodes(const QByteArray& packet, const QSet<NODE_TYPE>& destinationNodeTypes);
+    unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
@@ -146,8 +145,8 @@ private:
     QString _domainHostname;
     HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;
-    NODE_TYPE _ownerType;
-    QSet<NODE_TYPE> _nodeTypesOfInterest;
+    NodeType_t _ownerType;
+    NodeSet _nodeTypesOfInterest;
     QUuid _ownerUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;

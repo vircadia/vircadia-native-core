@@ -1591,7 +1591,7 @@ void VoxelSystem::falseColorizeBySource() {
     // create a bunch of colors we'll use during colorization
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        if (node->getType() == NodeType::VoxelServer) {
             uint16_t nodeID = VoxelTreeElement::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
@@ -2663,7 +2663,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 }
 
 void VoxelSystem::nodeAdded(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    if (node->getType() == NodeType::VoxelServer) {
         qDebug("VoxelSystem... voxel server %s added...", node->getUUID().toString().toLocal8Bit().constData());
         _voxelServerCount++;
     }
@@ -2684,7 +2684,7 @@ bool VoxelSystem::killSourceVoxelsOperation(OctreeElement* element, void* extraD
 }
 
 void VoxelSystem::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    if (node->getType() == NodeType::VoxelServer) {
         _voxelServerCount--;
         QUuid nodeUUID = node->getUUID();
         qDebug("VoxelSystem... voxel server %s removed...", nodeUUID.toString().toLocal8Bit().constData());

@@ -66,7 +66,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         _metavoxelServerConfig = getCmdOption(argc, (const char**) argv, metavoxelConfigOption.constData());
     }
 
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, domainServerPort);
+    NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
 
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
 
@@ -110,7 +110,7 @@ void DomainServer::readAvailableDatagrams() {
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
     
     QByteArray receivedPacket;
-    NODE_TYPE nodeType;
+    NodeType_t nodeType;
     QUuid nodeUUID;
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
@@ -144,9 +144,9 @@ void DomainServer::readAvailableDatagrams() {
                     }
                 }
                 
-                const QSet<NODE_TYPE> STATICALLY_ASSIGNED_NODES = QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER
-                    << NODE_TYPE_AVATAR_MIXER << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
-                    << NODE_TYPE_METAVOXEL_SERVER;
+                const QSet<NodeType_t> STATICALLY_ASSIGNED_NODES = QSet<NodeType_t>() << NodeType::AudioMixer
+                    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
+                    << NodeType::MetavoxelServer;
                 
                 Assignment* matchingStaticAssignment = NULL;
                 
@@ -183,7 +183,7 @@ void DomainServer::readAvailableDatagrams() {
                     quint8 numInterestTypes = 0;
                     packetStream >> numInterestTypes;
                     
-                    NODE_TYPE* nodeTypesOfInterest = reinterpret_cast<NODE_TYPE*>(receivedPacket.data()
+                    NodeType_t* nodeTypesOfInterest = reinterpret_cast<NodeType_t*>(receivedPacket.data()
                                                                                   + packetStream.device()->pos());
                     
                     if (numInterestTypes > 0) {
@@ -262,7 +262,7 @@ QJsonObject jsonObjectForNode(Node* node) {
     QJsonObject nodeJson;
 
     // re-format the type name so it matches the target name
-    QString nodeTypeName(node->getTypeName());
+    QString nodeTypeName = NodeType::getNodeTypeName(node->getType());
     nodeTypeName = nodeTypeName.toLower();
     nodeTypeName.replace(' ', '-');
 
@@ -642,7 +642,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     _staticAssignmentFile.close();
 }
 
-Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType) {
+Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
     // pull the UUID passed with the check in
 
     if (_hasCompletedRestartHold) {

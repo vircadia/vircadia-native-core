@@ -21,7 +21,7 @@ public:
     ParticlesScriptingInterface();
     
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
-    virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
+    virtual NodeType_t getServerNodeType() const { return NodeType::ParticleServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
 
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }

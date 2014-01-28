@@ -473,7 +473,7 @@ void MyAvatar::loadData(QSettings* settings) {
 
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
-    NodeList::getInstance()->broadcastToNodes(killPacket, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+    NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {

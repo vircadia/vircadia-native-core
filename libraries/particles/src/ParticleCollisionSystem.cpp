@@ -193,7 +193,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     // loop through all the other avatars for potential interactions...
 //    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
 //        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
-//        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+//        if (node->getLinkedData() && node->getType() == NodeType_t_AGENT) {
 //            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
 //            CollisionInfo collisionInfo;
 //            if (avatar->findSphereCollision(center, radius, collisionInfo)) {

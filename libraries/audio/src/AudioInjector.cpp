@@ -89,7 +89,7 @@ void AudioInjector::injectAudio() {
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
-            SharedNodePointer audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+            SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
                 // send off this audio packet

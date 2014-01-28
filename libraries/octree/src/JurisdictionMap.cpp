@@ -92,7 +92,7 @@ void JurisdictionMap::clear() {
     _endNodes.clear();
 }
 
-JurisdictionMap::JurisdictionMap(NODE_TYPE type) : _rootOctalCode(NULL) {
+JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(NULL) {
     _nodeType = type;
     unsigned char* rootCode = new unsigned char[1];
     *rootCode = 0;
@@ -262,7 +262,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     return true;
 }
 
-int JurisdictionMap::packEmptyJurisdictionIntoMessage(NODE_TYPE type, unsigned char* destinationBuffer, int availableBytes) {
+int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
     int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
@@ -287,7 +287,7 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
-    NODE_TYPE type = getNodeType();
+    NodeType_t type = getNodeType();
     memcpy(destinationBuffer, &type, sizeof(type));
     destinationBuffer += sizeof(type);
 

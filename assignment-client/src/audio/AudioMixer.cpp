@@ -237,11 +237,11 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
 
 void AudioMixer::run() {
 
-    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
+    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
 
-    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
 
@@ -274,7 +274,7 @@ void AudioMixer::run() {
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
+            if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
 

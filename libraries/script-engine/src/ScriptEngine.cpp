@@ -249,7 +249,7 @@ void ScriptEngine::run() {
             avatarPacket.resize(numAvatarHeaderBytes);
             avatarPacket.append(_avatarData->toByteArray());
             
-            nodeList->broadcastToNodes(avatarPacket, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+            nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
         if (willSendVisualDataCallBack) {

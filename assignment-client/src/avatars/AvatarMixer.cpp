@@ -57,7 +57,7 @@ void broadcastAvatarData() {
     NodeList* nodeList = NodeList::getInstance();
     
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
+        if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()) {
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
@@ -100,7 +100,7 @@ void broadcastAvatarData() {
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
-    if (killedNode->getType() == NODE_TYPE_AGENT
+    if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
@@ -108,7 +108,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         killPacket += killedNode->getUUID().toRfc4122();
         
         NodeList::getInstance()->broadcastToNodes(killPacket,
-                                                  QSet<NODE_TYPE>() << NODE_TYPE_AGENT);
+                                                  NodeSet() << NodeType::Agent);
     }
 }
 
@@ -144,10 +144,10 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
 }
 
 void AvatarMixer::run() {
-    commonInit(AVATAR_MIXER_LOGGING_NAME, NODE_TYPE_AVATAR_MIXER);
+    commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     

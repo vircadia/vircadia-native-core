@@ -15,14 +15,14 @@
 #include <PacketHeaders.h>
 #include "JurisdictionListener.h"
 
-JurisdictionListener::JurisdictionListener(NODE_TYPE type) :
+JurisdictionListener::JurisdictionListener(NodeType_t type) :
     _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
-    //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
+    //qDebug("JurisdictionListener::JurisdictionListener(NodeType_t type=%c)", type);
     
     // tell our NodeList we want to hear about nodes with our node type
     NodeList::getInstance()->addNodeTypeToInterestSet(type);

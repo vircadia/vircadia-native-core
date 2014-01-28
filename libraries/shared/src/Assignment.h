@@ -50,7 +50,7 @@ public:
         LocalLocation
     };
 
-    static Assignment::Type typeForNodeType(NODE_TYPE nodeType);
+    static Assignment::Type typeForNodeType(NodeType_t nodeType);
 
     Assignment();
     Assignment(Assignment::Command command,

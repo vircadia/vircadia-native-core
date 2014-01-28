@@ -52,7 +52,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool);
     
     // create a NodeList as an unassigned client
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
+    NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
     
     const char CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION[] = "-a";
     const char CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION[] = "-p";
@@ -174,6 +174,6 @@ void AssignmentClient::assignmentCompleted() {
     NodeList* nodeList = NodeList::getInstance();
     
     // reset our NodeList by switching back to unassigned and clearing the list
-    nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
+    nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
 }

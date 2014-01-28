@@ -469,7 +469,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
             qDebug() << "Got PacketType_VOXEL_QUERY at" << usecTimestampNow();
         }
        
-        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
+        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
         // need to make sure we have it in our nodeList.
         QUuid nodeUUID;
         deconstructPacketHeader(dataByteArray, nodeUUID);
@@ -552,7 +552,7 @@ void OctreeServer::run() {
     nodeList->setOwnerType(getMyNodeType());
 
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     setvbuf(stdout, NULL, _IOLBF, 0);
 

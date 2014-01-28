@@ -29,7 +29,7 @@ public:
     void queueParticleEditMessage(PacketType type, ParticleID particleID, const ParticleProperties& properties);
 
     // My server type is the particle server
-    virtual unsigned char getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
+    virtual unsigned char getMyNodeType() const { return NodeType::ParticleServer; }
     virtual void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
 };
 #endif // __shared__ParticleEditPacketSender__

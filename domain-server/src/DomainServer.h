@@ -39,7 +39,7 @@ private:
     QString readServerAssignmentConfig(QJsonObject jsonObj, const char* nodeName);
 
     void prepopulateStaticAssignmentFile();
-    Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
+    Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     void removeAssignmentFromQueue(Assignment* removableAssignment);
     bool checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,

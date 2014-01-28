@@ -182,7 +182,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _nodeThread->setPriority(QThread::TimeCriticalPriority);
     
     // put the NodeList and datagram processing on the node thread
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
+    NodeList* nodeList = NodeList::createInstance(NodeType::Agent, listenPort);
     
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);
@@ -229,9 +229,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     #endif
 
     // tell the NodeList instance who to tell the domain server we care about
-    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
-                                                 << NODE_TYPE_VOXEL_SERVER << NODE_TYPE_PARTICLE_SERVER
-                                                 << NODE_TYPE_METAVOXEL_SERVER);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NodeType_t>() << NodeType::AudioMixer << NodeType::AvatarMixer
+                                                 << NodeType::VoxelServer << NodeType::ParticleServer
+                                                 << NodeType::MetavoxelServer);
     
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
@@ -649,24 +649,24 @@ void Application::resetProfile(const QString& username) {
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet,
-                                             const QSet<NODE_TYPE>& destinationNodeTypes) {
-    foreach(NODE_TYPE type, destinationNodeTypes) {
+                                             const QSet<NodeType_t>& destinationNodeTypes) {
+    foreach(NodeType_t type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
-        if (type == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+        if (type == NodeType::VoxelServer && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
         
         // Perform the broadcast for one type
-        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, QSet<NODE_TYPE>() << type);
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(packet, QSet<NodeType_t>() << type);
         
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
         switch (type) {
-            case NODE_TYPE_AGENT:
-            case NODE_TYPE_AVATAR_MIXER:
+            case NodeType::Agent:
+            case NodeType::AvatarMixer:
                 channel = BandwidthMeter::AVATARS;
                 break;
-            case NODE_TYPE_VOXEL_SERVER:
+            case NodeType::VoxelServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
             default:
@@ -1332,10 +1332,10 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    getInstance()->controlledBroadcastToNodes(pingPacket, QSet<NODE_TYPE>() << NODE_TYPE_VOXEL_SERVER
-                                              << NODE_TYPE_PARTICLE_SERVER
-                                              << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER
-                                              << NODE_TYPE_METAVOXEL_SERVER);
+    getInstance()->controlledBroadcastToNodes(pingPacket, QSet<NodeType_t>() << NodeType::VoxelServer
+                                              << NodeType::ParticleServer
+                                              << NodeType::AudioMixer << NodeType::AvatarMixer
+                                              << NodeType::MetavoxelServer);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -2363,7 +2363,7 @@ void Application::updateAvatar(float deltaTime) {
     QByteArray avatarData = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
     avatarData.append(_myAvatar.toByteArray());
 
-    controlledBroadcastToNodes(avatarData, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+    controlledBroadcastToNodes(avatarData, QSet<NodeType_t>() << NodeType::AvatarMixer);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2374,11 +2374,11 @@ void Application::updateAvatar(float deltaTime) {
     loadViewFrustum(_myCamera, _viewFrustum);
 
     // Update my voxel servers with my current voxel query...
-    queryOctree(NODE_TYPE_VOXEL_SERVER, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-    queryOctree(NODE_TYPE_PARTICLE_SERVER, PacketTypeParticleQuery, _particleServerJurisdictions);
+    queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+    queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
 }
 
-void Application::queryOctree(NODE_TYPE serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     // if voxels are disabled, then don't send this at all...
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
@@ -3192,8 +3192,8 @@ void Application::displayStats() {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
 
         NodeList* nodeList = NodeList::getInstance();
-        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
+        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
 
         pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
@@ -3203,7 +3203,7 @@ void Application::displayStats() {
         int voxelServerCount = 0;
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+            if (node->getType() == NodeType::VoxelServer) {
                 totalPingVoxel += node->getPingMs();
                 voxelServerCount++;
                 if (pingVoxelMax < node->getPingMs()) {
@@ -3274,7 +3274,7 @@ void Application::displayStats() {
     drawtext(horizontalOffset, verticalOffset, 0.10f, 0, 1.0, 2, avatarBodyYaw, .93f, .93f, .93f);
 
     if (_statsExpanded) {
-        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+        SharedNodePointer avatarMixer = NodeList::getInstance()->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
                     roundf(avatarMixer->getAverageKilobitsPerSecond()),
@@ -3952,7 +3952,7 @@ void Application::domainChanged(const QString& domainHostname) {
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    if (node->getType() == NodeType::VoxelServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
@@ -3983,7 +3983,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
         _voxelSceneStatsLock.unlock();
 
-    } else if (node->getType() == NODE_TYPE_PARTICLE_SERVER) {
+    } else if (node->getType() == NodeType::ParticleServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         if (_particleServerJurisdictions.find(nodeUUID) != _particleServerJurisdictions.end()) {
@@ -4014,7 +4014,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
         _voxelSceneStatsLock.unlock();
 
-    } else if (node->getType() == NODE_TYPE_AVATAR_MIXER) {
+    } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         _avatarManager.clearHash();
     }
@@ -4066,7 +4066,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& 
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
-        if (server->getType() == NODE_TYPE_VOXEL_SERVER) {
+        if (server->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
         } else {
             jurisdiction = &_particleServerJurisdictions;
