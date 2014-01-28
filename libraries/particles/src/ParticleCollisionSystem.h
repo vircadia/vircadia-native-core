@@ -34,8 +34,8 @@ const glm::vec3 NO_ADDED_VELOCITY = glm::vec3(0);
 class ParticleCollisionSystem {
 public:
     ParticleCollisionSystem(ParticleEditPacketSender* packetSender = NULL, ParticleTree* particles = NULL, 
-                                VoxelTree* voxels = NULL, 
-                                AbstractAudioInterface* audio = NULL);
+                                VoxelTree* voxels = NULL, AbstractAudioInterface* audio = NULL, 
+                                AvatarHashMap* avatars = NULL);
 
     void init(ParticleEditPacketSender* packetSender, ParticleTree* particles, VoxelTree* voxels, 
                                 AbstractAudioInterface* audio = NULL, AvatarHashMap* _avatars = NULL);

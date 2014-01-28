@@ -20,8 +20,9 @@
 #include "ParticleTree.h"
 
 ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio) {
-    init(packetSender, particles, voxels, audio);
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio,
+    AvatarHashMap* avatars) {
+    init(packetSender, particles, voxels, audio, avatars);
 }
 
 void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender,
