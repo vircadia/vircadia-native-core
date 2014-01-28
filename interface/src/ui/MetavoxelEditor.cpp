@@ -185,7 +185,7 @@ void MetavoxelEditor::createNewAttribute() {
 }
 
 void MetavoxelEditor::centerGridPosition() {
-    const float CENTER_OFFSET = 0.5f;
+    const float CENTER_OFFSET = 0.625f;
     float eyePosition = (glm::inverse(getGridRotation()) * Application::getInstance()->getCamera()->getPosition()).z -
         Application::getInstance()->getAvatar()->getScale() * CENTER_OFFSET;
     double step = getGridSpacing();
