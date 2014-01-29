@@ -58,18 +58,21 @@ MetavoxelEditor::MetavoxelEditor() :
     _gridPlane->addItem("X/Z");
     _gridPlane->addItem("Y/Z");
     _gridPlane->setCurrentIndex(GRID_PLANE_XZ);
+    connect(_gridPlane, SIGNAL(currentIndexChanged(int)), SLOT(centerGridPosition()));
     
     formLayout->addRow("Grid Spacing:", _gridSpacing = new QDoubleSpinBox());
-    _gridSpacing->setValue(0.1);
+    _gridSpacing->setMinimum(-FLT_MAX);
     _gridSpacing->setMaximum(FLT_MAX);
-    _gridSpacing->setSingleStep(0.01);
-    connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(updateGridPosition()));
+    _gridSpacing->setPrefix("2^");
+    _gridSpacing->setValue(-3.0);
+    connect(_gridSpacing, SIGNAL(valueChanged(double)), SLOT(alignGridPosition()));
 
     formLayout->addRow("Grid Position:", _gridPosition = new QDoubleSpinBox());
-    _gridPosition->setSingleStep(0.1);
     _gridPosition->setMinimum(-FLT_MAX);
     _gridPosition->setMaximum(FLT_MAX);
-
+    alignGridPosition();
+    centerGridPosition();
+    
     _value = new QGroupBox();
     _value->setTitle("Value");
     topLayout->addWidget(_value);
@@ -119,7 +122,7 @@ bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
                     float top = base + _height;
                     glm::quat rotation = getGridRotation();
                     glm::vec3 start = rotation * glm::vec3(glm::min(_startPosition, _endPosition), glm::min(base, top));
-                    float spacing = _gridSpacing->value();
+                    float spacing = getGridSpacing();
                     glm::vec3 end = rotation * glm::vec3(glm::max(_startPosition, _endPosition) +
                         glm::vec2(spacing, spacing), glm::max(base, top));
                     
@@ -181,13 +184,19 @@ void MetavoxelEditor::createNewAttribute() {
     updateAttributes(nameText);
 }
 
-void MetavoxelEditor::updateGridPosition() {
+void MetavoxelEditor::centerGridPosition() {
+    const float CENTER_OFFSET = 0.625f;
+    float eyePosition = (glm::inverse(getGridRotation()) * Application::getInstance()->getCamera()->getPosition()).z -
+        Application::getInstance()->getAvatar()->getScale() * CENTER_OFFSET;
+    double step = getGridSpacing();
+    _gridPosition->setValue(step * floor(eyePosition / step));
+}
+
+void MetavoxelEditor::alignGridPosition() {
     // make sure our grid position matches our grid spacing
-    double step = _gridSpacing->value();
-    if (step > 0.0) {
-        _gridPosition->setSingleStep(step);
-        _gridPosition->setValue(step * floor(_gridPosition->value() / step));
-    }
+    double step = getGridSpacing();
+    _gridPosition->setSingleStep(step);
+    _gridPosition->setValue(step * floor(_gridPosition->value() / step));
 }
 
 void MetavoxelEditor::render() {
@@ -209,7 +218,7 @@ void MetavoxelEditor::render() {
     glm::quat inverseRotation = glm::inverse(rotation);
     glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
     glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
-    float spacing = _gridSpacing->value();
+    float spacing = getGridSpacing();
     float position = _gridPosition->value();
     if (_state == RAISING_STATE) {
         // find the plane at the mouse position, orthogonal to the plane, facing the eye position
@@ -318,6 +327,10 @@ QString MetavoxelEditor::getSelectedAttribute() const {
     return selectedItems.isEmpty() ? QString() : selectedItems.first()->text();
 }
 
+double MetavoxelEditor::getGridSpacing() const {
+    return pow(2.0, _gridSpacing->value());
+}
+
 glm::quat MetavoxelEditor::getGridRotation() const {
     // for simplicity, we handle the other two planes by rotating them onto X/Y and performing computation there
     switch (_gridPlane->currentIndex()) {
@@ -339,60 +352,14 @@ void MetavoxelEditor::resetState() {
     _height = 0.0f;
 }
 
-class Applier : public MetavoxelVisitor {
-public:
-    
-    Applier(const glm::vec3& minimum, const glm::vec3& maximum, float granularity, const AttributeValue& value);
-    
-    virtual bool visit(MetavoxelInfo& info);
-
-protected:
-    
-    glm::vec3 _minimum;
-    glm::vec3 _maximum;
-    float _granularity;
-    AttributeValue _value;
-};
-
-Applier::Applier(const glm::vec3& minimum, const glm::vec3& maximum, float granularity, const AttributeValue& value) :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << value.getAttribute()),
-    _minimum(minimum),
-    _maximum(maximum),
-    _granularity(granularity),
-    _value(value) {
-}
-
-bool Applier::visit(MetavoxelInfo& info) {
-    // find the intersection between volume and voxel
-    glm::vec3 minimum = glm::max(info.minimum, _minimum);
-    glm::vec3 maximum = glm::min(info.minimum + glm::vec3(info.size, info.size, info.size), _maximum);
-    glm::vec3 size = maximum - minimum;
-    if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f) {
-        return false; // disjoint
-    }
-    float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
-    if (volume >= 1.0f) {
-        info.outputValues[0] = _value;
-        return false; // entirely contained
-    }
-    if (info.size <= _granularity) {
-        if (volume > 0.5f) {
-            info.outputValues[0] = _value;
-        }
-        return false; // reached granularity limit; take best guess
-    }
-    return true; // subdivide
-}
-
 void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(getSelectedAttribute());
     if (!attribute) {
         return;
     }
     OwnedAttributeValue value(attribute, attribute->createFromVariant(getValue()));
-    
-    Applier applier(minimum, maximum, _gridSpacing->value(), value);
-    Application::getInstance()->getMetavoxels()->getData().guide(applier);
+    MetavoxelEditMessage edit = { { minimum, maximum }, getGridSpacing(), value };
+    Application::getInstance()->getMetavoxels()->applyEdit(edit);
 }
 
 QVariant MetavoxelEditor::getValue() const {
