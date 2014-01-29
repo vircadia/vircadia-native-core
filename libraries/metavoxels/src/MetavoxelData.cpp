@@ -29,13 +29,12 @@ MetavoxelData& MetavoxelData::operator=(const MetavoxelData& other) {
     return *this;
 }
 
-void MetavoxelData::guide(MetavoxelVisitor& visitor) {
+void MetavoxelData::guide(MetavoxelVisitor& visitor, const glm::vec3& minimum, float size) {
     // start with the root values/defaults (plus the guide attribute)
-    const float TOP_LEVEL_SIZE = 1.0f;
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
     MetavoxelVisitation firstVisitation = { NULL, visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
-        QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(), TOP_LEVEL_SIZE,
+        QVector<MetavoxelNode*>(outputs.size()), { minimum, size,
             QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
         MetavoxelNode* node = _roots.value(inputs.at(i));

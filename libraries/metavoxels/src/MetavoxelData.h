@@ -37,7 +37,9 @@ public:
     MetavoxelData& operator=(const MetavoxelData& other);
 
     /// Applies the specified visitor to the contained voxels.
-    void guide(MetavoxelVisitor& visitor);
+    /// \param minimum the top-level minimum
+    /// \param size the top-level size
+    void guide(MetavoxelVisitor& visitor, const glm::vec3& minimum = glm::vec3(), float size = 1.0f);
 
     void read(Bitstream& in);
     void write(Bitstream& out) const;
