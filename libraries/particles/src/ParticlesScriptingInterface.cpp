@@ -156,7 +156,8 @@ QVector<ParticleID> ParticlesScriptingInterface::findParticles(const glm::vec3& 
     QVector<ParticleID> result;
     if (_particleTree) {
         _particleTree->lockForRead();
-        QVector<const Particle*> particles = _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE);
+        QVector<const Particle*> particles;
+        _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, particles);
         _particleTree->unlock();
 
         foreach (const Particle* particle, particles) {

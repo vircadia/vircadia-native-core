@@ -230,21 +230,34 @@ const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) cons
     return closestParticle;
 }
 
-QVector<const Particle*> ParticleTreeElement::getParticles(glm::vec3 searchPosition, float searchRadius) const {
-    QVector<const Particle*> results;
+void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float searchRadius, QVector<const Particle*>& foundParticles) const {
     uint16_t numberOfParticles = _particles->size();
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle* particle = &(*_particles)[i];
         glm::vec3 particlePosition = particle->getPosition();
-        float particleRadius = particle->getRadius();
-        glm::vec3 penetration;
-
-        // check to see that the particle (penetrator) penetrates the search area
-        if (findSphereSpherePenetration(particlePosition, particleRadius, searchPosition, searchRadius, penetration)) {
-            results << particle;
+        float distance = glm::length(particle->getPosition() - searchPosition);
+        if (distance < searchRadius + particle->getRadius()) {
+            foundParticles.push_back(particle);
         }
     }
-    return results;
+}
+
+void ParticleTreeElement::getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles) {
+    QList<Particle>::iterator particleItr = _particles->begin();
+    QList<Particle>::iterator particleEnd = _particles->end();
+    AABox particleBox;
+    while(particleItr != particleEnd) {
+        Particle* particle = &(*particleItr);
+        float radius = particle->getRadius();
+        // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
+        // TODO: decide whether to replace particleBox-box query with sphere-box (requires a square root
+        // but will be slightly more accurate).
+        particleBox.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (particleBox.touches(_box)) {
+            foundParticles.push_back(particle);
+        }
+        ++particleItr;
+    }
 }
 
 const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
@@ -272,8 +285,6 @@ bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
     }
     return foundParticle;
 }
-
-
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
