@@ -43,22 +43,12 @@ function mouseMoveEvent(event) {
 }
 
 function update() {
-
-    print("isMouseDown... attempting to change pitch...");
-
     // rotate body yaw for yaw received from mouse
     MyAvatar.orientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
     yawFromMouse = 0;
 
     // apply pitch from mouse
-    /**
-    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() +
-                                      _myAvatar.getHand().getPitchUpdate() +
-                                      pitchFromMouse);
-    **/
-    
-    //_myAvatar.getHand().setPitchUpdate(0.f);
-    
+    MyAvatar.headPitch = MyAvatar.headPitch + pitchFromMouse;
     pitchFromMouse = 0;
 }
 

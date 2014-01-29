@@ -2404,10 +2404,7 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
 
     // apply pitch from touch
-    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() +
-                                      _myAvatar.getHand().getPitchUpdate() +
-                                      _pitchFromTouch);
-    _myAvatar.getHand().setPitchUpdate(0.f);
+    _myAvatar.getHead().setPitch(_myAvatar.getHead().getPitch() + _pitchFromTouch);
     _pitchFromTouch = 0.0f;
 
     // Update my avatar's state from gyros
