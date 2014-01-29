@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <QtCore/QDataStream>
 #include <QtCore/qdebug.h>
 
 #include <PacketHeaders.h>
