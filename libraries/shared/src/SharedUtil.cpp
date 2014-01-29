@@ -607,7 +607,7 @@ int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput
     return sizeof(quatParts);
 }
 
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput) {
+int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput) {
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
 
@@ -713,5 +713,33 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 void debug::checkDeadBeef(void* memoryVoid, int size) {
     unsigned char* memoryAt = (unsigned char*)memoryVoid;
     assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+}
+
+//  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
+//  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
+// https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
+glm::vec3 safeEulerAngles(const glm::quat& q) {
+    float sy = 2.0f * (q.y * q.w - q.x * q.z);
+    if (sy < 1.0f - EPSILON) {
+        if (sy > -1.0f + EPSILON) {
+            return glm::degrees(glm::vec3(
+                atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
+                asinf(sy),
+                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
+
+        } else {
+            // not a unique solution; x + z = atan2(-m21, m11)
+            return glm::degrees(glm::vec3(
+                0.0f,
+                PIf * -0.5f,
+                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+        }
+    } else {
+        // not a unique solution; x - z = atan2(-m21, m11)
+        return glm::degrees(glm::vec3(
+            0.0f,
+            PIf * 0.5f,
+            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+    }
 }
 

@@ -152,7 +152,7 @@ int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPo
 // Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0
 // this allows us to encode each component in 16bits with great accuracy
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput);
+int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput);
 
 // Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
 // are never greater than 1000 to 1, this allows us to encode each component in 16bits
@@ -172,8 +172,14 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
 int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
-// A convenience for sending vec3's as fixed-poimt floats
+// A convenience for sending vec3's as fixed-point floats
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
+
+#ifndef PIf
+#define PIf 3.14159265f
+#endif
+
+glm::vec3 safeEulerAngles(const glm::quat& q);
 
 #endif /* defined(__hifi__SharedUtil__) */
