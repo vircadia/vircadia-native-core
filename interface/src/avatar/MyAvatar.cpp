@@ -110,7 +110,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
 
-    // Only collide if we are not moving to a target
     if (_collisionFlags != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
@@ -758,17 +757,18 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
     float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-            float theirRadius = (0.5f + COLLISION_RADIUS_SCALE) * avatar->getHeight();
-            float distance = glm::length(_position - avatar->_position);        
-            if (distance < myRadius + theirRadius) {
-                //printf("potential avatar collision d = %e\n", distance);
-            }
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        float distance = glm::length(_position - avatar->_position);        
+        if (_distanceToNearestAvatar > distance) {
+            _distanceToNearestAvatar = distance;
+        }
+        float theirRadius = (0.5f + COLLISION_RADIUS_SCALE) * avatar->getHeight();
+        if (distance < myRadius + theirRadius) {
+            //printf("potential avatar collision d = %e\n", distance);
         }
     }
+    
 }
 
 class SortedAvatar {
