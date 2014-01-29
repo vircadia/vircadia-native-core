@@ -10,11 +10,15 @@
 #include <QtDebug>
 
 #include "MetavoxelData.h"
+#include "MetavoxelUtil.h"
 
-MetavoxelData::MetavoxelData() {
+MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
 
-MetavoxelData::MetavoxelData(const MetavoxelData& other) : _roots(other._roots) {
+MetavoxelData::MetavoxelData(const MetavoxelData& other) :
+    _size(other._size),
+    _roots(other._roots) {
+    
     incrementRootReferenceCounts();
 }
 
@@ -24,17 +28,24 @@ MetavoxelData::~MetavoxelData() {
 
 MetavoxelData& MetavoxelData::operator=(const MetavoxelData& other) {
     decrementRootReferenceCounts();
+    _size = other._size;
     _roots = other._roots;
     incrementRootReferenceCounts();
     return *this;
 }
 
-void MetavoxelData::guide(MetavoxelVisitor& visitor, const glm::vec3& minimum, float size) {
+Box MetavoxelData::getBounds() const {
+    float halfSize = _size * 0.5f;
+    Box bounds = { glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(halfSize, halfSize, halfSize) };
+    return bounds;
+}
+
+void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     // start with the root values/defaults (plus the guide attribute)
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
     MetavoxelVisitation firstVisitation = { NULL, visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
-        QVector<MetavoxelNode*>(outputs.size()), { minimum, size,
+        QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(_size, _size, _size) * -0.5f, _size,
             QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
         MetavoxelNode* node = _roots.value(inputs.at(i));
@@ -70,11 +81,49 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor, const glm::vec3& minimum, f
     }
 }
 
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int Z_MAXIMUM_FLAG = 4;
+const int MAXIMUM_FLAG_MASK = X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG | Z_MAXIMUM_FLAG;
+
+static int getOppositeIndex(int index) {
+    return index ^ MAXIMUM_FLAG_MASK;
+}
+
+void MetavoxelData::expand() {
+    for (QHash<AttributePointer, MetavoxelNode*>::iterator it = _roots.begin(); it != _roots.end(); it++) {
+        MetavoxelNode* newParent = new MetavoxelNode(it.key());
+        for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
+            MetavoxelNode* newChild = new MetavoxelNode(it.key());
+            newParent->setChild(i, newChild);
+            int index = getOppositeIndex(i);
+            if (it.value()->isLeaf()) {
+                newChild->setChild(index, new MetavoxelNode(it.value()->getAttributeValue(it.key())));               
+            } else {
+                MetavoxelNode* grandchild = it.value()->getChild(i);
+                grandchild->incrementReferenceCount();
+                newChild->setChild(index, grandchild);
+            }
+            for (int j = 1; j < MetavoxelNode::CHILD_COUNT; j++) {
+                MetavoxelNode* newGrandchild = new MetavoxelNode(it.key());
+                newChild->setChild((index + j) % MetavoxelNode::CHILD_COUNT, newGrandchild);
+            }
+            newChild->mergeChildren(it.key());
+        }
+        newParent->mergeChildren(it.key());
+        it.value()->decrementReferenceCount(it.key());
+        it.value() = newParent;
+    }
+    _size *= 2.0f;
+}
+
 void MetavoxelData::read(Bitstream& in) {
     // clear out any existing roots
     decrementRootReferenceCounts();
     _roots.clear();
 
+    in >> _size;
+    
     // read in the new roots
     int rootCount;
     in >> rootCount;
@@ -88,6 +137,7 @@ void MetavoxelData::read(Bitstream& in) {
 }
 
 void MetavoxelData::write(Bitstream& out) const {
+    out << _size;
     out << _roots.size();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         out.getAttributeStreamer() << it.key();
@@ -103,6 +153,16 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
     in >> changed;
     if (!changed) {
         return;
+    }
+
+    bool sizeChanged;
+    in >> sizeChanged;
+    if (sizeChanged) {
+        float size;
+        in >> size;
+        while (_size < size) {
+            expand();
+        }
     }
 
     int changedCount;
@@ -134,23 +194,38 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
 
 void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) const {
     // first things first: there might be no change whatsoever
-    if (_roots == reference._roots) {
+    if (_size == reference._size && _roots == reference._roots) {
         out << false;
         return;
     }
     out << true;
+    
+    // compare the size; if changed (rare), we must compare to the expanded reference
+    const MetavoxelData* expandedReference = &reference;
+    if (_size == reference._size) {
+        out << false;
+    } else {
+        out << true;
+        out << _size;
+        
+        MetavoxelData* expanded = new MetavoxelData(reference);
+        while (expanded->_size < _size) {
+            expanded->expand();
+        }
+        expandedReference = expanded;
+    }
 
     // count the number of roots added/changed, then write
     int changedCount = 0;
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        MetavoxelNode* referenceRoot = reference._roots.value(it.key());
+        MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
         if (it.value() != referenceRoot) {
             changedCount++;
         }
     }
     out << changedCount;
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        MetavoxelNode* referenceRoot = reference._roots.value(it.key());
+        MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
         if (it.value() != referenceRoot) {
             out.getAttributeStreamer() << it.key();
             if (referenceRoot) {
@@ -163,18 +238,23 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) c
     
     // same with nodes removed
     int removedCount = 0;
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = reference._roots.constBegin();
-            it != reference._roots.constEnd(); it++) {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
+            it != expandedReference->_roots.constEnd(); it++) {
         if (!_roots.contains(it.key())) {
             removedCount++;
         }
     }
     out << removedCount;
-    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = reference._roots.constBegin();
-            it != reference._roots.constEnd(); it++) {
+    for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
+            it != expandedReference->_roots.constEnd(); it++) {
         if (!_roots.contains(it.key())) {
             out.getAttributeStreamer() << it.key();
         }
+    }
+    
+    // delete the expanded reference if we had to expand
+    if (expandedReference != &reference) {
+        delete expandedReference;
     }
 }
 
@@ -348,10 +428,6 @@ MetavoxelVisitor::~MetavoxelVisitor() {
 PolymorphicData* DefaultMetavoxelGuide::clone() const {
     return new DefaultMetavoxelGuide();
 }
-
-const int X_MAXIMUM_FLAG = 1;
-const int Y_MAXIMUM_FLAG = 2;
-const int Z_MAXIMUM_FLAG = 4;
 
 void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     visitation.info.isLeaf = visitation.allInputNodesLeaves();

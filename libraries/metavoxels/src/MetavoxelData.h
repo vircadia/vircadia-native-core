@@ -22,6 +22,7 @@
 
 class QScriptContext;
 
+class Box;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
@@ -36,10 +37,15 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    float getSize() const { return _size; }
+
+    Box getBounds() const;
+
     /// Applies the specified visitor to the contained voxels.
-    /// \param minimum the top-level minimum
-    /// \param size the top-level size
-    void guide(MetavoxelVisitor& visitor, const glm::vec3& minimum = glm::vec3(), float size = 1.0f);
+    void guide(MetavoxelVisitor& visitor);
+    
+    /// Expands the tree, increasing its capacity in all dimensions.
+    void expand();
 
     void read(Bitstream& in);
     void write(Bitstream& out) const;
@@ -54,6 +60,7 @@ private:
     void incrementRootReferenceCounts();
     void decrementRootReferenceCounts();
     
+    float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
 

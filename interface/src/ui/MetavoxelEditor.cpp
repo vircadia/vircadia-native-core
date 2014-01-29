@@ -358,7 +358,7 @@ void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maxi
         return;
     }
     OwnedAttributeValue value(attribute, attribute->createFromVariant(getValue()));
-    MetavoxelEditMessage edit = { minimum, maximum, getGridSpacing(), value };
+    MetavoxelEditMessage edit = { { minimum, maximum }, getGridSpacing(), value };
     Application::getInstance()->getMetavoxels()->applyEdit(edit);
 }
 

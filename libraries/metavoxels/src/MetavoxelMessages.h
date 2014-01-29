@@ -10,7 +10,7 @@
 #define __interface__MetavoxelMessages__
 
 #include "AttributeRegistry.h"
-#include "Bitstream.h"
+#include "MetavoxelUtil.h"
 
 class MetavoxelData;
 
@@ -45,8 +45,7 @@ class MetavoxelEditMessage {
 
 public:
     
-    STREAM glm::vec3 minimum;
-    STREAM glm::vec3 maximum;
+    STREAM Box region;
     STREAM float granularity;
     STREAM OwnedAttributeValue value;
     
