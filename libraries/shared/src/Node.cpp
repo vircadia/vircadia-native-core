@@ -18,6 +18,7 @@
 #include "Node.h"
 #include "SharedUtil.h"
 
+#include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";

@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtNetwork/QHostInfo>
 

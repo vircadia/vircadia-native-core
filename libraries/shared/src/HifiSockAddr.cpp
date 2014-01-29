@@ -8,6 +8,7 @@
 
 #include "HifiSockAddr.h"
 
+#include <QtCore/QDataStream>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 

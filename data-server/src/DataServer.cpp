@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QDataStream>
+#include <QtCore/QStringList>
 #include <QtCore/QUuid>
 
 #include <PacketHeaders.h>
