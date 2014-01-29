@@ -38,7 +38,6 @@ const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _assignmentQueueMutex(),
     _assignmentQueue(),
     _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
     _staticAssignmentFileData(NULL),
@@ -467,9 +466,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             
             // add the script assigment to the assignment queue
             // lock the assignment queue mutex since we're operating on a different thread than DS main
-            _assignmentQueueMutex.lock();
             _assignmentQueue.push_back(scriptAssignment);
-            _assignmentQueueMutex.unlock();
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
         if (path.startsWith(URI_NODE)) {
@@ -514,9 +511,7 @@ void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignme
             _staticAssignments[i].resetUUID();
 
             // put this assignment back in the queue so it goes out
-            _assignmentQueueMutex.lock();
             _assignmentQueue.push_back(&_staticAssignments[i]);
-            _assignmentQueueMutex.unlock();
 
         } else if (_staticAssignments[i].getUUID().isNull()) {
             // we are at the blank part of the static assignments - break out
@@ -646,22 +641,18 @@ Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkI
     // pull the UUID passed with the check in
 
     if (_hasCompletedRestartHold) {
-        _assignmentQueueMutex.lock();
-
         // iterate the assignment queue to check for a match
         std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
         while (assignment != _assignmentQueue.end()) {
             if ((*assignment)->getUUID() == checkInUUID) {
                 // return the matched assignment
-                _assignmentQueueMutex.unlock();
                 return *assignment;
             } else {
                 // no match, push deque iterator forwards
                 assignment++;
             }
         }
-
-        _assignmentQueueMutex.unlock();
+        
     } else {
         for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
             if (_staticAssignments[i].getUUID() == checkInUUID) {
@@ -678,8 +669,6 @@ Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkI
 }
 
 Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssignment) {
-    _assignmentQueueMutex.lock();
-
     // this is an unassigned client talking to us directly for an assignment
     // go through our queue and see if there are any assignments to give out
     std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
@@ -713,21 +702,17 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
             }
 
             // stop looping, we've handed out an assignment
-            _assignmentQueueMutex.unlock();
             return deployableAssignment;
         } else {
             // push forward the iterator to check the next assignment
             assignment++;
         }
     }
-
-    _assignmentQueueMutex.unlock();
+    
     return NULL;
 }
 
 void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
-
-    _assignmentQueueMutex.lock();
 
     std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
 
@@ -740,8 +725,6 @@ void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
             assignment++;
         }
     }
-
-    _assignmentQueueMutex.unlock();
 }
 
 bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
@@ -796,10 +779,8 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
             _staticAssignments[i].resetUUID();
 
             qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
-
-            _assignmentQueueMutex.lock();
-            _assignmentQueue.push_back(&_staticAssignments[i]);
-            _assignmentQueueMutex.unlock();
+            
+            _assignmentQueue.push_back(&_staticAssignments[i]);gs
         }
     }
 }

@@ -49,7 +49,6 @@ private:
     
     HTTPManager _HTTPManager;
     
-    QMutex _assignmentQueueMutex;
     std::deque<Assignment*> _assignmentQueue;
     
     QFile _staticAssignmentFile;
