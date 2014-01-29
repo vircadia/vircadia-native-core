@@ -176,4 +176,10 @@ int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* de
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
+#ifndef PIf
+#define PIf 3.14159265f
+#endif
+
+glm::vec3 safeEulerAngles(const glm::quat& q);
+
 #endif /* defined(__hifi__SharedUtil__) */

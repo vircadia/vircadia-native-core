@@ -134,6 +134,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Data", &_dataServerScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
+    registerGlobalObject("Quat", &_quatLibrary);
+
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));

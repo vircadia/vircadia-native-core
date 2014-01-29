@@ -69,6 +69,9 @@ class AvatarData : public NodeData {
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
+
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+
 public:
     AvatarData();
     ~AvatarData();
@@ -91,6 +94,7 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
+    void setOrientation(const glm::quat& orientation);
 
     //  Scale
     float getTargetScale() const { return _targetScale; }
