@@ -14,9 +14,6 @@
 
 #include "Assignment.h"
 
-const char IPv4_ADDRESS_DESIGNATOR = 4;
-const char IPv6_ADDRESS_DESIGNATOR = 6;
-
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
         case NodeType::AudioMixer:
@@ -95,10 +92,7 @@ Assignment::Assignment(const QByteArray& packet) :
     }
     
     packetStream >> _pool;
-    
-    if (!packetStream.atEnd()) {
-        _payload = packet.mid(packetStream.device()->pos());
-    }
+    packetStream >> _payload;
 }
 
 #ifdef WIN32

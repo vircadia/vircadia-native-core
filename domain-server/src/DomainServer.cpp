@@ -575,7 +575,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
 
             Assignment voxelServerAssignment(Assignment::CreateCommand,
                                              Assignment::VoxelServerType,
-                                             (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
+                                             assignmentPool);
             
             voxelServerAssignment.setPayload(config.toUtf8());
 
@@ -615,8 +615,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             }
 
             Assignment particleServerAssignment(Assignment::CreateCommand,
-                                             Assignment::ParticleServerType,
-                                             (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
+                                                Assignment::ParticleServerType,
+                                                assignmentPool);
             
             particleServerAssignment.setPayload(config.toLocal8Bit());
 
@@ -689,7 +689,7 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
         bool assignmentTypesMatch = (*assignment)->getType() == requestAssignment.getType();
         bool nietherHasPool = (*assignment)->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
         bool assignmentPoolsMatch = (*assignment)->getPool() == requestAssignment.getPool();
-
+        
         if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
 
             Assignment* deployableAssignment = *assignment;

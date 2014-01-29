@@ -20,7 +20,6 @@
 #include "NodeList.h"
 
 const int MAX_PAYLOAD_BYTES = 1024;
-const int MAX_ASSIGNMENT_POOL_BYTES = 64 + sizeof('\0');
 
 const QString emptyPool = QString();
 
@@ -76,7 +75,7 @@ public:
     Assignment::Location getLocation() const { return _location; }
 
     const QByteArray& getPayload() const { return _payload; }
-    void setPayload(const QByteArray& payload) { _payload = payload; }
+    void setPayload(const QByteArray& payload) { _payload = payload.left(MAX_PAYLOAD_BYTES); }
 
     void setPool(const QString& pool) { _pool = pool; };
     const QString& getPool() const { return _pool; }
