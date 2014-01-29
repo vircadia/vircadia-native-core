@@ -30,39 +30,18 @@ const HifiSockAddr& DataServerClient::dataServerSockAddr() {
 }
 
 void DataServerClient::putValueForKeyAndUserString(const QString& key, const QString& value, const QString& userString) {
-    unsigned char putPacket[MAX_PACKET_SIZE];
+    // setup the header for this packet and push packetStream to desired spot
+    QByteArray putPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerPut);
+    QDataStream packetStream(&putPacket, QIODevice::Append);
     
-    // setup the header for this packet
-    int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
-    
-    // pack the sequence number
-    memcpy(putPacket + numPacketBytes, &_sequenceNumber, sizeof(_sequenceNumber));
-    numPacketBytes += sizeof(_sequenceNumber);
-    
-    // pack the client UUID, null terminated
-    memcpy(putPacket + numPacketBytes, qPrintable(userString), userString.size());
-    numPacketBytes += userString.size();
-    putPacket[numPacketBytes++] = '\0';
-    
-    // pack a 1 to designate that we are putting a single value
-    putPacket[numPacketBytes++] = 1;
-    
-    // pack the key, null terminated
-    strcpy((char*) putPacket + numPacketBytes, qPrintable(key));
-    numPacketBytes += key.size();
-    putPacket[numPacketBytes++] = '\0';
-    
-    // pack the value, null terminated
-    strcpy((char*) putPacket + numPacketBytes, qPrintable(value));
-    numPacketBytes += value.size();
-    putPacket[numPacketBytes++] = '\0';
+    // pack our data for the put packet
+    packetStream << _sequenceNumber << userString << key << value;
     
     // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
-    _unmatchedPackets.insert(_sequenceNumber, QByteArray((char*) putPacket, numPacketBytes));
+    _unmatchedPackets.insert(_sequenceNumber, putPacket);
     
     // send this put request to the data server
-    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) putPacket, numPacketBytes,
-                                                           dataServerSockAddr().getAddress(),
+    NodeList::getInstance()->getNodeSocket().writeDatagram(putPacket, dataServerSockAddr().getAddress(),
                                                            dataServerSockAddr().getPort());
     
     // push the sequence number forwards
@@ -87,38 +66,19 @@ void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QU
 void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
                                                    DataServerCallbackObject* callbackObject) {
     if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
-        unsigned char getPacket[MAX_PACKET_SIZE];
+        QByteArray getPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerGet);
+        QDataStream packetStream(&getPacket, QIODevice::Append);
         
-        // setup the header for this packet
-        int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
+        // pack our data for the getPacket
+        packetStream << _sequenceNumber << userString << keys.join(MULTI_KEY_VALUE_SEPARATOR);
         
-        // pack the sequence number
-        memcpy(getPacket + numPacketBytes, &_sequenceNumber, sizeof(_sequenceNumber));
-        numPacketBytes += sizeof(_sequenceNumber);
-
-        // pack the user string (could be username or UUID string), null-terminate
-        memcpy(getPacket + numPacketBytes, qPrintable(userString), userString.size());
-        numPacketBytes += userString.size();
-        getPacket[numPacketBytes++] = '\0';
-
-        // pack one byte to designate the number of keys
-        getPacket[numPacketBytes++] = keys.size();
-
-        QString keyString = keys.join(MULTI_KEY_VALUE_SEPARATOR);
-
-        // pack the key string, null terminated
-        strcpy((char*) getPacket + numPacketBytes, keyString.toLocal8Bit().constData());
-        numPacketBytes += keyString.size() + sizeof('\0');
-
         // add the getPacket to our map of unconfirmed packets, will be deleted once we get a response from the nameserver
-        _unmatchedPackets.insert(_sequenceNumber, QByteArray((char*) getPacket, numPacketBytes));
+        _unmatchedPackets.insert(_sequenceNumber, getPacket);
         _callbackObjects.insert(_sequenceNumber, callbackObject);
         
         // send the get to the data server
-        NodeList::getInstance()->getNodeSocket().writeDatagram((char*) getPacket, numPacketBytes,
-                                                               dataServerSockAddr().getAddress(),
+        NodeList::getInstance()->getNodeSocket().writeDatagram(getPacket, dataServerSockAddr().getAddress(),
                                                                dataServerSockAddr().getPort());
-                
         _sequenceNumber++;
     }
 }
@@ -128,49 +88,47 @@ void DataServerClient::getValueForKeyAndUserString(const QString& key, const QSt
     getValuesForKeysAndUserString(QStringList(key), userString, callbackObject);
 }
 
-void DataServerClient::processConfirmFromDataServer(unsigned char* packetData) {
-    removeMatchedPacketFromMap(packetData);
+void DataServerClient::processConfirmFromDataServer(const QByteArray& packet) {
+    removeMatchedPacketFromMap(packet);
 }
 
-void DataServerClient::processSendFromDataServer(unsigned char* packetData, int numPacketBytes) {
+void DataServerClient::processSendFromDataServer(const QByteArray& packet) {
     // pull the user string from the packet so we know who to associate this with
-    int numHeaderBytes = numBytesForPacketHeader(packetData);
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    quint8 sequenceNumber = *(packetData + numHeaderBytes);
+    quint8 sequenceNumber = 0;
+    packetStream >> sequenceNumber;
     
     if (_callbackObjects.find(sequenceNumber) != _callbackObjects.end()) {
         // remove the packet from our two maps, it's matched
         DataServerCallbackObject* callbackObject = _callbackObjects.take(sequenceNumber);
         _unmatchedPackets.remove(sequenceNumber);
         
-        char* userStringPosition = (char*) packetData + numHeaderBytes + sizeof(sequenceNumber);
-        QString userString(userStringPosition);
+        QString userString, keyListString, valueListString;
         
-        char* keysPosition = userStringPosition + userString.size() + sizeof('\0') + sizeof(unsigned char);
-        char* valuesPosition =  keysPosition + strlen(keysPosition) + sizeof('\0');
+        packetStream >> userString >> keyListString >> valueListString;
         
-        QStringList keyList = QString(keysPosition).split(MULTI_KEY_VALUE_SEPARATOR);
-        QStringList valueList = QString(valuesPosition).split(MULTI_KEY_VALUE_SEPARATOR);
-        
-        callbackObject->processDataServerResponse(userString, keyList, valueList);
+        callbackObject->processDataServerResponse(userString, keyListString.split(MULTI_KEY_VALUE_SEPARATOR),
+                                                  valueListString.split(MULTI_KEY_VALUE_SEPARATOR));
     }
 }
 
-void DataServerClient::processMessageFromDataServer(unsigned char* packetData, int numPacketBytes) {
-    switch (packetData[0]) {
-        case PACKET_TYPE_DATA_SERVER_SEND:
-            processSendFromDataServer(packetData, numPacketBytes);
+void DataServerClient::processMessageFromDataServer(const QByteArray& packet) {
+    switch (packetTypeForPacket(packet)) {
+        case PacketTypeDataServerSend:
+            processSendFromDataServer(packet);
             break;
-        case PACKET_TYPE_DATA_SERVER_CONFIRM:
-            processConfirmFromDataServer(packetData);
+        case PacketTypeDataServerConfirm:
+            processConfirmFromDataServer(packet);
             break;
         default:
             break;
     }
 }
 
-void DataServerClient::removeMatchedPacketFromMap(unsigned char* packetData) {
-    quint8 sequenceNumber = *(packetData + numBytesForPacketHeader(packetData));
+void DataServerClient::removeMatchedPacketFromMap(const QByteArray& packet) {
+    quint8 sequenceNumber = packet[numBytesForPacketHeader(packet)];
     
     // attempt to remove a packet with this sequence number from the QMap of unmatched packets
     _unmatchedPackets.remove(sequenceNumber);

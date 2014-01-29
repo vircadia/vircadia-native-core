@@ -28,7 +28,7 @@ class MetavoxelServer : public ThreadedAssignment {
 
 public:
     
-    MetavoxelServer(const unsigned char* dataBuffer, int numBytes);
+    MetavoxelServer(const QByteArray& packet);
 
     const MetavoxelDataPointer& getData() const { return _data; }
 

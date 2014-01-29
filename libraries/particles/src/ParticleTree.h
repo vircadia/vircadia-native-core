@@ -32,10 +32,10 @@ public:
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
-    virtual PACKET_TYPE expectedDataPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
-    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
-    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength, Node* senderNode);
+    virtual PacketType expectedDataPacketType() const { return PacketTypeParticleData; }
+    virtual bool handlesEditPacketType(PacketType packetType) const;
+    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+                    const unsigned char* editData, int maxLength, Node* senderNode);
 
     virtual void update();
 
@@ -63,12 +63,12 @@ public:
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
 
     bool hasAnyDeletedParticles() const { return _recentlyDeletedParticleIDs.size() > 0; }
-    bool hasParticlesDeletedSince(uint64_t sinceTime);
-    bool encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
-    void forgetParticlesDeletedBefore(uint64_t sinceTime);
+    bool hasParticlesDeletedSince(quint64 sinceTime);
+    bool encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    void forgetParticlesDeletedBefore(quint64 sinceTime);
 
     void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
-    void handleAddParticleResponse(unsigned char* packetData , int packetLength);
+    void handleAddParticleResponse(const QByteArray& packet);
 
 private:
 
@@ -89,7 +89,7 @@ private:
 
 
     QReadWriteLock _recentlyDeletedParticlesLock;
-    QMultiMap<uint64_t, uint32_t> _recentlyDeletedParticleIDs;
+    QMultiMap<quint64, uint32_t> _recentlyDeletedParticleIDs;
 };
 
 #endif /* defined(__hifi__ParticleTree__) */

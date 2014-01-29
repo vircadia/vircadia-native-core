@@ -16,10 +16,32 @@
 #endif
 
 #include "Node.h"
-#include "NodeTypes.h"
 #include "SharedUtil.h"
 
 #include <QtCore/QDebug>
+
+const QString UNKNOWN_NodeType_t_NAME = "Unknown";
+
+namespace NodeType {
+    QHash<NodeType_t, QString> TypeNameHash;
+}
+
+void NodeType::init() {
+    TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
+    TypeNameHash.insert(NodeType::VoxelServer, "Voxel Server");
+    TypeNameHash.insert(NodeType::ParticleServer, "Particle Server");
+    TypeNameHash.insert(NodeType::MetavoxelServer, "Metavoxel Server");
+    TypeNameHash.insert(NodeType::Agent, "Agent");
+    TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
+    TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
+    TypeNameHash.insert(NodeType::AnimationServer, "Animation Server");
+    TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
+}
+
+const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
+    QHash<NodeType_t, QString>::iterator matchedTypeName = TypeNameHash.find(nodeType);
+    return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
+}
 
 Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
     _type(type),
@@ -43,44 +65,6 @@ Node::~Node() {
     }
 
     delete _bytesReceivedMovingAverage;
-}
-
-// Names of Node Types
-const char* NODE_TYPE_NAME_DOMAIN = "Domain";
-const char* NODE_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
-const char* NODE_TYPE_NAME_PARTICLE_SERVER = "Particle Server";
-const char* NODE_TYPE_NAME_METAVOXEL_SERVER = "Metavoxel Server";
-const char* NODE_TYPE_NAME_AGENT = "Agent";
-const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
-const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
-const char* NODE_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
-const char* NODE_TYPE_NAME_ANIMATION_SERVER = "Animation Server";
-const char* NODE_TYPE_NAME_UNASSIGNED = "Unassigned";
-const char* NODE_TYPE_NAME_UNKNOWN = "Unknown";
-
-const char* Node::getTypeName() const {
-	switch (this->_type) {
-		case NODE_TYPE_DOMAIN:
-			return NODE_TYPE_NAME_DOMAIN;
-		case NODE_TYPE_VOXEL_SERVER:
-			return NODE_TYPE_NAME_VOXEL_SERVER;
-		case NODE_TYPE_PARTICLE_SERVER:
-		    return NODE_TYPE_NAME_PARTICLE_SERVER;
-		case NODE_TYPE_METAVOXEL_SERVER:
-		    return NODE_TYPE_NAME_METAVOXEL_SERVER;
-		case NODE_TYPE_AGENT:
-			return NODE_TYPE_NAME_AGENT;
-		case NODE_TYPE_AUDIO_MIXER:
-			return NODE_TYPE_NAME_AUDIO_MIXER;
-        case NODE_TYPE_AVATAR_MIXER:
-            return NODE_TYPE_NAME_AVATAR_MIXER;
-        case NODE_TYPE_ANIMATION_SERVER:
-            return NODE_TYPE_NAME_ANIMATION_SERVER;
-        case NODE_TYPE_UNASSIGNED:
-            return NODE_TYPE_NAME_UNASSIGNED;
-        default:
-            return NODE_TYPE_NAME_UNKNOWN;
-	}
 }
 
 void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
@@ -135,8 +119,26 @@ float Node::getAverageKilobitsPerSecond() {
     }
 }
 
+QDataStream& operator<<(QDataStream& out, const Node& node) {
+    out << node._type;
+    out << node._uuid;
+    out << node._publicSocket;
+    out << node._localSocket;
+    
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, Node& node) {
+    in >> node._type;
+    in >> node._uuid;
+    in >> node._publicSocket;
+    in >> node._localSocket;
+    
+    return in;
+}
+
 QDebug operator<<(QDebug debug, const Node &node) {
-    debug.nospace() << node.getTypeName() << " (" << node.getType() << ")";
+    debug.nospace() << NodeType::getNodeTypeName(node.getType()) << " (" << node.getType() << ")";
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();

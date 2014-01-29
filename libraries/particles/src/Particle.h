@@ -89,7 +89,7 @@ public:
     const glm::quat& getModelRotation() const { return _modelRotation; }
     float getModelScale() const { return _modelScale; }
 
-    uint64_t getLastEdited() const { return _lastEdited; }
+    quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
 
     /// set position in meter units
@@ -136,7 +136,7 @@ private:
 
     uint32_t _id;
     bool _idSet;
-    uint64_t _lastEdited;
+    quint64 _lastEdited;
 
     bool _positionChanged;
     bool _colorChanged;
@@ -194,7 +194,7 @@ public:
     Particle(const ParticleID& particleID, const ParticleProperties& properties);
     
     /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
-    static Particle fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
+    static Particle fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
 
     virtual ~Particle();
     virtual void init(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
@@ -231,11 +231,11 @@ public:
     ParticleProperties getProperties() const;
 
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
-    uint64_t getLastUpdated() const { return _lastUpdated; }
+    quint64 getLastUpdated() const { return _lastUpdated; }
 
     /// The last edited time of this particle from the time perspective of the authoritative server/source
-    uint64_t getLastEdited() const { return _lastEdited; }
-    void setLastEdited(uint64_t lastEdited) { _lastEdited = lastEdited; }
+    quint64 getLastEdited() const { return _lastEdited; }
+    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
     /// lifetime of the particle in seconds
     float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
@@ -283,14 +283,14 @@ public:
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
 
-    static bool encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& details,
+    static bool encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
-
+    
     void applyHardCollision(const CollisionInfo& collisionInfo);
 
-    void update(const uint64_t& now);
+    void update(const quint64& now);
     void collisionWithParticle(Particle* other);
     void collisionWithVoxel(VoxelDetail* voxel);
 
@@ -312,7 +312,7 @@ public:
     // these methods allow you to create particles, and later edit them.
     static uint32_t getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
-    static void handleAddParticleResponse(unsigned char* packetData , int packetLength);
+    static void handleAddParticleResponse(const QByteArray& packet);
 
 protected:
     static VoxelEditPacketSender* _voxelEditSender;
@@ -349,11 +349,11 @@ protected:
     uint32_t _creatorTokenID;
     bool _newlyCreated;
 
-    uint64_t _lastUpdated;
-    uint64_t _lastEdited;
+    quint64 _lastUpdated;
+    quint64 _lastEdited;
 
     // this doesn't go on the wire, we send it as lifetime
-    uint64_t _created;
+    quint64 _created;
 
     // used by the static interfaces for creator token ids
     static uint32_t _nextCreatorTokenID;

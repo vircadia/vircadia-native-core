@@ -224,9 +224,9 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 void VoxelStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
-    showOctreeServersOfType(serverCount, NODE_TYPE_VOXEL_SERVER, "Voxel", 
+    showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
             Application::getInstance()->getVoxelServerJurisdictions());
-    showOctreeServersOfType(serverCount, NODE_TYPE_PARTICLE_SERVER, "Particle", 
+    showOctreeServersOfType(serverCount, NodeType::ParticleServer, "Particle",
             Application::getInstance()->getParticleServerJurisdictions());
 
     if (_voxelServerLabelsCount > serverCount) {
@@ -239,7 +239,7 @@ void VoxelStatsDialog::showAllOctreeServers() {
     }
 }
 
-void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serverType, const char* serverTypeName,
+void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
                                                 NodeToJurisdictionMap& serverJurisdictions) {
                                                 
     QLocale locale(QLocale::English);
@@ -247,7 +247,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NODE_TYPE serve
     NodeList* nodeList = NodeList::getInstance();
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
             

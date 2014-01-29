@@ -16,7 +16,7 @@
 
 QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize) {
     // get the header size
-    int headerSize = numBytesForPacketHeader(reinterpret_cast<const unsigned char*>(data.constData()));
+    int headerSize = numBytesForPacketHeader(data);
     
     // read the session id
     const int UUID_BYTES = 16;

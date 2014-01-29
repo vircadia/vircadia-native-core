@@ -107,14 +107,14 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+    if (node->getType() == NodeType::MetavoxelServer) {
         QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
             Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
     }
 }
 
 void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_METAVOXEL_SERVER) {
+    if (node->getType() == NodeType::MetavoxelServer) {
         QMetaObject::invokeMethod(this, "removeClient", Q_ARG(const QUuid&, node->getUUID()));
     }
 }
@@ -167,8 +167,7 @@ bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
 }
 
 static QByteArray createDatagramHeader(const QUuid& sessionID) {
-    QByteArray header(MAX_PACKET_HEADER_BYTES, 0);
-    populateTypeAndVersion(reinterpret_cast<unsigned char*>(header.data()), PACKET_TYPE_METAVOXEL_DATA);
+    QByteArray header = byteArrayWithPopluatedHeader(PacketTypeMetavoxelData);
     header += sessionID.toRfc4122();
     return header;
 }
