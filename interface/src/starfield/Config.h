@@ -59,7 +59,7 @@ namespace starfield {
     using namespace std;
 
     typedef uint32_t nuint;
-    typedef uint64_t wuint;
+    typedef quint64 wuint;
 
 }
 

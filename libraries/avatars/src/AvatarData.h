@@ -19,7 +19,7 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 typedef signed long long   int64_t;
-typedef unsigned long long uint64_t;
+typedef unsigned long long quint64;
 #define PRId64 "I64d"
 #else
 #include <inttypes.h>
@@ -69,6 +69,10 @@ class AvatarData : public NodeData {
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
+
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
+
 public:
     AvatarData();
     ~AvatarData();
@@ -79,8 +83,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    QByteArray toByteArray();
+    int parseData(const QByteArray& packet);
 
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
@@ -91,6 +95,11 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
+    void setOrientation(const glm::quat& orientation);
+
+    // access to Head().set/getMousePitch
+    float getHeadPitch() const { return _headData->getPitch(); }
+    void setHeadPitch(float value) { _headData->setPitch(value); };
 
     //  Scale
     float getTargetScale() const { return _targetScale; }

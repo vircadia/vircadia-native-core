@@ -51,10 +51,10 @@ public:
 
     void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
 
-    virtual PACKET_TYPE expectedDataPacketType() const { return PACKET_TYPE_VOXEL_DATA; }
-    virtual bool handlesEditPacketType(PACKET_TYPE packetType) const;
-    virtual int processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength, Node* senderNode);
+    virtual PacketType expectedDataPacketType() const { return PacketTypeVoxelData; }
+    virtual bool handlesEditPacketType(PacketType packetType) const;
+    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+                    const unsigned char* editData, int maxLength, Node* senderNode);
     void processSetVoxelsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
 
 /**

@@ -17,8 +17,8 @@
 
 const int SEND_INTERVAL = 50;
 
-MetavoxelServer::MetavoxelServer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes) {
+MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
+    ThreadedAssignment(packet) {
     
     _sendTimer.setSingleShot(true);
     connect(&_sendTimer, SIGNAL(timeout()), SLOT(sendDeltas()));
@@ -35,7 +35,7 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
 const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
 
 void MetavoxelServer::run() {
-    commonInit(METAVOXEL_SERVER_LOGGING_NAME, NODE_TYPE_METAVOXEL_SERVER);
+    commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
@@ -43,12 +43,12 @@ void MetavoxelServer::run() {
 
 void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     switch (dataByteArray.at(0)) {
-        case PACKET_TYPE_METAVOXEL_DATA:
+        case PacketTypeMetavoxelData:
             processData(dataByteArray, senderSockAddr);
             break;
         
         default:
-            NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*)dataByteArray.data(), dataByteArray.size());
+            NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
             break;
     }
 }

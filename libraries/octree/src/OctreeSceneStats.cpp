@@ -379,7 +379,7 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_OCTREE_STATS);
+    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeOctreeStats);
     destinationBuffer += headerLength;
     
     memcpy(destinationBuffer, &_start, sizeof(_start));
@@ -476,11 +476,11 @@ int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int avai
     return destinationBuffer - bufferStart; // includes header!
 }
 
-int OctreeSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availableBytes) {
-    unsigned char* startPosition = sourceBuffer;
+int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
+    const unsigned char* startPosition = sourceBuffer;
 
     // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
     sourceBuffer += numBytesPacketHeader;
     
     memcpy(&_start, sourceBuffer, sizeof(_start));
@@ -691,7 +691,7 @@ OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {
 };
 
 const char* OctreeSceneStats::getItemValue(Item item) {
-    const uint64_t USECS_PER_SECOND = 1000 * 1000;
+    const quint64 USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
         case ITEM_ELAPSED: {
@@ -797,16 +797,16 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, 
+void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                                     bool wasStatsPacket, int nodeClockSkewUsec) {
     _incomingPacket++;
-    _incomingBytes += messageLength;
+    _incomingBytes += packet.size();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (MAX_PACKET_SIZE - messageLength);
+        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
     }
 
-    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
-    unsigned char* dataAt = messageData + numBytesPacketHeader;
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
     //VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
     dataAt += sizeof(OCTREE_PACKET_FLAGS);

@@ -10,12 +10,12 @@
 #include "OctreePacketData.h"
 
 bool OctreePacketData::_debug = false;
-uint64_t OctreePacketData::_totalBytesOfOctalCodes = 0;
-uint64_t OctreePacketData::_totalBytesOfBitMasks = 0;
-uint64_t OctreePacketData::_totalBytesOfColor = 0;
-uint64_t OctreePacketData::_totalBytesOfValues = 0;
-uint64_t OctreePacketData::_totalBytesOfPositions = 0;
-uint64_t OctreePacketData::_totalBytesOfRawData = 0;
+quint64 OctreePacketData::_totalBytesOfOctalCodes = 0;
+quint64 OctreePacketData::_totalBytesOfBitMasks = 0;
+quint64 OctreePacketData::_totalBytesOfColor = 0;
+quint64 OctreePacketData::_totalBytesOfValues = 0;
+quint64 OctreePacketData::_totalBytesOfPositions = 0;
+quint64 OctreePacketData::_totalBytesOfRawData = 0;
 
 
 
@@ -272,7 +272,7 @@ bool OctreePacketData::appendValue(uint32_t value) {
     return success;
 }
 
-bool OctreePacketData::appendValue(uint64_t value) {
+bool OctreePacketData::appendValue(quint64 value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
@@ -297,6 +297,19 @@ bool OctreePacketData::appendValue(float value) {
 bool OctreePacketData::appendValue(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(const glm::quat& value) {
+    const size_t VALUES_PER_QUAT = 4;
+    const size_t PACKED_QUAT_SIZE = sizeof(uint16_t) * VALUES_PER_QUAT;
+    unsigned char data[PACKED_QUAT_SIZE];
+    int length = packOrientationQuatToBytes(data, value);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -334,8 +347,8 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
     return success;
 }
 
-uint64_t OctreePacketData::_compressContentTime = 0;
-uint64_t OctreePacketData::_compressContentCalls = 0;
+quint64 OctreePacketData::_compressContentTime = 0;
+quint64 OctreePacketData::_compressContentCalls = 0;
 
 bool OctreePacketData::compressContent() { 
     PerformanceWarning warn(false, "OctreePacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);

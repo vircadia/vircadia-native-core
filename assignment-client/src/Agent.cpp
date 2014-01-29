@@ -22,37 +22,42 @@
 
 #include "Agent.h"
 
-Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes)
+Agent::Agent(const QByteArray& packet) :
+    ThreadedAssignment(packet)
 {
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    if (dataByteArray[0] == PACKET_TYPE_JURISDICTION) {
-        int headerBytes = numBytesForPacketHeader((const unsigned char*) dataByteArray.constData());
-        // PACKET_TYPE_JURISDICTION, first byte is the node type...
+    PacketType datagramPacketType = packetTypeForPacket(dataByteArray);
+    if (datagramPacketType == PacketTypeJurisdiction) {
+        int headerBytes = numBytesForPacketHeader(dataByteArray);
+        // PacketType_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
-            case NODE_TYPE_VOXEL_SERVER:
+            case NodeType::VoxelServer:
                 _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                (unsigned char*) dataByteArray.data(),
-                                                                                dataByteArray.size());
+                                                                                                            dataByteArray);
                 break;
-            case NODE_TYPE_PARTICLE_SERVER:
+            case NodeType::ParticleServer:
                 _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                (unsigned char*) dataByteArray.data(),
-                                                                                dataByteArray.size());
+                                                                                                               dataByteArray);
                 break;
         }
+    } else if (datagramPacketType == PacketTypeParticleAddResponse) {
+        // this will keep creatorTokenIDs to IDs mapped correctly
+        Particle::handleAddParticleResponse(dataByteArray);
+        
+        // also give our local particle tree a chance to remap any internal locally created particles
+        _particleTree.handleAddParticleResponse(dataByteArray);
     } else {
-        NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
 void Agent::run() {
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->setOwnerType(NODE_TYPE_AGENT);
+    nodeList->setOwnerType(NodeType::Agent);
     
-    nodeList->addSetOfNodeTypesToNodeInterestSet(QSet<NODE_TYPE>() << NODE_TYPE_AUDIO_MIXER << NODE_TYPE_AVATAR_MIXER);
+    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer);
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
@@ -87,6 +92,9 @@ void Agent::run() {
     QTimer* pingNodesTimer = new QTimer(this);
     connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
     pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
+    
+    // tell our script engine about our local particle tree
+    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(&_particleTree);
     
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;

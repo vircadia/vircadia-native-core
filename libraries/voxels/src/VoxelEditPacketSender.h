@@ -18,19 +18,19 @@ class VoxelEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
     /// Send voxel edit message immediately
-    void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
+    void sendVoxelEditMessage(PacketType type, VoxelDetail& detail);
 
     /// Queues a single voxel edit message. Will potentially send a pending multi-command packet. Determines which voxel-server
     /// node or nodes the packet should be sent to. Can be called even before voxel servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when voxel servers are known.
-    void queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
+    void queueVoxelEditMessage(PacketType type, unsigned char* codeColorBuffer, ssize_t length) {
         queueOctreeEditMessage(type, codeColorBuffer, length);
     }
 
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines 
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in 
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
-    void queueVoxelEditMessages(PACKET_TYPE type, int numberOfDetails, VoxelDetail* details);
+    void queueVoxelEditMessages(PacketType type, int numberOfDetails, VoxelDetail* details);
 
     /// call this to inform the VoxelEditPacketSender of the voxel server jurisdictions. This is required for normal operation.
     /// The internal contents of the jurisdiction map may change throughout the lifetime of the VoxelEditPacketSender. This map
@@ -44,6 +44,6 @@ public:
     bool voxelServersExist() const { return serversExist(); }
 
     // My server type is the voxel server
-    virtual unsigned char getMyNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
+    virtual unsigned char getMyNodeType() const { return NodeType::VoxelServer; }
 };
 #endif // __shared__VoxelEditPacketSender__

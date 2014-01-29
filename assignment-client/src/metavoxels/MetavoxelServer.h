@@ -29,7 +29,7 @@ class MetavoxelServer : public ThreadedAssignment {
 
 public:
     
-    MetavoxelServer(const unsigned char* dataBuffer, int numBytes);
+    MetavoxelServer(const QByteArray& packet);
 
     void applyEdit(const MetavoxelEditMessage& edit);
 

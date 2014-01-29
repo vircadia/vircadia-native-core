@@ -28,17 +28,17 @@
 
 class PerformanceWarning {
 private:
-	uint64_t _start;
+	quint64 _start;
 	const char* _message;
 	bool _renderWarningsOn;
 	bool _alwaysDisplay;
-	uint64_t* _runningTotal;
-	uint64_t* _totalCalls;
+	quint64* _runningTotal;
+	quint64* _totalCalls;
 	static bool _suppressShortTimings;
 public:
 
     PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false,
-                        uint64_t* runningTotal = NULL, uint64_t* totalCalls = NULL) :
+                        quint64* runningTotal = NULL, quint64* totalCalls = NULL) :
         _start(usecTimestampNow()),
         _message(message),
         _renderWarningsOn(renderWarnings),

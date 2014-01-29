@@ -10,7 +10,11 @@
 #define __hifi__AbstractControllerScriptingInterface__
 
 #include <QtCore/QObject>
+
 #include <glm/glm.hpp>
+
+#include "EventTypes.h"
+
 
 /// handles scripting of input controller commands from JS
 class AbstractControllerScriptingInterface : public QObject {
@@ -33,6 +37,34 @@ public slots:
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const = 0;
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const = 0;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const = 0;
+
+    virtual void captureKeyEvents(const KeyEvent& event) = 0;
+    virtual void releaseKeyEvents(const KeyEvent& event) = 0;
+
+    virtual void captureMouseEvents() = 0;
+    virtual void releaseMouseEvents() = 0;
+
+    virtual void captureTouchEvents() = 0;
+    virtual void releaseTouchEvents() = 0;
+
+    virtual void captureWheelEvents() = 0;
+    virtual void releaseWheelEvents() = 0;
+
+
+signals:
+    void keyPressEvent(const KeyEvent& event);
+    void keyReleaseEvent(const KeyEvent& event);
+
+    void mouseMoveEvent(const MouseEvent& event);
+    void mousePressEvent(const MouseEvent& event);
+    void mouseReleaseEvent(const MouseEvent& event);
+
+    void touchBeginEvent(const TouchEvent& event);
+    void touchEndEvent(const TouchEvent& event);
+    void touchUpdateEvent(const TouchEvent& event);
+    
+    void wheelEvent(const WheelEvent& event);
+
 };
 
 #endif /* defined(__hifi__AbstractControllerScriptingInterface__) */

@@ -15,14 +15,14 @@
 #include <PacketHeaders.h>
 #include "JurisdictionListener.h"
 
-JurisdictionListener::JurisdictionListener(NODE_TYPE type) :
+JurisdictionListener::JurisdictionListener(NodeType_t type) :
     _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
     _nodeType = type;
     ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     
     connect(NodeList::getInstance(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
-    //qDebug("JurisdictionListener::JurisdictionListener(NODE_TYPE type=%c)", type);
+    //qDebug("JurisdictionListener::JurisdictionListener(NodeType_t type=%c)", type);
     
     // tell our NodeList we want to hear about nodes with our node type
     NodeList::getInstance()->addNodeTypeToInterestSet(type);
@@ -39,7 +39,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
-    ssize_t sizeOut = populateTypeAndVersion(bufferOut, PACKET_TYPE_JURISDICTION_REQUEST);
+    ssize_t sizeOut = populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
     NodeList* nodeList = NodeList::getInstance();
@@ -48,7 +48,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
         if (nodeList->getNodeActiveSocketOrPing(node.data()) &&
             node->getType() == getNodeType()) {
             const HifiSockAddr* nodeAddress = node->getActiveSocket();
-            _packetSender.queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
+            _packetSender.queuePacketForSending(*nodeAddress, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
             nodeCount++;
         }
     }
@@ -63,14 +63,14 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     return isStillRunning();
 }
 
-void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
+void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet) {
     //qDebug() << "JurisdictionListener::processPacket()";
-    if (packetData[0] == PACKET_TYPE_JURISDICTION) {
+    if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest) {
         SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
             JurisdictionMap map;
-            map.unpackFromMessage(packetData, packetLength);
+            map.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
             _jurisdictions[nodeUUID] = map;
         }
     }

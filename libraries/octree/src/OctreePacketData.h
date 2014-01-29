@@ -25,11 +25,13 @@
 
 typedef unsigned char OCTREE_PACKET_FLAGS;
 typedef uint16_t OCTREE_PACKET_SEQUENCE;
-typedef uint64_t OCTREE_PACKET_SENT_TIME;
+typedef quint64 OCTREE_PACKET_SENT_TIME;
 typedef uint16_t OCTREE_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_OCTREE_PACKET_SIZE = MAX_PACKET_SIZE;
-const int OCTREE_PACKET_HEADER_SIZE = (sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(OCTREE_PACKET_FLAGS) 
-                + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
+
+// this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType could be as small as one byte
+const int OCTREE_PACKET_HEADER_SIZE = MAX_PACKET_HEADER_BYTES +  sizeof(OCTREE_PACKET_FLAGS)
+                + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 
 const int MAX_OCTREE_PACKET_DATA_SIZE = MAX_PACKET_SIZE - OCTREE_PACKET_HEADER_SIZE;
             
@@ -60,7 +62,7 @@ private:
     int _bytesOfColor;
 };
 
-/// Handles packing of the data portion of PACKET_TYPE_OCTREE_DATA messages. 
+/// Handles packing of the data portion of PacketType_OCTREE_DATA messages. 
 class OctreePacketData {
 public:
     OctreePacketData(bool enableCompression = false, int maxFinalizedSize = MAX_OCTREE_PACKET_DATA_SIZE);
@@ -122,13 +124,16 @@ public:
     bool appendValue(uint32_t value);
 
     /// appends a unsigned 64 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(uint64_t value);
+    bool appendValue(quint64 value);
 
     /// appends a float value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(float value);
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
+
+    /// appends a packed quat to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const glm::quat& value);
 
     /// appends a bool value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(bool value);
@@ -168,11 +173,11 @@ public:
     /// displays contents for debugging
     void debugContent();
     
-    static uint64_t getCompressContentTime() { return _compressContentTime; } /// total time spent compressing content
-    static uint64_t getCompressContentCalls() { return _compressContentCalls; } /// total calls to compress content
-    static uint64_t getTotalBytesOfOctalCodes() { return _totalBytesOfOctalCodes; }  /// total bytes for octal codes
-    static uint64_t getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
-    static uint64_t getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
+    static quint64 getCompressContentTime() { return _compressContentTime; } /// total time spent compressing content
+    static quint64 getCompressContentCalls() { return _compressContentCalls; } /// total calls to compress content
+    static quint64 getTotalBytesOfOctalCodes() { return _totalBytesOfOctalCodes; }  /// total bytes for octal codes
+    static quint64 getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
+    static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
@@ -208,15 +213,15 @@ private:
 
     static bool _debug;
 
-    static uint64_t _compressContentTime;
-    static uint64_t _compressContentCalls;
+    static quint64 _compressContentTime;
+    static quint64 _compressContentCalls;
 
-    static uint64_t _totalBytesOfOctalCodes;
-    static uint64_t _totalBytesOfBitMasks;
-    static uint64_t _totalBytesOfColor;
-    static uint64_t _totalBytesOfValues;
-    static uint64_t _totalBytesOfPositions;
-    static uint64_t _totalBytesOfRawData;
+    static quint64 _totalBytesOfOctalCodes;
+    static quint64 _totalBytesOfBitMasks;
+    static quint64 _totalBytesOfColor;
+    static quint64 _totalBytesOfValues;
+    static quint64 _totalBytesOfPositions;
+    static quint64 _totalBytesOfRawData;
 };
 
 #endif /* defined(__hifi__OctreePacketData__) */

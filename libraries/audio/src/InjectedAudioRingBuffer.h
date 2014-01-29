@@ -17,7 +17,7 @@ class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     InjectedAudioRingBuffer(const QUuid& streamIdentifier = QUuid());
     
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
     
     const QUuid& getStreamIdentifier() const { return _streamIdentifier; }
     float getRadius() const { return _radius; }

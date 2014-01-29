@@ -15,13 +15,14 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <ParticleTree.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 public:
-    Agent(const unsigned char* dataBuffer, int numBytes);
+    Agent(const QByteArray& packet);
     
 public slots:
     void run();
@@ -32,6 +33,7 @@ signals:
     void willSendVisualDataCallback();
 private:
     ScriptEngine _scriptEngine;
+    ParticleTree _particleTree;
 };
 
 #endif /* defined(__hifi__Agent__) */

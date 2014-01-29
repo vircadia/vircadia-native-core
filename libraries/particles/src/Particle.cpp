@@ -45,9 +45,9 @@ uint32_t Particle::getNextCreatorTokenID() {
     return creatorTokenID;
 }
 
-void Particle::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
-    unsigned char* dataAt = packetData;
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+void Particle::handleAddParticleResponse(const QByteArray& packet) {
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
@@ -64,19 +64,38 @@ void Particle::handleAddParticleResponse(unsigned char* packetData , int packetL
     _tokenIDsToIDs[creatorTokenID] = particleID;
 }
 
-
-
-Particle::Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity, glm::vec3 gravity,
-                    float damping, float lifetime, bool inHand, QString updateScript, uint32_t id) {
-
-    init(position, radius, color, velocity, gravity, damping, lifetime, inHand, updateScript, id);
-}
-
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
     init(glm::vec3(0,0,0), 0, noColor, glm::vec3(0,0,0),
             DEFAULT_GRAVITY, DEFAULT_DAMPING, DEFAULT_LIFETIME, NOT_IN_HAND, DEFAULT_SCRIPT, NEW_PARTICLE);
 }
+
+Particle::Particle(const ParticleID& particleID, const ParticleProperties& properties) {
+    _id = particleID.id;
+    _creatorTokenID = particleID.creatorTokenID;
+
+    // init values with defaults before calling setProperties
+    uint64_t now = usecTimestampNow();
+    _lastEdited = now;
+    _lastUpdated = now;
+    _created = now; // will get updated as appropriate in setAge()
+
+    _position = glm::vec3(0,0,0);
+    _radius = 0;
+    _mass = 1.0f;
+    rgbColor noColor = { 0, 0, 0 };
+    memcpy(_color, noColor, sizeof(_color));
+    _velocity = glm::vec3(0,0,0);
+    _damping = DEFAULT_DAMPING;
+    _lifetime = DEFAULT_LIFETIME;
+    _gravity = DEFAULT_GRAVITY;
+    _script = DEFAULT_SCRIPT;
+    _inHand = NOT_IN_HAND;
+    _shouldDie = false;
+    
+    setProperties(properties);
+}
+
 
 Particle::~Particle() {
 }
@@ -86,12 +105,10 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     if (id == NEW_PARTICLE) {
         _id = _nextID;
         _nextID++;
-        //qDebug() << "Particle::init()... assigning new id... _id=" << _id;
     } else {
         _id = id;
-        //qDebug() << "Particle::init()... assigning id from init... _id=" << _id;
     }
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
     _created = now; // will get updated as appropriate in setAge()
@@ -157,7 +174,6 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     if (success) {
         success = packetData->appendValue(getShouldDie());
     }
-
     if (success) {
         uint16_t scriptLength = _script.size() + 1; // include NULL
         success = packetData->appendValue(scriptLength);
@@ -165,29 +181,36 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
             success = packetData->appendRawData((const unsigned char*)qPrintable(_script), scriptLength);
         }
     }
+
+    // modelURL
+    if (success) {
+        uint16_t modelURLLength = _modelURL.size() + 1; // include NULL
+        success = packetData->appendValue(modelURLLength);
+        if (success) {
+            success = packetData->appendRawData((const unsigned char*)qPrintable(_modelURL), modelURLLength);
+        }
+    }
+    // modelTranslation
+    if (success) {
+        success = packetData->appendValue(getModelTranslation());
+    }
+    // modelRotation
+    if (success) {
+        success = packetData->appendValue(getModelRotation());
+    }
+    // modelScale
+    if (success) {
+        success = packetData->appendValue(getModelScale());
+    }
+
     return success;
 }
 
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // age
-                + sizeof(uint64_t) // last updated
-                + sizeof(uint64_t) // lasted edited
-                + sizeof(float) // radius
-                + sizeof(glm::vec3) // position
-                + sizeof(rgbColor) // color
-                + sizeof(glm::vec3) // velocity
-                + sizeof(glm::vec3) // gravity
-                + sizeof(float) // damping
-                + sizeof(float) // lifetime
-                + sizeof(bool); // inhand
-                // potentially more...
-    return expectedBytes;
-}
-
-int Particle::expectedEditMessageBytes() {
-    int expectedBytes = sizeof(uint32_t) // id
-                + sizeof(uint64_t) // lasted edited
+                + sizeof(quint64) // last updated
+                + sizeof(quint64) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -286,15 +309,40 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += scriptLength;
         bytesRead += scriptLength;
 
+        // modelURL
+        uint16_t modelURLLength;
+        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
+        dataAt += sizeof(modelURLLength);
+        bytesRead += sizeof(modelURLLength);
+        QString modelURLString((const char*)dataAt);
+        _modelURL = modelURLString;
+        dataAt += modelURLLength;
+        bytesRead += modelURLLength;
+
+        // modelTranslation
+        memcpy(&_modelTranslation, dataAt, sizeof(_modelTranslation));
+        dataAt += sizeof(_modelTranslation);
+        bytesRead += sizeof(_modelTranslation);
+
+        // modelRotation
+        int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
+        dataAt += bytes;
+        bytesRead += bytes;
+
+        // modelScale
+        memcpy(&_modelScale, dataAt, sizeof(_modelScale));
+        dataAt += sizeof(_modelScale);
+        bytesRead += sizeof(_modelScale);
+
         //printf("Particle::readParticleDataFromBuffer()... "); debugDump();
     }
     return bytesRead;
 }
 
+Particle Particle::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid) {
 
-Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid) {
     Particle newParticle; // id and _lastUpdated will get set here...
-    unsigned char* dataAt = data;
+    const unsigned char* dataAt = data;
     processedBytes = 0;
 
     // the first part of the data is our octcode...
@@ -366,49 +414,49 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
 
     // radius
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_RADIUS) == CONTAINS_RADIUS)) {
         memcpy(&newParticle._radius, dataAt, sizeof(newParticle._radius));
         dataAt += sizeof(newParticle._radius);
         processedBytes += sizeof(newParticle._radius);
     }
 
     // position
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_POSITION) == CONTAINS_POSITION)) {
         memcpy(&newParticle._position, dataAt, sizeof(newParticle._position));
         dataAt += sizeof(newParticle._position);
         processedBytes += sizeof(newParticle._position);
     }
 
     // color
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_COLOR) == CONTAINS_COLOR)) {
         memcpy(newParticle._color, dataAt, sizeof(newParticle._color));
         dataAt += sizeof(newParticle._color);
         processedBytes += sizeof(newParticle._color);
     }
 
     // velocity
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_VELOCITY) == CONTAINS_VELOCITY)) {
         memcpy(&newParticle._velocity, dataAt, sizeof(newParticle._velocity));
         dataAt += sizeof(newParticle._velocity);
         processedBytes += sizeof(newParticle._velocity);
     }
 
     // gravity
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_GRAVITY) == CONTAINS_GRAVITY)) {
         memcpy(&newParticle._gravity, dataAt, sizeof(newParticle._gravity));
         dataAt += sizeof(newParticle._gravity);
         processedBytes += sizeof(newParticle._gravity);
     }
 
     // damping
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_DAMPING) == CONTAINS_DAMPING)) {
         memcpy(&newParticle._damping, dataAt, sizeof(newParticle._damping));
         dataAt += sizeof(newParticle._damping);
         processedBytes += sizeof(newParticle._damping);
     }
 
     // lifetime
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_LIFETIME) == CONTAINS_LIFETIME)) {
         memcpy(&newParticle._lifetime, dataAt, sizeof(newParticle._lifetime));
         dataAt += sizeof(newParticle._lifetime);
         processedBytes += sizeof(newParticle._lifetime);
@@ -416,21 +464,21 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
 
     // TODO: make inHand and shouldDie into single bits
     // inHand
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_INHAND) == CONTAINS_INHAND)) {
         memcpy(&newParticle._inHand, dataAt, sizeof(newParticle._inHand));
         dataAt += sizeof(newParticle._inHand);
         processedBytes += sizeof(newParticle._inHand);
     }
 
     // shouldDie
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SHOULDDIE) == PACKET_CONTAINS_SHOULDDIE)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_SHOULDDIE) == CONTAINS_SHOULDDIE)) {
         memcpy(&newParticle._shouldDie, dataAt, sizeof(newParticle._shouldDie));
         dataAt += sizeof(newParticle._shouldDie);
         processedBytes += sizeof(newParticle._shouldDie);
     }
 
     // script
-    if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT)) {
+    if (isNewParticle || ((packetContainsBits & CONTAINS_SCRIPT) == CONTAINS_SCRIPT)) {
         uint16_t scriptLength;
         memcpy(&scriptLength, dataAt, sizeof(scriptLength));
         dataAt += sizeof(scriptLength);
@@ -439,6 +487,39 @@ Particle Particle::fromEditPacket(unsigned char* data, int length, int& processe
         newParticle._script = tempString;
         dataAt += scriptLength;
         processedBytes += scriptLength;
+    }
+
+    // modelURL
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_URL) == CONTAINS_MODEL_URL)) {
+        uint16_t modelURLLength;
+        memcpy(&modelURLLength, dataAt, sizeof(modelURLLength));
+        dataAt += sizeof(modelURLLength);
+        processedBytes += sizeof(modelURLLength);
+        QString tempString((const char*)dataAt);
+        newParticle._modelURL = tempString;
+        dataAt += modelURLLength;
+        processedBytes += modelURLLength;
+    }
+
+    // modelTranslation
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
+        memcpy(&newParticle._modelTranslation, dataAt, sizeof(newParticle._modelTranslation));
+        dataAt += sizeof(newParticle._modelTranslation);
+        processedBytes += sizeof(newParticle._modelTranslation);
+    }
+
+    // modelRotation
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_ROTATION) == CONTAINS_MODEL_ROTATION)) {
+        int bytes = unpackOrientationQuatFromBytes(dataAt, newParticle._modelRotation);
+        dataAt += bytes;
+        processedBytes += bytes;
+    }
+
+    // modelScale
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
+        memcpy(&newParticle._modelScale, dataAt, sizeof(newParticle._modelScale));
+        dataAt += sizeof(newParticle._modelScale);
+        processedBytes += sizeof(newParticle._modelScale);
     }
 
     const bool wantDebugging = false;
@@ -464,7 +545,7 @@ void Particle::debugDump() const {
     printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
 }
 
-bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& properties,
+bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best
@@ -487,138 +568,166 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
 
     int octets = numberOfThreeBitSectionsInCode(octcode);
     int lengthOfOctcode = bytesRequiredForCodeLength(octets);
-    int lenfthOfEditData = lengthOfOctcode + expectedEditMessageBytes();
 
-    // make sure we have room to copy this particle
-    if (sizeOut + lenfthOfEditData > sizeIn) {
-        success = false;
-    } else {
-        // add it to our message
-        memcpy(copyAt, octcode, lengthOfOctcode);
-        copyAt += lengthOfOctcode;
-        sizeOut += lengthOfOctcode;
+    // add it to our message
+    memcpy(copyAt, octcode, lengthOfOctcode);
+    copyAt += lengthOfOctcode;
+    sizeOut += lengthOfOctcode;
 
-        // Now add our edit content details...
-        bool isNewParticle = (id.id == NEW_PARTICLE);
+    // Now add our edit content details...
+    bool isNewParticle = (id.id == NEW_PARTICLE);
 
-        // id
-        memcpy(copyAt, &id.id, sizeof(id.id));
-        copyAt += sizeof(id.id);
-        sizeOut += sizeof(id.id);
+    // id
+    memcpy(copyAt, &id.id, sizeof(id.id));
+    copyAt += sizeof(id.id);
+    sizeOut += sizeof(id.id);
 
-        // special case for handling "new" particles
-        if (isNewParticle) {
-            // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
-            // we want to send back to the creator as an map to the actual id
-            memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
-            copyAt += sizeof(id.creatorTokenID);
-            sizeOut += sizeof(id.creatorTokenID);
-        }
+    // special case for handling "new" particles
+    if (isNewParticle) {
+        // If this is a NEW_PARTICLE, then we assume that there's an additional uint32_t creatorToken, that
+        // we want to send back to the creator as an map to the actual id
+        memcpy(copyAt, &id.creatorTokenID, sizeof(id.creatorTokenID));
+        copyAt += sizeof(id.creatorTokenID);
+        sizeOut += sizeof(id.creatorTokenID);
+    }
+    
+    // lastEdited
+    quint64 lastEdited = properties.getLastEdited();
+    memcpy(copyAt, &lastEdited, sizeof(lastEdited));
+    copyAt += sizeof(lastEdited);
+    sizeOut += sizeof(lastEdited);
+    
+    // For new particles, all remaining items are mandatory, for an edited particle, All of the remaining items are
+    // optional, and may or may not be included based on their included values in the properties included bits
+    uint16_t packetContainsBits = properties.getChangedBits();
+    if (!isNewParticle) {
+        memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
+        copyAt += sizeof(packetContainsBits);
+        sizeOut += sizeof(packetContainsBits);
+    }
 
-        // lastEdited
-        uint64_t lastEdited = properties.getLastEdited();
-        memcpy(copyAt, &lastEdited, sizeof(lastEdited));
-        copyAt += sizeof(lastEdited);
-        sizeOut += sizeof(lastEdited);
+    // radius
+    if (isNewParticle || ((packetContainsBits & CONTAINS_RADIUS) == CONTAINS_RADIUS)) {
+        float radius = properties.getRadius() / (float) TREE_SCALE;
+        memcpy(copyAt, &radius, sizeof(radius));
+        copyAt += sizeof(radius);
+        sizeOut += sizeof(radius);
+    }
 
-        // For new particles, all remaining items are mandatory, for an edited particle, All of the remaining items are
-        // optional, and may or may not be included based on their included values in the properties included bits
-        uint16_t packetContainsBits = properties.getChangedBits();
-        if (!isNewParticle) {
-            memcpy(copyAt, &packetContainsBits, sizeof(packetContainsBits));
-            copyAt += sizeof(packetContainsBits);
-            sizeOut += sizeof(packetContainsBits);
-        }
+    // position
+    if (isNewParticle || ((packetContainsBits & CONTAINS_POSITION) == CONTAINS_POSITION)) {
+        glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
+        memcpy(copyAt, &position, sizeof(position));
+        copyAt += sizeof(position);
+        sizeOut += sizeof(position);
+    }
 
-        // radius
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_RADIUS) == PACKET_CONTAINS_RADIUS)) {
-            float radius = properties.getRadius() / (float) TREE_SCALE;
-            memcpy(copyAt, &radius, sizeof(radius));
-            copyAt += sizeof(radius);
-            sizeOut += sizeof(radius);
-        }
+    // color
+    if (isNewParticle || ((packetContainsBits & CONTAINS_COLOR) == CONTAINS_COLOR)) {
+        rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
+        memcpy(copyAt, color, sizeof(color));
+        copyAt += sizeof(color);
+        sizeOut += sizeof(color);
+    }
 
-        // position
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION)) {
-            glm::vec3 position = properties.getPosition() / (float)TREE_SCALE;
-            memcpy(copyAt, &position, sizeof(position));
-            copyAt += sizeof(position);
-            sizeOut += sizeof(position);
-        }
+    // velocity
+    if (isNewParticle || ((packetContainsBits & CONTAINS_VELOCITY) == CONTAINS_VELOCITY)) {
+        glm::vec3 velocity = properties.getVelocity() / (float)TREE_SCALE;
+        memcpy(copyAt, &velocity, sizeof(velocity));
+        copyAt += sizeof(velocity);
+        sizeOut += sizeof(velocity);
+    }
 
-        // color
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_COLOR) == PACKET_CONTAINS_COLOR)) {
-            rgbColor color = { properties.getColor().red, properties.getColor().green, properties.getColor().blue };
-            memcpy(copyAt, color, sizeof(color));
-            copyAt += sizeof(color);
-            sizeOut += sizeof(color);
-        }
+    // gravity
+    if (isNewParticle || ((packetContainsBits & CONTAINS_GRAVITY) == CONTAINS_GRAVITY)) {
+        glm::vec3 gravity = properties.getGravity() / (float)TREE_SCALE;
+        memcpy(copyAt, &gravity, sizeof(gravity));
+        copyAt += sizeof(gravity);
+        sizeOut += sizeof(gravity);
+    }
 
-        // velocity
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY)) {
-            glm::vec3 velocity = properties.getVelocity() / (float)TREE_SCALE;
-            memcpy(copyAt, &velocity, sizeof(velocity));
-            copyAt += sizeof(velocity);
-            sizeOut += sizeof(velocity);
-        }
+    // damping
+    if (isNewParticle || ((packetContainsBits & CONTAINS_DAMPING) == CONTAINS_DAMPING)) {
+        float damping = properties.getDamping();
+        memcpy(copyAt, &damping, sizeof(damping));
+        copyAt += sizeof(damping);
+        sizeOut += sizeof(damping);
+    }
 
-        // gravity
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_GRAVITY) == PACKET_CONTAINS_GRAVITY)) {
-            glm::vec3 gravity = properties.getGravity() / (float)TREE_SCALE;
-            memcpy(copyAt, &gravity, sizeof(gravity));
-            copyAt += sizeof(gravity);
-            sizeOut += sizeof(gravity);
-        }
+    // lifetime
+    if (isNewParticle || ((packetContainsBits & CONTAINS_LIFETIME) == CONTAINS_LIFETIME)) {
+        float lifetime = properties.getLifetime();
+        memcpy(copyAt, &lifetime, sizeof(lifetime));
+        copyAt += sizeof(lifetime);
+        sizeOut += sizeof(lifetime);
+    }
 
-        // damping
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_DAMPING) == PACKET_CONTAINS_DAMPING)) {
-            float damping = properties.getDamping();
-            memcpy(copyAt, &damping, sizeof(damping));
-            copyAt += sizeof(damping);
-            sizeOut += sizeof(damping);
-        }
+    // inHand
+    if (isNewParticle || ((packetContainsBits & CONTAINS_INHAND) == CONTAINS_INHAND)) {
+        bool inHand = properties.getInHand();
+        memcpy(copyAt, &inHand, sizeof(inHand));
+        copyAt += sizeof(inHand);
+        sizeOut += sizeof(inHand);
+    }
 
-        // lifetime
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_LIFETIME) == PACKET_CONTAINS_LIFETIME)) {
-            float lifetime = properties.getLifetime();
-            memcpy(copyAt, &lifetime, sizeof(lifetime));
-            copyAt += sizeof(lifetime);
-            sizeOut += sizeof(lifetime);
-        }
+    // shoulDie
+    if (isNewParticle || ((packetContainsBits & CONTAINS_SHOULDDIE) == CONTAINS_SHOULDDIE)) {
+        bool shouldDie = properties.getShouldDie();
+        memcpy(copyAt, &shouldDie, sizeof(shouldDie));
+        copyAt += sizeof(shouldDie);
+        sizeOut += sizeof(shouldDie);
+    }
 
-        // inHand
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND)) {
-            bool inHand = properties.getInHand();
-            memcpy(copyAt, &inHand, sizeof(inHand));
-            copyAt += sizeof(inHand);
-            sizeOut += sizeof(inHand);
-        }
+    // script
+    if (isNewParticle || ((packetContainsBits & CONTAINS_SCRIPT) == CONTAINS_SCRIPT)) {
+        uint16_t scriptLength = properties.getScript().size() + 1;
+        memcpy(copyAt, &scriptLength, sizeof(scriptLength));
+        copyAt += sizeof(scriptLength);
+        sizeOut += sizeof(scriptLength);
+        memcpy(copyAt, qPrintable(properties.getScript()), scriptLength);
+        copyAt += scriptLength;
+        sizeOut += scriptLength;
+    }
 
-        // shoulDie
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SHOULDDIE) == PACKET_CONTAINS_SHOULDDIE)) {
-            bool shouldDie = properties.getShouldDie();
-            memcpy(copyAt, &shouldDie, sizeof(shouldDie));
-            copyAt += sizeof(shouldDie);
-            sizeOut += sizeof(shouldDie);
-        }
+    // modelURL
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_URL) == CONTAINS_MODEL_URL)) {
+        uint16_t urlLength = properties.getModelURL().size() + 1;
+        memcpy(copyAt, &urlLength, sizeof(urlLength));
+        copyAt += sizeof(urlLength);
+        sizeOut += sizeof(urlLength);
+        memcpy(copyAt, qPrintable(properties.getModelURL()), urlLength);
+        copyAt += urlLength;
+        sizeOut += urlLength;
+    }
 
-        // script
-        if (isNewParticle || ((packetContainsBits & PACKET_CONTAINS_SCRIPT) == PACKET_CONTAINS_SCRIPT)) {
-            uint16_t scriptLength = properties.getScript().size() + 1;
-            memcpy(copyAt, &scriptLength, sizeof(scriptLength));
-            copyAt += sizeof(scriptLength);
-            sizeOut += sizeof(scriptLength);
-            memcpy(copyAt, qPrintable(properties.getScript()), scriptLength);
-            copyAt += scriptLength;
-            sizeOut += scriptLength;
-        }
+    // modelTranslation
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
+        glm::vec3 modelTranslation = properties.getModelTranslation(); // should this be relative to TREE_SCALE??
+        memcpy(copyAt, &modelTranslation, sizeof(modelTranslation));
+        copyAt += sizeof(modelTranslation);
+        sizeOut += sizeof(modelTranslation);
+    }
 
-        bool wantDebugging = false;
-        if (wantDebugging) {
-            printf("encodeParticleEditMessageDetails()....\n");
-            printf("Particle id  :%u\n", id.id);
-            printf(" nextID:%u\n", _nextID);
-        }
+    // modelRotation
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_ROTATION) == CONTAINS_MODEL_ROTATION)) {
+        int bytes = packOrientationQuatToBytes(copyAt, properties.getModelRotation());
+        copyAt += bytes;
+        sizeOut += bytes;
+    }
+
+    // modelScale
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
+        float modelScale = properties.getModelScale();
+        memcpy(copyAt, &modelScale, sizeof(modelScale));
+        copyAt += sizeof(modelScale);
+        sizeOut += sizeof(modelScale);
+    }
+
+    bool wantDebugging = false;
+    if (wantDebugging) {
+        printf("encodeParticleEditMessageDetails()....\n");
+        printf("Particle id  :%u\n", id.id);
+        printf(" nextID:%u\n", _nextID);
     }
 
     // cleanup
@@ -648,9 +757,9 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     }
 
     // lastEdited
-    uint64_t lastEditedInLocalTime;
+    quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    uint64_t lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
@@ -708,14 +817,14 @@ void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
 const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
 const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
-void Particle::update(const uint64_t& now) {
+void Particle::update(const quint64& now) {
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
 
     // calculate our default shouldDie state... then allow script to change it if it wants...
     float speed = glm::length(_velocity);
     bool isStopped = (speed < MIN_VALID_SPEED);
-    const uint64_t REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
+    const quint64 REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
     bool isReallyOld = ((now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
     bool shouldDie = (getAge() > getLifetime()) || getShouldDie() || (!isInHand && isStopped && isReallyOld);
@@ -844,7 +953,7 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 
 
 void Particle::setAge(float age) {
-    uint64_t ageInUsecs = age * USECS_PER_SECOND;
+    quint64 ageInUsecs = age * USECS_PER_SECOND;
     _created = usecTimestampNow() - ageInUsecs;
 }
 
@@ -875,10 +984,15 @@ ParticleProperties::ParticleProperties() :
     _script(""),
     _inHand(false),
     _shouldDie(false),
+    _modelURL(""),
+    _modelTranslation(DEFAULT_MODEL_TRANSLATION),
+    _modelRotation(DEFAULT_MODEL_ROTATION),
+    _modelScale(DEFAULT_MODEL_SCALE),
 
     _id(UNKNOWN_PARTICLE_ID),
     _idSet(false),
     _lastEdited(usecTimestampNow()),
+
     _positionChanged(false),
     _colorChanged(false),
     _radiusChanged(false),
@@ -889,6 +1003,10 @@ ParticleProperties::ParticleProperties() :
     _scriptChanged(false),
     _inHandChanged(false),
     _shouldDieChanged(false),
+    _modelURLChanged(false),
+    _modelTranslationChanged(false),
+    _modelRotationChanged(false),
+    _modelScaleChanged(false),
     _defaultSettings(true)
 {
 }
@@ -897,44 +1015,59 @@ ParticleProperties::ParticleProperties() :
 uint16_t ParticleProperties::getChangedBits() const {
     uint16_t changedBits = 0;
     if (_radiusChanged) {
-        changedBits += PACKET_CONTAINS_RADIUS;
+        changedBits += CONTAINS_RADIUS;
     }
 
     if (_positionChanged) {
-        changedBits += PACKET_CONTAINS_POSITION;
+        changedBits += CONTAINS_POSITION;
     }
 
     if (_colorChanged) {
-        changedBits += PACKET_CONTAINS_COLOR;
+        changedBits += CONTAINS_COLOR;
     }
 
     if (_velocityChanged) {
-        changedBits += PACKET_CONTAINS_VELOCITY;
+        changedBits += CONTAINS_VELOCITY;
     }
 
     if (_gravityChanged) {
-        changedBits += PACKET_CONTAINS_GRAVITY;
+        changedBits += CONTAINS_GRAVITY;
     }
 
     if (_dampingChanged) {
-        changedBits += PACKET_CONTAINS_DAMPING;
+        changedBits += CONTAINS_DAMPING;
     }
 
     if (_lifetimeChanged) {
-        changedBits += PACKET_CONTAINS_LIFETIME;
+        changedBits += CONTAINS_LIFETIME;
     }
 
     if (_inHandChanged) {
-        changedBits += PACKET_CONTAINS_INHAND;
+        changedBits += CONTAINS_INHAND;
     }
 
     if (_scriptChanged) {
-        changedBits += PACKET_CONTAINS_SCRIPT;
+        changedBits += CONTAINS_SCRIPT;
     }
 
-    // how do we want to handle this?
     if (_shouldDieChanged) {
-        changedBits += PACKET_CONTAINS_SHOULDDIE;
+        changedBits += CONTAINS_SHOULDDIE;
+    }
+
+    if (_modelURLChanged) {
+        changedBits += CONTAINS_MODEL_URL;
+    }
+
+    if (_modelTranslationChanged) {
+        changedBits += CONTAINS_MODEL_TRANSLATION;
+    }
+
+    if (_modelRotationChanged) {
+        changedBits += CONTAINS_MODEL_ROTATION;
+    }
+
+    if (_modelScaleChanged) {
+        changedBits += CONTAINS_MODEL_SCALE;
     }
 
     return changedBits;
@@ -963,7 +1096,18 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
     properties.setProperty("script", _script);
     properties.setProperty("inHand", _inHand);
     properties.setProperty("shouldDie", _shouldDie);
-    
+
+    properties.setProperty("modelURL", _modelURL);
+
+    QScriptValue modelTranslation = vec3toScriptValue(engine, _modelTranslation);
+    properties.setProperty("modelTranslation", modelTranslation);
+
+    QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
+    properties.setProperty("modelRotation", modelRotation);
+
+    properties.setProperty("modelScale", _modelScale);
+
+
     if (_idSet) {
         properties.setProperty("id", _id);
         properties.setProperty("isKnownID", (_id == UNKNOWN_PARTICLE_ID));
@@ -1104,48 +1248,147 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
         }
     }
 
+    QScriptValue modelURL = object.property("modelURL");
+    if (modelURL.isValid()) {
+        QString newModelURL;
+        newModelURL = modelURL.toVariant().toString();
+        if (_defaultSettings || newModelURL != _modelURL) {
+            _modelURL = newModelURL;
+            _modelURLChanged = true;
+        }
+    }
+    
+    QScriptValue modelTranslation = object.property("modelTranslation");
+    if (modelTranslation.isValid()) {
+        QScriptValue x = modelTranslation.property("x");
+        QScriptValue y = modelTranslation.property("y");
+        QScriptValue z = modelTranslation.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newModelTranslation;
+            newModelTranslation.x = x.toVariant().toFloat();
+            newModelTranslation.y = y.toVariant().toFloat();
+            newModelTranslation.z = z.toVariant().toFloat();
+            if (_defaultSettings || newModelTranslation != _modelTranslation) {
+                _modelTranslation = newModelTranslation;
+                _modelTranslationChanged = true;
+            }
+        }
+    }
+
+    
+    QScriptValue modelRotation = object.property("modelRotation");
+    if (modelRotation.isValid()) {
+        QScriptValue x = modelRotation.property("x");
+        QScriptValue y = modelRotation.property("y");
+        QScriptValue z = modelRotation.property("z");
+        QScriptValue w = modelRotation.property("w");
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+            glm::quat newModelRotation;
+            newModelRotation.x = x.toVariant().toFloat();
+            newModelRotation.y = y.toVariant().toFloat();
+            newModelRotation.z = z.toVariant().toFloat();
+            newModelRotation.w = w.toVariant().toFloat();
+            if (_defaultSettings || newModelRotation != _modelRotation) {
+                _modelRotation = newModelRotation;
+                _modelRotationChanged = true;
+            }
+        }
+    }
+
+    QScriptValue modelScale = object.property("modelScale");
+    if (modelScale.isValid()) {
+        float newModelScale;
+        newModelScale = modelScale.toVariant().toFloat();
+        if (_defaultSettings || newModelScale != _modelScale) {
+            _modelScale = newModelScale;
+            _modelScaleChanged = true;
+        }
+    }
+
     _lastEdited = usecTimestampNow();
 }
 
 void ParticleProperties::copyToParticle(Particle& particle) const {
+    bool somethingChanged = false;
     if (_positionChanged) {
         particle.setPosition(_position / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_colorChanged) {
         particle.setColor(_color);
+        somethingChanged = true;
     }
 
     if (_radiusChanged) {
         particle.setRadius(_radius / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_velocityChanged) {
         particle.setVelocity(_velocity / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_gravityChanged) {
         particle.setGravity(_gravity / (float) TREE_SCALE);
+        somethingChanged = true;
     }
 
     if (_dampingChanged) {
         particle.setDamping(_damping);
+        somethingChanged = true;
     }
 
     if (_lifetimeChanged) {
         particle.setLifetime(_lifetime);
+        somethingChanged = true;
     }
 
     if (_scriptChanged) {
         particle.setScript(_script);
+        somethingChanged = true;
     }
 
     if (_inHandChanged) {
         particle.setInHand(_inHand);
+        somethingChanged = true;
     }
 
     if (_shouldDieChanged) {
         particle.setShouldDie(_shouldDie);
+        somethingChanged = true;
+    }
+
+    if (_modelURLChanged) {
+        particle.setModelURL(_modelURL);
+        somethingChanged = true;
+    }
+    
+    if (_modelTranslationChanged) {
+        particle.setModelTranslation(_modelTranslation);
+        somethingChanged = true;
+    }
+    
+    if (_modelRotationChanged) {
+        particle.setModelRotation(_modelRotation);
+        somethingChanged = true;
+    }
+    
+    if (_modelScaleChanged) {
+        particle.setModelScale(_modelScale);
+        somethingChanged = true;
+    }
+    
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - _lastEdited;
+            qDebug() << "ParticleProperties::copyToParticle() AFTER update... edited AGO=" << elapsed <<
+                    "now=" << now << " _lastEdited=" << _lastEdited;
+        }
+        particle.setLastEdited(_lastEdited);
     }
 }
 
@@ -1160,6 +1403,10 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _script = particle.getScript();
     _inHand = particle.getInHand();
     _shouldDie = particle.getShouldDie();
+    _modelURL = particle.getModelURL();
+    _modelTranslation = particle.getModelTranslation();
+    _modelRotation = particle.getModelRotation();
+    _modelScale = particle.getModelScale();
 
     _id = particle.getID();
     _idSet = true;
@@ -1174,6 +1421,10 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _scriptChanged = false;
     _inHandChanged = false;
     _shouldDieChanged = false;
+    _modelURLChanged = false;
+    _modelTranslationChanged = false;
+    _modelRotationChanged = false;
+    _modelScaleChanged = false;
     _defaultSettings = false;
 }
 
