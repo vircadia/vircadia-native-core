@@ -757,8 +757,13 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
     float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
-    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (static_cast<Avatar*>(this) == avatar) {
+            // don't collide with ourselves
+            continue;
+        }
         float distance = glm::length(_position - avatar->_position);        
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;

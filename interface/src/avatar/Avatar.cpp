@@ -73,8 +73,8 @@ Avatar::Avatar() :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
-    _collisionFlags(0),
     _owningAvatarMixer(),
+    _collisionFlags(0),
     _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
