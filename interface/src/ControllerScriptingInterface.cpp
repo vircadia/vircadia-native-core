@@ -10,6 +10,14 @@
 #include "Application.h"
 #include "ControllerScriptingInterface.h"
 
+ControllerScriptingInterface::ControllerScriptingInterface() :
+    _mouseCaptured(false),
+    _touchCaptured(false),
+    _wheelCaptured(false)
+{
+}
+
+
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
 

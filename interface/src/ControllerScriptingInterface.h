@@ -20,6 +20,7 @@ class ControllerScriptingInterface : public AbstractControllerScriptingInterface
     Q_OBJECT
 
 public:    
+    ControllerScriptingInterface();
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
     void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
 
