@@ -8,6 +8,8 @@
 
 #include <cstring>
 
+#include <QtCore/QDataStream>
+
 #include <Node.h>
 #include <PacketHeaders.h>
 #include <UUID.h>
