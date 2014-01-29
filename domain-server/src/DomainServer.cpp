@@ -780,7 +780,7 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
 
             qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
             
-            _assignmentQueue.push_back(&_staticAssignments[i]);gs
+            _assignmentQueue.push_back(&_staticAssignments[i]);
         }
     }
 }
