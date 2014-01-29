@@ -180,17 +180,12 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
 }
 
 bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
-qDebug() << "ControllerScriptingInterface::isKeyCaptured() event=" << event;
     return isKeyCaptured(KeyEvent(*event));
 }
 
 bool ControllerScriptingInterface::isKeyCaptured(const KeyEvent& event) const {
-
-qDebug() << "ControllerScriptingInterface::isKeyCaptured() event.key=" << event.key;
-
     // if we've captured some combination of this key it will be in the map
     if (_capturedKeys.contains(event.key, event)) {
-qDebug() << "ControllerScriptingInterface::isKeyCaptured() event.key=" << event.key << " returning TRUE";
         return true;
     }
     return false;
