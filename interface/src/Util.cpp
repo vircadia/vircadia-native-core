@@ -104,34 +104,6 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
-//  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
-//  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
-// https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
-glm::vec3 safeEulerAngles(const glm::quat& q) {
-    float sy = 2.0f * (q.y * q.w - q.x * q.z);
-    if (sy < 1.0f - EPSILON) {
-        if (sy > -1.0f + EPSILON) {
-            return glm::degrees(glm::vec3(
-                atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
-                asinf(sy),
-                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
-
-        } else {
-            // not a unique solution; x + z = atan2(-m21, m11)
-            return glm::degrees(glm::vec3(
-                0.0f,
-                PIf * -0.5f,
-                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
-        }
-    } else {
-        // not a unique solution; x - z = atan2(-m21, m11)
-        return glm::degrees(glm::vec3(
-            0.0f,
-            PIf * 0.5f,
-            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
-    }
-}
-
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -372,9 +344,18 @@ const glm::vec3 randVector() {
 }
 
 static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY);
-    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    return mono ? monoRenderer : proportionalRenderer;
+    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY); 
+    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT); 
+    static TextRenderer* inconsolataRenderer = new TextRenderer(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false);
+    switch (mono) {
+        case 1:
+            return monoRenderer;
+        case 2:
+            return inconsolataRenderer;
+        case 0:
+        default:
+            return proportionalRenderer;
+    }
 }
 
 int widthText(float scale, int mono, char const* string) {

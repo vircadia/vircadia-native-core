@@ -23,11 +23,11 @@
 #include "OctreeElement.h"
 #include "Octree.h"
 
-uint64_t OctreeElement::_voxelMemoryUsage = 0;
-uint64_t OctreeElement::_octcodeMemoryUsage = 0;
-uint64_t OctreeElement::_externalChildrenMemoryUsage = 0;
-uint64_t OctreeElement::_voxelNodeCount = 0;
-uint64_t OctreeElement::_voxelNodeLeafCount = 0;
+quint64 OctreeElement::_voxelMemoryUsage = 0;
+quint64 OctreeElement::_octcodeMemoryUsage = 0;
+quint64 OctreeElement::_externalChildrenMemoryUsage = 0;
+quint64 OctreeElement::_voxelNodeCount = 0;
+quint64 OctreeElement::_voxelNodeLeafCount = 0;
 
 OctreeElement::OctreeElement() {
     // Note: you must call init() from your subclass, otherwise the OctreeElement will not be properly
@@ -270,23 +270,23 @@ void OctreeElement::auditChildren(const char* label) const {
 #endif // def HAS_AUDIT_CHILDREN
 
 
-uint64_t OctreeElement::_getChildAtIndexTime = 0;
-uint64_t OctreeElement::_getChildAtIndexCalls = 0;
-uint64_t OctreeElement::_setChildAtIndexTime = 0;
-uint64_t OctreeElement::_setChildAtIndexCalls = 0;
+quint64 OctreeElement::_getChildAtIndexTime = 0;
+quint64 OctreeElement::_getChildAtIndexCalls = 0;
+quint64 OctreeElement::_setChildAtIndexTime = 0;
+quint64 OctreeElement::_setChildAtIndexCalls = 0;
 
 #ifdef BLENDED_UNION_CHILDREN
-uint64_t OctreeElement::_singleChildrenCount = 0;
-uint64_t OctreeElement::_twoChildrenOffsetCount = 0;
-uint64_t OctreeElement::_twoChildrenExternalCount = 0;
-uint64_t OctreeElement::_threeChildrenOffsetCount = 0;
-uint64_t OctreeElement::_threeChildrenExternalCount = 0;
-uint64_t OctreeElement::_couldStoreFourChildrenInternally = 0;
-uint64_t OctreeElement::_couldNotStoreFourChildrenInternally = 0;
+quint64 OctreeElement::_singleChildrenCount = 0;
+quint64 OctreeElement::_twoChildrenOffsetCount = 0;
+quint64 OctreeElement::_twoChildrenExternalCount = 0;
+quint64 OctreeElement::_threeChildrenOffsetCount = 0;
+quint64 OctreeElement::_threeChildrenExternalCount = 0;
+quint64 OctreeElement::_couldStoreFourChildrenInternally = 0;
+quint64 OctreeElement::_couldNotStoreFourChildrenInternally = 0;
 #endif
 
-uint64_t OctreeElement::_externalChildrenCount = 0;
-uint64_t OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+quint64 OctreeElement::_externalChildrenCount = 0;
+quint64 OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
@@ -494,17 +494,17 @@ void OctreeElement::retrieveTwoChildren(OctreeElement*& childOne, OctreeElement*
 }
 
 void OctreeElement::decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const {
-    const uint64_t ENCODE_BITS = 21;
-    const uint64_t ENCODE_MASK = 0xFFFFF;
-    const uint64_t ENCODE_MASK_SIGN = 0x100000;
+    const quint64 ENCODE_BITS = 21;
+    const quint64 ENCODE_MASK = 0xFFFFF;
+    const quint64 ENCODE_MASK_SIGN = 0x100000;
 
-    uint64_t offsetEncodedOne = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 2)) & ENCODE_MASK;
-    uint64_t offsetEncodedTwo = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 1)) & ENCODE_MASK;
-    uint64_t offsetEncodedThree = (_children.offsetsThreeChildrenEncoded & ENCODE_MASK);
+    quint64 offsetEncodedOne = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 2)) & ENCODE_MASK;
+    quint64 offsetEncodedTwo = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 1)) & ENCODE_MASK;
+    quint64 offsetEncodedThree = (_children.offsetsThreeChildrenEncoded & ENCODE_MASK);
 
-    uint64_t signEncodedOne = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 2)) & ENCODE_MASK_SIGN;
-    uint64_t signEncodedTwo = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 1)) & ENCODE_MASK_SIGN;
-    uint64_t signEncodedThree = (_children.offsetsThreeChildrenEncoded & ENCODE_MASK_SIGN);
+    quint64 signEncodedOne = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 2)) & ENCODE_MASK_SIGN;
+    quint64 signEncodedTwo = (_children.offsetsThreeChildrenEncoded >> (ENCODE_BITS * 1)) & ENCODE_MASK_SIGN;
+    quint64 signEncodedThree = (_children.offsetsThreeChildrenEncoded & ENCODE_MASK_SIGN);
 
     bool oneNegative = signEncodedOne == ENCODE_MASK_SIGN;
     bool twoNegative = signEncodedTwo == ENCODE_MASK_SIGN;
@@ -516,11 +516,11 @@ void OctreeElement::decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, i
 }
 
 void OctreeElement::encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree) {
-    const uint64_t ENCODE_BITS = 21;
-    const uint64_t ENCODE_MASK = 0xFFFFF;
-    const uint64_t ENCODE_MASK_SIGN = 0x100000;
+    const quint64 ENCODE_BITS = 21;
+    const quint64 ENCODE_MASK = 0xFFFFF;
+    const quint64 ENCODE_MASK_SIGN = 0x100000;
 
-    uint64_t offsetEncodedOne, offsetEncodedTwo, offsetEncodedThree;
+    quint64 offsetEncodedOne, offsetEncodedTwo, offsetEncodedThree;
     if (offsetOne < 0) {
         offsetEncodedOne = ((-offsetOne & ENCODE_MASK) | ENCODE_MASK_SIGN);
     } else {

@@ -20,17 +20,19 @@
 #include "ParticleTree.h"
 
 ParticleCollisionSystem::ParticleCollisionSystem(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
-    init(packetSender, particles, voxels, audio, selfAvatar);
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio,
+    AvatarHashMap* avatars) {
+    init(packetSender, particles, voxels, audio, avatars);
 }
 
 void ParticleCollisionSystem::init(ParticleEditPacketSender* packetSender,
-    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio, AvatarData* selfAvatar) {
+    ParticleTree* particles, VoxelTree* voxels, AbstractAudioInterface* audio,
+    AvatarHashMap* avatars) {
     _packetSender = packetSender;
     _particles = particles;
     _voxels = voxels;
     _audio = audio;
-    _selfAvatar = selfAvatar;
+    _avatars = avatars;
 }
 
 ParticleCollisionSystem::~ParticleCollisionSystem() {
@@ -73,15 +75,18 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     const float DAMPING = 0.05f;
     const float COLLISION_FREQUENCY = 0.5f;
     CollisionInfo collisionInfo;
+    collisionInfo._damping = DAMPING;
+    collisionInfo._elasticity = ELASTICITY;
     VoxelDetail* voxelDetails = NULL;
     if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
 
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
 
-        collisionInfo._penetration /= (float)(TREE_SCALE);
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-        applyHardCollision(particle, ELASTICITY, DAMPING, collisionInfo);
+        collisionInfo._penetration /= (float)(TREE_SCALE);
+        particle->applyHardCollision(collisionInfo);
+        queueParticlePropertiesUpdate(particle);
 
         delete voxelDetails; // cleanup returned details
     }
@@ -124,7 +129,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             propertiesA.copyFromParticle(*particleA);
             propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
             propertiesA.setPosition(particleA->getPosition() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleAid, propertiesA);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleAid, propertiesA);
 
             // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
@@ -134,7 +139,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
             propertiesB.copyFromParticle(*particleB);
             propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
             propertiesB.setPosition(particleB->getPosition() * (float)TREE_SCALE);
-            _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleBid, propertiesB);
+            _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleBid, propertiesB);
 
             _packetSender->releaseQueuedMessages();
 
@@ -148,9 +153,8 @@ const float MIN_EXPECTED_FRAME_PERIOD = 0.0167f;  // 1/60th of a second
 const float HALTING_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
 void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
-
     // particles that are in hand, don't collide with avatars
-    if (particle->getInHand()) {
+    if (!_avatars || particle->getInHand()) {
         return;
     }
 
@@ -161,10 +165,12 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
 
-    // first check the selfAvatar if set...
-    if (_selfAvatar) {
+    foreach (const AvatarSharedPointer& avatarPointer, _avatars->getAvatarHash()) {
+        AvatarData* avatar = avatarPointer.data();
         CollisionInfo collisionInfo;
-        if (_selfAvatar->findSphereCollision(center, radius, collisionInfo)) {
+        collisionInfo._damping = DAMPING;
+        collisionInfo._elasticity = ELASTICITY;
+        if (avatar->findSphereCollision(center, radius, collisionInfo)) {
             collisionInfo._addedVelocity /= (float)(TREE_SCALE);
             glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
             if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
@@ -186,92 +192,24 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                 }
                 // HACK END
 
-                collisionInfo._penetration /= (float)(TREE_SCALE);
                 updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-                applyHardCollision(particle, elasticity, damping, collisionInfo);
-            }
-        }
-    }
-
-    // loop through all the other avatars for potential interactions...
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        //qDebug() << "updateCollisionWithAvatars()... node:" << *node << "\n";
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            AvatarData* avatar = static_cast<AvatarData*>(node->getLinkedData());
-            CollisionInfo collisionInfo;
-            if (avatar->findSphereCollision(center, radius, collisionInfo)) {
-                collisionInfo._addedVelocity /= (float)(TREE_SCALE);
-                glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
-                if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {
-                    // HACK BEGIN: to allow paddle hands to "hold" particles we attenuate soft collisions against the avatar.
-                    // NOTE: the physics are wrong (particles cannot roll) but it IS possible to catch a slow moving particle.
-                    // TODO: make this less hacky when we have more per-collision details
-                    float elasticity = ELASTICITY;
-                    float attenuationFactor = glm::length(collisionInfo._addedVelocity) / HALTING_SPEED;
-                    float damping = DAMPING;
-                    if (attenuationFactor < 1.f) {
-                        collisionInfo._addedVelocity *= attenuationFactor;
-                        elasticity *= attenuationFactor;
-                        // NOTE: the math below keeps the damping piecewise continuous,
-                        // while ramping it up to 1.0 when attenuationFactor = 0
-                        damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
-                    }
-                    // HACK END
-
-                    collisionInfo._penetration /= (float)(TREE_SCALE);
-                    updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
-                    applyHardCollision(particle, ELASTICITY, damping, collisionInfo);
-                }
+                collisionInfo._penetration /= (float)(TREE_SCALE);
+                particle->applyHardCollision(collisionInfo);
+                queueParticlePropertiesUpdate(particle);
             }
         }
     }
 }
 
-// TODO: convert applyHardCollision() to take a CollisionInfo& instead of penetration + addedVelocity
-void ParticleCollisionSystem::applyHardCollision(Particle* particle, float elasticity, float damping, const CollisionInfo& collisionInfo) {
-    //
-    //  Update the particle in response to a hard collision.  Position will be reset exactly
-    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
-    //
-    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
-    //  if elasticity = 1.0, collision is 100% elastic.
-    //
-    glm::vec3 position = particle->getPosition();
-    glm::vec3 velocity = particle->getVelocity();
-
-    const float EPSILON = 0.0f;
-    glm::vec3 relativeVelocity = collisionInfo._addedVelocity - velocity;
-    float velocityDotPenetration = glm::dot(relativeVelocity, collisionInfo._penetration);
-    if (velocityDotPenetration < EPSILON) {
-        // particle is moving into collision surface
-        position -= collisionInfo._penetration;
-
-        if (glm::length(relativeVelocity) < HALTING_SPEED) {
-            // static friction kicks in and particle moves with colliding object
-            velocity = collisionInfo._addedVelocity;
-        } else {
-            glm::vec3 direction = glm::normalize(collisionInfo._penetration);
-            velocity += glm::dot(relativeVelocity, direction) * (1.0f + elasticity) * direction;    // dynamic reflection
-            velocity += glm::clamp(damping, 0.0f, 1.0f) * (relativeVelocity - glm::dot(relativeVelocity, direction) * direction);   // dynamic friction
-        }
-    }
-    const bool wantDebug = false;
-    if (wantDebug) {
-        printf("ParticleCollisionSystem::applyHardCollision() particle id:%d new velocity:%f,%f,%f inHand:%s\n",
-            particle->getID(), velocity.x, velocity.y, velocity.z, debug::valueOf(particle->getInHand()));
-    }
-
-    // send off the result to the particle server
+void ParticleCollisionSystem::queueParticlePropertiesUpdate(Particle* particle) {
+    // queue the result for sending to the particle server
     ParticleProperties properties;
     ParticleID particleID(particle->getID());
     properties.copyFromParticle(*particle);
-    properties.setPosition(position * (float)TREE_SCALE);
-    properties.setVelocity(velocity * (float)TREE_SCALE);
-    _packetSender->queueParticleEditMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
 
-    // change the local particle too...
-    particle->setPosition(position);
-    particle->setVelocity(velocity);
+    properties.setPosition(particle->getPosition() * (float)TREE_SCALE);
+    properties.setVelocity(particle->getVelocity() * (float)TREE_SCALE);
+    _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleID, properties);
 }
 
 
@@ -295,18 +233,20 @@ void ParticleCollisionSystem::updateCollisionSound(Particle* particle, const glm
         velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
     }
     */
-    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
+    float normalSpeed = glm::dot(velocity, glm::normalize(penetration));
+    // NOTE: it is possible for normalSpeed to be NaN at this point 
+    // (sometimes the average penetration of a bunch of voxels is a zero length vector which cannot be normalized) 
+    // however the check below will fail (NaN comparisons always fail) and everything will be fine.
 
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
+    if (normalSpeed > AUDIBLE_COLLISION_THRESHOLD) {
         //  Volume is proportional to collision velocity
         //  Base frequency is modified upward by the angle of the collision
         //  Noise is a function of the angle of collision
         //  Duration of the sound is a function of both base frequency and velocity of impact
-        _audio->startCollisionSound(
-                    std::min(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
-                    frequency * (1.f + velocityTangentToCollision / velocityTowardCollision),
-                    std::min(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
-                    1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision, false);
+        float tangentialSpeed = glm::length(velocity) - normalSpeed;
+        _audio->startCollisionSound( std::min(COLLISION_LOUDNESS * normalSpeed, 1.f),
+            frequency * (1.f + tangentialSpeed / normalSpeed),
+            std::min(tangentialSpeed / normalSpeed * NOISE_SCALING, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / normalSpeed, false);
     }
 }

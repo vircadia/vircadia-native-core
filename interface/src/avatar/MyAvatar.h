@@ -24,8 +24,8 @@ enum AvatarHandState
 
 class MyAvatar : public Avatar {
 public:
-	MyAvatar(Node* owningNode = NULL);
-
+	MyAvatar();
+    
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyros(bool turnWithHead);
@@ -61,6 +61,10 @@ public:
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
     void jump() { _shouldJump = true; };
+    
+    bool isMyAvatar() { return true; }
+    
+    static void sendKillAvatar();
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };

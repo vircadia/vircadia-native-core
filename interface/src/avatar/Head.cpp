@@ -37,8 +37,6 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
-    _cameraPitch(_pitch),
-    _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
     _faceModel(this)
@@ -52,7 +50,6 @@ void Head::init() {
 
 void Head::reset() {
     _yaw = _pitch = _roll = 0.0f;
-    _mousePitch = 0.0f;
     _leanForward = _leanSideways = 0.0f;
     _faceModel.reset();
 }
@@ -186,13 +183,6 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-void Head::setMousePitch(float mousePitch) {
-    const float MAX_PITCH = 90.0f;
-    _mousePitch = glm::clamp(mousePitch, -MAX_PITCH, MAX_PITCH);
-}
-
-
-
 glm::quat Head::getOrientation() const {
     return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
 }
@@ -200,7 +190,7 @@ glm::quat Head::getOrientation() const {
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation()
-            * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
+            * glm::quat(glm::radians(glm::vec3(_pitch, _cameraYaw, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {

@@ -22,8 +22,8 @@ using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
 
-OctreeQuery::OctreeQuery(Node* owningNode) :
-    NodeData(owningNode),
+OctreeQuery::OctreeQuery() :
+    NodeData(),
     _uuid(),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -95,13 +95,13 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other nodes - assigns it to my views of the others
-int OctreeQuery::parseData(unsigned char* sourceBuffer, int numBytes) {
+int OctreeQuery::parseData(const QByteArray& packet) {
 
     // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    sourceBuffer += numBytesPacketHeader;
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     
-    unsigned char* startPosition = sourceBuffer;
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
+    const unsigned char* sourceBuffer = startPosition + numBytesPacketHeader;
     
     // push past the node session UUID
     sourceBuffer += NUM_BYTES_RFC4122_UUID;

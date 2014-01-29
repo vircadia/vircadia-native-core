@@ -12,8 +12,8 @@
 #include "Logging.h"
 #include "ThreadedAssignment.h"
 
-ThreadedAssignment::ThreadedAssignment(const unsigned char* dataBuffer, int numBytes) :
-    Assignment(dataBuffer, numBytes),
+ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
+    Assignment(packet),
     _isFinished(false)
 {
     
@@ -33,7 +33,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     }
 }
 
-void ThreadedAssignment::commonInit(const char* targetName, NODE_TYPE nodeType) {
+void ThreadedAssignment::commonInit(const char* targetName, NodeType_t nodeType) {
     // change the logging target name while the assignment is running
     Logging::setTargetName(targetName);
     

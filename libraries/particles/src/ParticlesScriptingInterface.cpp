@@ -16,7 +16,7 @@ ParticlesScriptingInterface::ParticlesScriptingInterface() :
 }
 
 
-void ParticlesScriptingInterface::queueParticleMessage(PACKET_TYPE packetType,
+void ParticlesScriptingInterface::queueParticleMessage(PacketType packetType,
         ParticleID particleID, const ParticleProperties& properties) {
     getParticlePacketSender()->queueParticleEditMessage(packetType, particleID, properties);
 }
@@ -29,54 +29,82 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
     ParticleID id(NEW_PARTICLE, creatorTokenID, false );
 
     // queue the packet
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, id, properties);
+    queueParticleMessage(PacketTypeParticleAddOrEdit, id, properties);
+
+    // If we have a local particle tree set, then also update it.
+    if (_particleTree) {
+        _particleTree->lockForWrite();
+        _particleTree->addParticle(id, properties);
+        _particleTree->unlock();
+    }
 
     return id;
 }
 
-void ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
+ParticleID ParticlesScriptingInterface::identifyParticle(ParticleID particleID) {
     uint32_t actualID = particleID.id;
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-        // hmmm... we kind of want to bail if someone attempts to edit an unknown
         if (actualID == UNKNOWN_PARTICLE_ID) {
-            //qDebug() << "ParticlesScriptingInterface::editParticle()... BAILING!!! particleID.creatorTokenID=" 
-            //            << particleID.creatorTokenID;
-            return; // bailing early
+            return particleID; // bailing early
         }
+        
+        // found it!
+        particleID.id = actualID;
+        particleID.isKnownID = true;
     }
+    return particleID;
+}
 
-    particleID.id = actualID;
-    particleID.isKnownID = true;
-    //qDebug() << "ParticlesScriptingInterface::editParticle()... FOUND IT!!! actualID=" << actualID;
-
-    bool wantDebugging = false;
-    if (wantDebugging) {
-        uint16_t containsBits = properties.getChangedBits();
-        qDebug() << "ParticlesScriptingInterface::editParticle()... containsBits=" << containsBits;
-        if ((containsBits & PACKET_CONTAINS_POSITION) == PACKET_CONTAINS_POSITION) {
-            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getPositon()=" 
-                << properties.getPosition().x << ", "
-                << properties.getPosition().y << ", "
-                << properties.getPosition().z << "...";
-        }
-        if ((containsBits & PACKET_CONTAINS_VELOCITY) == PACKET_CONTAINS_VELOCITY) {
-            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getVelocity()=" 
-                << properties.getVelocity().x << ", "
-                << properties.getVelocity().y << ", "
-                << properties.getVelocity().z << "...";
-        }
-        if ((containsBits & PACKET_CONTAINS_INHAND) == PACKET_CONTAINS_INHAND) {
-            qDebug() << "ParticlesScriptingInterface::editParticle()... properties.getInHand()=" << properties.getInHand();
-        }
+ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID particleID) {
+    ParticleProperties results;
+    ParticleID identity = identifyParticle(particleID);
+    if (!identity.isKnownID) {
+        results.setIsUnknownID();
+        return results;
     }
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    if (_particleTree) {
+        _particleTree->lockForRead();
+        const Particle* particle = _particleTree->findParticleByID(identity.id);
+        results.copyFromParticle(*particle);
+        _particleTree->unlock();
+    }
+    
+    return results;
 }
 
 
-// TODO: This deleteParticle() method uses the PACKET_TYPE_PARTICLE_ADD_OR_EDIT message to send
+
+ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, const ParticleProperties& properties) {
+    uint32_t actualID = particleID.id;
+    
+    // if the particle is unknown, attempt to look it up
+    if (!particleID.isKnownID) {
+        actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
+    }
+
+    // if at this point, we know the id, send the update to the particle server
+    if (actualID != UNKNOWN_PARTICLE_ID) {
+        particleID.id = actualID;
+        particleID.isKnownID = true;
+        queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
+    }
+    
+    // If we have a local particle tree set, then also update it. We can do this even if we don't know
+    // the actual id, because we can edit out local particles just with creatorTokenID
+    if (_particleTree) {
+        _particleTree->lockForWrite();
+        _particleTree->updateParticle(particleID, properties);
+        _particleTree->unlock();
+    }
+    
+    return particleID;
+}
+
+
+// TODO: This deleteParticle() method uses the PacketType_PARTICLE_ADD_OR_EDIT message to send
 // a changed particle with a shouldDie() property set to true. This works and is currently the only
-// way to tell the particle server to delete a particle. But we should change this to use the PACKET_TYPE_PARTICLE_ERASE
+// way to tell the particle server to delete a particle. But we should change this to use the PacketType_PARTICLE_ERASE
 // message which takes a list of particle id's to delete.
 void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
 
@@ -99,18 +127,43 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
     particleID.isKnownID = true;
 
     //qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
+    
+    // If we have a local particle tree set, then also update it.
+    if (_particleTree) {
+        _particleTree->lockForWrite();
+        _particleTree->deleteParticle(particleID);
+        _particleTree->unlock();
+    }
 }
 
 ParticleID ParticlesScriptingInterface::findClosestParticle(const glm::vec3& center, float radius) const {
     ParticleID result(UNKNOWN_PARTICLE_ID, UNKNOWN_TOKEN, false);
     if (_particleTree) {
+        _particleTree->lockForRead();
         const Particle* closestParticle = _particleTree->findClosestParticle(center/(float)TREE_SCALE, 
                                                                                 radius/(float)TREE_SCALE);
-
+        _particleTree->unlock();
         if (closestParticle) {
             result.id = closestParticle->getID();
             result.isKnownID = true;
+        }
+    }
+    return result;
+}
+
+
+QVector<ParticleID> ParticlesScriptingInterface::findParticles(const glm::vec3& center, float radius) const {
+    QVector<ParticleID> result;
+    if (_particleTree) {
+        _particleTree->lockForRead();
+        QVector<const Particle*> particles;
+        _particleTree->findParticles(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, particles);
+        _particleTree->unlock();
+
+        foreach (const Particle* particle, particles) {
+            ParticleID thisParticleID(particle->getID(), UNKNOWN_TOKEN, true);
+            result << thisParticleID;
         }
     }
     return result;

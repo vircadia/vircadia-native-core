@@ -12,7 +12,6 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -58,8 +57,8 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 
-Avatar::Avatar(Node* owningNode) :
-    AvatarData(owningNode),
+Avatar::Avatar() :
+    AvatarData(),
     _head(this),
     _hand(this),
     _skeletonModel(this),
@@ -75,6 +74,7 @@ Avatar::Avatar(Node* owningNode) :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionFlags(0),
+    _owningAvatarMixer(),
     _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -85,16 +85,10 @@ Avatar::Avatar(Node* owningNode) :
     _handData = &_hand;
 }
 
-
 Avatar::~Avatar() {
     _headData = NULL;
     _handData = NULL;
 }
-
-void Avatar::deleteOrDeleteLater() {
-    this->deleteLater();
-}
-
 
 void Avatar::init() {
     _head.init();
@@ -341,11 +335,11 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     return false;
 }
 
-int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
+int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
+    int bytesRead = AvatarData::parseData(packet);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;

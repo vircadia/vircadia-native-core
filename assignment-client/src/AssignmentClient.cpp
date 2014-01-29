@@ -52,7 +52,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, requestAssignmentPool);
     
     // create a NodeList as an unassigned client
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
+    NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
     
     const char CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION[] = "-a";
     const char CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION[] = "-p";
@@ -102,34 +102,33 @@ void AssignmentClient::sendAssignmentRequest() {
 void AssignmentClient::readPendingDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
     
-    static unsigned char packetData[1500];
-    static qint64 receivedBytes = 0;
-    static HifiSockAddr senderSockAddr;
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
     
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
+        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
+                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if ((receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
-                                                                    senderSockAddr.getAddressPointer(),
-                                                                    senderSockAddr.getPortPointer()))
-            && packetVersionMatch(packetData)) {
-            
+        if (packetVersionMatch(receivedPacket)) {
             if (_currentAssignment) {
                 // have the threaded current assignment handle this datagram
                 QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, QByteArray((char*) packetData, receivedBytes)),
+                                          Q_ARG(QByteArray, receivedPacket),
                                           Q_ARG(HifiSockAddr, senderSockAddr));
-            } else if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+            } else if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
                 
                 if (_currentAssignment) {
                     qDebug() << "Dropping received assignment since we are currently running one.";
                 } else {
                     // construct the deployed assignment from the packet data
-                    _currentAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
+                    _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
                     
-                    qDebug() << "Received an assignment -" << *_currentAssignment;
-                    
-                    // switch our nodelist domain IP and port to whoever sent us the assignment
-                    if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                    if (_currentAssignment) {
+                        qDebug() << "Received an assignment -" << *_currentAssignment;
+                        
+                        // switch our nodelist domain IP and port to whoever sent us the assignment
+                        
                         nodeList->setDomainSockAddr(senderSockAddr);
                         nodeList->setOwnerUUID(_currentAssignment->getUUID());
                         
@@ -153,12 +152,12 @@ void AssignmentClient::readPendingDatagrams() {
                         // Starts an event loop, and emits workerThread->started()
                         workerThread->start();
                     } else {
-                        qDebug("Received a bad destination socket for assignment.");
+                        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                     }
                 }
             } else {
                 // have the NodeList attempt to handle it
-                nodeList->processNodeData(senderSockAddr, packetData, receivedBytes);
+                nodeList->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
@@ -175,6 +174,6 @@ void AssignmentClient::assignmentCompleted() {
     NodeList* nodeList = NodeList::getInstance();
     
     // reset our NodeList by switching back to unassigned and clearing the list
-    nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
+    nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
 }

@@ -87,7 +87,7 @@ void Profile::updatePosition(const glm::vec3 position) {
     if (_lastPosition != position) {
         
         static timeval lastPositionSend = {};
-        const uint64_t DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+        const quint64 DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
         const float DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS = 1;
         
         if (usecTimestampNow() - usecTimestamp(&lastPositionSend) >= DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS &&
@@ -115,10 +115,10 @@ void Profile::updateOrientation(const glm::quat& orientation) {
     if (_lastOrientation == eulerAngles) {
         return;
     }
-    const uint64_t DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+    const quint64 DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
     const float DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES = 5.0f;
     
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     if (now - _lastOrientationSend >= DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS &&
             glm::distance(_lastOrientation, eulerAngles) >= DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES) {
         DataServerClient::putValueForKeyAndUserString(DataServerKey::Orientation, QString(createByteArray(eulerAngles)),
@@ -158,35 +158,11 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 if (userString == _username || userString == uuidStringWithoutCurlyBraces(_uuid)) {
                     qDebug("Changing user's face model URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
-                } else {
-                    // mesh URL for a UUID, find avatar in our list
-                    SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(QUuid(userString));
-                    if (matchingNode && matchingNode->getType() == NODE_TYPE_AGENT) {
-                        qDebug() << "Changing mesh to" << valueList[i] << "for avatar with UUID"
-                            << uuidStringWithoutCurlyBraces(matchingNode->getUUID());
-                        
-                        Avatar* avatar = (Avatar *) matchingNode->getLinkedData();
-                        
-                        QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-                    }
                 }
             } else if (keyList[i] == DataServerKey::SkeletonURL) {
                 if (userString == _username || userString == uuidStringWithoutCurlyBraces(_uuid)) {
                     qDebug("Changing user's skeleton URL to %s", valueList[i].toLocal8Bit().constData());
                     Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
-                } else {
-                    // skeleton URL for a UUID, find avatar in our list
-                    SharedNodePointer matchingNode = NodeList::getInstance()->nodeWithUUID(QUuid(userString));
-                    if (matchingNode && matchingNode->getType() == NODE_TYPE_AGENT) {
-                        qDebug() << "Changing skeleton to" << valueList[i] << "for avatar with UUID"
-                            << uuidStringWithoutCurlyBraces(matchingNode->getUUID());
-                        
-                        Avatar* avatar = (Avatar *) matchingNode->getLinkedData();
-                        
-                        QMetaObject::invokeMethod(&avatar->getSkeletonModel(),
-                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-                    }
                 }
             } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&
                        keyList[i + 2] == DataServerKey::Orientation && valueList[i] != " " &&
@@ -198,7 +174,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                 if (coordinateItems.size() == 3 && orientationItems.size() == 3) {
                     
                     // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                    NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+                    MyAvatar::sendKillAvatar();
                     
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         ", position to" << valueList[i + 1].toLocal8Bit().constData() <<
@@ -211,8 +187,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                                                                                 orientationItems[1].toFloat(),
                                                                                 orientationItems[2].toFloat()))) *
                                                                                 glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
-                                                                                Application::getInstance()->getAvatar()
-                                                                                ->setOrientation(newOrientation);
+                    Application::getInstance()->getAvatar()->setOrientation(newOrientation);
                     
                     // move the user a couple units away
                     const float DISTANCE_TO_USER = 2.0f;

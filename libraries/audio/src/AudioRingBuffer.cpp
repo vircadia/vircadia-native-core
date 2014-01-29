@@ -16,7 +16,7 @@
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples) :
-    NodeData(NULL),
+    NodeData(),
     _sampleCapacity(numFrameSamples * RING_BUFFER_LENGTH_FRAMES),
     _isStarved(true),
     _hasStarted(false)
@@ -50,9 +50,9 @@ void AudioRingBuffer::resizeForFrameSize(qint64 numFrameSamples) {
     _endOfLastWrite = _buffer;
 }
 
-int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    return writeData((char*) sourceBuffer + numBytesPacketHeader, numBytes - numBytesPacketHeader);
+int AudioRingBuffer::parseData(const QByteArray& packet) {
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    return writeData(packet.data() + numBytesPacketHeader, packet.size() - numBytesPacketHeader);
 }
 
 qint64 AudioRingBuffer::readSamples(int16_t* destination, qint64 maxSamples) {

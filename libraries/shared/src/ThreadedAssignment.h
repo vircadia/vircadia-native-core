@@ -14,7 +14,7 @@
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(const unsigned char* dataBuffer, int numBytes);
+    ThreadedAssignment(const QByteArray& packet);
     
     void setFinished(bool isFinished);
 public slots:
@@ -25,7 +25,7 @@ public slots:
     
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) = 0;
 protected:
-    void commonInit(const char* targetName, NODE_TYPE nodeType);
+    void commonInit(const char* targetName, NodeType_t nodeType);
     bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();

@@ -14,11 +14,13 @@
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
 public:
-    AvatarMixer(const unsigned char* dataBuffer, int numBytes);
+    AvatarMixer(const QByteArray& packet);
     
 public slots:
     /// runs the avatar mixer
     void run();
+
+    void nodeKilled(SharedNodePointer killedNode);
     
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
 };

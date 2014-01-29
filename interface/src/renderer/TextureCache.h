@@ -121,6 +121,10 @@ public:
     /// Returns the average color over the entire texture.
     const glm::vec4& getAverageColor() const { return _averageColor; }
 
+    /// Checks whether it "looks like" this texture is translucent
+    /// (majority of pixels neither fully opaque or fully transparent).
+    bool isTranslucent() const { return _translucent; }
+
 protected:
 
     virtual void imageLoaded(const QImage& image);    
@@ -137,6 +141,7 @@ private:
     QNetworkReply* _reply;
     int _attempts;
     glm::vec4 _averageColor;
+    bool _translucent;
 };
 
 /// Caches derived, dilated textures.

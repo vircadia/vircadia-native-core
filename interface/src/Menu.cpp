@@ -338,7 +338,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
 
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
                                            MenuOption::FaceshiftTCP,
                                            0,
@@ -906,7 +905,7 @@ void Menu::goToDomain() {
         }
 
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+        Application::getInstance()->getAvatar()->sendKillAvatar();
 
         // give our nodeList the new domain-server hostname
         NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
@@ -948,7 +947,7 @@ void Menu::goToLocation() {
 
             if (newAvatarPos != avatarPos) {
                 // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                NodeList::getInstance()->sendKillNode(QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+                MyAvatar::sendKillAvatar();
 
                 qDebug("Going To Location: %f, %f, %f...", x, y, z);
                 myAvatar->setPosition(newAvatarPos);

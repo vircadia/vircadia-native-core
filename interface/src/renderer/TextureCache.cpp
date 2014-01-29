@@ -11,6 +11,7 @@
 #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
+#include <QTimer>
 
 #include <glm/gtc/random.hpp>
 
@@ -256,7 +257,8 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     _request(url),
     _reply(NULL),
     _attempts(0),
-    _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
+    _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
+    _translucent(false) {
     
     if (!url.isValid()) {
         return;
@@ -299,19 +301,27 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     
     QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
     
-    // sum up the colors for the average
+    // sum up the colors for the average and check for translucency
     glm::vec4 accumulated;
+    int translucentPixels = 0;
+    const int EIGHT_BIT_MAXIMUM = 255;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
             QRgb pixel = image.pixel(x, y);
             accumulated.r += qRed(pixel);
             accumulated.g += qGreen(pixel);
             accumulated.b += qBlue(pixel);
-            accumulated.a += qAlpha(pixel);
+            
+            int alpha = qAlpha(pixel);
+            if (alpha != 0 && alpha != EIGHT_BIT_MAXIMUM) {
+                translucentPixels++;
+            }
+            accumulated.a += alpha;
         }
     }
-    const float EIGHT_BIT_MAXIMUM = 255.0f;
-    _averageColor = accumulated / (image.width() * image.height() * EIGHT_BIT_MAXIMUM);
+    int imageArea = image.width() * image.height();
+    _averageColor = accumulated / (imageArea * EIGHT_BIT_MAXIMUM);
+    _translucent = (translucentPixels >= imageArea / 2);
     
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());

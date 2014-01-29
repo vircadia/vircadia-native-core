@@ -12,6 +12,7 @@
 
 #include <QNetworkReply>
 #include <QOpenGLBuffer>
+#include <QTimer>
 
 #include "Application.h"
 #include "GeometryCache.h"
@@ -506,4 +507,18 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         
         _meshes.append(networkMesh);
     }
+}
+
+bool NetworkMeshPart::isTranslucent() const {
+    return diffuseTexture && diffuseTexture->isTranslucent();
+}
+
+int NetworkMesh::getTranslucentPartCount() const {
+    int count = 0;
+    foreach (const NetworkMeshPart& part, parts) {
+        if (part.isTranslucent()) {
+            count++;
+        }
+    }
+    return count;
 }

@@ -14,10 +14,8 @@
 class VoxelQuery : public OctreeQuery {
 
 public:
-    VoxelQuery(Node* owningNode = NULL);
-
     // currently just an alias
-    
+    VoxelQuery() : OctreeQuery() {};
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     VoxelQuery(const VoxelQuery&);

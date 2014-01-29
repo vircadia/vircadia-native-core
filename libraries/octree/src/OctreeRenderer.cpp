@@ -36,14 +36,17 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
 
     unsigned char command = *packetData;
     
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     
-    PACKET_TYPE expectedType = getExpectedPacketType();
+    PacketType expectedType = getExpectedPacketType();
     
     if(command == expectedType) {
-        PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PACKET_TYPE",showTimingDetails);
+        PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
+        
+        // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
+        _tree->setIsViewing(true);
     
-        const unsigned char* dataAt = packetData + numBytesPacketHeader;
+        const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(dataByteArray.data()) + numBytesPacketHeader;
 
         OCTREE_PACKET_FLAGS flags = (*(OCTREE_PACKET_FLAGS*)(dataAt));
         dataAt += sizeof(OCTREE_PACKET_FLAGS);
@@ -132,3 +135,12 @@ void OctreeRenderer::render() {
         _tree->unlock();
     }
 }
+
+void OctreeRenderer::clear() { 
+    if (_tree) {
+        _tree->lockForWrite();
+        _tree->eraseAllOctreeElements(); 
+        _tree->unlock();
+    }
+}
+

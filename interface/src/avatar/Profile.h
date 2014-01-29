@@ -57,7 +57,7 @@ private:
     QString _lastDomain;
     glm::vec3 _lastPosition;
     glm::vec3 _lastOrientation;
-    uint64_t _lastOrientationSend;
+    quint64 _lastOrientationSend;
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
 };

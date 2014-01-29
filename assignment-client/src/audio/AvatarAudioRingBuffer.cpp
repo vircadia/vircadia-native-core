@@ -15,7 +15,7 @@ AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
     
 }
 
-int AvatarAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    _shouldLoopbackForNode = (sourceBuffer[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO);
-    return PositionalAudioRingBuffer::parseData(sourceBuffer, numBytes);
+int AvatarAudioRingBuffer::parseData(const QByteArray& packet) {
+    _shouldLoopbackForNode = (packetTypeForPacket(packet) == PacketTypeMicrophoneAudioWithEcho);
+    return PositionalAudioRingBuffer::parseData(packet);
 }

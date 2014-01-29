@@ -40,8 +40,10 @@ class HTTPConnection : public QObject {
 
 public:
     static const char* StatusCode200;
+    static const char* StatusCode301;
     static const char* StatusCode400;
     static const char* StatusCode404;
+    static const char* DefaultContentType;
 
     /// WebSocket close status codes.
     enum ReasonCode { NoReason = 0, NormalClosure = 1000, GoingAway = 1001 };
@@ -72,7 +74,7 @@ public:
 
     /// Sends a response and closes the connection.
     void respond (const char* code, const QByteArray& content = QByteArray(),
-        const char* contentType = "text/plain; charset=ISO-8859-1",
+        const char* contentType = DefaultContentType,
         const Headers& headers = Headers());
 
 protected slots:

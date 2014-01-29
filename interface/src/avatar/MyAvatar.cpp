@@ -12,7 +12,6 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -37,8 +36,8 @@ const bool USING_HEAD_LEAN = false;
 const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
 const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
-MyAvatar::MyAvatar(Node* owningNode) :
-	Avatar(owningNode),
+MyAvatar::MyAvatar() :
+	Avatar(),
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
@@ -242,7 +241,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     //  Adjust body yaw by yaw from controller
     setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
     //  Adjust head pitch from controller
-    getHead().setMousePitch(getHead().getMousePitch() - euler.x);
+    getHead().setPitch(getHead().getPitch() - euler.x);
 
     _position += _velocity * deltaTime;
 
@@ -288,8 +287,6 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
             }
         }
     } else {
-        _head.setPitch(_head.getMousePitch());
-
         // restore rotation, lean to neutral positions
         const float RESTORE_RATE = 0.05f;
         _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
@@ -438,7 +435,7 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("bodyPitch", _bodyPitch);
     settings->setValue("bodyRoll", _bodyRoll);
 
-    settings->setValue("mousePitch", _head.getMousePitch());
+    settings->setValue("headPitch", _head.getPitch());
 
     settings->setValue("position_x", _position.x);
     settings->setValue("position_y", _position.y);
@@ -460,7 +457,7 @@ void MyAvatar::loadData(QSettings* settings) {
     _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
     _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
 
-    _head.setMousePitch(loadSetting(settings, "mousePitch", 0.0f));
+    _head.setPitch(loadSetting(settings, "headPitch", 0.0f));
 
     _position.x = loadSetting(settings, "position_x", 0.0f);
     _position.y = loadSetting(settings, "position_y", 0.0f);
@@ -476,6 +473,11 @@ void MyAvatar::loadData(QSettings* settings) {
     settings->endGroup();
 }
 
+void MyAvatar::sendKillAvatar() {
+    QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
+    NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     // first orbit horizontally
     glm::quat orientation = getOrientation();
@@ -486,9 +488,10 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     setOrientation(orientation);
     
     // then vertically
-    float oldMousePitch = _head.getMousePitch();
-    _head.setMousePitch(oldMousePitch + deltaY * -ANGULAR_SCALE);
-    rotation = glm::angleAxis(_head.getMousePitch() - oldMousePitch, orientation * IDENTITY_RIGHT);
+    float oldPitch = _head.getPitch();
+    _head.setPitch(oldPitch + deltaY * -ANGULAR_SCALE);
+    rotation = glm::angleAxis(_head.getPitch() - oldPitch, orientation * IDENTITY_RIGHT);
+
     setPosition(position + rotation * (getPosition() - position));
 }
 
@@ -538,7 +541,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
-    _head.setMousePitch(_head.getMousePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_MAG * deltaTime);
+    _head.setPitch(_head.getPitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_MAG * deltaTime);
 
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
@@ -787,16 +790,17 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            SortedAvatar sortedAvatar;
-            sortedAvatar.avatar = (Avatar*)node->getLinkedData();
-            if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
-                continue;
-            }
-            sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
-            sortedAvatars.append(sortedAvatar);
+    foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if ( ! avatar->isChatCirclingEnabled() ||
+                avatar == static_cast<Avatar*>(this)) {
+            continue;
         }
+    
+        SortedAvatar sortedAvatar;
+        sortedAvatar.avatar = avatar;
+        sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
+        sortedAvatars.append(sortedAvatar);
     }
     
     qSort(sortedAvatars.begin(), sortedAvatars.end());

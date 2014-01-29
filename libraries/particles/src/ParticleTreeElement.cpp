@@ -25,7 +25,7 @@ ParticleTreeElement::~ParticleTreeElement() {
 // own type to our own tree. This means we should initialize that child with any tree and type
 // specific settings that our children must have. One example is out VoxelSystem, which
 // we know must match ours.
-OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) const {
+OctreeElement* ParticleTreeElement::createNewElement(unsigned char* octalCode) {
     ParticleTreeElement* newChild = new ParticleTreeElement(octalCode);
     newChild->setTree(_myTree);
     return newChild;
@@ -125,18 +125,6 @@ bool ParticleTreeElement::findSpherePenetration(const glm::vec3& center, float r
     return false;
 }
 
-bool ParticleTreeElement::containsParticle(const Particle& particle) const {
-    // TODO: remove this method and force callers to use getParticleWithID() instead
-    uint16_t numberOfParticles = _particles->size();
-    uint32_t particleID = particle.getID();
-    for (uint16_t i = 0; i < numberOfParticles; i++) {
-        if ((*_particles)[i].getID() == particleID) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool ParticleTreeElement::updateParticle(const Particle& particle) {
     // NOTE: this method must first lookup the particle by ID, hence it is O(N)
     // and "particle is not found" is worst-case (full N) but maybe we don't care?
@@ -172,6 +160,63 @@ bool ParticleTreeElement::updateParticle(const Particle& particle) {
     return false;
 }
 
+bool ParticleTreeElement::updateParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        // note: unlike storeParticle() which is called from inbound packets, this is only called by local editors
+        // and therefore we can be confident that this change is higher priority and should be honored
+        Particle& thisParticle = (*_particles)[i];
+        
+        bool found = false;
+        if (particleID.isKnownID) {
+            found = thisParticle.getID() == particleID.id;
+        } else {
+            found = thisParticle.getCreatorTokenID() == particleID.creatorTokenID;
+        }
+        if (found) {
+            thisParticle.setProperties(properties);
+
+            const bool wantDebug = false;
+            if (wantDebug) {
+                uint64_t now = usecTimestampNow();
+                int elapsed = now - thisParticle.getLastEdited();
+
+                qDebug() << "ParticleTreeElement::updateParticle() AFTER update... edited AGO=" << elapsed <<
+                        "now=" << now << " thisParticle.getLastEdited()=" << thisParticle.getLastEdited();
+            }                
+            return true;
+        }
+    }
+    return false;
+}
+
+void ParticleTreeElement::updateParticleID(FindAndUpdateParticleIDArgs* args) {
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        Particle& thisParticle = (*_particles)[i];
+        
+        if (!args->creatorTokenFound) {
+            // first, we're looking for matching creatorTokenIDs, if we find that, then we fix it to know the actual ID
+            if (thisParticle.getCreatorTokenID() == args->creatorTokenID) {
+                thisParticle.setID(args->particleID);
+                args->creatorTokenFound = true;
+            }
+        }
+        
+        // if we're in an isViewing tree, we also need to look for an kill any viewed particles
+        if (!args->viewedParticleFound && args->isViewing) {
+            if (thisParticle.getCreatorTokenID() == UNKNOWN_TOKEN && thisParticle.getID() == args->particleID) {
+                _particles->removeAt(i); // remove the particle at this index
+                numberOfParticles--; // this means we have 1 fewer particle in this list
+                i--; // and we actually want to back up i as well.
+                args->viewedParticleFound = true;
+            }
+        }
+    }
+}
+
+
+
 const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) const {
     const Particle* closestParticle = NULL;
     float closestParticleDistance = FLT_MAX;
@@ -183,6 +228,36 @@ const Particle* ParticleTreeElement::getClosestParticle(glm::vec3 position) cons
         }
     }
     return closestParticle;
+}
+
+void ParticleTreeElement::getParticles(const glm::vec3& searchPosition, float searchRadius, QVector<const Particle*>& foundParticles) const {
+    uint16_t numberOfParticles = _particles->size();
+    for (uint16_t i = 0; i < numberOfParticles; i++) {
+        const Particle* particle = &(*_particles)[i];
+        glm::vec3 particlePosition = particle->getPosition();
+        float distance = glm::length(particle->getPosition() - searchPosition);
+        if (distance < searchRadius + particle->getRadius()) {
+            foundParticles.push_back(particle);
+        }
+    }
+}
+
+void ParticleTreeElement::getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles) {
+    QList<Particle>::iterator particleItr = _particles->begin();
+    QList<Particle>::iterator particleEnd = _particles->end();
+    AABox particleBox;
+    while(particleItr != particleEnd) {
+        Particle* particle = &(*particleItr);
+        float radius = particle->getRadius();
+        // NOTE: we actually do box-box collision queries here, which is sloppy but good enough for now
+        // TODO: decide whether to replace particleBox-box query with sphere-box (requires a square root
+        // but will be slightly more accurate).
+        particleBox.setBox(particle->getPosition() - glm::vec3(radius), 2.f * radius);
+        if (particleBox.touches(_box)) {
+            foundParticles.push_back(particle);
+        }
+        ++particleItr;
+    }
 }
 
 const Particle* ParticleTreeElement::getParticleWithID(uint32_t id) const {
@@ -210,8 +285,6 @@ bool ParticleTreeElement::removeParticleWithID(uint32_t id) {
     }
     return foundParticle;
 }
-
-
 
 int ParticleTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {

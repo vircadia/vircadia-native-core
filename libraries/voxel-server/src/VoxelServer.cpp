@@ -16,7 +16,7 @@ const char* VOXEL_SERVER_NAME = "Voxel";
 const char* VOXEL_SERVER_LOGGING_TARGET_NAME = "voxel-server";
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 
-VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : OctreeServer(dataBuffer, numBytes) {
+VoxelServer::VoxelServer(const QByteArray& packet) : OctreeServer(packet) {
     // nothing special to do here...
 }
 
@@ -24,8 +24,8 @@ VoxelServer::~VoxelServer() {
     // nothing special to do here...
 }
 
-OctreeQueryNode* VoxelServer::createOctreeQueryNode(Node* newNode) {
-    return new VoxelNodeData(newNode);
+OctreeQueryNode* VoxelServer::createOctreeQueryNode() {
+    return new VoxelNodeData();
 }
 
 Octree* VoxelServer::createTree() {
@@ -38,7 +38,7 @@ bool VoxelServer::hasSpecialPacketToSend(Node* node) {
 }
 
 int VoxelServer::sendSpecialPacket(Node* node) {
-    int numBytesPacketHeader = populateTypeAndVersion(_tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_tempOutputBuffer), PacketTypeEnvironmentData);
     int envPacketLength = numBytesPacketHeader;
     int environmentsToSend = getSendMinimalEnvironment() ? 1 : getEnvironmentDataCount();
 
@@ -69,5 +69,5 @@ void VoxelServer::beforeRun() {
     }
     qDebug("Sending environments=%s", debug::valueOf(_sendEnvironments));
     
-    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_ANIMATION_SERVER);
+    NodeList::getInstance()->addNodeTypeToInterestSet(NodeType::AnimationServer);
 }
