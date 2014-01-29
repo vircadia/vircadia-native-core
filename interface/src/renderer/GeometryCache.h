@@ -93,6 +93,8 @@ public:
     
     QSharedPointer<NetworkTexture> diffuseTexture;
     QSharedPointer<NetworkTexture> normalTexture;
+    
+    bool isTranslucent() const;
 };
 
 /// The state associated with a single mesh.
@@ -103,6 +105,8 @@ public:
     GLuint vertexBufferID;
     
     QVector<NetworkMeshPart> parts;
+    
+    int getTranslucentPartCount() const;
 };
 
 #endif /* defined(__interface__GeometryCache__) */
