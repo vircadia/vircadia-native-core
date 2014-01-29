@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QDataStream>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>

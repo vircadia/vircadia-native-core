@@ -10,6 +10,8 @@
 #include <cstring>
 #include <stdint.h>
 
+#include <QtCore/QDataStream>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
