@@ -46,7 +46,7 @@ public:
     virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
 
     /// initialize and GPU/rendering related resources
-    void init();
+    virtual void init();
 
     /// render the content of the octree
     virtual void render();

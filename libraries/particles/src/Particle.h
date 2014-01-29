@@ -16,6 +16,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 
+#include <CollisionInfo.h>
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
@@ -31,16 +32,20 @@ const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
 const uint32_t UNKNOWN_PARTICLE_ID = 0xFFFFFFFF;
 
-const uint16_t PACKET_CONTAINS_RADIUS = 1;
-const uint16_t PACKET_CONTAINS_POSITION = 2;
-const uint16_t PACKET_CONTAINS_COLOR = 4;
-const uint16_t PACKET_CONTAINS_VELOCITY = 8;
-const uint16_t PACKET_CONTAINS_GRAVITY = 16;
-const uint16_t PACKET_CONTAINS_DAMPING = 32;
-const uint16_t PACKET_CONTAINS_LIFETIME = 64;
-const uint16_t PACKET_CONTAINS_INHAND = 128;
-const uint16_t PACKET_CONTAINS_SCRIPT = 256;
-const uint16_t PACKET_CONTAINS_SHOULDDIE = 512;
+const uint16_t CONTAINS_RADIUS = 1;
+const uint16_t CONTAINS_POSITION = 2;
+const uint16_t CONTAINS_COLOR = 4;
+const uint16_t CONTAINS_VELOCITY = 8;
+const uint16_t CONTAINS_GRAVITY = 16;
+const uint16_t CONTAINS_DAMPING = 32;
+const uint16_t CONTAINS_LIFETIME = 64;
+const uint16_t CONTAINS_INHAND = 128;
+const uint16_t CONTAINS_SCRIPT = 256;
+const uint16_t CONTAINS_SHOULDDIE = 512;
+const uint16_t CONTAINS_MODEL_URL = 1024;
+const uint16_t CONTAINS_MODEL_TRANSLATION = 1024;
+const uint16_t CONTAINS_MODEL_ROTATION = 2048;
+const uint16_t CONTAINS_MODEL_SCALE = 4096;
 
 const float DEFAULT_LIFETIME = 10.0f; // particles live for 10 seconds by default
 const float DEFAULT_DAMPING = 0.99f;
@@ -48,8 +53,12 @@ const float DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 const QString DEFAULT_SCRIPT("");
+const glm::vec3 DEFAULT_MODEL_TRANSLATION(0, 0, 0);
+const glm::quat DEFAULT_MODEL_ROTATION(0, 0, 0, 0);
+const float DEFAULT_MODEL_SCALE = 1.0f;
 const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
+
 
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
@@ -75,6 +84,10 @@ public:
     const QString& getScript() const { return _script; }
     bool getInHand() const { return _inHand; }
     bool getShouldDie() const { return _shouldDie; }
+    const QString& getModelURL() const { return _modelURL; }
+    const glm::vec3& getModelTranslation() const { return _modelTranslation; }
+    const glm::quat& getModelRotation() const { return _modelRotation; }
+    float getModelScale() const { return _modelScale; }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -93,7 +106,14 @@ public:
     void setDamping(float value) { _damping = value; _dampingChanged = true;  }
     void setShouldDie(bool shouldDie) { _shouldDie = shouldDie; _shouldDieChanged = true;  }
     void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true;  }
-    void setScript(QString updateScript) { _script = updateScript; _scriptChanged = true;  }
+    void setScript(const QString& updateScript) { _script = updateScript; _scriptChanged = true;  }
+
+    // model related properties
+    void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
+    void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; 
+                                                              _modelTranslationChanged = true; }
+    void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
+    void setModelScale(float scale) { _modelScale = scale; _modelScaleChanged = true; }
     
     /// used by ParticleScriptingInterface to return ParticleProperties for unknown particles
     void setIsUnknownID() { _id = UNKNOWN_PARTICLE_ID; _idSet = true; }
@@ -109,10 +129,15 @@ private:
     QString _script;
     bool _inHand;
     bool _shouldDie;
+    QString _modelURL;
+    glm::vec3 _modelTranslation;
+    glm::quat _modelRotation;
+    float _modelScale;
 
     uint32_t _id;
     bool _idSet;
     quint64 _lastEdited;
+
     bool _positionChanged;
     bool _colorChanged;
     bool _radiusChanged;
@@ -123,6 +148,10 @@ private:
     bool _scriptChanged;
     bool _inHandChanged;
     bool _shouldDieChanged;
+    bool _modelURLChanged;
+    bool _modelTranslationChanged;
+    bool _modelRotationChanged;
+    bool _modelScaleChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ParticleProperties);
@@ -161,14 +190,10 @@ class Particle  {
 
 public:
     Particle();
+
+    Particle(const ParticleID& particleID, const ParticleProperties& properties);
     
-    /// all position, velocity, gravity, radius units are in domain units (0.0 to 1.0)
-    Particle(glm::vec3 position, float radius, rgbColor color, glm::vec3 velocity,
-            glm::vec3 gravity = DEFAULT_GRAVITY, float damping = DEFAULT_DAMPING, float lifetime = DEFAULT_LIFETIME,
-            bool inHand = NOT_IN_HAND, QString updateScript = DEFAULT_SCRIPT, uint32_t id = NEW_PARTICLE);
-
-
-    /// creates an NEW particle from an PacketType_PARTICLE_ADD_OR_EDIT edit data buffer
+    /// creates an NEW particle from an PACKET_TYPE_PARTICLE_ADD_OR_EDIT edit data buffer
     static Particle fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid);
 
     virtual ~Particle();
@@ -195,6 +220,14 @@ public:
     bool getInHand() const { return _inHand; }
     float getDamping() const { return _damping; }
     float getLifetime() const { return _lifetime; }
+    
+    // model related properties
+    bool hasModel() const { return !_modelURL.isEmpty(); }
+    const QString& getModelURL() const { return _modelURL; }
+    const glm::vec3& getModelTranslation() const { return _modelTranslation; }
+    const glm::quat& getModelRotation() const { return _modelRotation; }
+    float getModelScale() const { return _modelScale; }
+    
     ParticleProperties getProperties() const;
 
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
@@ -202,11 +235,13 @@ public:
 
     /// The last edited time of this particle from the time perspective of the authoritative server/source
     quint64 getLastEdited() const { return _lastEdited; }
+    void setLastEdited(quint64 lastEdited) { _lastEdited = lastEdited; }
 
     /// lifetime of the particle in seconds
     float getAge() const { return static_cast<float>(usecTimestampNow() - _created) / static_cast<float>(USECS_PER_SECOND); }
     float getEditedAgo() const { return static_cast<float>(usecTimestampNow() - _lastEdited) / static_cast<float>(USECS_PER_SECOND); }
     uint32_t getID() const { return _id; }
+    void setID(uint32_t id) { _id = id; }
     bool getShouldDie() const { return _shouldDie; }
     QString getScript() const { return _script; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
@@ -235,19 +270,27 @@ public:
     void setLifetime(float value) { _lifetime = value; }
     void setScript(QString updateScript) { _script = updateScript; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
+    
+    // model related properties
+    void setModelURL(const QString& url) { _modelURL = url; }
+    void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; }
+    void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
+    void setModelScale(float scale) { _modelScale = scale; }
+    
     void setProperties(const ParticleProperties& properties);
 
     bool appendParticleData(OctreePacketData* packetData) const;
     int readParticleDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
     static int expectedBytes();
-    static int expectedEditMessageBytes();
 
     static bool encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& details,
                         unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
     static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssize_t length, int clockSkew);
+    
+    void applyHardCollision(const CollisionInfo& collisionInfo);
 
-    void update(const quint64& now);
+    void update(const uint64_t& now);
     void collisionWithParticle(Particle* other);
     void collisionWithVoxel(VoxelDetail* voxel);
 
@@ -296,6 +339,12 @@ protected:
     float _lifetime;
     QString _script;
     bool _inHand;
+
+    // model related items
+    QString _modelURL;
+    glm::vec3 _modelTranslation;
+    glm::quat _modelRotation;
+    float _modelScale;
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;

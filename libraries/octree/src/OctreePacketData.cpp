@@ -305,6 +305,19 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const glm::quat& value) {
+    const size_t VALUES_PER_QUAT = 4;
+    const size_t PACKED_QUAT_SIZE = sizeof(uint16_t) * VALUES_PER_QUAT;
+    unsigned char data[PACKED_QUAT_SIZE];
+    int length = packOrientationQuatToBytes(data, value);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
 bool OctreePacketData::appendValue(bool value) {
     bool success = append((uint8_t)value); // used unsigned char version
     if (success) {

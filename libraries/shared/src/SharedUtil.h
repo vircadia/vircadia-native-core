@@ -167,8 +167,14 @@ int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
 int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
-// A convenience for sending vec3's as fixed-poimt floats
+// A convenience for sending vec3's as fixed-point floats
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix);
+
+#ifndef PIf
+#define PIf 3.14159265f
+#endif
+
+glm::vec3 safeEulerAngles(const glm::quat& q);
 
 #endif /* defined(__hifi__SharedUtil__) */

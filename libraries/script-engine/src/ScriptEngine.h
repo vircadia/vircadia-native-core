@@ -25,6 +25,7 @@ class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
 #include "DataServerScriptingInterface.h"
+#include "Quat.h"
 
 const QString NO_SCRIPT("");
 
@@ -94,6 +95,7 @@ private:
     QString _fileNameString;
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
+    Quat _quatLibrary;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */

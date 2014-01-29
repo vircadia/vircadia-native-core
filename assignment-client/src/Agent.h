@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <ParticleTree.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
@@ -32,6 +33,7 @@ signals:
     void willSendVisualDataCallback();
 private:
     ScriptEngine _scriptEngine;
+    ParticleTree _particleTree;
 };
 
 #endif /* defined(__hifi__Agent__) */

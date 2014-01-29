@@ -278,3 +278,10 @@ void AvatarData::setClampedTargetScale(float targetScale) {
     _targetScale = targetScale;
     qDebug() << "Changed scale to " << _targetScale;
 }
+
+void AvatarData::setOrientation(const glm::quat& orientation) {
+    glm::vec3 eulerAngles = safeEulerAngles(orientation);
+    _bodyPitch = eulerAngles.x;
+    _bodyYaw = eulerAngles.y;
+    _bodyRoll = eulerAngles.z;
+}

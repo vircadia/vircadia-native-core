@@ -116,18 +116,11 @@ void ScriptEngine::init() {
 
     // register meta-type for glm::vec3 conversions
     registerMetaTypes(&_engine);
+    
+    registerEventTypes(&_engine);
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
-
-    QScriptValue agentValue = _engine.newQObject(this);
-    _engine.globalObject().setProperty("Agent", agentValue);
-
-    QScriptValue voxelScripterValue =  _engine.newQObject(&_voxelsScriptingInterface);
-    _engine.globalObject().setProperty("Voxels", voxelScripterValue);
-
-    QScriptValue particleScripterValue =  _engine.newQObject(&_particlesScriptingInterface);
-    _engine.globalObject().setProperty("Particles", particleScripterValue);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
@@ -136,15 +129,14 @@ void ScriptEngine::init() {
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
-    QScriptValue audioScriptingInterfaceValue = _engine.newQObject(&_audioScriptingInterface);
-    _engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
-    
+    registerGlobalObject("Agent", this);
+    registerGlobalObject("Audio", &_audioScriptingInterface);
+    registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Data", &_dataServerScriptingInterface);
+    registerGlobalObject("Particles", &_particlesScriptingInterface);
+    registerGlobalObject("Quat", &_quatLibrary);
 
-    if (_controllerScriptingInterface) {
-        QScriptValue controllerScripterValue =  _engine.newQObject(_controllerScriptingInterface);
-        _engine.globalObject().setProperty("Controller", controllerScripterValue);
-    }
+    registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));
     _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
@@ -157,8 +149,10 @@ void ScriptEngine::init() {
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
-    QScriptValue value = _engine.newQObject(object);
-    _engine.globalObject().setProperty(name, value);
+    if (object) {
+        QScriptValue value = _engine.newQObject(object);
+        _engine.globalObject().setProperty(name, value);
+    }
 }
 
 void ScriptEngine::evaluate() {

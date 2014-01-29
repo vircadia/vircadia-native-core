@@ -258,6 +258,9 @@ public:
     void recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation,
                 const glm::vec3& point, void* extraData, int recursionCount = 0);
 
+    bool getIsViewing() const { return _isViewing; }
+    void setIsViewing(bool isViewing) { _isViewing = isViewing; }
+
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);
@@ -321,6 +324,9 @@ protected:
     void emptyDeleteQueue();
 
     QReadWriteLock lock;
+    
+    /// This tree is receiving inbound viewer datagrams.
+    bool _isViewing;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
