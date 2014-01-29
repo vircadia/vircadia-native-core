@@ -29,9 +29,9 @@ public:
     virtual ~ParticleTreeRenderer();
 
     virtual Octree* createTree() { return new ParticleTree(true); }
-    virtual NODE_TYPE getMyNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
-    virtual PACKET_TYPE getMyQueryMessageType() const { return PACKET_TYPE_PARTICLE_QUERY; }
-    virtual PACKET_TYPE getExpectedPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
+    virtual NodeType_t getMyNodeType() const { return NodeType::ParticleServer; }
+    virtual PacketType getMyQueryMessageType() const { return PacketTypeParticleQuery; }
+    virtual PacketType getExpectedPacketType() const { return PacketTypeParticleData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
 
     void update();

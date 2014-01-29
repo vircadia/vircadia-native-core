@@ -19,7 +19,7 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 typedef signed long long   int64_t;
-typedef unsigned long long uint64_t;
+typedef unsigned long long quint64;
 #define PRId64 "I64d"
 #else
 #include <inttypes.h>
@@ -83,8 +83,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    QByteArray toByteArray();
+    int parseData(const QByteArray& packet);
 
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }

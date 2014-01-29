@@ -23,8 +23,8 @@ bool PerformanceWarning::_suppressShortTimings = false;
 
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
-    uint64_t end = usecTimestampNow();
-    uint64_t elapsedusec = (end - _start);
+    quint64 end = usecTimestampNow();
+    quint64 elapsedusec = (end - _start);
     double elapsedmsec = elapsedusec / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {

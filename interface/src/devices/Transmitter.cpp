@@ -60,7 +60,7 @@ void Transmitter::resetLevels() {
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     //  Packet's first byte is 'T'
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(packetData));
     
     const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
     const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)

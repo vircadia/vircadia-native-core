@@ -28,17 +28,19 @@
 
 typedef unsigned char VOXEL_PACKET_FLAGS;
 typedef uint16_t VOXEL_PACKET_SEQUENCE;
-typedef uint64_t VOXEL_PACKET_SENT_TIME;
+typedef quint64 VOXEL_PACKET_SENT_TIME;
 typedef uint16_t VOXEL_PACKET_INTERNAL_SECTION_SIZE;
 const int MAX_VOXEL_PACKET_SIZE = MAX_PACKET_SIZE;
-const int VOXEL_PACKET_HEADER_SIZE = (sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(VOXEL_PACKET_FLAGS) 
-                + sizeof(VOXEL_PACKET_SEQUENCE) + sizeof(VOXEL_PACKET_SENT_TIME));
+
+// this is overly conservative - uses 8 bytes for PacketType which could be as compact as a single byte
+const int VOXEL_PACKET_HEADER_SIZE = MAX_PACKET_HEADER_BYTES + sizeof(VOXEL_PACKET_FLAGS)
+                + sizeof(VOXEL_PACKET_SEQUENCE) + sizeof(VOXEL_PACKET_SENT_TIME);
 
 const int MAX_VOXEL_PACKET_DATA_SIZE = MAX_PACKET_SIZE - VOXEL_PACKET_HEADER_SIZE;
             
 const int MAX_VOXEL_UNCOMRESSED_PACKET_SIZE = MAX_VOXEL_PACKET_DATA_SIZE;
 
-/// Handles packing of the data portion of PACKET_TYPE_VOXEL_DATA messages.
+/// Handles packing of the data portion of PacketType_VOXEL_DATA messages.
 class VoxelPacketData : public OctreePacketData {
 public:
     VoxelPacketData(bool enableCompression = false, int maxFinalizedSize = MAX_OCTREE_PACKET_DATA_SIZE);

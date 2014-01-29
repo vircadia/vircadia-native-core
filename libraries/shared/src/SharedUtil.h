@@ -27,6 +27,8 @@
 #include <sys/time.h>
 #endif
 
+#include "PacketHeaders.h"
+
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
@@ -55,12 +57,12 @@ static const float METER            = 1.0f;
 static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
-static const uint64_t USECS_PER_MSEC = 1000;
-static const uint64_t MSECS_PER_SECOND = 1000;
-static const uint64_t USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
+static const quint64 USECS_PER_MSEC = 1000;
+static const quint64 MSECS_PER_SECOND = 1000;
+static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
-uint64_t usecTimestamp(const timeval *time);
-uint64_t usecTimestampNow();
+quint64 usecTimestamp(const timeval *time);
+quint64 usecTimestampNow();
 void usecTimestampNowForceClockSkew(int clockSkew);
 
 float randFloat();
@@ -107,13 +109,6 @@ struct VoxelDetail {
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
 unsigned char* pointToOctalCode(float x, float y, float z, float s);
 
-// Creates a full Voxel edit message, including command header, sequence, and details
-bool createVoxelEditMessage(unsigned char command, short int sequence,
-        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
-
-/// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
 #ifdef _WIN32
 void usleep(int waitTime);
@@ -147,7 +142,7 @@ bool isBetween(int64_t value, int64_t max, int64_t min);
 
 // Angles are known to be between 0 and 360deg, this allows us to encode in 16bits with great accuracy
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer);
+int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer);
 
 // Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0
 // this allows us to encode each component in 16bits with great accuracy
@@ -157,24 +152,24 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
 // Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
 // are never greater than 1000 to 1, this allows us to encode each component in 16bits
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio);
-int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio);
+int unpackFloatRatioFromTwoByte(const unsigned char* buffer, float& ratio);
 
 // Near/Far Clip values need the be highly accurate when less than 10, but only integer accuracy above 10 and
 // they are never greater than 16,000, this allows us to encode each component in 16bits
 int packClipValueToTwoByte(unsigned char* buffer, float clipValue);
-int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
+int unpackClipValueFromTwoByte(const unsigned char* buffer, float& clipValue);
 
 // Positive floats that don't need to be very precise
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
-int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
+int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy);
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
-int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
+int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
 // A convenience for sending vec3's as fixed-point floats
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
-int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
+int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
 #ifndef PIf
 #define PIf 3.14159265f

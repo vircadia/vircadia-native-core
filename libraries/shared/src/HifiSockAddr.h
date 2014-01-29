@@ -37,7 +37,9 @@ public:
     static int packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr);
     static int unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr);
     
-    friend QDebug operator<<(QDebug debug, const HifiSockAddr &hifiSockAddr);
+    friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
+    friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
+    friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
 private:
     QHostAddress _address;
     quint16 _port;

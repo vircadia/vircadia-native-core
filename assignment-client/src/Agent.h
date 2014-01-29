@@ -22,7 +22,7 @@
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 public:
-    Agent(const unsigned char* dataBuffer, int numBytes);
+    Agent(const QByteArray& packet);
     
 public slots:
     void run();

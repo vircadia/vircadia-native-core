@@ -27,7 +27,7 @@ public:
     OctreeQueryNode();
     virtual ~OctreeQueryNode();
     
-    virtual PACKET_TYPE getMyPacketType() const = 0;
+    virtual PacketType getMyPacketType() const = 0;
 
     void resetOctreePacket(bool lastWasSurpressed = false);  // resets octree packet to after "V" header
 
@@ -67,8 +67,8 @@ public:
 
     bool moveShouldDump() const;
 
-    uint64_t getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
-    void setLastTimeBagEmpty(uint64_t lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; }
+    quint64 getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
+    void setLastTimeBagEmpty(quint64 lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; }
 
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
     bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
@@ -98,13 +98,13 @@ private:
     unsigned char* _lastOctreePacket;
     int _lastOctreePacketLength;
     int _duplicatePacketCount;
-    uint64_t _firstSuppressedPacket;
+    quint64 _firstSuppressedPacket;
 
     int _maxSearchLevel;
     int _maxLevelReachedInLastSearch;
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
-    uint64_t _lastTimeBagEmpty;
+    quint64 _lastTimeBagEmpty;
     bool _viewFrustumChanging;
     bool _viewFrustumJustStoppedChanging;
     bool _currentPacketIsColor;
