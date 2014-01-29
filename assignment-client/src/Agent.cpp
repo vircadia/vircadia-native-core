@@ -28,7 +28,8 @@ Agent::Agent(const QByteArray& packet) :
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    if (packetTypeForPacket(dataByteArray) == PacketTypeJurisdiction) {
+    PacketType datagramPacketType = packetTypeForPacket(dataByteArray);
+    if (datagramPacketType == PacketTypeJurisdiction) {
         int headerBytes = numBytesForPacketHeader(dataByteArray);
         // PacketType_JURISDICTION, first byte is the node type...
         switch (dataByteArray[headerBytes]) {
@@ -41,12 +42,12 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
                                                                                                                dataByteArray);
                 break;
         }
-    } else if (dataByteArray[0] == PACKET_TYPE_PARTICLE_ADD_RESPONSE) {
+    } else if (datagramPacketType == PacketTypeParticleAddResponse) {
         // this will keep creatorTokenIDs to IDs mapped correctly
-        Particle::handleAddParticleResponse((unsigned char*) dataByteArray.data(), dataByteArray.size());
+        Particle::handleAddParticleResponse(dataByteArray);
         
         // also give our local particle tree a chance to remap any internal locally created particles
-        _particleTree.handleAddParticleResponse((unsigned char*) dataByteArray.data(), dataByteArray.size());
+        _particleTree.handleAddParticleResponse(dataByteArray);
     } else {
         NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
