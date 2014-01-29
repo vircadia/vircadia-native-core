@@ -498,11 +498,9 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
     while (iterator != _recentlyDeletedParticleIDs.constEnd()) {
         QList<uint32_t> values = _recentlyDeletedParticleIDs.values(iterator.key());
         for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
-            //qDebug() << "considering... " << iterator.key() << ": " << values.at(valueItem);
 
             // if the timestamp is more recent then out last sent time, include it
             if (iterator.key() > sinceTime) {
-                //qDebug() << "including... " << iterator.key() << ": " << values.at(valueItem);
                 uint32_t particleID = values.at(valueItem);
                 memcpy(copyAt, &particleID, sizeof(particleID));
                 copyAt += sizeof(particleID);
@@ -540,16 +538,14 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
 
 // called by the server when it knows all nodes have been sent deleted packets
 void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
-    //qDebug() << "forgetParticlesDeletedBefore()";
     QSet<uint64_t> keysToRemove;
 
     _recentlyDeletedParticlesLock.lockForWrite();
     QMultiMap<uint64_t, uint32_t>::iterator iterator = _recentlyDeletedParticleIDs.begin();
+
     // First find all the keys in the map that are older and need to be deleted    
     while (iterator != _recentlyDeletedParticleIDs.end()) {
-        //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() <= sinceTime) {
-            //qDebug() << "YES older... time/key:" << iterator.key();
             keysToRemove << iterator.key();
         }
         ++iterator;
@@ -557,18 +553,15 @@ void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
 
     // Now run through the keysToRemove and remove them    
     foreach (uint64_t value, keysToRemove) {
-        //qDebug() << "removing the key, _recentlyDeletedParticleIDs.remove(value); time/key:" << value;
         _recentlyDeletedParticleIDs.remove(value);
     }
     
     _recentlyDeletedParticlesLock.unlock();
-    //qDebug() << "DONE forgetParticlesDeletedBefore()";
 }
 
 
 void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr,
         Node* sourceNode) {
-    //qDebug() << "ParticleTree::processEraseMessage()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
@@ -583,14 +576,11 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 
-    //qDebug() << "got erase message for numberOfIds:" << numberOfIds;
-
     if (numberOfIds > 0) {
         FindAndDeleteParticlesArgs args;
 
         for (size_t i = 0; i < numberOfIds; i++) {
             if (processedBytes + sizeof(uint32_t) > packetLength) {
-                //qDebug() << "bailing?? processedBytes:" << processedBytes << " packetLength:" << packetLength;
                 break; // bail to prevent buffer overflow
             }
 
@@ -599,12 +589,10 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
             dataAt += sizeof(particleID);
             processedBytes += sizeof(particleID);
 
-            //qDebug() << "got erase message for particleID:" << particleID;
             args._idsToDelete.push_back(particleID);
         }
 
         // calling recurse to actually delete the particles
-        //qDebug() << "calling recurse to actually delete the particles";
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }

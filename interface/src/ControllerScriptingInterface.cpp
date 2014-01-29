@@ -179,5 +179,40 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
     return glm::vec3(0); // bad index
 }
 
+bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
+qDebug() << "ControllerScriptingInterface::isKeyCaptured() event=" << event;
+    return isKeyCaptured(KeyEvent(*event));
+}
 
+bool ControllerScriptingInterface::isKeyCaptured(const KeyEvent& event) const {
+
+qDebug() << "ControllerScriptingInterface::isKeyCaptured() event.key=" << event.key;
+
+    // if we've captured some combination of this key it will be in the map
+    if (_capturedKeys.contains(event.key, event)) {
+qDebug() << "ControllerScriptingInterface::isKeyCaptured() event.key=" << event.key << " returning TRUE";
+        return true;
+    }
+    return false;
+}
+
+void ControllerScriptingInterface::captureKeyEvents(const KeyEvent& event) {
+    // if it's valid
+    if (event.isValid) {
+        // and not already captured
+        if (!isKeyCaptured(event)) {
+            // then add this KeyEvent record to the captured combos for this key
+            _capturedKeys.insert(event.key, event);
+        }
+    }
+}
+
+void ControllerScriptingInterface::releaseKeyEvents(const KeyEvent& event) {
+    if (event.isValid) {
+        // and not already captured
+        if (isKeyCaptured(event)) {
+            _capturedKeys.remove(event.key, event);
+        }
+    }
+}
 

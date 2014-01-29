@@ -18,25 +18,42 @@
 #include <QTouchEvent>
 #include <QWheelEvent>
 
+
 class KeyEvent {
 public:
-    KeyEvent() { }; 
-    KeyEvent(QKeyEvent* other) { }; 
+    KeyEvent();
+    KeyEvent(const QKeyEvent& event);
+    inline bool operator==(const KeyEvent& other) const { 
+                            return other.key == key && other.isShifted == isShifted && other.isMeta == isMeta; }
+    int key;
+    bool isShifted;
+    bool isMeta;
+    bool isValid;
 };
+
 
 class MouseEvent {
 public:
-    MouseEvent() { };
+    MouseEvent() : x(0), y(0) { }; 
+    MouseEvent(const QMouseEvent& event);
+    int x;
+    int y;
 };
 
 class TouchEvent {
 public:
-    TouchEvent() { };
+    TouchEvent() : x(0), y(0) { };
+    TouchEvent(const QTouchEvent& event);
+    float x;
+    float y;
 };
 
 class WheelEvent {
 public:
-    WheelEvent() { };
+    WheelEvent() : x(0), y(0)  { }; 
+    WheelEvent(const QWheelEvent& event);
+    int x;
+    int y;
 };
 
 

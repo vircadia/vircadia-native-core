@@ -10,47 +10,28 @@
 
 #include "EventTypes.h"
 
-void registerEventTypes(QScriptEngine* engine) {
-    qScriptRegisterMetaType(engine, keyEventToScriptValue, keyEventFromScriptValue);
-    qScriptRegisterMetaType(engine, mouseEventToScriptValue, mouseEventFromScriptValue);
-    qScriptRegisterMetaType(engine, touchEventToScriptValue, touchEventFromScriptValue);
-    qScriptRegisterMetaType(engine, wheelEventToScriptValue, wheelEventFromScriptValue);
+
+KeyEvent::KeyEvent() {
+    key = 0;
+    isShifted = false;
+    isMeta = false;
+    isValid = false;
 }
 
-QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event) {
-    QScriptValue obj = engine->newObject();
-    /*
-    obj.setProperty("key", event.key());
-    obj.setProperty("isAutoRepeat", event.isAutoRepeat());
 
-    bool isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
-    bool isMeta = event.modifiers().testFlag(Qt::ControlModifier);
-
-    obj.setProperty("isShifted", isShifted);
-    obj.setProperty("isMeta", isMeta);
-     */
-
-    return obj;
+KeyEvent::KeyEvent(const QKeyEvent& event) {
+    key = event.key();
+    isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
+    isMeta = event.modifiers().testFlag(Qt::ControlModifier);
+    isValid = true;
 }
 
-void keyEventFromScriptValue(const QScriptValue &object, KeyEvent& event) {
-    // nothing for now...
+MouseEvent::MouseEvent(const QMouseEvent& event) {
+    x = event.x();
+    y = event.y();
 }
 
-QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("x", event.x());
-    obj.setProperty("y", event.y());
-    return obj;
-}
-
-void mouseEventFromScriptValue(const QScriptValue &object, MouseEvent& event) {
-    // nothing for now...
-}
-
-QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event) {
-    QScriptValue obj = engine->newObject();
-
+TouchEvent::TouchEvent(const QTouchEvent& event) {
     // convert the touch points into an average    
     const QList<QTouchEvent::TouchPoint>& tPoints = event.touchPoints();
     float touchAvgX = 0.0f;
@@ -64,9 +45,53 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
         touchAvgX /= (float)(numTouches);
         touchAvgY /= (float)(numTouches);
     }
-    
-    obj.setProperty("averageX", touchAvgX);
-    obj.setProperty("averageY", touchAvgY);
+    x = touchAvgX;
+    y = touchAvgY;
+}
+
+WheelEvent::WheelEvent(const QWheelEvent& event) {
+    x = event.x();
+    y = event.y();
+}
+
+
+void registerEventTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, keyEventToScriptValue, keyEventFromScriptValue);
+    qScriptRegisterMetaType(engine, mouseEventToScriptValue, mouseEventFromScriptValue);
+    qScriptRegisterMetaType(engine, touchEventToScriptValue, touchEventFromScriptValue);
+    qScriptRegisterMetaType(engine, wheelEventToScriptValue, wheelEventFromScriptValue);
+}
+
+QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("key", event.key);
+    obj.setProperty("isShifted", event.isShifted);
+    obj.setProperty("isMeta", event.isMeta);
+    return obj;
+}
+
+void keyEventFromScriptValue(const QScriptValue &object, KeyEvent& event) {
+    event.key = object.property("key").toVariant().toInt();
+    event.isShifted = object.property("isShifted").toVariant().toBool();
+    event.isMeta = object.property("isMeta").toVariant().toBool();
+    event.isValid = object.property("key").isValid();
+}
+
+QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", event.x);
+    obj.setProperty("y", event.y);
+    return obj;
+}
+
+void mouseEventFromScriptValue(const QScriptValue &object, MouseEvent& event) {
+    // nothing for now...
+}
+
+QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", event.x);
+    obj.setProperty("y", event.y);
     return obj;
 }
 
@@ -76,8 +101,8 @@ void touchEventFromScriptValue(const QScriptValue &object, TouchEvent& event) {
 
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("x", event.x());
-    obj.setProperty("y", event.y());
+    obj.setProperty("x", event.x);
+    obj.setProperty("y", event.y);
     return obj;
 }
 

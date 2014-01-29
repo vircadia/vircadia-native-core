@@ -38,6 +38,19 @@ public slots:
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const = 0;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const = 0;
 
+    virtual void captureKeyEvents(const KeyEvent& event) = 0;
+    virtual void releaseKeyEvents(const KeyEvent& event) = 0;
+
+    virtual void captureMouseEvents() = 0;
+    virtual void releaseMouseEvents() = 0;
+
+    virtual void captureTouchEvents() = 0;
+    virtual void releaseTouchEvents() = 0;
+
+    virtual void captureWheelEvents() = 0;
+    virtual void releaseWheelEvents() = 0;
+
+
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);

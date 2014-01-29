@@ -1,3 +1,4 @@
+
 //
 //  ControllerScriptingInterface.h
 //  hifi
@@ -19,23 +20,24 @@ class ControllerScriptingInterface : public AbstractControllerScriptingInterface
     Q_OBJECT
 
 public:    
-    void emitKeyPressEvent(QKeyEvent* x) {
-            KeyEvent event(x);
-            emit keyPressEvent(event);
-    }
-    
-    /**
-    void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(*event); }
+    void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
+    void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
 
-    void emitMouseMoveEvent(QMouseEvent* event) { emit mouseMoveEvent(*event); }
-    void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(*event); }
-    void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(*event); }
+    void emitMouseMoveEvent(QMouseEvent* event) { emit mouseMoveEvent(MouseEvent(*event)); }
+    void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(MouseEvent(*event)); }
+    void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(MouseEvent(*event)); }
 
-    void emitTouchBeginEvent(QTouchEvent* event) { emit touchBeginEvent(event); }
-    void emitTouchEndEvent(QTouchEvent* event) { emit touchEndEvent(event); }
-    void emitTouchUpdateEvent(QTouchEvent* event) { emit touchUpdateEvent(event); }
-    void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(event); }
-     **/
+    void emitTouchBeginEvent(QTouchEvent* event) { emit touchBeginEvent(*event); }
+    void emitTouchEndEvent(QTouchEvent* event) { emit touchEndEvent(*event); }
+    void emitTouchUpdateEvent(QTouchEvent* event) { emit touchUpdateEvent(*event); }
+    void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
+
+    bool isKeyCaptured(QKeyEvent* event) const;
+    bool isKeyCaptured(const KeyEvent& event) const;
+    bool isMouseCaptured() const { return _mouseCaptured; }
+    bool isTouchCaptured() const { return _touchCaptured; }
+    bool isWheelCaptured() const { return _wheelCaptured; }
+
 
 public slots:
     virtual bool isPrimaryButtonPressed() const;
@@ -55,6 +57,18 @@ public slots:
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
 
+    virtual void captureKeyEvents(const KeyEvent& event);
+    virtual void releaseKeyEvents(const KeyEvent& event);
+
+    virtual void captureMouseEvents() { _mouseCaptured = true; }
+    virtual void releaseMouseEvents() { _mouseCaptured = false; }
+
+    virtual void captureTouchEvents() { _touchCaptured = true; }
+    virtual void releaseTouchEvents() { _touchCaptured = false; }
+
+    virtual void captureWheelEvents() { _wheelCaptured = true; }
+    virtual void releaseWheelEvents() { _wheelCaptured = false; }
+
 // The following signals are defined by AbstractControllerScriptingInterface
 //
 // signals:
@@ -66,6 +80,11 @@ private:
     const PalmData* getPalm(int palmIndex) const;
     int getNumberOfActivePalms() const;
     const PalmData* getActivePalm(int palmIndex) const;
+    
+    bool _mouseCaptured;
+    bool _touchCaptured;
+    bool _wheelCaptured;
+    QMultiMap<int,KeyEvent> _capturedKeys;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
