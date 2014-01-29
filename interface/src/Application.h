@@ -142,7 +142,7 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
-    MyAvatar* getAvatar() { return &_myAvatar; }
+    MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -375,10 +375,10 @@ private:
     VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
 
     AvatarManager _avatarManager;
-    MyAvatar _myAvatar;                  // The rendered avatar of oneself
-    Profile _profile;                    // The data-server linked profile for this user
+    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Profile _profile;               // The data-server linked profile for this user
 
-    Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
+    Transmitter _myTransmitter;     // Gets UDP data from transmitter app used to animate the avatar
 
     Faceshift _faceshift;
 
