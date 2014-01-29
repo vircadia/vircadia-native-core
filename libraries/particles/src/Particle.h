@@ -290,7 +290,7 @@ public:
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
 
-    void update(const uint64_t& now);
+    void update(const quint64& now);
     void collisionWithParticle(Particle* other);
     void collisionWithVoxel(VoxelDetail* voxel);
 
