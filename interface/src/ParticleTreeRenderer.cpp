@@ -7,6 +7,8 @@
 //
 //
 
+#include <glm/gtx/quaternion.hpp>
+
 #include "InterfaceConfig.h"
 
 #include "ParticleTreeRenderer.h"
@@ -16,7 +18,17 @@ ParticleTreeRenderer::ParticleTreeRenderer() :
 }
 
 ParticleTreeRenderer::~ParticleTreeRenderer() {
+    // delete the models in _particleModels
+    foreach(Model* model, _particleModels) {
+        delete model;
+    }
+    _particleModels.clear();
 }
+
+void ParticleTreeRenderer::init() {
+    OctreeRenderer::init();
+}
+
 
 void ParticleTreeRenderer::update() {
     if (_tree) {
@@ -25,6 +37,25 @@ void ParticleTreeRenderer::update() {
         tree->update();
         _tree->unlock();
     }
+}
+
+void ParticleTreeRenderer::render() {
+    OctreeRenderer::render();
+}
+
+Model* ParticleTreeRenderer::getModel(const QString& url) {
+    Model* model = NULL;
+    
+    // if we don't already have this model then create it and initialize it
+    if (_particleModels.find(url) == _particleModels.end()) {
+        model = new Model();
+        model->init();
+        model->setURL(QUrl(url));
+        _particleModels[url] = model;
+    } else {
+        model = _particleModels[url];
+    }
+    return model;
 }
 
 void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
@@ -36,27 +67,48 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
 
     uint16_t numberOfParticles = particles.size();
 
-    bool drawAsSphere = true;
-
     for (uint16_t i = 0; i < numberOfParticles; i++) {
         const Particle& particle = particles[i];
         // render particle aspoints
         glm::vec3 position = particle.getPosition() * (float)TREE_SCALE;
         glColor3ub(particle.getColor()[RED_INDEX],particle.getColor()[GREEN_INDEX],particle.getColor()[BLUE_INDEX]);
-        float sphereRadius = particle.getRadius() * (float)TREE_SCALE;
+        float radius = particle.getRadius() * (float)TREE_SCALE;
+
+        bool drawAsModel = particle.hasModel();
 
         args->_renderedItems++;
 
-        if (drawAsSphere) {
+        if (drawAsModel) {
             glPushMatrix();
-                glTranslatef(position.x, position.y, position.z);
-                glutSolidSphere(sphereRadius, 15, 15);
+                const float alpha = 1.0f;
+                
+                Model* model = getModel(particle.getModelURL());
+                
+                glm::vec3 translationAdjustment = particle.getModelTranslation();
+
+                // set the position
+                glm::vec3 translation(position.x, position.y, position.z);
+                model->setTranslation(translation + translationAdjustment);
+
+                // set the rotation
+                glm::quat rotation = particle.getModelRotation();
+                model->setRotation(rotation);
+
+                // scale
+                // TODO: need to figure out correct scale adjust, this was arbitrarily set to make a couple models work
+                const float MODEL_SCALE = 0.00575f;
+                glm::vec3 scale(1.0f,1.0f,1.0f);
+                model->setScale(scale * MODEL_SCALE * radius * particle.getModelScale());
+
+                model->simulate(0.0f);
+                model->render(alpha); // TODO: should we allow particles to have alpha on their models?
+
             glPopMatrix();
         } else {
-            glPointSize(sphereRadius);
-            glBegin(GL_POINTS);
-            glVertex3f(position.x, position.y, position.z);
-            glEnd();
+            glPushMatrix();
+                glTranslatef(position.x, position.y, position.z);
+                glutSolidSphere(radius, 15, 15);
+            glPopMatrix();
         }
     }
 }

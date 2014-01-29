@@ -42,6 +42,10 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
     
     if(command == expectedType) {
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PACKET_TYPE",showTimingDetails);
+        
+        // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
+        _tree->setIsViewing(true);
+
     
         const unsigned char* dataAt = packetData + numBytesPacketHeader;
 

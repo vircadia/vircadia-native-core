@@ -81,8 +81,8 @@ public:
 bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraData) {
     FindAndUpdateParticleArgs* args = static_cast<FindAndUpdateParticleArgs*>(extraData);
     ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
-    if (particleTreeElement->containsParticle(args->searchParticle)) {
-        particleTreeElement->updateParticle(args->searchParticle);
+    // Note: updateParticle() will only operate on correctly found particles
+    if (particleTreeElement->updateParticle(args->searchParticle)) {
         args->found = true;
         return false; // stop searching
     }
@@ -105,6 +105,119 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
 }
+
+class FindAndUpdateParticleWithIDandPropertiesArgs {
+public:
+    const ParticleID& particleID;
+    const ParticleProperties& properties;
+    bool found;
+};
+
+bool ParticleTree::findAndUpdateWithIDandPropertiesOperation(OctreeElement* element, void* extraData) {
+    FindAndUpdateParticleWithIDandPropertiesArgs* args = static_cast<FindAndUpdateParticleWithIDandPropertiesArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+    // Note: updateParticle() will only operate on correctly found particles
+    if (particleTreeElement->updateParticle(args->particleID, args->properties)) {
+        args->found = true;
+        return false; // stop searching
+    }
+
+    // if we've found our particle stop searching
+    if (args->found) {
+        return false;
+    }
+
+    return true;
+}
+
+void ParticleTree::updateParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    // First, look for the existing particle in the tree..
+    FindAndUpdateParticleWithIDandPropertiesArgs args = { particleID, properties, false };
+    recurseTreeWithOperation(findAndUpdateWithIDandPropertiesOperation, &args);
+    // if we found it in the tree, then mark the tree as dirty
+    if (args.found) {
+        _isDirty = true;
+    }
+}
+
+void ParticleTree::addParticle(const ParticleID& particleID, const ParticleProperties& properties) {
+    // This only operates on locally created particles
+    if (particleID.isKnownID) {
+        return; // not allowed
+    }
+    Particle particle(particleID, properties);
+    glm::vec3 position = particle.getPosition();
+    float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
+    ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
+
+    element->storeParticle(particle);
+    
+    _isDirty = true;
+}
+
+void ParticleTree::deleteParticle(const ParticleID& particleID) {
+    if (particleID.isKnownID) {
+        FindAndDeleteParticlesArgs args;
+        args._idsToDelete.push_back(particleID.id);
+        recurseTreeWithOperation(findAndDeleteOperation, &args);
+    }
+}
+
+// scans the tree and handles mapping locally created particles to know IDs.
+// in the event that this tree is also viewing the scene, then we need to also
+// search the tree to make sure we don't have a duplicate particle from the viewing
+// operation.
+bool ParticleTree::findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData) {
+    bool keepSearching = true;
+
+    FindAndUpdateParticleIDArgs* args = static_cast<FindAndUpdateParticleIDArgs*>(extraData);
+    ParticleTreeElement* particleTreeElement = static_cast<ParticleTreeElement*>(element);
+
+    // Note: updateParticleID() will only operate on correctly found particles
+    particleTreeElement->updateParticleID(args);
+
+    // if we've found and replaced both the creatorTokenID and the viewedParticle, then we
+    // can stop looking, otherwise we will keep looking    
+    if (args->creatorTokenFound && args->viewedParticleFound) {
+        keepSearching = false;
+    }
+    
+    return keepSearching;
+}
+
+void ParticleTree::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
+    unsigned char* dataAt = packetData;
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    dataAt += numBytesPacketHeader;
+
+    uint32_t creatorTokenID;
+    memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
+    dataAt += sizeof(creatorTokenID);
+
+    uint32_t particleID;
+    memcpy(&particleID, dataAt, sizeof(particleID));
+    dataAt += sizeof(particleID);
+
+    // update particles in our tree
+    bool assumeParticleFound = !getIsViewing(); // if we're not a viewing tree, then we don't have to find the actual particle
+    FindAndUpdateParticleIDArgs args = { 
+        particleID, 
+        creatorTokenID, 
+        false, 
+        assumeParticleFound,
+        getIsViewing() 
+    };
+    
+    const bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "looking for creatorTokenID=" << creatorTokenID << " particleID=" << particleID 
+                << " getIsViewing()=" << getIsViewing();
+    }
+    lockForWrite();
+    recurseTreeWithOperation(findAndUpdateParticleIDOperation, &args);
+    unlock();
+}
+
 
 class FindNearPointArgs {
 public:
@@ -413,11 +526,9 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
     while (iterator != _recentlyDeletedParticleIDs.constEnd()) {
         QList<uint32_t> values = _recentlyDeletedParticleIDs.values(iterator.key());
         for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
-            //qDebug() << "considering... " << iterator.key() << ": " << values.at(valueItem);
 
             // if the timestamp is more recent then out last sent time, include it
             if (iterator.key() > sinceTime) {
-                //qDebug() << "including... " << iterator.key() << ": " << values.at(valueItem);
                 uint32_t particleID = values.at(valueItem);
                 memcpy(copyAt, &particleID, sizeof(particleID));
                 copyAt += sizeof(particleID);
@@ -455,16 +566,14 @@ bool ParticleTree::encodeParticlesDeletedSince(uint64_t& sinceTime, unsigned cha
 
 // called by the server when it knows all nodes have been sent deleted packets
 void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
-    //qDebug() << "forgetParticlesDeletedBefore()";
     QSet<uint64_t> keysToRemove;
 
     _recentlyDeletedParticlesLock.lockForWrite();
     QMultiMap<uint64_t, uint32_t>::iterator iterator = _recentlyDeletedParticleIDs.begin();
+
     // First find all the keys in the map that are older and need to be deleted    
     while (iterator != _recentlyDeletedParticleIDs.end()) {
-        //qDebug() << "considering... time/key:" << iterator.key();
         if (iterator.key() <= sinceTime) {
-            //qDebug() << "YES older... time/key:" << iterator.key();
             keysToRemove << iterator.key();
         }
         ++iterator;
@@ -472,18 +581,15 @@ void ParticleTree::forgetParticlesDeletedBefore(uint64_t sinceTime) {
 
     // Now run through the keysToRemove and remove them    
     foreach (uint64_t value, keysToRemove) {
-        //qDebug() << "removing the key, _recentlyDeletedParticleIDs.remove(value); time/key:" << value;
         _recentlyDeletedParticleIDs.remove(value);
     }
     
     _recentlyDeletedParticlesLock.unlock();
-    //qDebug() << "DONE forgetParticlesDeletedBefore()";
 }
 
 
 void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr,
         Node* sourceNode) {
-    //qDebug() << "ParticleTree::processEraseMessage()...";
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
@@ -498,14 +604,11 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
     dataAt += sizeof(numberOfIds);
     processedBytes += sizeof(numberOfIds);
 
-    //qDebug() << "got erase message for numberOfIds:" << numberOfIds;
-
     if (numberOfIds > 0) {
         FindAndDeleteParticlesArgs args;
 
         for (size_t i = 0; i < numberOfIds; i++) {
             if (processedBytes + sizeof(uint32_t) > packetLength) {
-                //qDebug() << "bailing?? processedBytes:" << processedBytes << " packetLength:" << packetLength;
                 break; // bail to prevent buffer overflow
             }
 
@@ -514,12 +617,10 @@ void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const Hi
             dataAt += sizeof(particleID);
             processedBytes += sizeof(particleID);
 
-            //qDebug() << "got erase message for particleID:" << particleID;
             args._idsToDelete.push_back(particleID);
         }
 
         // calling recurse to actually delete the particles
-        //qDebug() << "calling recurse to actually delete the particles";
         recurseTreeWithOperation(findAndDeleteOperation, &args);
     }
 }

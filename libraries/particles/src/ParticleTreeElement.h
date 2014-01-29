@@ -26,6 +26,17 @@ public:
     QList<Particle> _movingParticles;
 };
 
+class FindAndUpdateParticleIDArgs {
+public:
+    uint32_t particleID;
+    uint32_t creatorTokenID;
+    bool creatorTokenFound;
+    bool viewedParticleFound;
+    bool isViewing;
+};
+
+
+
 class ParticleTreeElement : public OctreeElement {
     friend class ParticleTree; // to allow createElement to new us...
 
@@ -86,8 +97,10 @@ public:
     void update(ParticleTreeUpdateArgs& args);
     void setTree(ParticleTree* tree) { _myTree = tree; }
 
-    bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
+    bool updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
+    void updateParticleID(FindAndUpdateParticleIDArgs* args);
+
     const Particle* getClosestParticle(glm::vec3 position) const;
 
     /// finds all particles that touch a sphere

@@ -130,6 +130,9 @@ public:
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
 
+    /// appends a packed quat to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const glm::quat& value);
+
     /// appends a bool value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(bool value);
 

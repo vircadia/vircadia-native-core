@@ -57,6 +57,7 @@ void DatagramProcessor::processDatagrams() {
                 case PACKET_TYPE_PARTICLE_ADD_RESPONSE:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     Particle::handleAddParticleResponse(incomingPacket, bytesReceived);
+                    application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket, bytesReceived);
                     break;
                     
                 case PACKET_TYPE_PARTICLE_DATA:

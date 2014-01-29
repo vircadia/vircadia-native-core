@@ -10,6 +10,14 @@
 #include "Application.h"
 #include "ControllerScriptingInterface.h"
 
+ControllerScriptingInterface::ControllerScriptingInterface() :
+    _mouseCaptured(false),
+    _touchCaptured(false),
+    _wheelCaptured(false)
+{
+}
+
+
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
 
@@ -179,5 +187,35 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
     return glm::vec3(0); // bad index
 }
 
+bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
+    return isKeyCaptured(KeyEvent(*event));
+}
 
+bool ControllerScriptingInterface::isKeyCaptured(const KeyEvent& event) const {
+    // if we've captured some combination of this key it will be in the map
+    if (_capturedKeys.contains(event.key, event)) {
+        return true;
+    }
+    return false;
+}
+
+void ControllerScriptingInterface::captureKeyEvents(const KeyEvent& event) {
+    // if it's valid
+    if (event.isValid) {
+        // and not already captured
+        if (!isKeyCaptured(event)) {
+            // then add this KeyEvent record to the captured combos for this key
+            _capturedKeys.insert(event.key, event);
+        }
+    }
+}
+
+void ControllerScriptingInterface::releaseKeyEvents(const KeyEvent& event) {
+    if (event.isValid) {
+        // and not already captured
+        if (isKeyCaptured(event)) {
+            _capturedKeys.remove(event.key, event);
+        }
+    }
+}
 

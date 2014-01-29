@@ -43,6 +43,7 @@ Octree::Octree(bool shouldReaverage) :
     _shouldReaverage(shouldReaverage),
     _stopImport(false) {
     _rootNode = NULL;
+    _isViewing = false;
 }
 
 Octree::~Octree() {
