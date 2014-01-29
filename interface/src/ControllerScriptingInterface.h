@@ -69,12 +69,6 @@ public slots:
     virtual void captureWheelEvents() { _wheelCaptured = true; }
     virtual void releaseWheelEvents() { _wheelCaptured = false; }
 
-// The following signals are defined by AbstractControllerScriptingInterface
-//
-// signals:
-//      void keyPressEvent();
-//      void keyPressEvent();
-
 private:
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;
