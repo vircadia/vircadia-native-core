@@ -425,8 +425,7 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, cons
 MetavoxelVisitor::~MetavoxelVisitor() {
 }
 
-PolymorphicData* DefaultMetavoxelGuide::clone() const {
-    return new DefaultMetavoxelGuide();
+DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
 void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
@@ -590,10 +589,6 @@ ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction
     _arguments[0].setProperty("visitor", visitor);
     _arguments[0].setProperty("info", _info);
     _info.setProperty(_minimumHandle, _minimum);
-}
-
-PolymorphicData* ScriptedMetavoxelGuide::clone() const {
-    return new ScriptedMetavoxelGuide(_guideFunction);
 }
 
 void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {

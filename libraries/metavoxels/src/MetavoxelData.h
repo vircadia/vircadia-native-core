@@ -150,7 +150,9 @@ protected:
 typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
 
 /// Interface for objects that guide metavoxel visitors.
-class MetavoxelGuide : public PolymorphicData {
+class MetavoxelGuide : public SharedObject {
+    Q_OBJECT
+    
 public:
     
     /// Guides the specified visitor to the contained voxels.
@@ -159,21 +161,23 @@ public:
 
 /// Guides visitors through the explicit content of the system.
 class DefaultMetavoxelGuide : public MetavoxelGuide {
+    Q_OBJECT    
+    
 public:
     
-    virtual PolymorphicData* clone() const;
+    Q_INVOKABLE DefaultMetavoxelGuide();
     
     virtual void guide(MetavoxelVisitation& visitation);
 };
 
 /// Represents a guide implemented in Javascript.
 class ScriptedMetavoxelGuide : public MetavoxelGuide {
+    Q_OBJECT
+    
 public:
 
-    ScriptedMetavoxelGuide(const QScriptValue& guideFunction);
+    Q_INVOKABLE ScriptedMetavoxelGuide(const QScriptValue& guideFunction = QScriptValue());
 
-    virtual PolymorphicData* clone() const;
-    
     virtual void guide(MetavoxelVisitation& visitation);
 
 private:

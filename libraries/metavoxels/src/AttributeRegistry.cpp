@@ -7,6 +7,9 @@
 //
 
 #include <QColorDialog>
+#include <QComboBox>
+#include <QFormLayout>
+#include <QMetaProperty>
 #include <QPushButton>
 #include <QScriptEngine>
 #include <QVBoxLayout>
@@ -22,7 +25,8 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 }
 
 AttributeRegistry::AttributeRegistry() :
-    _guideAttribute(registerAttribute(new PolymorphicAttribute("guide", PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
+    _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
+        PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
@@ -181,6 +185,59 @@ PolymorphicAttribute::PolymorphicAttribute(const QString& name, const Polymorphi
     InlineAttribute<PolymorphicDataPointer>(name, defaultValue) {
 }
 
+void* PolymorphicAttribute::createFromVariant(const QVariant& value) const {
+    return create(encodeInline(value.value<PolymorphicDataPointer>()));
+}
+
 bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
     return false;
+}
+
+PolymorphicData* SharedObject::clone() const {
+    // default behavior is to make a copy using the no-arg constructor and copy the stored properties
+    const QMetaObject* metaObject = this->metaObject();
+    QObject* newObject = metaObject->newInstance();
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored()) {
+            property.write(newObject, property.read(this));
+        }
+    }
+    foreach (const QByteArray& propertyName, dynamicPropertyNames()) {
+        newObject->setProperty(propertyName, property(propertyName));
+    }
+    return static_cast<SharedObject*>(newObject);
+}
+
+SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
+        const PolymorphicDataPointer& defaultValue) :
+    PolymorphicAttribute(name, defaultValue),
+    _metaObject(metaObject) {
+    
+}
+
+QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
+    SharedObjectEditor* editor = new SharedObjectEditor(parent);
+    editor->setObject(_defaultValue);
+    return editor;
+}
+
+SharedObjectEditor::SharedObjectEditor(QWidget* parent) : QWidget(parent) {
+    QVBoxLayout* layout = new QVBoxLayout();
+    setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form);
+    
+    form->addRow("Type:", _type = new QComboBox());
+    _type->addItem("(none)");
+    connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
+}
+
+void SharedObjectEditor::setObject(const PolymorphicDataPointer& object) {
+    _object = object;
+}
+
+void SharedObjectEditor::updateType() {
+    
 }

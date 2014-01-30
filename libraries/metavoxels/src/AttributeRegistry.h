@@ -20,6 +20,7 @@
 
 #include "Bitstream.h"
 
+class QComboBox;
 class QPushButton;
 class QScriptContext;
 class QScriptEngine;
@@ -338,13 +339,66 @@ template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone
 
 typedef QExplicitlySharedDataPointer<PolymorphicData> PolymorphicDataPointer;
 
+Q_DECLARE_METATYPE(PolymorphicDataPointer)
+
 /// Provides polymorphic streaming and averaging.
 class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {
 public:
 
     PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
     
+    virtual void* createFromVariant(const QVariant& value) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
+};
+
+class SharedObject : public QObject, public PolymorphicData {
+    Q_OBJECT
+    
+public:
+
+    /// Creates a new clone of this object.
+    virtual PolymorphicData* clone() const;
+};
+
+/// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
+class SharedObjectAttribute : public PolymorphicAttribute {
+    Q_OBJECT
+    Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject)
+    
+public:
+    
+    Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(), const QMetaObject* metaObject = NULL,
+        const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
+
+    virtual QWidget* createEditor(QWidget* parent = NULL) const;
+    
+private:
+    
+    const QMetaObject* _metaObject;
+};
+
+/// Allows editing shared object instances.
+class SharedObjectEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(PolymorphicDataPointer object MEMBER _object WRITE setObject USER true)
+
+public:
+    
+    SharedObjectEditor(QWidget* parent);
+
+public slots:
+
+    void setObject(const PolymorphicDataPointer& object);
+
+private slots:
+
+    void updateType();
+
+private:
+    
+    QComboBox* _type;
+    PolymorphicDataPointer _object;
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

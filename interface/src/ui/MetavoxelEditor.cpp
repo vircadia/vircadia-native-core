@@ -14,6 +14,7 @@
 #include <QListWidget>
 #include <QMetaProperty>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
@@ -152,7 +153,10 @@ void MetavoxelEditor::updateValueEditor() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     QWidget* editor = attribute->createEditor();
     if (editor) {
-        _value->layout()->addWidget(editor);
+        QScrollArea* area = new QScrollArea();
+        area->setWidgetResizable(true);
+        area->setWidget(editor);
+        _value->layout()->addWidget(area);
     }
 }
 
