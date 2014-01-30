@@ -164,7 +164,7 @@ void DataServer::readPendingDatagrams() {
                             
                             if (reply->len) {
                                 // copy the value that redis returned
-                                valueList << reply->str;
+                                valueList << QString(reply->str);
                             } else {
                                 // didn't find a value - insert a space
                                 valueList << QChar(' ');
