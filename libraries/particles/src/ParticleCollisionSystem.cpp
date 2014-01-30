@@ -68,6 +68,17 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
     updateCollisionWithAvatars(particle);
 }
 
+void ParticleCollisionSystem::emitGlobalParicleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails) {
+    ParticleID particleID = particle->getParticleID();
+    emit particleCollisionWithVoxel(particleID, *voxelDetails);
+}
+
+void ParticleCollisionSystem::emitGlobalParicleCollisionWithParticle(Particle* particleA, Particle* particleB) {
+    ParticleID idA = particleA->getParticleID();
+    ParticleID idB = particleB->getParticleID();
+    emit particleCollisionWithParticle(idA, idB);
+}
+
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     glm::vec3 center = particle->getPosition() * (float)(TREE_SCALE);
     float radius = particle->getRadius() * (float)(TREE_SCALE);
@@ -82,6 +93,9 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
 
         // let the particles run their collision scripts if they have them
         particle->collisionWithVoxel(voxelDetails);
+
+        // let the global script run their collision scripts for particles if they have them
+        emitGlobalParicleCollisionWithVoxel(particle, voxelDetails);
 
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
         collisionInfo._penetration /= (float)(TREE_SCALE);
@@ -110,6 +124,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
         if (glm::dot(relativeVelocity, penetration) > 0.0f) {
             particleA->collisionWithParticle(particleB);
             particleB->collisionWithParticle(particleA);
+            emitGlobalParicleCollisionWithParticle(particleA, particleB);
 
             glm::vec3 axis = glm::normalize(penetration);
             glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;

@@ -20,13 +20,16 @@
 #include <SharedUtil.h>
 #include <OctreePacketData.h>
 
-class VoxelsScriptingInterface;
-class ParticlesScriptingInterface;
-class VoxelEditPacketSender;
+class Particle;
 class ParticleEditPacketSender;
 class ParticleProperties;
-class Particle;
+class ParticlesScriptingInterface;
+class ParticleScriptObject;
 class ParticleTree;
+class ScriptEngine;
+class VoxelEditPacketSender;
+class VoxelsScriptingInterface;
+struct VoxelDetail;
 
 const uint32_t NEW_PARTICLE = 0xFFFFFFFF;
 const uint32_t UNKNOWN_TOKEN = 0xFFFFFFFF;
@@ -227,7 +230,8 @@ public:
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
     float getModelScale() const { return _modelScale; }
-    
+
+    ParticleID getParticleID() const { return ParticleID(getID(), getCreatorTokenID(), getID() != UNKNOWN_PARTICLE_ID); }
     ParticleProperties getProperties() const;
 
     /// The last updated/simulated time of this particle from the time perspective of the authoritative server/source
@@ -318,11 +322,9 @@ protected:
     static VoxelEditPacketSender* _voxelEditSender;
     static ParticleEditPacketSender* _particleEditSender;
 
-    void runUpdateScript();
-    static QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3);
-    static void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
-    static QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color);
-    static void xColorFromScriptValue(const QScriptValue &object, xColor& color);
+    void startParticleScriptContext(ScriptEngine& engine, ParticleScriptObject& particleScriptable);
+    void endParticleScriptContext(ScriptEngine& engine, ParticleScriptObject& particleScriptable);
+    void executeUpdateScripts();
 
     void setAge(float age);
 
@@ -366,10 +368,11 @@ class ParticleScriptObject  : public QObject {
     Q_OBJECT
 public:
     ParticleScriptObject(Particle* particle) { _particle = particle; }
+    //~ParticleScriptObject() { qDebug() << "~ParticleScriptObject() this=" << this; }
 
     void emitUpdate() { emit update(); }
     void emitCollisionWithParticle(QObject* other) { emit collisionWithParticle(other); }
-    void emitCollisionWithVoxel(QObject* voxel) { emit collisionWithVoxel(voxel); }
+    void emitCollisionWithVoxel(const VoxelDetail& voxel) { emit collisionWithVoxel(voxel); }
 
 public slots:
     unsigned int getID() const { return _particle->getID(); }
@@ -414,7 +417,7 @@ public slots:
 
 signals:
     void update();
-    void collisionWithVoxel(QObject* voxel);
+    void collisionWithVoxel(const VoxelDetail& voxel);
     void collisionWithParticle(QObject* other);
 
 private:

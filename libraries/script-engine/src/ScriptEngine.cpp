@@ -19,6 +19,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
 
 #include <Sound.h>
@@ -114,10 +115,12 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.init();
     _particlesScriptingInterface.init();
 
-    // register meta-type for glm::vec3 conversions
+    // register various meta-types
     registerMetaTypes(&_engine);
-    
+    registerVoxelMetaTypes(&_engine);
+    //registerParticleMetaTypes(&_engine);
     registerEventTypes(&_engine);
+    
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);

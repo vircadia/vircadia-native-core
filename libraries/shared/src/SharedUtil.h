@@ -94,26 +94,8 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option);
 
 void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
-struct VoxelDetail {
-	float x;
-	float y;
-	float z;
-	float s;
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-};
-
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
 unsigned char* pointToOctalCode(float x, float y, float z, float s);
-
-// Creates a full Voxel edit message, including command header, sequence, and details
-bool createVoxelEditMessage(unsigned char command, short int sequence,
-        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
-
-/// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
 #ifdef _WIN32
 void usleep(int waitTime);
