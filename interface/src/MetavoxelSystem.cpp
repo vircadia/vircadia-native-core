@@ -6,11 +6,11 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QMutexLocker>
 #include <QtDebug>
 
 #include <SharedUtil.h>
 
-#include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 
 #include "Application.h"
@@ -22,6 +22,12 @@ int MetavoxelSystem::_pointScaleLocation;
 MetavoxelSystem::MetavoxelSystem() :
     _pointVisitor(_points),
     _buffer(QOpenGLBuffer::VertexBuffer) {
+}
+
+MetavoxelSystem::~MetavoxelSystem() {
+    for (QHash<QUuid, MetavoxelClient*>::const_iterator it = _clients.begin(); it != _clients.end(); it++) {
+        delete it.value();
+    }
 }
 
 void MetavoxelSystem::init() {
@@ -42,19 +48,23 @@ void MetavoxelSystem::init() {
     _buffer.create();
 }
 
+void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
+    foreach (MetavoxelClient* client, _clients) {
+        client->applyEdit(edit);
+    }
+}
+
 void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& sender) {
     QMetaObject::invokeMethod(this, "receivedData", Q_ARG(const QByteArray&, data), Q_ARG(const HifiSockAddr&, sender));
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
+    _points.clear();
     foreach (MetavoxelClient* client, _clients) {
-        client->simulate(deltaTime);
+        client->simulate(deltaTime, _pointVisitor);
     }
 
-    _points.clear();
-    _data.guide(_pointVisitor);
-    
     _buffer.bind();
     int bytes = _points.size() * sizeof(Point);
     if (_buffer.size() < bytes) {
@@ -108,8 +118,7 @@ void MetavoxelSystem::render() {
 
 void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::MetavoxelServer) {
-        QMetaObject::invokeMethod(this, "addClient", Q_ARG(const QUuid&, node->getUUID()),
-            Q_ARG(const HifiSockAddr&, node->getLocalSocket()));
+        QMetaObject::invokeMethod(this, "addClient", Q_ARG(const SharedNodePointer&, node));
     }
 }
 
@@ -119,9 +128,9 @@ void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void MetavoxelSystem::addClient(const QUuid& uuid, const HifiSockAddr& address) {
-    MetavoxelClient* client = new MetavoxelClient(address);
-    _clients.insert(uuid, client);
+void MetavoxelSystem::addClient(const SharedNodePointer& node) {
+    MetavoxelClient* client = new MetavoxelClient(node);
+    _clients.insert(node->getUUID(), client);
     _clientsBySessionID.insert(client->getSessionID(), client);
 }
 
@@ -139,7 +148,7 @@ void MetavoxelSystem::receivedData(const QByteArray& data, const HifiSockAddr& s
     }
     MetavoxelClient* client = _clientsBySessionID.value(sessionID);
     if (client) {
-        client->receivedData(data, sender);
+        client->receivedData(data);
     }
 }
 
@@ -172,11 +181,10 @@ static QByteArray createDatagramHeader(const QUuid& sessionID) {
     return header;
 }
 
-MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
-    _address(address),
+MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
+    _node(node),
     _sessionID(QUuid::createUuid()),
-    _sequencer(createDatagramHeader(_sessionID)),
-    _data(new MetavoxelData()) {
+    _sequencer(createDatagramHeader(_sessionID)) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
@@ -187,23 +195,41 @@ MetavoxelClient::MetavoxelClient(const HifiSockAddr& address) :
     _receiveRecords.append(record);
 }
 
-void MetavoxelClient::simulate(float deltaTime) {
+MetavoxelClient::~MetavoxelClient() {
+    // close the session
+    Bitstream& out = _sequencer.startPacket();
+    out << QVariant::fromValue(CloseSessionMessage());
+    _sequencer.endPacket();
+}
+
+void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
+    // apply immediately to local tree
+    edit.apply(_data);
+
+    // start sending it out
+    _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
+}
+
+void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
     Bitstream& out = _sequencer.startPacket();
     ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
+    
+    _data.guide(visitor);
 }
 
-void MetavoxelClient::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
-    // save the most recent sender
-    _address = sender;
-    
+void MetavoxelClient::receivedData(const QByteArray& data) {
     // process through sequencer
     _sequencer.receivedDatagram(data);
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
-    NodeList::getInstance()->getNodeSocket().writeDatagram(data, _address.getAddress(), _address.getPort());
+    QMutexLocker locker(&_node->getMutex());
+    const HifiSockAddr* address = _node->getActiveSocket();
+    if (address) {
+        NodeList::getInstance()->getNodeSocket().writeDatagram(data, address->getAddress(), address->getPort());
+    }
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {
@@ -214,6 +240,13 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     // record the receipt
     ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data };
     _receiveRecords.append(record);
+    
+    // reapply local edits
+    foreach (const DatagramSequencer::HighPriorityMessage& message, _sequencer.getHighPriorityMessages()) {
+        if (message.data.userType() == MetavoxelEditMessage::Type) {
+            message.data.value<MetavoxelEditMessage>().apply(_data);
+        }
+    }
 }
 
 void MetavoxelClient::clearReceiveRecordsBefore(int index) {
@@ -223,7 +256,7 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        readDelta(_data, _receiveRecords.first().data, in);
+        _data.readDelta(_receiveRecords.first().data, in);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {

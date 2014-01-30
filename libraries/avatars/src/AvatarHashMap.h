@@ -26,7 +26,6 @@ public:
     int size() const { return _avatarHash.size(); }
 
     virtual void insert(const QUuid& id, AvatarSharedPointer avatar);
-    virtual void clearHash();
 
 protected:
     virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
