@@ -144,6 +144,11 @@ const char* Assignment::getTypeName() const {
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
     debug.nospace() << "UUID: " << qPrintable(assignment.getUUID().toString()) <<
         ", Type: " << assignment.getType();
+    
+    if (!assignment.getPool().isEmpty()) {
+        debug << ", Pool: " << assignment.getPool();
+    }
+
     return debug.space();
 }
 

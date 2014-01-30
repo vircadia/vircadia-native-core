@@ -82,11 +82,10 @@ void DomainServer::parseCommandLineTypeConfigs(const QStringList& argumentList, 
             Assignment::Type assignmentType = (Assignment::Type) clConfigType;
             createStaticAssignmentsForTypeGivenConfigString((Assignment::Type) assignmentType,
                                                             argumentList.value(clConfigIndex + 2));
-            
             excludedTypes.insert(assignmentType);
         }
         
-        clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION, clConfigIndex);
+        clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION, clConfigIndex + 1);
     }
 }
 
@@ -167,27 +166,28 @@ void DomainServer::createStaticAssignmentsForTypeGivenConfigString(Assignment::T
     // we have a string for config for this type
     qDebug() << "Parsing command line config for assignment type" << type;
     
-    QString multiConfig(configString);
-    QStringList multiConfigList = multiConfig.split(";");
+    QStringList multiConfigList = configString.split(";", QString::SkipEmptyParts);
+    
+    const QString ASSIGNMENT_CONFIG_POOL_REGEX = "--pool\\s*(\\w+)";
+    QRegExp poolRegex(ASSIGNMENT_CONFIG_POOL_REGEX);
     
     // read each config to a payload for this type of assignment
     for (int i = 0; i < multiConfigList.size(); i++) {
         QString config = multiConfigList.at(i);
         
-        qDebug("type %d config[%d] = %s", type, i, config.toLocal8Bit().constData());
-        
-        // Now, parse the config to check for a pool
-        const QString ASSIGNMENT_CONFIG_POOL_OPTION = "--pool";
+        // check the config string for a pool
         QString assignmentPool;
         
-        int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
+        int poolIndex = poolRegex.indexIn(config);
         
-        if (poolIndex >= 0) {
-            int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
-            int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
+        if (poolIndex != -1) {
+            assignmentPool = poolRegex.cap(1);
             
-            assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
+            // remove the pool from the config string, the assigned node doesn't need it
+            config.remove(poolIndex, poolRegex.matchedLength());
         }
+        
+        qDebug("Type %d config[%d] = %s", type, i, config.toLocal8Bit().constData());
         
         Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
         
