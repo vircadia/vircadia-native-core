@@ -170,6 +170,7 @@ public:
     const QByteArray& getDatum() const { return _datum; }
 
     void pushBackToken(int token) { _pushedBackToken = token; }
+    void ungetChar(char ch) { _device->ungetChar(ch); }
 
 private:
 
@@ -221,7 +222,7 @@ int Tokenizer::nextToken() {
                 _datum.append(ch);
                 while (_device->getChar(&ch)) {
                     if (QChar(ch).isSpace() || ch == ';' || ch == ':' || ch == '{' || ch == '}' || ch == ',' || ch == '\"') {
-                        _device->ungetChar(ch); // read until we encounter a special character, then replace it
+                        ungetChar(ch); // read until we encounter a special character, then replace it
                         break;
                     }
                     _datum.append(ch);
@@ -257,9 +258,17 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
             expectingDatum = true;
 
         } else if (token == Tokenizer::DATUM_TOKEN && expectingDatum) {
-            node.properties.append(tokenizer.getDatum());
-            expectingDatum = false;
-
+            QByteArray datum = tokenizer.getDatum();
+            if ((token = tokenizer.nextToken()) == ':') {
+                tokenizer.ungetChar(':');
+                tokenizer.pushBackToken(Tokenizer::DATUM_TOKEN);
+                return node;    
+                
+            } else {
+                tokenizer.pushBackToken(token);
+                node.properties.append(datum);
+                expectingDatum = false;
+            }
         } else {
             tokenizer.pushBackToken(token);
             return node;
@@ -377,6 +386,9 @@ glm::mat4 createMat4(const QVector<double>& doubleVector) {
 }
 
 QVector<int> getIntVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<int>();
+    }
     QVector<int> vector = properties.at(index).value<QVector<int> >();
     if (!vector.isEmpty()) {
         return vector;
@@ -388,6 +400,9 @@ QVector<int> getIntVector(const QVariantList& properties, int index) {
 }
 
 QVector<double> getDoubleVector(const QVariantList& properties, int index) {
+    if (index >= properties.size()) {
+        return QVector<double>();
+    }
     QVector<double> vector = properties.at(index).value<QVector<double> >();
     if (!vector.isEmpty()) {
         return vector;
