@@ -9,17 +9,16 @@
 #ifndef __hifi__DomainServer__
 #define __hifi__DomainServer__
 
-#include <deque>
-
 #include <QtCore/QCoreApplication>
-#include <QtCore/QFile>
-#include <QtCore/QMutex>
+#include <QtCore/QHash>
+#include <QtCore/QQueue>
+#include <QtCore/QSharedPointer>
 
 #include <Assignment.h>
 #include <HTTPManager.h>
 #include <NodeList.h>
 
-const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
+typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 
 class DomainServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
@@ -35,36 +34,30 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private:
-    bool readConfigFile(const char* path);
-    QString readServerAssignmentConfig(QJsonObject jsonObj, const char* nodeName);
-
-    void prepopulateStaticAssignmentFile();
-    Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
-    Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
-    void removeAssignmentFromQueue(Assignment* removableAssignment);
+    void parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes);
+    void readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes);
+    QString readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName);
+    void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
+    void createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString);
+    void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
+    
+    SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
+    SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
+    void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     bool checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
                                             const HifiSockAddr& nodeLocalSocket,
                                             const QUuid& checkInUUI);
-    void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
+    void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     
     HTTPManager _HTTPManager;
     
-    std::deque<Assignment*> _assignmentQueue;
-    
-    QFile _staticAssignmentFile;
-    uchar* _staticAssignmentFileData;
-    
-    Assignment* _staticAssignments;
-    
-    const char* _voxelServerConfig;
-    const char* _particleServerConfig;
-    const char* _metavoxelServerConfig;
+    QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
+    QQueue<SharedAssignmentPointer> _assignmentQueue;
     
     bool _hasCompletedRestartHold;
 private slots:
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();
-    void cleanup();
 };
 
 #endif /* defined(__hifi__DomainServer__) */

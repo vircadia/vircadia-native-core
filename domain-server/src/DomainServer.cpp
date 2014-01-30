@@ -8,9 +8,11 @@
 
 #include <signal.h>
 
+#include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
@@ -27,63 +29,36 @@ const char* VOXEL_SERVER_CONFIG = "voxelServerConfig";
 const char* PARTICLE_SERVER_CONFIG = "particleServerConfig";
 const char* METAVOXEL_SERVER_CONFIG = "metavoxelServerConfig";
 
-void signalhandler(int sig){
-    if (sig == SIGINT) {
-        qApp->quit();
-    }
-}
-
 const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _staticAssignmentHash(),
     _assignmentQueue(),
-    _staticAssignmentFile(QString("%1/config.ds").arg(QCoreApplication::applicationDirPath())),
-    _staticAssignmentFileData(NULL),
-    _voxelServerConfig(NULL),
-    _metavoxelServerConfig(NULL),
     _hasCompletedRestartHold(false)
 {
-    signal(SIGINT, signalhandler);
-
     const char CUSTOM_PORT_OPTION[] = "-p";
     const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
     unsigned short domainServerPort = customPortString ? atoi(customPortString) : DEFAULT_DOMAIN_SERVER_PORT;
-
-    const char CONFIG_FILE_OPTION[] = "-c";
-    const char* configFilePath = getCmdOption(argc, (const char**) argv, CONFIG_FILE_OPTION);
-
-    if (!readConfigFile(configFilePath)) {
-        QByteArray voxelConfigOption = QString("--%1").arg(VOXEL_SERVER_CONFIG).toLocal8Bit();
-        _voxelServerConfig = getCmdOption(argc, (const char**) argv, voxelConfigOption.constData());
-
-        QByteArray particleConfigOption = QString("--%1").arg(PARTICLE_SERVER_CONFIG).toLocal8Bit();
-        _particleServerConfig = getCmdOption(argc, (const char**) argv, particleConfigOption.constData());
-
-        QByteArray metavoxelConfigOption = QString("--%1").arg(METAVOXEL_SERVER_CONFIG).toLocal8Bit();
-        _metavoxelServerConfig = getCmdOption(argc, (const char**) argv, metavoxelConfigOption.constData());
+    
+    QStringList argumentList = arguments();
+    int argumentIndex = 0;
+    
+    QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
+    parseCommandLineTypeConfigs(argumentList, parsedTypes);
+    
+    const QString CONFIG_FILE_OPTION = "--configFile";
+    if ((argumentIndex = argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
+        QString configFilePath = argumentList.value(argumentIndex + 1);
+        readConfigFile(configFilePath, parsedTypes);
     }
+    
+    populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
 
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
 
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
-
-    if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
-
-        if (_voxelServerConfig) {
-            // we have a new VS config, clear the existing file to start fresh
-            _staticAssignmentFile.remove();
-        }
-
-        prepopulateStaticAssignmentFile();
-    }
-
-    _staticAssignmentFile.open(QIODevice::ReadWrite);
-
-    _staticAssignmentFileData = _staticAssignmentFile.map(0, _staticAssignmentFile.size());
-
-    _staticAssignments = (Assignment*) _staticAssignmentFileData;
 
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
@@ -93,8 +68,145 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     // fire a single shot timer to add static assignments back into the queue after a restart
     QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
+}
 
-    connect(this, SIGNAL(aboutToQuit()), SLOT(cleanup()));
+void DomainServer::parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes) {
+    // check for configs from the command line, these take precedence
+    const QString CONFIG_TYPE_OPTION = "--configType";
+    int clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION);
+    
+    // enumerate all CL config overrides and parse them to files
+    while (clConfigIndex != -1) {
+        int clConfigType = argumentList.value(clConfigIndex + 1).toInt();
+        if (clConfigType < Assignment::AllTypes && !excludedTypes.contains((Assignment::Type) clConfigIndex)) {
+            Assignment::Type assignmentType = (Assignment::Type) clConfigType;
+            createStaticAssignmentsForTypeGivenConfigString((Assignment::Type) assignmentType,
+                                                            argumentList.value(clConfigIndex + 2));
+            
+            excludedTypes.insert(assignmentType);
+        }
+        
+        clConfigIndex = argumentList.indexOf(CONFIG_TYPE_OPTION, clConfigIndex);
+    }
+}
+
+// Attempts to read configuration from specified path
+// returns true on success, false otherwise
+void DomainServer::readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes) {
+    if (path.isEmpty()) {
+        // config file not specified
+        return;
+    }
+    
+    if (!QFile::exists(path)) {
+        qWarning("Specified configuration file does not exist!");
+        return;
+    }
+    
+    QFile configFile(path);
+    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("Can't open specified configuration file!");
+        return;
+    } else {
+        qDebug() << "Reading configuration from" << path;
+    }
+    
+    QTextStream configStream(&configFile);
+    QByteArray configStringByteArray = configStream.readAll().toUtf8();
+    QJsonObject configDocObject = QJsonDocument::fromJson(configStringByteArray).object();
+    configFile.close();
+    
+    QSet<Assignment::Type> appendedExcludedTypes = excludedTypes;
+    
+    foreach (const QString& rootStringValue, configDocObject.keys()) {
+        int possibleConfigType = rootStringValue.toInt();
+        
+        if (possibleConfigType < Assignment::AllTypes
+            && !excludedTypes.contains((Assignment::Type) possibleConfigType)) {
+            // this is an appropriate config type and isn't already in our excluded types
+            // we are good to parse it
+            Assignment::Type assignmentType = (Assignment::Type) possibleConfigType;
+            QString configString = readServerAssignmentConfig(configDocObject, rootStringValue);
+            createStaticAssignmentsForTypeGivenConfigString(assignmentType, configString);
+            
+            excludedTypes.insert(assignmentType);
+        }
+    }
+}
+
+// find assignment configurations on the specified node name and json object
+// returns a string in the form of its equivalent cmd line params
+QString DomainServer::readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName) {
+    QJsonArray nodeArray = jsonObject[nodeName].toArray();
+    
+    QStringList serverConfig;
+    foreach (const QJsonValue& childValue, nodeArray) {
+        QString cmdParams;
+        QJsonObject childObject = childValue.toObject();
+        QStringList keys = childObject.keys();
+        for (int i = 0; i < keys.size(); i++) {
+            QString key = keys[i];
+            QString value = childObject[key].toString();
+            // both cmd line params and json keys are the same
+            cmdParams += QString("--%1 %2 ").arg(key, value);
+        }
+        serverConfig << cmdParams;
+    }
+    
+    // according to split() calls from DomainServer::prepopulateStaticAssignmentFile
+    // we shold simply join them with semicolons
+    return serverConfig.join(';');
+}
+
+void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment) {
+    qDebug() << "Inserting assignment" << *newAssignment << "to static assignment hash.";
+    _staticAssignmentHash.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
+}
+
+void DomainServer::createStaticAssignmentsForTypeGivenConfigString(Assignment::Type type, const QString& configString) {
+    // we have a string for config for this type
+    qDebug() << "Parsing command line config for assignment type" << type;
+    
+    QString multiConfig(configString);
+    QStringList multiConfigList = multiConfig.split(";");
+    
+    // read each config to a payload for this type of assignment
+    for (int i = 0; i < multiConfigList.size(); i++) {
+        QString config = multiConfigList.at(i);
+        
+        qDebug("type %d config[%d] = %s", type, i, config.toLocal8Bit().constData());
+        
+        // Now, parse the config to check for a pool
+        const QString ASSIGNMENT_CONFIG_POOL_OPTION = "--pool";
+        QString assignmentPool;
+        
+        int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
+        
+        if (poolIndex >= 0) {
+            int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
+            int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
+            
+            assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
+        }
+        
+        Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
+        
+        configAssignment->setPayload(config.toUtf8());
+        
+        addStaticAssignmentToAssignmentHash(configAssignment);
+    }
+}
+
+void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes) {
+    // enumerate over all assignment types and see if we've already excluded it
+    for (Assignment::Type defaultedType = Assignment::AudioMixerType; defaultedType != Assignment::AllTypes; defaultedType++) {
+        if (!excludedTypes.contains(defaultedType)) {
+            // type has not been set from a command line or config file config, use the default
+            // by clearing whatever exists and writing a single default assignment with no payload
+            Assignment* newAssignment = new Assignment(Assignment::CreateCommand, defaultedType);
+            addStaticAssignmentToAssignmentHash(newAssignment);
+        }
+    }
 }
 
 void DomainServer::readAvailableDatagrams() {
@@ -147,13 +259,11 @@ void DomainServer::readAvailableDatagrams() {
                     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
                     << NodeType::MetavoxelServer;
                 
-                Assignment* matchingStaticAssignment = NULL;
+                SharedAssignmentPointer matchingStaticAssignment;
                 
                 if (!STATICALLY_ASSIGNED_NODES.contains(nodeType)
-                    || ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
-                        || checkInWithUUIDMatchesExistingNode(nodePublicAddress,
-                                                              nodeLocalAddress,
-                                                              nodeUUID)))
+                    || (matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
+                    || checkInWithUUIDMatchesExistingNode(nodePublicAddress, nodeLocalAddress, nodeUUID))
                 {
                     SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                               nodeType,
@@ -166,18 +276,12 @@ void DomainServer::readAvailableDatagrams() {
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
                         
+                        // remove the matching assignment from the assignment queue so we don't take the next check in
+                        // (if it exists)
                         if (_hasCompletedRestartHold) {
-                            // remove the matching assignment from the assignment queue so we don't take the next check in
-                            removeAssignmentFromQueue(matchingStaticAssignment);
+                            removeMatchingAssignmentFromQueue(matchingStaticAssignment);
                         }
-                        
-                        // set the linked data for this node to a copy of the matching assignment
-                        // so we can re-queue it should the node die
-                        Assignment* nodeCopyOfMatchingAssignment = new Assignment(*matchingStaticAssignment);
-                        
-                        checkInNode->setLinkedData(nodeCopyOfMatchingAssignment);
                     }
-                    
                     
                     quint8 numInterestTypes = 0;
                     packetStream >> numInterestTypes;
@@ -216,7 +320,7 @@ void DomainServer::readAvailableDatagrams() {
                     qDebug("Received a request for assignment type %i from %s.",
                            requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
                     
-                    Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
+                    SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
                     if (assignmentToDeploy) {
                         // give this assignment out, either the type matches or the requestor said they will take any
@@ -224,15 +328,10 @@ void DomainServer::readAvailableDatagrams() {
                         
                         QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                         
-                        assignmentStream << *assignmentToDeploy;
+                        assignmentStream << assignmentToDeploy;
                         
                         nodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                                 senderSockAddr.getAddress(), senderSockAddr.getPort());
-                        
-                        if (assignmentToDeploy->getNumberOfInstances() == 0) {
-                            // there are no more instances of this script to send out, delete it
-                            delete assignmentToDeploy;
-                        }
                     }
                     
                 } else {
@@ -280,70 +379,6 @@ QJsonObject jsonObjectForNode(Node* node) {
     return nodeJson;
 }
 
-// Attempts to read configuration from specified path
-// returns true on success, false otherwise
-bool DomainServer::readConfigFile(const char* path) {
-    if (!path) {
-        // config file not specified
-        return false;
-    }
-
-    if (!QFile::exists(path)) {
-        qWarning("Specified configuration file does not exist!\n");
-        return false;
-    }
-
-    QFile configFile(path);
-    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning("Can't open specified configuration file!\n");
-        return false;
-    } else {
-        qDebug("Reading configuration from %s\n", path);
-    }
-    QTextStream configStream(&configFile);
-    QByteArray configStringByteArray = configStream.readAll().toUtf8();
-    QJsonObject configDocObject = QJsonDocument::fromJson(configStringByteArray).object();
-    configFile.close();
-
-    QString voxelServerConfig = readServerAssignmentConfig(configDocObject, VOXEL_SERVER_CONFIG);
-    _voxelServerConfig = new char[strlen(voxelServerConfig.toLocal8Bit().constData()) +1];
-    _voxelServerConfig = strcpy((char *) _voxelServerConfig, voxelServerConfig.toLocal8Bit().constData() + '\0');
-
-    QString particleServerConfig = readServerAssignmentConfig(configDocObject, PARTICLE_SERVER_CONFIG);
-    _particleServerConfig = new char[strlen(particleServerConfig.toLocal8Bit().constData()) +1];
-    _particleServerConfig = strcpy((char *) _particleServerConfig, particleServerConfig.toLocal8Bit().constData() + '\0');
-
-    QString metavoxelServerConfig = readServerAssignmentConfig(configDocObject, METAVOXEL_SERVER_CONFIG);
-    _metavoxelServerConfig = new char[strlen(metavoxelServerConfig.toLocal8Bit().constData()) +1];
-    _metavoxelServerConfig = strcpy((char *) _metavoxelServerConfig, metavoxelServerConfig.toLocal8Bit().constData() + '\0');
-
-    return true;
-}
-
-// find assignment configurations on the specified node name and json object
-// returns a string in the form of its equivalent cmd line params
-QString DomainServer::readServerAssignmentConfig(QJsonObject jsonObject, const char* nodeName) {
-    QJsonArray nodeArray = jsonObject[nodeName].toArray();
-
-    QStringList serverConfig;
-    foreach (const QJsonValue & childValue, nodeArray) {
-        QString cmdParams;
-        QJsonObject childObject = childValue.toObject();
-        QStringList keys = childObject.keys();
-        for (int i = 0; i < keys.size(); i++) {
-            QString key = keys[i];
-            QString value = childObject[key].toString();
-            // both cmd line params and json keys are the same
-            cmdParams += QString("--%1 %2 ").arg(key, value);
-        }
-        serverConfig << cmdParams;
-    }
-
-    // according to split() calls from DomainServer::prepopulateStaticAssignmentFile
-    // we shold simply join them with semicolons
-    return serverConfig.join(';');
-}
-
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& path) {
     const QString JSON_MIME_TYPE = "application/json";
     
@@ -372,24 +407,19 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             QJsonObject queuedAssignmentsJSON;
             
             // add the queued but unfilled assignments to the json
-            std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
-            
-            while (assignment != _assignmentQueue.end()) {
+            foreach(const SharedAssignmentPointer& assignment, _assignmentQueue) {
                 QJsonObject queuedAssignmentJSON;
                 
-                QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
-                queuedAssignmentJSON[JSON_KEY_TYPE] = QString((*assignment)->getTypeName());
+                QString uuidString = uuidStringWithoutCurlyBraces(assignment->getUUID());
+                queuedAssignmentJSON[JSON_KEY_TYPE] = QString(assignment->getTypeName());
                 
                 // if the assignment has a pool, add it
-                if (!(*assignment)->getPool().isEmpty()) {
-                    queuedAssignmentJSON[JSON_KEY_POOL] = (*assignment)->getPool();
+                if (!assignment->getPool().isEmpty()) {
+                    queuedAssignmentJSON[JSON_KEY_POOL] = assignment->getPool();
                 }
                 
                 // add this queued assignment to the JSON
                 queuedAssignmentsJSON[uuidString] = queuedAssignmentJSON;
-                
-                // push forward the iterator to check the next assignment
-                assignment++;
             }
             
             assignmentJSON["queued"] = queuedAssignmentsJSON;
@@ -427,11 +457,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
             
-            // create an assignment for this saved script, for now make it local only
-            Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
-                                                          Assignment::AgentType,
-                                                          NULL,
-                                                          Assignment::LocalLocation);
+            // create an assignment for this saved script
+            Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType);
             
             // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
@@ -465,8 +492,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             connection->respond(HTTPConnection::StatusCode200);
             
             // add the script assigment to the assignment queue
-            // lock the assignment queue mutex since we're operating on a different thread than DS main
-            _assignmentQueue.push_back(scriptAssignment);
+            _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
         if (path.startsWith(URI_NODE)) {
@@ -501,228 +527,99 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     return false;
 }
 
-void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
-    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.";
-
-    // find this assignment in the static file
-    for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-        if (_staticAssignments[i].getUUID() == releasedAssignment->getUUID()) {
-            // reset the UUID on the static assignment
-            _staticAssignments[i].resetUUID();
-
-            // put this assignment back in the queue so it goes out
-            _assignmentQueue.push_back(&_staticAssignments[i]);
-
-        } else if (_staticAssignments[i].getUUID().isNull()) {
-            // we are at the blank part of the static assignments - break out
-            break;
-        }
-    }
+void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
+    QUuid oldUUID = assignment->getUUID();
+    assignment->resetUUID();
+    
+    qDebug() << "Reset UUID for assignment -" << *assignment.data() << "- and added to queue. Old UUID was"
+        << uuidStringWithoutCurlyBraces( oldUUID);
+    _assignmentQueue.enqueue(assignment);
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-    // if this node has linked data it was from an assignment
-    if (node->getLinkedData()) {
-        Assignment* nodeAssignment = (Assignment*) node->getLinkedData();
-
-        addReleasedAssignmentBackToQueue(nodeAssignment);
+    // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
+    SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(node->getUUID());
+    if (matchedAssignment) {
+        refreshStaticAssignmentAndAddToQueue(matchedAssignment);
     }
 }
 
-void DomainServer::prepopulateStaticAssignmentFile() {
-    int numFreshStaticAssignments = 0;
-
-    // write a fresh static assignment array to file
-
-    Assignment freshStaticAssignments[MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS];
-
-    // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AudioMixerType);
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AvatarMixerType);
-
-    // Handle Domain/Voxel Server configuration command line arguments
-    if (_voxelServerConfig) {
-        qDebug("Reading Voxel Server Configuration.");
-        qDebug() << "config: " << _voxelServerConfig;
-
-        QString multiConfig((const char*) _voxelServerConfig);
-        QStringList multiConfigList = multiConfig.split(";");
-
-        // read each config to a payload for a VS assignment
-        for (int i = 0; i < multiConfigList.size(); i++) {
-            QString config = multiConfigList.at(i);
-
-            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
-
-            // Now, parse the config to check for a pool
-            const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
-            QString assignmentPool;
-
-            int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
-
-            if (poolIndex >= 0) {
-                int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
-                int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
-
-                assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this voxel-assignment is" << assignmentPool;
-            }
-
-            Assignment voxelServerAssignment(Assignment::CreateCommand,
-                                             Assignment::VoxelServerType,
-                                             assignmentPool);
-            
-            voxelServerAssignment.setPayload(config.toUtf8());
-
-            freshStaticAssignments[numFreshStaticAssignments++] = voxelServerAssignment;
-        }
-    } else {
-        Assignment rootVoxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
-        freshStaticAssignments[numFreshStaticAssignments++] = rootVoxelServerAssignment;
-    }
-
-    // Handle Domain/Particle Server configuration command line arguments
-    if (_particleServerConfig) {
-        qDebug("Reading Particle Server Configuration.");
-        qDebug() << "config: " << _particleServerConfig;
-
-        QString multiConfig((const char*) _particleServerConfig);
-        QStringList multiConfigList = multiConfig.split(";");
-
-        // read each config to a payload for a VS assignment
-        for (int i = 0; i < multiConfigList.size(); i++) {
-            QString config = multiConfigList.at(i);
-
-            qDebug("config[%d]=%s", i, config.toLocal8Bit().constData());
-
-            // Now, parse the config to check for a pool
-            const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
-            QString assignmentPool;
-
-            int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
-
-            if (poolIndex >= 0) {
-                int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
-                int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
-
-                assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
-                qDebug() << "The pool for this particle-assignment is" << assignmentPool;
-            }
-
-            Assignment particleServerAssignment(Assignment::CreateCommand,
-                                                Assignment::ParticleServerType,
-                                                assignmentPool);
-            
-            particleServerAssignment.setPayload(config.toLocal8Bit());
-
-            freshStaticAssignments[numFreshStaticAssignments++] = particleServerAssignment;
-        }
-    } else {
-        Assignment rootParticleServerAssignment(Assignment::CreateCommand, Assignment::ParticleServerType);
-        freshStaticAssignments[numFreshStaticAssignments++] = rootParticleServerAssignment;
-    }
-
-    // handle metavoxel configuration command line argument
-    Assignment& metavoxelAssignment = (freshStaticAssignments[numFreshStaticAssignments++] =
-        Assignment(Assignment::CreateCommand, Assignment::MetavoxelServerType));
-    if (_metavoxelServerConfig) {
-        metavoxelAssignment.setPayload(QByteArray(_metavoxelServerConfig));
-    }
-
-    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.";
-
-    _staticAssignmentFile.open(QIODevice::WriteOnly);
-    _staticAssignmentFile.write((char*) &freshStaticAssignments, sizeof(freshStaticAssignments));
-    _staticAssignmentFile.resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
-    _staticAssignmentFile.close();
-}
-
-Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
-    // pull the UUID passed with the check in
-
+SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
     if (_hasCompletedRestartHold) {
-        // iterate the assignment queue to check for a match
-        std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
-        while (assignment != _assignmentQueue.end()) {
-            if ((*assignment)->getUUID() == checkInUUID) {
-                // return the matched assignment
-                return *assignment;
-            } else {
-                // no match, push deque iterator forwards
-                assignment++;
+        // look for a match in the assignment hash
+        
+        QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
+        
+        while (i != _assignmentQueue.end()) {
+            if (i->data()->getType() == nodeType && i->data()->getUUID() == checkInUUID) {
+                return _assignmentQueue.takeAt(i - _assignmentQueue.begin());
             }
         }
-        
     } else {
-        for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-            if (_staticAssignments[i].getUUID() == checkInUUID) {
-                // return matched assignment
-                return &_staticAssignments[i];
-            } else if (_staticAssignments[i].getUUID().isNull()) {
-                // end of static assignments, no match - return NULL
-                return NULL;
-            }
+        SharedAssignmentPointer matchingStaticAssignment = _staticAssignmentHash.value(checkInUUID);
+        if (matchingStaticAssignment && matchingStaticAssignment->getType() == nodeType) {
+            return matchingStaticAssignment;
         }
     }
 
-    return NULL;
+    return SharedAssignmentPointer();
 }
 
-Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssignment) {
+SharedAssignmentPointer DomainServer::deployableAssignmentForRequest(const Assignment& requestAssignment) {
     // this is an unassigned client talking to us directly for an assignment
     // go through our queue and see if there are any assignments to give out
-    std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
+    QQueue<SharedAssignmentPointer>::iterator sharedAssignment = _assignmentQueue.begin();
 
-    while (assignment != _assignmentQueue.end()) {
+    while (sharedAssignment != _assignmentQueue.end()) {
+        Assignment* assignment = sharedAssignment->data();
         bool requestIsAllTypes = requestAssignment.getType() == Assignment::AllTypes;
-        bool assignmentTypesMatch = (*assignment)->getType() == requestAssignment.getType();
-        bool nietherHasPool = (*assignment)->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
-        bool assignmentPoolsMatch = (*assignment)->getPool() == requestAssignment.getPool();
+        bool assignmentTypesMatch = assignment->getType() == requestAssignment.getType();
+        bool nietherHasPool = assignment->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
+        bool assignmentPoolsMatch = assignment->getPool() == requestAssignment.getPool();
         
         if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
 
-            Assignment* deployableAssignment = *assignment;
-
-            if ((*assignment)->getType() == Assignment::AgentType) {
+            if (assignment->getType() == Assignment::AgentType) {
                 // if there is more than one instance to send out, simply decrease the number of instances
 
-                if ((*assignment)->getNumberOfInstances() == 1) {
-                    _assignmentQueue.erase(assignment);
+                if (assignment->getNumberOfInstances() == 1) {
+                    return _assignmentQueue.takeAt(sharedAssignment - _assignmentQueue.begin());
+                } else {
+                    assignment->decrementNumberOfInstances();
+                    return *sharedAssignment;
                 }
-
-                deployableAssignment->decrementNumberOfInstances();
 
             } else {
                 // remove the assignment from the queue
-                _assignmentQueue.erase(assignment);
+                SharedAssignmentPointer deployableAssignment = _assignmentQueue.takeAt(sharedAssignment
+                                                                                       - _assignmentQueue.begin());
 
                 // until we get a check-in from that GUID
                 // put assignment back in queue but stick it at the back so the others have a chance to go out
-                _assignmentQueue.push_back(deployableAssignment);
+                _assignmentQueue.enqueue(deployableAssignment);
+                
+                // stop looping, we've handed out an assignment
+                return deployableAssignment;
             }
-
-            // stop looping, we've handed out an assignment
-            return deployableAssignment;
         } else {
             // push forward the iterator to check the next assignment
-            assignment++;
+            ++sharedAssignment;
         }
     }
     
-    return NULL;
+    return SharedAssignmentPointer();
 }
 
-void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
-
-    std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
-
-    while (assignment != _assignmentQueue.end()) {
-        if ((*assignment)->getUUID() == removableAssignment->getUUID()) {
-            _assignmentQueue.erase(assignment);
+void DomainServer::removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment) {
+    QQueue<SharedAssignmentPointer>::iterator potentialMatchingAssignment = _assignmentQueue.begin();
+    while (potentialMatchingAssignment != _assignmentQueue.end()) {
+        if (potentialMatchingAssignment->data()->getUUID() == removableAssignment->getUUID()) {
+            _assignmentQueue.erase(potentialMatchingAssignment);
+            
+            // we matched and removed an assignment, bail out
             break;
         } else {
-            // push forward the iterator to check the next assignment
-            assignment++;
+            ++potentialMatchingAssignment;
         }
     }
 }
@@ -749,43 +646,24 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
     _hasCompletedRestartHold = true;
 
     // if the domain-server has just restarted,
-    // check if there are static assignments in the file that we need to
-    // throw into the assignment queue
-
-    // pull anything in the static assignment file that isn't spoken for and add to the assignment queue
-    for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-        if (_staticAssignments[i].getUUID().isNull()) {
-            // reached the end of static assignments, bail
-            break;
-        }
-
+    // check if there are static assignments that we need to throw into the assignment queue
+    QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = _staticAssignmentHash.begin();
+    while (staticAssignment != _staticAssignmentHash.end()) {
+        // add any of the un-matched static assignments to the queue
         bool foundMatchingAssignment = false;
-
-        NodeList* nodeList = NodeList::getInstance();
-
+        
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getLinkedData()) {
-                Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
-                if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {
-                    foundMatchingAssignment = true;
-                    break;
-                }
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getUUID() == staticAssignment->data()->getUUID()) {
+                foundMatchingAssignment = true;
             }
         }
-
+        
         if (!foundMatchingAssignment) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
-            _staticAssignments[i].resetUUID();
-
-            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i];
-            
-            _assignmentQueue.push_back(&_staticAssignments[i]);
+            refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }
+        
+        ++staticAssignment;
     }
-}
-
-void DomainServer::cleanup() {
-    _staticAssignmentFile.unmap(_staticAssignmentFileData);
-    _staticAssignmentFile.close();
 }
