@@ -261,9 +261,11 @@ void DomainServer::readAvailableDatagrams() {
                 
                 SharedAssignmentPointer matchingStaticAssignment;
                 
+                // check if this is a non-statically assigned node, a node that is assigned and checking in for the first time
+                // or a node that has already checked in and is continuing to report for duty
                 if (!STATICALLY_ASSIGNED_NODES.contains(nodeType)
                     || (matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
-                    || checkInWithUUIDMatchesExistingNode(nodePublicAddress, nodeLocalAddress, nodeUUID))
+                    || nodeList->getInstance()->nodeWithUUID(nodeUUID))
                 {
                     SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                               nodeType,
@@ -313,29 +315,29 @@ void DomainServer::readAvailableDatagrams() {
                 }
             } else if (requestType == PacketTypeRequestAssignment) {
                 
-                if (_assignmentQueue.size() > 0) {
-                    // construct the requested assignment from the packet data
-                    Assignment requestAssignment(receivedPacket);
+                // construct the requested assignment from the packet data
+                Assignment requestAssignment(receivedPacket);
+                
+                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                    << "from" << senderSockAddr;
+                
+                SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
+                
+                if (assignmentToDeploy) {
+                    qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << senderSockAddr;
                     
-                    qDebug("Received a request for assignment type %i from %s.",
-                           requestAssignment.getType(), qPrintable(senderSockAddr.getAddress().toString()));
+                    // give this assignment out, either the type matches or the requestor said they will take any
+                    assignmentPacket.resize(numAssignmentPacketHeaderBytes);
                     
-                    SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
+                    QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
                     
-                    if (assignmentToDeploy) {
-                        // give this assignment out, either the type matches or the requestor said they will take any
-                        assignmentPacket.resize(numAssignmentPacketHeaderBytes);
-                        
-                        QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
-                        
-                        assignmentStream << assignmentToDeploy;
-                        
-                        nodeList->getNodeSocket().writeDatagram(assignmentPacket,
-                                                                senderSockAddr.getAddress(), senderSockAddr.getPort());
-                    }
+                    assignmentStream << *assignmentToDeploy.data();
                     
+                    nodeList->getNodeSocket().writeDatagram(assignmentPacket,
+                                                            senderSockAddr.getAddress(), senderSockAddr.getPort());
                 } else {
-                    qDebug() << "Received an invalid assignment request from" << senderSockAddr.getAddress();
+                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
+                        << "from" << senderSockAddr;
                 }
             }
         }
@@ -551,8 +553,10 @@ SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const Q
         QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
         
         while (i != _assignmentQueue.end()) {
-            if (i->data()->getType() == nodeType && i->data()->getUUID() == checkInUUID) {
+            if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
                 return _assignmentQueue.takeAt(i - _assignmentQueue.begin());
+            } else {
+                ++i;
             }
         }
     } else {
@@ -622,24 +626,6 @@ void DomainServer::removeMatchingAssignmentFromQueue(const SharedAssignmentPoint
             ++potentialMatchingAssignment;
         }
     }
-}
-
-bool DomainServer::checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
-                                                      const HifiSockAddr& nodeLocalSocket,
-                                                      const QUuid& checkInUUID) {
-    NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-        if (node->getLinkedData()
-            && nodePublicSocket == node->getPublicSocket()
-            && nodeLocalSocket == node->getLocalSocket()
-            && node->getUUID() == checkInUUID) {
-            // this is a matching existing node if the public socket, local socket, and UUID match
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {

@@ -44,9 +44,6 @@ private:
     SharedAssignmentPointer matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
-    bool checkInWithUUIDMatchesExistingNode(const HifiSockAddr& nodePublicSocket,
-                                            const HifiSockAddr& nodeLocalSocket,
-                                            const QUuid& checkInUUI);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     
     HTTPManager _HTTPManager;
