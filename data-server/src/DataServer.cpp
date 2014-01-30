@@ -24,7 +24,8 @@ const unsigned short REDIS_PORT = 6379;
 DataServer::DataServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _socket(),
-    _redis(NULL)
+    _redis(NULL),
+    _uuid(QUuid::createUuid())
 {
     _socket.bind(QHostAddress::Any, DATA_SERVER_LISTEN_PORT);
     
@@ -59,7 +60,8 @@ void DataServer::readPendingDatagrams() {
     
     while (_socket.hasPendingDatagrams()) {
         receivedPacket.resize(_socket.pendingDatagramSize());
-        _socket.readDatagram(receivedPacket.data(), _socket.pendingDatagramSize());
+        _socket.readDatagram(receivedPacket.data(), _socket.pendingDatagramSize(),
+                             senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
         PacketType requestType = packetTypeForPacket(receivedPacket);
         
@@ -119,26 +121,28 @@ void DataServer::readPendingDatagrams() {
                     if (reply->type == REDIS_REPLY_STATUS && strcmp("OK", reply->str) == 0) {
                         // if redis stored the value successfully reply back with a confirm
                         // which is a reply packet with the sequence number
-                        QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerConfirm);
+                        QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerConfirm, _uuid);
                         
                         replyPacket.append(sequenceNumber);
                         
-                        _socket.writeDatagram(replyPacket,
-                                              senderSockAddr.getAddress(), senderSockAddr.getPort());
+                        _socket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
                     }
                     
                     freeReplyObject(reply);
                 } else {
                     // setup a send packet with the returned data
                     // leverage the packetData sent by overwriting and appending
-                    QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerSend);
+                    QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerSend, _uuid);
+                    sendPacket.append(sequenceNumber);
                     
-                    if (!receivedPacket.mid(numReceivedHeaderBytes).startsWith("uuid")) {
+                    if (!receivedPacket.mid(numReceivedHeaderBytes + sizeof(sequenceNumber)).startsWith("uuid")) {
                         
                         const char MULTI_KEY_VALUE_SEPARATOR = '|';
                         
                         // pull the key that specifies the data the user is putting/getting, null terminate it
-                        QString keyListString(receivedPacket.mid(numReceivedHeaderBytes));
+                        QString keyListString;
+                        packetStream >> keyListString;
+                        
                         QStringList keyList = keyListString.split(MULTI_KEY_VALUE_SEPARATOR);
                         
                         foreach (const QString& dataKey, keyList) {
