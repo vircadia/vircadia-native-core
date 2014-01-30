@@ -170,7 +170,8 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         CollisionInfo collisionInfo;
         collisionInfo._damping = DAMPING;
         collisionInfo._elasticity = ELASTICITY;
-        if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+        if (avatar->findSphereCollisionWithHands(center, radius, collisionInfo) ||
+            avatar->findSphereCollisionWithSkeleton(center, radius, collisionInfo)) {
             collisionInfo._addedVelocity /= (float)(TREE_SCALE);
             glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
             if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {

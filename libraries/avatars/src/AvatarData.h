@@ -138,7 +138,11 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, int skeletonSkipIndex = -1) const { return false; }
 
-    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+        return false;
+    }
+
+    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
         return false;
     }
     

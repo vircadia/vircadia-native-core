@@ -105,12 +105,19 @@ public:
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, int skeletonSkipIndex = -1) const;
 
-    /// Checks for collision between the a sphere and the avatar.
+    /// Checks for collision between the a sphere and the avatar's (paddle) hands.
     /// \param collisionCenter the center of the penetration test sphere
     /// \param collisionRadius the radius of the penetration test sphere
     /// \param collision[out] the details of the collision point
     /// \return whether or not the sphere collided
-    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+    bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+
+    /// Checks for collision between the a sphere and the avatar's skeleton (including hand capsules).
+    /// \param collisionCenter the center of the penetration test sphere
+    /// \param collisionRadius the radius of the penetration test sphere
+    /// \param collision[out] the details of the collision point
+    /// \return whether or not the sphere collided
+    bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
     
     virtual bool isMyAvatar() { return false; }
 

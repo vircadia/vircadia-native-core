@@ -285,9 +285,7 @@ bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float pene
     return false;
 }
 
-bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-    // TODO: provide an early exit using bounding sphere of entire avatar
-
+bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
     const HandData* handData = getHandData();
     if (handData) {
         for (int i = 0; i < NUM_HANDS; i++) {
@@ -326,7 +324,10 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
             }
         }
     }
+    return false;
+}
 
+bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
     if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
         collision._penetration /= (float)(TREE_SCALE);
         collision._addedVelocity = getVelocity();
