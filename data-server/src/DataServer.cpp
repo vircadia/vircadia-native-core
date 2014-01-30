@@ -125,8 +125,7 @@ void DataServer::readPendingDatagrams() {
                         
                         replyPacket.append(sequenceNumber);
                         
-                        qint64 size = _socket.writeDatagram(replyPacket,
-                                              senderSockAddr.getAddress(), senderSockAddr.getPort());
+                        _socket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
                     }
                     
                     freeReplyObject(reply);
