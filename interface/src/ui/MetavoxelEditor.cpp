@@ -278,9 +278,13 @@ void MetavoxelEditor::render() {
             glutSolidCube(1.0);
             glDisable(GL_CULL_FACE);
         }
+        glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
         glutWireCube(1.0);
     
         glPopMatrix();
+        
+    } else {
+        glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
     }
     
     glLineWidth(1.0f);
@@ -296,7 +300,6 @@ void MetavoxelEditor::render() {
     
     _gridProgram.bind();
     
-    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
     Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
