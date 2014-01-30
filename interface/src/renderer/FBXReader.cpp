@@ -1121,6 +1121,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVector<QString> modelIDs;
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
+        // make sure the parent is in the child map
+        QString parent = parentMap.value(model.key());
+        if (!childMap.contains(parent, model.key())) {
+            childMap.insert(parent, model.key());
+        }
         remainingModels.insert(model.key());
     }
     while (!remainingModels.isEmpty()) {
