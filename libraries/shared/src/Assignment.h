@@ -91,6 +91,7 @@ public:
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
+    friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);
 
 protected:
     QUuid _uuid; /// the 16 byte UUID for this assignment
