@@ -133,17 +133,26 @@ void DataServer::readPendingDatagrams() {
                     // setup a send packet with the returned data
                     // leverage the packetData sent by overwriting and appending
                     QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerSend, _uuid);
-                    sendPacket.append(sequenceNumber);
+                    QDataStream sendPacketStream(&sendPacket, QIODevice::Append);
                     
-                    if (!receivedPacket.mid(numReceivedHeaderBytes + sizeof(sequenceNumber)).startsWith("uuid")) {
+                    sendPacketStream << sequenceNumber;
+                    
+                    // pull the key list that specifies the data the user is putting/getting
+                    QString keyListString;
+                    packetStream >> keyListString;
+                    
+                    if (keyListString != "uuid") {
+                        
+                        // copy the parsed UUID
+                        sendPacketStream << uuidStringWithoutCurlyBraces(parsedUUID);
                         
                         const char MULTI_KEY_VALUE_SEPARATOR = '|';
                         
-                        // pull the key that specifies the data the user is putting/getting, null terminate it
-                        QString keyListString;
-                        packetStream >> keyListString;
+                        // append the keyListString back to the sendPacket
+                        sendPacketStream << keyListString;
                         
                         QStringList keyList = keyListString.split(MULTI_KEY_VALUE_SEPARATOR);
+                        QStringList valueList;
                         
                         foreach (const QString& dataKey, keyList) {
                             qDebug("Sending command to redis: GET uuid:%s:%s",
@@ -155,25 +164,22 @@ void DataServer::readPendingDatagrams() {
                             
                             if (reply->len) {
                                 // copy the value that redis returned
-                                sendPacket.append(reply->str, reply->len);
-                                
+                                valueList << QString(reply->str);
                             } else {
                                 // didn't find a value - insert a space
-                                sendPacket.append(' ');
+                                valueList << QChar(' ');
                             }
-                            
-                            // add the multi-value separator
-                            sendPacket.append(MULTI_KEY_VALUE_SEPARATOR);
                             
                             freeReplyObject(reply);
                         }
                         
-                        // null terminate the packet we're sending back (erases the trailing separator)
-                        sendPacket[sendPacket.size() - 1] = '\0';
+                        // append the value QStringList using the right separator
+                        sendPacketStream << valueList.join(MULTI_KEY_VALUE_SEPARATOR);
                     } else {
-                        // user is asking for a UUID matching username, copy the UUID we found
-                        sendPacket.append(uuidStringWithoutCurlyBraces(parsedUUID));
-                        sendPacket.append('\0');
+                        // user was asking for their UUID
+                        sendPacketStream << userString;
+                        sendPacketStream << QString("uuid");
+                        sendPacketStream << uuidStringWithoutCurlyBraces(parsedUUID);
                     }
                     
                     // reply back with the send packet

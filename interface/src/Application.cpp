@@ -3225,7 +3225,8 @@ void Application::displayStats() {
 
     glPointSize(1.0f);
 
-    int totalAvatars = _avatarManager.size();
+    // we need to take one avatar out so we don't include ourselves
+    int totalAvatars = _avatarManager.size() - 1;
     int totalServers = NodeList::getInstance()->size();
 
     if (mirrorEnabled) {
