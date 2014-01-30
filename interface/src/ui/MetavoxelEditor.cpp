@@ -147,7 +147,9 @@ void MetavoxelEditor::updateValueEditor() {
     _value->setVisible(true);
     
     if (!_value->layout()->isEmpty()) {
-        delete _value->layout()->takeAt(0);
+        QLayoutItem* item = _value->layout()->takeAt(0);
+        delete item->widget();
+        delete item;
     }
       
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
