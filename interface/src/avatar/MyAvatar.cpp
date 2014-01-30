@@ -756,8 +756,24 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
 void MyAvatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
     const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    if (avatars.size() <= 1) {
+        // no need to compute a bunch of stuff if we have one or fewer avatars
+        return;
+    }
+    float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
+
+    // precompute hand proxies before we start walking the avatarlist
+    QVector<glm::vec3> handPositions;
+    glm::vec3 position;
+    if (_skeletonModel.getLeftHandPosition(position)) {
+        handPositions.push_back(position);
+    }
+    if (_skeletonModel.getRightHandPosition(position)) {
+        handPositions.push_back(position);
+    }
+    
+    CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         if (static_cast<Avatar*>(this) == avatar) {
@@ -771,9 +787,23 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
         float theirRadius = (0.5f + COLLISION_RADIUS_SCALE) * avatar->getHeight();
         if (distance < myRadius + theirRadius) {
             //printf("potential avatar collision d = %e\n", distance);
+            // collide the hands like spheres
+            for (int i = 0; i < handPositions.size(); ++i) {
+                glm::vec3 pos = handPositions[i];
+                distance = glm::length(_position - handPositions[i]);
+                printf("i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
+
+                // give each hand a spherical collision proxy
+                const float DEFAULT_HAND_RADIUS = 0.1f;
+
+                // query against avatar
+                if (avatar->findSphereCollisionWithSkeleton(pos, DEFAULT_HAND_RADIUS, collisionInfo)) {
+                    // print results
+                    printf("collision i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
+                }
+            }
         }
     }
-    
 }
 
 class SortedAvatar {
