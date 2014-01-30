@@ -18,7 +18,7 @@ class NodeData : public QObject {
 public:
     
     virtual ~NodeData() = 0;
-    virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
+    virtual int parseData(const QByteArray& packet) = 0;
 };
 
 #endif

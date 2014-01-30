@@ -32,32 +32,32 @@
 #define GUESS_OF_VOXELCODE_SIZE 10
 #define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
 #define SIZE_OF_COLOR_DATA sizeof(rgbColor)
-bool createVoxelEditMessage(unsigned char command, short int sequence,
-        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
-
+bool createVoxelEditMessage(PacketType command, short int sequence,
+                            int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
+    
     bool success = true; // assume the best
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
     unsigned char* messageBuffer = new unsigned char[messageSize];
-
-    int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
+    
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(messageBuffer), command);
     unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
     *sequenceAt = sequence;
-
+    
     // pack in timestamp
-    uint64_t now = usecTimestampNow();
-    uint64_t* timeAt = (uint64_t*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
+    quint64 now = usecTimestampNow();
+    quint64* timeAt = (quint64*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
     *timeAt = now;
-
+    
     unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence) + sizeof(now)];
     int actualMessageSize = numBytesPacketHeader + sizeof(sequence) + sizeof(now);
-
+    
     for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
-            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-
+                                                voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
+        
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-
+        
         // make sure we have room to copy this voxel
         if (actualMessageSize + lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             success = false;
@@ -83,20 +83,20 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
 }
 
 /// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-
+bool encodeVoxelEditMessageDetails(PacketType, int voxelCount, VoxelDetail* voxelDetails,
+                                   unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+    
     bool success = true; // assume the best
     unsigned char* copyAt = bufferOut;
     sizeOut = 0;
-
+    
     for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
-            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-
+                                                voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
+        
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-
+        
         // make sure we have room to copy this voxel
         if (sizeOut + lengthOfVoxelData > sizeIn) {
             success = false;
@@ -109,13 +109,11 @@ bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelD
         // cleanup
         delete[] voxelData;
     }
-
+    
     return success;
 }
 
-
-
-void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
+void VoxelEditPacketSender::sendVoxelEditMessage(PacketType type, VoxelDetail& detail) {
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early
@@ -139,7 +137,7 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& 
     }
 }
 
-void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberOfDetails, VoxelDetail* details) {
+void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOfDetails, VoxelDetail* details) {
     if (!_shouldSend) {
         return; // bail early
     }
@@ -154,4 +152,3 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberO
         }
     }    
 }
-

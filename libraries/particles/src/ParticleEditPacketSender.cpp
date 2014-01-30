@@ -16,7 +16,7 @@
 #include "Particle.h"
 
 
-void ParticleEditPacketSender::sendEditParticleMessage(PACKET_TYPE type, ParticleID particleID, const ParticleProperties& properties) {
+void ParticleEditPacketSender::sendEditParticleMessage(PacketType type, ParticleID particleID, const ParticleProperties& properties) {
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early
@@ -42,7 +42,7 @@ void ParticleEditPacketSender::adjustEditPacketForClockSkew(unsigned char* codeC
 }
 
 
-void ParticleEditPacketSender::queueParticleEditMessage(PACKET_TYPE type, ParticleID particleID, 
+void ParticleEditPacketSender::queueParticleEditMessage(PacketType type, ParticleID particleID, 
                                                                 const ParticleProperties& properties) {
     if (!_shouldSend) {
         return; // bail early

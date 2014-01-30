@@ -10,6 +10,7 @@
 #define __hifi__DataServer__
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QUuid>
 #include <QtNetwork/QUdpSocket>
 
 #include <hiredis.h>
@@ -22,6 +23,7 @@ public:
 private:
     QUdpSocket _socket;
     redisContext* _redis;
+    QUuid _uuid;
 private slots:
     void readPendingDatagrams();
 };

@@ -87,7 +87,7 @@ void Profile::updatePosition(const glm::vec3 position) {
     if (_lastPosition != position) {
         
         static timeval lastPositionSend = {};
-        const uint64_t DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+        const quint64 DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
         const float DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS = 1;
         
         if (usecTimestampNow() - usecTimestamp(&lastPositionSend) >= DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS &&
@@ -115,10 +115,10 @@ void Profile::updateOrientation(const glm::quat& orientation) {
     if (_lastOrientation == eulerAngles) {
         return;
     }
-    const uint64_t DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+    const quint64 DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
     const float DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES = 5.0f;
     
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     if (now - _lastOrientationSend >= DATA_SERVER_ORIENTATION_UPDATE_INTERVAL_USECS &&
             glm::distance(_lastOrientation, eulerAngles) >= DATA_SERVER_ORIENTATION_CHANGE_THRESHOLD_DEGREES) {
         DataServerClient::putValueForKeyAndUserString(DataServerKey::Orientation, QString(createByteArray(eulerAngles)),

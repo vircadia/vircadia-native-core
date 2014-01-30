@@ -69,7 +69,7 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 
         // How long has it been since we've sent one, if we're still under our max time, then keep considering
         // this packet for suppression
-        uint64_t now = usecTimestampNow();
+        quint64 now = usecTimestampNow();
         long sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
         const long MAX_TIME_BETWEEN_DUPLICATE_PACKETS = 1000 * 1000; // 1 second.
 
@@ -110,7 +110,7 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     }
 
     _octreePacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = populateTypeAndVersion(_octreePacket, getMyPacketType());
+    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), getMyPacketType());
     _octreePacketAt = _octreePacket + numBytesPacketHeader;
     _octreePacketAvailableBytes -= numBytesPacketHeader;
 
@@ -233,7 +233,7 @@ void OctreeQueryNode::updateLastKnownViewFrustum() {
     }
 
     // save that we know the view has been sent.
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     setLastTimeBagEmpty(now); // is this what we want? poor names
 }
 

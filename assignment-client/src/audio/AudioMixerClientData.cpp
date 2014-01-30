@@ -31,9 +31,10 @@ AvatarAudioRingBuffer* AudioMixerClientData::getAvatarAudioRingBuffer() const {
     return NULL;
 }
 
-int AudioMixerClientData::parseData(unsigned char* packetData, int numBytes) {
-    if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-        || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO) {
+int AudioMixerClientData::parseData(const QByteArray& packet) {
+    PacketType packetType = packetTypeForPacket(packet);
+    if (packetType == PacketTypeMicrophoneAudioWithEcho
+        || packetType == PacketTypeMicrophoneAudioNoEcho) {
 
         // grab the AvatarAudioRingBuffer from the vector (or create it if it doesn't exist)
         AvatarAudioRingBuffer* avatarRingBuffer = getAvatarAudioRingBuffer();
@@ -45,14 +46,12 @@ int AudioMixerClientData::parseData(unsigned char* packetData, int numBytes) {
         }
 
         // ask the AvatarAudioRingBuffer instance to parse the data
-        avatarRingBuffer->parseData(packetData, numBytes);
+        avatarRingBuffer->parseData(packet);
     } else {
         // this is injected audio
 
         // grab the stream identifier for this injected audio
-        QByteArray rfcUUID = QByteArray((char*) packetData +  numBytesForPacketHeader(packetData) + NUM_BYTES_RFC4122_UUID,
-                                        NUM_BYTES_RFC4122_UUID);
-        QUuid streamIdentifier = QUuid::fromRfc4122(rfcUUID);
+        QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(numBytesForPacketHeader(packet), NUM_BYTES_RFC4122_UUID));
 
         InjectedAudioRingBuffer* matchingInjectedRingBuffer = NULL;
 
@@ -69,7 +68,7 @@ int AudioMixerClientData::parseData(unsigned char* packetData, int numBytes) {
             _ringBuffers.push_back(matchingInjectedRingBuffer);
         }
 
-        matchingInjectedRingBuffer->parseData(packetData, numBytes);
+        matchingInjectedRingBuffer->parseData(packet);
     }
 
     return 0;

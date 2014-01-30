@@ -6,9 +6,12 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QDataStream>
+#include <QtCore/QStringList>
 #include <QtCore/QUuid>
 
 #include <PacketHeaders.h>
+#include <HifiSockAddr.h>
 #include <UUID.h>
 
 #include "DataServer.h"
@@ -21,7 +24,8 @@ const unsigned short REDIS_PORT = 6379;
 DataServer::DataServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _socket(),
-    _redis(NULL)
+    _redis(NULL),
+    _uuid(QUuid::createUuid())
 {
     _socket.bind(QHostAddress::Any, DATA_SERVER_LISTEN_PORT);
     
@@ -51,66 +55,60 @@ DataServer::~DataServer() {
 const int MAX_PACKET_SIZE = 1500;
 
 void DataServer::readPendingDatagrams() {
-    qint64 receivedBytes = 0;
-    static unsigned char packetData[MAX_PACKET_SIZE];
-
+    QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
     
-    while (_socket.hasPendingDatagrams() &&
-           (receivedBytes = _socket.readDatagram(reinterpret_cast<char*>(packetData), MAX_PACKET_SIZE,
-                                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer()))) {
-        if ((packetData[0] == PACKET_TYPE_DATA_SERVER_PUT || packetData[0] == PACKET_TYPE_DATA_SERVER_GET) &&
-            packetVersionMatch(packetData, senderSockAddr)) {
-                
-            int readBytes = numBytesForPacketHeader(packetData);
+    while (_socket.hasPendingDatagrams()) {
+        receivedPacket.resize(_socket.pendingDatagramSize());
+        _socket.readDatagram(receivedPacket.data(), _socket.pendingDatagramSize(),
+                             senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        
+        PacketType requestType = packetTypeForPacket(receivedPacket);
+        
+        if ((requestType == PacketTypeDataServerPut || requestType == PacketTypeDataServerGet) &&
+            packetVersionMatch(receivedPacket)) {
+            
+            QDataStream packetStream(receivedPacket);
+            int numReceivedHeaderBytes = numBytesForPacketHeader(receivedPacket);
+            packetStream.skipRawData(numReceivedHeaderBytes);
             
             // pull the sequence number used for this packet
             quint8 sequenceNumber = 0;
-            memcpy(&sequenceNumber, packetData + readBytes, sizeof(sequenceNumber));
-            readBytes += sizeof(sequenceNumber);
-                
+            
+            packetStream >> sequenceNumber;
+            
             // pull the UUID that we will need as part of the key
-            QString uuidString(reinterpret_cast<char*>(packetData + readBytes));
-            QUuid parsedUUID(uuidString);
+            QString userString;
+            packetStream >> userString;
+            QUuid parsedUUID(userString);
             
             if (parsedUUID.isNull()) {
                 // we failed to parse a UUID, this means the user has sent us a username
                 
-                QString username(reinterpret_cast<char*>(packetData + readBytes));
-                readBytes += username.size() + sizeof('\0');
-            
                 // ask redis for the UUID for this user
-                redisReply* reply = (redisReply*) redisCommand(_redis, "GET user:%s", qPrintable(username));
+                redisReply* reply = (redisReply*) redisCommand(_redis, "GET user:%s", qPrintable(userString));
                 
                 if (reply->type == REDIS_REPLY_STRING) {
                     parsedUUID = QUuid(QString(reply->str));
                 }
                 
                 if (!parsedUUID.isNull()) {
-                    qDebug() << "Found UUID" << parsedUUID << "for username" << username;
+                    qDebug() << "Found UUID" << parsedUUID << "for username" << userString;
                 } else {
-                    qDebug() << "Failed UUID lookup for username" << username;
+                    qDebug() << "Failed UUID lookup for username" << userString;
                 }
                 
                 freeReplyObject(reply);
                 reply = NULL;
-            } else {
-                readBytes += uuidString.size() + sizeof('\0');
             }
             
             if (!parsedUUID.isNull()) {
-                // pull the number of keys the user has sent
-                unsigned char numKeys = packetData[readBytes++];
-                
-                if (packetData[0] == PACKET_TYPE_DATA_SERVER_PUT) {
+                if (requestType == PacketTypeDataServerPut) {
                     
-                    // pull the key that specifies the data the user is putting/getting
-                    QString dataKey(reinterpret_cast<char*>(packetData + readBytes));
-                    readBytes += dataKey.size() + sizeof('\0');
+                    // pull the key and value that specifies the data the user is putting/getting
+                    QString dataKey, dataValue;
                     
-                    // grab the string value the user wants us to put, null terminate it
-                    QString dataValue(reinterpret_cast<char*>(packetData + readBytes));
-                    readBytes += dataValue.size() + sizeof('\0');
+                    packetStream >> dataKey >> dataValue;
                     
                     qDebug("Sending command to redis: SET uuid:%s:%s %s",
                            qPrintable(uuidStringWithoutCurlyBraces(parsedUUID)),
@@ -122,76 +120,64 @@ void DataServer::readPendingDatagrams() {
                     
                     if (reply->type == REDIS_REPLY_STATUS && strcmp("OK", reply->str) == 0) {
                         // if redis stored the value successfully reply back with a confirm
-                        // which is the sent packet with the header replaced
-                        packetData[0] = PACKET_TYPE_DATA_SERVER_CONFIRM;
-                        _socket.writeDatagram(reinterpret_cast<char*>(packetData), receivedBytes,
-                                              senderSockAddr.getAddress(), senderSockAddr.getPort());
+                        // which is a reply packet with the sequence number
+                        QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerConfirm, _uuid);
+                        
+                        replyPacket.append(sequenceNumber);
+                        
+                        _socket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
                     }
                     
                     freeReplyObject(reply);
                 } else {
                     // setup a send packet with the returned data
                     // leverage the packetData sent by overwriting and appending
-                    int numSendPacketBytes = receivedBytes;
+                    QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerSend, _uuid);
+                    sendPacket.append(sequenceNumber);
                     
-                    packetData[0] = PACKET_TYPE_DATA_SERVER_SEND;
-                    
-                    if (strcmp((char*) packetData + readBytes, "uuid") != 0) {
+                    if (!receivedPacket.mid(numReceivedHeaderBytes + sizeof(sequenceNumber)).startsWith("uuid")) {
                         
                         const char MULTI_KEY_VALUE_SEPARATOR = '|';
                         
-                        // the user has sent one or more keys - make the associated requests
-                        for (int j = 0; j < numKeys; j++) {
-                            
-                            // pull the key that specifies the data the user is putting/getting, null terminate it
-                            int numDataKeyBytes = 0;
-                            
-                            // look for the key separator or the null terminator
-                            while (packetData[readBytes + numDataKeyBytes] != MULTI_KEY_VALUE_SEPARATOR
-                                   && packetData[readBytes + numDataKeyBytes] != '\0') {
-                                numDataKeyBytes++;
-                            }
-                            
-                            QString dataKey(QByteArray(reinterpret_cast<char*>(packetData + readBytes), numDataKeyBytes));
-                            readBytes += dataKey.size() + sizeof('\0');
-                            
+                        // pull the key that specifies the data the user is putting/getting, null terminate it
+                        QString keyListString;
+                        packetStream >> keyListString;
+                        
+                        QStringList keyList = keyListString.split(MULTI_KEY_VALUE_SEPARATOR);
+                        
+                        foreach (const QString& dataKey, keyList) {
                             qDebug("Sending command to redis: GET uuid:%s:%s",
                                    qPrintable(uuidStringWithoutCurlyBraces(parsedUUID)),
                                    qPrintable(dataKey));
                             redisReply* reply = (redisReply*) redisCommand(_redis, "GET uuid:%s:%s",
-                                                               qPrintable(uuidStringWithoutCurlyBraces(parsedUUID)),
-                                                               qPrintable(dataKey));
+                                                                           qPrintable(uuidStringWithoutCurlyBraces(parsedUUID)),
+                                                                           qPrintable(dataKey));
                             
                             if (reply->len) {
                                 // copy the value that redis returned
-                                memcpy(packetData + numSendPacketBytes, reply->str, reply->len);
-                                numSendPacketBytes += reply->len;
+                                sendPacket.append(reply->str, reply->len);
                                 
                             } else {
                                 // didn't find a value - insert a space
-                                packetData[numSendPacketBytes++] = ' ';
+                                sendPacket.append(' ');
                             }
                             
                             // add the multi-value separator
-                            packetData[numSendPacketBytes++] = MULTI_KEY_VALUE_SEPARATOR;
+                            sendPacket.append(MULTI_KEY_VALUE_SEPARATOR);
                             
                             freeReplyObject(reply);
                         }
                         
                         // null terminate the packet we're sending back (erases the trailing separator)
-                        packetData[(numSendPacketBytes - 1)] = '\0';
+                        sendPacket[sendPacket.size() - 1] = '\0';
                     } else {
                         // user is asking for a UUID matching username, copy the UUID we found
-                        QString uuidString = uuidStringWithoutCurlyBraces(parsedUUID);
-                        memcpy(packetData + numSendPacketBytes, qPrintable(uuidString), uuidString.size() + sizeof('\0'));
-                        numSendPacketBytes += uuidString.size() + sizeof('\0');
+                        sendPacket.append(uuidStringWithoutCurlyBraces(parsedUUID));
+                        sendPacket.append('\0');
                     }
                     
                     // reply back with the send packet
-                    _socket.writeDatagram(reinterpret_cast<char*>(packetData), numSendPacketBytes,
-                                          senderSockAddr.getAddress(), senderSockAddr.getPort());
-                    
-                    
+                    _socket.writeDatagram(sendPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
                 }
             }
         }

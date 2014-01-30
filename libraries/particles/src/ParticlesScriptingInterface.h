@@ -21,7 +21,7 @@ public:
     ParticlesScriptingInterface();
     
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
-    virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
+    virtual NodeType_t getServerNodeType() const { return NodeType::ParticleServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
 
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
@@ -68,7 +68,7 @@ signals:
     void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
 
 private:
-    void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
+    void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);
 
     uint32_t _nextCreatorTokenID;
     ParticleTree* _particleTree;

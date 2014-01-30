@@ -22,7 +22,7 @@ class VoxelsScriptingInterface : public OctreeScriptingInterface {
 public:    
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
-    virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
+    virtual NodeType_t getServerNodeType() const { return NodeType::VoxelServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new VoxelEditPacketSender(); }
 
 public slots:
@@ -54,7 +54,7 @@ public slots:
     void eraseVoxel(float x, float y, float z, float scale);
 
 private:
-    void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
+    void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
 };
 
 #endif /* defined(__hifi__VoxelsScriptingInterface__) */

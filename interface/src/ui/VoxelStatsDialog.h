@@ -44,7 +44,7 @@ protected:
     void RemoveStatItem(int item);
     void showAllOctreeServers();
 
-    void showOctreeServersOfType(int& serverNumber, NODE_TYPE serverType, 
+    void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
                     const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
 
 private:

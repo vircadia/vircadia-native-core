@@ -25,7 +25,11 @@ class AvatarManager : public QObject, public DataServerCallbackObject, public Av
 public:
     AvatarManager(QObject* parent = 0);
 
-    void setMyAvatar(MyAvatar* myAvatar);
+    void clear();
+
+    void init();
+
+    MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     
@@ -34,8 +38,7 @@ public:
     void updateAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
-    // virtual override
-    void clearHash();
+    void clearMixedAvatars();
 
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
@@ -57,7 +60,7 @@ private:
     float _lookAtIndicatorScale;
     
     QVector<AvatarSharedPointer> _avatarFades;
-    MyAvatar* _myAvatar;
+    QSharedPointer<MyAvatar> _myAvatar;
 };
 
 #endif /* defined(__hifi__AvatarManager__) */

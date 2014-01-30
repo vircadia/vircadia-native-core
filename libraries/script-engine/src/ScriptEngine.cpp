@@ -234,21 +234,19 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
-            static unsigned char avatarPacket[MAX_PACKET_SIZE];
-            static int numAvatarHeaderBytes = 0;
+            static QByteArray avatarPacket;
+            int numAvatarHeaderBytes = 0;
             
-            if (numAvatarHeaderBytes == 0) {
+            if (avatarPacket.size() == 0) {
                 // pack the avatar header bytes the first time
                 // unlike the _avatar.getBroadcastData these won't change
-                numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
-                
-                // pack the owner UUID for this script
-                numAvatarHeaderBytes += NodeList::getInstance()->packOwnerUUID(avatarPacket);
+                numAvatarHeaderBytes = populatePacketHeader(avatarPacket, PacketTypeAvatarData);
             }
             
-            int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
+            avatarPacket.resize(numAvatarHeaderBytes);
+            avatarPacket.append(_avatarData->toByteArray());
             
-            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+            nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
         if (willSendVisualDataCallBack) {
