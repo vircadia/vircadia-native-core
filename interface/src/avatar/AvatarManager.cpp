@@ -234,7 +234,11 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         
         // copy the rest of the packet to the avatarData holder so we can read the next Avatar from there
         dummyAvatarByteArray.resize(numDummyByteArrayHeaderBytes);
-        dummyAvatarByteArray += datagram.mid(bytesRead);
+        
+        // make this Avatar's UUID the UUID in the packet and tack the remaining data onto the end
+        dummyAvatarByteArray.replace(numDummyByteArrayHeaderBytes - NUM_BYTES_RFC4122_UUID,
+                                     NUM_BYTES_RFC4122_UUID + datagram.size() - bytesRead,
+                                     datagram.mid(bytesRead));
         
         // have the matching (or new) avatar parse the data from the packet
         bytesRead += matchingAvatar->parseData(dummyAvatarByteArray);
