@@ -199,11 +199,11 @@ void DomainServer::createStaticAssignmentsForTypeGivenConfigString(Assignment::T
 
 void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes) {
     // enumerate over all assignment types and see if we've already excluded it
-    for (Assignment::Type defaultedType = Assignment::AudioMixerType; defaultedType != Assignment::AllTypes; defaultedType++) {
-        if (!excludedTypes.contains(defaultedType)) {
+    for (int defaultedType = Assignment::AudioMixerType; defaultedType != Assignment::AllTypes; defaultedType++) {
+        if (!excludedTypes.contains((Assignment::Type) defaultedType)) {
             // type has not been set from a command line or config file config, use the default
             // by clearing whatever exists and writing a single default assignment with no payload
-            Assignment* newAssignment = new Assignment(Assignment::CreateCommand, defaultedType);
+            Assignment* newAssignment = new Assignment(Assignment::CreateCommand, (Assignment::Type) defaultedType);
             addStaticAssignmentToAssignmentHash(newAssignment);
         }
     }
