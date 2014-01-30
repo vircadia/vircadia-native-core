@@ -23,21 +23,24 @@ AvatarManager::AvatarManager(QObject* parent) :
     _lookAtTargetAvatar(),
     _lookAtOtherPosition(),
     _lookAtIndicatorScale(1.0f),
-    _avatarFades(),
-    _myAvatar(NULL)
-{
+    _avatarFades() {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
+    _myAvatar = QSharedPointer<MyAvatar>(new MyAvatar());
 }
 
-void AvatarManager::setMyAvatar(MyAvatar* myAvatar) {
-    if (!_myAvatar) {
-        // can only ever set this once
-        _myAvatar = myAvatar;
-        // add _myAvatar to the list
-        AvatarSharedPointer myPointer = AvatarSharedPointer(_myAvatar);
-        _avatarHash.insert(MY_AVATAR_KEY, myPointer);
-    }
+void AvatarManager::clear() {
+    _lookAtTargetAvatar.clear();
+    _avatarFades.clear();
+    _avatarHash.clear();
+    _myAvatar.clear();
+}
+
+void AvatarManager::init() {
+    _myAvatar->init();
+    _myAvatar->setPosition(START_LOCATION);
+    _myAvatar->setDisplayingLookatVectors(false);
+    _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 }
 
 void AvatarManager::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
@@ -52,7 +55,7 @@ void AvatarManager::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
 
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar != static_cast<Avatar*>(_myAvatar)) {
+            if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
                 float distance;
                 if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
                     // rescale to compensate for head embiggening
@@ -86,7 +89,7 @@ void AvatarManager::updateAvatars(float deltaTime) {
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar == static_cast<Avatar*>(_myAvatar)) {
+        if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
             // for now skip updates to _myAvatar because it is done explicitly in Application
             // TODO: update _myAvatar in this context
             ++avatarIterator;
@@ -122,7 +125,7 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
             if (!avatar->isInitialized()) {
                 avatar->init();
             }
-            if (avatar == static_cast<Avatar*>(_myAvatar)) {
+            if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
                 avatar->render(forceRenderHead);
             } else {
                 avatar->render(false);
@@ -130,8 +133,8 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
         renderAvatarFades();
-    } else if (_myAvatar) {
-        // Render my own Avatar
+    } else {
+        // just render myAvatar
         _myAvatar->render(forceRenderHead);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
@@ -231,7 +234,11 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         
         // copy the rest of the packet to the avatarData holder so we can read the next Avatar from there
         dummyAvatarByteArray.resize(numDummyByteArrayHeaderBytes);
-        dummyAvatarByteArray += datagram.mid(bytesRead);
+        
+        // make this Avatar's UUID the UUID in the packet and tack the remaining data onto the end
+        dummyAvatarByteArray.replace(numDummyByteArrayHeaderBytes - NUM_BYTES_RFC4122_UUID,
+                                     NUM_BYTES_RFC4122_UUID + datagram.size() - bytesRead,
+                                     datagram.mid(bytesRead));
         
         // have the matching (or new) avatar parse the data from the packet
         bytesRead += matchingAvatar->parseData(dummyAvatarByteArray);
@@ -261,10 +268,11 @@ AvatarHash::iterator AvatarManager::erase(const AvatarHash::iterator& iterator) 
     }
 }
 
-void AvatarManager::clearHash() {
-    // clear the AvatarManager hash - typically happens on the removal of the avatar-mixer
+void AvatarManager::clearMixedAvatars() {
+    // clear any avatars that came from an avatar-mixer
     AvatarHash::iterator removeAvatar =  _avatarHash.begin();
     while (removeAvatar != _avatarHash.end()) {
         removeAvatar = erase(removeAvatar);
     }
+    _lookAtTargetAvatar.clear();
 }
