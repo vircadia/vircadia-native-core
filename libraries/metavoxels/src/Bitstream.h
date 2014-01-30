@@ -183,6 +183,9 @@ public:
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
+    /// Returns the list of registered subclasses for the supplied meta-object.
+    static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
+
     /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
     Bitstream(QDataStream& underlying);
 
@@ -267,6 +270,7 @@ private:
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
+    static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
     static QHash<int, const TypeStreamer*>& getTypeStreamers();
 };
 

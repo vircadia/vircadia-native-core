@@ -9,6 +9,7 @@
 #include <QColorDialog>
 #include <QComboBox>
 #include <QFormLayout>
+#include <QItemEditorFactory>
 #include <QMetaProperty>
 #include <QPushButton>
 #include <QScriptEngine>
@@ -217,20 +218,23 @@ SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObj
 }
 
 QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
-    SharedObjectEditor* editor = new SharedObjectEditor(parent);
+    SharedObjectEditor* editor = new SharedObjectEditor(_metaObject, parent);
     editor->setObject(_defaultValue);
     return editor;
 }
 
-SharedObjectEditor::SharedObjectEditor(QWidget* parent) : QWidget(parent) {
+SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
     
-    QFormLayout* form = new QFormLayout();
+    QFormLayout* form = new QFormLayout();    
     layout->addLayout(form);
     
     form->addRow("Type:", _type = new QComboBox());
     _type->addItem("(none)");
+    foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(metaObject)) {
+        _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+    }
     connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
 }
 
@@ -239,5 +243,29 @@ void SharedObjectEditor::setObject(const PolymorphicDataPointer& object) {
 }
 
 void SharedObjectEditor::updateType() {
-    
+    // delete the existing rows
+    if (layout()->count() > 1) {
+        QFormLayout* form = static_cast<QFormLayout*>(layout()->takeAt(1));
+        while (!form->isEmpty()) {
+            QLayoutItem* item = form->takeAt(0);
+            if (item->widget()) {
+                delete item->widget();
+            }
+            delete item;
+        }
+        delete form;
+    }
+    const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
+    if (metaObject == NULL) {
+        return;
+    }
+    QFormLayout* form = new QFormLayout();
+    static_cast<QVBoxLayout*>(layout())->addLayout(form);
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        QWidget* widget = QItemEditorFactory::defaultFactory()->createEditor(property.userType(), NULL);
+        if (widget) {
+            form->addRow(property.name(), widget);
+        }
+    }
 }

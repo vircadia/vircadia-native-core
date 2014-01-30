@@ -12,6 +12,9 @@
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
 
+REGISTER_META_OBJECT(DefaultMetavoxelGuide)
+REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
+
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
 

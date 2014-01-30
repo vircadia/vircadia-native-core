@@ -52,6 +52,7 @@ IDStreamer& IDStreamer::operator>>(int& value) {
 
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
+    getMetaObjectSubClasses().insert(metaObject->superClass(), metaObject);
     return 0;
 }
 
@@ -59,6 +60,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     streamer->setType(type);
     getTypeStreamers().insert(type, streamer);
     return 0;
+}
+
+QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
+    return getMetaObjectSubClasses().values(metaObject);
 }
 
 Bitstream::Bitstream(QDataStream& underlying) :
@@ -349,6 +354,11 @@ Bitstream& Bitstream::operator>>(AttributePointer& attribute) {
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
     static QHash<QByteArray, const QMetaObject*> metaObjects;
     return metaObjects;
+}
+
+QMultiHash<const QMetaObject*, const QMetaObject*>& Bitstream::getMetaObjectSubClasses() {
+    static QMultiHash<const QMetaObject*, const QMetaObject*> metaObjectSubClasses;
+    return metaObjectSubClasses;
 }
 
 QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {

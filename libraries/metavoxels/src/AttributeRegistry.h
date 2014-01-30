@@ -21,6 +21,7 @@
 #include "Bitstream.h"
 
 class QComboBox;
+class QFormLayout;
 class QPushButton;
 class QScriptContext;
 class QScriptEngine;
@@ -378,6 +379,8 @@ private:
     const QMetaObject* _metaObject;
 };
 
+Q_DECLARE_METATYPE(const QMetaObject*)
+
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {
     Q_OBJECT
@@ -385,7 +388,7 @@ class SharedObjectEditor : public QWidget {
 
 public:
     
-    SharedObjectEditor(QWidget* parent);
+    SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent);
 
 public slots:
 
