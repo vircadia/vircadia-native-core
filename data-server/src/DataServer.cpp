@@ -152,7 +152,7 @@ void DataServer::readPendingDatagrams() {
                         sendPacketStream << keyListString;
                         
                         QStringList keyList = keyListString.split(MULTI_KEY_VALUE_SEPARATOR);
-                        QString valueList;
+                        QStringList valueList;
                         
                         foreach (const QString& dataKey, keyList) {
                             qDebug("Sending command to redis: GET uuid:%s:%s",
@@ -164,21 +164,17 @@ void DataServer::readPendingDatagrams() {
                             
                             if (reply->len) {
                                 // copy the value that redis returned
-                                valueList.append(reply->str);
+                                valueList << reply->str;
                             } else {
                                 // didn't find a value - insert a space
-                                valueList.append(' ');
+                                valueList << QChar(' ');
                             }
-                            
-                            // add the multi-value separator
-                            valueList.append(MULTI_KEY_VALUE_SEPARATOR);
                             
                             freeReplyObject(reply);
                         }
                         
-                        // null terminate the packet we're sending back (erases the trailing separator)
-                        valueList[valueList.size() - 1] = '\0';
-                        sendPacketStream << valueList;
+                        // append the value QStringList using the right separator
+                        sendPacketStream << valueList.join(MULTI_KEY_VALUE_SEPARATOR);
                     } else {
                         // user was asking for their UUID
                         sendPacketStream << userString;
