@@ -206,7 +206,7 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
     int bytesRead = numBytesForPacketHeader(datagram);
     
     QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
-    int numDummyByteArrayHeaderBytes = dummyAvatarByteArray.size();
+    int numDummyByteArrayHeaderBytes = dummyAvatarByteArray.size();    
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
@@ -237,7 +237,7 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         
         // make this Avatar's UUID the UUID in the packet and tack the remaining data onto the end
         dummyAvatarByteArray.replace(numDummyByteArrayHeaderBytes - NUM_BYTES_RFC4122_UUID,
-                                     NUM_BYTES_RFC4122_UUID + datagram.size() - bytesRead,
+                                     datagram.size() - bytesRead,
                                      datagram.mid(bytesRead));
         
         // have the matching (or new) avatar parse the data from the packet

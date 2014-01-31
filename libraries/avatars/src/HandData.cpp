@@ -160,8 +160,6 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
 }
 
 int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
-    QDataStream packetStream(dataByteArray);
-    
     const unsigned char* startPosition;
     const unsigned char* sourceBuffer = startPosition = reinterpret_cast<const unsigned char*>(dataByteArray.data());
     unsigned int numHands = *sourceBuffer++;
