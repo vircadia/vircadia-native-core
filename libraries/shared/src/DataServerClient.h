@@ -37,13 +37,13 @@ public:
     static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
                                                     DataServerCallbackObject* callbackObject);
     
-    static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
+    static void processMessageFromDataServer(const QByteArray& packet);
     
     static void resendUnmatchedPackets();
 private:
-    static void processConfirmFromDataServer(unsigned char* packetData);
-    static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
-    static void removeMatchedPacketFromMap(unsigned char* packetData);
+    static void processConfirmFromDataServer(const QByteArray& packet);
+    static void processSendFromDataServer(const QByteArray& packet);
+    static void removeMatchedPacketFromMap(const QByteArray& packet);
     
     static QMap<quint8, QByteArray> _unmatchedPackets;
     static QMap<quint8, DataServerCallbackObject*> _callbackObjects;

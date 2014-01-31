@@ -43,7 +43,7 @@ public:
     float getSunBrightness() const { return _sunBrightness; }
 
     int getBroadcastData(unsigned char* destinationBuffer) const;
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const unsigned char* sourceBuffer, int numBytes);
     
 private:
 

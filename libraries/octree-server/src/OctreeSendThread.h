@@ -21,12 +21,12 @@ class OctreeSendThread : public GenericThread {
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
 
-    static uint64_t _totalBytes;
-    static uint64_t _totalWastedBytes;
-    static uint64_t _totalPackets;
+    static quint64 _totalBytes;
+    static quint64 _totalWastedBytes;
+    static quint64 _totalPackets;
 
-    static uint64_t _usleepTime;
-    static uint64_t _usleepCalls;
+    static quint64 _usleepTime;
+    static quint64 _usleepCalls;
 
 protected:
     /// Implements generic processing behavior for this thread.

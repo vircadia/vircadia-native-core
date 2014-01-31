@@ -10,7 +10,6 @@
 #define __interface__MetavoxelData__
 
 #include <QBitArray>
-#include <QExplicitlySharedDataPointer>
 #include <QHash>
 #include <QSharedData>
 #include <QScriptString>
@@ -23,12 +22,13 @@
 
 class QScriptContext;
 
+class Box;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 
 /// The base metavoxel representation shared between server and client.
-class MetavoxelData : public QSharedData {
+class MetavoxelData {
 public:
 
     MetavoxelData();
@@ -37,8 +37,15 @@ public:
 
     MetavoxelData& operator=(const MetavoxelData& other);
 
+    float getSize() const { return _size; }
+
+    Box getBounds() const;
+
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
+    
+    /// Expands the tree, increasing its capacity in all dimensions.
+    void expand();
 
     void read(Bitstream& in);
     void write(Bitstream& out) const;
@@ -53,14 +60,9 @@ private:
     void incrementRootReferenceCounts();
     void decrementRootReferenceCounts();
     
+    float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
 };
-
-typedef QExplicitlySharedDataPointer<MetavoxelData> MetavoxelDataPointer;
-
-void writeDelta(const MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& out);
-
-void readDelta(MetavoxelDataPointer& data, const MetavoxelDataPointer& reference, Bitstream& in);
 
 /// A single node within a metavoxel layer.
 class MetavoxelNode {
@@ -69,10 +71,12 @@ public:
     static const int CHILD_COUNT = 8;
 
     MetavoxelNode(const AttributeValue& attributeValue);
+    MetavoxelNode(const AttributePointer& attribute, const MetavoxelNode* copy);
     
     void setAttributeValue(const AttributeValue& attributeValue);
 
     AttributeValue getAttributeValue(const AttributePointer& attribute) const;
+    void* getAttributeValue() const { return _attributeValue; }
 
     void mergeChildren(const AttributePointer& attribute);
 
@@ -124,6 +128,7 @@ class MetavoxelVisitor {
 public:
     
     MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs);
+    virtual ~MetavoxelVisitor();
     
     /// Returns a reference to the list of input attributes desired.
     const QVector<AttributePointer>& getInputs() const { return _inputs; }
@@ -141,6 +146,8 @@ protected:
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
 };
+
+typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
 
 /// Interface for objects that guide metavoxel visitors.
 class MetavoxelGuide : public PolymorphicData {
@@ -195,16 +202,14 @@ private:
 class MetavoxelVisitation {
 public:
 
-    MetavoxelData* data;
     MetavoxelVisitation* previous;
     MetavoxelVisitor& visitor;
     QVector<MetavoxelNode*> inputNodes;
     QVector<MetavoxelNode*> outputNodes;
     MetavoxelInfo info;
-    int childIndex;
     
     bool allInputNodesLeaves() const;
-    MetavoxelNode* createOutputNode(int index);
+    AttributeValue getInheritedOutputValue(int index) const;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

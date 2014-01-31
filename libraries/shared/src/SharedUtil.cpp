@@ -26,7 +26,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-uint64_t usecTimestamp(const timeval *time) {
+quint64 usecTimestamp(const timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
@@ -35,7 +35,7 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-uint64_t usecTimestampNow() {
+quint64 usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
@@ -472,7 +472,7 @@ int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3
     return destBuffer - startPosition;
 }
 
-int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
+int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
     const unsigned char* startPosition = sourceBuffer;
     sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
     sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
@@ -490,7 +490,7 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     return sizeof(uint16_t);
 }
 
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
+int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
     *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
@@ -537,7 +537,7 @@ int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     return sizeof(ratioHolder);
 }
 
-int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio) {
+int unpackFloatRatioFromTwoByte(const unsigned char* buffer, float& ratio) {
     int16_t ratioHolder;
     memcpy(&ratioHolder, buffer, sizeof(ratioHolder));
 
@@ -568,7 +568,7 @@ int packClipValueToTwoByte(unsigned char* buffer, float clipValue) {
     return sizeof(holder);
 }
 
-int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue) {
+int unpackClipValueFromTwoByte(const unsigned char* buffer, float& clipValue) {
     int16_t holder;
     memcpy(&holder, buffer, sizeof(holder));
 
@@ -590,7 +590,7 @@ int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
     return sizeof(holder);
 }
 
-int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
+int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy) {
     unsigned char holder;
     memcpy(&holder, buffer, sizeof(holder));
     value = ((float)holder / (float) 255) * scaleBy;

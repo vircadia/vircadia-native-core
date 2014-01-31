@@ -12,7 +12,6 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -471,18 +470,8 @@ void MyAvatar::loadData(QSettings* settings) {
 }
 
 void MyAvatar::sendKillAvatar() {
-    unsigned char packet[MAX_PACKET_SIZE];
-    unsigned char* packetPosition = packet;
-    
-    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_KILL_AVATAR);
-    
-    NodeList* nodeList = NodeList::getInstance();
-    
-    QByteArray rfcUUID = nodeList->getOwnerUUID().toRfc4122();
-    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
-    packetPosition += rfcUUID.size();
-    
-    nodeList->broadcastToNodes(packet, packetPosition - packet, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+    QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
+    NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {

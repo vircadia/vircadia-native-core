@@ -20,8 +20,8 @@ class PacketSender : public GenericThread {
     Q_OBJECT
 public:
 
-    static const uint64_t USECS_PER_SECOND;
-    static const uint64_t SENDING_INTERVAL_ADJUST;
+    static const quint64 USECS_PER_SECOND;
+    static const quint64 SENDING_INTERVAL_ADJUST;
     static const int TARGET_FPS;
     static const int MAX_SLEEP_INTERVAL;
 
@@ -37,7 +37,7 @@ public:
     /// \param packetData pointer to data
     /// \param ssize_t packetLength size of data
     /// \thread any thread, typically the application thread
-    void queuePacketForSending(const HifiSockAddr& address, unsigned char*  packetData, ssize_t packetLength);
+    void queuePacketForSending(const HifiSockAddr& address, const QByteArray& packet);
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
@@ -72,46 +72,46 @@ public:
         { return getLifetimeInSeconds() == 0 ? 0 : (float)((float)_totalBytesQueued / getLifetimeInSeconds()); }
 
     /// returns lifetime of this object from first packet sent to now in usecs
-    uint64_t getLifetimeInUsecs() const { return (usecTimestampNow() - _started); }
+    quint64 getLifetimeInUsecs() const { return (usecTimestampNow() - _started); }
 
     /// returns lifetime of this object from first packet sent to now in usecs
     float getLifetimeInSeconds() const { return ((float)getLifetimeInUsecs() / (float)USECS_PER_SECOND); }
 
     /// returns the total packets sent by this object over its lifetime
-    uint64_t getLifetimePacketsSent() const { return _totalPacketsSent; }
+    quint64 getLifetimePacketsSent() const { return _totalPacketsSent; }
 
     /// returns the total bytes sent by this object over its lifetime
-    uint64_t getLifetimeBytesSent() const { return _totalBytesSent; }
+    quint64 getLifetimeBytesSent() const { return _totalBytesSent; }
 
     /// returns the total packets queued by this object over its lifetime
-    uint64_t getLifetimePacketsQueued() const { return _totalPacketsQueued; }
+    quint64 getLifetimePacketsQueued() const { return _totalPacketsQueued; }
 
     /// returns the total bytes queued by this object over its lifetime
-    uint64_t getLifetimeBytesQueued() const { return _totalBytesQueued; }
+    quint64 getLifetimeBytesQueued() const { return _totalBytesQueued; }
 signals:
     void packetSent(quint64);
 protected:
     int _packetsPerSecond;
     int _usecsPerProcessCallHint;
-    uint64_t _lastProcessCallTime;
+    quint64 _lastProcessCallTime;
     SimpleMovingAverage _averageProcessCallTime;
 
 private:
     std::vector<NetworkPacket> _packets;
-    uint64_t _lastSendTime;
+    quint64 _lastSendTime;
 
     bool threadedProcess();
     bool nonThreadedProcess();
 
-    uint64_t _lastPPSCheck;
+    quint64 _lastPPSCheck;
     int _packetsOverCheckInterval;
 
-    uint64_t _started;
-    uint64_t _totalPacketsSent;
-    uint64_t _totalBytesSent;
+    quint64 _started;
+    quint64 _totalPacketsSent;
+    quint64 _totalBytesSent;
 
-    uint64_t _totalPacketsQueued;
-    uint64_t _totalBytesQueued;
+    quint64 _totalPacketsQueued;
+    quint64 _totalBytesQueued;
 };
 
 #endif // __shared__PacketSender__

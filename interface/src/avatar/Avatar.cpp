@@ -12,7 +12,6 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -336,11 +335,11 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     return false;
 }
 
-int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
+int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
+    int bytesRead = AvatarData::parseData(packet);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;

@@ -47,9 +47,9 @@ uint32_t Particle::getNextCreatorTokenID() {
     return creatorTokenID;
 }
 
-void Particle::handleAddParticleResponse(unsigned char* packetData , int packetLength) {
-    unsigned char* dataAt = packetData;
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+void Particle::handleAddParticleResponse(const QByteArray& packet) {
+    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
@@ -63,7 +63,6 @@ void Particle::handleAddParticleResponse(unsigned char* packetData , int packetL
     // add our token to id mapping
     _tokenIDsToIDs[creatorTokenID] = particleID;
 }
-
 
 Particle::Particle() {
     rgbColor noColor = { 0, 0, 0 };
@@ -109,7 +108,7 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     } else {
         _id = id;
     }
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
     _lastEdited = now;
     _lastUpdated = now;
     _created = now; // will get updated as appropriate in setAge()
@@ -210,8 +209,8 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
 int Particle::expectedBytes() {
     int expectedBytes = sizeof(uint32_t) // id
                 + sizeof(float) // age
-                + sizeof(uint64_t) // last updated
-                + sizeof(uint64_t) // lasted edited
+                + sizeof(quint64) // last updated
+                + sizeof(quint64) // lasted edited
                 + sizeof(float) // radius
                 + sizeof(glm::vec3) // position
                 + sizeof(rgbColor) // color
@@ -340,10 +339,10 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
     return bytesRead;
 }
 
+Particle Particle::fromEditPacket(const unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid) {
 
-Particle Particle::fromEditPacket(unsigned char* data, int length, int& processedBytes, ParticleTree* tree, bool& valid) {
     Particle newParticle; // id and _lastUpdated will get set here...
-    unsigned char* dataAt = data;
+    const unsigned char* dataAt = data;
     processedBytes = 0;
 
     // the first part of the data is our octcode...
@@ -542,7 +541,7 @@ void Particle::debugDump() const {
     printf(" color:%d,%d,%d\n", _color[0], _color[1], _color[2]);
 }
 
-bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID id, const ParticleProperties& properties,
+bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID id, const ParticleProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
 
     bool success = true; // assume the best
@@ -587,13 +586,13 @@ bool Particle::encodeParticleEditMessageDetails(PACKET_TYPE command, ParticleID 
         copyAt += sizeof(id.creatorTokenID);
         sizeOut += sizeof(id.creatorTokenID);
     }
-
+    
     // lastEdited
-    uint64_t lastEdited = properties.getLastEdited();
+    quint64 lastEdited = properties.getLastEdited();
     memcpy(copyAt, &lastEdited, sizeof(lastEdited));
     copyAt += sizeof(lastEdited);
     sizeOut += sizeof(lastEdited);
-
+    
     // For new particles, all remaining items are mandatory, for an edited particle, All of the remaining items are
     // optional, and may or may not be included based on their included values in the properties included bits
     uint16_t packetContainsBits = properties.getChangedBits();
@@ -752,9 +751,9 @@ void Particle::adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, ssiz
     }
 
     // lastEdited
-    uint64_t lastEditedInLocalTime;
+    quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    uint64_t lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     const bool wantDebug = false;
     if (wantDebug) {
@@ -812,7 +811,7 @@ void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
 const float MIN_EXPECTED_FRAME_PERIOD = 0.005f;  // 1/200th of a second
 const float MIN_VALID_SPEED = 9.8 * MIN_EXPECTED_FRAME_PERIOD / (float)(TREE_SCALE);
 
-void Particle::update(const uint64_t& now) {
+void Particle::update(const quint64& now) {
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
 
@@ -900,7 +899,7 @@ void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
 }
 
 void Particle::setAge(float age) {
-    uint64_t ageInUsecs = age * USECS_PER_SECOND;
+    quint64 ageInUsecs = age * USECS_PER_SECOND;
     _created = usecTimestampNow() - ageInUsecs;
 }
 

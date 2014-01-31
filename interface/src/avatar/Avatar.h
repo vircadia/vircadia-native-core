@@ -114,7 +114,7 @@ public:
     
     virtual bool isMyAvatar() { return false; }
 
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 

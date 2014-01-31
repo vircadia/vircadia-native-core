@@ -56,7 +56,7 @@ Faceshift::Faceshift() :
 }
 
 bool Faceshift::isActive() const {
-    const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
+    const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
     return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
 

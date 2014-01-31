@@ -132,9 +132,9 @@ public:
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
-    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
+    bool hasChangedSince(quint64 time) const { return (_lastChanged > time); }
     void markWithChangedTime();
-    uint64_t getLastChanged() const { return _lastChanged; }
+    quint64 getLastChanged() const { return _lastChanged; }
     void handleSubtreeChanged(Octree* myTree);
     
     // Used by VoxelSystem for rendering in/out of view and LOD
@@ -158,28 +158,28 @@ public:
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
     static unsigned long getLeafNodeCount() { return _voxelNodeLeafCount; }
 
-    static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
-    static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
-    static uint64_t getExternalChildrenMemoryUsage() { return _externalChildrenMemoryUsage; }
-    static uint64_t getTotalMemoryUsage() { return _voxelMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
+    static quint64 getVoxelMemoryUsage() { return _voxelMemoryUsage; }
+    static quint64 getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
+    static quint64 getExternalChildrenMemoryUsage() { return _externalChildrenMemoryUsage; }
+    static quint64 getTotalMemoryUsage() { return _voxelMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
 
-    static uint64_t getGetChildAtIndexTime() { return _getChildAtIndexTime; }
-    static uint64_t getGetChildAtIndexCalls() { return _getChildAtIndexCalls; }
-    static uint64_t getSetChildAtIndexTime() { return _setChildAtIndexTime; }
-    static uint64_t getSetChildAtIndexCalls() { return _setChildAtIndexCalls; }
+    static quint64 getGetChildAtIndexTime() { return _getChildAtIndexTime; }
+    static quint64 getGetChildAtIndexCalls() { return _getChildAtIndexCalls; }
+    static quint64 getSetChildAtIndexTime() { return _setChildAtIndexTime; }
+    static quint64 getSetChildAtIndexCalls() { return _setChildAtIndexCalls; }
 
 #ifdef BLENDED_UNION_CHILDREN
-    static uint64_t getSingleChildrenCount() { return _singleChildrenCount; }
-    static uint64_t getTwoChildrenOffsetCount() { return _twoChildrenOffsetCount; }
-    static uint64_t getTwoChildrenExternalCount() { return _twoChildrenExternalCount; }
-    static uint64_t getThreeChildrenOffsetCount() { return _threeChildrenOffsetCount; }
-    static uint64_t getThreeChildrenExternalCount() { return _threeChildrenExternalCount; }
-    static uint64_t getCouldStoreFourChildrenInternally() { return _couldStoreFourChildrenInternally; }
-    static uint64_t getCouldNotStoreFourChildrenInternally() { return _couldNotStoreFourChildrenInternally; }
+    static quint64 getSingleChildrenCount() { return _singleChildrenCount; }
+    static quint64 getTwoChildrenOffsetCount() { return _twoChildrenOffsetCount; }
+    static quint64 getTwoChildrenExternalCount() { return _twoChildrenExternalCount; }
+    static quint64 getThreeChildrenOffsetCount() { return _threeChildrenOffsetCount; }
+    static quint64 getThreeChildrenExternalCount() { return _threeChildrenExternalCount; }
+    static quint64 getCouldStoreFourChildrenInternally() { return _couldStoreFourChildrenInternally; }
+    static quint64 getCouldNotStoreFourChildrenInternally() { return _couldNotStoreFourChildrenInternally; }
 #endif
 
-    static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
-    static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
+    static quint64 getExternalChildrenCount() { return _externalChildrenCount; }
+    static quint64 getChildrenCount(int childCount) { return _childrenCount[childCount]; }
     
 #ifdef BLENDED_UNION_CHILDREN
 #ifdef HAS_AUDIT_CHILDREN
@@ -227,7 +227,7 @@ protected:
       unsigned char* pointer;
     } _octalCode;  
 
-    uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
+    quint64 _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
 
     /// Client and server, pointers to child nodes, various encodings
 #ifdef SIMPLE_CHILD_ARRAY
@@ -245,7 +245,7 @@ protected:
     union children_t {
       OctreeElement* single;
       int32_t offsetsTwoChildren[2];
-      uint64_t offsetsThreeChildrenEncoded;
+      quint64 offsetsThreeChildrenEncoded;
       OctreeElement** external;
     } _children;
 #ifdef HAS_AUDIT_CHILDREN
@@ -278,29 +278,29 @@ protected:
     //static QReadWriteLock _updateHooksLock;
     static std::vector<OctreeElementUpdateHook*> _updateHooks;
 
-    static uint64_t _voxelNodeCount;
-    static uint64_t _voxelNodeLeafCount;
+    static quint64 _voxelNodeCount;
+    static quint64 _voxelNodeLeafCount;
 
-    static uint64_t _voxelMemoryUsage;
-    static uint64_t _octcodeMemoryUsage;
-    static uint64_t _externalChildrenMemoryUsage;
+    static quint64 _voxelMemoryUsage;
+    static quint64 _octcodeMemoryUsage;
+    static quint64 _externalChildrenMemoryUsage;
 
-    static uint64_t _getChildAtIndexTime;
-    static uint64_t _getChildAtIndexCalls;
-    static uint64_t _setChildAtIndexTime;
-    static uint64_t _setChildAtIndexCalls;
+    static quint64 _getChildAtIndexTime;
+    static quint64 _getChildAtIndexCalls;
+    static quint64 _setChildAtIndexTime;
+    static quint64 _setChildAtIndexCalls;
 
 #ifdef BLENDED_UNION_CHILDREN
-    static uint64_t _singleChildrenCount;
-    static uint64_t _twoChildrenOffsetCount;
-    static uint64_t _twoChildrenExternalCount;
-    static uint64_t _threeChildrenOffsetCount;
-    static uint64_t _threeChildrenExternalCount;
-    static uint64_t _couldStoreFourChildrenInternally;
-    static uint64_t _couldNotStoreFourChildrenInternally;
+    static quint64 _singleChildrenCount;
+    static quint64 _twoChildrenOffsetCount;
+    static quint64 _twoChildrenExternalCount;
+    static quint64 _threeChildrenOffsetCount;
+    static quint64 _threeChildrenExternalCount;
+    static quint64 _couldStoreFourChildrenInternally;
+    static quint64 _couldNotStoreFourChildrenInternally;
 #endif
-    static uint64_t _externalChildrenCount;
-    static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
+    static quint64 _externalChildrenCount;
+    static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
 #endif /* defined(__hifi__OctreeElement__) */

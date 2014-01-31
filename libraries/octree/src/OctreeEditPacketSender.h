@@ -18,10 +18,10 @@
 /// Used for construction of edit packets
 class EditPacketBuffer {
 public:
-    EditPacketBuffer() : _nodeUUID(), _currentType(PACKET_TYPE_UNKNOWN), _currentSize(0)  { }
-    EditPacketBuffer(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
+    EditPacketBuffer() : _nodeUUID(), _currentType(PacketTypeUnknown), _currentSize(0)  { }
+    EditPacketBuffer(PacketType type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
     QUuid _nodeUUID;
-    PACKET_TYPE _currentType;
+    PacketType _currentType;
     unsigned char _currentBuffer[MAX_PACKET_SIZE];
     ssize_t _currentSize;
 };
@@ -36,7 +36,7 @@ public:
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
     /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to 
     /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PACKET_TYPE type, unsigned char* buffer, ssize_t length);
+    void queueOctreeEditMessage(PacketType type, unsigned char* buffer, ssize_t length);
 
     /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message 
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
@@ -92,9 +92,9 @@ public:
 protected:
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
-    void queuePendingPacketToNodes(PACKET_TYPE type, unsigned char* buffer, ssize_t length);
+    void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, ssize_t length);
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
-    void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
+    void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     
     void processPreServerExistsPackets();

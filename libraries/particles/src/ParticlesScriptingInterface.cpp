@@ -16,7 +16,7 @@ ParticlesScriptingInterface::ParticlesScriptingInterface() :
 }
 
 
-void ParticlesScriptingInterface::queueParticleMessage(PACKET_TYPE packetType,
+void ParticlesScriptingInterface::queueParticleMessage(PacketType packetType,
         ParticleID particleID, const ParticleProperties& properties) {
     getParticlePacketSender()->queueParticleEditMessage(packetType, particleID, properties);
 }
@@ -29,7 +29,7 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
     ParticleID id(NEW_PARTICLE, creatorTokenID, false );
 
     // queue the packet
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, id, properties);
+    queueParticleMessage(PacketTypeParticleAddOrEdit, id, properties);
 
     // If we have a local particle tree set, then also update it.
     if (_particleTree) {
@@ -87,7 +87,7 @@ ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, cons
     if (actualID != UNKNOWN_PARTICLE_ID) {
         particleID.id = actualID;
         particleID.isKnownID = true;
-        queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+        queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
     }
     
     // If we have a local particle tree set, then also update it. We can do this even if we don't know
@@ -97,13 +97,14 @@ ParticleID ParticlesScriptingInterface::editParticle(ParticleID particleID, cons
         _particleTree->updateParticle(particleID, properties);
         _particleTree->unlock();
     }
+    
     return particleID;
 }
 
 
-// TODO: This deleteParticle() method uses the PACKET_TYPE_PARTICLE_ADD_OR_EDIT message to send
+// TODO: This deleteParticle() method uses the PacketType_PARTICLE_ADD_OR_EDIT message to send
 // a changed particle with a shouldDie() property set to true. This works and is currently the only
-// way to tell the particle server to delete a particle. But we should change this to use the PACKET_TYPE_PARTICLE_ERASE
+// way to tell the particle server to delete a particle. But we should change this to use the PacketType_PARTICLE_ERASE
 // message which takes a list of particle id's to delete.
 void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
 

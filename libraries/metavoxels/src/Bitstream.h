@@ -23,7 +23,9 @@ struct QMetaObject;
 class QObject;
 
 class Attribute;
+class AttributeValue;
 class Bitstream;
+class OwnedAttributeValue;
 class TypeStreamer;
 
 typedef QSharedPointer<Attribute> AttributePointer;
@@ -89,9 +91,11 @@ template<class T> inline QHash<T, int> RepeatedValueStreamer<T>::getAndResetTran
 template<class T> inline void RepeatedValueStreamer<T>::persistTransientOffsets(const QHash<T, int>& transientOffsets) {
     int oldLastPersistentID = _lastPersistentID;
     for (typename QHash<T, int>::const_iterator it = transientOffsets.constBegin(); it != transientOffsets.constEnd(); it++) {
-        int id = oldLastPersistentID + it.value();
-        _lastPersistentID = qMax(_lastPersistentID, id);
-        _persistentIDs.insert(it.key(), id);
+        int& id = _persistentIDs[it.key()];
+        if (id == 0) {
+            id = oldLastPersistentID + it.value();
+            _lastPersistentID = qMax(_lastPersistentID, id);
+        }
     }
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
@@ -106,9 +110,12 @@ template<class T> inline QHash<int, T> RepeatedValueStreamer<T>::getAndResetTran
 template<class T> inline void RepeatedValueStreamer<T>::persistTransientValues(const QHash<int, T>& transientValues) {
     int oldLastPersistentID = _lastPersistentID;
     for (typename QHash<int, T>::const_iterator it = transientValues.constBegin(); it != transientValues.constEnd(); it++) {
-        int id = oldLastPersistentID + it.key();
-        _lastPersistentID = qMax(_lastPersistentID, id);
-        _persistentValues.insert(id, it.value());
+        int& id = _persistentIDs[it.value()];
+        if (id == 0) {
+            id = oldLastPersistentID + it.key();
+            _lastPersistentID = qMax(_lastPersistentID, id);
+            _persistentValues.insert(id, it.value());
+        }
     }
     _idStreamer.setBitsFromValue(_lastPersistentID);
 }
@@ -230,6 +237,9 @@ public:
     
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
+    
+    Bitstream& operator<<(const AttributeValue& attributeValue);
+    Bitstream& operator>>(OwnedAttributeValue& attributeValue);
     
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);
