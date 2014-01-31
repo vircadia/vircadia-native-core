@@ -206,13 +206,13 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
     int bytesRead = numBytesForPacketHeader(datagram);
     
     QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
-    int numDummyByteArrayHeaderBytes = dummyAvatarByteArray.size();    
+    int numDummyHeaderBytes = dummyAvatarByteArray.size();
+    int numDummyHeaderBytesWithoutUUID = numDummyHeaderBytes - NUM_BYTES_RFC4122_UUID;
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
-        // TODO: skip the data if nodeUUID is same as MY_AVATAR_KEY
         
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         
@@ -233,15 +233,13 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         }
         
         // copy the rest of the packet to the avatarData holder so we can read the next Avatar from there
-        dummyAvatarByteArray.resize(numDummyByteArrayHeaderBytes);
+        dummyAvatarByteArray.resize(numDummyHeaderBytesWithoutUUID);
         
         // make this Avatar's UUID the UUID in the packet and tack the remaining data onto the end
-        dummyAvatarByteArray.replace(numDummyByteArrayHeaderBytes - NUM_BYTES_RFC4122_UUID,
-                                     datagram.size() - bytesRead,
-                                     datagram.mid(bytesRead));
+        dummyAvatarByteArray.append(datagram.mid(bytesRead));
         
         // have the matching (or new) avatar parse the data from the packet
-        bytesRead += matchingAvatar->parseData(dummyAvatarByteArray);
+        bytesRead += matchingAvatar->parseData(dummyAvatarByteArray) - numDummyHeaderBytesWithoutUUID;
     }
 }
 
