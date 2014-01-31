@@ -27,6 +27,7 @@ class MyAvatar : public Avatar {
 
 public:
 	MyAvatar();
+    ~MyAvatar();
     
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
@@ -74,6 +75,12 @@ public:
 
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
+    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
+
+    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
+
+    void clearLookAtTargetAvatar();
+
 public slots:
     void goHome();
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
@@ -100,6 +107,7 @@ private:
     float _collisionRadius;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
+    QWeakPointer<AvatarData> _lookAtTargetAvatar;
 
 	// private methods
     void renderBody(bool forceRenderHead);

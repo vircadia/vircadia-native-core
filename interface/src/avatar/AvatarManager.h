@@ -29,10 +29,6 @@ public:
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
-    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
-    
     void updateAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
@@ -52,10 +48,6 @@ private:
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    QWeakPointer<AvatarData> _lookAtTargetAvatar;
-    glm::vec3 _lookAtOtherPosition;
-    float _lookAtIndicatorScale;
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;

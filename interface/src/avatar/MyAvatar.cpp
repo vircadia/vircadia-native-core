@@ -53,11 +53,16 @@ MyAvatar::MyAvatar() :
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
-    _moveTargetStepCounter(0)
+    _moveTargetStepCounter(0),
+    _lookAtTargetAvatar()
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+}
+
+MyAvatar::~MyAvatar() {
+    _lookAtTargetAvatar.clear();
 }
 
 void MyAvatar::reset() {
@@ -490,6 +495,35 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     rotation = glm::angleAxis(_head.getPitch() - oldPitch, orientation * IDENTITY_RIGHT);
 
     setPosition(position + rotation * (getPosition() - position));
+}
+
+void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
+    Application* applicationInstance = Application::getInstance();
+    
+    if (!applicationInstance->isMousePressed()) {
+        glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
+        glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
+
+        foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
+            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+            if (avatar == static_cast<Avatar*>(this)) {
+                continue;
+            }
+            float distance;
+            if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
+                // rescale to compensate for head embiggening
+                eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
+                    (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
+                _lookAtTargetAvatar = avatarPointer;
+                return;
+            }
+        }
+        _lookAtTargetAvatar.clear();
+    }
+}
+
+void MyAvatar::clearLookAtTargetAvatar() {
+    _lookAtTargetAvatar.clear();
 }
 
 float MyAvatar::getAbsoluteHeadYaw() const {

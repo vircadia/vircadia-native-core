@@ -20,9 +20,6 @@
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
-    _lookAtTargetAvatar(),
-    _lookAtOtherPosition(),
-    _lookAtIndicatorScale(1.0f),
     _avatarFades() {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -34,40 +31,6 @@ void AvatarManager::init() {
     _myAvatar->setPosition(START_LOCATION);
     _myAvatar->setDisplayingLookatVectors(false);
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
-}
-
-void AvatarManager::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
-    
-    Application* applicationInstance = Application::getInstance();
-    
-    if (!applicationInstance->isMousePressed()) {
-        glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-        glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
-        foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (avatar != static_cast<Avatar*>(_myAvatar.data())) {
-                float distance;
-                if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
-                    // rescale to compensate for head embiggening
-                    eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
-                        (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
-                    
-                    _lookAtIndicatorScale = avatar->getHead().getScale();
-                    _lookAtOtherPosition = avatar->getHead().getPosition();
-                    
-                    _lookAtTargetAvatar = avatarPointer;
-                    
-                    // found the look at target avatar, return
-                    return;
-                }
-            }
-        }
-        
-        _lookAtTargetAvatar.clear();
-    }
 }
 
 void AvatarManager::updateAvatars(float deltaTime) {
@@ -267,5 +230,5 @@ void AvatarManager::clearMixedAvatars() {
     while (removeAvatar != _avatarHash.end()) {
         removeAvatar = erase(removeAvatar);
     }
-    _lookAtTargetAvatar.clear();
+    _myAvatar->clearLookAtTargetAvatar();
 }

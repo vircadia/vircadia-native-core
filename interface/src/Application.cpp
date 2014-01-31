@@ -1196,8 +1196,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
         // orbit behavior
         if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
-            if (_avatarManager.getLookAtTargetAvatar()) {
-                _myAvatar->orbit(_avatarManager.getLookAtTargetAvatar()->getPosition(), deltaX, deltaY);
+            if (_myAvatar->getLookAtTargetAvatar()) {
+                _myAvatar->orbit(_myAvatar->getLookAtTargetAvatar()->getPosition(), deltaX, deltaY);
                 return;
             }
             if (_isHoverVoxel) {
@@ -1256,7 +1256,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 return;
             }
 
-            if (!_palette.isActive() && (!_isHoverVoxel || _avatarManager.getLookAtTargetAvatar())) {
+            if (!_palette.isActive() && (!_isHoverVoxel || _myAvatar->getLookAtTargetAvatar())) {
                 // disable for now
                 // _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
@@ -2363,7 +2363,7 @@ void Application::update(float deltaTime) {
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
-    _avatarManager.updateLookAtTargetAvatar(lookAtSpot);
+    _myAvatar->updateLookAtTargetAvatar(lookAtSpot);
     updateMyAvatarLookAtPosition(lookAtSpot);
 
     //  Find the voxel we are hovering over, and respond if clicked
