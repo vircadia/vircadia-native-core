@@ -112,22 +112,19 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
     properties.setShouldDie(true);
 
     uint32_t actualID = particleID.id;
+    
+    // if the particle is unknown, attempt to look it up
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-
-        // hmmm... we kind of want to bail if someone attempts to edit an unknown
-        if (actualID == UNKNOWN_PARTICLE_ID) {
-            //qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown particle...";
-            return; // bailing early
-        }
     }
 
-    particleID.id = actualID;
-    particleID.isKnownID = true;
+    // if at this point, we know the id, send the update to the particle server
+    if (actualID != UNKNOWN_PARTICLE_ID) {
+        particleID.id = actualID;
+        particleID.isKnownID = true;
+        queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+    }
 
-    //qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
-    queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
-    
     // If we have a local particle tree set, then also update it.
     if (_particleTree) {
         _particleTree->lockForWrite();
