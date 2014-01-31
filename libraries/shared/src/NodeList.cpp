@@ -624,8 +624,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     }
 }
 
-unsigned NodeList::broadcastToNodes(const QByteArray& packet,
-                                    const NodeSet& destinationNodeTypes) {
+unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
 
     foreach (const SharedNodePointer& node, getNodeHash()) {
