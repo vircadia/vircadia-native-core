@@ -334,6 +334,9 @@ public:
     
     /// Creates a new clone of this object.
     virtual PolymorphicData* clone() const = 0;
+    
+    /// Tests this object for equality with another.
+    virtual bool equals(const PolymorphicData* other) const = 0;
 };
 
 template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone();
@@ -350,6 +353,8 @@ public:
     
     virtual void* createFromVariant(const QVariant& value) const;
     
+    virtual bool equal(void* first, void* second) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
 };
 
@@ -358,8 +363,9 @@ class SharedObject : public QObject, public PolymorphicData {
     
 public:
 
-    /// Creates a new clone of this object.
     virtual PolymorphicData* clone() const;
+    
+    virtual bool equals(const PolymorphicData* other) const;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
@@ -397,6 +403,7 @@ public slots:
 private slots:
 
     void updateType();
+    void propertyChanged();
 
 private:
     

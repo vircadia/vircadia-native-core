@@ -9,11 +9,14 @@
 #ifndef __interface__MetavoxelUtil__
 #define __interface__MetavoxelUtil__
 
+#include <QUrl>
 #include <QUuid>
+#include <QWidget>
 
 #include "Bitstream.h"
 
 class QByteArray;
+class QLineEdit;
 
 class HifiSockAddr;
 
@@ -35,5 +38,47 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
+
+/// Combines a URL with a set of typed parameters.
+class ParameterizedURL {
+public:
+    
+    ParameterizedURL(const QUrl& url = QUrl(), const QVariantHash& parameters = QVariantHash());
+    
+    void setURL(const QUrl& url) { _url = url; }
+    const QUrl& getURL() const { return _url; }
+    
+    void setParameters(const QVariantHash& parameters) { _parameters = parameters; }
+    const QVariantHash& getParameters() const { return _parameters; }
+    
+    bool operator==(const ParameterizedURL& other) const;
+    bool operator!=(const ParameterizedURL& other) const;
+    
+private:
+    
+    QUrl _url;
+    QVariantHash _parameters;
+};
+
+Q_DECLARE_METATYPE(ParameterizedURL)
+
+/// Allows editing parameterized URLs.
+class ParameterizedURLEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(ParameterizedURL url MEMBER _url WRITE setURL USER true)
+
+public:
+    
+    ParameterizedURLEditor(QWidget* parent = NULL);
+    
+public slots:
+
+    void setURL(const ParameterizedURL& url);
+
+private:
+    
+    ParameterizedURL _url;
+    QLineEdit* _line;
+};
 
 #endif /* defined(__interface__MetavoxelUtil__) */

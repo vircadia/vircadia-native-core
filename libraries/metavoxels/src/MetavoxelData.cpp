@@ -572,20 +572,25 @@ QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngin
 }
 
 ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
-    _guideFunction(guideFunction),
-    _minimumHandle(guideFunction.engine()->toStringHandle("minimum")),
-    _sizeHandle(guideFunction.engine()->toStringHandle("size")),
-    _inputValuesHandle(guideFunction.engine()->toStringHandle("inputValues")),
-    _outputValuesHandle(guideFunction.engine()->toStringHandle("outputValues")),
-    _isLeafHandle(guideFunction.engine()->toStringHandle("isLeaf")),
-    _getInputsFunction(guideFunction.engine()->newFunction(getInputs, 0)),
-    _getOutputsFunction(guideFunction.engine()->newFunction(getOutputs, 0)),
-    _visitFunction(guideFunction.engine()->newFunction(visit, 1)),
-    _info(guideFunction.engine()->newObject()),
-    _minimum(guideFunction.engine()->newArray(3)) {
+    _guideFunction(guideFunction) {
     
-    _arguments.append(guideFunction.engine()->newObject());
-    QScriptValue visitor = guideFunction.engine()->newObject();
+    QScriptEngine* engine = guideFunction.engine();
+    if (!engine) {
+        return;
+    }
+    _minimumHandle = engine->toStringHandle("minimum");
+    _sizeHandle = engine->toStringHandle("size");
+    _inputValuesHandle = engine->toStringHandle("inputValues");
+    _outputValuesHandle = engine->toStringHandle("outputValues");
+    _isLeafHandle = engine->toStringHandle("isLeaf");
+    _getInputsFunction = engine->newFunction(getInputs, 0);
+    _getOutputsFunction = engine->newFunction(getOutputs, 0);
+    _visitFunction = engine->newFunction(visit, 1);
+    _info = engine->newObject();
+    _minimum = engine->newArray(3);
+    
+    _arguments.append(engine->newObject());
+    QScriptValue visitor = engine->newObject();
     visitor.setProperty("getInputs", _getInputsFunction);
     visitor.setProperty("getOutputs", _getOutputsFunction);
     visitor.setProperty("visit", _visitFunction);

@@ -19,10 +19,10 @@
 #include <glm/glm.hpp>
 
 #include "AttributeRegistry.h"
+#include "MetavoxelUtil.h"
 
 class QScriptContext;
 
-class Box;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
@@ -173,6 +173,7 @@ public:
 /// Represents a guide implemented in Javascript.
 class ScriptedMetavoxelGuide : public MetavoxelGuide {
     Q_OBJECT
+    Q_PROPERTY(ParameterizedURL url MEMBER _url)
     
 public:
 
@@ -185,6 +186,8 @@ private:
     static QScriptValue getInputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getOutputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
+
+    ParameterizedURL _url;
 
     QScriptValue _guideFunction;
     QScriptString _minimumHandle;

@@ -190,8 +190,39 @@ void* PolymorphicAttribute::createFromVariant(const QVariant& value) const {
     return create(encodeInline(value.value<PolymorphicDataPointer>()));
 }
 
+bool PolymorphicAttribute::equal(void* first, void* second) const {
+    PolymorphicDataPointer firstPointer = decodeInline<PolymorphicDataPointer>(first);
+    PolymorphicDataPointer secondPointer = decodeInline<PolymorphicDataPointer>(second);
+    return (firstPointer == secondPointer) || (firstPointer && secondPointer &&
+        firstPointer->equals(secondPointer.constData()));
+}
+
 bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
-    return false;
+    PolymorphicDataPointer& parentPointer = *(PolymorphicDataPointer*)&parent;
+    PolymorphicDataPointer childPointers[MERGE_COUNT];
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        childPointers[i] = decodeInline<PolymorphicDataPointer>(children[i]);
+    }
+    if (childPointers[0]) {
+        for (int i = 1; i < MERGE_COUNT; i++) {
+            if (childPointers[0] == childPointers[i]) {
+                continue;
+            }
+            if (!(childPointers[i] && childPointers[0]->equals(childPointers[i].constData()))) {
+                parentPointer = _defaultValue;
+                return false;
+            }
+        }
+    } else {
+        for (int i = 1; i < MERGE_COUNT; i++) {
+            if (childPointers[i]) {
+                parentPointer = _defaultValue;
+                return false;
+            }
+        }
+    }
+    parentPointer = childPointers[0];
+    return true;
 }
 
 PolymorphicData* SharedObject::clone() const {
@@ -208,6 +239,31 @@ PolymorphicData* SharedObject::clone() const {
         newObject->setProperty(propertyName, property(propertyName));
     }
     return static_cast<SharedObject*>(newObject);
+}
+
+bool SharedObject::equals(const PolymorphicData* other) const {
+    // default behavior is to compare the properties
+    const QMetaObject* metaObject = this->metaObject();
+    const SharedObject* sharedOther = static_cast<const SharedObject*>(other);
+    if (metaObject != sharedOther->metaObject()) {
+        return false;
+    }
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored() && property.read(this) != property.read(sharedOther)) {
+            return false;
+        }
+    }
+    QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
+    if (dynamicPropertyNames.size() != sharedOther->dynamicPropertyNames().size()) {
+        return false;
+    }
+    foreach (const QByteArray& propertyName, dynamicPropertyNames) {
+        if (property(propertyName) != sharedOther->property(propertyName)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
@@ -240,6 +296,23 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* p
 
 void SharedObjectEditor::setObject(const PolymorphicDataPointer& object) {
     _object = object;
+    const QMetaObject* metaObject = object ? static_cast<SharedObject*>(object.data())->metaObject() : NULL;
+    int index = _type->findData(QVariant::fromValue(metaObject));
+    if (index != -1) {
+        // ensure that we call updateType to obtain the values
+        if (_type->currentIndex() == index) {
+            updateType();
+        } else {
+            _type->setCurrentIndex(index);
+        }
+    }
+}
+
+const QMetaObject* getOwningAncestor(const QMetaObject* metaObject, int propertyIndex) {
+    while (propertyIndex < metaObject->propertyOffset()) {
+        metaObject = metaObject->superClass();
+    }
+    return metaObject;
 }
 
 void SharedObjectEditor::updateType() {
@@ -257,15 +330,50 @@ void SharedObjectEditor::updateType() {
     }
     const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
     if (metaObject == NULL) {
+        _object.reset();
         return;
     }
+    QObject* oldObject = static_cast<SharedObject*>(_object.data());
+    const QMetaObject* oldMetaObject = oldObject ? oldObject->metaObject() : NULL;
+    QObject* newObject = metaObject->newInstance();
+    
     QFormLayout* form = new QFormLayout();
     static_cast<QVBoxLayout*>(layout())->addLayout(form);
     for (int i = 0; i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
+        if (oldMetaObject && i < oldMetaObject->propertyCount() &&
+                getOwningAncestor(metaObject, i) == getOwningAncestor(oldMetaObject, i)) {
+            // copy the state of the shared ancestry
+            property.write(newObject, property.read(oldObject));
+        }
         QWidget* widget = QItemEditorFactory::defaultFactory()->createEditor(property.userType(), NULL);
         if (widget) {
-            form->addRow(property.name(), widget);
+            widget->setProperty("propertyIndex", i);
+            form->addRow(QByteArray(property.name()) + ':', widget);
+            QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
+            const QMetaObject* widgetMetaObject = widget->metaObject();
+            QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
+            widgetProperty.write(widget, property.read(newObject));
+            if (widgetProperty.hasNotifySignal()) {
+                connect(widget, QByteArray(SIGNAL()).append(widgetProperty.notifySignal().methodSignature()),
+                    SLOT(propertyChanged()));
+            }
         }
+    }
+    _object = static_cast<SharedObject*>(newObject);
+}
+
+void SharedObjectEditor::propertyChanged() {
+    QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+    for (int i = 0; i < form->rowCount(); i++) {
+        QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+        if (widget != sender()) {
+            continue;
+        }
+        _object.detach();
+        QObject* object = static_cast<SharedObject*>(_object.data());
+        QMetaProperty property = object->metaObject()->property(widget->property("propertyIndex").toInt());
+        QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
+        property.write(object, widget->property(valuePropertyName));
     }
 }
