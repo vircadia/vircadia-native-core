@@ -173,8 +173,8 @@ int AvatarData::parseData(const QByteArray& packet) {
     }
     
     // increment to push past the packet header
-    const unsigned char* sourceBuffer = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* startPosition = sourceBuffer + numBytesForPacketHeader(packet);
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
+    const unsigned char* sourceBuffer = startPosition + numBytesForPacketHeader(packet);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
