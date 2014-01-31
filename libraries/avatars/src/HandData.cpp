@@ -214,6 +214,8 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
     unsigned char checkLength = *sourceBuffer++;
     assert(checkLength == requiredLength);
+    
+    return sourceBuffer - startPosition;
 }
 
 void HandData::setFingerTrailLength(unsigned int length) {
