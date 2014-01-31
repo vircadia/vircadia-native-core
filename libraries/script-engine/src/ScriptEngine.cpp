@@ -41,6 +41,7 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _isAvatar(false),
     _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
