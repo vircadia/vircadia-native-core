@@ -190,7 +190,6 @@ void ParticleTree::handleAddParticleResponse(const QByteArray& packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-    dataAt += numBytesPacketHeader;
 
     uint32_t creatorTokenID;
     memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
