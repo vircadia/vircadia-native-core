@@ -433,7 +433,7 @@ void OctreeServer::setArguments(int argc, char** argv) {
 void OctreeServer::parsePayload() {
 
     if (getPayload().size() > 0) {
-        QString config((const char*) _payload);
+        QString config(_payload);
 
         // Now, parse the config
         QStringList configList = config.split(" ");
