@@ -77,8 +77,7 @@ On a fresh Ubuntu 13.10 install, get these requirements from Ubuntu repositories
 
 Then [download lastest Qt packages](http://qt-project.org/downloads), untar/install to your prefered path
 and set your `QT_CMAKE_PREFIX_PATH` environment variable as described above in the CMake section. It's
-recommended that you set the variable automatically on each shell instance to save this task in the future,
-such as:
+recommended to set the variable automatically on each shell instance to save this task in the future:
 
     echo 'export QT_CMAKE_PREFIX_PATH=~/Qt5.2.0/5.2.0/gcc_64/lib/cmake' >> ~/.bashrc
 
