@@ -70,7 +70,6 @@ void broadcastAvatarData() {
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
                     
-                    
                     AvatarData *nodeData = (AvatarData *)otherNode->getLinkedData();
                     avatarByteArray.append(nodeData->toByteArray());
                     
