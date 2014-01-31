@@ -71,8 +71,16 @@ We have successfully built on OS X 10.8, Ubuntu and a few other modern Linux
 distributions. A Windows build is planned for the future, but not currently in 
 development.
 
-On a fresh Ubuntu 13.10 install, these are all the packages you need to grab and build the hifi project:
-<pre>sudo apt-get install build-essential cmake git libcurl4-openssl-dev libqt5scripttools5 libqt5svg5-dev libqt5webkit5-dev libqt5location5 qtlocation5-dev qtdeclarative5-dev qtscript5-dev qtsensors5-dev qtmultimedia5-dev qtquick1-5-dev libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev</pre>
+On a fresh Ubuntu 13.10 install, get these requirements from Ubuntu repositories:
+
+    sudo apt-get install build-essential cmake git libcurl4-openssl-dev libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
+
+Then [download lastest Qt packages](http://qt-project.org/downloads), untar/install to your prefered path
+and set your `QT_CMAKE_PREFIX_PATH` environment variable as described above in the CMake section.
+
+It's recommended that you set the variable automatically on each shell instance to save this task in the future, such as:
+
+    echo 'export QT_CMAKE_PREFIX_PATH=~/Qt5.2.0/5.2.0/gcc_64/lib/cmake' >> ~/.bashrc
 
 Running Interface
 -----
