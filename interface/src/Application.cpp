@@ -1093,7 +1093,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
                 break;
             case Qt::Key_At:
-                Menu::getInstance()->goToUser();
+                Menu::getInstance()->goTo();
                 break;
             default:
                 event->ignore();
@@ -1413,10 +1413,10 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    getInstance()->controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
-                                              << NodeType::ParticleServer
-                                              << NodeType::AudioMixer << NodeType::AvatarMixer
-                                              << NodeType::MetavoxelServer);
+    controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
+                               << NodeType::ParticleServer
+                               << NodeType::AudioMixer << NodeType::AvatarMixer
+                               << NodeType::MetavoxelServer);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1877,6 +1877,17 @@ void Application::init() {
     _metavoxels.init();
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+
+    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)));
+
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
 
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);

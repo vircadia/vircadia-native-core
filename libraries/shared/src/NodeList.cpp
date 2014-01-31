@@ -119,13 +119,13 @@ void NodeList::timePingReply(const QByteArray& packet) {
     
     if (matchingNode) {
         QDataStream packetStream(packet);
-        packetStream.device()->seek(numBytesForPacketHeader(packet));
+        packetStream.skipRawData(numBytesForPacketHeader(packet));
         
-        qint64 ourOriginalTime, othersReplyTime;
+        quint64 ourOriginalTime, othersReplyTime;
         
         packetStream >> ourOriginalTime >> othersReplyTime;
         
-        qint64 now = usecTimestampNow();
+        quint64 now = usecTimestampNow();
         int pingTime = now - ourOriginalTime;
         int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
         
@@ -554,8 +554,11 @@ QByteArray NodeList::constructPingPacket() {
 }
 
 QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+    QDataStream pingPacketStream(pingPacket);
+    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
+    
     quint64 timeFromOriginalPing;
-    memcpy(&timeFromOriginalPing, pingPacket.data() + numBytesForPacketHeader(pingPacket), sizeof(timeFromOriginalPing));
+    pingPacketStream >> timeFromOriginalPing;
     
     QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
@@ -621,8 +624,7 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     }
 }
 
-unsigned NodeList::broadcastToNodes(const QByteArray& packet,
-                                    const NodeSet& destinationNodeTypes) {
+unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
 
     foreach (const SharedNodePointer& node, getNodeHash()) {

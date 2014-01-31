@@ -13,6 +13,8 @@
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <VoxelsScriptingInterface.h>
+#include <VoxelDetail.h>
+
 
 // This is not ideal, but adding script-engine as a linked library, will cause a circular reference
 // I'm open to other potential solutions. Could we change cmake to allow libraries to reference each others
@@ -830,7 +832,7 @@ void Particle::update(const quint64& now) {
     bool shouldDie = (getAge() > getLifetime()) || getShouldDie() || (!isInHand && isStopped && isReallyOld);
     setShouldDie(shouldDie);
 
-    runUpdateScript(); // allow the javascript to alter our state
+    executeUpdateScripts(); // allow the javascript to alter our state
 
     // If the ball is in hand, it doesn't move or have gravity effect it
     if (!isInHand) {
@@ -852,105 +854,61 @@ void Particle::update(const quint64& now) {
     }
 }
 
-void Particle::runUpdateScript() {
+void Particle::startParticleScriptContext(ScriptEngine& engine, ParticleScriptObject& particleScriptable) {
+    if (_voxelEditSender) {
+        engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
+    }
+    if (_particleEditSender) {
+        engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
+    }
+
+    // Add the "this" Particle object
+    engine.registerGlobalObject("Particle", &particleScriptable);
+    engine.evaluate();
+}
+
+void Particle::endParticleScriptContext(ScriptEngine& engine, ParticleScriptObject& particleScriptable) {
+    if (_voxelEditSender) {
+        _voxelEditSender->releaseQueuedMessages();
+    }
+    if (_particleEditSender) {
+        _particleEditSender->releaseQueuedMessages();
+    }
+}
+
+void Particle::executeUpdateScripts() {
+    // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-        ScriptEngine engine(_script); // no menu or controller interface...
-
-        if (_voxelEditSender) {
-            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
-        }
-        if (_particleEditSender) {
-            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
-        }
-
-        // Add the Particle object
+        ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
-        engine.registerGlobalObject("Particle", &particleScriptable);
-
-        // init and evaluate the script, but return so we can emit the collision
-        engine.evaluate();
-
+        startParticleScriptContext(engine, particleScriptable);
         particleScriptable.emitUpdate();
-
-        // it seems like we may need to send out particle edits if the state of our particle was changed.
-
-        if (_voxelEditSender) {
-            _voxelEditSender->releaseQueuedMessages();
-        }
-        if (_particleEditSender) {
-            _particleEditSender->releaseQueuedMessages();
-        }
+        endParticleScriptContext(engine, particleScriptable);
     }
 }
 
 void Particle::collisionWithParticle(Particle* other) {
+    // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-        ScriptEngine engine(_script); // no menu or controller interface...
-
-        if (_voxelEditSender) {
-            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
-        }
-        if (_particleEditSender) {
-            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
-        }
-
-        // Add the Particle object
+        ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
-        engine.registerGlobalObject("Particle", &particleScriptable);
-
-        // init and evaluate the script, but return so we can emit the collision
-        engine.evaluate();
-
+        startParticleScriptContext(engine, particleScriptable);
         ParticleScriptObject otherParticleScriptable(other);
         particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
-
-        // it seems like we may need to send out particle edits if the state of our particle was changed.
-
-        if (_voxelEditSender) {
-            _voxelEditSender->releaseQueuedMessages();
-        }
-        if (_particleEditSender) {
-            _particleEditSender->releaseQueuedMessages();
-        }
+        endParticleScriptContext(engine, particleScriptable);
     }
 }
 
 void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
+    // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
-
-        ScriptEngine engine(_script); // no menu or controller interface...
-
-        // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
-        // we can use the same ones as our context.
-        if (_voxelEditSender) {
-            engine.getVoxelsScriptingInterface()->setPacketSender(_voxelEditSender);
-        }
-        if (_particleEditSender) {
-            engine.getParticlesScriptingInterface()->setPacketSender(_particleEditSender);
-        }
-
-        // Add the Particle object
+        ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
-        engine.registerGlobalObject("Particle", &particleScriptable);
-
-        // init and evaluate the script, but return so we can emit the collision
-        engine.evaluate();
-
-        VoxelDetailScriptObject voxelDetailsScriptable(voxelDetails);
-        particleScriptable.emitCollisionWithVoxel(&voxelDetailsScriptable);
-
-        // it seems like we may need to send out particle edits if the state of our particle was changed.
-
-        if (_voxelEditSender) {
-            _voxelEditSender->releaseQueuedMessages();
-        }
-        if (_particleEditSender) {
-            _particleEditSender->releaseQueuedMessages();
-        }
+        startParticleScriptContext(engine, particleScriptable);
+        particleScriptable.emitCollisionWithVoxel(*voxelDetails);
+        endParticleScriptContext(engine, particleScriptable);
     }
 }
-
-
 
 void Particle::setAge(float age) {
     quint64 ageInUsecs = age * USECS_PER_SECOND;
