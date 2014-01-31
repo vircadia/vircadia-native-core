@@ -1056,7 +1056,7 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
 
     if (_idSet) {
         properties.setProperty("id", _id);
-        properties.setProperty("isKnownID", (_id == UNKNOWN_PARTICLE_ID));
+        properties.setProperty("isKnownID", (_id != UNKNOWN_PARTICLE_ID));
     }
 
     return properties;
