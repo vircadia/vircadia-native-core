@@ -1413,10 +1413,10 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    getInstance()->controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
-                                              << NodeType::ParticleServer
-                                              << NodeType::AudioMixer << NodeType::AvatarMixer
-                                              << NodeType::MetavoxelServer);
+    controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
+                               << NodeType::ParticleServer
+                               << NodeType::AudioMixer << NodeType::AvatarMixer
+                               << NodeType::MetavoxelServer);
 }
 
 //  Every second, check the frame rates and other stuff
