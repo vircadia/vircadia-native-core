@@ -1093,7 +1093,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
                 break;
             case Qt::Key_At:
-                Menu::getInstance()->goToUser();
+                Menu::getInstance()->goTo();
                 break;
             default:
                 event->ignore();
