@@ -52,7 +52,11 @@ IDStreamer& IDStreamer::operator>>(int& value) {
 
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
-    getMetaObjectSubClasses().insert(metaObject->superClass(), metaObject);
+    
+    // register it as a subclass of all of its superclasses
+    for (const QMetaObject* superClass = metaObject->superClass(); superClass != NULL; superClass = superClass->superClass()) {
+        getMetaObjectSubClasses().insert(superClass, metaObject);
+    }
     return 0;
 }
 

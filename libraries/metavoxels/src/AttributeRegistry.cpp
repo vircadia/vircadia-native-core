@@ -339,7 +339,7 @@ void SharedObjectEditor::updateType() {
     
     QFormLayout* form = new QFormLayout();
     static_cast<QVBoxLayout*>(layout())->addLayout(form);
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
+    for (int i = QObject::staticMetaObject.propertyCount(); i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
         if (oldMetaObject && i < oldMetaObject->propertyCount() &&
                 getOwningAncestor(metaObject, i) == getOwningAncestor(oldMetaObject, i)) {

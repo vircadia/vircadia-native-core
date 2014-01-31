@@ -13,7 +13,7 @@
 #include "MetavoxelUtil.h"
 
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
-REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
+REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
@@ -514,6 +514,14 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
+}
+
+ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(1.0) {
+}
+
+void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    DefaultMetavoxelGuide::guide(visitation);
+    
 }
 
 static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,
