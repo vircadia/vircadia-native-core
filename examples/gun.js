@@ -99,4 +99,4 @@ function checkController() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(checkController);
+Script.willSendVisualDataCallback.connect(checkController);

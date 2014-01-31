@@ -1,4 +1,4 @@
-//
+Script//
 //  collidingParticles.js
 //  hifi
 //
@@ -132,7 +132,7 @@ function draw() {
             print(scriptB);
             numberParticlesAdded++;
         } else {
-            Agent.stop();
+            Script.stop();
         }
         
         print("Particles Stats: " + Particles.getLifetimeInSeconds() + " seconds," + 
@@ -150,5 +150,5 @@ function draw() {
 // register the call back so it fires before each data send
 print("here...\n");
 Particles.setPacketsPerSecond(40000);
-Agent.willSendVisualDataCallback.connect(draw);
+Script.willSendVisualDataCallback.connect(draw);
 print("and here...\n");
