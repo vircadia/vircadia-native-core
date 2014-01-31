@@ -12,6 +12,7 @@
 #define __shared__VoxelEditPacketSender__
 
 #include <OctreeEditPacketSender.h>
+#include "VoxelDetail.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
 class VoxelEditPacketSender :  public OctreeEditPacketSender {

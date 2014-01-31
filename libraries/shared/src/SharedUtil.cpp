@@ -231,7 +231,6 @@ void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, con
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
 }
 
-
 unsigned char* pointToOctalCode(float x, float y, float z, float s) {
     return pointToVoxel(x, y, z, s);
 }

@@ -1,5 +1,5 @@
 //
-//  editParticleExample.js
+//  findParticleExample.js
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 1/24/14.

@@ -1878,6 +1878,17 @@ void Application::init() {
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
+    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)));
+
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
+
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
