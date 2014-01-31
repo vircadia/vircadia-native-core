@@ -738,6 +738,22 @@ ExtractedMesh extractMesh(const FBXNode& object) {
     return data.extracted;
 }
 
+FBXBlendshape extractBlendshape(const FBXNode& object) {
+    FBXBlendshape blendshape;
+    foreach (const FBXNode& data, object.children) {
+        if (data.name == "Indexes") {
+            blendshape.indices = getIntVector(data.properties, 0);
+
+        } else if (data.name == "Vertices") {
+            blendshape.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
+
+        } else if (data.name == "Normals") {
+            blendshape.normals = createVec3Vector(getDoubleVector(data.properties, 0));
+        }
+    }
+    return blendshape;
+}
+
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
     glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
@@ -758,6 +774,33 @@ QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
         }
     }
     return indices;
+}
+
+typedef QPair<int, float> WeightedIndex;
+
+void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIndex>& indices, ExtractedMesh& extractedMesh) {
+    foreach (const WeightedIndex& index, indices) {
+        extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
+        extractedMesh.blendshapeIndexMaps.resize(extractedMesh.mesh.blendshapes.size());
+        FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
+        QHash<int, int>& blendshapeIndexMap = extractedMesh.blendshapeIndexMaps[index.first];
+        for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
+            int oldIndex = extracted.blendshape.indices.at(i);
+            for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
+                    it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
+                QHash<int, int>::iterator blendshapeIndex = blendshapeIndexMap.find(it.value());
+                if (blendshapeIndex == blendshapeIndexMap.end()) {
+                    blendshapeIndexMap.insert(it.value(), blendshape.indices.size());
+                    blendshape.indices.append(it.value());
+                    blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
+                    blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+                } else {
+                    blendshape.vertices[*blendshapeIndex] += extracted.blendshape.vertices.at(i) * index.second;
+                    blendshape.normals[*blendshapeIndex] += extracted.blendshape.normals.at(i) * index.second;
+                }
+            }
+        }
+    }
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
@@ -799,7 +842,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
-    typedef QPair<int, float> WeightedIndex;
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {
         QByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
@@ -827,22 +869,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         meshes.insert(getID(object.properties), extractMesh(object));
 
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { getID(object.properties) };
-
-                        foreach (const FBXNode& data, object.children) {
-                            if (data.name == "Indexes") {
-                                extracted.blendshape.indices = getIntVector(data.properties, 0);
-
-                            } else if (data.name == "Vertices") {
-                                extracted.blendshape.vertices = createVec3Vector(
-                                    getDoubleVector(data.properties, 0));
-
-                            } else if (data.name == "Normals") {
-                                extracted.blendshape.normals = createVec3Vector(
-                                    getDoubleVector(data.properties, 0));
-                            }
-                        }
-
+                        ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
@@ -900,6 +927,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
                     glm::vec3 rotationMin, rotationMax;
                     FBXModel model = { name, -1 };
+                    ExtractedMesh* mesh = NULL;
+                    QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -969,9 +998,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             }
                         } else if (subobject.name == "Vertices") {
                             // it's a mesh as well as a model
-                            meshes.insert(getID(object.properties), extractMesh(object));
+                            mesh = &meshes[getID(object.properties)];
+                            *mesh = extractMesh(object);
+                             
+                        } else if (subobject.name == "Shape") {
+                            ExtractedBlendshape blendshape =  { subobject.properties.at(0).toString(),
+                                extractBlendshape(subobject) };
+                            blendshapes.append(blendshape);
                         }
                     }
+                    
+                    // add the blendshapes included in the model, if any
+                    if (mesh) {
+                        foreach (const ExtractedBlendshape& extracted, blendshapes) {
+                            addBlendshapes(extracted, blendshapeIndices.values(extracted.id.toLatin1()), *mesh);
+                        }
+                    }
+                    
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
                     model.translation = translation;
                     model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);      
@@ -1084,29 +1127,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         QString blendshapeChannelID = parentMap.value(extracted.id);
         QString blendshapeID = parentMap.value(blendshapeChannelID);
         QString meshID = parentMap.value(blendshapeID);
-        ExtractedMesh& extractedMesh = meshes[meshID];
-        foreach (const WeightedIndex& index, blendshapeChannelIndices.values(blendshapeChannelID)) {
-            extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
-            extractedMesh.blendshapeIndexMaps.resize(extractedMesh.mesh.blendshapes.size());
-            FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
-            QHash<int, int>& blendshapeIndexMap = extractedMesh.blendshapeIndexMaps[index.first];
-            for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
-                int oldIndex = extracted.blendshape.indices.at(i);
-                for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
-                        it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
-                    QHash<int, int>::iterator blendshapeIndex = blendshapeIndexMap.find(it.value());
-                    if (blendshapeIndex == blendshapeIndexMap.end()) {
-                        blendshapeIndexMap.insert(it.value(), blendshape.indices.size());
-                        blendshape.indices.append(it.value());
-                        blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
-                        blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
-                    } else {
-                        blendshape.vertices[*blendshapeIndex] += extracted.blendshape.vertices.at(i) * index.second;
-                        blendshape.normals[*blendshapeIndex] += extracted.blendshape.normals.at(i) * index.second;
-                    }
-                }
-            }
-        }
+        addBlendshapes(extracted, blendshapeChannelIndices.values(blendshapeChannelID), meshes[meshID]);
     }
 
     // get offset transform from mapping
