@@ -213,7 +213,6 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
         QUuid nodeUUID = QUuid::fromRfc4122(datagram.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
-        // TODO: skip the data if nodeUUID is same as MY_AVATAR_KEY
         
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         
