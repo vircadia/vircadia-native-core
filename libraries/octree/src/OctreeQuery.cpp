@@ -103,9 +103,6 @@ int OctreeQuery::parseData(const QByteArray& packet) {
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
     const unsigned char* sourceBuffer = startPosition + numBytesPacketHeader;
     
-    // push past the node session UUID
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
-    
     // user UUID
     _uuid = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
     sourceBuffer += NUM_BYTES_RFC4122_UUID;
