@@ -72,7 +72,6 @@ Avatar::Avatar() :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
-    _isCollisionsOn(true),
     _moving(false),
     _owningAvatarMixer(),
     _initialized(false)
@@ -393,30 +392,6 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
     
     glEnd();
-}
-
-void Avatar::goHome() {
-    qDebug("Going Home!");
-    setPosition(START_LOCATION);
-}
-
-void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::resetSize() {
-    _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
 }
 
 void Avatar::setScale(float scale) {

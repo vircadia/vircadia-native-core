@@ -49,6 +49,7 @@ MyAvatar::MyAvatar() :
     _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
+    _isCollisionsOn(true),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
@@ -887,3 +888,28 @@ void MyAvatar::setOrientation(const glm::quat& orientation) {
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
 }
+
+void MyAvatar::goHome() {
+    qDebug("Going Home!");
+    setPosition(START_LOCATION);
+}
+
+void MyAvatar::increaseSize() {
+    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
+        _targetScale *= (1.f + SCALING_RATIO);
+        qDebug("Changed scale to %f", _targetScale);
+    }
+}
+
+void MyAvatar::decreaseSize() {
+    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
+        _targetScale *= (1.f - SCALING_RATIO);
+        qDebug("Changed scale to %f", _targetScale);
+    }
+}
+
+void MyAvatar::resetSize() {
+    _targetScale = 1.0f;
+    qDebug("Reseted scale to %f", _targetScale);
+}
+
