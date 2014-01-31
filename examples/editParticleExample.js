@@ -44,7 +44,6 @@ var particleID = Particles.addParticle(originalProperties);
 
 function moveParticle() {
     if (count >= moveUntil) {
-        //Script.stop();
 
         // delete it...
         if (count == moveUntil) {

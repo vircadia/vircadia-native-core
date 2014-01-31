@@ -1,4 +1,4 @@
-Script//
+//
 //  collidingParticles.js
 //  hifi
 //
