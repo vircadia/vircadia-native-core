@@ -19,10 +19,11 @@
 #include "metavoxels/MetavoxelServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
-    int headerBytes = numBytesForPacketHeader(packet);
-    
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+
     quint8 packedType;
-    memcpy(&packedType, packet.data() + headerBytes, sizeof(packedType));
+    packetStream >> packedType;    
     
     Assignment::Type unpackedType = (Assignment::Type) packedType;
     
