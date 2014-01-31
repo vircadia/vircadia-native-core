@@ -162,29 +162,21 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
 int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
     QDataStream packetStream(dataByteArray);
     
-    quint8 numHands;
-    packetStream >> numHands;
+    const unsigned char* startPosition;
+    const unsigned char* sourceBuffer = startPosition = reinterpret_cast<const unsigned char*>(dataByteArray.data());
+    unsigned int numHands = *sourceBuffer++;
     
     for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
         if (handIndex >= getNumPalms())
             addNewPalm();
         PalmData& palm = getPalms()[handIndex];
-
+        
         glm::vec3 handPosition;
         glm::vec3 handNormal;
-        qint16 twoByteHolder;
+        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handPosition, fingerVectorRadix);
+        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handNormal, fingerVectorRadix);
+        unsigned int numFingers = *sourceBuffer++;
         
-        packetStream >> twoByteHolder;
-        unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&twoByteHolder),
-                                              handPosition, fingerVectorRadix);
-        
-        packetStream >> twoByteHolder;
-        unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&twoByteHolder),
-                                              handNormal, fingerVectorRadix);
-        
-        quint8 numFingers;
-        packetStream >> numFingers;
-
         palm.setRawPosition(handPosition);
         palm.setRawNormal(handNormal);
         palm.setActive(true);
@@ -195,18 +187,12 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
             if (fingerIndex < palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
-
+                
                 glm::vec3 tipPosition;
                 glm::vec3 rootPosition;
+                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, tipPosition, fingerVectorRadix);
+                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, rootPosition, fingerVectorRadix);
                 
-                packetStream >> twoByteHolder;
-                unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&twoByteHolder), tipPosition,
-                                                        fingerVectorRadix);
-                
-                packetStream >> twoByteHolder;
-                unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&twoByteHolder), rootPosition,
-                                                      fingerVectorRadix);
-
                 finger.setRawTipPosition(tipPosition);
                 finger.setRawRootPosition(rootPosition);
                 finger.setActive(true);
@@ -225,14 +211,9 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
     }
     
     // One byte for error checking safety.
-    unsigned char requiredLength = packetStream.device()->pos();
-    
-    unsigned char checkLength;
-    packetStream >> checkLength;
-    
+    unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
+    unsigned char checkLength = *sourceBuffer++;
     assert(checkLength == requiredLength);
-
-    return packetStream.device()->pos();
 }
 
 void HandData::setFingerTrailLength(unsigned int length) {
