@@ -118,9 +118,6 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-    friend class MyAvatar;
-
-
 protected:
     Head _head;
     Hand _hand;
