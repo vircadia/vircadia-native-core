@@ -125,8 +125,6 @@ void NodeList::timePingReply(const QByteArray& packet) {
         
         packetStream >> ourOriginalTime >> othersReplyTime;
         
-        qDebug() << "OT:" << ourOriginalTime << "OR:" << othersReplyTime;
-        
         quint64 now = usecTimestampNow();
         int pingTime = now - ourOriginalTime;
         int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
