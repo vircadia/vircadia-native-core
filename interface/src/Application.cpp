@@ -330,7 +330,6 @@ Application::~Application() {
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
 
-    _avatarManager.clear();
     _myAvatar = NULL;
 
     delete _logger;

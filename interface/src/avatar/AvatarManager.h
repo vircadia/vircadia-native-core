@@ -25,8 +25,6 @@ class AvatarManager : public QObject, public DataServerCallbackObject, public Av
 public:
     AvatarManager(QObject* parent = 0);
 
-    void clear();
-
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }

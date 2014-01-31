@@ -29,13 +29,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     _myAvatar = QSharedPointer<MyAvatar>(new MyAvatar());
 }
 
-void AvatarManager::clear() {
-    _lookAtTargetAvatar.clear();
-    _avatarFades.clear();
-    _avatarHash.clear();
-    _myAvatar.clear();
-}
-
 void AvatarManager::init() {
     _myAvatar->init();
     _myAvatar->setPosition(START_LOCATION);
