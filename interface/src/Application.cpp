@@ -117,11 +117,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
-        _voxelImporter(_window),
+        _voxelImporter(NULL),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
-        _avatarManager(),
-        _myAvatar(NULL),
+        _myAvatar(),
         _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
@@ -1673,7 +1672,12 @@ void Application::exportVoxels() {
 }
 
 void Application::importVoxels() {
-    if (_voxelImporter.exec()) {
+    if (!_voxelImporter) {
+        _voxelImporter = new VoxelImporter(_window);
+        _voxelImporter->init(_settings);
+    }
+    
+    if (_voxelImporter->exec()) {
         qDebug("[DEBUG] Import succeeded.");
     } else {
         qDebug("[DEBUG] Import failed.");
@@ -1812,8 +1816,6 @@ void Application::init() {
     VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
     _sharedVoxelSystem.changeTree(&_clipboard);
     delete tmpTree;
-
-    _voxelImporter.init(_settings);
 
     _environment.init();
 
