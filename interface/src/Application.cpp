@@ -4003,18 +4003,12 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateWindowTitle(){
-    QString title = "";
-
-    QString buildVersion = " (build " + applicationVersion() + ")";
-
-    QString username = _profile.getUsername();
-    if(!username.isEmpty()){
-        title += username;
-        title += " @ ";
-    }
     
-    title += NodeList::getInstance()->getDomainHostname();
-    title += buildVersion;
+    QString buildVersion = " (build " + applicationVersion() + ")";
+    NodeList* nodeList = NodeList::getInstance();
+    
+    QString title = QString() + _profile.getUsername() + " " + nodeList->getOwnerUUID().toString()
+        + " @ " + nodeList->getDomainHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
