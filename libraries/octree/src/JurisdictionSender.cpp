@@ -64,7 +64,7 @@ bool JurisdictionSender::process() {
             _nodesRequestingJurisdictions.pop();
             SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
-            if (node->getActiveSocket() != NULL) {
+            if (node && node->getActiveSocket() != NULL) {
                 const HifiSockAddr* nodeAddress = node->getActiveSocket();
                 _packetSender.queuePacketForSending(*nodeAddress, QByteArray(reinterpret_cast<char *>(bufferOut), sizeOut));
                 nodeCount++;
