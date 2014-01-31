@@ -534,13 +534,22 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     assignment->resetUUID();
     
     qDebug() << "Reset UUID for assignment -" << *assignment.data() << "- and added to queue. Old UUID was"
-        << uuidStringWithoutCurlyBraces( oldUUID);
+        << uuidStringWithoutCurlyBraces(oldUUID);
+    
+    // add the static assignment back under the right UUID, and to the queue
+    _staticAssignmentHash.insert(assignment->getUUID(), assignment);
+    
     _assignmentQueue.enqueue(assignment);
+    
+    // remove the old assignment from the _staticAssignmentHash
+    // this must be done last so copies are created before the assignment passed by reference is killed
+    _staticAssignmentHash.remove(oldUUID);
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
     SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(node->getUUID());
+    
     if (matchedAssignment) {
         refreshStaticAssignmentAndAddToQueue(matchedAssignment);
     }
@@ -633,8 +642,9 @@ void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
 
     // if the domain-server has just restarted,
     // check if there are static assignments that we need to throw into the assignment queue
-    QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = _staticAssignmentHash.begin();
-    while (staticAssignment != _staticAssignmentHash.end()) {
+    QHash<QUuid, SharedAssignmentPointer> staticHashCopy = _staticAssignmentHash;
+    QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = staticHashCopy.begin();
+    while (staticAssignment != staticHashCopy.end()) {
         // add any of the un-matched static assignments to the queue
         bool foundMatchingAssignment = false;
         
