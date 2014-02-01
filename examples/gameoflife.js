@@ -128,6 +128,6 @@ print("step()...");
 }
 
 print("here");
-Agent.willSendVisualDataCallback.connect(step);
+Script.willSendVisualDataCallback.connect(step);
 Voxels.setPacketsPerSecond(200);
 print("now here");
