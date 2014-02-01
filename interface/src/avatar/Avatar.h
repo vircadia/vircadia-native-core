@@ -20,7 +20,6 @@
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -73,7 +72,7 @@ public:
     ~Avatar();
 
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime);
     void render(bool forceRenderHead);
 
     //setters

@@ -33,10 +33,10 @@ void AvatarManager::init() {
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 }
 
-void AvatarManager::updateAvatars(float deltaTime) {
+void AvatarManager::updateOtherAvatars(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
-    
+
     Application* applicationInstance = Application::getInstance();
     glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
     glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
@@ -46,14 +46,14 @@ void AvatarManager::updateAvatars(float deltaTime) {
     while (avatarIterator != _avatarHash.end()) {
         Avatar* avatar = static_cast<Avatar*>(avatarIterator.value().data());
         if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-            // for now skip updates to _myAvatar because it is done explicitly in Application
-            // TODO: update _myAvatar in this context
+            // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
+            //updateMyAvatar(deltaTime);
             ++avatarIterator;
             continue;
         }
         if (avatar->getOwningAvatarMixer()) {
             // this avatar's mixer is still around, go ahead and simulate it
-            avatar->simulate(deltaTime, NULL);
+            avatar->simulate(deltaTime);
             avatar->setMouseRay(mouseOrigin, mouseDirection);
             ++avatarIterator;
         } else {
@@ -108,7 +108,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {
-            avatar->simulate(deltaTime, NULL);
+            avatar->simulate(deltaTime);
             ++fadingIterator;
         }
     }
@@ -224,7 +224,7 @@ AvatarHash::iterator AvatarManager::erase(const AvatarHash::iterator& iterator) 
     }
 }
 
-void AvatarManager::clearMixedAvatars() {
+void AvatarManager::clearOtherAvatars() {
     // clear any avatars that came from an avatar-mixer
     AvatarHash::iterator removeAvatar =  _avatarHash.begin();
     while (removeAvatar != _avatarHash.end()) {

@@ -29,10 +29,10 @@ public:
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
-    void updateAvatars(float deltaTime);
+    void updateOtherAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
-    void clearMixedAvatars();
+    void clearOtherAvatars();
 
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);

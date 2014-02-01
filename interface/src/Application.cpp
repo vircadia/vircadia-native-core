@@ -132,8 +132,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
-        _yawFromTouch(0.0f),
-        _pitchFromTouch(0.0f),
         _mousePressed(false),
         _isHoverVoxel(false),
         _isHoverVoxelSounding(false),
@@ -1821,9 +1819,9 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _headMouseX = _mouseX = _glWidget->width() / 2;
-    _headMouseY = _mouseY = _glWidget->height() / 2;
-    QCursor::setPos(_headMouseX, _headMouseY);
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
+    QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -2164,11 +2162,6 @@ void Application::updateHandAndTouch(float deltaTime) {
 
     //  Update from Touch
     if (_isTouchPressed) {
-        float TOUCH_YAW_SCALE = -0.25f;
-        float TOUCH_PITCH_SCALE = -12.5f;
-        float FIXED_TOUCH_TIMESTEP = 0.016f;
-        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2207,24 +2200,6 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
-void Application::updateMyAvatarSimulation(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMyAvatarSimulation()");
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
-        _myAvatar->setGravity(_environment.getGravity(_myAvatar->getPosition()));
-    }
-    else {
-        _myAvatar->setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
-    }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _myAvatar->simulate(deltaTime, &_myTransmitter);
-    } else {
-        _myAvatar->simulate(deltaTime, NULL);
-    }
-}
-
 void Application::updateParticles(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateParticles()");
@@ -2240,32 +2215,6 @@ void Application::updateMetavoxels(float deltaTime) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Metavoxels)) {
         _metavoxels.simulate(deltaTime);
-    }
-}
-
-void Application::updateTransmitter(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateTransmitter()");
-
-    // no transmitter drive implies transmitter pick
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _transmitterPickStart = _myAvatar->getChestPosition();
-        glm::vec3 direction = _myAvatar->getOrientation() *
-            glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
-
-        // check against voxels, avatars
-        const float MAX_PICK_DISTANCE = 100.0f;
-        float minDistance = MAX_PICK_DISTANCE;
-        VoxelDetail detail;
-        float distance;
-        BoxFace face;
-        if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
-            minDistance = min(minDistance, distance);
-        }
-        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
-
-    } else {
-        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
     }
 }
 
@@ -2376,13 +2325,11 @@ void Application::update(float deltaTime) {
     updateLeap(deltaTime); // Leap finger-sensing device
     updateSixense(deltaTime); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
-    updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-    _avatarManager.updateAvatars(deltaTime); //loop through all the other avatars and simulate them...
-    updateMyAvatarSimulation(deltaTime); // Simulate myself
+    _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
     updateParticles(deltaTime); // Simulate particle cloud movements
     updateMetavoxels(deltaTime); // update metavoxels
-    updateTransmitter(deltaTime); // transmitter drive or pick
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateAudio(deltaTime); // Update audio stats for procedural sounds
@@ -2392,54 +2339,17 @@ void Application::update(float deltaTime) {
     _particleCollisionSystem.update(); // collide the particles...
 }
 
-void Application::updateAvatar(float deltaTime) {
+void Application::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateAvatar()");
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatar()");
 
-    // rotate body yaw for yaw received from multitouch
-    _myAvatar->setOrientation(_myAvatar->getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
-    _yawFromTouch = 0.f;
-
-    // apply pitch from touch
-    _myAvatar->getHead().setPitch(_myAvatar->getHead().getPitch() + _pitchFromTouch);
-    _pitchFromTouch = 0.0f;
-
-    // Update my avatar's state from gyros
-    _myAvatar->updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
-
-    // Update head mouse from faceshift if active
-    if (_faceshift.isActive()) {
-        glm::vec3 headVelocity = _faceshift.getHeadAngularVelocity();
-
-        // sets how quickly head angular rotation moves the head mouse
-        const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
-        const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
-        _headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
-        _headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
-    }
-
-    //  Constrain head-driven mouse to edges of screen
-    _headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
-    _headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
-
-    if (OculusManager::isConnected()) {
-        float yaw, pitch, roll;
-        OculusManager::getEulerAngles(yaw, pitch, roll);
-
-        _myAvatar->getHead().setYaw(yaw);
-        _myAvatar->getHead().setPitch(pitch);
-        _myAvatar->getHead().setRoll(roll);
-    }
-
-    //  Get audio loudness data from audio input device
-    _myAvatar->getHead().setAudioLoudness(_audio.getLastInputLoudness());
+    _myAvatar->update(deltaTime);
 
     // send head/hand data to the avatar mixer and voxel server
-    QByteArray avatarData = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
-    avatarData.append(_myAvatar->toByteArray());
+    QByteArray packet = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    packet.append(_myAvatar->toByteArray());
 
-    controlledBroadcastToNodes(avatarData, NodeSet() << NodeType::AvatarMixer);
+    controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -2991,29 +2901,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // render transmitter pick ray, if non-empty
-        if (_transmitterPickStart != _transmitterPickEnd) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... transmitter pick ray...");
+        _myAvatar->renderTransmitterPickRay();
 
-            Glower glower;
-            const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
-            glColor3fv(TRANSMITTER_PICK_COLOR);
-            glLineWidth(3.0f);
-            glBegin(GL_LINES);
-            glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
-            glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-            glEnd();
-            glLineWidth(1.0f);
-
-            glPushMatrix();
-            glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-
-            const float PICK_END_RADIUS = 0.025f;
-            glutSolidSphere(PICK_END_RADIUS, 8, 8);
-
-            glPopMatrix();
-        }
-        
         // give external parties a change to hook in
         emit renderingInWorldInterface();
     }
@@ -3037,71 +2926,38 @@ void Application::displayOverlay() {
     //  Render 2D overlay:  I/O level bar graphs and text
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0, _glWidget->width(), _glWidget->height(), 0);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
 
-        //  Display a single screen-size quad to create an alpha blended 'collision' flash
-        if (_audio.getCollisionFlashesScreen()) {
-            float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
-            const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-            if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-                    renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
-            }
+    glLoadIdentity();
+    gluOrtho2D(0, _glWidget->width(), _glWidget->height(), 0);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    //  Display a single screen-size quad to create an alpha blended 'collision' flash
+    if (_audio.getCollisionFlashesScreen()) {
+        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
         }
+    }
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            displayStatsBackground(0x33333399, 0, _glWidget->height() - 68, 296, 68);
-            _audio.render(_glWidget->width(), _glWidget->height());
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-                int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
-                _audioScope.render(25, oscilloscopeTop);
-            }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        displayStatsBackground(0x33333399, 0, _glWidget->height() - 68, 296, 68);
+        _audio.render(_glWidget->width(), _glWidget->height());
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
+            int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
+            _audioScope.render(25, oscilloscopeTop);
         }
+    }
 
-       //noiseTest(_glWidget->width(), _glWidget->height());
+    //noiseTest(_glWidget->width(), _glWidget->height());
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-        //  Display small target box at center or head mouse target that can also be used to measure LOD
-        glColor3f(1.0, 1.0, 1.0);
-        glDisable(GL_LINE_SMOOTH);
-        const int PIXEL_BOX = 16;
-        glBegin(GL_LINES);
-        glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-        glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-        glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-        glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
-        glEnd();
-        glEnable(GL_LINE_SMOOTH);
-        glColor3f(1.f, 0.f, 0.f);
-        glPointSize(3.0f);
-        glDisable(GL_POINT_SMOOTH);
-        glBegin(GL_POINTS);
-        glVertex2f(_headMouseX - 1, _headMouseY + 1);
-        glEnd();
-        //  If Faceshift is active, show eye pitch and yaw as separate pointer
-        if (_faceshift.isActive()) {
-            const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
-            int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
-            int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
-
-            glColor3f(0.0, 1.0, 1.0);
-            glDisable(GL_LINE_SMOOTH);
-            glBegin(GL_LINES);
-            glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
-            glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
-            glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
-            glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
-            glEnd();
-
-        }
+        _myAvatar->renderHeadMouse();
     }
 
-    //  Show hand transmitter data if detected
-    if (_myTransmitter.isConnected()) {
-        _myTransmitter.renderLevels(_glWidget->width(), _glWidget->height());
-    }
+    _myAvatar->renderTransmitterLevels(_glWidget->width(), _glWidget->height());
+
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
     glPointSize(1.0f);
@@ -3951,8 +3807,8 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::resetSensors() {
-    _headMouseX = _mouseX = _glWidget->width() / 2;
-    _headMouseY = _mouseY = _glWidget->height() / 2;
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
 
     _faceshift.reset();
 
@@ -3960,11 +3816,8 @@ void Application::resetSensors() {
         OculusManager::reset();
     }
 
-    QCursor::setPos(_headMouseX, _headMouseY);
+    QCursor::setPos(_mouseX, _mouseY);
     _myAvatar->reset();
-    _myTransmitter.resetLevels();
-    _myAvatar->setVelocity(glm::vec3(0,0,0));
-    _myAvatar->setThrust(glm::vec3(0,0,0));
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
 }
@@ -4093,7 +3946,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
-        _avatarManager.clearMixedAvatars();
+        _avatarManager.clearOtherAvatars();
     }
 }
 
@@ -4291,7 +4144,7 @@ void Application::toggleLogDialog() {
 }
 
 void Application::initAvatarAndViewFrustum() {
-    updateAvatar(0.f);
+    updateMyAvatar(0.f);
 }
 
 QString Application::getLocalVoxelCacheFileName() {

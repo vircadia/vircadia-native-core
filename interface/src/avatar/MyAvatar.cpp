@@ -16,10 +16,14 @@
 #include <SharedUtil.h>
 
 #include "Application.h"
+#include "Audio.h"
 #include "DataServerClient.h"
+#include "Environment.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
+#include "VoxelSystem.h"
+#include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
 
@@ -66,8 +70,15 @@ MyAvatar::~MyAvatar() {
 }
 
 void MyAvatar::reset() {
+    // TODO? resurrect headMouse stuff?
+    //_headMouseX = _glWidget->width() / 2;
+    //_headMouseY = _glWidget->height() / 2;
     _head.reset();
     _hand.reset();
+
+    setVelocity(glm::vec3(0,0,0));
+    setThrust(glm::vec3(0,0,0));
+    _transmitter.resetLevels();
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -75,7 +86,89 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
     _moveTargetStepCounter = 0;
 }
 
-void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
+void MyAvatar::updateTransmitter(float deltaTime) {
+    // no transmitter drive implies transmitter pick
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
+        _transmitterPickStart = getChestPosition();
+        glm::vec3 direction = getOrientation() * glm::quat(glm::radians(_transmitter.getEstimatedRotation())) * IDENTITY_FRONT;
+
+        // check against voxels, avatars
+        const float MAX_PICK_DISTANCE = 100.0f;
+        float minDistance = MAX_PICK_DISTANCE;
+        VoxelDetail detail;
+        float distance;
+        BoxFace face;
+        VoxelSystem* voxels = Application::getInstance()->getVoxels();
+        if (voxels->findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
+            minDistance = min(minDistance, distance);
+        }
+        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
+
+    } else {
+        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
+    }
+}
+
+void MyAvatar::update(float deltaTime) {
+    updateTransmitter(deltaTime);
+
+    // TODO: resurrect touch interactions between avatars
+    //// rotate body yaw for yaw received from multitouch
+    //setOrientation(getOrientation() * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
+    //_yawFromTouch = 0.f;
+    //
+    //// apply pitch from touch
+    //_head.setPitch(_head.getPitch() + _pitchFromTouch);
+    //_pitchFromTouch = 0.0f;
+    //
+    //float TOUCH_YAW_SCALE = -0.25f;
+    //float TOUCH_PITCH_SCALE = -12.5f;
+    //float FIXED_TOUCH_TIMESTEP = 0.016f;
+    //_yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
+    //_pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
+
+    // Update my avatar's state from gyros
+    updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+
+    // Update head mouse from faceshift if active
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    if (faceshift->isActive()) {
+        glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
+
+        // TODO? resurrect headMouse stuff?
+        //// sets how quickly head angular rotation moves the head mouse
+        //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
+        //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
+        //_headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
+        //_headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
+        //
+        ////  Constrain head-driven mouse to edges of screen
+        //_headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
+        //_headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
+    }
+
+    if (OculusManager::isConnected()) {
+        float yaw, pitch, roll;
+        OculusManager::getEulerAngles(yaw, pitch, roll);
+
+        _head.setYaw(yaw);
+        _head.setPitch(pitch);
+        _head.setRoll(roll);
+    }
+
+    //  Get audio loudness data from audio input device
+    _head.setAudioLoudness(Application::getInstance()->getAudio()->getLastInputLoudness());
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
+        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
+    } else {
+        setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+
+    simulate(deltaTime);
+}
+
+void MyAvatar::simulate(float deltaTime) {
 
     glm::quat orientation = getOrientation();
 
@@ -97,7 +190,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     //  Collect thrust forces from keyboard and devices
-    updateThrust(deltaTime, transmitter);
+    updateThrust(deltaTime);
 
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
@@ -430,6 +523,74 @@ void MyAvatar::render(bool forceRenderHead) {
     }
 }
 
+void MyAvatar::renderHeadMouse() const {
+    // TODO? resurrect headMouse stuff?
+    /*
+    //  Display small target box at center or head mouse target that can also be used to measure LOD
+    glColor3f(1.0, 1.0, 1.0);
+    glDisable(GL_LINE_SMOOTH);
+    const int PIXEL_BOX = 16;
+    glBegin(GL_LINES);
+    glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+    glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+    glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+    glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+    glEnd();
+    glEnable(GL_LINE_SMOOTH);
+    glColor3f(1.f, 0.f, 0.f);
+    glPointSize(3.0f);
+    glDisable(GL_POINT_SMOOTH);
+    glBegin(GL_POINTS);
+    glVertex2f(_headMouseX - 1, _headMouseY + 1);
+    glEnd();
+    //  If Faceshift is active, show eye pitch and yaw as separate pointer
+    if (_faceshift.isActive()) {
+        const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
+        int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
+        int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+
+        glColor3f(0.0, 1.0, 1.0);
+        glDisable(GL_LINE_SMOOTH);
+        glBegin(GL_LINES);
+        glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
+        glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
+        glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
+        glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
+        glEnd();
+
+    }
+    */
+}
+
+void MyAvatar::renderTransmitterPickRay() const {
+    if (_transmitterPickStart != _transmitterPickEnd) {
+        Glower glower;
+        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
+        glColor3fv(TRANSMITTER_PICK_COLOR);
+        glLineWidth(3.0f);
+        glBegin(GL_LINES);
+        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
+        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+        glEnd();
+        glLineWidth(1.0f);
+
+        glPushMatrix();
+        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+
+        const float PICK_END_RADIUS = 0.025f;
+        glutSolidSphere(PICK_END_RADIUS, 8, 8);
+
+        glPopMatrix();
+    }
+}
+
+void MyAvatar::renderTransmitterLevels(int width, int height) const {
+    //  Show hand transmitter data if detected
+    if (_transmitter.isConnected()) {
+        _transmitter.renderLevels(width, height);
+    }
+}
+
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -547,7 +708,7 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     _hand.render(true);
 }
 
-void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
+void MyAvatar::updateThrust(float deltaTime) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion
     //
@@ -595,9 +756,9 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     }
 
     //  Add thrusts from Transmitter
-    if (transmitter) {
-        transmitter->checkForLostTransmitter();
-        glm::vec3 rotation = transmitter->getEstimatedRotation();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
+        _transmitter.checkForLostTransmitter();
+        glm::vec3 rotation = _transmitter.getEstimatedRotation();
         const float TRANSMITTER_MIN_RATE = 1.f;
         const float TRANSMITTER_MIN_YAW_RATE = 4.f;
         const float TRANSMITTER_LATERAL_FORCE_SCALE = 5.f;
@@ -615,9 +776,9 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
             _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
         }
-        if (transmitter->getTouchState()->state == 'D') {
+        if (_transmitter.getTouchState()->state == 'D') {
             _thrust += TRANSMITTER_UP_FORCE_SCALE *
-            (float)(transmitter->getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
+            (float)(_transmitter.getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
             TRANSMITTER_LIFT_SCALE *
             deltaTime *
             up;
