@@ -31,12 +31,10 @@ const QString NO_SCRIPT("");
 
 class ScriptEngine : public QObject {
     Q_OBJECT
-    
-    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
-                    AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+                 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
 

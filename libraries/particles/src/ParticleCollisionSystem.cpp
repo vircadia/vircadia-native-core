@@ -56,9 +56,10 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
 
 void ParticleCollisionSystem::update() {
     // update all particles
-    _particles->lockForWrite();
-    _particles->recurseTreeWithOperation(updateOperation, this);
-    _particles->unlock();
+    if (_particles->tryLockForWrite()) {
+        _particles->recurseTreeWithOperation(updateOperation, this);
+        _particles->unlock();
+    }
 }
 
 
@@ -68,12 +69,12 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
     updateCollisionWithAvatars(particle);
 }
 
-void ParticleCollisionSystem::emitGlobalParicleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails) {
+void ParticleCollisionSystem::emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails) {
     ParticleID particleID = particle->getParticleID();
     emit particleCollisionWithVoxel(particleID, *voxelDetails);
 }
 
-void ParticleCollisionSystem::emitGlobalParicleCollisionWithParticle(Particle* particleA, Particle* particleB) {
+void ParticleCollisionSystem::emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB) {
     ParticleID idA = particleA->getParticleID();
     ParticleID idB = particleB->getParticleID();
     emit particleCollisionWithParticle(idA, idB);
@@ -95,7 +96,7 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
         particle->collisionWithVoxel(voxelDetails);
 
         // let the global script run their collision scripts for particles if they have them
-        emitGlobalParicleCollisionWithVoxel(particle, voxelDetails);
+        emitGlobalParticleCollisionWithVoxel(particle, voxelDetails);
 
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
         collisionInfo._penetration /= (float)(TREE_SCALE);
@@ -124,7 +125,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
         if (glm::dot(relativeVelocity, penetration) > 0.0f) {
             particleA->collisionWithParticle(particleB);
             particleB->collisionWithParticle(particleA);
-            emitGlobalParicleCollisionWithParticle(particleA, particleB);
+            emitGlobalParticleCollisionWithParticle(particleA, particleB);
 
             glm::vec3 axis = glm::normalize(penetration);
             glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;

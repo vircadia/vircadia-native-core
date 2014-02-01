@@ -101,6 +101,9 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
+    
+    // register ourselves to the script engine
+    _scriptEngine.registerGlobalObject("Agent", this);
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();    

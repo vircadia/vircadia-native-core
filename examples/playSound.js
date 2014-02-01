@@ -17,4 +17,4 @@ function maybePlaySound() {
 }
 
 // Connect a call back that happens every frame
-Agent.willSendVisualDataCallback.connect(maybePlaySound);
+Script.willSendVisualDataCallback.connect(maybePlaySound);

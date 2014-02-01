@@ -53,7 +53,10 @@ void Profile::setUUID(const QUuid& uuid) {
         
         // when the UUID is changed we need set it appropriately on the NodeList instance
         NodeList::getInstance()->setOwnerUUID(uuid);
-    }    
+        
+        // ask for a window title update so the new UUID is presented
+        Application::getInstance()->updateWindowTitle();
+    }
 }
 
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
