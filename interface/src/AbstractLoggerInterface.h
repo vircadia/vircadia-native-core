@@ -17,6 +17,7 @@ class AbstractLoggerInterface : public QObject {
     Q_OBJECT
 
 public:
+    AbstractLoggerInterface(QObject* parent = NULL) : QObject(parent) {};
     inline bool extraDebugging() { return _extraDebugging; };
     inline void setExtraDebugging(bool debugging) { _extraDebugging = debugging; };
 

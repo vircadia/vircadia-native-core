@@ -154,7 +154,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false),
-        _logger(new FileLogger()),
+        _logger(new FileLogger(this)),
         _persistThread(NULL)
 {
     _myAvatar = _avatarManager.getMyAvatar();
@@ -328,12 +328,7 @@ Application::~Application() {
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
-
-    _avatarManager.clear();
-    _myAvatar = NULL;
-
-    delete _logger;
-    delete _settings;
+    
     delete _glWidget;
 }
 
