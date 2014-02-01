@@ -240,9 +240,9 @@ public:
 
     // Octree does not currently handle its own locking, caller must use these to lock/unlock
     void lockForRead() { lock.lockForRead(); }
-    void tryLockForRead() { lock.tryLockForRead(); }
+    bool tryLockForRead() { return lock.tryLockForRead(); }
     void lockForWrite() { lock.lockForWrite(); }
-    void tryLockForWrite() { lock.tryLockForWrite(); }
+    bool tryLockForWrite() { return lock.tryLockForWrite(); }
     void unlock() { lock.unlock(); }
 
     unsigned long getOctreeElementsCount();
