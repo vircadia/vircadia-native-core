@@ -1321,7 +1321,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     qDebug() << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
-                fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+                fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink);
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
