@@ -43,6 +43,7 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
 
 ParticleID ParticlesScriptingInterface::identifyParticle(ParticleID particleID) {
     uint32_t actualID = particleID.id;
+
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
         if (actualID == UNKNOWN_PARTICLE_ID) {
@@ -65,8 +66,12 @@ ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID
     }
     if (_particleTree) {
         _particleTree->lockForRead();
-        const Particle* particle = _particleTree->findParticleByID(identity.id);
-        results.copyFromParticle(*particle);
+        const Particle* particle = _particleTree->findParticleByID(identity.id, true);
+        if (particle) {
+            results.copyFromParticle(*particle);
+        } else {
+            results.setIsUnknownID();
+        }
         _particleTree->unlock();
     }
     
@@ -123,7 +128,7 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
     if (actualID != UNKNOWN_PARTICLE_ID) {
         particleID.id = actualID;
         particleID.isKnownID = true;
-        queueParticleMessage(PACKET_TYPE_PARTICLE_ADD_OR_EDIT, particleID, properties);
+        queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
     }
 
     // If we have a local particle tree set, then also update it.

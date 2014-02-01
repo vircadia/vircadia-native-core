@@ -56,9 +56,10 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
 
 void ParticleCollisionSystem::update() {
     // update all particles
-    _particles->lockForWrite();
-    _particles->recurseTreeWithOperation(updateOperation, this);
-    _particles->unlock();
+    if (_particles->tryLockForWrite()) {
+        _particles->recurseTreeWithOperation(updateOperation, this);
+        _particles->unlock();
+    }
 }
 
 
