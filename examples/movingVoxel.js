@@ -41,4 +41,4 @@ function moveVoxel() {
 
 Voxels.setPacketsPerSecond(300);
 // Connect a call back that happens every frame
-Agent.willSendVisualDataCallback.connect(moveVoxel);
+Script.willSendVisualDataCallback.connect(moveVoxel);

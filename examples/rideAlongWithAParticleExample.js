@@ -37,7 +37,7 @@ function rideWithParticle() {
                               y: propertiesA.position.y + 2,
                               z: propertiesA.position.z  };
     } else {
-        Agent.stop();
+        Script.stop();
     }
                               
     iteration++;
@@ -46,5 +46,5 @@ function rideWithParticle() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(rideWithParticle);
+Script.willSendVisualDataCallback.connect(rideWithParticle);
 

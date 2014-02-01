@@ -82,7 +82,7 @@ function touchEndEvent(event) {
 }
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(checkController);
+Script.willSendVisualDataCallback.connect(checkController);
 
 // Map keyPress and mouse move events to our callbacks
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -199,4 +199,4 @@ function scriptEnding() {
     Controller.releaseTouchEvents();
 }
 
-Agent.scriptEnding.connect(scriptEnding);
+Script.scriptEnding.connect(scriptEnding);

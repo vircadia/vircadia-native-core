@@ -70,5 +70,5 @@ MyAvatar.bodyPitch = 0;
 MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
-Agent.willSendVisualDataCallback.connect(update);
-Agent.scriptEnding.connect(scriptEnding);
+Script.willSendVisualDataCallback.connect(update);
+Script.scriptEnding.connect(scriptEnding);
