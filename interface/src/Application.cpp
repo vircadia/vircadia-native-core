@@ -321,7 +321,7 @@ Application::~Application() {
         _persistThread->deleteLater();
         _persistThread = NULL;
     }
-
+    
     storeSizeAndPosition();
     saveScripts();
     _sharedVoxelSystem.changeTree(new VoxelTree);
@@ -4186,33 +4186,33 @@ void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 
-void Application::loadScripts(){
-  // loads all saved scripts
-  QSettings* settings = new QSettings(this);
-  int size = settings->beginReadArray("Settings");
-  for(int i=0; i<size; ++i){
-    settings->setArrayIndex(i);
-    QString string = settings->value("script").toString();
-    loadScript(string);
-  }
-  settings->endArray();
-
+void Application::loadScripts() {
+    // loads all saved scripts
+    QSettings* settings = new QSettings(this);
+    int size = settings->beginReadArray("Settings");
+    
+    for (int i = 0; i < size; ++i){
+        settings->setArrayIndex(i);
+        QString string = settings->value("script").toString();
+        loadScript(string);
+    }
+    
+    settings->endArray();
 }
 
-void Application::saveScripts(){
-  // saves all current running scripts
-  QSettings* settings = new QSettings(this);
-  settings->beginWriteArray("Settings");
-  for(int i=0; i<_activeScripts.size(); ++i){
-    settings->setArrayIndex(i);
-    settings->setValue("script", _activeScripts.at(i));
-  }
-  settings->endArray();
-
+void Application::saveScripts() {
+    // saves all current running scripts
+    QSettings* settings = new QSettings(this);
+    settings->beginWriteArray("Settings");
+    for (int i = 0; i < _activeScripts.size(); ++i){
+        settings->setArrayIndex(i);
+        settings->setValue("script", _activeScripts.at(i));
+    }
+    
+    settings->endArray();
 }
 
-void Application::removeScriptName(const QString& fileNameString)
-{
+void Application::removeScriptName(const QString& fileNameString) {
   _activeScripts.removeOne(fileNameString);
 }
 
@@ -4244,7 +4244,8 @@ void Application::loadScript(const QString& fileNameString) {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(), &_controllerScriptingInterface);
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
+                                                  &_controllerScriptingInterface);
     scriptEngine->setupMenuItems();
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
