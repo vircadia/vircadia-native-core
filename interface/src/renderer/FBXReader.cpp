@@ -803,6 +803,22 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
     }
 }
 
+QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
+        const QHash<QString, FBXModel>& models, const QString& modelID) {
+    QString topID = modelID;
+    forever {
+        foreach (const QString& parentID, parentMap.values(topID)) {
+            if (models.contains(parentID)) {
+                topID = parentID;
+                goto outerContinue;
+            }
+        }
+        return topID;
+        
+        outerContinue: ;
+    }
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -1142,6 +1158,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVector<QString> modelIDs;
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
+        // models with clusters must be parented to the cluster top
+        foreach (const QString& deformerID, childMap.values(model.key())) {
+            foreach (const QString& clusterID, childMap.values(deformerID)) {
+                if (!clusters.contains(clusterID)) {
+                    continue;
+                }
+                QString topID = getTopModelID(parentMap, models, childMap.value(clusterID));
+                childMap.remove(parentMap.take(model.key()), model.key());
+                parentMap.insert(model.key(), topID);
+                goto outerBreak;
+            }
+        }
+        outerBreak:
+    
         // make sure the parent is in the child map
         QString parent = parentMap.value(model.key());
         if (!childMap.contains(parent, model.key())) {
@@ -1150,20 +1180,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         remainingModels.insert(model.key());
     }
     while (!remainingModels.isEmpty()) {
-        QString top = *remainingModels.constBegin();
-        forever {
-            foreach (const QString& name, parentMap.values(top)) {
-                if (models.contains(name)) {
-                    top = name;
-                    goto outerContinue;
-                }
-            }
-            top = parentMap.value(top);
-            break;
-
-            outerContinue: ;
-        }
-        appendModelIDs(top, childMap, models, remainingModels, modelIDs);
+        QString topID = getTopModelID(parentMap, models, *remainingModels.constBegin());
+        appendModelIDs(parentMap.value(topID), childMap, models, remainingModels, modelIDs);
     }
 
     // convert the models to joints
@@ -1321,7 +1339,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     qDebug() << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
-                fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink);
+                fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
