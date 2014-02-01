@@ -105,6 +105,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+Q_SCRIPT_DECLARE_QMETAOBJECT(QTimer, QObject*)
 
 void ScriptEngine::init() {
     if (_isInitialized) {
@@ -132,6 +133,9 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    
+    QScriptValue timerValue = _engine.scriptValueFromQMetaObject<QTimer>();
+    _engine.globalObject().setProperty("Timer", timerValue);
 
     registerGlobalObject("Agent", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
