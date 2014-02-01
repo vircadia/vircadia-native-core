@@ -231,10 +231,6 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("treeView");
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
 
-    // remove reference to treeView
-    widget = NULL;
-    widget->deleteLater();
-
     switchToResourcesParentIfRequired();
     QFile styleSheet("resources/styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {

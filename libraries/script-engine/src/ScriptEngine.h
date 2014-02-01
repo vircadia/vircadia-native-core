@@ -31,8 +31,6 @@ const QString NO_SCRIPT("");
 
 class ScriptEngine : public QObject {
     Q_OBJECT
-    
-    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
 		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
@@ -41,10 +39,10 @@ public:
     ~ScriptEngine();
 
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
+    static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
+    static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
     
     /// Access the DataServerScriptingInterface for access to its underlying UUID
     const DataServerScriptingInterface& getDataServerScriptingInterface() { return _dataServerScriptingInterface; }

@@ -539,7 +539,7 @@ void Audio::toggleMute() {
 }
 
 void Audio::render(int screenWidth, int screenHeight) {
-    if (_audioInput) {
+    if (_audioInput && _audioOutput) {
         glLineWidth(2.0);
         glBegin(GL_LINES);
         glColor3f(.93f, .93f, .93f);

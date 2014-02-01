@@ -117,11 +117,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
-        _voxelImporter(_window),
+        _voxelImporter(NULL),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
-        _avatarManager(),
-        _myAvatar(NULL),
+        _myAvatar(),
         _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
@@ -1090,7 +1089,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
                 break;
             case Qt::Key_At:
-                Menu::getInstance()->goToUser();
+                Menu::getInstance()->goTo();
                 break;
             default:
                 event->ignore();
@@ -1410,10 +1409,10 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
-    getInstance()->controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
-                                              << NodeType::ParticleServer
-                                              << NodeType::AudioMixer << NodeType::AvatarMixer
-                                              << NodeType::MetavoxelServer);
+    controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
+                               << NodeType::ParticleServer
+                               << NodeType::AudioMixer << NodeType::AvatarMixer
+                               << NodeType::MetavoxelServer);
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1670,7 +1669,12 @@ void Application::exportVoxels() {
 }
 
 void Application::importVoxels() {
-    if (_voxelImporter.exec()) {
+    if (!_voxelImporter) {
+        _voxelImporter = new VoxelImporter(_window);
+        _voxelImporter->init(_settings);
+    }
+    
+    if (_voxelImporter->exec()) {
         qDebug("[DEBUG] Import succeeded.");
     } else {
         qDebug("[DEBUG] Import failed.");
@@ -1810,8 +1814,6 @@ void Application::init() {
     _sharedVoxelSystem.changeTree(&_clipboard);
     delete tmpTree;
 
-    _voxelImporter.init(_settings);
-
     _environment.init();
 
     _glowEffect.init();
@@ -1874,6 +1876,17 @@ void Application::init() {
     _metavoxels.init();
 
     _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+
+    // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)));
+
+    connect(&_particleCollisionSystem, 
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
+            ScriptEngine::getParticlesScriptingInterface(), 
+            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
 
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -3842,18 +3855,12 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateWindowTitle(){
-    QString title = "";
-
-    QString buildVersion = " (build " + applicationVersion() + ")";
-
-    QString username = _profile.getUsername();
-    if(!username.isEmpty()){
-        title += username;
-        title += " @ ";
-    }
     
-    title += NodeList::getInstance()->getDomainHostname();
-    title += buildVersion;
+    QString buildVersion = " (build " + applicationVersion() + ")";
+    NodeList* nodeList = NodeList::getInstance();
+    
+    QString title = QString() + _profile.getUsername() + " " + nodeList->getOwnerUUID().toString()
+        + " @ " + nodeList->getDomainHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);

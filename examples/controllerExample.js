@@ -48,6 +48,15 @@ function checkController() {
 
 function keyPressEvent(event) {
     print("keyPressEvent event.key=" + event.key);
+    print("keyPressEvent event.text=" + event.text);
+
+    print("keyPressEvent event.isShifted=" + event.isShifted);
+    print("keyPressEvent event.isControl=" + event.isControl);
+    print("keyPressEvent event.isMeta=" + event.isMeta);
+    print("keyPressEvent event.isAlt=" + event.isAlt);
+    print("keyPressEvent event.isKeypad=" + event.isKeypad);
+
+
     if (event.key == "A".charCodeAt(0)) {
         print("the A key was pressed");
     }
@@ -73,18 +82,106 @@ function touchEndEvent(event) {
 }
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(checkController);
+Script.willSendVisualDataCallback.connect(checkController);
 
 // Map keyPress and mouse move events to our callbacks
 Controller.keyPressEvent.connect(keyPressEvent);
-var AKeyEvent = {
+var KeyEvent_A = {
     key: "A".charCodeAt(0),
+    text: "A",
     isShifted: false,
     isMeta: false
 };
 
+var KeyEvent_a = {
+    text: "a",
+    isShifted: false,
+    isMeta: false
+};
+
+var KeyEvent_a2 = {
+    key: "a".charCodeAt(0),
+    isShifted: false,
+    isMeta: false
+};
+
+var KeyEvent_a3 = {
+    text: "a"
+};
+
+var KeyEvent_A2 = {
+    text: "A"
+};
+
+
+var KeyEvent_9 = {
+    text: "9"
+};
+
+var KeyEvent_Num = {
+    text: "#"
+};
+
+var KeyEvent_At = {
+    text: "@"
+};
+
+var KeyEvent_MetaAt = {
+    text: "@",
+    isMeta: true
+};
+
+var KeyEvent_Up = {
+    text: "up"
+};
+var KeyEvent_Down = {
+    text: "down"
+};
+var KeyEvent_Left = {
+    text: "left"
+};
+var KeyEvent_Right = {
+    text: "right"
+};
+
 // prevent the A key from going through to the application
-Controller.captureKeyEvents(AKeyEvent);
+print("KeyEvent_A");
+Controller.captureKeyEvents(KeyEvent_A);
+
+print("KeyEvent_A2");
+Controller.captureKeyEvents(KeyEvent_A2);
+
+print("KeyEvent_a");
+Controller.captureKeyEvents(KeyEvent_a);
+
+print("KeyEvent_a2");
+Controller.captureKeyEvents(KeyEvent_a2);
+
+print("KeyEvent_a3");
+Controller.captureKeyEvents(KeyEvent_a3);
+
+print("KeyEvent_9");
+Controller.captureKeyEvents(KeyEvent_9);
+
+print("KeyEvent_Num");
+Controller.captureKeyEvents(KeyEvent_Num);
+
+print("KeyEvent_At");
+Controller.captureKeyEvents(KeyEvent_At);
+
+print("KeyEvent_MetaAt");
+Controller.captureKeyEvents(KeyEvent_MetaAt);
+
+print("KeyEvent_Up");
+Controller.captureKeyEvents(KeyEvent_Up);
+print("KeyEvent_Down");
+Controller.captureKeyEvents(KeyEvent_Down);
+print("KeyEvent_Left");
+Controller.captureKeyEvents(KeyEvent_Left);
+print("KeyEvent_Right");
+Controller.captureKeyEvents(KeyEvent_Right);
+
+
 
 
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
@@ -102,4 +199,4 @@ function scriptEnding() {
     Controller.releaseTouchEvents();
 }
 
-Agent.scriptEnding.connect(scriptEnding);
+Script.scriptEnding.connect(scriptEnding);

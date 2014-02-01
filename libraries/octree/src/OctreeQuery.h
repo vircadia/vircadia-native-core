@@ -57,9 +57,6 @@ public:
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(const QByteArray& packet);
 
-    QUuid& getUUID() { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
-
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
@@ -101,8 +98,6 @@ public slots:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
 protected:
-    QUuid _uuid;
-
     // camera details for the avatar
     glm::vec3 _cameraPosition;
     glm::quat _cameraOrientation;

@@ -70,8 +70,7 @@ void broadcastAvatarData() {
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
                     
-                    
-                    AvatarData *nodeData = (AvatarData *)otherNode->getLinkedData();
+                    AvatarData* nodeData = (AvatarData*) otherNode->getLinkedData();
                     avatarByteArray.append(nodeData->toByteArray());
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {

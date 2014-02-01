@@ -72,13 +72,13 @@ function checkController() {
                          " function collisionWithVoxel(voxel) { " +
                          "   print('collisionWithVoxel(voxel)... '); " +
                          "   print('myID=' + Particle.getID() + '\\n'); " +
-                         "   var voxelColor = voxel.getColor();" +
-                         "   print('voxelColor=' + voxelColor.red + ', ' + voxelColor.green + ', ' + voxelColor.blue + '\\n'); " +
+                         "   var voxelColor = { red: voxel.red, green: voxel.green, blue: voxel.blue };" +
+                         "   var voxelAt = { x: voxel.x, y: voxel.y, z: voxel.z };" +
+                         "   var voxelScale = voxel.s;" +
+                         "   print('voxelColor=' + voxel.red + ', ' + voxel.green + ', ' + voxel.blue + '\\n'); " +
                          "   var myColor = Particle.getColor();" +
                          "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " +
                          "   Particle.setColor(voxelColor); " +
-                         "   var voxelAt = voxel.getPosition();" +
-                         "   var voxelScale = voxel.getScale();" +
                          "   Voxels.eraseVoxel(voxelAt.x, voxelAt.y, voxelAt.z, voxelScale);  " +
                          "   print('Voxels.eraseVoxel(' + voxelAt.x + ', ' + voxelAt.y + ', ' + voxelAt.z + ', ' + voxelScale + ')... \\n'); " +
                          " } " +
@@ -99,4 +99,4 @@ function checkController() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(checkController);
+Script.willSendVisualDataCallback.connect(checkController);

@@ -70,14 +70,14 @@ bool createVoxelEditMessage(PacketType command, short int sequence,
         // cleanup
         delete[] voxelData;
     }
-    
+
     if (success) {
         // finally, copy the result to the output
         bufferOut = new unsigned char[actualMessageSize];
         sizeOut = actualMessageSize;
         memcpy(bufferOut, messageBuffer, actualMessageSize);
     }
-    
+
     delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }

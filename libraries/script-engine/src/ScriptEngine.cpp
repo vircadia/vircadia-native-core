@@ -19,6 +19,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
 
 #include <Sound.h>
@@ -41,6 +42,7 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _isAvatar(false),
     _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
@@ -114,10 +116,12 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.init();
     _particlesScriptingInterface.init();
 
-    // register meta-type for glm::vec3 conversions
+    // register various meta-types
     registerMetaTypes(&_engine);
-    
+    registerVoxelMetaTypes(&_engine);
+    //registerParticleMetaTypes(&_engine);
     registerEventTypes(&_engine);
+    
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
@@ -129,7 +133,7 @@ void ScriptEngine::init() {
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
-    registerGlobalObject("Agent", this);
+    registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Data", &_dataServerScriptingInterface);

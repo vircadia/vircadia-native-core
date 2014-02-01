@@ -63,7 +63,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
         
         QFile localFile(filePath);
         localFile.open(QIODevice::ReadOnly);
-        QString localFileString(localFile.readAll());
+        QByteArray localFileData = localFile.readAll();
         
         QFileInfo localFileInfo(filePath);
         
@@ -77,6 +77,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
             
             int matchPosition = 0;
             
+            QString localFileString(localFileData);
             
             while ((matchPosition = includeRegExp.indexIn(localFileString, matchPosition)) != -1) {
                 // check if this is a file or vitual include
@@ -105,9 +106,11 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
                 // push the match position forward so we can check the next match
                 matchPosition += includeRegExp.matchedLength();
             }
+            
+            localFileData = localFileString.toLocal8Bit();
         }
         
-        connection->respond(HTTPConnection::StatusCode200, localFileString.toLocal8Bit(),
+        connection->respond(HTTPConnection::StatusCode200, localFileData,
                             qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
     } else {
         

@@ -60,8 +60,8 @@ function makeFountain() {
         totalParticles++;
     }
     if (totalParticles > 100) {
-        Agent.stop();
+        Script.stop();
     }
 }
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(makeFountain);
+Script.willSendVisualDataCallback.connect(makeFountain);

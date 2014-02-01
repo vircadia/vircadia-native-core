@@ -37,8 +37,8 @@ var ballParticleID = Particles.addParticle(ballProperties);
 function endAfterAWhile() {
     // stop it...
     if (count >= stopAfter) {
-        print("calling Agent.stop()");
-        Agent.stop();
+        print("calling Script.stop()");
+        Script.stop();
     }
 
     print("count =" + count);
@@ -47,5 +47,5 @@ function endAfterAWhile() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(endAfterAWhile);
+Script.willSendVisualDataCallback.connect(endAfterAWhile);
 

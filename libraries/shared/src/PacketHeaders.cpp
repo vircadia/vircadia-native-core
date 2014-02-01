@@ -80,7 +80,7 @@ bool packetVersionMatch(const QByteArray& packet) {
     // currently this just checks if the version in the packet matches our return from versionForPacketType
     // may need to be expanded in the future for types and versions that take > than 1 byte
     
-    if (packet[1] == versionForPacketType(packetTypeForPacket(packet)) || packet[0] == PacketTypeStunResponse) {
+    if (packet[1] == versionForPacketType(packetTypeForPacket(packet)) || packetTypeForPacket(packet) == PacketTypeStunResponse) {
         return true;
     } else {
         PacketType mismatchType = packetTypeForPacket(packet);

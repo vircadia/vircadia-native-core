@@ -44,7 +44,6 @@ var particleID = Particles.addParticle(originalProperties);
 
 function moveParticle() {
     if (count >= moveUntil) {
-        //Agent.stop();
 
         // delete it...
         if (count == moveUntil) {
@@ -54,8 +53,8 @@ function moveParticle() {
 
         // stop it...
         if (count >= stopAfter) {
-            print("calling Agent.stop()");
-            Agent.stop();
+            print("calling Script.stop()");
+            Script.stop();
         }
 
         count++;
@@ -86,5 +85,5 @@ function moveParticle() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(moveParticle);
+Script.willSendVisualDataCallback.connect(moveParticle);
 
