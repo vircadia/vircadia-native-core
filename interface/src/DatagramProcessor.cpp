@@ -45,7 +45,7 @@ void DatagramProcessor::processDatagrams() {
             switch (packetTypeForPacket(incomingPacket)) {
                 case PacketTypeTransmitterData:
                     //  V2 = IOS transmitter app
-                    application->_myTransmitter.processIncomingData(reinterpret_cast<unsigned char*>(incomingPacket.data()),
+                    application->getAvatar()->getTransmitter().processIncomingData(reinterpret_cast<unsigned char*>(incomingPacket.data()),
                                                                     incomingPacket.size());
                     
                     break;
