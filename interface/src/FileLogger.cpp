@@ -18,7 +18,10 @@ const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 const QString LOGS_DIRECTORY = "Logs";
 
-FileLogger::FileLogger() : _logData(NULL) {
+FileLogger::FileLogger(QObject* parent) :
+    AbstractLoggerInterface(parent),
+    _logData(NULL)
+{
     setExtraDebugging(false);
 
     _fileName = FileUtils::standardPath(LOGS_DIRECTORY);

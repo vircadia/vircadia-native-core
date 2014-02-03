@@ -14,9 +14,6 @@
 
 #include "Assignment.h"
 
-const char IPv4_ADDRESS_DESIGNATOR = 4;
-const char IPv6_ADDRESS_DESIGNATOR = 6;
-
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {
         case NodeType::AudioMixer:
@@ -55,6 +52,7 @@ Assignment::Assignment() :
 }
 
 Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
+    _uuid(),
     _command(command),
     _type(type),
     _pool(pool),
@@ -85,20 +83,7 @@ Assignment::Assignment(const QByteArray& packet) :
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    uchar assignmentType;
-    packetStream >> assignmentType;
-    _type = (Assignment::Type) assignmentType;
-    
-    if (_command != Assignment::RequestCommand) {
-        // read the GUID for this assignment
-        packetStream >> _uuid;
-    }
-    
-    packetStream >> _pool;
-    
-    if (!packetStream.atEnd()) {
-        _payload = packet.mid(packetStream.device()->pos());
-    }
+    packetStream >> *this;
 }
 
 #ifdef WIN32
@@ -159,18 +144,26 @@ const char* Assignment::getTypeName() const {
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
     debug.nospace() << "UUID: " << qPrintable(assignment.getUUID().toString()) <<
         ", Type: " << assignment.getType();
-    return debug.nospace();
+    
+    if (!assignment.getPool().isEmpty()) {
+        debug << ", Pool: " << assignment.getPool();
+    }
+
+    return debug.space();
 }
 
 QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
-    out << (quint8) assignment._type;
-    
-    // pack the UUID for this assignment, if this is an assignment create or deploy
-    if (assignment._command != Assignment::RequestCommand) {
-        out << assignment._uuid;
-    }
-    
-    out << assignment._pool << assignment._payload;
+    out << (quint8) assignment._type << assignment._uuid << assignment._pool << assignment._payload;
     
     return out;
+}
+
+QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
+    quint8 packedType;
+    in >> packedType;
+    assignment._type = (Assignment::Type) packedType;
+    
+    in >> assignment._uuid >> assignment._pool >> assignment._payload;
+    
+    return in;
 }

@@ -22,6 +22,7 @@ Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
 
+
 void registerMetaTypes(QScriptEngine* engine);
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);

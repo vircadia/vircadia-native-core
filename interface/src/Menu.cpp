@@ -116,10 +116,10 @@ Menu::Menu() :
                                    this,
                                    SLOT(goToLocation()));
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoToUser,
+                                  MenuOption::GoTo,
                                   Qt::Key_At,
                                   this,
-                                  SLOT(goToUser()));
+                                  SLOT(goTo()));
 
 
     addDisabledActionAndSeparator(fileMenu, "Settings");
@@ -914,6 +914,60 @@ void Menu::goToDomain() {
     sendFakeEnterEvent();
 }
 
+void Menu::goTo() {
+    
+    QInputDialog gotoDialog(Application::getInstance()->getWindow());
+    gotoDialog.setWindowTitle("Go to");
+    gotoDialog.setLabelText("Destination:");
+    QString destination = Application::getInstance()->getProfile()->getUsername();
+    gotoDialog.setTextValue(destination);
+    gotoDialog.setWindowFlags(Qt::Sheet);
+    gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
+    
+    int dialogReturn = gotoDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
+        
+        destination = gotoDialog.textValue();
+        
+        QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
+        
+        const int NUMBER_OF_COORDINATE_ITEMS = 3;
+        const int X_ITEM = 0;
+        const int Y_ITEM = 1;
+        const int Z_ITEM = 2;
+        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
+            
+            double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
+            double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
+            double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
+            
+            glm::vec3 newAvatarPos(x, y, z);
+            
+            MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+            glm::vec3 avatarPos = myAvatar->getPosition();
+            if (newAvatarPos != avatarPos) {
+                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+                MyAvatar::sendKillAvatar();
+                
+                qDebug("Going To Location: %f, %f, %f...", x, y, z);
+                myAvatar->setPosition(newAvatarPos);
+            }
+            
+        } else {
+            // there's a username entered by the user, make a request to the data-server
+            DataServerClient::getValuesForKeysAndUserString(
+                                                            QStringList()
+                                                            << DataServerKey::Domain
+                                                            << DataServerKey::Position
+                                                            << DataServerKey::Orientation,
+                                                            destination, Application::getInstance()->getProfile());
+    
+        }
+    }
+    
+    sendFakeEnterEvent();
+}
+
 void Menu::goToLocation() {
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
@@ -953,26 +1007,6 @@ void Menu::goToLocation() {
                 myAvatar->setPosition(newAvatarPos);
             }
         }
-    }
-
-    sendFakeEnterEvent();
-}
-
-void Menu::goToUser() {
-    QInputDialog userDialog(Application::getInstance()->getWindow());
-    userDialog.setWindowTitle("Go to User");
-    userDialog.setLabelText("Destination user:");
-    QString username = Application::getInstance()->getProfile()->getUsername();
-    userDialog.setTextValue(username);
-    userDialog.setWindowFlags(Qt::Sheet);
-    userDialog.resize(userDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, userDialog.size().height());
-
-    int dialogReturn = userDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
-        // there's a username entered by the user, make a request to the data-server
-        DataServerClient::getValuesForKeysAndUserString(
-            QStringList() << DataServerKey::Domain << DataServerKey::Position << DataServerKey::Orientation,
-                                                        userDialog.textValue(), Application::getInstance()->getProfile());
     }
 
     sendFakeEnterEvent();
@@ -1139,5 +1173,16 @@ void Menu::updateFrustumRenderModeAction() {
             frustumRenderModeAction->setText("Render Mode - Keyhole");
             break;
     }
+}
+
+QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
+    int lastIndex;
+    lastIndex = string.lastIndexOf(search);
+    if (lastIndex > 0) {
+        lastIndex = string.lastIndexOf(search);
+        string.replace(lastIndex, 1, replace);
+    }
+    
+    return string;
 }
 

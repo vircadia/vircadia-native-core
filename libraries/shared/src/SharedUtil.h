@@ -96,19 +96,8 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option);
 
 void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
-struct VoxelDetail {
-	float x;
-	float y;
-	float z;
-	float s;
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-};
-
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
 unsigned char* pointToOctalCode(float x, float y, float z, float s);
-
 
 #ifdef _WIN32
 void usleep(int waitTime);

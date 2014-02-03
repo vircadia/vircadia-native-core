@@ -264,7 +264,7 @@ private:
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
-    static void sendPingPackets();
+    void sendPingPackets();
 
     void initDisplay();
     void init();
@@ -355,7 +355,7 @@ private:
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
-    VoxelImporter _voxelImporter;
+    VoxelImporter* _voxelImporter;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 

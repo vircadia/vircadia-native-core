@@ -24,15 +24,15 @@ private:
 const QString SETTINGS_GROUP_NAME = "VoxelImport";
 const QString IMPORT_DIALOG_SETTINGS_KEY = "ImportDialogSettings";
 
-VoxelImporter::VoxelImporter(QWidget* parent)
-    : QObject(parent),
-      _voxelTree(true),
-      _importDialog(parent),
-      _currentTask(NULL),
-      _nextTask(NULL) {
-
-    connect(&_importDialog, SIGNAL(currentChanged(QString)), SLOT(preImport()));
-    connect(&_importDialog, SIGNAL(accepted()), SLOT(import()));
+VoxelImporter::VoxelImporter(QWidget* parent) :
+    QObject(parent),
+    _voxelTree(true),
+    _importDialog(parent),
+    _currentTask(NULL),
+    _nextTask(NULL)
+{
+    connect(&_importDialog, &QFileDialog::currentChanged, this, &VoxelImporter::preImport);
+    connect(&_importDialog, &QFileDialog::accepted, this, &VoxelImporter::import);
 }
 
 void VoxelImporter::saveSettings(QSettings* settings) {

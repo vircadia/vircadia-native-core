@@ -91,5 +91,4 @@ protected:
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
 };
 
-
 #endif /* defined(__hifi__VoxelTreeElement__) */

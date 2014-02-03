@@ -31,7 +31,8 @@ class VoxelTree;
 
 const glm::vec3 NO_ADDED_VELOCITY = glm::vec3(0);
 
-class ParticleCollisionSystem {
+class ParticleCollisionSystem : public QObject {
+Q_OBJECT
 public:
     ParticleCollisionSystem(ParticleEditPacketSender* packetSender = NULL, ParticleTree* particles = NULL, 
                                 VoxelTree* voxels = NULL, AbstractAudioInterface* audio = NULL, 
@@ -51,9 +52,14 @@ public:
     void queueParticlePropertiesUpdate(Particle* particle);
     void updateCollisionSound(Particle* particle, const glm::vec3 &penetration, float frequency);
 
+signals:
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
+
 private:
     static bool updateOperation(OctreeElement* element, void* extraData);
-
+    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails);
+    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB);
 
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _particles;

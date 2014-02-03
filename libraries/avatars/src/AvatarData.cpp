@@ -172,105 +172,102 @@ int AvatarData::parseData(const QByteArray& packet) {
         _handData = new HandData(this);
     }
     
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    // increment to push past the packet header
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
+    const unsigned char* sourceBuffer = startPosition + numBytesForPacketHeader(packet);
     
-    packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
+    // Body world position
+    memcpy(&_position, sourceBuffer, sizeof(float) * 3);
+    sourceBuffer += sizeof(float) * 3;
     
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    uint16_t twoByteHolder;
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &_bodyYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
     
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &_bodyPitch);
+    // Body scale
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
     
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &_bodyRoll);
-    
-    // body scale
-    packetStream >> twoByteHolder;
-    unpackFloatRatioFromTwoByte(reinterpret_cast<const unsigned char*>(&twoByteHolder), _targetScale);
-
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
-    
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &headYaw);
-    
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &headPitch);
-    
-    packetStream >> twoByteHolder;
-    unpackFloatAngleFromTwoByte(&twoByteHolder, &headRoll);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headPitch);
+    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
     
     _headData->setYaw(headYaw);
     _headData->setPitch(headPitch);
     _headData->setRoll(headRoll);
-
+    
     //  Head position relative to pelvis
-    packetStream >> _headData->_leanSideways;
-    packetStream >> _headData->_leanForward;
-
+    memcpy(&_headData->_leanSideways, sourceBuffer, sizeof(_headData->_leanSideways));
+    sourceBuffer += sizeof(float);
+    memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
+    sourceBuffer += sizeof(_headData->_leanForward);
+    
     // Hand Position - is relative to body position
     glm::vec3 handPositionRelative;
-    packetStream.readRawData(reinterpret_cast<char*>(&handPositionRelative), sizeof(handPositionRelative));
+    memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
     _handPosition = _position + handPositionRelative;
+    sourceBuffer += sizeof(float) * 3;
     
-    packetStream.readRawData(reinterpret_cast<char*>(&_headData->_lookAtPosition), sizeof(_headData->_lookAtPosition));
-
+    // Lookat Position
+    memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
+    sourceBuffer += sizeof(_headData->_lookAtPosition);
+    
     // Instantaneous audio loudness (used to drive facial animation)
     //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
-    packetStream >> _headData->_audioLoudness;
-
-    // the rest is a chat message
+    memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
+    sourceBuffer += sizeof(float);
     
-    quint8 chatMessageSize;
-    packetStream >> chatMessageSize;
-    _chatMessage = string(packet.data() + packetStream.device()->pos(), chatMessageSize);
-    packetStream.skipRawData(chatMessageSize);
-
+    // the rest is a chat message
+    int chatMessageSize = *sourceBuffer++;
+    _chatMessage = string((char*)sourceBuffer, chatMessageSize);
+    sourceBuffer += chatMessageSize * sizeof(char);
+    
     // voxel sending features...
     unsigned char bitItems = 0;
-    packetStream >> bitItems;
+    bitItems = (unsigned char)*sourceBuffer++;
     
     // key state, stored as a semi-nibble in the bitItems
     _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-
+    
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
-
+    
     _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-
+    
     _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
-
+    
     // If it is connected, pack up the data
     if (_headData->_isFaceshiftConnected) {
-        packetStream >> _headData->_leftEyeBlink;
-        packetStream >> _headData->_rightEyeBlink;
-        packetStream >> _headData->_averageLoudness;
-        packetStream >> _headData->_browAudioLift;
+        memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
         
-        quint8 numBlendshapeCoefficients;
-        packetStream >> numBlendshapeCoefficients;
+        memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
         
-        _headData->_blendshapeCoefficients.resize(numBlendshapeCoefficients);
-        packetStream.readRawData(reinterpret_cast<char*>(_headData->_blendshapeCoefficients.data()),
-                                 numBlendshapeCoefficients * sizeof(float));
+        memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+        
+        memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+        
+        _headData->_blendshapeCoefficients.resize(*sourceBuffer++);
+        memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer,
+               _headData->_blendshapeCoefficients.size() * sizeof(float));
+        sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
     
     // pupil dilation
-    quint8 pupilByte;
-    packetStream >> pupilByte;
-    unpackFloatFromByte(&pupilByte, _headData->_pupilDilation, 1.0f);
+    sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     
     // leap hand data
-    if (packetStream.device()->pos() < packet.size()) {
+    if (sourceBuffer - startPosition < packet.size()) {
         // check passed, bytes match
-        packetStream.skipRawData(_handData->decodeRemoteData(packet.mid(packetStream.device()->pos())));
+        sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));
     }
-
-    return packetStream.device()->pos();
+    
+    return sourceBuffer - startPosition;
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {

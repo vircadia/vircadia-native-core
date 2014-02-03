@@ -24,10 +24,19 @@ public:
     KeyEvent();
     KeyEvent(const QKeyEvent& event);
     inline bool operator==(const KeyEvent& other) const { 
-                            return other.key == key && other.isShifted == isShifted && other.isMeta == isMeta; }
+                            return other.key == key 
+                                && other.isShifted == isShifted 
+                                && other.isControl == isControl
+                                && other.isMeta == isMeta
+                                && other.isAlt == isAlt
+                                && other.isKeypad == isKeypad; }
     int key;
+    QString text;
     bool isShifted;
+    bool isControl;
     bool isMeta;
+    bool isAlt;
+    bool isKeypad;
     bool isValid;
 };
 

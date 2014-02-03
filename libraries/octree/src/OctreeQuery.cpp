@@ -24,7 +24,6 @@ static const float fingerVectorRadix = 4; // bits of precision when converting f
 
 OctreeQuery::OctreeQuery() :
     NodeData(),
-    _uuid(),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
     _cameraFov(0.0f),
@@ -52,11 +51,6 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
-    
-    // UUID
-    QByteArray uuidByteArray = _uuid.toRfc4122();
-    memcpy(destinationBuffer, uuidByteArray.constData(), uuidByteArray.size());
-    destinationBuffer += uuidByteArray.size();
     
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -102,13 +96,6 @@ int OctreeQuery::parseData(const QByteArray& packet) {
     
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
     const unsigned char* sourceBuffer = startPosition + numBytesPacketHeader;
-    
-    // push past the node session UUID
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
-    
-    // user UUID
-    _uuid = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));

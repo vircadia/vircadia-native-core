@@ -19,6 +19,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
 
 #include <Sound.h>
@@ -39,8 +40,10 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 }
 
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
+ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
+                           AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _isAvatar(false),
     _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
@@ -102,8 +105,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
-
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -114,10 +115,12 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.init();
     _particlesScriptingInterface.init();
 
-    // register meta-type for glm::vec3 conversions
+    // register various meta-types
     registerMetaTypes(&_engine);
-    
+    registerVoxelMetaTypes(&_engine);
+    //registerParticleMetaTypes(&_engine);
     registerEventTypes(&_engine);
+    
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
@@ -129,7 +132,7 @@ void ScriptEngine::init() {
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
-    registerGlobalObject("Agent", this);
+    registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Data", &_dataServerScriptingInterface);
@@ -256,6 +259,27 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
+    
+    if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
+            _voxelsScriptingInterface.getVoxelPacketSender()->process();
+        }
+    }
+
+    if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
+            _particlesScriptingInterface.getParticlePacketSender()->process();
+        }
+    }
+    
     cleanMenuItems();
 
     // If we were on a thread, then wait till it's done
@@ -272,4 +296,51 @@ void ScriptEngine::stop() {
     _isFinished = true;
 }
 
+void ScriptEngine::timerFired() {
+    QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
+    
+    // call the associated JS function, if it exists
+    QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
+    if (timerFunction.isValid()) {
+        timerFunction.call();
+    }
+    
+    if (!callingTimer->isActive()) {
+        // this timer is done, we can kill it
+        qDebug() << "Deleting a single shot timer";
+        delete callingTimer;
+    }
+}
+
+QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
+    // create the timer, add it to the map, and start it
+    QTimer* newTimer = new QTimer(this);
+    newTimer->setSingleShot(isSingleShot);
+    
+    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
+    
+    // make sure the timer stops when the script does
+    connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+    
+    _timerFunctionMap.insert(newTimer, function);
+    
+    newTimer->start(intervalMS);
+    return newTimer;
+}
+
+QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    return setupTimerWithInterval(function, intervalMS, false);
+}
+
+QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    return setupTimerWithInterval(function, timeoutMS, true);
+}
+
+void ScriptEngine::stopTimer(QTimer *timer) {
+    if (_timerFunctionMap.contains(timer)) {
+        timer->stop();
+        _timerFunctionMap.remove(timer);
+        delete timer;
+    }
+}
 
