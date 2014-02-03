@@ -10,11 +10,14 @@
 
 var iteration = 0;
 
+var gameOver = false;
+
+// horizontal movement of invaders
 var invaderStepsPerCycle = 30; // the number of update steps it takes then invaders to move one column to the right
 var invaderStepOfCycle = 0; // current iteration in the cycle
 var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
 
-var itemLifetimes = 60;
+var itemLifetimes = 60 * 2; // 2 minutes
 var gameAt = { x: 10, y: 0, z: 10 };
 var gameSize = { x: 10, y: 20, z: 1 };
 var middleX = gameAt.x + (gameSize.x/2);
@@ -34,6 +37,16 @@ var invadersBottomCorner = { x: gameAt.x, y: middleY , z: gameAt.z };
 var rowHeight = ((gameAt.y + gameSize.y) - invadersBottomCorner.y) / numberOfRows;
 var columnWidth = gameSize.x / (invadersPerRow + emptyColumns);
 
+// vertical movement of invaders
+var invaderRowOffset = 0;
+var stepsPerRow = 20; // number of steps before invaders really move a whole row down.
+
+var yPerStep = rowHeight/stepsPerRow;
+var stepsToGround = (middleY - gameAt.y) / yPerStep;
+var maxInvaderRowOffset=stepsToGround;
+
+
+
 var missileFired = false;
 var myMissile;
 
@@ -52,16 +65,19 @@ function initializeMyShip() {
 
 // calculate the correct invaderPosition for an column row
 function getInvaderPosition(row, column) {
-    var xMovePart = 0;
     var xBasePart = invadersBottomCorner.x + (column * columnWidth);
+    var xMovePart = 0;
     if (invaderMoveDirection > 0) {
         xMovePart = (invaderMoveDirection * columnWidth * (invaderStepOfCycle/invaderStepsPerCycle));
     } else {
         xMovePart = columnWidth + (invaderMoveDirection * columnWidth * (invaderStepOfCycle/invaderStepsPerCycle));
     }
+
+    var y = invadersBottomCorner.y + (row * rowHeight) - (invaderRowOffset * rowHeight/stepsPerRow);
+
     var invaderPosition = { 
                     x:  xBasePart + xMovePart, 
-                    y: invadersBottomCorner.y + (row * rowHeight),
+                    y: y,
                     z: invadersBottomCorner.z };
     
     return invaderPosition;
@@ -88,7 +104,7 @@ function initializeInvaders() {
 }
 
 function moveInvaders() {
-    print("moveInvaders()...");
+    //print("moveInvaders()...");
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             props = Particles.getParticleProperties(invaders[row][column]);
@@ -100,19 +116,38 @@ function moveInvaders() {
     }
 }
 
+function displayGameOver() {
+    gameOver = true;
+    print("Game over...");
+}
+
 function update() {
-    print("updating space invaders... iteration="+iteration);
-    iteration++;
-    invaderStepOfCycle++;
-    if (invaderStepOfCycle > invaderStepsPerCycle) {
-        invaderStepOfCycle = 0;
-        if (invaderMoveDirection > 0) {
-            invaderMoveDirection = -1;
-        } else {
-            invaderMoveDirection = 1;
+    if (!gameOver) {
+        //print("updating space invaders... iteration="+iteration);
+        iteration++;
+        invaderStepOfCycle++;
+        if (invaderStepOfCycle > invaderStepsPerCycle) {
+            // handle left/right movement
+            invaderStepOfCycle = 0;
+            if (invaderMoveDirection > 0) {
+                invaderMoveDirection = -1;
+            } else {
+                invaderMoveDirection = 1;
+            }
+
+            // handle downward movement
+            invaderRowOffset++; // move down one row
+            print("invaderRowOffset="+invaderRowOffset);
+        
+            // check to see if invaders have reached "ground"...
+            if (invaderRowOffset > maxInvaderRowOffset) {
+                displayGameOver();
+                return;
+            }
+        
         }
+        moveInvaders();
     }
-    moveInvaders();
 }
 
 // register the call back so it fires before each data send
