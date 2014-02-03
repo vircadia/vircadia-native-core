@@ -130,4 +130,4 @@ function moveBird() {
 
 Voxels.setPacketsPerSecond(10000);
 // Connect a call back that happens every frame
-Agent.willSendVisualDataCallback.connect(moveBird);
+Script.willSendVisualDataCallback.connect(moveBird);

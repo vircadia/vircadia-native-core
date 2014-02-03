@@ -69,4 +69,4 @@ function checkSticks() {
 }
 
 // Connect a call back that happens every frame
-Agent.willSendVisualDataCallback.connect(checkSticks);
+Script.willSendVisualDataCallback.connect(checkSticks);

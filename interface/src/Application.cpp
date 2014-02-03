@@ -154,7 +154,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false),
-        _logger(new FileLogger()),
+        _logger(new FileLogger(this)),
         _persistThread(NULL)
 {
     _myAvatar = _avatarManager.getMyAvatar();
@@ -321,19 +321,14 @@ Application::~Application() {
         _persistThread->deleteLater();
         _persistThread = NULL;
     }
-
+    
     storeSizeAndPosition();
     saveScripts();
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
-
-    _avatarManager.clear();
-    _myAvatar = NULL;
-
-    delete _logger;
-    delete _settings;
+    
     delete _glWidget;
 }
 
@@ -4003,18 +3998,12 @@ void Application::setMenuShortcutsEnabled(bool enabled) {
 }
 
 void Application::updateWindowTitle(){
-    QString title = "";
-
-    QString buildVersion = " (build " + applicationVersion() + ")";
-
-    QString username = _profile.getUsername();
-    if(!username.isEmpty()){
-        title += username;
-        title += " @ ";
-    }
     
-    title += NodeList::getInstance()->getDomainHostname();
-    title += buildVersion;
+    QString buildVersion = " (build " + applicationVersion() + ")";
+    NodeList* nodeList = NodeList::getInstance();
+    
+    QString title = QString() + _profile.getUsername() + " " + nodeList->getOwnerUUID().toString()
+        + " @ " + nodeList->getDomainHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
@@ -4192,33 +4181,33 @@ void Application::packetSent(quint64 length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length);
 }
 
-void Application::loadScripts(){
-  // loads all saved scripts
-  QSettings* settings = new QSettings(this);
-  int size = settings->beginReadArray("Settings");
-  for(int i=0; i<size; ++i){
-    settings->setArrayIndex(i);
-    QString string = settings->value("script").toString();
-    loadScript(string);
-  }
-  settings->endArray();
-
+void Application::loadScripts() {
+    // loads all saved scripts
+    QSettings* settings = new QSettings(this);
+    int size = settings->beginReadArray("Settings");
+    
+    for (int i = 0; i < size; ++i){
+        settings->setArrayIndex(i);
+        QString string = settings->value("script").toString();
+        loadScript(string);
+    }
+    
+    settings->endArray();
 }
 
-void Application::saveScripts(){
-  // saves all current running scripts
-  QSettings* settings = new QSettings(this);
-  settings->beginWriteArray("Settings");
-  for(int i=0; i<_activeScripts.size(); ++i){
-    settings->setArrayIndex(i);
-    settings->setValue("script", _activeScripts.at(i));
-  }
-  settings->endArray();
-
+void Application::saveScripts() {
+    // saves all current running scripts
+    QSettings* settings = new QSettings(this);
+    settings->beginWriteArray("Settings");
+    for (int i = 0; i < _activeScripts.size(); ++i){
+        settings->setArrayIndex(i);
+        settings->setValue("script", _activeScripts.at(i));
+    }
+    
+    settings->endArray();
 }
 
-void Application::removeScriptName(const QString& fileNameString)
-{
+void Application::removeScriptName(const QString& fileNameString) {
   _activeScripts.removeOne(fileNameString);
 }
 
@@ -4250,7 +4239,8 @@ void Application::loadScript(const QString& fileNameString) {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(), &_controllerScriptingInterface);
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
+                                                  &_controllerScriptingInterface);
     scriptEngine->setupMenuItems();
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
