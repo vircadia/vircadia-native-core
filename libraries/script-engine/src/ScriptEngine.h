@@ -59,13 +59,20 @@ public:
     bool isAvatar() const { return _isAvatar; }
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    
+    void timerFired();
 
 public slots:
     void init();
     void run(); /// runs continuously until Agent.stop() is called
     void stop();
     void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
-
+    
+    QObject* setInterval(const QScriptValue& function, int intervalMS);
+    QObject* setTimeout(const QScriptValue& function, int timeoutMS);
+    void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
@@ -73,15 +80,18 @@ signals:
     void finished(const QString& fileNameString);
 
 protected:
-    
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
     QScriptEngine _engine;
     bool _isAvatar;
+    QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
+    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    void stopTimer(QTimer* timer);
+    
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
