@@ -20,7 +20,7 @@ class AvatarAudioRingBuffer;
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AudioMixer(const unsigned char* dataBuffer, int numBytes);
+    AudioMixer(const QByteArray& packet);
 public slots:
     /// threaded run of assignment
     void run();

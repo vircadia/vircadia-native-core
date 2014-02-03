@@ -9,7 +9,17 @@
 #ifndef __interface__MetavoxelMessages__
 #define __interface__MetavoxelMessages__
 
-#include "Bitstream.h"
+#include "AttributeRegistry.h"
+#include "MetavoxelUtil.h"
+
+class MetavoxelData;
+
+/// Requests to close the session.
+class CloseSessionMessage {
+    STREAMABLE
+};
+
+DECLARE_STREAMABLE_METATYPE(CloseSessionMessage)
 
 /// A message containing the state of a client.
 class ClientStateMessage {
@@ -28,5 +38,20 @@ class MetavoxelDeltaMessage {
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaMessage)
+
+/// A simple streamable edit.
+class MetavoxelEditMessage {
+    STREAMABLE
+
+public:
+    
+    STREAM Box region;
+    STREAM float granularity;
+    STREAM OwnedAttributeValue value;
+    
+    void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelEditMessage)
 
 #endif /* defined(__interface__MetavoxelMessages__) */

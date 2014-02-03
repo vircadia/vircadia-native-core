@@ -214,6 +214,7 @@ protected:
 private:
     
     void deleteGeometry();
+    void renderMeshes(float alpha, bool translucent);
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;

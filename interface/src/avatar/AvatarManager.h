@@ -13,30 +13,33 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
+#include <AvatarHashMap.h>
 #include <DataServerClient.h>
 
 #include "Avatar.h"
 
-typedef QSharedPointer<Avatar> AvatarSharedPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
+class MyAvatar;
 
-class AvatarManager : public QObject, public DataServerCallbackObject {
+class AvatarManager : public QObject, public DataServerCallbackObject, public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);
+
+    void clear();
+
+    void init();
+
+    MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
-    const AvatarHash& getAvatarHash() { return _avatarHash; }
-    int size() const { return _avatarHash.size(); }
-    
-    Avatar* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
+    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     
     void updateLookAtTargetAvatar(glm::vec3& eyePosition);
     
     void updateAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
-    void clearHash();
-    
+    void clearMixedAvatars();
+
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
     
@@ -44,17 +47,20 @@ public slots:
     void processKillAvatar(const QByteArray& datagram);
 
 private:
+    AvatarManager(const AvatarManager& other);
+
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades();
     
-    AvatarHash::iterator removeAvatarAtHashIterator(const AvatarHash::iterator& iterator);
+    // virtual override
+    AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
-    QWeakPointer<Avatar> _lookAtTargetAvatar;
+    QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _lookAtOtherPosition;
     float _lookAtIndicatorScale;
     
-    AvatarHash _avatarHash;
     QVector<AvatarSharedPointer> _avatarFades;
+    QSharedPointer<MyAvatar> _myAvatar;
 };
 
 #endif /* defined(__hifi__AvatarManager__) */

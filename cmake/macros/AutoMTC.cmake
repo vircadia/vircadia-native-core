@@ -9,10 +9,12 @@ macro(AUTO_MTC TARGET ROOT_DIR)
         ${INCLUDE_FILES} DEPENDS mtc ${INCLUDE_FILES})
     
     find_package(Qt5Core REQUIRED)
+    find_package(Qt5Script REQUIRED)
+    find_package(Qt5Widgets REQUIRED)
     
     add_library(${TARGET}_automtc STATIC ${TARGET}_automtc.cpp)
     
-    qt5_use_modules(${TARGET}_automtc Core)
+    qt5_use_modules(${TARGET}_automtc Core Script Widgets) 
     
     target_link_libraries(${TARGET} ${TARGET}_automtc)
     

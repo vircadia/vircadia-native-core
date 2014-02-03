@@ -23,7 +23,6 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
     }
     
     // check to see if there is a file to serve from the document root for this path
-    
     QString subPath = path;
     
     // remove any slash at the beginning of the path
@@ -32,6 +31,19 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
     }
     
     QString filePath;
+    
+    if (QFileInfo(_documentRoot + subPath).isFile()) {
+        filePath = _documentRoot + subPath;
+    } else if (subPath.size() > 0 && !subPath.endsWith('/')) {
+        // this could be a directory with a trailing slash
+        // send a redirect to the path with a slash so we can
+        QString redirectLocation = '/' + subPath + '/';
+        
+        QHash<QByteArray, QByteArray> redirectHeader;
+        redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
+        
+        connection->respond(HTTPConnection::StatusCode301, "", HTTPConnection::DefaultContentType, redirectHeader);
+    }
     
     // if the last thing is a trailing slash then we want to look for index file
     if (subPath.endsWith('/') || subPath.size() == 0) {
@@ -43,19 +55,15 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
                 break;
             }
         }
-    } else if (QFileInfo(_documentRoot + subPath).isFile()) {
-        filePath = _documentRoot + subPath;
     }
-
     
     if (!filePath.isEmpty()) {
         // file exists, serve it
-
         static QMimeDatabase mimeDatabase;
         
         QFile localFile(filePath);
         localFile.open(QIODevice::ReadOnly);
-        QString localFileString(localFile.readAll());
+        QByteArray localFileData = localFile.readAll();
         
         QFileInfo localFileInfo(filePath);
         
@@ -69,6 +77,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
             
             int matchPosition = 0;
             
+            QString localFileString(localFileData);
             
             while ((matchPosition = includeRegExp.indexIn(localFileString, matchPosition)) != -1) {
                 // check if this is a file or vitual include
@@ -97,10 +106,14 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QString& p
                 // push the match position forward so we can check the next match
                 matchPosition += includeRegExp.matchedLength();
             }
+            
+            localFileData = localFileString.toLocal8Bit();
         }
         
-        connection->respond(HTTPConnection::StatusCode200, localFileString.toLocal8Bit(), qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
+        connection->respond(HTTPConnection::StatusCode200, localFileData,
+                            qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
     } else {
+        
         // respond with a 404
         connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
     }

@@ -73,7 +73,7 @@ public:
 
     // Use these for sending and receiving hand data
     int encodeRemoteData(unsigned char* destinationBuffer);
-    int decodeRemoteData(unsigned char* sourceBuffer);
+    int decodeRemoteData(const QByteArray& dataByteArray);
 
     /// Checks for penetration between the described sphere and the hand.
     /// \param penetratorCenter the center of the penetration test sphere
@@ -228,7 +228,7 @@ private:
     
     bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
     bool      _isCollidingWithPalm;
-    uint64_t  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
+    quint64  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
 };
 
 #endif /* defined(__hifi__HandData__) */

@@ -27,6 +27,24 @@
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
+typedef quint8 NodeType_t;
+
+namespace NodeType {
+    const NodeType_t DomainServer = 'D';
+    const NodeType_t VoxelServer = 'V';
+    const NodeType_t ParticleServer = 'P';
+    const NodeType_t MetavoxelServer = 'm';
+    const NodeType_t EnvironmentServer = 'E';
+    const NodeType_t Agent = 'I';
+    const NodeType_t AudioMixer = 'M';
+    const NodeType_t AvatarMixer = 'W';
+    const NodeType_t AnimationServer = 'a';
+    const NodeType_t Unassigned = 1;
+    
+    void init();
+    const QString& getNodeTypeName(NodeType_t nodeType);
+}
+
 class Node : public QObject {
     Q_OBJECT
 public:
@@ -38,16 +56,16 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-    const char* getTypeName() const;
+    
 
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    uint64_t getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(uint64_t wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    quint64 getWakeMicrostamp() const { return _wakeMicrostamp; }
+    void setWakeMicrostamp(quint64 wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
 
-    uint64_t getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
+    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
 
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     void setPublicSocket(const HifiSockAddr& publicSocket);
@@ -75,16 +93,19 @@ public:
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void setClockSkewUsec(int clockSkew) { _clockSkewUsec = clockSkew; }
     QMutex& getMutex() { return _mutex; }
+    
+    friend QDataStream& operator<<(QDataStream& out, const Node& node);
+    friend QDataStream& operator>>(QDataStream& in, Node& node);
 
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
 
-    char _type;
+    NodeType_t _type;
     QUuid _uuid;
-    uint64_t _wakeMicrostamp;
-    uint64_t _lastHeardMicrostamp;
+    quint64 _wakeMicrostamp;
+    quint64 _lastHeardMicrostamp;
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
     HifiSockAddr* _activeSocket;

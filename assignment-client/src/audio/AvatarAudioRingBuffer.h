@@ -17,7 +17,7 @@ class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     AvatarAudioRingBuffer();
     
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);

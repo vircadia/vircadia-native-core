@@ -92,7 +92,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void goToUser();
+    void goTo();
     void pasteToVoxel();
 
 private slots:
@@ -152,6 +152,7 @@ private:
     QAction* _useVoxelShader;
     int _maxVoxelPacketsPerSecond;
     QMenu* _activeScriptsMenu;
+    QString replaceLastOccurrence(QChar search, QChar replace, QString string);
 };
 
 namespace MenuOption {
@@ -210,7 +211,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString GoToUser = "Go To User...";
+    const QString GoTo = "Go To...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";

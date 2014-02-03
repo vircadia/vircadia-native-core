@@ -20,7 +20,7 @@ function scriptEnding() {
 }
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(displayCount);
+Script.willSendVisualDataCallback.connect(displayCount);
 
 // register our scriptEnding callback
-Agent.scriptEnding.connect(scriptEnding);
+Script.scriptEnding.connect(scriptEnding);

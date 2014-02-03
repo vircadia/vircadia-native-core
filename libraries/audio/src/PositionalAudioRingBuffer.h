@@ -24,9 +24,9 @@ public:
     PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type);
     ~PositionalAudioRingBuffer();
     
-    int parseData(unsigned char* sourceBuffer, int numBytes);
-    int parsePositionalData(unsigned char* sourceBuffer, int numBytes);
-    int parseListenModeData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
+    int parsePositionalData(const QByteArray& positionalByteArray);
+    int parseListenModeData(const QByteArray& listenModeByteArray);
     
     bool shouldBeAddedToMix(int numJitterBufferSamples);
     

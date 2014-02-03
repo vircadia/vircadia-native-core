@@ -24,7 +24,7 @@ const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);
 const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
 const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
-const uint64_t CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if we want to resend changed voxels
+const quint64 CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if we want to resend changed voxels
 
 const int   TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
 

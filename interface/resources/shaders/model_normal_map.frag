@@ -37,5 +37,5 @@ void main(void) {
     
     // modulate texture by base color and add specular contribution
     gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) +
-        pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular;
+        vec4(pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular.rgb, 0.0);
 }

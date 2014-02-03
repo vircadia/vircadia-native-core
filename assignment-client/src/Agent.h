@@ -15,13 +15,19 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <ParticleTree.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
+    
+    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
-    Agent(const unsigned char* dataBuffer, int numBytes);
+    Agent(const QByteArray& packet);
+    
+    void setIsAvatar(bool isAvatar) { _scriptEngine.setIsAvatar(isAvatar); }
+    bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
 public slots:
     void run();
@@ -32,6 +38,7 @@ signals:
     void willSendVisualDataCallback();
 private:
     ScriptEngine _scriptEngine;
+    ParticleTree _particleTree;
 };
 
 #endif /* defined(__hifi__Agent__) */

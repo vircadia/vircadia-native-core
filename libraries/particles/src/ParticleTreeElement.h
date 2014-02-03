@@ -26,6 +26,17 @@ public:
     QList<Particle> _movingParticles;
 };
 
+class FindAndUpdateParticleIDArgs {
+public:
+    uint32_t particleID;
+    uint32_t creatorTokenID;
+    bool creatorTokenFound;
+    bool viewedParticleFound;
+    bool isViewing;
+};
+
+
+
 class ParticleTreeElement : public OctreeElement {
     friend class ParticleTree; // to allow createElement to new us...
 
@@ -86,14 +97,26 @@ public:
     void update(ParticleTreeUpdateArgs& args);
     void setTree(ParticleTree* tree) { _myTree = tree; }
 
-    bool containsParticle(const Particle& particle) const;
     bool updateParticle(const Particle& particle);
+    bool updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
+    void updateParticleID(FindAndUpdateParticleIDArgs* args);
+
     const Particle* getClosestParticle(glm::vec3 position) const;
-    QVector<const Particle*> getParticles(glm::vec3 position, float radius) const;
+
+    /// finds all particles that touch a sphere
+    /// \param position the center of the query sphere
+    /// \param radius the radius of the query sphere
+    /// \param particles[out] vector of const Particle*
+    void getParticles(const glm::vec3& position, float radius, QVector<const Particle*>& foundParticles) const;
+
+    /// finds all particles that touch a box
+    /// \param box the query box
+    /// \param particles[out] vector of non-const Particle*
+    void getParticlesForUpdate(const AABox& box, QVector<Particle*>& foundParticles);
+
     const Particle* getParticleWithID(uint32_t id) const;
 
     bool removeParticleWithID(uint32_t id);
-
 
 protected:
     virtual void init(unsigned char * octalCode);

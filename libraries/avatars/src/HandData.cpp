@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QDataStream>
+
 #include "HandData.h"
 #include "AvatarData.h"
 #include <SharedUtil.h>
@@ -157,22 +159,22 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
     return destinationBuffer - startPosition;
 }
 
-int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
-    const unsigned char* startPosition = sourceBuffer;
-        
+int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
+    const unsigned char* startPosition;
+    const unsigned char* sourceBuffer = startPosition = reinterpret_cast<const unsigned char*>(dataByteArray.data());
     unsigned int numHands = *sourceBuffer++;
     
     for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
         if (handIndex >= getNumPalms())
             addNewPalm();
         PalmData& palm = getPalms()[handIndex];
-
+        
         glm::vec3 handPosition;
         glm::vec3 handNormal;
         sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handPosition, fingerVectorRadix);
         sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handNormal, fingerVectorRadix);
         unsigned int numFingers = *sourceBuffer++;
-
+        
         palm.setRawPosition(handPosition);
         palm.setRawNormal(handNormal);
         palm.setActive(true);
@@ -183,12 +185,12 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
             if (fingerIndex < palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
-
+                
                 glm::vec3 tipPosition;
                 glm::vec3 rootPosition;
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, tipPosition, fingerVectorRadix);
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, rootPosition, fingerVectorRadix);
-
+                
                 finger.setRawTipPosition(tipPosition);
                 finger.setRawRootPosition(rootPosition);
                 finger.setActive(true);
@@ -210,7 +212,7 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
     unsigned char checkLength = *sourceBuffer++;
     assert(checkLength == requiredLength);
-
+    
     return sourceBuffer - startPosition;
 }
 

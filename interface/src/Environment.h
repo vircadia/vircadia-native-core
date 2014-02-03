@@ -34,7 +34,7 @@ public:
     
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
     
-    int parseData(const HifiSockAddr& senderSockAddr, unsigned char* sourceBuffer, int numBytes);
+    int parseData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     
 private:
 

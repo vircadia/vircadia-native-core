@@ -90,7 +90,7 @@ private:
     bool _tcpEnabled;
     int _tcpRetryCount;
     bool _tracking;
-    uint64_t _lastTrackingStateReceived;
+    quint64 _lastTrackingStateReceived;
     
     glm::quat _headRotation;
     glm::vec3 _headAngularVelocity;

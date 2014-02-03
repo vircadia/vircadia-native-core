@@ -142,7 +142,7 @@ public:
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
     QGLWidget* getGLWidget() { return _glWidget; }
-    MyAvatar* getAvatar() { return &_myAvatar; }
+    MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -175,8 +175,7 @@ public:
     Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
-    void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
-                                    const QSet<NODE_TYPE>& destinationNodeTypes);
+    void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
     void setupWorldLight();
 
@@ -265,7 +264,7 @@ private:
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
-    static void sendPingPackets();
+    void sendPingPackets();
 
     void initDisplay();
     void init();
@@ -299,14 +298,18 @@ private:
     void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateAvatar(float deltaTime);
-    void queryOctree(NODE_TYPE serverType, PACKET_TYPE packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
 
     void updateShadowMap();
     void displayOverlay();
+    void displayStatsBackground(unsigned int rgba, int x, int y, int width, int height);
     void displayStats();
+    void checkStatsClick();
+    void toggleStatsExpanded();
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();
@@ -327,6 +330,7 @@ private:
     QMainWindow* _window;
     QGLWidget* _glWidget;
 
+    bool _statsExpanded;
     BandwidthMeter _bandwidthMeter;
     
     QThread* _nodeThread;
@@ -351,7 +355,7 @@ private:
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
-    VoxelImporter _voxelImporter;
+    VoxelImporter* _voxelImporter;
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
@@ -370,10 +374,10 @@ private:
     VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
 
     AvatarManager _avatarManager;
-    MyAvatar _myAvatar;                  // The rendered avatar of oneself
-    Profile _profile;                    // The data-server linked profile for this user
+    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Profile _profile;               // The data-server linked profile for this user
 
-    Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
+    Transmitter _myTransmitter;     // Gets UDP data from transmitter app used to animate the avatar
 
     Faceshift _faceshift;
 
@@ -399,7 +403,7 @@ private:
     int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
-    uint64_t _lastMouseMove;
+    quint64 _lastMouseMove;
     bool _mouseHidden;
     bool _seenMouseMove;
 
@@ -477,9 +481,8 @@ private:
 
     PieMenu _pieMenu;
 
-    int parseOctreeStats(unsigned char* messageData, ssize_t messageLength, const HifiSockAddr& senderAddress);
-    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength,
-                                  const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
+    int parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderAddress);
+    void trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
@@ -500,6 +503,7 @@ private:
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
+    void takeSnapshot();
 };
 
 #endif /* defined(__interface__Application__) */

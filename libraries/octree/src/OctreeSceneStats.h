@@ -88,7 +88,7 @@ public:
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
 
     /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -153,8 +153,7 @@ public:
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(unsigned char* messageData, ssize_t messageLength, 
-                                        bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
 
     unsigned int getIncomingPackets() const { return _incomingPacket; }
     unsigned long getIncomingBytes() const { return _incomingBytes; } 
@@ -173,17 +172,17 @@ private:
 
     // scene timing data in usecs
     bool _isStarted;
-    uint64_t _start;
-    uint64_t _end;
-    uint64_t _elapsed;
-    uint64_t _lastFullElapsed;
+    quint64 _start;
+    quint64 _end;
+    quint64 _elapsed;
+    quint64 _lastFullElapsed;
     
     SimpleMovingAverage _elapsedAverage;
     SimpleMovingAverage _bitsPerOctreeAverage;
 
-    uint64_t _totalEncodeTime;
-    uint64_t _lastFullTotalEncodeTime;
-    uint64_t _encodeStart;
+    quint64 _totalEncodeTime;
+    quint64 _lastFullTotalEncodeTime;
+    quint64 _encodeStart;
     
     // scene octree related data
     unsigned long _totalElements;

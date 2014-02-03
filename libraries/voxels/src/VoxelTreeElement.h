@@ -126,3 +126,4 @@ inline unsigned char VoxelTreeElement::getExteriorOcclusions() const {
 }
 
 #endif /* defined(__hifi__VoxelTreeElement__) */
+

@@ -16,7 +16,6 @@
 
 #include <EnvironmentData.h>
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <JurisdictionListener.h>
@@ -152,7 +151,7 @@ static void renderMovingBug() {
     }
     
     // send the "erase message" first...
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_ERASE;
+    PacketType message = PacketTypeVoxelErase;
     ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
     
     // Move the bug...
@@ -212,7 +211,7 @@ static void renderMovingBug() {
     }
     
     // send the "create message" ...
-    message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE;
+    message = PacketTypeVoxelSetDestructive;
     ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
 }
 
@@ -247,7 +246,7 @@ static void sendVoxelBlinkMessage() {
     detail.green = 0   * ::intensity;
     detail.blue  = 0   * ::intensity;
     
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE;
+    PacketType message = PacketTypeVoxelSetDestructive;
     
     ::voxelEditPacketSender->sendVoxelEditMessage(message, detail);
 }
@@ -264,7 +263,7 @@ unsigned char onColor[3]  = {   0, 255, 255 };
 const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th meter
 
 static void sendBlinkingStringOfLights() {
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
+    PacketType message = PacketTypeVoxelSetDestructive; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
     static VoxelDetail details[LIGHTS_PER_SEGMENT];
     
@@ -370,7 +369,7 @@ const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
+    PacketType message = PacketTypeVoxelSetDestructive; // we're a bully!
     float lightScale = DANCE_FLOOR_LIGHT_SIZE;
     static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
     
@@ -486,7 +485,7 @@ bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
 };
 
 static void sendBillboard() {
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
+    PacketType message = PacketTypeVoxelSetDestructive; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
     static VoxelDetail details[VOXELS_PER_PACKET];
     
@@ -557,7 +556,7 @@ void doBuildStreet() {
         return;
     }
     
-    PACKET_TYPE message = PACKET_TYPE_VOXEL_SET_DESTRUCTIVE; // we're a bully!
+    PacketType message = PacketTypeVoxelSetDestructive; // we're a bully!
     static VoxelDetail details[BRICKS_PER_PACKET];
     
     for (int z = 0; z < ROAD_LENGTH; z++) {
@@ -592,8 +591,8 @@ double start = 0;
 
 void* animateVoxels(void* args) {
     
-    uint64_t lastAnimateTime = 0;
-    uint64_t lastProcessTime = 0;
+    quint64 lastAnimateTime = 0;
+    quint64 lastProcessTime = 0;
     int processesPerAnimate = 0;
     
     bool firstTime = true;
@@ -623,8 +622,8 @@ void* animateVoxels(void* args) {
             
             // The while loop will be running at PROCESSING_FPS, but we only want to call these animation functions at
             // ANIMATE_FPS. So we check out last animate time and only call these if we've elapsed that time.
-            uint64_t now = usecTimestampNow();
-            uint64_t animationElapsed = now - lastAnimateTime;
+            quint64 now = usecTimestampNow();
+            quint64 animationElapsed = now - lastAnimateTime;
             int withinAnimationTarget = ANIMATE_VOXELS_INTERVAL_USECS - animationElapsed;
             const int CLOSE_ENOUGH_TO_ANIMATE = 2000; // approximately 2 ms
             
@@ -677,7 +676,7 @@ void* animateVoxels(void* args) {
             processesPerAnimate++;
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        uint64_t usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
+        quint64 usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
         if (usecToSleep > PROCESSING_INTERVAL_USECS) {
             usecToSleep = PROCESSING_INTERVAL_USECS;
         }
@@ -695,7 +694,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
 {
     ::start = usecTimestampNow();
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NodeType::AnimationServer, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     // Handle Local Domain testing with the --local command line
@@ -807,7 +806,7 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
     
     pthread_create(&::animateVoxelThread, NULL, animateVoxels, NULL);
 
-    NodeList::getInstance()->addNodeTypeToInterestSet(NODE_TYPE_VOXEL_SERVER);
+    NodeList::getInstance()->addNodeTypeToInterestSet(NodeType::VoxelServer);
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, SIGNAL(timeout()), nodeList, SLOT(sendDomainServerCheckIn()));
@@ -823,25 +822,24 @@ AnimationServer::AnimationServer(int &argc, char **argv) :
 void AnimationServer::readPendingDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
   
-    static int receivedBytes = 0;
-    static unsigned char packetData[MAX_PACKET_SIZE];
+    static QByteArray receivedPacket;
     static HifiSockAddr nodeSockAddr;
     
     // Nodes sending messages to us...
-    while (nodeList->getNodeSocket().hasPendingDatagrams()
-        && (receivedBytes = nodeList->getNodeSocket().readDatagram((char*) packetData, MAX_PACKET_SIZE,
-                                                                   nodeSockAddr.getAddressPointer(),
-                                                                   nodeSockAddr.getPortPointer())) &&
-        packetVersionMatch(packetData, nodeSockAddr)) {
-        
-        if (packetData[0] == PACKET_TYPE_JURISDICTION) {
-            int headerBytes = numBytesForPacketHeader(packetData);
-            // PACKET_TYPE_JURISDICTION, first byte is the node type...
-            if (packetData[headerBytes] == NODE_TYPE_VOXEL_SERVER && ::jurisdictionListener) {
-                ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, packetData, receivedBytes);
+    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
+        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
+                                               nodeSockAddr.getAddressPointer(), nodeSockAddr.getPortPointer());
+        if (packetVersionMatch(receivedPacket)) {
+            if (packetTypeForPacket(receivedPacket) == PacketTypeJurisdiction) {
+                int headerBytes = numBytesForPacketHeader(receivedPacket);
+                // PacketType_JURISDICTION, first byte is the node type...
+                if (receivedPacket.data()[headerBytes] == NodeType::VoxelServer && ::jurisdictionListener) {
+                    ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, receivedPacket);
+                }
             }
+            NodeList::getInstance()->processNodeData(nodeSockAddr, receivedPacket);
         }
-        NodeList::getInstance()->processNodeData(nodeSockAddr, packetData, receivedBytes);
     }
 }
 

@@ -19,6 +19,7 @@
 
 #include <DatagramSequencer.h>
 #include <MetavoxelData.h>
+#include <MetavoxelMessages.h>
 
 #include "renderer/ProgramObject.h"
 
@@ -31,10 +32,11 @@ class MetavoxelSystem : public QObject {
 public:
 
     MetavoxelSystem();
+    ~MetavoxelSystem();
 
     void init();
     
-    MetavoxelData& getData() { return _data; }
+    void applyEdit(const MetavoxelEditMessage& edit);
     
     void processData(const QByteArray& data, const HifiSockAddr& sender);
     
@@ -48,7 +50,7 @@ public slots:
     
 private:
 
-    Q_INVOKABLE void addClient(const QUuid& uuid, const HifiSockAddr& address);
+    Q_INVOKABLE void addClient(const SharedNodePointer& node);
     Q_INVOKABLE void removeClient(const QUuid& uuid);
     Q_INVOKABLE void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
@@ -71,7 +73,6 @@ private:
     static ProgramObject _program;
     static int _pointScaleLocation;
     
-    MetavoxelData _data;
     QVector<Point> _points;
     PointVisitor _pointVisitor;
     QOpenGLBuffer _buffer;
@@ -86,13 +87,16 @@ class MetavoxelClient : public QObject {
     
 public:
     
-    MetavoxelClient(const HifiSockAddr& address);
+    MetavoxelClient(const SharedNodePointer& node);
+    virtual ~MetavoxelClient();
 
     const QUuid& getSessionID() const { return _sessionID; }
 
-    void simulate(float deltaTime);
+    void applyEdit(const MetavoxelEditMessage& edit);
 
-    void receivedData(const QByteArray& data, const HifiSockAddr& sender);
+    void simulate(float deltaTime, MetavoxelVisitor& visitor);
+
+    void receivedData(const QByteArray& data);
 
 private slots:
     
@@ -109,15 +113,15 @@ private:
     class ReceiveRecord {
     public:
         int packetNumber;
-        MetavoxelDataPointer data;
+        MetavoxelData data;
     };
     
-    HifiSockAddr _address;
+    SharedNodePointer _node;
     QUuid _sessionID;
     
     DatagramSequencer _sequencer;
     
-    MetavoxelDataPointer _data;
+    MetavoxelData _data;
     
     QList<ReceiveRecord> _receiveRecords;
 };

@@ -23,6 +23,12 @@ class DatagramSequencer : public QObject {
 
 public:
     
+    class HighPriorityMessage {
+    public:
+        QVariant data;
+        int firstPacketNumber;
+    };
+    
     DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
     
     /// Returns the packet number of the last packet sent.
@@ -30,6 +36,15 @@ public:
     
     /// Returns the packet number of the last packet received (or the packet currently being assembled).
     int getIncomingPacketNumber() const { return _incomingPacketNumber; }
+    
+    /// Returns the packet number of the sent packet at the specified index.
+    int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
+    
+    /// Adds a message to the high priority queue.  Will be sent with every outgoing packet until received.
+    void sendHighPriorityMessage(const QVariant& data);
+    
+    /// Returns a reference to the list of high priority messages not yet acknowledged.
+    const QList<HighPriorityMessage>& getHighPriorityMessages() const { return _highPriorityMessages; }
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -49,6 +64,9 @@ signals:
     
     /// Emitted when a packet is available to read.
     void readyToRead(Bitstream& input);
+    
+    /// Emitted when we've received a high-priority message
+    void receivedHighPriorityMessage(const QVariant& data);
     
     /// Emitted when a sent packet has been acknowledged by the remote side.
     /// \param index the index of the packet in our list of send records
@@ -71,6 +89,7 @@ private:
     public:
         int packetNumber;
         Bitstream::ReadMappings mappings;
+        int newHighPriorityMessages;
     
         bool operator<(const ReceiveRecord& other) const { return packetNumber < other.packetNumber; }
     };
@@ -104,6 +123,9 @@ private:
     Bitstream _inputStream;
     QSet<int> _offsetsReceived;
     int _remainingBytes;
+    
+    QList<HighPriorityMessage> _highPriorityMessages;
+    int _receivedHighPriorityMessages;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

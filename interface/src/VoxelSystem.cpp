@@ -16,7 +16,6 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <NodeList.h>
-#include <NodeTypes.h>
 
 #include "Application.h"
 #include "CoverageMap.h"
@@ -581,17 +580,17 @@ bool VoxelSystem::readFromSchematicFile(const char* filename) {
     return result;
 }
 
-int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
+int VoxelSystem::parseData(const QByteArray& packet) {
     bool showTimingDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData()",showTimingDetails);
 
-    unsigned char command = *sourceBuffer;
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    PacketType command = packetTypeForPacket(packet);
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
     switch(command) {
-        case PACKET_TYPE_VOXEL_DATA: {
-            PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() PACKET_TYPE_VOXEL_DATA part...",showTimingDetails);
-
-            unsigned char* dataAt = sourceBuffer + numBytesPacketHeader;
+        case PacketTypeVoxelData: {
+            PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() PacketType_VOXEL_DATA part...",showTimingDetails);
+            
+            const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
             VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
             dataAt += sizeof(VOXEL_PACKET_FLAGS);
@@ -608,7 +607,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             int flightTime = arrivedAt - sentAt;
 
             VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-            int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
+            int dataBytes = packet.size() - VOXEL_PACKET_HEADER_SIZE;
 
             int subsection = 1;
             while (dataBytes > 0) {
@@ -636,7 +635,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                " color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d"
                                " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                            sequence, flightTime, numBytes, dataBytes, subsection, sectionLength, packetData.getUncompressedSize());
+                            sequence, flightTime, packet.size(), dataBytes, subsection, sectionLength,
+                               packetData.getUncompressedSize());
                     }
                     _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                     unlockTree();
@@ -647,7 +647,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             }
             subsection++;
         }
-        break;
+        default:
+            break;
     }
     if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
         setupNewVoxelsForDrawing();
@@ -655,9 +656,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
 
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(packet.size());
 
-    return numBytes;
+    return packet.size();
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
@@ -668,8 +669,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         return; // bail early if we're not initialized
     }
 
-    uint64_t start = usecTimestampNow();
-    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    quint64 start = usecTimestampNow();
+    quint64 sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
@@ -729,7 +730,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 		_bufferWriteLock.unlock();
 	}
 
-    uint64_t end = usecTimestampNow();
+    quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
@@ -746,8 +747,8 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "setupNewVoxelsForDrawingSingleNode() xxxxx");
 
-    uint64_t start = usecTimestampNow();
-    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    quint64 start = usecTimestampNow();
+    quint64 sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (allowBailEarly && !iAmDebugging &&
@@ -777,7 +778,7 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 
 		_bufferWriteLock.unlock();
 	}
-    uint64_t end = usecTimestampNow();
+    quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
@@ -786,14 +787,14 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 void VoxelSystem::checkForCulling() {
 
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
-    uint64_t start = usecTimestampNow();
+    quint64 start = usecTimestampNow();
 
     // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
     // it's been a long time since we last moved, then go ahead and do a full frustum cull.
     if (isViewChanging()) {
         _lastViewIsChanging = start;
     }
-    uint64_t sinceLastMoving = (start - _lastViewIsChanging) / 1000;
+    quint64 sinceLastMoving = (start - _lastViewIsChanging) / 1000;
     bool enoughTime = (sinceLastMoving >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS));
 
     // These has changed events will occur before we stop. So we need to remember this for when we finally have stopped
@@ -815,7 +816,7 @@ void VoxelSystem::checkForCulling() {
     hideOutOfView(forceFullFrustum);
 
     if (forceFullFrustum) {
-        uint64_t endViewCulling = usecTimestampNow();
+        quint64 endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000;
     }
 
@@ -824,7 +825,7 @@ void VoxelSystem::checkForCulling() {
     // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
     cleanupRemovedVoxels();
 
-    uint64_t sinceLastAudit = (start - _lastAudit) / 1000;
+    quint64 sinceLastAudit = (start - _lastAudit) / 1000;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
         if (sinceLastAudit >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) {
@@ -1895,7 +1896,7 @@ void VoxelSystem::falseColorizeBySource() {
     // create a bunch of colors we'll use during colorization
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-        if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        if (node->getType() == NodeType::VoxelServer) {
             uint16_t nodeID = VoxelTreeElement::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
@@ -2995,7 +2996,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 }
 
 void VoxelSystem::nodeAdded(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    if (node->getType() == NodeType::VoxelServer) {
         qDebug("VoxelSystem... voxel server %s added...", node->getUUID().toString().toLocal8Bit().constData());
         _voxelServerCount++;
     }
@@ -3016,7 +3017,7 @@ bool VoxelSystem::killSourceVoxelsOperation(OctreeElement* element, void* extraD
 }
 
 void VoxelSystem::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+    if (node->getType() == NodeType::VoxelServer) {
         _voxelServerCount--;
         QUuid nodeUUID = node->getUUID();
         qDebug("VoxelSystem... voxel server %s removed...", nodeUUID.toString().toLocal8Bit().constData());

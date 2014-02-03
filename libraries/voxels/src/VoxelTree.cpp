@@ -224,7 +224,7 @@ void VoxelTree::nudgeLeaf(VoxelTreeElement* element, void* extraData) {
     glm::vec3 nudge = args->nudgeVec;
 
     // delete the old element
-    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_VOXEL_ERASE, voxelDetails);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PacketTypeVoxelErase, voxelDetails);
 
     // nudge the old element
     voxelDetails.x += nudge.x;
@@ -232,7 +232,7 @@ void VoxelTree::nudgeLeaf(VoxelTreeElement* element, void* extraData) {
     voxelDetails.z += nudge.z;
 
     // create a new voxel in its stead
-    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_VOXEL_SET_DESTRUCTIVE, voxelDetails);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PacketTypeVoxelSetDestructive, voxelDetails);
 }
 
 // Recurses voxel element with an operation function
@@ -508,32 +508,33 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelTreeElement* node, ReadC
     }
 }
 
-bool VoxelTree::handlesEditPacketType(PACKET_TYPE packetType) const {
+bool VoxelTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_VOXEL_SET:
-        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE:
-        case PACKET_TYPE_VOXEL_ERASE:
+        case PacketTypeVoxelSet:
+        case PacketTypeVoxelSetDestructive:
+        case PacketTypeVoxelErase:
             return true;
+        default:
+            return false;
+            
     }
-    return false;
 }
 
-int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* packetData, int packetLength,
-                    unsigned char* editData, int maxLength, Node* senderNode) {
-
-    int processedBytes = 0;
+int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+                    const unsigned char* editData, int maxLength, Node* senderNode) {
+    
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PACKET_TYPE_VOXEL_SET:
-        case PACKET_TYPE_VOXEL_SET_DESTRUCTIVE: {
-            bool destructive = (packetType == PACKET_TYPE_VOXEL_SET_DESTRUCTIVE);
+        case PacketTypeVoxelSet:
+        case PacketTypeVoxelSetDestructive: {
+            bool destructive = (packetType == PacketTypeVoxelSetDestructive);
             int octets = numberOfThreeBitSectionsInCode(editData, maxLength);
 
             if (octets == OVERFLOWED_OCTCODE_BUFFER) {
                 printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
                 printf("bailing processing of packet!\n");
-                return processedBytes;
+                return 0;
             }
 
             const int COLOR_SIZE_IN_BYTES = 3;
@@ -543,7 +544,7 @@ int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* pack
             if (voxelDataSize > maxLength) {
                 printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
                 printf("bailing processing of packet!\n");
-                return processedBytes;
+                return 0;
             }
 
             readCodeColorBufferToTree(editData, destructive);
@@ -551,10 +552,11 @@ int VoxelTree::processEditPacketData(PACKET_TYPE packetType, unsigned char* pack
             return voxelDataSize;
         } break;
 
-        case PACKET_TYPE_VOXEL_ERASE:
+        case PacketTypeVoxelErase:
             processRemoveOctreeElementsBitstream((unsigned char*)packetData, packetLength);
             return maxLength;
+        default:
+            return 0;
     }
-    return processedBytes;
 }
 

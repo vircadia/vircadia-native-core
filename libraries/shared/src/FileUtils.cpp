@@ -10,9 +10,9 @@
 #include <QtCore>
 #include <QDesktopServices>
 
-void FileUtils::LocateFile(QString filePath) {
+void FileUtils::locateFile(QString filePath) {
 
-    // adopted from
+    // adapted from
     // http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
     // and
     // http://lynxline.com/show-in-finder-show-in-explorer/
@@ -53,4 +53,27 @@ void FileUtils::LocateFile(QString filePath) {
         const QString folder = fileInfo.path();
         QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
     }
+}
+
+QString FileUtils::standardPath(QString subfolder) {
+    // standard path
+    // Mac: ~/Library/Application Support/Interface
+    QString path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    path.append("/Interface");
+    
+    if (!subfolder.startsWith("/")) {
+        subfolder.prepend("/");
+    }
+    
+    if (!subfolder.endsWith("/")) {
+        subfolder.append("/");
+    }
+    
+    path.append(subfolder);
+    QDir logDir(path);
+    if (!logDir.exists(path)) {
+        logDir.mkpath(path);
+    }
+    
+    return path;
 }

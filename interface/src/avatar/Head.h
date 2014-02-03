@@ -46,9 +46,6 @@ public:
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     
-    float getMousePitch() const { return _mousePitch; }
-    void setMousePitch(float mousePitch);
-
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
@@ -99,8 +96,6 @@ private:
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
-    float _cameraPitch; //  Used to position the camera differently from the head
-    float _mousePitch;
     float _cameraYaw;
     bool _isCameraMoving;
     FaceModel _faceModel;
