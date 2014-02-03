@@ -312,22 +312,35 @@ void ScriptEngine::timerFired() {
     }
 }
 
-void ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
+QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
     // create the timer, add it to the map, and start it
     QTimer* newTimer = new QTimer(this);
-    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
-    _timerFunctionMap.insert(newTimer, function);
-    
     newTimer->setSingleShot(isSingleShot);
     
+    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
+    
+    // make sure the timer stops when the script does
+    connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+    
+    _timerFunctionMap.insert(newTimer, function);
+    
     newTimer->start(intervalMS);
+    return newTimer;
 }
 
-void ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
-    setupTimerWithInterval(function, intervalMS, false);
+QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    return setupTimerWithInterval(function, intervalMS, false);
 }
 
-void ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
-    setupTimerWithInterval(function, timeoutMS, true);
+QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    return setupTimerWithInterval(function, timeoutMS, true);
+}
+
+void ScriptEngine::stopTimer(QTimer *timer) {
+    if (_timerFunctionMap.contains(timer)) {
+        timer->stop();
+        _timerFunctionMap.remove(timer);
+        delete timer;
+    }
 }
 

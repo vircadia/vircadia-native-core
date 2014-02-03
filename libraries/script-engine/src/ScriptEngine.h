@@ -68,9 +68,11 @@ public slots:
     void stop();
     void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
     
-    void setInterval(const QScriptValue& function, int intervalMS);
-    void setTimeout(const QScriptValue& function, int timeoutMS);
-
+    QObject* setInterval(const QScriptValue& function, int intervalMS);
+    QObject* setTimeout(const QScriptValue& function, int timeoutMS);
+    void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
@@ -87,7 +89,8 @@ protected:
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
-    void setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    void stopTimer(QTimer* timer);
     
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
