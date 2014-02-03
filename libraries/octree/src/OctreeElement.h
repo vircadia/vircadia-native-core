@@ -199,6 +199,19 @@ public:
         CHILD_UNKNOWN = -1
     };
 
+	struct HalfSpace {
+		enum {
+			Bottom	= 0x01,
+			Top		= 0x02,
+			Right	= 0x04,
+			Left	= 0x08,
+			Near	= 0x10,
+			Far		= 0x20,
+			All		= 0x3f,
+		};
+	};
+
+
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
 protected:

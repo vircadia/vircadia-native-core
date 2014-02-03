@@ -438,6 +438,13 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(trueColorize()));
 
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, 
+								  MenuOption::CullSharedFaces, 
+								  Qt::CTRL | Qt::SHIFT | Qt::Key_C, 
+								  false,
+                                  appInstance->getVoxels(),
+                                  SLOT(cullSharedFaces()));
+
     addDisabledActionAndSeparator(renderDebugMenu, "Coverage Maps");
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::FalseColorOccluded,

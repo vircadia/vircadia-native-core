@@ -49,6 +49,8 @@ public:
 
 
 
+    int getPrimitiveIndex() const { return _primitiveIndex; }
+    void setPrimitiveIndex(int index) { _primitiveIndex = index; }
     glBufferIndex getBufferIndex() const { return _glBufferIndex; }
     bool isKnownBufferIndex() const { return !_unknownBufferIndex; }
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
@@ -68,7 +70,12 @@ public:
 
     void setDensity(float density) { _density = density; }
     float getDensity() const { return _density; }
-    
+
+	void setInteriorOcclusions(unsigned char interiorExclusions);
+	void setExteriorOcclusions(unsigned char exteriorOcclusions);
+	unsigned char getExteriorOcclusions() const;
+	unsigned char getInteriorOcclusions() const;
+
     // type safe versions of OctreeElement methods
     VoxelTreeElement* getChildAtIndex(int childIndex) { return (VoxelTreeElement*)OctreeElement::getChildAtIndex(childIndex); }
     VoxelTreeElement* addChildAtIndex(int childIndex) { return (VoxelTreeElement*)OctreeElement::addChildAtIndex(childIndex); }
@@ -89,7 +96,33 @@ protected:
 
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
+
+private:
+	int _primitiveIndex;
+	unsigned char _exteriorOcclusions;	///< exterior shared partition boundaries that are completely occupied
+	unsigned char _interiorOcclusions;	///< interior shared partition boundaries with siblings
 };
 
+inline void VoxelTreeElement::setExteriorOcclusions(unsigned char exteriorOcclusions) { 
+	if (_exteriorOcclusions != exteriorOcclusions) {
+		_exteriorOcclusions = exteriorOcclusions; 
+		setDirtyBit();
+	}
+}
+
+inline void VoxelTreeElement::setInteriorOcclusions(unsigned char interiorOcclusions) { 
+	if (_interiorOcclusions != interiorOcclusions) {
+		_interiorOcclusions = interiorOcclusions; 
+		setDirtyBit();
+	}
+}
+
+inline unsigned char VoxelTreeElement::getInteriorOcclusions() const { 
+	return _interiorOcclusions; 
+}
+
+inline unsigned char VoxelTreeElement::getExteriorOcclusions() const { 
+	return _exteriorOcclusions; 
+}
 
 #endif /* defined(__hifi__VoxelTreeElement__) */

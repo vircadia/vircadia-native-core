@@ -60,7 +60,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     : NodeData(),
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
-      _initialized(false) {
+      _initialized(false),
+	  _usePrimitiveRenderer(false),
+	  _renderer(0) {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
@@ -102,12 +104,13 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _inhideOutOfView = false;
     _treeIsBusy = false;
 
+
 }
 
 void VoxelSystem::elementDeleted(OctreeElement* element) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     if (voxel->getVoxelSystem() == this) {
-        if (_voxelsInWriteArrays != 0) {
+        if ((_voxelsInWriteArrays != 0) || _usePrimitiveRenderer) {
             forceRemoveNodeFromArrays(voxel);
         } else {
             if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
@@ -212,16 +215,16 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
         }
     }
     if (!inList) {
-        // make the index available for next node that needs to be drawn
-        _freeIndexLock.lock();
-        _freeIndexes.push_back(index);
-        _freeIndexLock.unlock();
+		// make the index available for next node that needs to be drawn
+		_freeIndexLock.lock();
+		_freeIndexes.push_back(index);
+		_freeIndexLock.unlock();
 
-        // make the VBO slot "invisible" in case this slot is not used
-        const glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
-        const float voxelScale = 0;
-        const nodeColor BLACK = {0, 0, 0, 0};
-        updateArraysDetails(index, startVertex, voxelScale, BLACK);
+		// make the VBO slot "invisible" in case this slot is not used
+		const glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
+		const float voxelScale = 0;
+		const nodeColor BLACK = {0, 0, 0, 0};
+		updateArraysDetails(index, startVertex, voxelScale, BLACK);
     }
 }
 
@@ -250,6 +253,8 @@ VoxelSystem::~VoxelSystem() {
 
     cleanupVoxelMemory();
     delete _tree;
+
+	_renderer = 0;
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
@@ -258,12 +263,12 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
     }
     bool wasInitialized = _initialized;
     if (wasInitialized) {
-        clearAllNodesBufferIndex();
-        cleanupVoxelMemory();
+		clearAllNodesBufferIndex();
+		cleanupVoxelMemory();
     }
     _maxVoxels = maxVoxels;
     if (wasInitialized) {
-        initVoxelMemory();
+		initVoxelMemory();
     }
     if (wasInitialized) {
         forceRedrawEntireTree();
@@ -281,6 +286,7 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
         cleanupVoxelMemory();
     }
     _useVoxelShader = useVoxelShader;
+	_usePrimitiveRenderer = false;
     if (wasInitialized) {
         initVoxelMemory();
     }
@@ -345,7 +351,8 @@ void VoxelSystem::cleanupVoxelMemory() {
 
             _writeVoxelShaderData = _readVoxelShaderData = NULL;
 
-        } else {
+        } else 
+		if (! _usePrimitiveRenderer) {
             // Destroy  glBuffers
             glDeleteBuffers(1, &_vboVerticesID);
             glDeleteBuffers(1, &_vboColorsID);
@@ -366,8 +373,11 @@ void VoxelSystem::cleanupVoxelMemory() {
             _writeVerticesArray = NULL;
             _readColorsArray = NULL;
             _writeColorsArray = NULL;
-
         }
+		else {
+			delete _renderer;
+			_renderer = 0;
+		}
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
@@ -452,7 +462,8 @@ void VoxelSystem::initVoxelMemory() {
 
         _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
         _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
-    } else {
+    } else 
+	if (! _usePrimitiveRenderer) {
 
         // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
         // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
@@ -496,7 +507,6 @@ void VoxelSystem::initVoxelMemory() {
         _readColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
         _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
-
         // create our simple fragment shader if we're the first system to init
         if (!_perlinModulateProgram.isLinked()) {
             switchToResourcesParentIfRequired();
@@ -516,6 +526,27 @@ void VoxelSystem::initVoxelMemory() {
             _shadowMapProgram.release();
         }
     }
+	else {
+		_renderer = new PrimitiveRenderer(_maxVoxels);
+        // create our simple fragment shader if we're the first system to init
+        if (!_perlinModulateProgram.isLinked()) {
+            switchToResourcesParentIfRequired();
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
+            _perlinModulateProgram.link();
+
+            _perlinModulateProgram.bind();
+            _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
+            _perlinModulateProgram.release();
+
+            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/shadow_map.frag");
+            _shadowMapProgram.link();
+
+            _shadowMapProgram.bind();
+            _shadowMapProgram.setUniformValue("shadowMap", 0);
+            _shadowMapProgram.release();
+        }
+	}
 
     _initialized = true;
 
@@ -655,8 +686,15 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         };
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
         _callsToTreesToArrays++;
+
         if (_writeRenderFullVBO) {
-            clearFreeBufferIndexes();
+			if (_usePrimitiveRenderer) {
+				delete _renderer;
+				_renderer = new PrimitiveRenderer(_maxVoxels);
+			}
+			else {
+				clearFreeBufferIndexes();
+			}
         }
         _voxelsUpdated = newTreeToArrays(_tree->getRoot());
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
@@ -672,17 +710,24 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         _voxelsUpdated = 0;
     }
 
-    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    _bufferWriteLock.lock();
+	if (_usePrimitiveRenderer) {
+		if (_voxelsUpdated) {
+			_voxelsDirty=true;
+		}
+	}
+	else {
+		// lock on the buffer write lock so we can't modify the data when the GPU is reading it
+		_bufferWriteLock.lock();
 
-    if (_voxelsUpdated) {
-        _voxelsDirty=true;
-    }
+		if (_voxelsUpdated) {
+			_voxelsDirty=true;
+		}
 
-    // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
-    copyWrittenDataToReadArrays(didWriteFullVBO);
+		// copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
+		copyWrittenDataToReadArrays(didWriteFullVBO);
 
-    _bufferWriteLock.unlock();
+		_bufferWriteLock.unlock();
+	}
 
     uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
@@ -710,23 +755,28 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                "setupNewVoxelsForDrawingSingleNode()... _bufferWriteLock.lock();" );
-        _bufferWriteLock.lock();
-    }
+	if (_usePrimitiveRenderer) {
+		_voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
+		_voxelsUpdated = 0;
+	}
+	else {
+		// lock on the buffer write lock so we can't modify the data when the GPU is reading it
+		{
+			PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+									"setupNewVoxelsForDrawingSingleNode()... _bufferWriteLock.lock();" );
+			_bufferWriteLock.lock();
+		}
 
-    _voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
+		_voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
 
-    // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
-    copyWrittenDataToReadArrays(_writeRenderFullVBO);
+		// copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
+		copyWrittenDataToReadArrays(_writeRenderFullVBO);
 
-    // after...
-    _voxelsUpdated = 0;
+		// after...
+		_voxelsUpdated = 0;
 
-    _bufferWriteLock.unlock();
-
+		_bufferWriteLock.unlock();
+	}
     uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
@@ -946,14 +996,24 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelTreeElement* node) {
         return 0;
     }
 
-    // if the node is not in the VBOs then we have nothing to do!
-    if (node->isKnownBufferIndex()) {
-        // If this node has not yet been written to the array, then add it to the end of the array.
-        glBufferIndex nodeIndex = node->getBufferIndex();
-        node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
-        freeBufferIndex(nodeIndex); // NOTE: This will make the node invisible!
-        return 1; // updated!
-    }
+	if (_usePrimitiveRenderer) {
+		int primitiveIndex = node->getPrimitiveIndex();
+		if (primitiveIndex) {
+			_renderer->remove(primitiveIndex);
+			node->setPrimitiveIndex(0);
+			return 1;
+		}
+	}
+	else {
+	    // if the node is not in the VBOs then we have nothing to do!
+	    if (node->isKnownBufferIndex()) {
+	        // If this node has not yet been written to the array, then add it to the end of the array.
+	        glBufferIndex nodeIndex = node->getBufferIndex();
+			node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+			freeBufferIndex(nodeIndex); // NOTE: This will make the node invisible!
+			return 1; // updated!
+		}
+	}
     return 0; // not-updated
 }
 
@@ -980,20 +1040,46 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
     if (forceDraw || node->isDirty()) {
         // If we're should render, use our legit location and scale,
         if (node->getShouldRender()) {
-            glm::vec3 startVertex = node->getCorner();
-            float voxelScale = node->getScale();
+			glm::vec3 startVertex = node->getCorner();
+			float voxelScale = node->getScale();
+			nodeColor const & color = node->getColor();
 
-            glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
-            if (reuseIndex && node->isKnownBufferIndex()) {
-                nodeIndex = node->getBufferIndex();
-            } else {
-                nodeIndex = getNextBufferIndex();
-                node->setBufferIndex(nodeIndex);
-                node->setVoxelSystem(this);
-            }
-            // populate the array with points for the 8 vertices and RGB color for each added vertex
-            updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
-            return 1; // updated!
+			if (_usePrimitiveRenderer) {
+				int primitiveIndex = node->getPrimitiveIndex();
+				if (primitiveIndex) {
+					_renderer->remove(primitiveIndex);
+					node->setPrimitiveIndex(0);
+				} 
+				else {
+					node->setVoxelSystem(this);
+				}
+				inspectForInteriorOcclusionsOperation(node, 0);
+
+				if (node->getInteriorOcclusions() != OctreeElement::HalfSpace::All) 
+				{
+					Cube *cube = new Cube(
+						startVertex.x, startVertex.y, startVertex.z, voxelScale, 
+						color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX],
+						node->getInteriorOcclusions());
+					if (cube) {
+						primitiveIndex = _renderer->add(cube);
+						node->setPrimitiveIndex(primitiveIndex);
+					}
+				}
+			}
+			else {
+				glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
+				if (reuseIndex && node->isKnownBufferIndex()) {
+					nodeIndex = node->getBufferIndex();
+				} else {
+					nodeIndex = getNextBufferIndex();
+					node->setBufferIndex(nodeIndex);
+					node->setVoxelSystem(this);
+				}
+				// populate the array with points for the 8 vertices and RGB color for each added vertex
+				updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
+			}
+			return 1; // updated!
         } else {
             // If we shouldn't render, and we're in reuseIndex mode, then free our index, this only operates
             // on nodes with known index values, so it's safe to call for any node.
@@ -1140,15 +1226,17 @@ void VoxelSystem::updateVBOs() {
     };
     // would like to include _callsToTreesToArrays
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
-    if (_voxelsDirty) {
-        if (_readRenderFullVBO) {
-            updateFullVBOs();
-        } else {
-            updatePartialVBOs();
-        }
-        _voxelsDirty = false;
-        _readRenderFullVBO = false;
-    }
+	if (! _usePrimitiveRenderer) {
+		if (_voxelsDirty) {
+			if (_readRenderFullVBO) {
+				updateFullVBOs();
+			} else {
+				updatePartialVBOs();
+			}
+			_voxelsDirty = false;
+			_readRenderFullVBO = false;
+		}
+	}
     _callsToTreesToArrays = 0; // clear it
 }
 
@@ -1274,7 +1362,8 @@ void VoxelSystem::render(bool texture) {
             glDisableVertexAttribArray(attributeLocation);
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
         }
-    } else {
+    } else 
+	if (!_usePrimitiveRenderer) {
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");
 
         {
@@ -1348,6 +1437,12 @@ void VoxelSystem::render(bool texture) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
     }
+	else {
+		applyScaleAndBindProgram(texture);
+		_renderer->render();
+		removeScaleAndReleaseProgram(texture);
+
+	}
 }
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
@@ -1411,6 +1506,7 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(OctreeElement* element, void
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     voxel->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+	voxel->setPrimitiveIndex(0);
     return true;
 }
 
@@ -1422,6 +1518,215 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes", _nodeCount);
     }
+}
+
+bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData) {
+    _nodeCount++;
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+
+	// Nothing to do at the leaf level
+	if (voxel->isLeaf()) {
+		return false;
+	}
+
+	// Bit mask of occluded shared faces indexed by child
+	unsigned char occludedSharedFace[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	// Traverse all pair combinations of children
+	for (int i = NUMBER_OF_CHILDREN; --i >= 0; ) {
+
+		VoxelTreeElement *childA = voxel->getChildAtIndex(i);
+		if (childA) {
+
+			// Get the child A's occluding faces, for a leaf that will be
+			// all six voxel faces, and for a non leaf, that will be
+			// all faces which are completely covered by four child octants.
+			unsigned char exteriorOcclusionsA = childA->getExteriorOcclusions();
+
+			if (exteriorOcclusionsA == 0) {
+				// There is nothing to be done with this child, next...
+				continue;
+			}
+
+			for (int j = i; --j >= 0; ) {
+
+				VoxelTreeElement *childB = voxel->getChildAtIndex(j);
+				if (childB) {
+
+					// Get child B's occluding faces
+					unsigned char exteriorOcclusionsB = childB->getExteriorOcclusions();
+
+					if (exteriorOcclusionsB == 0) {
+						// There is nothing to be done with this child, next...
+						continue;
+					}
+
+					// Determine the shared halfspace partition between siblings A and B,
+					// i.e., near/far, left/right, or top/bottom
+					unsigned char partition = octantIndexToSharedBitMask[i][j] &
+												exteriorOcclusionsA & exteriorOcclusionsB;
+
+					// Determine which face of each sibling is occluded.
+					// Note the intentionally crossed indicies. It is necessary because
+					// the octantIndexToBitMask is a partition occupancy mask. For
+					// example, if the near-left-top (NLT) and near-left-bottom (NLB) child voxels
+					// exist, the shared partition is top-bottom (TB), and thus the occluded
+					// shared face of the NLT voxel is its bottom face.
+					occludedSharedFace[i] |= (partition & octantIndexToBitMask[j]);
+					occludedSharedFace[j] |= (partition & octantIndexToBitMask[i]);
+				}
+			}
+			// Combine this voxel's interior excluded shared face only to those children which are coincident
+			// with the excluded face.
+			occludedSharedFace[i] |= (voxel->getInteriorOcclusions() & octantIndexToBitMask[i]);
+
+			// Inform the child
+			childA->setInteriorOcclusions(occludedSharedFace[i]);
+			if (occludedSharedFace[i]) {
+				//const glm::vec3& v = voxel->getCorner();
+				//float s = voxel->getScale();
+
+				//qDebug("Child %d of voxel at %f %f %f size: %f has %02x occlusions", i, v.x, v.y, v.z, s, occludedSharedFace[i]);
+			}
+		}
+	}
+    return true;
+}
+
+bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData) {
+    _nodeCount++;
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+
+	// Nothing to do at the leaf level
+	if (voxel->isLeaf()) {
+		return false;
+	}
+
+	// Count of exterior occluding faces of this voxel element indexed 
+	// by half space partition
+	unsigned int exteriorOcclusionsCt[6]   = { 0, 0, 0, 0, 0, 0 };
+
+	// Traverse all children
+	for (int i = NUMBER_OF_CHILDREN; --i >= 0; ) {
+
+		VoxelTreeElement *child = voxel->getChildAtIndex(i);
+		if (child) {
+				// Get the child's occluding faces, for a leaf, that will be
+				// all six voxel faces, and for a non leaf, that will be
+				// all faces which are completely covered by four child octants.
+				unsigned char exteriorOcclusionsOfChild = child->getExteriorOcclusions();
+				exteriorOcclusionsOfChild &= octantIndexToBitMask[i];
+
+				for (int j = 6; --j >= 0; ) {
+
+					// Determine if the halfspace partition indexed by 1 << j is
+					// present in the exterior occlusions of the child.
+					unsigned char partition = exteriorOcclusionsOfChild & (1 << j);
+
+					if (partition) {
+						exteriorOcclusionsCt[j]++;
+					}
+				}
+		}
+	}
+	{
+		// Derive the exterior occlusions of the voxel elements from the exclusions
+		// of its children
+		unsigned char exteriorOcclusions = 0;
+		for (int i = 6; --i >= 0; ) {
+			if (exteriorOcclusionsCt[i] == 4) {
+
+				// Exactly four octants qualify for full exterior occlusion
+				exteriorOcclusions |= (1 << i);
+			}
+		}
+
+		// Inform the voxel element
+		voxel->setExteriorOcclusions(exteriorOcclusions);
+
+		if (exteriorOcclusions == OctreeElement::HalfSpace::All) {
+			//const glm::vec3& v = voxel->getCorner();
+			//float s = voxel->getScale();
+
+			//qDebug("Completely occupied voxel at %f %f %f size: %f", v.x, v.y, v.z, s);
+
+			// TODO: All of the exterior faces of this voxel element are
+			//		occluders, which means that this element is completely
+			//		occupied. Hence, the subtree from this node could be
+			//		pruned and replaced by a leaf voxel, if the visible 
+			//		properties of the children are the same
+		}
+		else
+		if (exteriorOcclusions) {
+			//const glm::vec3& v = voxel->getCorner();
+			//float s = voxel->getScale();
+
+			//qDebug("Partially occupied voxel at %f %f %f size: %f with %02x", v.x, v.y, v.z, s, exteriorOcclusions);
+		}
+	}
+    return true;
+}
+
+bool VoxelSystem::clearOcclusionsOperation(OctreeElement* element, void* extraData) {
+    _nodeCount++;
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+
+	bool rc;
+	if (voxel->isLeaf()) {
+
+		// By definition the the exterior faces of a leaf voxel are
+		// always occluders.
+		voxel->setExteriorOcclusions(OctreeElement::HalfSpace::All);
+
+		// And the sibling occluders
+		voxel->setInteriorOcclusions(0);
+		rc = false;
+	}
+	else {
+		voxel->setExteriorOcclusions(0);
+		voxel->setInteriorOcclusions(0);
+		rc = true;
+	}
+
+	return rc;
+}
+
+void VoxelSystem::cullSharedFaces() {
+    _nodeCount = 0;
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
+		cleanupVoxelMemory();
+		_useVoxelShader = false;
+		_usePrimitiveRenderer = true;
+		initVoxelMemory();
+		clearAllNodesBufferIndex();
+		lockTree();
+	    _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
+	    _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
+	    unlockTree();
+
+		_nodeCount = 0;
+		lockTree();
+		_tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
+		unlockTree();
+        qDebug("culling shared faces in %d nodes", _nodeCount);
+    }
+	else {
+		cleanupVoxelMemory();
+		_usePrimitiveRenderer = false;
+		initVoxelMemory();
+		clearAllNodesBufferIndex();
+		lockTree();
+	    _tree->recurseTreeWithOperation(clearOcclusionsOperation);
+	    unlockTree();
+
+
+        qDebug("unculling shared faces in %d nodes", _nodeCount);
+    }
+	_writeRenderFullVBO = true;
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {
@@ -1997,7 +2302,7 @@ bool VoxelSystem::hideAllSubTreeOperation(OctreeElement* element, void* extraDat
     }
 
     args->nodesOutside++;
-    if (voxel->isKnownBufferIndex()) {
+    if (voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex()) {
         args->nodesRemoved++;
         bool falseColorize = false;
         if (falseColorize) {
@@ -2039,7 +2344,7 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
     bool shouldRender = voxel->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     voxel->setShouldRender(shouldRender);
 
-    if (shouldRender && !voxel->isKnownBufferIndex()) {
+    if (shouldRender && !(voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex())) {
         bool falseColorize = false;
         if (falseColorize) {
             voxel->setFalseColor(0,0,255); // false colorize
@@ -2047,6 +2352,12 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
         // These are both needed to force redraw...
         voxel->setDirtyBit();
         voxel->markWithChangedTime();
+		// and this?
+		{
+            VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
+            thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->updateNodeInArrays(voxel, true, true);
+            thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
+		}
         args->nodesShown++;
     }
 
@@ -2128,7 +2439,7 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // if the child node INTERSECTs the view, then we want to check to see if it thinks it should render
             // if it should render but is missing it's VBO index, then we want to flip it on, and we can stop recursing from
             // here because we know will block any children anyway
-            if (voxel->getShouldRender() && !voxel->isKnownBufferIndex()) {
+            if (voxel->getShouldRender() && !(voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex())) {
                 voxel->setDirtyBit(); // will this make it draw?
                 args->nodesShown++;
                 return false;
@@ -2225,7 +2536,9 @@ public:
         nodesInVBONotShouldRender(0),
         nodesInVBOOverExpectedMax(0),
         duplicateVBOIndex(0),
-        leafNodes(0)
+        leafNodes(0),
+		culledLeafNodes(0),
+		nodesInPrimitiveRenderer(0)
         {
             hasIndexFound = new bool[maxVoxels];
             memset(hasIndexFound, false, maxVoxels * sizeof(bool));
@@ -2244,6 +2557,8 @@ public:
     unsigned long nodesInVBOOverExpectedMax;
     unsigned long duplicateVBOIndex;
     unsigned long leafNodes;
+	unsigned long culledLeafNodes;					///< Number of completely culled nodes because of face sharing
+	unsigned long nodesInPrimitiveRenderer;
 
     unsigned long expectedMax;
 
@@ -2258,6 +2573,9 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(OctreeElement* element, v
 
     if (voxel->isLeaf()) {
         args->leafNodes++;
+		if (voxel->getInteriorOcclusions() == OctreeElement::HalfSpace::All) {
+			args->culledLeafNodes++;
+		}
     }
 
     if (voxel->isColored()) {
@@ -2272,15 +2590,25 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(OctreeElement* element, v
         args->dirtyNodes++;
     }
 
-    if (voxel->isKnownBufferIndex()) {
-        args->nodesInVBO++;
-        unsigned long nodeIndex = voxel->getBufferIndex();
+	unsigned long nodeIndex = 0;
+	if (voxel->isKnownBufferIndex()) {
+		args->nodesInVBO++;
+		nodeIndex = voxel->getBufferIndex();
+	}
+
+	if (voxel->getPrimitiveIndex()) {
+		args->nodesInPrimitiveRenderer++;
+		nodeIndex = voxel->getPrimitiveIndex();
+	}
+
+    if (voxel->isKnownBufferIndex() || (voxel->getPrimitiveIndex() != 0)) {
 
         const bool extraDebugging = false; // enable for extra debugging
         if (extraDebugging) {
-            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s",
+            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s, culledFaces=0x%02x \n",
                     voxel->getCorner().x, voxel->getCorner().y, voxel->getCorner().z, voxel->getScale(),
-                    nodeIndex, debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()));
+                    nodeIndex, debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()),
+					voxel->getInteriorOcclusions());
         }
 
         if (args->hasIndexFound[nodeIndex]) {
@@ -2309,12 +2637,14 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     glBufferIndex minDirty = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxDirty = 0;
 
-    for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
-        if (_writeVoxelDirtyArray[i]) {
-            minDirty = std::min(minDirty,i);
-            maxDirty = std::max(maxDirty,i);
-        }
-    }
+	if (!_usePrimitiveRenderer) {
+		for (glBufferIndex i = 0; i < _voxelsInWriteArrays; i++) {
+			if (_writeVoxelDirtyArray[i]) {
+				minDirty = std::min(minDirty,i);
+				maxDirty = std::max(maxDirty,i);
+			}
+		}
+	}
 
     collectStatsForTreesAndVBOsArgs args(_maxVoxels);
     args.expectedMax = _voxelsInWriteArrays;
@@ -2323,7 +2653,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld",
+    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
     qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld", debug::valueOf(_voxelsDirty),
@@ -2331,6 +2661,9 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
     qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld",
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
+
+    qDebug(" inPrimitiveRenderer %ld \n completely culled %ld \n",
+        args.nodesInPrimitiveRenderer, args.culledLeafNodes);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxInVBO = 0;
@@ -2775,5 +3108,102 @@ void VoxelSystem::beginLoadingLocalVoxelCache() {
     qDebug() << "DONE beginLoadingLocalVoxelCache()";
 }
 
+// Octant bitmask array indexed by octant. The mask value indicates the octant's halfspace partitioning. The index
+// value corresponds to the voxel's octal code derived in "pointToVoxel" in SharedUtil.cpp, which, BTW, does *not*
+// correspond to the "ChildIndex" enum value in OctreeElement.h
+unsigned char VoxelSystem::octantIndexToBitMask[8] = { 
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Near,
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Far,
+		OctreeElement::HalfSpace::Top    | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Near,
+		OctreeElement::HalfSpace::Top    | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Far,
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Right | OctreeElement::HalfSpace::Near,
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Right | OctreeElement::HalfSpace::Far,
+		OctreeElement::HalfSpace::Top    | OctreeElement::HalfSpace::Right | OctreeElement::HalfSpace::Near,
+		OctreeElement::HalfSpace::Top    | OctreeElement::HalfSpace::Right | OctreeElement::HalfSpace::Far,
+};
 
+// Two dimensional array map indexed by octant row and column. The mask value
+// indicates the two faces shared by the octants
+unsigned char VoxelSystem::octantIndexToSharedBitMask[8][8] = {
+	{ // Index 0: Bottom-Left-Near
+		0,	// Bottom-Left-Near
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Bottom-Left-Far
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Top-Left-Near
+		0,	// Top-Left-Far
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Bottom-Right-Near
+		0,	// Bottom-Right-Far
+		0,	// Top-Right-Near
+		0,	// Top-Right-Far
+	},
+	{ // Index 1: Bottom-Left-Far
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Bottom-Left-Near
+		0,	// Bottom-Left-Far
+		0,	// Top-Left-Near
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Top-Left-Far
+		0,	// Bottom-Right-Near
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Bottom-Right-Far
+		0,	// Top-Right-Near
+		0,	// Top-Right-Far
+	},
+	{ // Index 2: Top-Left-Near
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Bottom-Left-Near
+		0,	// Bottom-Left-Far
+		0,	// Top-Left-Near
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Top-Left-Far
+		0,	// Bottom-Right-Near
+		0,	// Bottom-Right-Far
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Top-Right-Near
+		0,	// Top-Right-Far
+	},
+	{ // Index 3: Top-Left-Far
+		0,	// Bottom-Left-Near
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Bottom-Left-Far
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Top-Left-Near
+		0,	// Top-Left-Far
+		0,	// Bottom-Right-Near
+		0,	// Bottom-Right-Far
+		0,	// Top-Right-Near
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Top-Right-Far
+	},
+	{ // Index 4: Bottom-Right-Near
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Bottom-Left-Near
+		0,	// Bottom-Left-Far
+		0,	// Top-Left-Near
+		0,	// Top-Left-Far
+		0,	// Bottom-Right-Near
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Bottom-Right-Far
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Top-Right-Near
+		0,	// Top-Right-Far
+	},
+	{ // Index 5: Bottom-Right-Far
+		0,	// Bottom-Left-Near
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Bottom-Left-Far
+		0,	// Top-Left-Near
+		0,	// Top-Left-Far
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Bottom-Right-Near
+		0,	// Bottom-Right-Far
+		0,	// Top-Right-Near
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Top-Right-Far
+	},
+	{ // Index 6: Top-Right-Near
+		0,	// Bottom-Left-Near
+		0,	// Bottom-Left-Far
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Top-Left-Near
+		0,	// Top-Left-Far
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Bottom-Right-Near
+		0,	// Bottom-Right-Far
+		0,	// Top-Right-Near
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Top-Right-Far
+	},
+	{ // Index 7: Top-Right-Far
+		0,	// Bottom-Left-Near
+		0,	// Bottom-Left-Far
+		0,	// Top-Left-Near
+		OctreeElement::HalfSpace::Right  | OctreeElement::HalfSpace::Left,	// Top-Left-Far
+		0,	// Bottom-Right-Near
+		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Top,	// Bottom-Right-Far
+		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Top-Right-Near
+		0,	// Top-Right-Far
+	},
+};
 

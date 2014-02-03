@@ -24,10 +24,12 @@
 #include "Util.h"
 #include "world.h"
 #include "renderer/VoxelShader.h"
+#include "PrimitiveRenderer.h"
 
 class ProgramObject;
 
 const int NUM_CHILDREN = 8;
+
 
 struct VoxelShaderVBOData
 {
@@ -137,6 +139,7 @@ public slots:
     void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
+    void cullSharedFaces();
 
     void cancelImport();
 
@@ -194,7 +197,10 @@ private:
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
-    static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
+    static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
+    static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
+    static bool clearOcclusionsOperation(OctreeElement* element, void* extraData);
+	static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
@@ -308,6 +314,13 @@ private:
 
     void lockTree();
     void unlockTree();
+
+	bool _usePrimitiveRenderer;
+	PrimitiveRenderer *_renderer;				///< Voxel renderer
+
+	static unsigned char octantIndexToBitMask[8];				///< Map octant index to partition mask
+	static unsigned char octantIndexToSharedBitMask[8][8];		///< Map octant indices to shared partition mask
+
 };
 
 #endif
