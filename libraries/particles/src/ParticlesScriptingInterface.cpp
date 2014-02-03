@@ -43,6 +43,7 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
 
 ParticleID ParticlesScriptingInterface::identifyParticle(ParticleID particleID) {
     uint32_t actualID = particleID.id;
+
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
         if (actualID == UNKNOWN_PARTICLE_ID) {
@@ -65,8 +66,12 @@ ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID
     }
     if (_particleTree) {
         _particleTree->lockForRead();
-        const Particle* particle = _particleTree->findParticleByID(identity.id);
-        results.copyFromParticle(*particle);
+        const Particle* particle = _particleTree->findParticleByID(identity.id, true);
+        if (particle) {
+            results.copyFromParticle(*particle);
+        } else {
+            results.setIsUnknownID();
+        }
         _particleTree->unlock();
     }
     
@@ -113,22 +118,19 @@ void ParticlesScriptingInterface::deleteParticle(ParticleID particleID) {
     properties.setShouldDie(true);
 
     uint32_t actualID = particleID.id;
+    
+    // if the particle is unknown, attempt to look it up
     if (!particleID.isKnownID) {
         actualID = Particle::getIDfromCreatorTokenID(particleID.creatorTokenID);
-
-        // hmmm... we kind of want to bail if someone attempts to edit an unknown
-        if (actualID == UNKNOWN_PARTICLE_ID) {
-            //qDebug() << "ParticlesScriptingInterface::deleteParticle(), bailing - unknown particle...";
-            return; // bailing early
-        }
     }
 
-    particleID.id = actualID;
-    particleID.isKnownID = true;
+    // if at this point, we know the id, send the update to the particle server
+    if (actualID != UNKNOWN_PARTICLE_ID) {
+        particleID.id = actualID;
+        particleID.isKnownID = true;
+        queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
+    }
 
-    //qDebug() << "ParticlesScriptingInterface::deleteParticle(), queueParticleMessage......";
-    queueParticleMessage(PacketTypeParticleAddOrEdit, particleID, properties);
-    
     // If we have a local particle tree set, then also update it.
     if (_particleTree) {
         _particleTree->lockForWrite();

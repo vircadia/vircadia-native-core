@@ -16,7 +16,7 @@ class FileLogger : public AbstractLoggerInterface {
     Q_OBJECT
 
 public:
-    FileLogger();
+    FileLogger(QObject* parent = NULL);
 
     virtual void addMessage(QString);
     virtual QStringList getLogData() { return _logData; };

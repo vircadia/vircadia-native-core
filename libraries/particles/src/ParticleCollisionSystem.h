@@ -58,8 +58,8 @@ signals:
 
 private:
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalParicleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails);
-    void emitGlobalParicleCollisionWithParticle(Particle* particleA, Particle* particleB);
+    void emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails);
+    void emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB);
 
     ParticleEditPacketSender* _packetSender;
     ParticleTree* _particles;

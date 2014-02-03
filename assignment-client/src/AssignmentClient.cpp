@@ -90,7 +90,8 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     timer->start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
     
     // connect our readPendingDatagrams method to the readyRead() signal of the socket
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), this, SLOT(readPendingDatagrams()));
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams,
+            Qt::QueuedConnection);
 }
 
 void AssignmentClient::sendAssignmentRequest() {

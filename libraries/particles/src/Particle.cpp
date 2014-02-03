@@ -60,8 +60,6 @@ void Particle::handleAddParticleResponse(const QByteArray& packet) {
     memcpy(&particleID, dataAt, sizeof(particleID));
     dataAt += sizeof(particleID);
 
-    //qDebug() << "handleAddParticleResponse()... particleID=" << particleID << " creatorTokenID=" << creatorTokenID;
-
     // add our token to id mapping
     _tokenIDsToIDs[creatorTokenID] = particleID;
 }
@@ -361,8 +359,6 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     dataAt += sizeof(editID);
     processedBytes += sizeof(editID);
 
-    //qDebug() << "editID:" << editID;
-
     bool isNewParticle = (editID == NEW_PARTICLE);
 
     // special case for handling "new" particles
@@ -411,7 +407,6 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         memcpy(&packetContainsBits, dataAt, sizeof(packetContainsBits));
         dataAt += sizeof(packetContainsBits);
         processedBytes += sizeof(packetContainsBits);
-        //qDebug() << "packetContainsBits:" << packetContainsBits;
     }
 
 
@@ -528,7 +523,6 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
     if (wantDebugging) {
         qDebug("Particle::fromEditPacket()...");
         qDebug() << "   Particle id in packet:" << editID;
-        //qDebug() << "    position: " << newParticle._position;
         newParticle.debugDump();
     }
 
@@ -735,8 +729,6 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
     // cleanup
     delete[] octcode;
     
-    //qDebug() << "encoding... sizeOut:" << sizeOut;
-
     return success;
 }
 
@@ -824,12 +816,8 @@ void Particle::update(const quint64& now) {
     _lastUpdated = now;
 
     // calculate our default shouldDie state... then allow script to change it if it wants...
-    float speed = glm::length(_velocity);
-    bool isStopped = (speed < MIN_VALID_SPEED);
-    const quint64 REALLY_OLD = 30 * USECS_PER_SECOND; // 30 seconds
-    bool isReallyOld = ((now - _created) > REALLY_OLD);
     bool isInHand = getInHand();
-    bool shouldDie = (getAge() > getLifetime()) || getShouldDie() || (!isInHand && isStopped && isReallyOld);
+    bool shouldDie = (getAge() > getLifetime()) || getShouldDie();
     setShouldDie(shouldDie);
 
     executeUpdateScripts(); // allow the javascript to alter our state
@@ -1068,7 +1056,7 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
 
     if (_idSet) {
         properties.setProperty("id", _id);
-        properties.setProperty("isKnownID", (_id == UNKNOWN_PARTICLE_ID));
+        properties.setProperty("isKnownID", (_id != UNKNOWN_PARTICLE_ID));
     }
 
     return properties;

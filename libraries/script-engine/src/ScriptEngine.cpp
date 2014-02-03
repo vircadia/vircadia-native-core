@@ -40,7 +40,8 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 }
 
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
+ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
+                           AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
     _dataServerScriptingInterface(),
@@ -260,6 +261,27 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
+    
+    if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
+            _voxelsScriptingInterface.getVoxelPacketSender()->process();
+        }
+    }
+
+    if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
+            _particlesScriptingInterface.getParticlePacketSender()->process();
+        }
+    }
+    
     cleanMenuItems();
 
     // If we were on a thread, then wait till it's done

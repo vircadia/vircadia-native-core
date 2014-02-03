@@ -33,8 +33,8 @@ class ScriptEngine : public QObject {
     Q_OBJECT
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
-                    AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+                 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
 
