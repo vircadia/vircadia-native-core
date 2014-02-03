@@ -7,6 +7,7 @@
 //
 
 #include <QByteArray>
+#include <QDoubleSpinBox>
 #include <QItemEditorFactory>
 #include <QLineEdit>
 #include <QStandardItemEditorCreator>
@@ -31,8 +32,20 @@ private:
     const QItemEditorFactory* _parentFactory;
 };
 
+class DoubleEditor : public QDoubleSpinBox {
+public:
+    
+    DoubleEditor(QWidget* parent = NULL);
+};
+
+DoubleEditor::DoubleEditor(QWidget* parent) : QDoubleSpinBox(parent) {
+    setMinimum(-FLT_MAX);
+}
+
 DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
     _parentFactory(QItemEditorFactory::defaultFactory()) {
+    
+    QItemEditorFactory::setDefaultFactory(this);
 }
 
 QWidget* DelegatingItemEditorFactory::createEditor(int userType, QWidget* parent) const {
@@ -46,9 +59,15 @@ QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {
 }
 
 static QItemEditorFactory* getItemEditorFactory() {
-    static QItemEditorFactory* factory = new DelegatingItemEditorFactory();
-    QItemEditorFactory::setDefaultFactory(factory);
-    return factory;
+    static DelegatingItemEditorFactory factory;
+    return &factory;
+}
+
+static QItemEditorCreatorBase* createDoubleEditorCreator() {
+    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<DoubleEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<double>(), creator);
+    getItemEditorFactory()->registerEditor(qMetaTypeId<float>(), creator);
+    return creator;
 }
 
 static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
@@ -57,6 +76,7 @@ static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* doubleEditorCreator = createDoubleEditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
 QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize) {

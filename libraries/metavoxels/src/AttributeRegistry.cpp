@@ -281,6 +281,7 @@ QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
 
 SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
+    layout->setAlignment(Qt::AlignTop);
     setLayout(layout);
     
     QFormLayout* form = new QFormLayout();    
