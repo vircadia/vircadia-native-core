@@ -106,6 +106,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 void ScriptEngine::init() {
+    qDebug() << "Init called!";
     if (_isInitialized) {
         return; // only initialize once
     }
@@ -334,4 +335,3 @@ void ScriptEngine::stopTimer(QTimer *timer) {
         delete timer;
     }
 }
-

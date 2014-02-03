@@ -4110,7 +4110,7 @@ void Application::loadScript(const QString& fileNameString) {
     QThread* workerThread = new QThread(this);
 
     // when the worker thread is started, call our engine's run..
-    connect(workerThread, SIGNAL(started()), scriptEngine, SLOT(run()));
+    connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
 
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
     connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
