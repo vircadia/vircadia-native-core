@@ -10,6 +10,7 @@
 
 var iteration = 0;
 
+var itemLifetimes = 60;
 var gameAt = { x: 10, y: 0, z: 10 };
 var gameSize = { x: 10, y: 20, z: 1 };
 var middleX = gameAt.x + (gameSize.x/2);
@@ -40,7 +41,7 @@ function initializeMyShip() {
                                 damping: 0,
                                 radius: shipSize,
                                 color: { red: 0, green: 255, blue: 0 },
-                                lifetime: 60 * 5 // 5 minutes
+                                lifetime: itemLifetimes
                             };
     myShip = Particles.addParticle(myShipProperties);
 }
@@ -62,7 +63,7 @@ function initializeInvaders() {
                         damping: 0,
                         radius: shipSize,
                         color: { red: 255, green: 0, blue: 0 },
-                        lifetime: 60 * 5 // 5 minutes
+                        lifetime: itemLifetimes
                     });
                 
             print("invaders[row][column].creatorTokenID=" + invaders[row][column].creatorTokenID);
@@ -101,7 +102,7 @@ function update() {
 }
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(update);
+Script.willSendVisualDataCallback.connect(update);
 
 function endGame() {
     print("ending game...");
@@ -118,7 +119,7 @@ function endGame() {
     if (missileFired) {
         Particles.deleteParticle(myMissile);
     }
-    Agent.stop();
+    Script.stop();
 }
 
 function moveShipTo(position) {
