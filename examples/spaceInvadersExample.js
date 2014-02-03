@@ -10,6 +10,10 @@
 
 var iteration = 0;
 
+var invaderStepsPerCycle = 30; // the number of update steps it takes then invaders to move one column to the right
+var invaderStepOfCycle = 0; // current iteration in the cycle
+var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
+
 var itemLifetimes = 60;
 var gameAt = { x: 10, y: 0, z: 10 };
 var gameSize = { x: 10, y: 20, z: 1 };
@@ -46,16 +50,28 @@ function initializeMyShip() {
     myShip = Particles.addParticle(myShipProperties);
 }
 
+// calculate the correct invaderPosition for an column row
+function getInvaderPosition(row, column) {
+    var xMovePart = 0;
+    var xBasePart = invadersBottomCorner.x + (column * columnWidth);
+    if (invaderMoveDirection > 0) {
+        xMovePart = (invaderMoveDirection * columnWidth * (invaderStepOfCycle/invaderStepsPerCycle));
+    } else {
+        xMovePart = columnWidth + (invaderMoveDirection * columnWidth * (invaderStepOfCycle/invaderStepsPerCycle));
+    }
+    var invaderPosition = { 
+                    x:  xBasePart + xMovePart, 
+                    y: invadersBottomCorner.y + (row * rowHeight),
+                    z: invadersBottomCorner.z };
+    
+    return invaderPosition;
+}
+
 function initializeInvaders() {
     for (var row = 0; row < numberOfRows; row++) {
         invaders[row] = new Array();
         for (var column = 0; column < invadersPerRow; column++) {
-            invaderPosition = { 
-                    x: invadersBottomCorner.x + (column * columnWidth),
-                    y: invadersBottomCorner.y + (row * rowHeight),
-                    z: invadersBottomCorner.z };
-
-        
+            invaderPosition = getInvaderPosition(row, column);
             invaders[row][column] = Particles.addParticle({
                         position: invaderPosition,
                         velocity: { x: 0, y: 0, z: 0 },
@@ -71,22 +87,14 @@ function initializeInvaders() {
     }
 }
 
-var invadersMovingRight = true;
 function moveInvaders() {
     print("moveInvaders()...");
-    if (invadersMovingRight) {
-        invaderMoveX = 0.05;
-    } else {
-        invaderMoveX = -0.05;
-    }
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             props = Particles.getParticleProperties(invaders[row][column]);
             if (props.isKnownID) {
-                newPosition = { x: props.position.x + invaderMoveX, 
-                                y: props.position.y,
-                                z: props.position.z };
-                Particles.editParticle(invaders[row][column], { position: newPosition });
+                invaderPosition = getInvaderPosition(row, column);
+                Particles.editParticle(invaders[row][column], { position: invaderPosition });
             }
         }
     }
@@ -95,8 +103,14 @@ function moveInvaders() {
 function update() {
     print("updating space invaders... iteration="+iteration);
     iteration++;
-    if ((iteration % 60) == 0) {
-        invadersMovingRight = !invadersMovingRight;
+    invaderStepOfCycle++;
+    if (invaderStepOfCycle > invaderStepsPerCycle) {
+        invaderStepOfCycle = 0;
+        if (invaderMoveDirection > 0) {
+            invaderMoveDirection = -1;
+        } else {
+            invaderMoveDirection = 1;
+        }
     }
     moveInvaders();
 }
@@ -104,14 +118,15 @@ function update() {
 // register the call back so it fires before each data send
 Script.willSendVisualDataCallback.connect(update);
 
-function endGame() {
-    print("ending game...");
+function cleanupGame() {
+    print("cleaning up game...");
     Particles.deleteParticle(myShip);
-    print("endGame() ... Particles.deleteParticle(myShip)... myShip.id="+myShip.id);
+    print("cleanupGame() ... Particles.deleteParticle(myShip)... myShip.id="+myShip.id);
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             Particles.deleteParticle(invaders[row][column]);
-            print("endGame() ... Particles.deleteParticle(invaders[row][column])... invaders[row][column].id="+invaders[row][column].id);
+            print("cleanupGame() ... Particles.deleteParticle(invaders[row][column])... invaders[row][column].id="
+                    +invaders[row][column].id);
         }
     }
     
@@ -119,6 +134,12 @@ function endGame() {
     if (missileFired) {
         Particles.deleteParticle(myMissile);
     }
+    Script.stop();
+}
+Script.scriptEnding.connect(cleanupGame);
+
+function endGame() {
+    print("ending game...");
     Script.stop();
 }
 
