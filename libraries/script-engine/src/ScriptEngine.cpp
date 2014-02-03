@@ -105,9 +105,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
-Q_SCRIPT_DECLARE_QMETAOBJECT(QTimer, QObject*)
-
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -134,9 +131,6 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
-    
-    QScriptValue timerValue = _engine.scriptValueFromQMetaObject<QTimer>();
-    _engine.globalObject().setProperty("Timer", timerValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
@@ -302,4 +296,38 @@ void ScriptEngine::stop() {
     _isFinished = true;
 }
 
+void ScriptEngine::timerFired() {
+    QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
+    
+    // call the associated JS function, if it exists
+    QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
+    if (timerFunction.isValid()) {
+        timerFunction.call();
+    }
+    
+    if (!callingTimer->isActive()) {
+        // this timer is done, we can kill it
+        qDebug() << "Deleting a single shot timer";
+        delete callingTimer;
+    }
+}
+
+void ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
+    // create the timer, add it to the map, and start it
+    QTimer* newTimer = new QTimer(this);
+    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
+    _timerFunctionMap.insert(newTimer, function);
+    
+    newTimer->setSingleShot(isSingleShot);
+    
+    newTimer->start(intervalMS);
+}
+
+void ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    setupTimerWithInterval(function, intervalMS, false);
+}
+
+void ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    setupTimerWithInterval(function, timeoutMS, true);
+}
 
