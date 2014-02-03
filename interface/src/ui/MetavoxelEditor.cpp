@@ -81,6 +81,9 @@ MetavoxelEditor::MetavoxelEditor() :
     QVBoxLayout* valueLayout = new QVBoxLayout();
     _value->setLayout(valueLayout);
 
+    valueLayout->addWidget(_valueArea = new QScrollArea());
+    _valueArea->setWidgetResizable(true);
+
     updateAttributes();
     
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
@@ -146,19 +149,14 @@ void MetavoxelEditor::updateValueEditor() {
     }
     _value->setVisible(true);
     
-    if (!_value->layout()->isEmpty()) {
-        QLayoutItem* item = _value->layout()->takeAt(0);
-        delete item->widget();
-        delete item;
+    if (_valueArea->widget()) {
+        delete _valueArea->widget();
     }
       
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     QWidget* editor = attribute->createEditor();
     if (editor) {
-        QScrollArea* area = new QScrollArea();
-        area->setWidgetResizable(true);
-        area->setWidget(editor);
-        _value->layout()->addWidget(area);
+        _valueArea->setWidget(editor);
     }
 }
 
@@ -372,11 +370,8 @@ void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maxi
 }
 
 QVariant MetavoxelEditor::getValue() const {
-    if (_value->layout()->isEmpty()) {
-        return QVariant();
-    }
-    QWidget* editor = _value->layout()->itemAt(0)->widget();
-    return editor->metaObject()->userProperty().read(editor);
+    QWidget* editor = _valueArea->widget();
+    return editor ? editor->metaObject()->userProperty().read(editor) : QVariant();
 }
 
 ProgramObject MetavoxelEditor::_gridProgram;

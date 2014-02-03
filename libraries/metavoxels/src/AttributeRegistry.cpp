@@ -157,8 +157,10 @@ QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
 }
 
 QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
-    setLayout(new QVBoxLayout());
-    layout()->addWidget(_button = new QPushButton());
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setAlignment(Qt::AlignTop);
+    setLayout(layout);
+    layout->addWidget(_button = new QPushButton());
     connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
 }
 

@@ -17,6 +17,7 @@ class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
 class QListWidget;
+class QScrollArea;
 
 /// Allows editing metavoxels.
 class MetavoxelEditor : public QDialog {
@@ -52,6 +53,7 @@ private:
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;
     QGroupBox* _value;
+    QScrollArea* _valueArea;
     
     enum State { HOVERING_STATE, DRAGGING_STATE, RAISING_STATE };
     
