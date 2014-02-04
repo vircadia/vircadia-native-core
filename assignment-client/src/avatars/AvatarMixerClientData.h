@@ -23,10 +23,14 @@ public:
     const QUrl& getSkeletonURL() const { return _skeletonURL; }
     void setSkeletonURL(const QUrl& skeletonURL) { _skeletonURL = skeletonURL; }
     
-    void parseIdentityPacket(const QByteArray& packet);
+    void setHasSentPacketBetweenKeyFrames(bool hasSentPacketBetweenKeyFrames)
+        { _hasSentPacketBetweenKeyFrames = hasSentPacketBetweenKeyFrames; }
+    
+    bool shouldSendIdentityPacketAfterParsing(const QByteArray& packet);
 private:
     QUrl _faceModelURL;
     QUrl _skeletonURL;
+    bool _hasSentPacketBetweenKeyFrames;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

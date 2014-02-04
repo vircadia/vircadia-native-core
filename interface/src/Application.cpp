@@ -199,7 +199,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     audioThread->start();
 
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
-
+    connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
+    connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
@@ -3883,6 +3884,13 @@ void Application::domainChanged(const QString& domainHostname) {
     // reset our persist thread
     qDebug() << "Domain changed to" << domainHostname << ". Swapping persist cache.";
     updateLocalOctreeCache();
+}
+
+void Application::nodeAdded(SharedNodePointer node) {
+    if (node->getType() == NodeType::AvatarMixer) {
+        // new avatar mixer, send off our identity packet right away
+        _myAvatar->sendIdentityPacket();
+    }
 }
 
 void Application::nodeKilled(SharedNodePointer node) {

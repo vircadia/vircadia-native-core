@@ -117,6 +117,9 @@ void broadcastIdentityPacket() {
             
             // append the individual data to the current the avatarIdentityPacket
             avatarIdentityPacket.append(individualData);
+            
+            // re-set the bool in AvatarMixerClientData so a change between key frames gets sent out
+            nodeData->setHasSentPacketBetweenKeyFrames(false);
         }
     }
     
@@ -163,9 +166,14 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             // check if we have a matching node in our list
             SharedNodePointer avatarNode = nodeList->nodeWithUUID(nodeUUID);
             
-            if (avatarNode) {
-                // process the avatar identity packet sent from the avatar
-                reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData())->parseIdentityPacket(dataByteArray);
+            if (avatarNode && avatarNode->getLinkedData()) {
+                AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
+                if (nodeData->shouldSendIdentityPacketAfterParsing(dataByteArray)) {
+                    // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
+                    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+                    QDataStream identityStream(&identityPacket, QIODevice::Append);
+                    identityStream << avatarNode->getUUID() << nodeData->getFaceModelURL() << nodeData->getSkeletonURL();
+                }
             }
         }
         case PacketTypeKillAvatar: {

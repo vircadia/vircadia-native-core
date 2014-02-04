@@ -15,18 +15,24 @@ AvatarMixerClientData::AvatarMixerClientData() :
     
 }
 
-void AvatarMixerClientData::parseIdentityPacket(const QByteArray &packet) {
+bool AvatarMixerClientData::shouldSendIdentityPacketAfterParsing(const QByteArray &packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
     QUrl faceModelURL, skeletonURL;
     packetStream >> faceModelURL >> skeletonURL;
     
+    bool hasIdentityChanged = false;
+    
     if (faceModelURL != _faceModelURL) {
         _faceModelURL = faceModelURL;
+        hasIdentityChanged = true;
     }
     
     if (skeletonURL != _skeletonURL) {
         _skeletonURL = skeletonURL;
+        hasIdentityChanged = true;
     }
+    
+    return hasIdentityChanged && !_hasSentPacketBetweenKeyFrames;
 }
