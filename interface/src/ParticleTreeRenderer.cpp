@@ -101,8 +101,8 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 glm::vec3 scale(1.0f,1.0f,1.0f);
                 
                 // TODO: There is some kind of a bug in packing of the particle packets which is causing modelscale to
-                // sometimes be garbage. We will temporarily make it always 1.0
-                float modelScale = 1.0f; /// particle.getModelScale()
+                // sometimes be garbage.
+                float modelScale = 2.0f; /// particle.getModelScale()
                 model->setScale(scale * MODEL_SCALE * radius * modelScale);
 
                 model->simulate(0.0f);
