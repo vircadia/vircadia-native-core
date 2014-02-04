@@ -13,16 +13,20 @@
 #include <QMetaType>
 #include <QtDebug>
 
+#include <RegisteredMetaTypes.h>
+
 #include "AttributeRegistry.h"
 #include "Bitstream.h"
 
+REGISTER_SIMPLE_TYPE_STREAMER(bool)
+REGISTER_SIMPLE_TYPE_STREAMER(int)
+REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
-REGISTER_SIMPLE_TYPE_STREAMER(bool)
-REGISTER_SIMPLE_TYPE_STREAMER(int)
 
-// meta-objects don't quite work with our macro
+// some types don't quite work with our macro
+static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
 static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
     new SimpleTypeStreamer<const QMetaObject*>());
 

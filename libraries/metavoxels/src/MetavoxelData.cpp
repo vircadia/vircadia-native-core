@@ -13,6 +13,7 @@
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
 
+REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 
@@ -65,7 +66,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
         firstVisitation.outputNodes[i] = node;
     }
     static_cast<MetavoxelGuide*>(firstVisitation.info.inputValues.last().getInlineValue<
-        PolymorphicDataPointer>().data())->guide(firstVisitation);
+        SharedObjectPointer>().data())->guide(firstVisitation);
     for (int i = 0; i < outputs.size(); i++) {
         AttributeValue& value = firstVisitation.info.outputValues[i];
         if (!value.getAttribute()) {
@@ -473,7 +474,7 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
             (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
         static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
-            PolymorphicDataPointer>().data())->guide(nextVisitation);
+            SharedObjectPointer>().data())->guide(nextVisitation);
         for (int j = 0; j < nextVisitation.outputNodes.size(); j++) {
             AttributeValue& value = nextVisitation.info.outputValues[j];
             if (!value.getAttribute()) {
@@ -517,12 +518,10 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     }
 }
 
-ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(1.0) {
+ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(10.0) {
 }
 
 void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    DefaultMetavoxelGuide::guide(visitation);
-    
     AttributePointer colorAttribute = AttributeRegistry::getInstance()->getColorAttribute();
     for (int i = 0; i < visitation.info.inputValues.size(); i++) {
         AttributeValue& attributeValue = visitation.info.inputValues[i]; 
@@ -534,6 +533,8 @@ void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
                 qBlue(base) * amplitude, qAlpha(base)));
         }
     }
+    
+    DefaultMetavoxelGuide::guide(visitation);
 }
 
 static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,

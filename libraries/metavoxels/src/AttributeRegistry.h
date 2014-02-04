@@ -129,11 +129,17 @@ public:
     /// Creates an owned attribute with a copy of the specified other value.
     OwnedAttributeValue(const AttributeValue& other);
     
+    /// Creates an owned attribute with a copy of the specified other value.
+    OwnedAttributeValue(const OwnedAttributeValue& other);
+    
     /// Destroys the current value, if any.
     ~OwnedAttributeValue();
     
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const AttributeValue& other);
+    
+    /// Destroys the current value, if any, and copies the specified other value.
+    OwnedAttributeValue& operator=(const OwnedAttributeValue& other);
 };
 
 /// Represents a registered attribute.
@@ -272,115 +278,91 @@ private:
     QColor _color;
 };
 
-/// An attribute class that stores pointers to its values.
-template<class T> class PointerAttribute : public Attribute {
-public:
-    
-    PointerAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(defaultValue) { }
-    
-    virtual void* create(void* copy) const { new T(*static_cast<T*>(copy)); }
-    virtual void destroy(void* value) const { delete static_cast<T*>(value); }
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-
-    virtual bool equal(void* first, void* second) const { return *static_cast<T*>(first) == *static_cast<T*>(second); }
-
-    virtual void* getDefaultValue() const { return const_cast<void*>((void*)&_defaultValue); }
-
-private:
-    
-    T _defaultValue;
-}; 
-
-template<class T> inline void PointerAttribute<T>::read(Bitstream& in, void*& value, bool isLeaf) const {
-    if (isLeaf) {
-        in.read(value, sizeof(T) * 8);
-    }
-}
-
-template<class T> inline void PointerAttribute<T>::write(Bitstream& out, void* value, bool isLeaf) const {
-    if (isLeaf) {
-        out.write(value, sizeof(T) * 8);
-    }
-}
-
-/// Provides merging using the =, ==, += and /= operators.
-template<class T> class SimplePointerAttribute : public PointerAttribute<T> {
-public:
-    
-    SimplePointerAttribute(const QString& name, T defaultValue = T()) : PointerAttribute<T>(name, defaultValue) { }
-    
-    virtual bool merge(void*& parent, void* children[]) const;
-};
-
-template<class T> inline bool SimplePointerAttribute<T>::merge(void*& parent, void* children[]) const {
-    T& merged = *static_cast<T*>(parent);
-    merged = *static_cast<T*>(children[0]);
-    bool allChildrenEqual = true;
-    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        merged += *static_cast<T*>(children[i]);
-        allChildrenEqual &= (*static_cast<T*>(children[0]) == *static_cast<T*>(children[i]));
-    }
-    merged /= Attribute::MERGE_COUNT;
-    return allChildrenEqual;
-}
-
-/// Base class for polymorphic attribute data.  
-class PolymorphicData : public QSharedData {
-public:
-    
-    virtual ~PolymorphicData();
-    
-    /// Creates a new clone of this object.
-    virtual PolymorphicData* clone() const = 0;
-    
-    /// Tests this object for equality with another.
-    virtual bool equals(const PolymorphicData* other) const = 0;
-};
-
-template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone();
-
-typedef QExplicitlySharedDataPointer<PolymorphicData> PolymorphicDataPointer;
-
-Q_DECLARE_METATYPE(PolymorphicDataPointer)
-
-/// Provides polymorphic streaming and averaging.
-class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {
-public:
-
-    PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
-    
-    virtual void* createFromVariant(const QVariant& value) const;
-    
-    virtual bool equal(void* first, void* second) const;
-    
-    virtual bool merge(void*& parent, void* children[]) const;
-};
-
-class SharedObject : public QObject, public PolymorphicData {
+/// A QObject with a reference count.
+class SharedObject : public QObject {
     Q_OBJECT
     
 public:
 
-    virtual PolymorphicData* clone() const;
+    SharedObject();
+
+    int getReferenceCount() const { return _referenceCount; }
+    void incrementReferenceCount();
+    void decrementReferenceCount();
+
+    /// Creates a new clone of this object.
+    virtual SharedObject* clone() const;
+
+    /// Tests this object for equality with another.    
+    virtual bool equals(const SharedObject* other) const;
+
+private:
     
-    virtual bool equals(const PolymorphicData* other) const;
+    int _referenceCount;
 };
 
+/// A pointer to a shared object.
+class SharedObjectPointer {
+public:
+    
+    SharedObjectPointer(SharedObject* data = NULL);
+    SharedObjectPointer(const SharedObjectPointer& other);
+    ~SharedObjectPointer();
+
+    SharedObject* data() { return _data; }
+    const SharedObject* data() const { return _data; }
+    const SharedObject* constData() const { return _data; }
+
+    void detach();
+
+    void swap(SharedObjectPointer& other) { qSwap(_data, other._data); }
+
+    void reset();
+
+    operator SharedObject*() { return _data; }
+    operator const SharedObject*() const { return _data; }
+
+    bool operator!() const { return !_data; }
+
+    bool operator!=(const SharedObjectPointer& other) const { return _data != other._data; }
+
+    SharedObject& operator*() { return *_data; }
+    const SharedObject& operator*() const { return *_data; }
+
+    SharedObject* operator->() { return _data; }
+    const SharedObject* operator->() const { return _data; }
+
+    SharedObjectPointer& operator=(SharedObject* data);
+    SharedObjectPointer& operator=(const SharedObjectPointer& other);
+
+    bool operator==(const SharedObjectPointer& other) const { return _data == other._data; }
+
+private:
+    
+    SharedObject* _data;
+};
+
+Q_DECLARE_METATYPE(SharedObjectPointer)
+
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
-class SharedObjectAttribute : public PolymorphicAttribute {
+class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT
     Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject)
     
 public:
     
     Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(), const QMetaObject* metaObject = NULL,
-        const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
+        const SharedObjectPointer& defaultValue = SharedObjectPointer());
 
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
+    virtual bool equal(void* first, void* second) const;
+    
+    virtual bool merge(void*& parent, void* children[]) const;
+    
+    virtual void* createFromVariant(const QVariant& value) const;
+    
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
     
 private:
@@ -391,7 +373,7 @@ private:
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(PolymorphicDataPointer object MEMBER _object WRITE setObject USER true)
+    Q_PROPERTY(SharedObjectPointer object MEMBER _object WRITE setObject USER true)
 
 public:
     
@@ -399,7 +381,7 @@ public:
 
 public slots:
 
-    void setObject(const PolymorphicDataPointer& object);
+    void setObject(const SharedObjectPointer& object);
 
 private slots:
 
@@ -409,7 +391,7 @@ private slots:
 private:
     
     QComboBox* _type;
-    PolymorphicDataPointer _object;
+    SharedObjectPointer _object;
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

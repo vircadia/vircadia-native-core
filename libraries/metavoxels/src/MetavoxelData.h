@@ -173,7 +173,7 @@ public:
 /// A temporary test guide that just makes the existing voxels throb with delight.
 class ThrobbingMetavoxelGuide : public DefaultMetavoxelGuide {
     Q_OBJECT
-    Q_PROPERTY(double rate MEMBER _rate)
+    Q_PROPERTY(float rate MEMBER _rate)
 
 public:
     
@@ -183,7 +183,7 @@ public:
     
 private:
     
-    double _rate;
+    float _rate;
 };
 
 /// Represents a guide implemented in Javascript.

@@ -19,6 +19,7 @@
 #include "MetavoxelData.h"
 
 REGISTER_META_OBJECT(QRgbAttribute)
+REGISTER_META_OBJECT(SharedObjectAttribute)
 
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
@@ -27,7 +28,7 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
-        PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
+        SharedObjectPointer(new DefaultMetavoxelGuide())))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
@@ -89,6 +90,10 @@ OwnedAttributeValue::OwnedAttributeValue(const AttributeValue& other) :
     AttributeValue(other.getAttribute(), other.getAttribute() ? other.copy() : NULL) {
 }
 
+OwnedAttributeValue::OwnedAttributeValue(const OwnedAttributeValue& other) :
+    AttributeValue(other.getAttribute(), other.getAttribute() ? other.copy() : NULL) {
+}
+
 OwnedAttributeValue::~OwnedAttributeValue() {
     if (_attribute) {
         _attribute->destroy(_value);
@@ -96,6 +101,16 @@ OwnedAttributeValue::~OwnedAttributeValue() {
 }
 
 OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    if ((_attribute = other.getAttribute())) {
+        _value = other.copy();
+    }
+    return *this;
+}
+
+OwnedAttributeValue& OwnedAttributeValue::operator=(const OwnedAttributeValue& other) {
     if (_attribute) {
         _attribute->destroy(_value);
     }
@@ -177,33 +192,144 @@ void QRgbEditor::selectColor() {
     }
 }
 
-PolymorphicData::~PolymorphicData() {
+SharedObject::SharedObject() : _referenceCount(0) {
 }
 
-template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone() {
-    return d->clone();
+void SharedObject::incrementReferenceCount() {
+    _referenceCount++;
 }
 
-PolymorphicAttribute::PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue) :
-    InlineAttribute<PolymorphicDataPointer>(name, defaultValue) {
+void SharedObject::decrementReferenceCount() {
+    if (--_referenceCount == 0) {
+        delete this;
+    }
 }
 
-void* PolymorphicAttribute::createFromVariant(const QVariant& value) const {
-    return create(encodeInline(value.value<PolymorphicDataPointer>()));
+SharedObject* SharedObject::clone() const {
+    // default behavior is to make a copy using the no-arg constructor and copy the stored properties
+    const QMetaObject* metaObject = this->metaObject();
+    SharedObject* newObject = static_cast<SharedObject*>(metaObject->newInstance());
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored()) {
+            property.write(newObject, property.read(this));
+        }
+    }
+    foreach (const QByteArray& propertyName, dynamicPropertyNames()) {
+        newObject->setProperty(propertyName, property(propertyName));
+    }
+    return newObject;
 }
 
-bool PolymorphicAttribute::equal(void* first, void* second) const {
-    PolymorphicDataPointer firstPointer = decodeInline<PolymorphicDataPointer>(first);
-    PolymorphicDataPointer secondPointer = decodeInline<PolymorphicDataPointer>(second);
+bool SharedObject::equals(const SharedObject* other) const {
+    // default behavior is to compare the properties
+    const QMetaObject* metaObject = this->metaObject();
+    if (metaObject != other->metaObject()) {
+        return false;
+    }
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (property.isStored() && property.read(this) != property.read(other)) {
+            return false;
+        }
+    }
+    QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
+    if (dynamicPropertyNames.size() != other->dynamicPropertyNames().size()) {
+        return false;
+    }
+    foreach (const QByteArray& propertyName, dynamicPropertyNames) {
+        if (property(propertyName) != other->property(propertyName)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+SharedObjectPointer::SharedObjectPointer(SharedObject* data) : _data(data) {
+    if (_data) {
+        _data->incrementReferenceCount();
+    }
+}
+
+SharedObjectPointer::SharedObjectPointer(const SharedObjectPointer& other) : _data(other._data) {
+    if (_data) {
+        _data->incrementReferenceCount();
+    }
+}
+
+SharedObjectPointer::~SharedObjectPointer() {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+}
+
+void SharedObjectPointer::detach() {
+    if (_data && _data->getReferenceCount() > 1) {
+        _data->decrementReferenceCount();
+        (_data = _data->clone())->incrementReferenceCount();
+    }
+}
+
+void SharedObjectPointer::reset() {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    _data = NULL;
+}
+
+SharedObjectPointer& SharedObjectPointer::operator=(SharedObject* data) {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    if ((_data = data)) {
+        _data->incrementReferenceCount();
+    }
+    return *this;
+}
+
+SharedObjectPointer& SharedObjectPointer::operator=(const SharedObjectPointer& other) {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    if ((_data = other._data)) {
+        _data->incrementReferenceCount();
+    }
+    return *this;
+}
+
+SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
+        const SharedObjectPointer& defaultValue) :
+    InlineAttribute<SharedObjectPointer>(name, defaultValue),
+    _metaObject(metaObject) {
+    
+}
+
+void SharedObjectAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        QObject* object;
+        in >> object;
+        *((SharedObjectPointer*)&value) = static_cast<SharedObject*>(object);
+    }
+}
+
+void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        out << decodeInline<SharedObjectPointer>(value).data();
+    }
+}
+
+bool SharedObjectAttribute::equal(void* first, void* second) const {
+    SharedObjectPointer firstPointer = decodeInline<SharedObjectPointer>(first);
+    SharedObjectPointer secondPointer = decodeInline<SharedObjectPointer>(second);
     return (firstPointer == secondPointer) || (firstPointer && secondPointer &&
         firstPointer->equals(secondPointer.constData()));
 }
 
-bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
-    PolymorphicDataPointer& parentPointer = *(PolymorphicDataPointer*)&parent;
-    PolymorphicDataPointer childPointers[MERGE_COUNT];
+bool SharedObjectAttribute::merge(void*& parent, void* children[]) const {
+    SharedObjectPointer& parentPointer = *(SharedObjectPointer*)&parent;
+    SharedObjectPointer childPointers[MERGE_COUNT];
     for (int i = 0; i < MERGE_COUNT; i++) {
-        childPointers[i] = decodeInline<PolymorphicDataPointer>(children[i]);
+        childPointers[i] = decodeInline<SharedObjectPointer>(children[i]);
     }
     if (childPointers[0]) {
         for (int i = 1; i < MERGE_COUNT; i++) {
@@ -227,66 +353,8 @@ bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
     return true;
 }
 
-PolymorphicData* SharedObject::clone() const {
-    // default behavior is to make a copy using the no-arg constructor and copy the stored properties
-    const QMetaObject* metaObject = this->metaObject();
-    QObject* newObject = metaObject->newInstance();
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (property.isStored()) {
-            property.write(newObject, property.read(this));
-        }
-    }
-    foreach (const QByteArray& propertyName, dynamicPropertyNames()) {
-        newObject->setProperty(propertyName, property(propertyName));
-    }
-    return static_cast<SharedObject*>(newObject);
-}
-
-bool SharedObject::equals(const PolymorphicData* other) const {
-    // default behavior is to compare the properties
-    const QMetaObject* metaObject = this->metaObject();
-    const SharedObject* sharedOther = static_cast<const SharedObject*>(other);
-    if (metaObject != sharedOther->metaObject()) {
-        return false;
-    }
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (property.isStored() && property.read(this) != property.read(sharedOther)) {
-            return false;
-        }
-    }
-    QList<QByteArray> dynamicPropertyNames = this->dynamicPropertyNames();
-    if (dynamicPropertyNames.size() != sharedOther->dynamicPropertyNames().size()) {
-        return false;
-    }
-    foreach (const QByteArray& propertyName, dynamicPropertyNames) {
-        if (property(propertyName) != sharedOther->property(propertyName)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
-        const PolymorphicDataPointer& defaultValue) :
-    PolymorphicAttribute(name, defaultValue),
-    _metaObject(metaObject) {
-    
-}
-
-void SharedObjectAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
-    if (isLeaf) {
-        QObject* object;
-        in >> object;
-        *((PolymorphicDataPointer*)&value) = static_cast<SharedObject*>(object);
-    }
-}
-
-void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
-    if (isLeaf) {
-        out << static_cast<SharedObject*>(decodeInline<PolymorphicDataPointer>(value).data());
-    }
+void* SharedObjectAttribute::createFromVariant(const QVariant& value) const {
+    return create(encodeInline(value.value<SharedObjectPointer>()));
 }
 
 QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
@@ -311,9 +379,9 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* p
     connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
 }
 
-void SharedObjectEditor::setObject(const PolymorphicDataPointer& object) {
+void SharedObjectEditor::setObject(const SharedObjectPointer& object) {
     _object = object;
-    const QMetaObject* metaObject = object ? static_cast<SharedObject*>(object.data())->metaObject() : NULL;
+    const QMetaObject* metaObject = object ? object->metaObject() : NULL;
     int index = _type->findData(QVariant::fromValue(metaObject));
     if (index != -1) {
         // ensure that we call updateType to obtain the values
@@ -388,7 +456,7 @@ void SharedObjectEditor::propertyChanged() {
             continue;
         }
         _object.detach();
-        QObject* object = static_cast<SharedObject*>(_object.data());
+        QObject* object = _object.data();
         QMetaProperty property = object->metaObject()->property(widget->property("propertyIndex").toInt());
         QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
         property.write(object, widget->property(valuePropertyName));
