@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QDateTime>
 #include <QScriptEngine>
 #include <QtDebug>
 
@@ -522,6 +523,17 @@ ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(1.0) {
 void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     DefaultMetavoxelGuide::guide(visitation);
     
+    AttributePointer colorAttribute = AttributeRegistry::getInstance()->getColorAttribute();
+    for (int i = 0; i < visitation.info.inputValues.size(); i++) {
+        AttributeValue& attributeValue = visitation.info.inputValues[i]; 
+        if (attributeValue.getAttribute() == colorAttribute) {
+            QRgb base = attributeValue.getInlineValue<QRgb>();
+            double seconds = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            double amplitude = sin(_rate * seconds) * 0.5 + 0.5;
+            attributeValue.setInlineValue<QRgb>(qRgba(qRed(base) * amplitude, qGreen(base) * amplitude,
+                qBlue(base) * amplitude, qAlpha(base)));
+        }
+    }
 }
 
 static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,

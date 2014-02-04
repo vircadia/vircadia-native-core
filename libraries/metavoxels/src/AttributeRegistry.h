@@ -378,14 +378,15 @@ public:
     Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(), const QMetaObject* metaObject = NULL,
         const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
 
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
     
 private:
     
     const QMetaObject* _metaObject;
 };
-
-Q_DECLARE_METATYPE(const QMetaObject*)
 
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {

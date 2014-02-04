@@ -275,6 +275,20 @@ SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObj
     
 }
 
+void SharedObjectAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        QObject* object;
+        in >> object;
+        *((PolymorphicDataPointer*)&value) = static_cast<SharedObject*>(object);
+    }
+}
+
+void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        out << static_cast<SharedObject*>(decodeInline<PolymorphicDataPointer>(value).data());
+    }
+}
+
 QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
     SharedObjectEditor* editor = new SharedObjectEditor(_metaObject, parent);
     editor->setObject(_defaultValue);

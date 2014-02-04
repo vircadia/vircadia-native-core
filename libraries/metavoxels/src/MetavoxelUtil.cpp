@@ -59,8 +59,8 @@ QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {
 }
 
 static QItemEditorFactory* getItemEditorFactory() {
-    static DelegatingItemEditorFactory factory;
-    return &factory;
+    static QItemEditorFactory* factory = new DelegatingItemEditorFactory();
+    return factory;
 }
 
 static QItemEditorCreatorBase* createDoubleEditorCreator() {

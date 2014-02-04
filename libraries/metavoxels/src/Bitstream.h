@@ -295,6 +295,8 @@ template<class T> inline Bitstream& Bitstream::operator>>(QList<T>& list) {
     return *this;
 }
 
+Q_DECLARE_METATYPE(const QMetaObject*)
+
 /// Macro for registering streamable meta-objects.
 #define REGISTER_META_OBJECT(x) static int x##Registration = Bitstream::registerMetaObject(#x, &x::staticMetaObject);
 
