@@ -8,6 +8,13 @@
 
 #include "AvatarMixerClientData.h"
 
+AvatarMixerClientData::AvatarMixerClientData() :
+    _faceModelURL(),
+    _skeletonURL()
+{
+    
+}
+
 void AvatarMixerClientData::parseIdentityPacket(const QByteArray &packet) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));

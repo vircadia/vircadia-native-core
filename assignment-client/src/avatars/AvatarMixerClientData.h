@@ -15,6 +15,8 @@
 
 class AvatarMixerClientData : public AvatarData {
 public:
+    AvatarMixerClientData();
+    
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
     

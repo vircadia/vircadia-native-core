@@ -11,6 +11,7 @@
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QTimer>
 
 #include <Logging.h>
@@ -50,9 +51,7 @@ void attachAvatarDataToNode(Node* newNode) {
 void broadcastAvatarData() {
     static QByteArray mixedAvatarByteArray;
     
-    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
-    
-    int packetsSent = 0;
+    static int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
     
     NodeList* nodeList = NodeList::getInstance();
     
@@ -74,8 +73,6 @@ void broadcastAvatarData() {
                     avatarByteArray.append(nodeData->toByteArray());
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
-                        packetsSent++;
-                        //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
                         nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
                                                                 node->getActiveSocket()->getAddress(),
                                                                 node->getActiveSocket()->getPort());
@@ -89,13 +86,42 @@ void broadcastAvatarData() {
                 }
             }
             
-            packetsSent++;
-            //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
             nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
                                                     node->getActiveSocket()->getAddress(),
                                                     node->getActiveSocket()->getPort());
         }
     }
+}
+
+void broadcastIdentityPacket() {
+   
+    NodeList* nodeList = NodeList::getInstance();
+    
+    QByteArray avatarIdentityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    int numPacketHeaderBytes = avatarIdentityPacket.size();
+    
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        if (node->getLinkedData() && node->getType() == NodeType::Agent) {
+            QByteArray individualData;
+            QDataStream individualDataStream(&individualData, QIODevice::Append);
+            
+            AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+            
+            individualDataStream << node->getUUID() << nodeData->getFaceModelURL() << nodeData->getSkeletonURL();
+            
+            if (avatarIdentityPacket.size() + individualData.size() > MAX_PACKET_SIZE) {
+                // we've hit MTU, send out the current packet before appending
+                nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
+                avatarIdentityPacket.resize(numPacketHeaderBytes);
+            }
+            
+            // append the individual data to the current the avatarIdentityPacket
+            avatarIdentityPacket.append(individualData);
+        }
+    }
+    
+    // send out the final packet
+    nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -154,6 +180,8 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
     
 }
 
+const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;
+
 void AvatarMixer::run() {
     commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
@@ -167,7 +195,8 @@ void AvatarMixer::run() {
     
     gettimeofday(&startTime, NULL);
     
-    
+    QElapsedTimer identityTimer;
+    identityTimer.start();
     
     while (!_isFinished) {
         
@@ -178,6 +207,14 @@ void AvatarMixer::run() {
         }
         
         broadcastAvatarData();
+        
+        if (identityTimer.elapsed() >= AVATAR_IDENTITY_KEYFRAME_MSECS) {
+            // it's time to broadcast the keyframe identity packets
+            broadcastIdentityPacket();
+            
+            // restart the timer so we do it again in AVATAR_IDENTITY_KEYFRAME_MSECS
+            identityTimer.restart();
+        }
         
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * AVATAR_DATA_SEND_INTERVAL_USECS) - usecTimestampNow();
         
