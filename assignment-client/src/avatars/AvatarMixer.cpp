@@ -51,7 +51,7 @@ void attachAvatarDataToNode(Node* newNode) {
 void broadcastAvatarData() {
     static QByteArray mixedAvatarByteArray;
     
-    static int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
+    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
     
     NodeList* nodeList = NodeList::getInstance();
     
@@ -69,7 +69,7 @@ void broadcastAvatarData() {
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
                     
-                    AvatarData* nodeData = (AvatarData*) otherNode->getLinkedData();
+                    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     avatarByteArray.append(nodeData->toByteArray());
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
