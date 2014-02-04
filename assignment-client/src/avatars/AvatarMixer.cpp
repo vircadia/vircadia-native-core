@@ -19,7 +19,7 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-#include "AvatarData.h"
+#include "AvatarMixerClientData.h"
 
 #include "AvatarMixer.h"
 
@@ -36,7 +36,7 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 
 void attachAvatarDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        newNode->setLinkedData(new AvatarData());
+        newNode->setLinkedData(new AvatarMixerClientData());
     }
 }
 
@@ -130,6 +130,18 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             }
             break;
         }
+        case PacketTypeAvatarIdentity: {
+            QUuid nodeUUID;
+            deconstructPacketHeader(dataByteArray, nodeUUID);
+            
+            // check if we have a matching node in our list
+            SharedNodePointer avatarNode = nodeList->nodeWithUUID(nodeUUID);
+            
+            if (avatarNode) {
+                // process the avatar identity packet sent from the avatar
+                reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData())->parseIdentityPacket(dataByteArray);
+            }
+        }
         case PacketTypeKillAvatar: {
             nodeList->processKillNode(dataByteArray);
             break;
@@ -154,6 +166,8 @@ void AvatarMixer::run() {
     timeval startTime;
     
     gettimeofday(&startTime, NULL);
+    
+    
     
     while (!_isFinished) {
         
