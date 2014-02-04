@@ -25,20 +25,14 @@ class AvatarManager : public QObject, public DataServerCallbackObject, public Av
 public:
     AvatarManager(QObject* parent = 0);
 
-    void clear();
-
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
-    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
-    
-    void updateAvatars(float deltaTime);
+    void updateOtherAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
-    void clearMixedAvatars();
+    void clearOtherAvatars();
 
 public slots:
     void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
@@ -54,10 +48,6 @@ private:
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    QWeakPointer<AvatarData> _lookAtTargetAvatar;
-    glm::vec3 _lookAtOtherPosition;
-    float _lookAtIndicatorScale;
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;

@@ -113,7 +113,7 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     }
 }
 
-void Transmitter::renderLevels(int width, int height) {
+void Transmitter::renderLevels(int width, int height) const {
     char val[50];
     const int LEVEL_CORNER_X = 10;
     const int LEVEL_CORNER_Y = 400;
@@ -163,7 +163,5 @@ void Transmitter::renderLevels(int width, int height) {
     glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
     glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
     glEnd();
-
-    
 }
 

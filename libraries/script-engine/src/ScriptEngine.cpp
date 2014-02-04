@@ -106,6 +106,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 void ScriptEngine::init() {
+    qDebug() << "Init called!";
     if (_isInitialized) {
         return; // only initialize once
     }
@@ -206,11 +207,7 @@ void ScriptEngine::run() {
             break;
         }
 
-        bool willSendVisualDataCallBack = false;
         if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
 
@@ -221,9 +218,6 @@ void ScriptEngine::run() {
         }
 
         if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
 
@@ -249,9 +243,7 @@ void ScriptEngine::run() {
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
-        if (willSendVisualDataCallBack) {
-            emit willSendVisualDataCallback();
-        }
+        emit willSendVisualDataCallback();
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
@@ -343,4 +335,3 @@ void ScriptEngine::stopTimer(QTimer *timer) {
         delete timer;
     }
 }
-
