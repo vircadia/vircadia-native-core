@@ -1,5 +1,5 @@
 //
-//  lookWithMouse.js
+//  lookWithTouch.js
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
@@ -9,50 +9,41 @@
 //
 //
 
-var alwaysLook = true; // if you want the mouse look to happen only when you click, change this to false
-var isMouseDown = false;
 var lastX = 0;
 var lastY = 0;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 var wantDebugging = false;
 
-function mousePressEvent(event) {
+function touchBeginEvent(event) {
     if (wantDebugging) {
-        print("mousePressEvent event.x,y=" + event.x + ", " + event.y);
+        print("touchBeginEvent event.x,y=" + event.x + ", " + event.y);
     }
-    isMouseDown = true;
     lastX = event.x;
     lastY = event.y;
 }
 
-function mouseReleaseEvent(event) {
+function touchEndEvent(event) {
     if (wantDebugging) {
-        print("mouseReleaseEvent event.x,y=" + event.x + ", " + event.y);
+        print("touchEndEvent event.x,y=" + event.x + ", " + event.y);
     }
-    isMouseDown = false;
 }
 
-function mouseMoveEvent(event) {
+function touchUpdateEvent(event) {
     if (wantDebugging) {
-        print("mouseMoveEvent event.x,y=" + event.x + ", " + event.y);
+        print("touchUpdateEvent event.x,y=" + event.x + ", " + event.y);
     }
 
-    if (alwaysLook || isMouseDown) {
-        var MOUSE_YAW_SCALE = -0.25;
-        var MOUSE_PITCH_SCALE = -12.5;
-        var FIXED_MOUSE_TIMESTEP = 0.016;
-        yawFromMouse += ((event.x - lastX) * MOUSE_YAW_SCALE * FIXED_MOUSE_TIMESTEP);
-        pitchFromMouse += ((event.y - lastY) * MOUSE_PITCH_SCALE * FIXED_MOUSE_TIMESTEP);
-        lastX = event.x;
-        lastY = event.y;
-    }
+    var MOUSE_YAW_SCALE = -0.25;
+    var MOUSE_PITCH_SCALE = -12.5;
+    var FIXED_MOUSE_TIMESTEP = 0.016;
+    yawFromMouse += ((event.x - lastX) * MOUSE_YAW_SCALE * FIXED_MOUSE_TIMESTEP);
+    pitchFromMouse += ((event.y - lastY) * MOUSE_PITCH_SCALE * FIXED_MOUSE_TIMESTEP);
+    lastX = event.x;
+    lastY = event.y;
 }
 
 function update() {
-    if (wantDebugging) {
-        print("update()...");
-    }
     // rotate body yaw for yaw received from mouse
     var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
     if (wantDebugging) {
@@ -74,16 +65,16 @@ function update() {
 }
 
 // Map the mouse events to our functions
-Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
-Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+Controller.touchBeginEvent.connect(touchBeginEvent);
+Controller.touchUpdateEvent.connect(touchUpdateEvent);
+Controller.touchEndEvent.connect(touchEndEvent);
 
 // disable the standard application for mouse events
-Controller.captureMouseEvents();
+Controller.captureTouchEvents();
 
 function scriptEnding() {
     // re-enabled the standard application for mouse events
-    Controller.releaseMouseEvents();
+    Controller.releaseTouchEvents();
 }
 
 MyAvatar.bodyYaw = 0;
