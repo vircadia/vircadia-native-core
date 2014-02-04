@@ -96,7 +96,6 @@ private:
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
-    float _cameraYaw;
     bool _isCameraMoving;
     FaceModel _faceModel;
     
