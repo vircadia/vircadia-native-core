@@ -105,8 +105,9 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
+Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+
 void ScriptEngine::init() {
-    qDebug() << "Init called!";
     if (_isInitialized) {
         return; // only initialize once
     }
