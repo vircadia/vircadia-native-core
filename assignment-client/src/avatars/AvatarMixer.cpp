@@ -171,6 +171,8 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                     // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
                     QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
                     identityPacket.append(nodeData->identityByteArray());
+                    
+                    nodeData->setHasSentIdentityBetweenKeyFrames(true);
                     nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
                 }
             }

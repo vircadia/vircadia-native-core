@@ -832,7 +832,7 @@ void Menu::editPreferences() {
 
         if (faceModelURL.toString() != faceURLString) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getAvatar()->getHead().getFaceModel().setURL(faceModelURL);
+            applicationInstance->getAvatar()->setFaceModelURL(faceModelURL);
             shouldDispatchIdentityPacket = true;
         }
 
@@ -840,7 +840,7 @@ void Menu::editPreferences() {
 
         if (skeletonModelURL.toString() != skeletonURLString) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getAvatar()->getSkeletonModel().setURL(skeletonModelURL);
+            applicationInstance->getAvatar()->setSkeletonURL(skeletonModelURL);
             shouldDispatchIdentityPacket = true;
         }
         

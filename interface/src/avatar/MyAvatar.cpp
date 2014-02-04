@@ -610,7 +610,7 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("scale", _targetScale);
     
     settings->setValue("faceModelURL", _faceModelURL);
-    settings->setValue("skeletonURL", _skeletonURL);
+    settings->setValue("skeletonModelURL", _skeletonModelURL);
 
     settings->endGroup();
 }
@@ -637,7 +637,7 @@ void MyAvatar::loadData(QSettings* settings) {
     Application::getInstance()->getCamera()->setScale(_scale);
     
     setFaceModelURL(settings->value("faceModelURL").toUrl());
-    setSkeletonURL(settings->value("skeletonURL").toUrl());
+    setSkeletonURL(settings->value("skeletonModelURL").toUrl());
 
     settings->endGroup();
 }

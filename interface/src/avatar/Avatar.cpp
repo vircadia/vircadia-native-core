@@ -339,9 +339,9 @@ void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     _head.getFaceModel().setURL(faceModelURL);
 }
 
-void Avatar::setSkeletonURL(const QUrl &skeletonURL) {
-    _skeletonURL = skeletonURL;
-    _skeletonModel.setURL(skeletonURL);
+void Avatar::setSkeletonURL(const QUrl &skeletonModelURL) {
+    _skeletonModelURL = skeletonModelURL;
+    _skeletonModel.setURL(skeletonModelURL);
 }
 
 int Avatar::parseData(const QByteArray& packet) {

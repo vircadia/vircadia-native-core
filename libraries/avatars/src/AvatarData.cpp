@@ -275,8 +275,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
     QUuid avatarUUID;
-    QUrl faceModelURL, skeletonURL;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonURL;
+    QUrl faceModelURL, skeletonModelURL;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
     
     bool hasIdentityChanged = false;
     
@@ -285,8 +285,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
         hasIdentityChanged = true;
     }
     
-    if (skeletonURL != _skeletonURL) {
-        setSkeletonURL(skeletonURL);
+    if (skeletonModelURL != _skeletonModelURL) {
+        setSkeletonModelURL(skeletonModelURL);
         hasIdentityChanged = true;
     }
     
@@ -297,7 +297,7 @@ QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     
-    identityStream << QUuid() << _faceModelURL << _skeletonURL;
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
     
     return identityData;
 }

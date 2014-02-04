@@ -147,9 +147,9 @@ public:
     QByteArray identityByteArray();
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
-    const QUrl& getSkeletonURL() const { return _skeletonURL; }
+    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     virtual void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
-    virtual void setSkeletonURL(const QUrl& skeletonURL) { _skeletonURL = skeletonURL; }
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) { _skeletonModelURL = skeletonModelURL; }
     
 protected:
     glm::vec3 _position;
@@ -178,7 +178,7 @@ protected:
     HandData* _handData;
 
     QUrl _faceModelURL;
-    QUrl _skeletonURL;
+    QUrl _skeletonModelURL;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
