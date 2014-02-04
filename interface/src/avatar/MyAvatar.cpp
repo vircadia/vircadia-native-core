@@ -609,8 +609,8 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("leanScale", _leanScale);
     settings->setValue("scale", _targetScale);
     
-    settings->setValue("faceModelURL", _head.getFaceModel().getURL());
-    settings->setValue("skeletonURL", _skeletonModel.getURL());
+    settings->setValue("faceModelURL", _faceModelURL);
+    settings->setValue("skeletonURL", _skeletonURL);
 
     settings->endGroup();
 }
@@ -636,8 +636,8 @@ void MyAvatar::loadData(QSettings* settings) {
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
     
-    _head.getFaceModel().setURL(settings->value("faceModelURL").toUrl());
-    _skeletonModel.setURL(settings->value("skeletonURL").toUrl());
+    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setSkeletonURL(settings->value("skeletonURL").toUrl());
 
     settings->endGroup();
 }
@@ -649,10 +649,7 @@ void MyAvatar::sendKillAvatar() {
 
 void MyAvatar::sendIdentityPacket() {
     QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
-    QDataStream identityStream(&identityPacket, QIODevice::Append);
-    
-    identityStream << _head.getFaceModel().getURL();
-    identityStream << _skeletonModel.getURL();
+    identityPacket.append(AvatarData::identityByteArray());
     
     NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }

@@ -102,12 +102,10 @@ void broadcastIdentityPacket() {
     
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NodeType::Agent) {
-            QByteArray individualData;
-            QDataStream individualDataStream(&individualData, QIODevice::Append);
             
             AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
-            
-            individualDataStream << node->getUUID() << nodeData->getFaceModelURL() << nodeData->getSkeletonURL();
+            QByteArray individualData = nodeData->identityByteArray();
+            individualData.replace(0, NUM_BYTES_RFC4122_UUID, node->getUUID().toRfc4122());
             
             if (avatarIdentityPacket.size() + individualData.size() > MAX_PACKET_SIZE) {
                 // we've hit MTU, send out the current packet before appending
@@ -119,7 +117,7 @@ void broadcastIdentityPacket() {
             avatarIdentityPacket.append(individualData);
             
             // re-set the bool in AvatarMixerClientData so a change between key frames gets sent out
-            nodeData->setHasSentPacketBetweenKeyFrames(false);
+            nodeData->setHasSentIdentityBetweenKeyFrames(false);
         }
     }
     
@@ -168,11 +166,12 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             
             if (avatarNode && avatarNode->getLinkedData()) {
                 AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                if (nodeData->shouldSendIdentityPacketAfterParsing(dataByteArray)) {
+                if (nodeData->hasIdentityChangedAfterParsing(dataByteArray)
+                    && !nodeData->hasSentIdentityBetweenKeyFrames()) {
                     // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
                     QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
-                    QDataStream identityStream(&identityPacket, QIODevice::Append);
-                    identityStream << avatarNode->getUUID() << nodeData->getFaceModelURL() << nodeData->getSkeletonURL();
+                    identityPacket.append(nodeData->identityByteArray());
+                    nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
                 }
             }
         }

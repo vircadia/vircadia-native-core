@@ -30,6 +30,7 @@ typedef unsigned long long quint64;
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
 
@@ -142,6 +143,14 @@ public:
         return false;
     }
     
+    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    QByteArray identityByteArray();
+    
+    const QUrl& getFaceModelURL() const { return _faceModelURL; }
+    const QUrl& getSkeletonURL() const { return _skeletonURL; }
+    virtual void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
+    virtual void setSkeletonURL(const QUrl& skeletonURL) { _skeletonURL = skeletonURL; }
+    
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -168,6 +177,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
+    QUrl _faceModelURL;
+    QUrl _skeletonURL;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

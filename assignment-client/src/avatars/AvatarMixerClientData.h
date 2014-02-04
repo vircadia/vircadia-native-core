@@ -17,20 +17,12 @@ class AvatarMixerClientData : public AvatarData {
 public:
     AvatarMixerClientData();
     
-    const QUrl& getFaceModelURL() const { return _faceModelURL; }
-    void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
-    
-    const QUrl& getSkeletonURL() const { return _skeletonURL; }
-    void setSkeletonURL(const QUrl& skeletonURL) { _skeletonURL = skeletonURL; }
-    
-    void setHasSentPacketBetweenKeyFrames(bool hasSentPacketBetweenKeyFrames)
-        { _hasSentPacketBetweenKeyFrames = hasSentPacketBetweenKeyFrames; }
-    
-    bool shouldSendIdentityPacketAfterParsing(const QByteArray& packet);
+    bool hasSentIdentityBetweenKeyFrames() const { return _hasSentIdentityBetweenKeyFrames; }
+    void setHasSentIdentityBetweenKeyFrames(bool hasSentIdentityBetweenKeyFrames)
+        { _hasSentIdentityBetweenKeyFrames = hasSentIdentityBetweenKeyFrames; }
 private:
-    QUrl _faceModelURL;
-    QUrl _skeletonURL;
-    bool _hasSentPacketBetweenKeyFrames;
+   
+    bool _hasSentIdentityBetweenKeyFrames;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

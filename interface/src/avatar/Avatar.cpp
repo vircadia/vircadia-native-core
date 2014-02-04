@@ -334,6 +334,16 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     return false;
 }
 
+void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
+    _faceModelURL = faceModelURL;
+    _head.getFaceModel().setURL(faceModelURL);
+}
+
+void Avatar::setSkeletonURL(const QUrl &skeletonURL) {
+    _skeletonURL = skeletonURL;
+    _skeletonModel.setURL(skeletonURL);
+}
+
 int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
