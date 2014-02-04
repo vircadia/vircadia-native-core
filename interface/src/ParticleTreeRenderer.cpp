@@ -99,7 +99,11 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 // TODO: need to figure out correct scale adjust, this was arbitrarily set to make a couple models work
                 const float MODEL_SCALE = 0.00575f;
                 glm::vec3 scale(1.0f,1.0f,1.0f);
-                model->setScale(scale * MODEL_SCALE * radius * particle.getModelScale());
+                
+                // TODO: There is some kind of a bug in packing of the particle packets which is causing modelscale to
+                // sometimes be garbage.
+                float modelScale = 2.0f; /// particle.getModelScale()
+                model->setScale(scale * MODEL_SCALE * radius * modelScale);
 
                 model->simulate(0.0f);
                 model->render(alpha); // TODO: should we allow particles to have alpha on their models?
