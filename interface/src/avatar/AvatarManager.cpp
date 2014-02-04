@@ -124,8 +124,6 @@ void AvatarManager::renderAvatarFades() {
     }
 }
 
-
-
 void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
     
     switch (packetTypeForPacket(datagram)) {
