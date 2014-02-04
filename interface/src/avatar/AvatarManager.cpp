@@ -179,7 +179,6 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
 }
 
 void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
-    qDebug() << "Processing an avatar identity packet";
     // setup a data stream to parse the packet
     QDataStream identityStream(packet);
     identityStream.skipRawData(numBytesForPacketHeader(packet));
@@ -197,17 +196,11 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
             Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
             
             if (avatar->getFaceModelURL() != faceMeshURL) {
-                qDebug() << "Changing mesh to" << faceMeshURL.toString() << "for avatar with UUID"
-                    << uuidStringWithoutCurlyBraces(nodeUUID);
-                
                 avatar->setFaceModelURL(faceMeshURL);
             }
             
-            if (avatar->getFaceModelURL() != skeletonURL) {
-                qDebug() << "Changing skeleton to" << skeletonURL << "for avatar with UUID"
-                    << uuidStringWithoutCurlyBraces(nodeUUID);
-                
-                avatar->setFaceModelURL(skeletonURL);
+            if (avatar->getSkeletonModelURL() != skeletonURL) {
+                avatar->setSkeletonModelURL(skeletonURL);
             }
         }
     }

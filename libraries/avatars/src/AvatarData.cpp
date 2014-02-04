@@ -280,8 +280,6 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     
     bool hasIdentityChanged = false;
     
-    qDebug() << faceModelURL;
-    
     if (faceModelURL != _faceModelURL) {
         setFaceModelURL(faceModelURL);
         hasIdentityChanged = true;
@@ -302,6 +300,16 @@ QByteArray AvatarData::identityByteArray() {
     identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
     
     return identityData;
+}
+
+void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
+    qDebug() << "Changing face model for avatar to" << faceModelURL.toString();
+    _faceModelURL = faceModelURL;
+}
+
+void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    qDebug() << "Changing skeleton model for avatar to" << skeletonModelURL.toString();
+    _skeletonModelURL = skeletonModelURL;
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {

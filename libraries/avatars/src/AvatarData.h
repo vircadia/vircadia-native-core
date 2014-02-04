@@ -148,8 +148,8 @@ public:
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
-    virtual void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) { _skeletonModelURL = skeletonModelURL; }
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     
 protected:
     glm::vec3 _position;

@@ -335,12 +335,12 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
 }
 
 void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
-    _faceModelURL = faceModelURL;
+    AvatarData::setFaceModelURL(faceModelURL);
     _head.getFaceModel().setURL(faceModelURL);
 }
 
 void Avatar::setSkeletonURL(const QUrl &skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL;
+    AvatarData::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel.setURL(skeletonModelURL);
 }
 
