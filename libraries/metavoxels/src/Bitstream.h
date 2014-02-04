@@ -21,6 +21,7 @@ class QByteArray;
 class QDataStream;
 struct QMetaObject;
 class QObject;
+class QUrl;
 
 class Attribute;
 class AttributeValue;
@@ -238,6 +239,9 @@ public:
     Bitstream& operator<<(const QString& string);
     Bitstream& operator>>(QString& string);
     
+    Bitstream& operator<<(const QUrl& url);
+    Bitstream& operator>>(QUrl& url);
+    
     Bitstream& operator<<(const QVariant& value);
     Bitstream& operator>>(QVariant& value);
     
@@ -246,6 +250,9 @@ public:
     
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);
+    
+    template<class K, class V> Bitstream& operator<<(const QHash<K, V>& hash);
+    template<class K, class V> Bitstream& operator>>(QHash<K, V>& hash);
     
     Bitstream& operator<<(const QObject* object);
     Bitstream& operator>>(QObject*& object);
@@ -291,6 +298,30 @@ template<class T> inline Bitstream& Bitstream::operator>>(QList<T>& list) {
         T entry;
         *this >> entry;
         list.append(entry);
+    }
+    return *this;
+}
+
+template<class K, class V> inline Bitstream& Bitstream::operator<<(const QHash<K, V>& hash) {
+    *this << hash.size();
+    for (typename QHash<K, V>::const_iterator it = hash.constBegin(); it != hash.constEnd(); it++) {
+        *this << it.key();
+        *this << it.value();
+    }
+    return *this;
+}
+
+template<class K, class V> inline Bitstream& Bitstream::operator>>(QHash<K, V>& hash) {
+    int size;
+    *this >> size;
+    hash.clear();
+    hash.reserve(size);
+    for (int i = 0; i < size; i++) {
+        K key;
+        V value;
+        *this >> key;
+        *this >> value;
+        hash.insertMulti(key, value);
     }
     return *this;
 }

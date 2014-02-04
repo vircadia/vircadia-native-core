@@ -8,8 +8,10 @@
 
 #include <QByteArray>
 #include <QDoubleSpinBox>
+#include <QHBoxLayout>
 #include <QItemEditorFactory>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QStandardItemEditorCreator>
 #include <QVBoxLayout>
 #include <QtDebug>
@@ -18,6 +20,8 @@
 #include <PacketHeaders.h>
 
 #include "MetavoxelUtil.h"
+
+REGISTER_SIMPLE_TYPE_STREAMER(ParameterizedURL)
 
 class DelegatingItemEditorFactory : public QItemEditorFactory {
 public:
@@ -112,15 +116,43 @@ bool ParameterizedURL::operator!=(const ParameterizedURL& other) const {
     return _url != other._url || _parameters != other._parameters;
 }
 
+uint qHash(const ParameterizedURL& url, uint seed) {
+    // just hash on the URL, for now
+    return qHash(url.getURL(), seed);
+}
+
+Bitstream& operator<<(Bitstream& out, const ParameterizedURL& url) {
+    out << url.getURL();
+    out << url.getParameters();
+    return out;
+}
+
+Bitstream& operator>>(Bitstream& in, ParameterizedURL& url) {
+    QUrl qurl;
+    in >> qurl;
+    QVariantHash parameters;
+    in >> parameters;
+    url = ParameterizedURL(qurl, parameters);
+    return in;
+}
+
 ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
     QWidget(parent) {
 
     QVBoxLayout* layout = new QVBoxLayout();
+    layout->setContentsMargins(QMargins());
     setLayout(layout);
     
     layout->addWidget(_line = new QLineEdit());
+    connect(_line, SIGNAL(textChanged(const QString&)), SLOT(updateURL()));
 }
 
 void ParameterizedURLEditor::setURL(const ParameterizedURL& url) {
     _url = url;
+    _line->setText(url.getURL().toString());
+}
+
+void ParameterizedURLEditor::updateURL() {
+    _url = ParameterizedURL(_line->text());
+    emit urlChanged(_url);
 }

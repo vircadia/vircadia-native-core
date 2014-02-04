@@ -11,6 +11,7 @@
 #include <QDataStream>
 #include <QMetaProperty>
 #include <QMetaType>
+#include <QUrl>
 #include <QtDebug>
 
 #include <RegisteredMetaTypes.h>
@@ -23,7 +24,9 @@ REGISTER_SIMPLE_TYPE_STREAMER(int)
 REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
+REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
+REGISTER_SIMPLE_TYPE_STREAMER(QVariantHash)
 
 // some types don't quite work with our macro
 static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
@@ -233,6 +236,17 @@ Bitstream& Bitstream::operator>>(QString& string) {
     *this >> size;
     string.resize(size);
     return read(string.data(), size * sizeof(QChar) * BITS_IN_BYTE);
+}
+
+Bitstream& Bitstream::operator<<(const QUrl& url) {
+    return *this << url.toString();
+}
+
+Bitstream& Bitstream::operator>>(QUrl& url) {
+    QString string;
+    *this >> string;
+    url = string;
+    return *this;
 }
 
 Bitstream& Bitstream::operator<<(const QVariant& value) {

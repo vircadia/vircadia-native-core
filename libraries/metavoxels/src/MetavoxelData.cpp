@@ -15,6 +15,7 @@
 
 REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
+REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {

@@ -45,6 +45,8 @@ public:
     
     ParameterizedURL(const QUrl& url = QUrl(), const QVariantHash& parameters = QVariantHash());
     
+    bool isValid() const { return _url.isValid(); }
+    
     void setURL(const QUrl& url) { _url = url; }
     const QUrl& getURL() const { return _url; }
     
@@ -60,21 +62,34 @@ private:
     QVariantHash _parameters;
 };
 
+uint qHash(const ParameterizedURL& url, uint seed = 0);
+
+Bitstream& operator<<(Bitstream& out, const ParameterizedURL& url);
+Bitstream& operator>>(Bitstream& in, ParameterizedURL& url);
+
 Q_DECLARE_METATYPE(ParameterizedURL)
 
 /// Allows editing parameterized URLs.
 class ParameterizedURLEditor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(ParameterizedURL url MEMBER _url WRITE setURL USER true)
+    Q_PROPERTY(ParameterizedURL url MEMBER _url WRITE setURL NOTIFY urlChanged USER true)
 
 public:
     
     ParameterizedURLEditor(QWidget* parent = NULL);
-    
+
+signals:
+
+    void urlChanged(const ParameterizedURL& url);
+
 public slots:
 
     void setURL(const ParameterizedURL& url);
 
+private slots:
+
+    void updateURL();    
+    
 private:
     
     ParameterizedURL _url;
