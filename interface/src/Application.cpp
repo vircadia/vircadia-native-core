@@ -247,7 +247,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
-    silentNodeTimer->start(1000);
+    identityPacketTimer->start(1000);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 

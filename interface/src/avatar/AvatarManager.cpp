@@ -179,6 +179,7 @@ void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QW
 }
 
 void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
+    qDebug() << "Processing an avatar identity packet";
     // setup a data stream to parse the packet
     QDataStream identityStream(packet);
     identityStream.skipRawData(numBytesForPacketHeader(packet));
@@ -186,28 +187,27 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
     QUuid nodeUUID;
     
     while (!identityStream.atEnd()) {
-        identityStream >> nodeUUID;
+        
+        QUrl faceMeshURL, skeletonURL;
+        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL;
         
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         if (matchingAvatar) {
-            QUrl faceMeshURL, skeletonURL;
-            identityStream >> faceMeshURL >> skeletonURL;
-            
             Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
             
-            if (avatar->getHead().getFaceModel().getURL() != faceMeshURL) {
+            if (avatar->getFaceModelURL() != faceMeshURL) {
                 qDebug() << "Changing mesh to" << faceMeshURL.toString() << "for avatar with UUID"
                     << uuidStringWithoutCurlyBraces(nodeUUID);
                 
-                avatar->getHead().getFaceModel().setURL(faceMeshURL);
+                avatar->setFaceModelURL(faceMeshURL);
             }
             
-            if (avatar->getSkeletonModel().getURL() != skeletonURL) {
+            if (avatar->getFaceModelURL() != skeletonURL) {
                 qDebug() << "Changing skeleton to" << skeletonURL << "for avatar with UUID"
                     << uuidStringWithoutCurlyBraces(nodeUUID);
                 
-                avatar->getSkeletonModel().setURL(skeletonURL);
+                avatar->setFaceModelURL(skeletonURL);
             }
         }
     }

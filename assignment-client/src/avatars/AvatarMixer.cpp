@@ -122,7 +122,9 @@ void broadcastIdentityPacket() {
     }
     
     // send out the final packet
-    nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
+    if (avatarIdentityPacket.size() > numPacketHeaderBytes) {
+        nodeList->broadcastToNodes(avatarIdentityPacket, NodeSet() << NodeType::Agent);
+    }
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -170,7 +172,11 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                     && !nodeData->hasSentIdentityBetweenKeyFrames()) {
                     // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
                     QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
-                    identityPacket.append(nodeData->identityByteArray());
+                    
+                    QByteArray individualByteArray = nodeData->identityByteArray();
+                    individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, nodeUUID.toRfc4122());
+                    
+                    identityPacket.append(individualByteArray);
                     
                     nodeData->setHasSentIdentityBetweenKeyFrames(true);
                     nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);

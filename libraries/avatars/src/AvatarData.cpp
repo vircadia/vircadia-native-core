@@ -280,6 +280,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     
     bool hasIdentityChanged = false;
     
+    qDebug() << faceModelURL;
+    
     if (faceModelURL != _faceModelURL) {
         setFaceModelURL(faceModelURL);
         hasIdentityChanged = true;
