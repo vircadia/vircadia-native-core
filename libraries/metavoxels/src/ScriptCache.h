@@ -13,6 +13,7 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QScriptProgram>
+#include <QScriptValue>
 #include <QSharedPointer>
 #include <QVariantHash>
 #include <QWeakPointer>
@@ -36,7 +37,7 @@ public:
 
     ScriptCache();
     
-    void setNetworkAccessManager(QNetworkAccessManager* manager);
+    void setNetworkAccessManager(QNetworkAccessManager* manager) { _networkAccessManager = manager; }
     QNetworkAccessManager* getNetworkAccessManager() const { return _networkAccessManager; }
     
     void setEngine(QScriptEngine* engine);
@@ -92,7 +93,9 @@ public:
     
     NetworkValue(const QSharedPointer<NetworkProgram>& program, const QVariantHash& parameters);
 
-    const QScriptValue& getValue();
+    bool isLoaded() { return getValue().isValid(); }
+
+    QScriptValue& getValue();
 
 private:
     

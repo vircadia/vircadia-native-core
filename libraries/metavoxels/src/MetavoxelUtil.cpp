@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QItemEditorFactory>
 #include <QLineEdit>
+#include <QMetaType>
 #include <QPushButton>
 #include <QStandardItemEditorCreator>
 #include <QVBoxLayout>
@@ -20,6 +21,8 @@
 #include <PacketHeaders.h>
 
 #include "MetavoxelUtil.h"
+
+static int parameterizedURLType = qRegisterMetaType<ParameterizedURL>();
 
 REGISTER_SIMPLE_TYPE_STREAMER(ParameterizedURL)
 

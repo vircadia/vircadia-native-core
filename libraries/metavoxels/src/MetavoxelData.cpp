@@ -12,6 +12,7 @@
 
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
+#include "ScriptCache.h"
 
 REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
@@ -593,36 +594,47 @@ QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngin
     return result;
 }
 
-ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
-    _guideFunction(guideFunction) {
-    
-    QScriptEngine* engine = guideFunction.engine();
-    if (!engine) {
-        return;
-    }
-    _minimumHandle = engine->toStringHandle("minimum");
-    _sizeHandle = engine->toStringHandle("size");
-    _inputValuesHandle = engine->toStringHandle("inputValues");
-    _outputValuesHandle = engine->toStringHandle("outputValues");
-    _isLeafHandle = engine->toStringHandle("isLeaf");
-    _getInputsFunction = engine->newFunction(getInputs, 0);
-    _getOutputsFunction = engine->newFunction(getOutputs, 0);
-    _visitFunction = engine->newFunction(visit, 1);
-    _info = engine->newObject();
-    _minimum = engine->newArray(3);
-    
-    _arguments.append(engine->newObject());
-    QScriptValue visitor = engine->newObject();
-    visitor.setProperty("getInputs", _getInputsFunction);
-    visitor.setProperty("getOutputs", _getOutputsFunction);
-    visitor.setProperty("visit", _visitFunction);
-    _arguments[0].setProperty("visitor", visitor);
-    _arguments[0].setProperty("info", _info);
-    _info.setProperty(_minimumHandle, _minimum);
+ScriptedMetavoxelGuide::ScriptedMetavoxelGuide() {
 }
 
 void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    QScriptValue data = _guideFunction.engine()->newVariant(QVariant::fromValue<void*>(this));
+    QScriptValue guideFunction;
+    if (_guideFunction) {
+        guideFunction = _guideFunction->getValue();    
+        
+    } else if (_url.isValid()) {
+        _guideFunction = ScriptCache::getInstance()->getValue(_url);
+        guideFunction = _guideFunction->getValue();
+    }
+    if (!guideFunction.isValid()) {
+        // before we load, just use the default behavior
+        DefaultMetavoxelGuide::guide(visitation);
+        return;
+    }
+    QScriptEngine* engine = guideFunction.engine();
+    if (!_minimumHandle.isValid()) {
+        _minimumHandle = engine->toStringHandle("minimum");
+        _sizeHandle = engine->toStringHandle("size");
+        _inputValuesHandle = engine->toStringHandle("inputValues");
+        _outputValuesHandle = engine->toStringHandle("outputValues");
+        _isLeafHandle = engine->toStringHandle("isLeaf");
+        _getInputsFunction = engine->newFunction(getInputs, 0);
+        _getOutputsFunction = engine->newFunction(getOutputs, 0);
+        _visitFunction = engine->newFunction(visit, 1);
+        _info = engine->newObject();
+        _minimum = engine->newArray(3);
+        
+        _arguments.clear();
+        _arguments.append(engine->newObject());
+        QScriptValue visitor = engine->newObject();
+        visitor.setProperty("getInputs", _getInputsFunction);
+        visitor.setProperty("getOutputs", _getOutputsFunction);
+        visitor.setProperty("visit", _visitFunction);
+        _arguments[0].setProperty("visitor", visitor);
+        _arguments[0].setProperty("info", _info);
+        _info.setProperty(_minimumHandle, _minimum);
+    }
+    QScriptValue data = engine->newVariant(QVariant::fromValue<void*>(this));
     _getInputsFunction.setData(data);
     _visitFunction.setData(data);
     _minimum.setProperty(0, visitation.info.minimum.x);
@@ -631,10 +643,16 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     _info.setProperty(_sizeHandle, visitation.info.size);
     _info.setProperty(_isLeafHandle, visitation.info.isLeaf);
     _visitation = &visitation;
-    _guideFunction.call(QScriptValue(), _arguments);
-    if (_guideFunction.engine()->hasUncaughtException()) {
-        qDebug() << "Script error: " << _guideFunction.engine()->uncaughtException().toString();
+    guideFunction.call(QScriptValue(), _arguments);
+    if (engine->hasUncaughtException()) {
+        qDebug() << "Script error: " << engine->uncaughtException().toString();
     }
+}
+
+void ScriptedMetavoxelGuide::setURL(const ParameterizedURL& url) {
+    _url = url;
+    _guideFunction.reset();
+    _minimumHandle = QScriptString();
 }
 
 bool MetavoxelVisitation::allInputNodesLeaves() const {

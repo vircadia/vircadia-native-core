@@ -12,6 +12,7 @@
 #include <QBitArray>
 #include <QHash>
 #include <QSharedData>
+#include <QSharedPointer>
 #include <QScriptString>
 #include <QScriptValue>
 #include <QVector>
@@ -26,6 +27,7 @@ class QScriptContext;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
+class NetworkValue;
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
@@ -187,16 +189,20 @@ private:
 };
 
 /// Represents a guide implemented in Javascript.
-class ScriptedMetavoxelGuide : public MetavoxelGuide {
+class ScriptedMetavoxelGuide : public DefaultMetavoxelGuide {
     Q_OBJECT
-    Q_PROPERTY(ParameterizedURL url MEMBER _url)
+    Q_PROPERTY(ParameterizedURL url MEMBER _url WRITE setURL)
     
 public:
 
-    Q_INVOKABLE ScriptedMetavoxelGuide(const QScriptValue& guideFunction = QScriptValue());
+    Q_INVOKABLE ScriptedMetavoxelGuide();
 
     virtual void guide(MetavoxelVisitation& visitation);
 
+public slots:
+
+    void setURL(const ParameterizedURL& url);
+    
 private:
 
     static QScriptValue getInputs(QScriptContext* context, QScriptEngine* engine);
@@ -205,7 +211,8 @@ private:
 
     ParameterizedURL _url;
 
-    QScriptValue _guideFunction;
+    QSharedPointer<NetworkValue> _guideFunction;
+
     QScriptString _minimumHandle;
     QScriptString _sizeHandle;
     QScriptString _inputValuesHandle;

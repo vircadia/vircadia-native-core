@@ -14,24 +14,20 @@
 #include <QTimer>
 #include <QtDebug>
 
+#include "AttributeRegistry.h"
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
 
-static ScriptCache* ScriptCache::getInstance() {
+ScriptCache* ScriptCache::getInstance() {
     static ScriptCache cache;
     return &cache;
 }
 
 ScriptCache::ScriptCache() :
-    _networkAccessManager(new QNetworkAccessManager(this)),
+    _networkAccessManager(NULL),
     _engine(new QScriptEngine(this)) {
-}
-
-void ScriptCache::setNetworkAccessManager(QNetworkAccessManager* manager) {
-    if (_networkAccessManager->parent() == this) {
-        delete _networkAccessManager;
-    }
-    _networkAccessManager = manager;
+    
+    AttributeRegistry::getInstance()->configureScriptEngine(_engine);
 }
 
 void ScriptCache::setEngine(QScriptEngine* engine) {
@@ -79,7 +75,11 @@ NetworkProgram::~NetworkProgram() {
 }
 
 void NetworkProgram::makeRequest() {
-    _reply = _cache->getNetworkAccessManager()->get(_request);
+    QNetworkAccessManager* manager = _cache->getNetworkAccessManager();
+    if (manager == NULL) {
+        return;
+    }
+    _reply = manager->get(_request);
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
@@ -90,6 +90,7 @@ void NetworkProgram::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
         return;
     }
     _program = QScriptProgram(QTextStream(_reply).readAll(), _reply->url().toString());
+    
     _reply->disconnect(this);
     _reply->deleteLater();
     _reply = NULL;
@@ -116,7 +117,7 @@ NetworkValue::NetworkValue(const QSharedPointer<NetworkProgram>& program, const 
     _parameters(parameters) {
 }
 
-const QScriptValue& NetworkValue::getValue() {
+QScriptValue& NetworkValue::getValue() {
     if (!_value.isValid() && _program->isLoaded()) {
         _value = _program->getCache()->getEngine()->evaluate(_program->getProgram());
     }
