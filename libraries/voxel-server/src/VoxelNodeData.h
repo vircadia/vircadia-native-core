@@ -15,7 +15,7 @@
 class VoxelNodeData : public OctreeQueryNode {
 public:
     VoxelNodeData() : OctreeQueryNode() {  };
-    virtual PACKET_TYPE getMyPacketType() const { return PACKET_TYPE_VOXEL_DATA; }
+    virtual PacketType getMyPacketType() const { return PacketTypeVoxelData; }
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

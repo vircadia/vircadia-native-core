@@ -10,6 +10,8 @@
 #include <cstring>
 #include <stdint.h>
 
+#include <QtCore/QDataStream>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -52,9 +54,7 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
 }
 
-int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
-    unsigned char* bufferStart = destinationBuffer;
-    
+QByteArray AvatarData::toByteArray() {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
     // and return the number of bytes to push the pointer
@@ -68,9 +68,14 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         _handData = new HandData(this);
     }
     
-    // Body world position
-    memcpy(destinationBuffer, &_position, sizeof(float) * 3);
-    destinationBuffer += sizeof(float) * 3;
+    QByteArray avatarDataByteArray;
+    avatarDataByteArray.resize(MAX_PACKET_SIZE);
+    
+    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
+    unsigned char* startPosition = destinationBuffer;
+    
+    memcpy(destinationBuffer, &_position, sizeof(_position));
+    destinationBuffer += sizeof(_position);
     
     // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
@@ -84,6 +89,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
+    
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
     memcpy(destinationBuffer, &_headData->_leanSideways, sizeof(_headData->_leanSideways));
@@ -150,11 +156,11 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // leap hand data
     destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
 
-    return destinationBuffer - bufferStart;
+    return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
 // called on the other nodes - assigns it to my views of the others
-int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
+int AvatarData::parseData(const QByteArray& packet) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
@@ -167,14 +173,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
     
     // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    sourceBuffer += numBytesPacketHeader;
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
+    const unsigned char* sourceBuffer = startPosition + numBytesForPacketHeader(packet);
     
-    unsigned char* startPosition = sourceBuffer;
-    
-    // push past the node session UUID
-    sourceBuffer += NUM_BYTES_RFC4122_UUID;
-        
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
@@ -183,10 +184,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
-
+    
     // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _targetScale);
-
+    
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
@@ -196,64 +197,64 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     _headData->setYaw(headYaw);
     _headData->setPitch(headPitch);
     _headData->setRoll(headRoll);
-
+    
     //  Head position relative to pelvis
     memcpy(&_headData->_leanSideways, sourceBuffer, sizeof(_headData->_leanSideways));
     sourceBuffer += sizeof(float);
     memcpy(&_headData->_leanForward, sourceBuffer, sizeof(_headData->_leanForward));
     sourceBuffer += sizeof(_headData->_leanForward);
-
+    
     // Hand Position - is relative to body position
     glm::vec3 handPositionRelative;
     memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
     _handPosition = _position + handPositionRelative;
     sourceBuffer += sizeof(float) * 3;
-
+    
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
     sourceBuffer += sizeof(_headData->_lookAtPosition);
-
+    
     // Instantaneous audio loudness (used to drive facial animation)
     //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
-
+    
     // the rest is a chat message
     int chatMessageSize = *sourceBuffer++;
     _chatMessage = string((char*)sourceBuffer, chatMessageSize);
     sourceBuffer += chatMessageSize * sizeof(char);
-
+    
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-
+    
     // key state, stored as a semi-nibble in the bitItems
     _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
-
+    
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
-
+    
     _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-
+    
     _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
-
+    
     // If it is connected, pack up the data
     if (_headData->_isFaceshiftConnected) {
         memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
-
+        
         memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
-
+        
         memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
-
+        
         memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
         
         _headData->_blendshapeCoefficients.resize(*sourceBuffer++);
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer,
-            _headData->_blendshapeCoefficients.size() * sizeof(float));
+               _headData->_blendshapeCoefficients.size() * sizeof(float));
         sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
     
@@ -261,11 +262,11 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     
     // leap hand data
-    if (sourceBuffer - startPosition < numBytes) {
+    if (sourceBuffer - startPosition < packet.size()) {
         // check passed, bytes match
-        sourceBuffer += _handData->decodeRemoteData(sourceBuffer);
+        sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));
     }
-
+    
     return sourceBuffer - startPosition;
 }
 
@@ -275,4 +276,11 @@ void AvatarData::setClampedTargetScale(float targetScale) {
     
     _targetScale = targetScale;
     qDebug() << "Changed scale to " << _targetScale;
+}
+
+void AvatarData::setOrientation(const glm::quat& orientation) {
+    glm::vec3 eulerAngles = safeEulerAngles(orientation);
+    _bodyPitch = eulerAngles.x;
+    _bodyYaw = eulerAngles.y;
+    _bodyRoll = eulerAngles.z;
 }

@@ -21,7 +21,7 @@ public:
     ParticlesScriptingInterface();
     
     ParticleEditPacketSender* getParticlePacketSender() const { return (ParticleEditPacketSender*)getPacketSender(); }
-    virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_PARTICLE_SERVER; }
+    virtual NodeType_t getServerNodeType() const { return NodeType::ParticleServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new ParticleEditPacketSender(); }
 
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
@@ -53,10 +53,22 @@ public slots:
     /// finds particles within the search sphere specified by the center point and radius
     /// this function will not find any particles in script engine contexts which don't have access to particles
     QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
+
+    /// inbound slots for external collision systems
+    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel) {
+        emit particleCollisionWithVoxel(particleID, voxel);
+    }
+
+    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB) {
+        emit particleCollisionWithParticle(idA, idB);
+    }
     
+signals:
+    void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel);
+    void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
 
 private:
-    void queueParticleMessage(PACKET_TYPE packetType, ParticleID particleID, const ParticleProperties& properties);
+    void queueParticleMessage(PacketType packetType, ParticleID particleID, const ParticleProperties& properties);
 
     uint32_t _nextCreatorTokenID;
     ParticleTree* _particleTree;

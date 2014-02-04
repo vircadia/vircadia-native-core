@@ -8,6 +8,7 @@
 
 #include "HifiSockAddr.h"
 
+#include <QtCore/QDataStream>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
@@ -59,29 +60,23 @@ void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     swap(_port, otherSockAddr._port);
 }
 
-int HifiSockAddr::packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr) {
-    quint32 addressToPack = packSockAddr._address.isNull() ? 0 : packSockAddr._address.toIPv4Address();
-    memcpy(packetData, &addressToPack, sizeof(addressToPack));
-    memcpy(packetData + sizeof(addressToPack), &packSockAddr._port, sizeof(packSockAddr._port));
-    
-    return sizeof(addressToPack) + sizeof(packSockAddr._port);
-}
-
-int HifiSockAddr::unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr) {
-    quint32* address = (quint32*) packetData;
-    unpackDestSockAddr._address = *address == 0 ? QHostAddress() : QHostAddress(*address);
-    unpackDestSockAddr._port = *((quint16*) (packetData + sizeof(quint32)));
-    
-    return sizeof(quint32) + sizeof(quint16);
-}
-
-bool HifiSockAddr::operator==(const HifiSockAddr &rhsSockAddr) const {
+bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
     return _address == rhsSockAddr._address && _port == rhsSockAddr._port;
 }
 
-QDebug operator<<(QDebug debug, const HifiSockAddr &hifiSockAddr) {
-    debug.nospace() << hifiSockAddr._address.toString().toLocal8Bit().constData() << ":" << hifiSockAddr._port;
+QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {
+    debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
+}
+
+QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr) {
+    dataStream << sockAddr._address << sockAddr._port;
+    return dataStream;
+}
+
+QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
+    dataStream >> sockAddr._address >> sockAddr._port;
+    return dataStream;
 }
 
 quint32 getHostOrderLocalAddress() {

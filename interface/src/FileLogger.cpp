@@ -14,17 +14,20 @@
 #include <QDir>
 #include <QDesktopServices>
 
-FileLogger::FileLogger() : _logData(NULL) {
-    setExtraDebugging(false);
-    _fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QDir logDir(_fileName);
-    if (!logDir.exists(_fileName)) {
-        logDir.mkdir(_fileName);
-    }
+const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
+const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
+const QString LOGS_DIRECTORY = "Logs";
 
+FileLogger::FileLogger(QObject* parent) :
+    AbstractLoggerInterface(parent),
+    _logData(NULL)
+{
+    setExtraDebugging(false);
+
+    _fileName = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = QHostAddress(getHostOrderLocalAddress());
     QDateTime now = QDateTime::currentDateTime();
-    _fileName.append(QString("/hifi-log_%1_%2.txt").arg(clientAddress.toString(), now.toString("yyyy-MM-dd_hh.mm.ss")));
+    _fileName.append(QString(FILENAME_FORMAT).arg(clientAddress.toString(), now.toString(DATETIME_FORMAT)));
 }
 
 void FileLogger::addMessage(QString message) {
@@ -40,5 +43,5 @@ void FileLogger::addMessage(QString message) {
 }
 
 void FileLogger::locateLog() {
-    FileUtils::LocateFile(_fileName);
+    FileUtils::locateFile(_fileName);
 }

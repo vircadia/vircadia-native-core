@@ -25,25 +25,24 @@ class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
 #include "DataServerScriptingInterface.h"
+#include "Quat.h"
 
 const QString NO_SCRIPT("");
 
 class ScriptEngine : public QObject {
     Q_OBJECT
-    
-    Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-		 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
-                    AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
+                 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
+                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
 
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
+    static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
+    static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
     
     /// Access the DataServerScriptingInterface for access to its underlying UUID
     const DataServerScriptingInterface& getDataServerScriptingInterface() { return _dataServerScriptingInterface; }
@@ -60,13 +59,21 @@ public:
     bool isAvatar() const { return _isAvatar; }
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
-
-public slots:
+    
     void init();
     void run(); /// runs continuously until Agent.stop() is called
-    void stop();
     void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
+    
+    void timerFired();
 
+public slots:
+    void stop();
+    
+    QObject* setInterval(const QScriptValue& function, int intervalMS);
+    QObject* setTimeout(const QScriptValue& function, int timeoutMS);
+    void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
@@ -74,15 +81,18 @@ signals:
     void finished(const QString& fileNameString);
 
 protected:
-    
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
     QScriptEngine _engine;
     bool _isAvatar;
+    QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
+    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    void stopTimer(QTimer* timer);
+    
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
@@ -94,6 +104,7 @@ private:
     QString _fileNameString;
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
+    Quat _quatLibrary;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */

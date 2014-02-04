@@ -237,6 +237,29 @@ Bitstream& Bitstream::operator>>(QVariant& value) {
     return *this;
 }
 
+Bitstream& Bitstream::operator<<(const AttributeValue& attributeValue) {
+    _attributeStreamer << attributeValue.getAttribute();
+    if (attributeValue.getAttribute()) {
+        attributeValue.getAttribute()->write(*this, attributeValue.getValue(), true);
+    }
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(OwnedAttributeValue& attributeValue) {
+    AttributePointer attribute;
+    _attributeStreamer >> attribute;
+    if (attribute) {
+        void* value = attribute->create();
+        attribute->read(*this, value, true);
+        attributeValue = AttributeValue(attribute, value);
+        attribute->destroy(value);
+        
+    } else {
+        attributeValue = AttributeValue();
+    }
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(const QObject* object) {
     if (!object) {
         _metaObjectStreamer << NULL;

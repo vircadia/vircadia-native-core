@@ -148,32 +148,28 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     return found;
 }
 
-int Environment::parseData(const HifiSockAddr& senderAddress, unsigned char* sourceBuffer, int numBytes) {
+int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& packet) {
     // push past the packet header
-    unsigned char* start = sourceBuffer;
-    
-    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    sourceBuffer += numBytesPacketHeader;
-    numBytes -= numBytesPacketHeader;
+    int bytesRead = numBytesForPacketHeader(packet);
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
     
     EnvironmentData newData;
-    while (numBytes > 0) {
-        int dataLength = newData.parseData(sourceBuffer, numBytes);
+    while (bytesRead < packet.size()) {
+        int dataLength = newData.parseData(reinterpret_cast<const unsigned char*>(packet.data()) + bytesRead,
+                                           packet.size() - bytesRead);
         
         // update the mapping by address/ID
         _data[senderAddress][newData.getID()] = newData;
         
-        sourceBuffer += dataLength;
-        numBytes -= dataLength;    
+        bytesRead += dataLength;
     }
     
     // remove the default mapping, if any
     _data.remove(HifiSockAddr());
     
-    return sourceBuffer - start;
+    return bytesRead;
 }
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {

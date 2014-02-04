@@ -1,5 +1,5 @@
 //
-//  editParticleExample.js
+//  findParticleExample.js
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 1/24/14.
@@ -65,8 +65,8 @@ function findParticles() {
     // run for a while, then clean up
     // stop it...
     if (iteration >= 100) {
-        print("calling Agent.stop()");
-        Agent.stop();
+        print("calling Script.stop()");
+        Script.stop();
     }
 
     print("--------------------------");
@@ -122,7 +122,7 @@ function findParticles() {
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(findParticles);
+Script.willSendVisualDataCallback.connect(findParticles);
 
 // register our scriptEnding callback
-Agent.scriptEnding.connect(scriptEnding);
+Script.scriptEnding.connect(scriptEnding);

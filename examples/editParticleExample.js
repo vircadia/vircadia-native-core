@@ -9,6 +9,9 @@
 //
 
 var count = 0;
+var moveUntil = 2000;
+var stopAfter = moveUntil + 100;
+var expectedLifetime = (moveUntil/60) + 1; // 1 second after done moving...
 
 var originalProperties = {
     position: { x: 10,
@@ -28,7 +31,9 @@ var originalProperties = {
 
     color: { red: 0,
              green: 255,
-             blue: 0 }
+             blue: 0 },
+             
+    lifetime: expectedLifetime
 
 };
 
@@ -38,19 +43,18 @@ var positionDelta = { x: 0.05, y: 0, z: 0 };
 var particleID = Particles.addParticle(originalProperties);
 
 function moveParticle() {
-    if (count >= 100) {
-        //Agent.stop();
+    if (count >= moveUntil) {
 
         // delete it...
-        if (count == 100) {
+        if (count == moveUntil) {
             print("calling Particles.deleteParticle()");
             Particles.deleteParticle(particleID);
         }
 
         // stop it...
-        if (count >= 200) {
-            print("calling Agent.stop()");
-            Agent.stop();
+        if (count >= stopAfter) {
+            print("calling Script.stop()");
+            Script.stop();
         }
 
         count++;
@@ -77,19 +81,9 @@ function moveParticle() {
     print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
     Particles.editParticle(particleID, newProperties);
-    
-    // also check to see if we can "find" particles...
-    var searchAt = { x: 9, y: 0, z: 0};
-    var searchRadius = 2;
-    var foundParticle = Particles.findClosestParticle(searchAt, searchRadius);
-    if (foundParticle.isKnownID) {
-        print("found particle:" + foundParticle.id);
-    } else {
-        print("could not find particle in or around x=9 to x=11:");
-    }
 }
 
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(moveParticle);
+Script.willSendVisualDataCallback.connect(moveParticle);
 

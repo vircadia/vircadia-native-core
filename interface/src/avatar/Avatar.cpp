@@ -12,7 +12,6 @@
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -73,7 +72,6 @@ Avatar::Avatar() :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
-    _isCollisionsOn(true),
     _moving(false),
     _owningAvatarMixer(),
     _initialized(false)
@@ -108,7 +106,7 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
+void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -336,11 +334,11 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
     return false;
 }
 
-int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
+int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
     
-    int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
+    int bytesRead = AvatarData::parseData(packet);
     
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
@@ -394,30 +392,6 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
     
     glEnd();
-}
-
-void Avatar::goHome() {
-    qDebug("Going Home!");
-    setPosition(START_LOCATION);
-}
-
-void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::resetSize() {
-    _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
 }
 
 void Avatar::setScale(float scale) {

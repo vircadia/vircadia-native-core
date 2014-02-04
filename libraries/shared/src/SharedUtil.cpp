@@ -26,7 +26,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-uint64_t usecTimestamp(const timeval *time) {
+quint64 usecTimestamp(const timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
@@ -35,7 +35,7 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-uint64_t usecTimestampNow() {
+quint64 usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
     return (now.tv_sec * 1000000 + now.tv_usec) + ::usecTimestampNowAdjust;
@@ -230,106 +230,6 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
 void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// Function:    createVoxelEditMessage()
-// Description: creates an "insert" or "remove" voxel message for a voxel code
-//              corresponding to the closest voxel which encloses a cube with
-//              lower corners at x,y,z, having side of length S.
-//              The input values x,y,z range 0.0 <= v < 1.0
-//              message should be either 'S' for SET or 'E' for ERASE
-//
-// IMPORTANT:   The buffer is returned to you a buffer which you MUST delete when you are
-//              done with it.
-//
-// HACK ATTACK: Well, what if this is larger than the MTU? That's the caller's problem, we
-//              just truncate the message
-//
-// Complaints:  Brad :)
-#define GUESS_OF_VOXELCODE_SIZE 10
-#define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
-#define SIZE_OF_COLOR_DATA sizeof(rgbColor)
-bool createVoxelEditMessage(unsigned char command, short int sequence,
-        int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
-
-    bool success = true; // assume the best
-    int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
-    unsigned char* messageBuffer = new unsigned char[messageSize];
-
-    int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
-    unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
-    *sequenceAt = sequence;
-
-    // pack in timestamp
-    uint64_t now = usecTimestampNow();
-    uint64_t* timeAt = (uint64_t*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
-    *timeAt = now;
-
-    unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence) + sizeof(now)];
-    int actualMessageSize = numBytesPacketHeader + sizeof(sequence) + sizeof(now);
-
-    for (int i = 0; i < voxelCount && success; i++) {
-        // get the coded voxel
-        unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
-            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-
-        int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-
-        // make sure we have room to copy this voxel
-        if (actualMessageSize + lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            success = false;
-        } else {
-            // add it to our message
-            memcpy(copyAt, voxelData, lengthOfVoxelData);
-            copyAt += lengthOfVoxelData;
-            actualMessageSize += lengthOfVoxelData;
-        }
-        // cleanup
-        delete[] voxelData;
-    }
-
-    if (success) {
-        // finally, copy the result to the output
-        bufferOut = new unsigned char[actualMessageSize];
-        sizeOut = actualMessageSize;
-        memcpy(bufferOut, messageBuffer, actualMessageSize);
-    }
-
-    delete[] messageBuffer; // clean up our temporary buffer
-    return success;
-}
-
-/// encodes the voxel details portion of a voxel edit message
-bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-
-    bool success = true; // assume the best
-    unsigned char* copyAt = bufferOut;
-    sizeOut = 0;
-
-    for (int i = 0; i < voxelCount && success; i++) {
-        // get the coded voxel
-        unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
-            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
-
-        int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
-
-        // make sure we have room to copy this voxel
-        if (sizeOut + lengthOfVoxelData > sizeIn) {
-            success = false;
-        } else {
-            // add it to our message
-            memcpy(copyAt, voxelData, lengthOfVoxelData);
-            copyAt += lengthOfVoxelData;
-            sizeOut += lengthOfVoxelData;
-        }
-        // cleanup
-        delete[] voxelData;
-    }
-
-    return success;
-}
-
 
 unsigned char* pointToOctalCode(float x, float y, float z, float s) {
     return pointToVoxel(x, y, z, s);
@@ -572,7 +472,7 @@ int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3
     return destBuffer - startPosition;
 }
 
-int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
+int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
     const unsigned char* startPosition = sourceBuffer;
     sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
     sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
@@ -590,7 +490,7 @@ int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     return sizeof(uint16_t);
 }
 
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
+int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
     *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
     return sizeof(uint16_t);
 }
@@ -607,7 +507,7 @@ int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput
     return sizeof(quatParts);
 }
 
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput) {
+int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput) {
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
 
@@ -637,7 +537,7 @@ int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     return sizeof(ratioHolder);
 }
 
-int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio) {
+int unpackFloatRatioFromTwoByte(const unsigned char* buffer, float& ratio) {
     int16_t ratioHolder;
     memcpy(&ratioHolder, buffer, sizeof(ratioHolder));
 
@@ -668,7 +568,7 @@ int packClipValueToTwoByte(unsigned char* buffer, float clipValue) {
     return sizeof(holder);
 }
 
-int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue) {
+int unpackClipValueFromTwoByte(const unsigned char* buffer, float& clipValue) {
     int16_t holder;
     memcpy(&holder, buffer, sizeof(holder));
 
@@ -690,7 +590,7 @@ int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
     return sizeof(holder);
 }
 
-int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
+int unpackFloatFromByte(const unsigned char* buffer, float& value, float scaleBy) {
     unsigned char holder;
     memcpy(&holder, buffer, sizeof(holder));
     value = ((float)holder / (float) 255) * scaleBy;
@@ -713,5 +613,33 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 void debug::checkDeadBeef(void* memoryVoid, int size) {
     unsigned char* memoryAt = (unsigned char*)memoryVoid;
     assert(memcmp(memoryAt, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
+}
+
+//  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
+//  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
+// https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
+glm::vec3 safeEulerAngles(const glm::quat& q) {
+    float sy = 2.0f * (q.y * q.w - q.x * q.z);
+    if (sy < 1.0f - EPSILON) {
+        if (sy > -1.0f + EPSILON) {
+            return glm::degrees(glm::vec3(
+                atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
+                asinf(sy),
+                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z))));
+
+        } else {
+            // not a unique solution; x + z = atan2(-m21, m11)
+            return glm::degrees(glm::vec3(
+                0.0f,
+                PIf * -0.5f,
+                atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+        }
+    } else {
+        // not a unique solution; x - z = atan2(-m21, m11)
+        return glm::degrees(glm::vec3(
+            0.0f,
+            PIf * 0.5f,
+            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z))));
+    }
 }
 

@@ -14,8 +14,8 @@
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
-uint64_t startSceneSleepTime = 0;
-uint64_t endSceneSleepTime = 0;
+quint64 startSceneSleepTime = 0;
+quint64 endSceneSleepTime = 0;
 
 OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer) :
     _nodeUUID(nodeUUID),
@@ -25,7 +25,7 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
 }
 
 bool OctreeSendThread::process() {
-    uint64_t  start = usecTimestampNow();
+    quint64  start = usecTimestampNow();
     bool gotLock = false;
 
     // don't do any send processing until the initial load of the octree is complete...
@@ -79,16 +79,16 @@ bool OctreeSendThread::process() {
     return isStillRunning();  // keep running till they terminate us
 }
 
-uint64_t OctreeSendThread::_usleepTime = 0;
-uint64_t OctreeSendThread::_usleepCalls = 0;
+quint64 OctreeSendThread::_usleepTime = 0;
+quint64 OctreeSendThread::_usleepCalls = 0;
 
-uint64_t OctreeSendThread::_totalBytes = 0;
-uint64_t OctreeSendThread::_totalWastedBytes = 0;
-uint64_t OctreeSendThread::_totalPackets = 0;
+quint64 OctreeSendThread::_totalBytes = 0;
+quint64 OctreeSendThread::_totalWastedBytes = 0;
+quint64 OctreeSendThread::_totalPackets = 0;
 
 int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     bool debug = _myServer->wantsDebugSending();
-    uint64_t now = usecTimestampNow();
+    quint64 now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
@@ -101,7 +101,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
     }
 
     const unsigned char* messageData = nodeData->getPacket();
-    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
     const unsigned char* dataAt = messageData + numBytesPacketHeader;
     dataAt += sizeof(OCTREE_PACKET_FLAGS);
     OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
@@ -283,7 +283,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
-        uint64_t now = usecTimestampNow();
+        quint64 now = usecTimestampNow();
         if (forceDebugging || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
             qDebug("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...",
                    debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
@@ -310,7 +310,7 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
 
         if (!viewFrustumChanged && !nodeData->getWantDelta()) {
             // only set our last sent time if we weren't resetting due to frustum change
-            uint64_t now = usecTimestampNow();
+            quint64 now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
         }
 
@@ -374,9 +374,9 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
-        uint64_t start = usecTimestampNow();
-        uint64_t startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
-        uint64_t startCompressCalls = OctreePacketData::getCompressContentCalls();
+        quint64 start = usecTimestampNow();
+        quint64 startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
+        quint64 startCompressCalls = OctreePacketData::getCompressContentCalls();
 
         int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
         int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
@@ -533,13 +533,13 @@ int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, b
         }
 
 
-        uint64_t end = usecTimestampNow();
+        quint64 end = usecTimestampNow();
         int elapsedmsec = (end - start)/1000;
 
-        uint64_t endCompressCalls = OctreePacketData::getCompressContentCalls();
+        quint64 endCompressCalls = OctreePacketData::getCompressContentCalls();
         int elapsedCompressCalls = endCompressCalls - startCompressCalls;
 
-        uint64_t endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
+        quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
 

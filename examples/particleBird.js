@@ -104,8 +104,9 @@ function moveBird() {
     // check to see if we've been running long enough that our bird is dead
     var nowTimeInSeconds = new Date().getTime() / 1000;
     if ((nowTimeInSeconds - startTimeInSeconds) >= birdLifetime) {
-        print("This bird has died, how sad.");
-        Agent.stop();
+
+        print("our bird is dying, stop our script");
+        Script.stop();
         return;
     }
 
@@ -193,4 +194,4 @@ function moveBird() {
 }
 
 // register the call back so it fires before each data send
-Agent.willSendVisualDataCallback.connect(moveBird);
+Script.willSendVisualDataCallback.connect(moveBird);

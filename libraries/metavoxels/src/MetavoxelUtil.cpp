@@ -16,7 +16,7 @@
 
 QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize) {
     // get the header size
-    int headerSize = numBytesForPacketHeader(reinterpret_cast<const unsigned char*>(data.constData()));
+    int headerSize = numBytesForPacketHeader(data);
     
     // read the session id
     const int UUID_BYTES = 16;
@@ -26,4 +26,10 @@ QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& hea
         return QUuid();
     }
     return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
+}
+
+bool Box::contains(const Box& other) const {
+    return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
+        other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
+        other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
 }

@@ -20,7 +20,7 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 typedef signed long long   int64_t;
-typedef unsigned long long uint64_t;
+typedef unsigned long long quint64;
 #define PRId64 "I64d"
 #else
 #include <inttypes.h>
@@ -55,10 +55,7 @@ public:
     virtual ~OctreeQuery();
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(unsigned char* sourceBuffer, int numBytes);
-
-    QUuid& getUUID() { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
+    int parseData(const QByteArray& packet);
 
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }
@@ -101,8 +98,6 @@ public slots:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
 protected:
-    QUuid _uuid;
-
     // camera details for the avatar
     glm::vec3 _cameraPosition;
     glm::quat _cameraOrientation;

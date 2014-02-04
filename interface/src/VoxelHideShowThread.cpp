@@ -21,15 +21,15 @@ VoxelHideShowThread::VoxelHideShowThread(VoxelSystem* theSystem) :
 }
 
 bool VoxelHideShowThread::process() {
-    const uint64_t MSECS_TO_USECS = 1000;
-    const uint64_t SECS_TO_USECS = 1000 * MSECS_TO_USECS;
-    const uint64_t FRAME_RATE = 60;
-    const uint64_t USECS_PER_FRAME = SECS_TO_USECS / FRAME_RATE; // every 60fps
+    const quint64 MSECS_TO_USECS = 1000;
+    const quint64 SECS_TO_USECS = 1000 * MSECS_TO_USECS;
+    const quint64 FRAME_RATE = 60;
+    const quint64 USECS_PER_FRAME = SECS_TO_USECS / FRAME_RATE; // every 60fps
 
-    uint64_t start = usecTimestampNow();
+    quint64 start = usecTimestampNow();
     _theSystem->checkForCulling();
-    uint64_t end = usecTimestampNow();
-    uint64_t elapsed = end - start;
+    quint64 end = usecTimestampNow();
+    quint64 elapsed = end - start;
 
     bool showExtraDebugging = Application::getInstance()->getLogger()->extraDebugging();
     if (showExtraDebugging && elapsed > USECS_PER_FRAME) {
@@ -38,7 +38,7 @@ bool VoxelHideShowThread::process() {
 
     if (isStillRunning()) {
         if (elapsed < USECS_PER_FRAME) {
-            uint64_t sleepFor = USECS_PER_FRAME - elapsed;
+            quint64 sleepFor = USECS_PER_FRAME - elapsed;
             usleep(sleepFor);
         }
     }

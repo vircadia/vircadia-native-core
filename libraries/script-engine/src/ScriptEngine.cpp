@@ -19,6 +19,7 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
+#include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
 
 #include <Sound.h>
@@ -39,8 +40,10 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 }
 
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString, AbstractMenuInterface* menu,
+ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
+                           AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
+    _isAvatar(false),
     _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
@@ -102,9 +105,8 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
-
 void ScriptEngine::init() {
+    qDebug() << "Init called!";
     if (_isInitialized) {
         return; // only initialize once
     }
@@ -114,20 +116,15 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.init();
     _particlesScriptingInterface.init();
 
-    // register meta-type for glm::vec3 conversions
+    // register various meta-types
     registerMetaTypes(&_engine);
+    registerVoxelMetaTypes(&_engine);
+    //registerParticleMetaTypes(&_engine);
+    registerEventTypes(&_engine);
+    
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
-
-    QScriptValue agentValue = _engine.newQObject(this);
-    _engine.globalObject().setProperty("Agent", agentValue);
-
-    QScriptValue voxelScripterValue =  _engine.newQObject(&_voxelsScriptingInterface);
-    _engine.globalObject().setProperty("Voxels", voxelScripterValue);
-
-    QScriptValue particleScripterValue =  _engine.newQObject(&_particlesScriptingInterface);
-    _engine.globalObject().setProperty("Particles", particleScripterValue);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
@@ -136,15 +133,14 @@ void ScriptEngine::init() {
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
-    QScriptValue audioScriptingInterfaceValue = _engine.newQObject(&_audioScriptingInterface);
-    _engine.globalObject().setProperty("Audio", audioScriptingInterfaceValue);
-    
+    registerGlobalObject("Script", this);
+    registerGlobalObject("Audio", &_audioScriptingInterface);
+    registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Data", &_dataServerScriptingInterface);
+    registerGlobalObject("Particles", &_particlesScriptingInterface);
+    registerGlobalObject("Quat", &_quatLibrary);
 
-    if (_controllerScriptingInterface) {
-        QScriptValue controllerScripterValue =  _engine.newQObject(_controllerScriptingInterface);
-        _engine.globalObject().setProperty("Controller", controllerScripterValue);
-    }
+    registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
     QScriptValue treeScaleValue = _engine.newVariant(QVariant(TREE_SCALE));
     _engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
@@ -157,8 +153,10 @@ void ScriptEngine::init() {
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
-    QScriptValue value = _engine.newQObject(object);
-    _engine.globalObject().setProperty(name, value);
+    if (object) {
+        QScriptValue value = _engine.newQObject(object);
+        _engine.globalObject().setProperty(name, value);
+    }
 }
 
 void ScriptEngine::evaluate() {
@@ -209,11 +207,7 @@ void ScriptEngine::run() {
             break;
         }
 
-        bool willSendVisualDataCallBack = false;
         if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
 
@@ -224,9 +218,6 @@ void ScriptEngine::run() {
         }
 
         if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
 
@@ -237,26 +228,22 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
-            static unsigned char avatarPacket[MAX_PACKET_SIZE];
-            static int numAvatarHeaderBytes = 0;
+            static QByteArray avatarPacket;
+            int numAvatarHeaderBytes = 0;
             
-            if (numAvatarHeaderBytes == 0) {
+            if (avatarPacket.size() == 0) {
                 // pack the avatar header bytes the first time
                 // unlike the _avatar.getBroadcastData these won't change
-                numAvatarHeaderBytes = populateTypeAndVersion(avatarPacket, PACKET_TYPE_HEAD_DATA);
-                
-                // pack the owner UUID for this script
-                numAvatarHeaderBytes += NodeList::getInstance()->packOwnerUUID(avatarPacket);
+                numAvatarHeaderBytes = populatePacketHeader(avatarPacket, PacketTypeAvatarData);
             }
             
-            int numAvatarPacketBytes = _avatarData->getBroadcastData(avatarPacket + numAvatarHeaderBytes) + numAvatarHeaderBytes;
+            avatarPacket.resize(numAvatarHeaderBytes);
+            avatarPacket.append(_avatarData->toByteArray());
             
-            nodeList->broadcastToNodes(avatarPacket, numAvatarPacketBytes, QSet<NODE_TYPE>() << NODE_TYPE_AVATAR_MIXER);
+            nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
-        if (willSendVisualDataCallBack) {
-            emit willSendVisualDataCallback();
-        }
+        emit willSendVisualDataCallback();
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
@@ -264,6 +251,27 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
+    
+    if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
+            _voxelsScriptingInterface.getVoxelPacketSender()->process();
+        }
+    }
+
+    if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
+        // release the queue of edit voxel messages.
+        _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
+            _particlesScriptingInterface.getParticlePacketSender()->process();
+        }
+    }
+    
     cleanMenuItems();
 
     // If we were on a thread, then wait till it's done
@@ -280,4 +288,50 @@ void ScriptEngine::stop() {
     _isFinished = true;
 }
 
+void ScriptEngine::timerFired() {
+    QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
+    
+    // call the associated JS function, if it exists
+    QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
+    if (timerFunction.isValid()) {
+        timerFunction.call();
+    }
+    
+    if (!callingTimer->isActive()) {
+        // this timer is done, we can kill it
+        qDebug() << "Deleting a single shot timer";
+        delete callingTimer;
+    }
+}
 
+QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
+    // create the timer, add it to the map, and start it
+    QTimer* newTimer = new QTimer(this);
+    newTimer->setSingleShot(isSingleShot);
+    
+    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
+    
+    // make sure the timer stops when the script does
+    connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+    
+    _timerFunctionMap.insert(newTimer, function);
+    
+    newTimer->start(intervalMS);
+    return newTimer;
+}
+
+QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    return setupTimerWithInterval(function, intervalMS, false);
+}
+
+QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    return setupTimerWithInterval(function, timeoutMS, true);
+}
+
+void ScriptEngine::stopTimer(QTimer *timer) {
+    if (_timerFunctionMap.contains(timer)) {
+        timer->stop();
+        _timerFunctionMap.remove(timer);
+        delete timer;
+    }
+}

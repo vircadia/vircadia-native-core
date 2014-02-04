@@ -37,7 +37,6 @@
 #include <Logging.h>
 #include <NodeList.h>
 #include <Node.h>
-#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
@@ -61,8 +60,8 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
-AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes)
+AudioMixer::AudioMixer(const QByteArray& packet) :
+    ThreadedAssignment(packet)
 {
 
 }
@@ -210,18 +209,19 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 
 void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     // pull any new audio data from nodes off of the network stack
-    if (dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
-        || dataByteArray[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-        || dataByteArray[0] == PACKET_TYPE_INJECT_AUDIO) {
-        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader((unsigned char*) dataByteArray.data()),
-                                                              NUM_BYTES_RFC4122_UUID));
+    PacketType mixerPacketType = packetTypeForPacket(dataByteArray);
+    if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
+        || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
+        || mixerPacketType == PacketTypeInjectAudio) {
+        QUuid nodeUUID;
+        deconstructPacketHeader(dataByteArray, nodeUUID);
 
         NodeList* nodeList = NodeList::getInstance();
 
         SharedNodePointer matchingNode = nodeList->nodeWithUUID(nodeUUID);
 
         if (matchingNode) {
-            nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+            nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, dataByteArray);
 
             if (!matchingNode->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
@@ -231,17 +231,17 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
         }
     } else {
         // let processNodeData handle it.
-        NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(), dataByteArray.size());
+        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
 void AudioMixer::run() {
 
-    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NODE_TYPE_AUDIO_MIXER);
+    commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 
     NodeList* nodeList = NodeList::getInstance();
 
-    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
 
@@ -250,14 +250,14 @@ void AudioMixer::run() {
 
     gettimeofday(&startTime, NULL);
 
-    int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio);
     // note: Visual Studio 2010 doesn't support variable sized local arrays
     #ifdef _WIN32
     unsigned char clientPacket[MAX_PACKET_SIZE];
     #else
     unsigned char clientPacket[NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
     #endif
-    populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
+    populatePacketHeader(reinterpret_cast<char*>(clientPacket), PacketTypeMixedAudio);
 
     while (!_isFinished) {
 
@@ -274,7 +274,7 @@ void AudioMixer::run() {
         }
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()
+            if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData()
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
 

@@ -20,7 +20,6 @@
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -73,7 +72,7 @@ public:
     ~Avatar();
 
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime);
     void render(bool forceRenderHead);
 
     //setters
@@ -114,19 +113,9 @@ public:
     
     virtual bool isMyAvatar() { return false; }
 
-    int parseData(unsigned char* sourceBuffer, int numBytes);
+    int parseData(const QByteArray& packet);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
-
-public slots:
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
-    void goHome();
-    void increaseSize();
-    void decreaseSize();
-    void resetSize();
-
-    friend class MyAvatar;
-
 
 protected:
     Head _head;
@@ -142,7 +131,6 @@ protected:
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
-    bool _isCollisionsOn;
     float _stringLength;
     bool _moving; ///< set when position is changing
     QWeakPointer<Node> _owningAvatarMixer;

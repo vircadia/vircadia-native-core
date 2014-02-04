@@ -20,6 +20,7 @@
 #include <DatagramSequencer.h>
 #include <MetavoxelData.h>
 
+class MetavoxelEditMessage;
 class MetavoxelSession;
 
 /// Maintains a shared metavoxel system, accepting change requests and broadcasting updates.
@@ -28,9 +29,11 @@ class MetavoxelServer : public ThreadedAssignment {
 
 public:
     
-    MetavoxelServer(const unsigned char* dataBuffer, int numBytes);
+    MetavoxelServer(const QByteArray& packet);
 
-    const MetavoxelDataPointer& getData() const { return _data; }
+    void applyEdit(const MetavoxelEditMessage& edit);
+
+    const MetavoxelData& getData() const { return _data; }
 
     void removeSession(const QUuid& sessionId);
 
@@ -51,7 +54,7 @@ private:
     
     QHash<QUuid, MetavoxelSession*> _sessions;
     
-    MetavoxelDataPointer _data;
+    MetavoxelData _data;
 };
 
 /// Contains the state of a single client session.
@@ -60,7 +63,8 @@ class MetavoxelSession : public QObject {
     
 public:
     
-    MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId, const QByteArray& datagramHeader);
+    MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
+        const QByteArray& datagramHeader, const HifiSockAddr& sender);
 
     void receivedData(const QByteArray& data, const HifiSockAddr& sender);
 
@@ -76,14 +80,14 @@ private slots:
     
     void clearSendRecordsBefore(int index);
     
-private:
+    void handleMessage(const QVariant& message);
     
-    void handleMessage(const QVariant& message, Bitstream& in);
+private:
     
     class SendRecord {
     public:
         int packetNumber;
-        MetavoxelDataPointer data;
+        MetavoxelData data;
     };
     
     MetavoxelServer* _server;

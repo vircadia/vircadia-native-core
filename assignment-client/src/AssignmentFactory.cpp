@@ -18,25 +18,28 @@
 #include "avatars/AvatarMixer.h"
 #include "metavoxels/MetavoxelServer.h"
 
-ThreadedAssignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
-    int headerBytes = numBytesForPacketHeader(dataBuffer);
+ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+
+    quint8 packedType;
+    packetStream >> packedType;    
     
-    Assignment::Type assignmentType = Assignment::AllTypes;
-    memcpy(&assignmentType, dataBuffer + headerBytes, sizeof(Assignment::Type));
+    Assignment::Type unpackedType = (Assignment::Type) packedType;
     
-    switch (assignmentType) {
+    switch (unpackedType) {
         case Assignment::AudioMixerType:
-            return new AudioMixer(dataBuffer, numBytes);
+            return new AudioMixer(packet);
         case Assignment::AvatarMixerType:
-            return new AvatarMixer(dataBuffer, numBytes);
+            return new AvatarMixer(packet);
         case Assignment::AgentType:
-            return new Agent(dataBuffer, numBytes);
+            return new Agent(packet);
         case Assignment::VoxelServerType:
-            return new VoxelServer(dataBuffer, numBytes);
+            return new VoxelServer(packet);
         case Assignment::ParticleServerType:
-            return new ParticleServer(dataBuffer, numBytes);
+            return new ParticleServer(packet);
         case Assignment::MetavoxelServerType:
-            return new MetavoxelServer(dataBuffer, numBytes);
+            return new MetavoxelServer(packet);
         default:
             return NULL;
     }

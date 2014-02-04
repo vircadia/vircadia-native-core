@@ -28,8 +28,8 @@ void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     }
 }
 
-OctreeServer::OctreeServer(const unsigned char* dataBuffer, int numBytes) :
-    ThreadedAssignment(dataBuffer, numBytes),
+OctreeServer::OctreeServer(const QByteArray& packet) :
+    ThreadedAssignment(packet),
     _argc(0),
     _argv(NULL),
     _parsedArgV(NULL),
@@ -120,7 +120,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
     }
 
     if (showStats) {
-        uint64_t checkSum;
+        quint64 checkSum;
         // return a 200
         QString statsString("<html><doc>\r\n<pre>\r\n");
         statsString += QString("<b>Your %1 Server is running... <a href='/'>[RELOAD]</a></b>\r\n").arg(getMyServerName());
@@ -140,9 +140,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
         statsString += "\r\n";
 
-        uint64_t now  = usecTimestampNow();
+        quint64 now  = usecTimestampNow();
         const int USECS_PER_MSEC = 1000;
-        uint64_t msecsElapsed = (now - _startedUSecs) / USECS_PER_MSEC;
+        quint64 msecsElapsed = (now - _startedUSecs) / USECS_PER_MSEC;
         const int MSECS_PER_SEC = 1000;
         const int SECS_PER_MIN = 60;
         const int MIN_PER_HOUR = 60;
@@ -175,7 +175,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
             statsString += "\r\n";
 
-            uint64_t msecsElapsed = getLoadElapsedTime() / USECS_PER_MSEC;;
+            quint64 msecsElapsed = getLoadElapsedTime() / USECS_PER_MSEC;;
             float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
             int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
             int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
@@ -226,12 +226,12 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
 
         // display outbound packet stats
         statsString += QString("<b>%1 Outbound Packet Statistics...</b>\r\n").arg(getMyServerName());
-        uint64_t totalOutboundPackets = OctreeSendThread::_totalPackets;
-        uint64_t totalOutboundBytes = OctreeSendThread::_totalBytes;
-        uint64_t totalWastedBytes = OctreeSendThread::_totalWastedBytes;
-        uint64_t totalBytesOfOctalCodes = OctreePacketData::getTotalBytesOfOctalCodes();
-        uint64_t totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
-        uint64_t totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
+        quint64 totalOutboundPackets = OctreeSendThread::_totalPackets;
+        quint64 totalOutboundBytes = OctreeSendThread::_totalBytes;
+        quint64 totalWastedBytes = OctreeSendThread::_totalWastedBytes;
+        quint64 totalBytesOfOctalCodes = OctreePacketData::getTotalBytesOfOctalCodes();
+        quint64 totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
+        quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
         const int COLUMN_WIDTH = 10;
         statsString += QString("           Total Outbound Packets: %1 packets\r\n")
@@ -256,13 +256,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         // display inbound packet stats
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
-        uint64_t averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-        uint64_t averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-        uint64_t averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-        uint64_t averageProcessTimePerElement = _octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-        uint64_t averageLockWaitTimePerElement = _octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
-        uint64_t totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
-        uint64_t totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        quint64 averageProcessTimePerElement = _octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        quint64 averageLockWaitTimePerElement = _octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+        quint64 totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
+        quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
 
@@ -432,8 +432,8 @@ void OctreeServer::setArguments(int argc, char** argv) {
 
 void OctreeServer::parsePayload() {
 
-    if (getNumPayloadBytes() > 0) {
-        QString config((const char*) _payload);
+    if (getPayload().size() > 0) {
+        QString config(_payload);
 
         // Now, parse the config
         QStringList configList = config.split(" ");
@@ -461,26 +461,23 @@ void OctreeServer::parsePayload() {
 void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
 
-    PACKET_TYPE packetType = dataByteArray[0];
+    PacketType packetType = packetTypeForPacket(dataByteArray);
 
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
-            qDebug() << "Got PACKET_TYPE_VOXEL_QUERY at" << usecTimestampNow();
+            qDebug() << "Got PacketType_VOXEL_QUERY at" << usecTimestampNow();
         }
-
-        int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) dataByteArray.data());
-
-        // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
+       
+        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
         // need to make sure we have it in our nodeList.
-        QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesPacketHeader,
-                                                              NUM_BYTES_RFC4122_UUID));
+        QUuid nodeUUID;
+        deconstructPacketHeader(dataByteArray, nodeUUID);
 
         SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
 
         if (node) {
-            nodeList->updateNodeWithData(node.data(), senderSockAddr, (unsigned char *) dataByteArray.data(),
-                                         dataByteArray.size());
+            nodeList->updateNodeWithData(node.data(), senderSockAddr, dataByteArray);
             if (!node->getActiveSocket()) {
                 // we don't have an active socket for this node, but they're talking to us
                 // this means they've heard from us and can reply, let's assume public is active
@@ -491,16 +488,13 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
                 nodeData->initializeOctreeSendThread(this, nodeUUID);
             }
         }
-    } else if (packetType == PACKET_TYPE_JURISDICTION_REQUEST) {
-        _jurisdictionSender->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                 dataByteArray.size());
+    } else if (packetType == PacketTypeJurisdictionRequest) {
+        _jurisdictionSender->queueReceivedPacket(senderSockAddr, dataByteArray);
     } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-       _octreeInboundPacketProcessor->queueReceivedPacket(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                                    dataByteArray.size());
+       _octreeInboundPacketProcessor->queueReceivedPacket(senderSockAddr, dataByteArray);
    } else {
        // let processNodeData handle it.
-       NodeList::getInstance()->processNodeData(senderSockAddr, (unsigned char*) dataByteArray.data(),
-                                                dataByteArray.size());
+       NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
@@ -512,7 +506,7 @@ void OctreeServer::run() {
     Logging::setTargetName(getMyLoggingServerTargetName());
 
     // Now would be a good time to parse our arguments, if we got them as assignment
-    if (getNumPayloadBytes() > 0) {
+    if (getPayload().size() > 0) {
         parsePayload();
     }
 
@@ -558,7 +552,7 @@ void OctreeServer::run() {
     nodeList->setOwnerType(getMyNodeType());
 
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NODE_TYPE_AGENT);
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     setvbuf(stdout, NULL, _IOLBF, 0);
 

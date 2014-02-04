@@ -29,7 +29,7 @@ public:
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener);
     void init();
     
-    virtual NODE_TYPE getServerNodeType() const = 0;
+    virtual NodeType_t getServerNodeType() const = 0;
     virtual OctreeEditPacketSender* createPacketSender() = 0;
 
 public slots:

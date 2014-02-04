@@ -25,9 +25,7 @@
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
-    NetworkPacket();
     NetworkPacket(const NetworkPacket& packet); // copy constructor
-    ~NetworkPacket(); // destructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 
 #ifdef HAS_MOVE_SEMANTICS
@@ -35,21 +33,16 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(const HifiSockAddr& sockAddr, unsigned char*  packetData, ssize_t packetLength);
+    NetworkPacket(const HifiSockAddr& sockAddr, const QByteArray& byteArray);
 
     const HifiSockAddr& getSockAddr() const { return _sockAddr; }
-    ssize_t getLength() const { return _packetLength; }
-    unsigned char* getData() { return &_packetData[0]; }
-
-    const HifiSockAddr& getAddress() const { return _sockAddr; }
-    const unsigned char* getData() const { return &_packetData[0]; }
+    const QByteArray& getByteArray() const { return _byteArray; }
 
 private:
-    void copyContents(const HifiSockAddr& sockAddr, const unsigned char*  packetData, ssize_t packetLength);
+    void copyContents(const HifiSockAddr& sockAddr, const QByteArray& byteArray);
 
     HifiSockAddr _sockAddr;
-    ssize_t _packetLength;
-    unsigned char _packetData[MAX_PACKET_SIZE];
+    QByteArray _byteArray;
 };
 
 #endif /* defined(__shared_NetworkPacket__) */

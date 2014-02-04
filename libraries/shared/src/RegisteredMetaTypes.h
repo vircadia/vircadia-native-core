@@ -19,7 +19,9 @@
 
 Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
+Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
+
 
 void registerMetaTypes(QScriptEngine* engine);
 
@@ -28,6 +30,9 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
 
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2);
 void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
+
+QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat);
+void quatFromScriptValue(const QScriptValue &object, glm::quat& quat);
 
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
 void xColorFromScriptValue(const QScriptValue &object, xColor& color);

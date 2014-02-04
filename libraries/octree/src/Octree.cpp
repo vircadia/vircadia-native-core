@@ -43,6 +43,7 @@ Octree::Octree(bool shouldReaverage) :
     _shouldReaverage(shouldReaverage),
     _stopImport(false) {
     _rootNode = NULL;
+    _isViewing = false;
 }
 
 Octree::~Octree() {
@@ -443,9 +444,9 @@ void Octree::eraseAllOctreeElements() {
 void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes) {
     //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
 
-    int numBytesPacketHeader = numBytesForPacketHeader(bitstream);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(bitstream));
     unsigned short int sequence = (*((unsigned short int*)(bitstream + numBytesPacketHeader)));
-    uint64_t sentAt = (*((uint64_t*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
+    quint64 sentAt = (*((quint64*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
 
     int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
 
@@ -1322,13 +1323,16 @@ bool Octree::readFromSVOFile(const char* fileName) {
         // before reading the file, check to see if this version of the Octree supports file versions
         if (getWantSVOfileVersions()) {
             // if so, read the first byte of the file and see if it matches the expected version code
-            PACKET_TYPE expectedType = expectedDataPacketType();
-            PACKET_TYPE gotType = *dataAt;
+            PacketType expectedType = expectedDataPacketType();
+            
+            PacketType gotType;
+            memcpy(&gotType, dataAt, sizeof(gotType));
+            
             if (gotType == expectedType) {
                 dataAt += sizeof(expectedType);
                 dataLength -= sizeof(expectedType);
-                PACKET_VERSION expectedVersion = versionForPacketType(expectedType);
-                PACKET_VERSION gotVersion = *dataAt;
+                PacketVersion expectedVersion = versionForPacketType(expectedType);
+                PacketVersion gotVersion = *dataAt;
                 if (gotVersion == expectedVersion) {
                     dataAt += sizeof(expectedVersion);
                     dataLength -= sizeof(expectedVersion);
@@ -1365,9 +1369,9 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
         // before reading the file, check to see if this version of the Octree supports file versions
         if (getWantSVOfileVersions()) {
             // if so, read the first byte of the file and see if it matches the expected version code
-            PACKET_TYPE expectedType = expectedDataPacketType();
-            PACKET_VERSION expectedVersion = versionForPacketType(expectedType);
-            file.write(&expectedType, sizeof(expectedType));
+            PacketType expectedType = expectedDataPacketType();
+            PacketVersion expectedVersion = versionForPacketType(expectedType);
+            file.write(reinterpret_cast<char*>(&expectedType), sizeof(expectedType));
             file.write(&expectedVersion, sizeof(expectedVersion));
         }
 

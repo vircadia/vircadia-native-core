@@ -60,7 +60,7 @@ void Transmitter::resetLevels() {
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     //  Packet's first byte is 'T'
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(packetData));
     
     const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
     const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)
@@ -113,7 +113,7 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     }
 }
 
-void Transmitter::renderLevels(int width, int height) {
+void Transmitter::renderLevels(int width, int height) const {
     char val[50];
     const int LEVEL_CORNER_X = 10;
     const int LEVEL_CORNER_Y = 400;
@@ -163,7 +163,5 @@ void Transmitter::renderLevels(int width, int height) {
     glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y - 6);
     glVertex2f(LEVEL_CORNER_X + LEVEL_CENTER, LEVEL_CORNER_Y + 30);
     glEnd();
-
-    
 }
 

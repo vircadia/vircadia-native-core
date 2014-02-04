@@ -13,7 +13,7 @@
 
 class AssignmentFactory {
 public:
-    static ThreadedAssignment* unpackAssignment(const unsigned char* dataBuffer, int numBytes);
+    static ThreadedAssignment* unpackAssignment(const QByteArray& packet);
 };
 
 #endif /* defined(__hifi__AssignmentFactory__) */

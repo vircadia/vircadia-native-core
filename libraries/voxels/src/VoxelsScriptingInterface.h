@@ -22,7 +22,7 @@ class VoxelsScriptingInterface : public OctreeScriptingInterface {
 public:    
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
-    virtual NODE_TYPE getServerNodeType() const { return NODE_TYPE_VOXEL_SERVER; }
+    virtual NodeType_t getServerNodeType() const { return NodeType::VoxelServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new VoxelEditPacketSender(); }
 
 public slots:
@@ -54,23 +54,7 @@ public slots:
     void eraseVoxel(float x, float y, float z, float scale);
 
 private:
-    void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
-};
-
-class VoxelDetailScriptObject  : public QObject {
-    Q_OBJECT
-public:
-    VoxelDetailScriptObject(VoxelDetail* voxelDetail) { _voxelDetail = voxelDetail; }
-
-public slots:
-    /// position in meter units
-    glm::vec3 getPosition() const { return glm::vec3(_voxelDetail->x, _voxelDetail->y, _voxelDetail->z) * (float)TREE_SCALE; }
-    xColor getColor() const { xColor color = { _voxelDetail->red, _voxelDetail->green, _voxelDetail->blue }; return color; }
-    /// scale in meter units
-    float getScale() const { return _voxelDetail->s * (float)TREE_SCALE; }
-
-private:
-    VoxelDetail* _voxelDetail;
+    void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
 };
 
 #endif /* defined(__hifi__VoxelsScriptingInterface__) */

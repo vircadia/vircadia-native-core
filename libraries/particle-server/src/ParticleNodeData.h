@@ -19,13 +19,13 @@ public:
         OctreeQueryNode(),
         _lastDeletedParticlesSentAt(0) {  };
 
-    virtual PACKET_TYPE getMyPacketType() const { return PACKET_TYPE_PARTICLE_DATA; }
+    virtual PacketType getMyPacketType() const { return PacketTypeParticleData; }
 
-    uint64_t getLastDeletedParticlesSentAt() const { return _lastDeletedParticlesSentAt; }
-    void setLastDeletedParticlesSentAt(uint64_t sentAt) { _lastDeletedParticlesSentAt = sentAt; }
+    quint64 getLastDeletedParticlesSentAt() const { return _lastDeletedParticlesSentAt; }
+    void setLastDeletedParticlesSentAt(quint64 sentAt) { _lastDeletedParticlesSentAt = sentAt; }
 
 private:
-    uint64_t _lastDeletedParticlesSentAt;
+    quint64 _lastDeletedParticlesSentAt;
 };
 
 #endif /* defined(__hifi__ParticleNodeData__) */
