@@ -92,7 +92,8 @@ void DatagramProcessor::processDatagrams() {
                     application->_metavoxels.processData(incomingPacket, senderSockAddr);
                     break;
                 case PacketTypeBulkAvatarData:
-                case PacketTypeKillAvatar: {
+                case PacketTypeKillAvatar:
+                case PacketTypeAvatarIdentity: {
                     // update having heard from the avatar-mixer and record the bytes received
                     SharedNodePointer avatarMixer = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
                     
@@ -100,15 +101,9 @@ void DatagramProcessor::processDatagrams() {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
                         avatarMixer->recordBytesReceived(incomingPacket.size());
                         
-                        if (packetTypeForPacket(incomingPacket) == PacketTypeBulkAvatarData) {
-                            QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
-                                                      Q_ARG(const QByteArray&, incomingPacket),
-                                                      Q_ARG(const QWeakPointer<Node>&, avatarMixer));
-                        } else {
-                            // this is an avatar kill, pass it to the application AvatarManager
-                            QMetaObject::invokeMethod(&application->getAvatarManager(), "processKillAvatar",
-                                                      Q_ARG(const QByteArray&, incomingPacket));
-                        }
+                        QMetaObject::invokeMethod(&application->getAvatarManager(), "processAvatarMixerDatagram",
+                                                  Q_ARG(const QByteArray&, incomingPacket),
+                                                  Q_ARG(const QWeakPointer<Node>&, avatarMixer));
                     }
                     
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());

@@ -641,6 +641,16 @@ void MyAvatar::sendKillAvatar() {
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
+void MyAvatar::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    QDataStream identityStream(&identityPacket, QIODevice::Append);
+    
+    identityStream << _head.getFaceModel().getURL();
+    identityStream << _skeletonModel.getURL();
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     // first orbit horizontally
     glm::quat orientation = getOrientation();

@@ -242,6 +242,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    // send the identity packet for our avatar each second to our avatar mixer
+    QTimer* identityPacketTimer = new QTimer();
+    connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
+    silentNodeTimer->start(1000);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
@@ -1854,12 +1859,6 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings");
-
-    if (!_profile.getUsername().isEmpty()) {
-        // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, _profile.getUserString(), &_profile);
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, _profile.getUserString(), &_profile);
-    }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());

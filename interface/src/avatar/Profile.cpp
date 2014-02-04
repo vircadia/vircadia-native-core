@@ -20,17 +20,13 @@ Profile::Profile(const QString &username) :
     _uuid(),
     _lastDomain(),
     _lastPosition(0.0, 0.0, 0.0),
-    _lastOrientationSend(0),
- 	_faceModelURL(),
-    _skeletonModelURL()
+    _lastOrientationSend(0)
 {
     if (!username.isEmpty()) {
         setUsername(username);
         
         // we've been given a new username, ask the data-server for profile
         DataServerClient::getValueForKeyAndUserString(DataServerKey::UUID, getUserString(), this);
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, getUserString(), this);
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, getUserString(), this);
         
         // send our current domain server to the data-server
         updateDomain(NodeList::getInstance()->getDomainHostname());
@@ -57,20 +53,6 @@ void Profile::setUUID(const QUuid& uuid) {
         // ask for a window title update so the new UUID is presented
         Application::getInstance()->updateWindowTitle();
     }
-}
-
-void Profile::setFaceModelURL(const QUrl& faceModelURL) {
-    _faceModelURL = faceModelURL;
-    
-    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getFaceModel(),
-        "setURL", Q_ARG(QUrl, _faceModelURL));
-}
-
-void Profile::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    _skeletonModelURL = skeletonModelURL;
-    
-    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getSkeletonModel(),
-        "setURL", Q_ARG(QUrl, _skeletonModelURL));
 }
 
 void Profile::updateDomain(const QString& domain) {
@@ -137,8 +119,6 @@ void Profile::saveData(QSettings* settings) {
     
     settings->setValue("username", _username);
     settings->setValue("UUID", _uuid);
-    settings->setValue("faceModelURL", _faceModelURL);
-    settings->setValue("skeletonModelURL", _skeletonModelURL);
     
     settings->endGroup();
 }
@@ -148,8 +128,6 @@ void Profile::loadData(QSettings* settings) {
     
     setUsername(settings->value("username").toString());
     this->setUUID(settings->value("UUID").toUuid());
-    _faceModelURL = settings->value("faceModelURL").toUrl();
-    _skeletonModelURL = settings->value("skeletonModelURL").toUrl();
     
     settings->endGroup();
 }
@@ -157,17 +135,7 @@ void Profile::loadData(QSettings* settings) {
 void Profile::processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList) {
     for (int i = 0; i < keyList.size(); i++) {
         if (valueList[i] != " ") {
-            if (keyList[i] == DataServerKey::FaceMeshURL) {
-                if (userString == _username || userString == uuidStringWithoutCurlyBraces(_uuid)) {
-                    qDebug("Changing user's face model URL to %s", valueList[i].toLocal8Bit().constData());
-                    Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
-                }
-            } else if (keyList[i] == DataServerKey::SkeletonURL) {
-                if (userString == _username || userString == uuidStringWithoutCurlyBraces(_uuid)) {
-                    qDebug("Changing user's skeleton URL to %s", valueList[i].toLocal8Bit().constData());
-                    Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
-                }
-            } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&
+            if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position &&
                        keyList[i + 2] == DataServerKey::Orientation && valueList[i] != " " &&
                        valueList[i + 1] != " " && valueList[i + 2] != " ") {
                 

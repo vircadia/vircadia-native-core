@@ -761,12 +761,12 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
-    QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
+    QString faceURLString = applicationInstance->getAvatar()->getHead().getFaceModel().getURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURLEdit);
 
-    QString skeletonURLString = applicationInstance->getProfile()->getSkeletonModelURL().toString();
+    QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
     QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Skeleton URL:", skeletonURLEdit);
@@ -827,27 +827,25 @@ void Menu::editPreferences() {
     int ret = dialog.exec();
     if (ret == QDialog::Accepted) {
         QUrl faceModelURL(faceURLEdit->text());
+        
+        bool shouldDispatchIdentityPacket = false;
 
         if (faceModelURL.toString() != faceURLString) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
-
-            // send the new face mesh URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKeyAndUserString(DataServerKey::FaceMeshURL,
-                                                          faceModelURL.toString().toLocal8Bit().constData(),
-                                                          applicationInstance->getProfile()->getUserString());
+            applicationInstance->getAvatar()->getHead().getFaceModel().setURL(faceModelURL);
+            shouldDispatchIdentityPacket = true;
         }
 
         QUrl skeletonModelURL(skeletonURLEdit->text());
 
         if (skeletonModelURL.toString() != skeletonURLString) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
-
-            // send the new skeleton model URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKeyAndUserString(DataServerKey::SkeletonURL,
-                                                          skeletonModelURL.toString().toLocal8Bit().constData(),
-                                                          applicationInstance->getProfile()->getUserString());
+            applicationInstance->getAvatar()->getSkeletonModel().setURL(skeletonModelURL);
+            shouldDispatchIdentityPacket = true;
+        }
+        
+        if (shouldDispatchIdentityPacket) {
+            applicationInstance->getAvatar()->sendIdentityPacket();
         }
 
         applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
