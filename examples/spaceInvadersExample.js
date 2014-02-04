@@ -18,8 +18,36 @@ var invaderStepOfCycle = 0; // current iteration in the cycle
 var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
 
 var itemLifetimes = 60 * 2; // 2 minutes
-var gameAt = { x: 10, y: 0, z: 10 };
+
+
+// position the game to be basically near the avatar running the game...
 var gameSize = { x: 10, y: 20, z: 1 };
+var positionFromAvatarZ = 10;
+
+var avatarX = MyAvatar.position.x;
+var avatarY = MyAvatar.position.y;
+var avatarZ = MyAvatar.position.z;
+var gameAtX = avatarX;
+var gameAtY = avatarY;
+var gameAtZ = avatarZ;
+
+// move the game to be "centered" on our X
+if (gameAtX > (gameSize.x/2)) {
+    gameAtX -= (gameSize.x/2);
+}
+
+// move the game to be "offset slightly" on our Y
+if (gameAtY > (gameSize.y/4)) {
+    gameAtY -= (gameSize.y/4);
+}
+
+
+// move the game to be positioned away on our Z
+if (gameAtZ > positionFromAvatarZ) {
+    gameAtZ -= positionFromAvatarZ;
+}
+
+var gameAt = { x: gameAtX, y: gameAtY, z: gameAtZ };
 var middleX = gameAt.x + (gameSize.x/2);
 var middleY = gameAt.y + (gameSize.y/2);
 
