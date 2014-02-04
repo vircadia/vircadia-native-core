@@ -13,7 +13,7 @@ var iteration = 0;
 var gameOver = false;
 
 // horizontal movement of invaders
-var invaderStepsPerCycle = 30; // the number of update steps it takes then invaders to move one column to the right
+var invaderStepsPerCycle = 120; // the number of update steps it takes then invaders to move one column to the right
 var invaderStepOfCycle = 0; // current iteration in the cycle
 var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
 
@@ -40,15 +40,25 @@ var columnWidth = gameSize.x / (invadersPerRow + emptyColumns);
 // vertical movement of invaders
 var invaderRowOffset = 0;
 var stepsPerRow = 20; // number of steps before invaders really move a whole row down.
-
 var yPerStep = rowHeight/stepsPerRow;
 var stepsToGround = (middleY - gameAt.y) / yPerStep;
 var maxInvaderRowOffset=stepsToGround;
 
-
-
+// missile related items
 var missileFired = false;
 var myMissile;
+
+// sounds
+var hitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
+var shootSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
+var moveSounds = new Array();
+moveSounds[0] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo1.raw");
+moveSounds[1] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo2.raw");
+moveSounds[2] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo3.raw");
+moveSounds[3] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo4.raw");
+var currentMoveSound = 0;
+var numberOfSounds = 4;
+var stepsPerSound = invaderStepsPerCycle / numberOfSounds;
 
 function initializeMyShip() {
     myShipProperties = {
@@ -95,6 +105,7 @@ function initializeInvaders() {
                         damping: 0,
                         radius: shipSize,
                         color: { red: 255, green: 0, blue: 0 },
+                        modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
                         lifetime: itemLifetimes
                     });
                 
@@ -104,13 +115,16 @@ function initializeInvaders() {
 }
 
 function moveInvaders() {
-    //print("moveInvaders()...");
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             props = Particles.getParticleProperties(invaders[row][column]);
             if (props.isKnownID) {
                 invaderPosition = getInvaderPosition(row, column);
-                Particles.editParticle(invaders[row][column], { position: invaderPosition });
+                Particles.editParticle(invaders[row][column], 
+                        { 
+                            position: invaderPosition,
+                            velocity: { x: 0, y: 0, z: 0 } // always reset this, incase they got collided with
+                        });
             }
         }
     }
@@ -125,7 +139,21 @@ function update() {
     if (!gameOver) {
         //print("updating space invaders... iteration="+iteration);
         iteration++;
+
+        if (invaderStepOfCycle % stepsPerSound == 0) {
+            // play the move sound
+            var options = new AudioInjectionOptions(); 
+            options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
+            options.volume = 10.0;
+            Audio.playSound(moveSounds[currentMoveSound], options);
+            
+            // get ready for next move sound
+            currentMoveSound = (currentMoveSound+1) % numberOfSounds;
+        }
+
         invaderStepOfCycle++;
+        
+        
         if (invaderStepOfCycle > invaderStepsPerCycle) {
             // handle left/right movement
             invaderStepOfCycle = 0;
@@ -137,7 +165,7 @@ function update() {
 
             // handle downward movement
             invaderRowOffset++; // move down one row
-            print("invaderRowOffset="+invaderRowOffset);
+            //print("invaderRowOffset="+invaderRowOffset);
         
             // check to see if invaders have reached "ground"...
             if (invaderRowOffset > maxInvaderRowOffset) {
@@ -217,6 +245,11 @@ function fireMissile() {
                             lifetime: 5
                         });
 
+        var options = new AudioInjectionOptions(); 
+        options.position = missilePosition;
+        options.volume = 1.0;
+        Audio.playSound(shootSound, options);
+
         missileFired = true;
     }
 }
@@ -254,6 +287,13 @@ function deleteIfInvader(possibleInvaderParticle) {
                 if (invaders[row][column].id == possibleInvaderParticle.id) {
                     Particles.deleteParticle(possibleInvaderParticle);
                     Particles.deleteParticle(myMissile);
+
+                    // play the hit sound
+                    var options = new AudioInjectionOptions(); 
+                    var invaderPosition = getInvaderPosition(row, column);
+                    options.position = invaderPosition;
+                    options.volume = 1.0;
+                    Audio.playSound(hitSound, options);
                 }
             }
         }
