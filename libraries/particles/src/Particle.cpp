@@ -92,6 +92,10 @@ Particle::Particle(const ParticleID& particleID, const ParticleProperties& prope
     _script = DEFAULT_SCRIPT;
     _inHand = NOT_IN_HAND;
     _shouldDie = false;
+    _modelURL = DEFAULT_MODEL_URL;
+    _modelTranslation = DEFAULT_MODEL_TRANSLATION;
+    _modelRotation = DEFAULT_MODEL_ROTATION;
+    _modelScale = DEFAULT_MODEL_SCALE;
     
     setProperties(properties);
 }
@@ -124,6 +128,10 @@ void Particle::init(glm::vec3 position, float radius, rgbColor color, glm::vec3 
     _script = updateScript;
     _inHand = inHand;
     _shouldDie = false;
+    _modelURL = DEFAULT_MODEL_URL;
+    _modelTranslation = DEFAULT_MODEL_TRANSLATION;
+    _modelRotation = DEFAULT_MODEL_ROTATION;
+    _modelScale = DEFAULT_MODEL_SCALE;
 }
 
 void Particle::setMass(float value) {

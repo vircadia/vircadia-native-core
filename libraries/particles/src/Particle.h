@@ -56,12 +56,12 @@ const float DEFAULT_RADIUS = 0.1f / TREE_SCALE;
 const float MINIMUM_PARTICLE_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
 const glm::vec3 DEFAULT_GRAVITY(0, (-9.8f / TREE_SCALE), 0);
 const QString DEFAULT_SCRIPT("");
+const QString DEFAULT_MODEL_URL("");
 const glm::vec3 DEFAULT_MODEL_TRANSLATION(0, 0, 0);
 const glm::quat DEFAULT_MODEL_ROTATION(0, 0, 0, 0);
 const float DEFAULT_MODEL_SCALE = 1.0f;
 const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
-
 
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
