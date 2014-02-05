@@ -21,9 +21,12 @@
 #include <PacketHeaders.h>
 
 #include "MetavoxelUtil.h"
+#include "ScriptCache.h"
 
+static int scriptHashType = qRegisterMetaType<ScriptHash>();
 static int parameterizedURLType = qRegisterMetaType<ParameterizedURL>();
 
+REGISTER_SIMPLE_TYPE_STREAMER(ScriptHash)
 REGISTER_SIMPLE_TYPE_STREAMER(ParameterizedURL)
 
 class DelegatingItemEditorFactory : public QItemEditorFactory {
@@ -106,7 +109,7 @@ bool Box::contains(const Box& other) const {
         other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
 }
 
-ParameterizedURL::ParameterizedURL(const QUrl& url, const QVariantHash& parameters) :
+ParameterizedURL::ParameterizedURL(const QUrl& url, const ScriptHash& parameters) :
     _url(url),
     _parameters(parameters) {
 }
@@ -133,7 +136,7 @@ Bitstream& operator<<(Bitstream& out, const ParameterizedURL& url) {
 Bitstream& operator>>(Bitstream& in, ParameterizedURL& url) {
     QUrl qurl;
     in >> qurl;
-    QVariantHash parameters;
+    ScriptHash parameters;
     in >> parameters;
     url = ParameterizedURL(qurl, parameters);
     return in;
@@ -146,16 +149,47 @@ ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
     layout->setContentsMargins(QMargins());
     setLayout(layout);
     
-    layout->addWidget(_line = new QLineEdit());
+    QWidget* lineContainer = new QWidget();
+    layout->addWidget(lineContainer);
+    
+    QHBoxLayout* lineLayout = new QHBoxLayout();
+    lineContainer->setLayout(lineLayout);
+    lineLayout->setContentsMargins(QMargins());
+    
+    lineLayout->addWidget(_line = new QLineEdit(), 1);
     connect(_line, SIGNAL(textChanged(const QString&)), SLOT(updateURL()));
+    
+    QPushButton* refresh = new QPushButton("...");
+    connect(refresh, SIGNAL(clicked(bool)), SLOT(updateParameters()));
+    lineLayout->addWidget(refresh);
 }
 
 void ParameterizedURLEditor::setURL(const ParameterizedURL& url) {
     _url = url;
     _line->setText(url.getURL().toString());
+    updateParameters();
 }
 
 void ParameterizedURLEditor::updateURL() {
     _url = ParameterizedURL(_line->text());
     emit urlChanged(_url);
+    if (_program) {
+        _program->disconnect(this);
+    }
+}
+
+void ParameterizedURLEditor::updateParameters() {    
+    if (_program) {
+        _program->disconnect(this);
+    }
+    _program = ScriptCache::getInstance()->getProgram(_url.getURL());
+    if (_program->isLoaded()) {
+        continueUpdatingParameters();
+    } else {
+        connect(_program.data(), SIGNAL(loaded()), SLOT(continueUpdatingParameters()));
+    }
+}
+
+void ParameterizedURLEditor::continueUpdatingParameters() {
+    QScriptValue value = ScriptCache::getInstance()->getValue(_url.getURL())->getValue();
 }

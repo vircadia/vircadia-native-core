@@ -9,6 +9,7 @@
 #ifndef __interface__MetavoxelUtil__
 #define __interface__MetavoxelUtil__
 
+#include <QSharedPointer>
 #include <QUrl>
 #include <QUuid>
 #include <QWidget>
@@ -19,6 +20,7 @@ class QByteArray;
 class QLineEdit;
 
 class HifiSockAddr;
+class NetworkProgram;
 
 /// Reads and returns the session ID from a datagram.
 /// \param[out] headerPlusIDSize the size of the header (including the session ID) within the data
@@ -39,19 +41,23 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(Box)
 
+typedef QHash<QScriptString, QVariant> ScriptHash;
+
+Q_DECLARE_METATYPE(ScriptHash)
+
 /// Combines a URL with a set of typed parameters.
 class ParameterizedURL {
 public:
     
-    ParameterizedURL(const QUrl& url = QUrl(), const QVariantHash& parameters = QVariantHash());
+    ParameterizedURL(const QUrl& url = QUrl(), const ScriptHash& parameters = ScriptHash());
     
     bool isValid() const { return _url.isValid(); }
     
     void setURL(const QUrl& url) { _url = url; }
     const QUrl& getURL() const { return _url; }
     
-    void setParameters(const QVariantHash& parameters) { _parameters = parameters; }
-    const QVariantHash& getParameters() const { return _parameters; }
+    void setParameters(const ScriptHash& parameters) { _parameters = parameters; }
+    const ScriptHash& getParameters() const { return _parameters; }
     
     bool operator==(const ParameterizedURL& other) const;
     bool operator!=(const ParameterizedURL& other) const;
@@ -59,7 +65,7 @@ public:
 private:
     
     QUrl _url;
-    QVariantHash _parameters;
+    ScriptHash _parameters;
 };
 
 uint qHash(const ParameterizedURL& url, uint seed = 0);
@@ -89,10 +95,14 @@ public slots:
 private slots:
 
     void updateURL();    
+    void updateParameters();
+    void continueUpdatingParameters();
     
 private:
     
     ParameterizedURL _url;
+    QSharedPointer<NetworkProgram> _program;
+    
     QLineEdit* _line;
 };
 

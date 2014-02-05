@@ -15,17 +15,16 @@
 #include <QScriptProgram>
 #include <QScriptValue>
 #include <QSharedPointer>
-#include <QVariantHash>
 #include <QWeakPointer>
+
+#include "MetavoxelUtil.h"
 
 class QNetworkAccessManager;
 class QNetworkReply;
 class QScriptEngine;
-class QUrl;
 
 class NetworkProgram;
 class NetworkValue;
-class ParameterizedURL;
 
 /// Maintains a cache of loaded scripts.
 class ScriptCache : public QObject {
@@ -55,6 +54,7 @@ private:
     QScriptEngine* _engine;
     QHash<QUrl, QWeakPointer<NetworkProgram> > _networkPrograms;
     QHash<ParameterizedURL, QWeakPointer<NetworkValue> > _networkValues;
+    
 };
 
 /// A program loaded from the network.
@@ -71,7 +71,11 @@ public:
     bool isLoaded() const { return !_program.isNull(); }
     
     const QScriptProgram& getProgram() const { return _program; }
-    
+
+signals:
+
+    void loaded();
+
 private slots:
     
     void makeRequest();
@@ -87,21 +91,46 @@ private:
     QScriptProgram _program;
 };
 
-/// A value loaded from the network.
+/// Abstract base class of values loaded from the network.
 class NetworkValue {
 public:
     
-    NetworkValue(const QSharedPointer<NetworkProgram>& program, const QVariantHash& parameters);
-
+    virtual ~NetworkValue();
+    
     bool isLoaded() { return getValue().isValid(); }
 
-    QScriptValue& getValue();
+    virtual QScriptValue& getValue() = 0;
+
+protected:
+    
+    QScriptValue _value;
+};
+
+/// The direct result of running a program.
+class RootNetworkValue : public NetworkValue {
+public:
+    
+    RootNetworkValue(const QSharedPointer<NetworkProgram>& program);
+
+    virtual QScriptValue& getValue();
 
 private:
     
     QSharedPointer<NetworkProgram> _program;
-    QVariantHash _parameters;
-    QScriptValue _value;
+};
+
+/// The result of running a program's generator using a set of arguments.
+class DerivedNetworkValue : public NetworkValue {
+public:
+
+    DerivedNetworkValue(const QSharedPointer<NetworkValue>& baseValue, const ScriptHash& parameters);
+
+    virtual QScriptValue& getValue();
+    
+private:
+    
+    QSharedPointer<NetworkValue> _baseValue;
+    ScriptHash _parameters;
 };
 
 #endif /* defined(__interface__ScriptCache__) */

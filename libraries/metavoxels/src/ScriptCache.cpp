@@ -15,7 +15,6 @@
 #include <QtDebug>
 
 #include "AttributeRegistry.h"
-#include "MetavoxelUtil.h"
 #include "ScriptCache.h"
 
 ScriptCache* ScriptCache::getInstance() {
@@ -49,7 +48,9 @@ QSharedPointer<NetworkProgram> ScriptCache::getProgram(const QUrl& url) {
 QSharedPointer<NetworkValue> ScriptCache::getValue(const ParameterizedURL& url) {
     QSharedPointer<NetworkValue> value = _networkValues.value(url);
     if (value.isNull()) {
-        value = QSharedPointer<NetworkValue>(new NetworkValue(getProgram(url.getURL()), url.getParameters()));
+        value = QSharedPointer<NetworkValue>(url.getParameters().isEmpty() ?
+            (NetworkValue*)new RootNetworkValue(getProgram(url.getURL())) :
+            (NetworkValue*)new DerivedNetworkValue(getValue(url.getURL()), url.getParameters()));
         _networkValues.insert(url, value);
     }
     return value;
@@ -94,6 +95,8 @@ void NetworkProgram::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _reply->disconnect(this);
     _reply->deleteLater();
     _reply = NULL;
+    
+    emit loaded();
 }
 
 void NetworkProgram::handleReplyError() {
@@ -112,14 +115,28 @@ void NetworkProgram::handleReplyError() {
     }
 }
 
-NetworkValue::NetworkValue(const QSharedPointer<NetworkProgram>& program, const QVariantHash& parameters) :
-    _program(program),
+NetworkValue::~NetworkValue() {
+}
+
+RootNetworkValue::RootNetworkValue(const QSharedPointer<NetworkProgram>& program) :
+    _program(program) {
+}
+
+QScriptValue& RootNetworkValue::getValue() {
+    if (!_value.isValid() && _program->isLoaded()) {
+        _value = _program->getCache()->getEngine()->evaluate(_program->getProgram());
+    }
+    return _value;
+}
+
+DerivedNetworkValue::DerivedNetworkValue(const QSharedPointer<NetworkValue>& baseValue, const ScriptHash& parameters) :
+    _baseValue(baseValue), 
     _parameters(parameters) {
 }
 
-QScriptValue& NetworkValue::getValue() {
-    if (!_value.isValid() && _program->isLoaded()) {
-        _value = _program->getCache()->getEngine()->evaluate(_program->getProgram());
+QScriptValue& DerivedNetworkValue::getValue() {
+    if (!_value.isValid() && _baseValue->isLoaded()) {
+        _value = _baseValue->getValue();
     }
     return _value;
 }

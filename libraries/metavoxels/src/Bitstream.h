@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QMetaType>
+#include <QScriptString>
 #include <QSharedPointer>
 #include <QVariant>
 #include <QtDebug>
@@ -127,7 +128,7 @@ template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::ope
         int& offset = _transientOffsets[value];
         if (offset == 0) {
             _idStreamer << (_lastPersistentID + (offset = ++_lastTransientOffset));
-            _stream << value;
+            _stream < value;
             
         } else {
             _idStreamer << (_lastPersistentID + offset);
@@ -148,7 +149,7 @@ template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::ope
         int offset = id - _lastPersistentID;
         typename QHash<int, T>::iterator it = _transientValues.find(offset);
         if (it == _transientValues.end()) {
-            _stream >> value;
+            _stream > value;
             _transientValues.insert(offset, value);
         
         } else {
@@ -167,6 +168,7 @@ public:
         QHash<const QMetaObject*, int> metaObjectOffsets;
         QHash<const TypeStreamer*, int> typeStreamerOffsets;
         QHash<AttributePointer, int> attributeOffsets;
+        QHash<QScriptString, int> scriptStringOffsets;
     };
 
     class ReadMappings {
@@ -174,6 +176,7 @@ public:
         QHash<int, const QMetaObject*> metaObjectValues;
         QHash<int, const TypeStreamer*> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
+        QHash<int, QScriptString> scriptStringValues;
     };
 
     /// Registers a metaobject under its name so that instances of it can be streamed.
@@ -206,9 +209,6 @@ public:
     /// Resets to the initial state.
     void reset();
 
-    /// Returns a reference to the attribute streamer.
-    RepeatedValueStreamer<AttributePointer>& getAttributeStreamer() { return _attributeStreamer; }
-
     /// Returns the set of transient mappings gathered during writing and resets them.
     WriteMappings getAndResetWriteMappings();
 
@@ -239,6 +239,9 @@ public:
     Bitstream& operator<<(const QString& string);
     Bitstream& operator>>(QString& string);
     
+    Bitstream& operator<<(const QScriptString& string);
+    Bitstream& operator>>(QScriptString& string);
+    
     Bitstream& operator<<(const QUrl& url);
     Bitstream& operator>>(QUrl& url);
     
@@ -266,6 +269,18 @@ public:
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
     
+    Bitstream& operator<(const QMetaObject* metaObject);
+    Bitstream& operator>(const QMetaObject*& metaObject);
+    
+    Bitstream& operator<(const TypeStreamer* streamer);
+    Bitstream& operator>(const TypeStreamer*& streamer);
+    
+    Bitstream& operator<(const AttributePointer& attribute);
+    Bitstream& operator>(AttributePointer& attribute);
+    
+    Bitstream& operator<(const QScriptString& string);
+    Bitstream& operator>(QScriptString& string);
+    
 private:
    
     QDataStream& _underlying;
@@ -275,6 +290,7 @@ private:
     RepeatedValueStreamer<const QMetaObject*> _metaObjectStreamer;
     RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
+    RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
