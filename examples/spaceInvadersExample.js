@@ -135,7 +135,9 @@ function initializeMyShip() {
             damping: 0,
             radius: shipSize,
             color: { red: 0, green: 255, blue: 0 },
-            //modelURL: myShipModel,
+            modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/myCannon16x16.svo",
+            modelScale: 450,
+            modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
             lifetime: itemLifetimes
         };
     myShip = Particles.addParticle(myShipProperties);
