@@ -502,7 +502,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                                           Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numNetworkOutputSamples)),
                                           Q_ARG(bool, true), Q_ARG(bool, false));
             }
-			delete[] ringBufferSamples;
+            delete[] ringBufferSamples;
         }
 
     }
