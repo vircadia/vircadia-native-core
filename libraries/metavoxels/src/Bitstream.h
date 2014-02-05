@@ -18,10 +18,10 @@
 
 #include <glm/glm.hpp>
 
+#include "SharedObject.h"
+
 class QByteArray;
 class QDataStream;
-struct QMetaObject;
-class QObject;
 class QUrl;
 
 class Attribute;
@@ -160,7 +160,9 @@ template<class T> inline RepeatedValueStreamer<T>& RepeatedValueStreamer<T>::ope
 }
 
 /// A stream for bit-aligned data.
-class Bitstream {
+class Bitstream : public QObject {
+    Q_OBJECT
+
 public:
 
     class WriteMappings {
@@ -169,6 +171,7 @@ public:
         QHash<const TypeStreamer*, int> typeStreamerOffsets;
         QHash<AttributePointer, int> attributeOffsets;
         QHash<QScriptString, int> scriptStringOffsets;
+        QHash<SharedObjectPointer, int> sharedObjectOffsets;
     };
 
     class ReadMappings {
@@ -177,6 +180,7 @@ public:
         QHash<int, const TypeStreamer*> typeStreamerValues;
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
+        QHash<int, SharedObjectPointer> sharedObjectValues;
     };
 
     /// Registers a metaobject under its name so that instances of it can be streamed.
@@ -191,7 +195,7 @@ public:
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 
     /// Creates a new bitstream.  Note: the stream may be used for reading or writing, but not both.
-    Bitstream(QDataStream& underlying);
+    Bitstream(QDataStream& underlying, QObject* parent = NULL);
 
     /// Writes a set of bits to the underlying stream.
     /// \param bits the number of bits to write
@@ -239,9 +243,6 @@ public:
     Bitstream& operator<<(const QString& string);
     Bitstream& operator>>(QString& string);
     
-    Bitstream& operator<<(const QScriptString& string);
-    Bitstream& operator>>(QScriptString& string);
-    
     Bitstream& operator<<(const QUrl& url);
     Bitstream& operator>>(QUrl& url);
     
@@ -269,6 +270,12 @@ public:
     Bitstream& operator<<(const AttributePointer& attribute);
     Bitstream& operator>>(AttributePointer& attribute);
     
+    Bitstream& operator<<(const QScriptString& string);
+    Bitstream& operator>>(QScriptString& string);
+    
+    Bitstream& operator<<(const SharedObjectPointer& object);
+    Bitstream& operator>>(SharedObjectPointer& object);
+    
     Bitstream& operator<(const QMetaObject* metaObject);
     Bitstream& operator>(const QMetaObject*& metaObject);
     
@@ -281,6 +288,9 @@ public:
     Bitstream& operator<(const QScriptString& string);
     Bitstream& operator>(QScriptString& string);
     
+    Bitstream& operator<(const SharedObjectPointer& object);
+    Bitstream& operator>(SharedObjectPointer& object);
+    
 private:
    
     QDataStream& _underlying;
@@ -291,6 +301,7 @@ private:
     RepeatedValueStreamer<const TypeStreamer*> _typeStreamerStreamer;
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
+    RepeatedValueStreamer<SharedObjectPointer> _sharedObjectStreamer;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();

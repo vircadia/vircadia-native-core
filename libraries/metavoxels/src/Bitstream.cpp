@@ -83,14 +83,16 @@ QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* 
     return getMetaObjectSubClasses().values(metaObject);
 }
 
-Bitstream::Bitstream(QDataStream& underlying) :
+Bitstream::Bitstream(QDataStream& underlying, QObject* parent) :
+    QObject(parent),
     _underlying(underlying),
     _byte(0),
     _position(0),
     _metaObjectStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),
-    _scriptStringStreamer(*this) {
+    _scriptStringStreamer(*this),
+    _sharedObjectStreamer(*this) {
 }
 
 const int BITS_IN_BYTE = 8;
@@ -148,7 +150,8 @@ Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {
     WriteMappings mappings = { _metaObjectStreamer.getAndResetTransientOffsets(),
         _typeStreamerStreamer.getAndResetTransientOffsets(),
         _attributeStreamer.getAndResetTransientOffsets(),
-        _scriptStringStreamer.getAndResetTransientOffsets() };
+        _scriptStringStreamer.getAndResetTransientOffsets(),
+        _sharedObjectStreamer.getAndResetTransientOffsets() };
     return mappings;
 }
 
@@ -157,13 +160,15 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     _typeStreamerStreamer.persistTransientOffsets(mappings.typeStreamerOffsets);
     _attributeStreamer.persistTransientOffsets(mappings.attributeOffsets);
     _scriptStringStreamer.persistTransientOffsets(mappings.scriptStringOffsets);
+    _sharedObjectStreamer.persistTransientOffsets(mappings.sharedObjectOffsets);
 }
 
 Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
     ReadMappings mappings = { _metaObjectStreamer.getAndResetTransientValues(),
         _typeStreamerStreamer.getAndResetTransientValues(),
         _attributeStreamer.getAndResetTransientValues(),
-        _scriptStringStreamer.getAndResetTransientValues() };
+        _scriptStringStreamer.getAndResetTransientValues(),
+        _sharedObjectStreamer.getAndResetTransientValues() };
     return mappings;
 }
 
@@ -172,6 +177,7 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
     _typeStreamerStreamer.persistTransientValues(mappings.typeStreamerValues);
     _attributeStreamer.persistTransientValues(mappings.attributeValues);
     _scriptStringStreamer.persistTransientValues(mappings.scriptStringValues);
+    _sharedObjectStreamer.persistTransientValues(mappings.sharedObjectValues);
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -242,16 +248,6 @@ Bitstream& Bitstream::operator>>(QString& string) {
     *this >> size;
     string.resize(size);
     return read(string.data(), size * sizeof(QChar) * BITS_IN_BYTE);
-}
-
-Bitstream& Bitstream::operator<<(const QScriptString& string) {
-    _scriptStringStreamer << string;
-    return *this;
-}
-
-Bitstream& Bitstream::operator>>(QScriptString& string) {
-    _scriptStringStreamer >> string;
-    return *this;
 }
 
 Bitstream& Bitstream::operator<<(const QUrl& url) {
@@ -379,6 +375,26 @@ Bitstream& Bitstream::operator>>(AttributePointer& attribute) {
     return *this;
 }
 
+Bitstream& Bitstream::operator<<(const QScriptString& string) {
+    _scriptStringStreamer << string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QScriptString& string) {
+    _scriptStringStreamer >> string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const SharedObjectPointer& object) {
+    _sharedObjectStreamer << object;
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(SharedObjectPointer& object) {
+    _sharedObjectStreamer >> object;
+    return *this;
+}
+
 Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
     return *this << (metaObject ? QByteArray::fromRawData(metaObject->className(),
         strlen(metaObject->className())) : QByteArray());
@@ -432,6 +448,17 @@ Bitstream& Bitstream::operator>(QScriptString& string) {
     QString rawString;
     *this >> rawString;
     string = ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
+    return *this;
+}
+
+Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
+    return *this << object.data();
+}
+
+Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
+    QObject* rawObject;
+    *this >> rawObject;  
+    object = static_cast<SharedObject*>(rawObject);
     return *this;
 }
 

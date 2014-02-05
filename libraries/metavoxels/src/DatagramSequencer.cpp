@@ -14,6 +14,8 @@
 
 const int MAX_DATAGRAM_SIZE = 1500;
 
+const int DEFAULT_MAX_PACKET_SIZE = 3000;
+
 DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
     _outputStream(_outgoingPacketStream),
@@ -26,7 +28,8 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _incomingPacketNumber(0),
     _incomingPacketStream(&_incomingPacketData, QIODevice::ReadOnly),
     _inputStream(_incomingPacketStream),
-    _receivedHighPriorityMessages(0) {
+    _receivedHighPriorityMessages(0),
+    _maxPacketSize(DEFAULT_MAX_PACKET_SIZE) {
 
     _outgoingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _incomingDatagramStream.setByteOrder(QDataStream::LittleEndian);
@@ -36,9 +39,29 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
 }
 
+void DatagramSequencer::sendReliableMessage(const QVariant& data, int channel) {
+    
+}
+
 void DatagramSequencer::sendHighPriorityMessage(const QVariant& data) {
     HighPriorityMessage message = { data, _outgoingPacketNumber + 1 };
     _highPriorityMessages.append(message);
+}
+
+ReliableChannel* DatagramSequencer::getReliableOutputChannel(int index) {
+    ReliableChannel*& channel = _reliableOutputChannels[index];
+    if (!channel) {
+        channel = new ReliableChannel(this);
+    }
+    return channel;
+}
+    
+ReliableChannel* DatagramSequencer::getReliableInputChannel(int index) {
+    ReliableChannel*& channel = _reliableInputChannels[index];
+    if (!channel) {
+        channel = new ReliableChannel(this);
+    }
+    return channel;
 }
 
 Bitstream& DatagramSequencer::startPacket() {
@@ -60,6 +83,16 @@ Bitstream& DatagramSequencer::startPacket() {
 
 void DatagramSequencer::endPacket() {
     _outputStream.flush();
+    
+    // if we have space remaining, send some data from our reliable channels 
+    int remaining = _maxPacketSize - _outgoingPacketStream.device()->pos();
+    const int MINIMUM_RELIABLE_SIZE = sizeof(quint32) * 4; // count, channel number, offset, size
+    if (remaining > MINIMUM_RELIABLE_SIZE) {
+        appendReliableData(remaining);
+    } else {
+        _outgoingPacketStream << (quint32)0;
+    }
+    
     sendPacket(QByteArray::fromRawData(_outgoingPacketData.constData(), _outgoingPacketStream.device()->pos()));
     _outgoingPacketStream.device()->seek(0);
 }
@@ -150,8 +183,18 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     }
     _receivedHighPriorityMessages = highPriorityMessageCount;
     
-    // alert external parties so that they can read the rest
+    // alert external parties so that they can read the middle
     emit readyToRead(_inputStream);
+    
+    // read the reliable data, if any
+    quint32 reliableChannels;
+    _incomingPacketStream >> reliableChannels;
+    for (int i = 0; i < reliableChannels; i++) {
+        quint32 channelIndex;
+        _incomingPacketStream >> channelIndex;
+        getReliableOutputChannel(channelIndex)->readData(_incomingPacketStream);
+    }
+    
     _incomingPacketStream.device()->seek(0);
     _inputStream.reset();
     
@@ -177,6 +220,15 @@ void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
             _highPriorityMessages.erase(_highPriorityMessages.begin(), _highPriorityMessages.begin() + i + 1);
             break;
         }
+    }
+}
+
+void DatagramSequencer::appendReliableData(int bytes) {
+    _outgoingPacketStream << (quint32)0;
+
+    for (QHash<int, ReliableChannel*>::const_iterator it = _reliableOutputChannels.constBegin();
+            it != _reliableOutputChannels.constEnd(); it++) {
+        
     }
 }
 
@@ -213,3 +265,22 @@ void DatagramSequencer::sendPacket(const QByteArray& packet) {
     } while(offset < packet.size());
 }
 
+void ReliableChannel::sendMessage(const QVariant& message) {
+    _bitstream << message;
+}
+
+ReliableChannel::ReliableChannel(DatagramSequencer* sequencer) :
+    QObject(sequencer),
+    _dataStream(&_buffer),
+    _bitstream(_dataStream),
+    _priority(1.0f) {
+    
+    _buffer.open(QIODevice::WriteOnly);
+    _dataStream.setByteOrder(QDataStream::LittleEndian);
+}
+
+void ReliableChannel::readData(QDataStream& in) {
+    quint32 offset, size;
+    in >> offset >> size;
+    in.skipRawData(size);
+}

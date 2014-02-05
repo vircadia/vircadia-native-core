@@ -17,6 +17,8 @@
 
 #include "Bitstream.h"
 
+class ReliableChannel;
+
 /// Performs simple datagram sequencing, packet fragmentation and reassembly.
 class DatagramSequencer : public QObject {
     Q_OBJECT
@@ -40,11 +42,26 @@ public:
     /// Returns the packet number of the sent packet at the specified index.
     int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
     
+    /// Sends a normal-priority reliable message.
+    void sendReliableMessage(const QVariant& data, int channel = 0);
+    
     /// Adds a message to the high priority queue.  Will be sent with every outgoing packet until received.
     void sendHighPriorityMessage(const QVariant& data);
     
     /// Returns a reference to the list of high priority messages not yet acknowledged.
     const QList<HighPriorityMessage>& getHighPriorityMessages() const { return _highPriorityMessages; }
+    
+    /// Sets the maximum packet size.  This is a soft limit that determines how much
+    /// reliable data we include with each transmission.
+    void setMaxPacketSize(int maxPacketSize) { _maxPacketSize = maxPacketSize; }
+    
+    int getMaxPacketSize() const { return _maxPacketSize; }
+    
+    /// Returns the output channel at the specified index, creating it if necessary.
+    ReliableChannel* getReliableOutputChannel(int index = 0);
+    
+    /// Returns the intput channel at the 
+    ReliableChannel* getReliableInputChannel(int index = 0);
     
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
@@ -97,6 +114,9 @@ private:
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
+    /// Appends some reliable data to the outgoing packet.
+    void appendReliableData(int bytes);
+    
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
     void sendPacket(const QByteArray& packet);
@@ -126,6 +146,39 @@ private:
     
     QList<HighPriorityMessage> _highPriorityMessages;
     int _receivedHighPriorityMessages;
+    
+    int _maxPacketSize;
+    
+    QHash<int, ReliableChannel*> _reliableOutputChannels;
+    QHash<int, ReliableChannel*> _reliableInputChannels;
+};
+
+/// Represents a single reliable channel multiplexed onto the datagram sequence.
+class ReliableChannel : public QObject {
+    Q_OBJECT
+    
+public:
+
+    QDataStream& getDataStream() { return _dataStream; }
+    Bitstream& getBitstream() { return _bitstream; }
+
+    void setPriority(float priority) { _priority = priority; }
+    float getPriority() const { return _priority; }
+
+    void sendMessage(const QVariant& message);
+
+private:
+    
+    friend class DatagramSequencer;
+    
+    ReliableChannel(DatagramSequencer* sequencer);
+    
+    void readData(QDataStream& in);
+    
+    QBuffer _buffer;
+    QDataStream _dataStream;
+    Bitstream _bitstream;
+    float _priority;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */
