@@ -99,8 +99,8 @@ protected:
 
 private:
 	int _primitiveIndex;
-	unsigned char _exteriorOcclusions;	///< exterior shared partition boundaries that are completely occupied
-	unsigned char _interiorOcclusions;	///< interior shared partition boundaries with siblings
+	unsigned char _exteriorOcclusions;	/// exterior shared partition boundaries that are completely occupied
+	unsigned char _interiorOcclusions;	/// interior shared partition boundaries with siblings
 };
 
 inline void VoxelTreeElement::setExteriorOcclusions(unsigned char exteriorOcclusions) { 

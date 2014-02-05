@@ -315,11 +315,11 @@ private:
     void lockTree();
     void unlockTree();
 
-	bool _usePrimitiveRenderer;
-	PrimitiveRenderer *_renderer;				///< Voxel renderer
+	bool _usePrimitiveRenderer;					///< Flag primitive renderer for use
+	PrimitiveRenderer* _renderer;				///< Voxel renderer
 
-	static unsigned char octantIndexToBitMask[8];				///< Map octant index to partition mask
-	static unsigned char octantIndexToSharedBitMask[8][8];		///< Map octant indices to shared partition mask
+	static unsigned char _sOctantIndexToBitMask[8];				///< Map octant index to partition mask
+	static unsigned char _sOctantIndexToSharedBitMask[8][8];		///< Map octant indices to shared partition mask
 
 };
 

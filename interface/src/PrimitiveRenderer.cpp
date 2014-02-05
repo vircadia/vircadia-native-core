@@ -9,31 +9,27 @@
 #include "OctreeElement.h"
 #include "PrimitiveRenderer.h"
 
-Primitive::Primitive()
-{}
+Primitive::Primitive() {
+}
 
-Primitive::~Primitive()
-{}
+Primitive::~Primitive() {
+}
 
 // Simple dispatch between API and SPI
 
-VertexElementList const & Primitive::vertexElements() const
-{
+VertexElementList const & Primitive::vertexElements() const {
 	return vVertexElements();
 }
 
-VertexElementIndexList & Primitive::vertexElementIndices()
-{
+VertexElementIndexList& Primitive::vertexElementIndices() {
 	return vVertexElementIndices();
 }
 
-TriElementList & Primitive::triElements()
-{
+TriElementList& Primitive::triElements() {
 	return vTriElements();
 }
 
-void Primitive::releaseVertexElements()
-{
+void Primitive::releaseVertexElements() {
 	vReleaseVertexElements();
 }
 
@@ -47,13 +43,11 @@ Cube::Cube(
 	unsigned char g,
 	unsigned char b,
 	unsigned char faceExclusions
-	)
-{
+	) {
 	initialize(x, y, z, s, r, g, b, faceExclusions);
 }
 
-Cube::~Cube()
-{
+Cube::~Cube() {
 	terminate();
 }
 
@@ -66,14 +60,14 @@ void Cube::initialize(
 	unsigned char g,
 	unsigned char b,
 	unsigned char faceExclusions
-	)
-{
+	) {
+
 	initializeVertices(x, y, z, s, r, g, b, faceExclusions);
 	initializeTris(faceExclusions);
 }
 
-void Cube::terminate()
-{
+void Cube::terminate() {
+
 	terminateTris();
 	terminateVertices();
 }
@@ -87,27 +81,25 @@ void Cube::initializeVertices(
 	unsigned char g,
 	unsigned char b,
 	unsigned char faceExclusions
-	)
-{
-	for (int i = 0; i < 24; i++) 
-	{
+	) {
+
+	for (int i = 0; i < _sNumVerticesPerCube; i++) {
 		// Check whether the vertex is necessary for the faces indicated by faceExclusions bit mask.
-		if (~faceExclusions & s_faceIndexToHalfSpaceMask[i >> 2]) 
-		//if (~0x00 & s_faceIndexToHalfSpaceMask[i >> 2]) 
-		//if (faceExclusions & s_faceIndexToHalfSpaceMask[i >> 2]) 
-		{
-			VertexElement *v = new VertexElement();
-			if (v)
-			{
+		if (~faceExclusions & _sFaceIndexToHalfSpaceMask[i >> 2]) {
+		//if (~0x00 & _sFaceIndexToHalfSpaceMask[i >> 2]) {
+		//if (faceExclusions & _sFaceIndexToHalfSpaceMask[i >> 2]) {
+
+			VertexElement* v = new VertexElement();
+			if (v) {
 				// Construct vertex position
-				v->position.x = x + s * s_vertexIndexToConstructionVector[i][0];
-				v->position.y = y + s * s_vertexIndexToConstructionVector[i][1];
-				v->position.z = z + s * s_vertexIndexToConstructionVector[i][2];
+				v->position.x = x + s * _sVertexIndexToConstructionVector[i][0];
+				v->position.y = y + s * _sVertexIndexToConstructionVector[i][1];
+				v->position.z = z + s * _sVertexIndexToConstructionVector[i][2];
 
 				// Construct vertex normal
-				v->normal.x = s_vertexIndexToNormalVector[i >> 2][0];
-				v->normal.y = s_vertexIndexToNormalVector[i >> 2][1];
-				v->normal.z = s_vertexIndexToNormalVector[i >> 2][2];
+				v->normal.x = _sVertexIndexToNormalVector[i >> 2][0];
+				v->normal.y = _sVertexIndexToNormalVector[i >> 2][1];
+				v->normal.z = _sVertexIndexToNormalVector[i >> 2][2];
 
 				// Construct vertex color
 //#define FALSE_COLOR
@@ -138,13 +130,12 @@ void Cube::initializeVertices(
 	}
 }
 
-void Cube::terminateVertices()
-{
+void Cube::terminateVertices() {
+
 	VertexElementList::iterator it  = _vertices.begin();
 	VertexElementList::iterator end = _vertices.end();
 
-	for ( ; it != end; ++it)
-	{
+	for ( ; it != end; ++it) {
 		delete *it;
 	}
 	_vertices.clear();
@@ -152,17 +143,16 @@ void Cube::terminateVertices()
 
 void Cube::initializeTris(
 	unsigned char faceExclusions
-	)
-{
+	) {
+
 	int index = 0;
-	for (int i = 0; i < 6; i++) 
-	{
+	for (int i = 0; i < _sNumFacesPerCube; i++) {
 		// Check whether the vertex is necessary for the faces indicated by faceExclusions bit mask.
 		// uncomment this line to exclude shared faces: 
-		if (~faceExclusions & s_faceIndexToHalfSpaceMask[i]) 
-		// uncomment this line to load all faces: if (~0x00 & s_faceIndexToHalfSpaceMask[i]) 
-		// uncomment this line to include shared faces: if (faceExclusions & s_faceIndexToHalfSpaceMask[i]) 
-		{
+		if (~faceExclusions & _sFaceIndexToHalfSpaceMask[i]) {
+		// uncomment this line to load all faces: if (~0x00 & _sFaceIndexToHalfSpaceMask[i]) {
+		// uncomment this line to include shared faces: if (faceExclusions & _sFaceIndexToHalfSpaceMask[i]) {
+			
 			int start = index;
 			// Create the triangulated face, two tris, six indices referencing four vertices, both
 			// with cw winding order, such that:
@@ -174,8 +164,7 @@ void Cube::initializeTris(
 			// Store triangle ABC
 
 			TriElement *tri = new TriElement();
-			if (tri)
-			{
+			if (tri) {
 				tri->indices[0] = index++;
 				tri->indices[1] = index++;
 				tri->indices[2] = index;
@@ -186,8 +175,7 @@ void Cube::initializeTris(
 
 			// Now store triangle ACD
 			tri = new TriElement();
-			if (tri)
-			{
+			if (tri) {
 				tri->indices[0] = start;
 				tri->indices[1] = index++;
 				tri->indices[2] = index++;
@@ -199,39 +187,34 @@ void Cube::initializeTris(
 	}
 }
 
-void Cube::terminateTris()
-{
+void Cube::terminateTris() {
+
 	TriElementList::iterator it  = _tris.begin();
 	TriElementList::iterator end = _tris.end();
 
-	for ( ; it != end; ++it)
-	{
+	for ( ; it != end; ++it) {
 		delete *it;
 	}
 	_tris.clear();
 }
 
-VertexElementList const & Cube::vVertexElements() const
-{
+VertexElementList const & Cube::vVertexElements() const {
 	return _vertices;
 }
 
-VertexElementIndexList & Cube::vVertexElementIndices()
-{
+VertexElementIndexList& Cube::vVertexElementIndices() {
 	return _vertexIndices;
 }
 
-TriElementList & Cube::vTriElements()
-{
+TriElementList& Cube::vTriElements() {
 	return _tris;
 }
 
-void Cube::vReleaseVertexElements()
-{
+void Cube::vReleaseVertexElements() {
 	terminateVertices();
 }
 
-unsigned char Cube::s_faceIndexToHalfSpaceMask[6] = {
+unsigned char Cube::_sFaceIndexToHalfSpaceMask[6] = {
 	OctreeElement::HalfSpace::Bottom,
 	OctreeElement::HalfSpace::Top,
 	OctreeElement::HalfSpace::Right,
@@ -244,7 +227,7 @@ unsigned char Cube::s_faceIndexToHalfSpaceMask[6] = {
 #ifdef CW_CONSTRUCTION
 // Construction vectors ordered such that the vertices of each face are
 // CW in a right-handed coordinate system with B-L-N at 0,0,0. 
-float Cube::s_vertexIndexToConstructionVector[24][3] = {
+float Cube::_sVertexIndexToConstructionVector[24][3] = {
 	// Bottom
 	{ 0,0,0 },
 	{ 1,0,0 },
@@ -279,7 +262,7 @@ float Cube::s_vertexIndexToConstructionVector[24][3] = {
 #else // CW_CONSTRUCTION
 // Construction vectors ordered such that the vertices of each face are
 // CCW in a right-handed coordinate system with B-L-N at 0,0,0. 
-float Cube::s_vertexIndexToConstructionVector[24][3] = {
+float Cube::_sVertexIndexToConstructionVector[24][3] = {
 	// Bottom
 	{ 0,0,0 },
 	{ 0,0,1 },
@@ -314,7 +297,7 @@ float Cube::s_vertexIndexToConstructionVector[24][3] = {
 #endif
 
 // Normals for a right-handed coordinate system
-float Cube::s_vertexIndexToNormalVector[6][3] = {
+float Cube::_sVertexIndexToNormalVector[6][3] = {
 	{  0,-1, 0 }, // Bottom
 	{  0, 1, 0 }, // Top
 	{  1, 0, 0 }, // Right
@@ -323,29 +306,26 @@ float Cube::s_vertexIndexToNormalVector[6][3] = {
 	{  0, 0, 1 }, // Far
 };
 
-Renderer::Renderer()
-{}
+Renderer::Renderer() {
+}
 
-Renderer::~Renderer()
-{}
+Renderer::~Renderer() {
+}
 
 // Simple dispatch between API and SPI
 int Renderer::add(
-	Primitive *primitive
-	)
-{
+	Primitive* primitive
+	) {
 	return vAdd(primitive);
 }
 
 void Renderer::remove(
 	int id
-	)
-{
+	) {
 	vRemove(id);
 }
 
-void Renderer::render()
-{
+void Renderer::render() {
 	vRender();
 }
 
@@ -369,19 +349,19 @@ PrimitiveRenderer::PrimitiveRenderer(
 	initialize();
 }
 
-PrimitiveRenderer::~PrimitiveRenderer()
-{
+PrimitiveRenderer::~PrimitiveRenderer() {
+
 	terminate();
 }
 
-void PrimitiveRenderer::initialize()
-{
+void PrimitiveRenderer::initialize() {
+
 	initializeGL();
 	initializeBookkeeping();
 }
 
-void PrimitiveRenderer::initializeGL()
-{
+void PrimitiveRenderer::initializeGL() {
+
 	glGenBuffers(1, &_triBufferId);
 	glGenBuffers(1, &_vertexBufferId);
 
@@ -417,51 +397,54 @@ void PrimitiveRenderer::initializeGL()
 	GLint err = glGetError();
 }
 
-void PrimitiveRenderer::initializeBookkeeping()
-{
+void PrimitiveRenderer::initializeBookkeeping() {
+
+	// Start primitive count at one, because zero is reserved for the degenerate triangle
 	_primitiveCount = 1;
 	_cpuMemoryUsage = sizeof(PrimitiveRenderer);
 }
 
-void PrimitiveRenderer::terminate()
-{
+void PrimitiveRenderer::terminate() {
+
 	terminateBookkeeping();
 	terminateGL();
 }
 
-void PrimitiveRenderer::terminateGL()
-{
+void PrimitiveRenderer::terminateGL() {
+
 	glDeleteBuffers(1, &_vertexBufferId);
 	glDeleteBuffers(1, &_triBufferId);
 	GLint err = glGetError();
 }
 
-void PrimitiveRenderer::terminateBookkeeping()
-{
+void PrimitiveRenderer::terminateBookkeeping() {
+
 	// Drain all of the queues, stop updating the counters
-	while (_availableVertexElementIndex.remove());
-	while (_availableTriElementIndex.remove());
-	while (_deconstructTriElementIndex.remove());
+	while (_availableVertexElementIndex.remove() != 0)
+		;
+
+	while (_availableTriElementIndex.remove() != 0)
+		;
+
+	while (_deconstructTriElementIndex.remove() != 0)
+		;
 
 	std::map<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
 	std::map<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
 
-	for ( ; it != end; ++it)
-	{
+	for ( ; it != end; ++it) {
 		Primitive *primitive = it->second;
 		delete primitive;
 	}
 }
 
 int PrimitiveRenderer::vAdd(
-	Primitive *primitive
-	)
-{
+	Primitive* primitive
+	) {
+
 	int index = getAvailablePrimitiveIndex();
-	if (index != 0)
-	{
-		try
-		{
+	if (index != 0) {
+		try {
 			// Take ownership of primitive, including responsibility
 			// for destruction
 			_indexToPrimitiveMap[index] = primitive;
@@ -469,9 +452,7 @@ int PrimitiveRenderer::vAdd(
 
 			// No need to keep an extra copy of the vertices
 			primitive->releaseVertexElements();
-		}
-		catch(...)
-		{
+		} catch(...) {
 			// STL failed, recycle the index
 			_availablePrimitiveIndex.add(index);
 			index = 0;
@@ -482,17 +463,15 @@ int PrimitiveRenderer::vAdd(
 
 void PrimitiveRenderer::vRemove(
 	int index
-	)
-{
-	try
-	{
+	) {
+
+	try {
+
 		// Locate the primitive by id in the associative map
 		std::map<int, Primitive *>::iterator it = _indexToPrimitiveMap.find(index);
-		if (it != _indexToPrimitiveMap.end())
-		{
+		if (it != _indexToPrimitiveMap.end()) {
 			Primitive *primitive = it->second;
-			if (primitive)
-			{
+			if (primitive) {
 				_indexToPrimitiveMap[index] = 0;
 				deconstructElements(primitive);
 				_availablePrimitiveIndex.add(index);
@@ -501,31 +480,27 @@ void PrimitiveRenderer::vRemove(
 			// the index is going to be re-used, but if you want to... uncomment the following:
 			//_indexToPrimitiveMap.erase(it);
 		}
-	}
-	catch(...)
-	{
+	} catch(...) {
 		// STL failed
 	}
 }
 
 void PrimitiveRenderer::constructElements(
-	Primitive *primitive
-	)
-{
+	Primitive* primitive
+	) {
+
 	// Load vertex elements
-	VertexElementIndexList & vertexElementIndexList = primitive->vertexElementIndices();
+	VertexElementIndexList& vertexElementIndexList = primitive->vertexElementIndices();
 	{
 		VertexElementList const & vertices = primitive->vertexElements();
 		VertexElementList::const_iterator it  = vertices.begin();
 		VertexElementList::const_iterator end = vertices.end();
 
-		for ( ; it != end; ++it ) 
-		{
+		for ( ; it != end; ++it ) {
 			int index = getAvailableVertexElementIndex();
-			if (index != 0)
-			{
+			if (index != 0) {
 				vertexElementIndexList.push_back(index);
-				VertexElement *vertex = *it;
+				VertexElement* vertex = *it;
 				transferVertexElement(index, vertex);
 			}
 		}
@@ -533,16 +508,14 @@ void PrimitiveRenderer::constructElements(
 
 	// Load tri elements
 	{
-		TriElementList & tris = primitive->triElements();
+		TriElementList& tris = primitive->triElements();
 		TriElementList::iterator it  = tris.begin();
 		TriElementList::iterator end = tris.end();
 
-		for ( ; it != end; ++it)
-		{
-			TriElement *tri = *it;
+		for ( ; it != end; ++it) {
+			TriElement* tri = *it;
 			int index = getAvailableTriElementIndex();
-			if (index != 0)
-			{
+			if (index != 0) {
 				int k;
 				k = tri->indices[0];
 				tri->indices[0] = vertexElementIndexList[k];
@@ -561,18 +534,17 @@ void PrimitiveRenderer::constructElements(
 }
 
 void PrimitiveRenderer::deconstructElements(
-	Primitive *primitive
-	)
-{
+	Primitive* primitive
+	) {
+
 	// Schedule the tri elements of the face for deconstruction
 	{
-		TriElementList & tris = primitive->triElements();
+		TriElementList& tris = primitive->triElements();
 		TriElementList::iterator it  = tris.begin();
 		TriElementList::iterator end = tris.end();
 
-		for ( ; it != end; ++it)
-		{
-			TriElement *tri = *it;
+		for ( ; it != end; ++it) {
+			TriElement* tri = *it;
 
 			// Put the tri element index into decon queue
 			_deconstructTriElementIndex.add(tri->id);
@@ -581,12 +553,11 @@ void PrimitiveRenderer::deconstructElements(
 	// Return the vertex element index to the available queue, it is not necessary
 	// to zero the data
 	{
-		VertexElementIndexList & vertexIndexList = primitive->vertexElementIndices();
+		VertexElementIndexList& vertexIndexList = primitive->vertexElementIndices();
 		VertexElementIndexList::iterator it  = vertexIndexList.begin();
 		VertexElementIndexList::iterator end = vertexIndexList.end();
 
-		for ( ; it != end; ++it)
-		{
+		for ( ; it != end; ++it) {
 			int index = *it;
 
 			// Put the vertex element index into the available queue
@@ -598,13 +569,12 @@ void PrimitiveRenderer::deconstructElements(
 	delete primitive;
 }
 
-int PrimitiveRenderer::getAvailablePrimitiveIndex()
-{
+int PrimitiveRenderer::getAvailablePrimitiveIndex() {
+
 	// Check the available primitive index queue first for an available index.
 	int index = _availablePrimitiveIndex.remove();
 	// Remember that the primitive index 0 is used not used.
-	if (index == 0) 
-	{
+	if (index == 0) {
 		// There are no primitive indices available from the queue, 
 		// make one up
 		index = _primitiveCount++;
@@ -612,37 +582,36 @@ int PrimitiveRenderer::getAvailablePrimitiveIndex()
 	return index;
 }
 
-int PrimitiveRenderer::getAvailableVertexElementIndex()
-{
+int PrimitiveRenderer::getAvailableVertexElementIndex() {
+
 	// Check the available vertex element queue first for an available index.
 	int index = _availableVertexElementIndex.remove();
 	// Remember that the vertex element 0 is used for degenerate triangles.
-	if (index == 0) 
-	{
+	if (index == 0) {
 		// There are no vertex elements available from the queue, 
 		// grab one from the end of the list
-		if (_vertexElementCount < _maxVertexElementCount)
+		if (_vertexElementCount < _maxVertexElementCount) {
 			index = _vertexElementCount++;
+		}
 	}
 	return index;
 }
 
-int PrimitiveRenderer::getAvailableTriElementIndex()
-{
+int PrimitiveRenderer::getAvailableTriElementIndex() {
+
 	// Check the deconstruct tri element queue first for an available index.
 	int index = _deconstructTriElementIndex.remove();
 	// Remember that the tri element 0 is used for degenerate triangles.
-	if (index == 0) 
-	{
+	if (index == 0) {
 		// There are no tri elements in the deconstruct tri element queue that are reusable.
 		// Check the available tri element queue.
 		index = _availableTriElementIndex.remove();
-		if (index == 0)
-		{
+		if (index == 0) {
 			// There are no reusable tri elements available from any queue, 
 			// grab one from the end of the list
-			if (_triElementCount < _maxTriElementCount)
+			if (_triElementCount < _maxTriElementCount) {
 				index = _triElementCount++;
+			}
 		}
 	}
 	return index;
@@ -650,8 +619,8 @@ int PrimitiveRenderer::getAvailableTriElementIndex()
 
 void PrimitiveRenderer::deconstructTriElement(
 	int idx
-	)
-{
+	) {
+
 	// Set the element to the degenerate case.
 	int degenerate[3] = { 0, 0, 0 };
 	transferTriElement(idx, degenerate);
@@ -660,9 +629,9 @@ void PrimitiveRenderer::deconstructTriElement(
 
 void PrimitiveRenderer::transferVertexElement(
 	int idx,
-	VertexElement *vertex
-	)
-{
+	VertexElement* vertex
+	) {
+
 	glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferId);
 	glBufferSubData(GL_ARRAY_BUFFER, idx * sizeof(VertexElement), sizeof(VertexElement), vertex);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -671,20 +640,19 @@ void PrimitiveRenderer::transferVertexElement(
 void PrimitiveRenderer::transferTriElement(
 	int idx,
 	int tri[3]
-)
-{
+	) {
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _triBufferId);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, idx * sizeof(GLint) * 3, sizeof(GLint) * 3, tri);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void PrimitiveRenderer::vRender()
-{
+void PrimitiveRenderer::vRender() {
+
 	// Now would be an appropriate time to set the element array buffer ids
 	// scheduled for deconstruction to the degenerate case.
 	int id;
-	while ((id = _deconstructTriElementIndex.remove())) 
-	{
+	while ((id = _deconstructTriElementIndex.remove()) != 0) {
 		deconstructTriElement(id);
 		_availableTriElementIndex.add(id);
 	}

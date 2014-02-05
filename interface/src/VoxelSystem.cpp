@@ -1050,15 +1050,13 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 				if (primitiveIndex) {
 					_renderer->remove(primitiveIndex);
 					node->setPrimitiveIndex(0);
-				} 
-				else {
+				} else {
 					node->setVoxelSystem(this);
 				}
 				inspectForInteriorOcclusionsOperation(node, 0);
 
-				if (node->getInteriorOcclusions() != OctreeElement::HalfSpace::All) 
-				{
-					Cube *cube = new Cube(
+				if (node->getInteriorOcclusions() != OctreeElement::HalfSpace::All) {
+					Cube* cube = new Cube(
 						startVertex.x, startVertex.y, startVertex.z, voxelScale, 
 						color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX],
 						node->getInteriorOcclusions());
@@ -1067,8 +1065,7 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 						node->setPrimitiveIndex(primitiveIndex);
 					}
 				}
-			}
-			else {
+			} else {
 				glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
 				if (reuseIndex && node->isKnownBufferIndex()) {
 					nodeIndex = node->getBufferIndex();
@@ -1531,12 +1528,12 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 	}
 
 	// Bit mask of occluded shared faces indexed by child
-	unsigned char occludedSharedFace[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	unsigned char occludedSharedFace[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	// Traverse all pair combinations of children
 	for (int i = NUMBER_OF_CHILDREN; --i >= 0; ) {
 
-		VoxelTreeElement *childA = voxel->getChildAtIndex(i);
+		VoxelTreeElement* childA = voxel->getChildAtIndex(i);
 		if (childA) {
 
 			// Get the child A's occluding faces, for a leaf that will be
@@ -1551,7 +1548,7 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 
 			for (int j = i; --j >= 0; ) {
 
-				VoxelTreeElement *childB = voxel->getChildAtIndex(j);
+				VoxelTreeElement* childB = voxel->getChildAtIndex(j);
 				if (childB) {
 
 					// Get child B's occluding faces
@@ -1564,22 +1561,22 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 
 					// Determine the shared halfspace partition between siblings A and B,
 					// i.e., near/far, left/right, or top/bottom
-					unsigned char partition = octantIndexToSharedBitMask[i][j] &
+					unsigned char partition = _sOctantIndexToSharedBitMask[i][j] &
 												exteriorOcclusionsA & exteriorOcclusionsB;
 
-					// Determine which face of each sibling is occluded.
+				    // Determine which face of each sibling is occluded.
 					// Note the intentionally crossed indicies. It is necessary because
-					// the octantIndexToBitMask is a partition occupancy mask. For
+					// the _sOctantIndexToBitMask is a partition occupancy mask. For
 					// example, if the near-left-top (NLT) and near-left-bottom (NLB) child voxels
 					// exist, the shared partition is top-bottom (TB), and thus the occluded
 					// shared face of the NLT voxel is its bottom face.
-					occludedSharedFace[i] |= (partition & octantIndexToBitMask[j]);
-					occludedSharedFace[j] |= (partition & octantIndexToBitMask[i]);
+					occludedSharedFace[i] |= (partition & _sOctantIndexToBitMask[j]);
+					occludedSharedFace[j] |= (partition & _sOctantIndexToBitMask[i]);
 				}
 			}
 			// Combine this voxel's interior excluded shared face only to those children which are coincident
 			// with the excluded face.
-			occludedSharedFace[i] |= (voxel->getInteriorOcclusions() & octantIndexToBitMask[i]);
+			occludedSharedFace[i] |= (voxel->getInteriorOcclusions() & _sOctantIndexToBitMask[i]);
 
 			// Inform the child
 			childA->setInteriorOcclusions(occludedSharedFace[i]);
@@ -1610,13 +1607,13 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 	// Traverse all children
 	for (int i = NUMBER_OF_CHILDREN; --i >= 0; ) {
 
-		VoxelTreeElement *child = voxel->getChildAtIndex(i);
+		VoxelTreeElement* child = voxel->getChildAtIndex(i);
 		if (child) {
 				// Get the child's occluding faces, for a leaf, that will be
 				// all six voxel faces, and for a non leaf, that will be
 				// all faces which are completely covered by four child octants.
 				unsigned char exteriorOcclusionsOfChild = child->getExteriorOcclusions();
-				exteriorOcclusionsOfChild &= octantIndexToBitMask[i];
+				exteriorOcclusionsOfChild &= _sOctantIndexToBitMask[i];
 
 				for (int j = 6; --j >= 0; ) {
 
@@ -1656,9 +1653,7 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 			//		occupied. Hence, the subtree from this node could be
 			//		pruned and replaced by a leaf voxel, if the visible 
 			//		properties of the children are the same
-		}
-		else
-		if (exteriorOcclusions) {
+		} else if (exteriorOcclusions) {
 			//const glm::vec3& v = voxel->getCorner();
 			//float s = voxel->getScale();
 
@@ -1682,8 +1677,7 @@ bool VoxelSystem::clearOcclusionsOperation(OctreeElement* element, void* extraDa
 		// And the sibling occluders
 		voxel->setInteriorOcclusions(0);
 		rc = false;
-	}
-	else {
+	} else {
 		voxel->setExteriorOcclusions(0);
 		voxel->setInteriorOcclusions(0);
 		rc = true;
@@ -1711,8 +1705,7 @@ void VoxelSystem::cullSharedFaces() {
 		_tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
 		unlockTree();
         qDebug("culling shared faces in %d nodes", _nodeCount);
-    }
-	else {
+    } else {
 		cleanupVoxelMemory();
 		_usePrimitiveRenderer = false;
 		initVoxelMemory();
@@ -3112,7 +3105,7 @@ void VoxelSystem::beginLoadingLocalVoxelCache() {
 // Octant bitmask array indexed by octant. The mask value indicates the octant's halfspace partitioning. The index
 // value corresponds to the voxel's octal code derived in "pointToVoxel" in SharedUtil.cpp, which, BTW, does *not*
 // correspond to the "ChildIndex" enum value in OctreeElement.h
-unsigned char VoxelSystem::octantIndexToBitMask[8] = { 
+unsigned char VoxelSystem::_sOctantIndexToBitMask[8] = { 
 		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Near,
 		OctreeElement::HalfSpace::Bottom | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Far,
 		OctreeElement::HalfSpace::Top    | OctreeElement::HalfSpace::Left  | OctreeElement::HalfSpace::Near,
@@ -3125,7 +3118,7 @@ unsigned char VoxelSystem::octantIndexToBitMask[8] = {
 
 // Two dimensional array map indexed by octant row and column. The mask value
 // indicates the two faces shared by the octants
-unsigned char VoxelSystem::octantIndexToSharedBitMask[8][8] = {
+unsigned char VoxelSystem::_sOctantIndexToSharedBitMask[8][8] = {
 	{ // Index 0: Bottom-Left-Near
 		0,	// Bottom-Left-Near
 		OctreeElement::HalfSpace::Near   | OctreeElement::HalfSpace::Far,	// Bottom-Left-Far
