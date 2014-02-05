@@ -495,12 +495,11 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                              _desiredOutputFormat, _outputFormat);
 
             if (_outputDevice) {
-
                 _outputDevice->write(outputBuffer);
 
                 // add output (@speakers) data just written to the scope
                 QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numDeviceOutputSamples)),
+                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numNetworkOutputSamples)),
                                           Q_ARG(bool, true), Q_ARG(bool, false));
             }
         }
