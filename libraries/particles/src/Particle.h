@@ -88,9 +88,9 @@ public:
     bool getInHand() const { return _inHand; }
     bool getShouldDie() const { return _shouldDie; }
     const QString& getModelURL() const { return _modelURL; }
+    float getModelScale() const { return _modelScale; }
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
-    float getModelScale() const { return _modelScale; }
 
     quint64 getLastEdited() const { return _lastEdited; }
     uint16_t getChangedBits() const;
@@ -113,10 +113,10 @@ public:
 
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
+    void setModelScale(float scale) { _modelScale = scale; _modelScaleChanged = true; }
     void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; 
                                                               _modelTranslationChanged = true; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; _modelRotationChanged = true; }
-    void setModelScale(float scale) { _modelScale = scale; _modelScaleChanged = true; }
     
     /// used by ParticleScriptingInterface to return ParticleProperties for unknown particles
     void setIsUnknownID() { _id = UNKNOWN_PARTICLE_ID; _idSet = true; }
@@ -133,9 +133,9 @@ private:
     bool _inHand;
     bool _shouldDie;
     QString _modelURL;
+    float _modelScale;
     glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
-    float _modelScale;
 
     uint32_t _id;
     bool _idSet;
@@ -152,9 +152,9 @@ private:
     bool _inHandChanged;
     bool _shouldDieChanged;
     bool _modelURLChanged;
+    bool _modelScaleChanged;
     bool _modelTranslationChanged;
     bool _modelRotationChanged;
-    bool _modelScaleChanged;
     bool _defaultSettings;
 };
 Q_DECLARE_METATYPE(ParticleProperties);
@@ -227,9 +227,9 @@ public:
     // model related properties
     bool hasModel() const { return !_modelURL.isEmpty(); }
     const QString& getModelURL() const { return _modelURL; }
+    float getModelScale() const { return _modelScale; }
     const glm::vec3& getModelTranslation() const { return _modelTranslation; }
     const glm::quat& getModelRotation() const { return _modelRotation; }
-    float getModelScale() const { return _modelScale; }
 
     ParticleID getParticleID() const { return ParticleID(getID(), getCreatorTokenID(), getID() != UNKNOWN_PARTICLE_ID); }
     ParticleProperties getProperties() const;
@@ -277,9 +277,9 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
+    void setModelScale(float scale) { _modelScale = scale; }
     void setModelTranslation(const glm::vec3&  translation) { _modelTranslation = translation; }
     void setModelRotation(const glm::quat& rotation) { _modelRotation = rotation; }
-    void setModelScale(float scale) { _modelScale = scale; }
     
     void setProperties(const ParticleProperties& properties);
 
@@ -344,9 +344,9 @@ protected:
 
     // model related items
     QString _modelURL;
+    float _modelScale;
     glm::vec3 _modelTranslation;
     glm::quat _modelRotation;
-    float _modelScale;
 
     uint32_t _creatorTokenID;
     bool _newlyCreated;

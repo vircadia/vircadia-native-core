@@ -17,7 +17,8 @@ var invaderStepsPerCycle = 120; // the number of update steps it takes then inva
 var invaderStepOfCycle = 0; // current iteration in the cycle
 var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
 
-var itemLifetimes = 60 * 2; // 2 minutes
+// game length...
+var itemLifetimes = 60; // 1 minute
 
 
 // position the game to be basically near the avatar running the game...
@@ -51,7 +52,8 @@ var gameAt = { x: gameAtX, y: gameAtY, z: gameAtZ };
 var middleX = gameAt.x + (gameSize.x/2);
 var middleY = gameAt.y + (gameSize.y/2);
 
-var shipSize = 0.2;
+var invaderSize = 0.4;
+var shipSize = 0.25;
 var missileSize = 0.1;
 var myShip;
 var myShipProperties;
@@ -88,16 +90,56 @@ var currentMoveSound = 0;
 var numberOfSounds = 4;
 var stepsPerSound = invaderStepsPerCycle / numberOfSounds;
 
+// if you set this to false, sounds will come from the location of particles instead of the player's head
+var soundInMyHead = true; 
+
+// models...
+var invaderModels = new Array();
+invaderModels[0] = {
+        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-purple.svo",
+        modelScale: 450,
+        modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+    };
+invaderModels[1] = {
+        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-cyan.svo",
+        modelScale: 450,
+        modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+    };
+invaderModels[2] = {
+        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-cyan.svo",
+        modelScale: 450,
+        modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+    };
+invaderModels[3] = {
+        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-green.svo",
+        modelScale: 450,
+        modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+    };
+invaderModels[4] = {
+        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-small-green.svo",
+        modelScale: 450,
+        modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+    };
+    
+    
+
+//modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+//modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/invader.svo",
+// "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/spaceInvader3.fbx"
+
 function initializeMyShip() {
     myShipProperties = {
-                                position: { x: middleX , y: gameAt.y, z: gameAt.z },
-                                velocity: { x: 0, y: 0, z: 0 },
-                                gravity: { x: 0, y: 0, z: 0 },
-                                damping: 0,
-                                radius: shipSize,
-                                color: { red: 0, green: 255, blue: 0 },
-                                lifetime: itemLifetimes
-                            };
+            position: { x: middleX , y: gameAt.y, z: gameAt.z },
+            velocity: { x: 0, y: 0, z: 0 },
+            gravity: { x: 0, y: 0, z: 0 },
+            damping: 0,
+            radius: shipSize,
+            color: { red: 0, green: 255, blue: 0 },
+            modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/myCannon16x16.svo",
+            modelScale: 450,
+            modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+            lifetime: itemLifetimes
+        };
     myShip = Particles.addParticle(myShipProperties);
 }
 
@@ -131,9 +173,11 @@ function initializeInvaders() {
                         velocity: { x: 0, y: 0, z: 0 },
                         gravity: { x: 0, y: 0, z: 0 },
                         damping: 0,
-                        radius: shipSize,
+                        radius: invaderSize,
                         color: { red: 255, green: 0, blue: 0 },
-                        modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
+                        modelURL: invaderModels[row].modelURL,
+                        modelScale: invaderModels[row].modelScale,
+                        modelTranslation: invaderModels[row].modelTranslation,
                         lifetime: itemLifetimes
                     });
                 
@@ -171,8 +215,14 @@ function update() {
         if (invaderStepOfCycle % stepsPerSound == 0) {
             // play the move sound
             var options = new AudioInjectionOptions(); 
-            options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
-            options.volume = 10.0;
+            if (soundInMyHead) {
+                options.position = { x: MyAvatar.position.x + 0.0, 
+                                     y: MyAvatar.position.y + 0.1, 
+                                     z: MyAvatar.position.z + 0.0 };
+            } else {
+                options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
+            }
+            options.volume = 1.0;
             Audio.playSound(moveSounds[currentMoveSound], options);
             
             // get ready for next move sound
@@ -274,7 +324,13 @@ function fireMissile() {
                         });
 
         var options = new AudioInjectionOptions(); 
-        options.position = missilePosition;
+        if (soundInMyHead) {
+            options.position = { x: MyAvatar.position.x + 0.0, 
+                                 y: MyAvatar.position.y + 0.1, 
+                                 z: MyAvatar.position.z + 0.0 };
+        } else {
+            options.position = missilePosition;
+        }
         options.volume = 1.0;
         Audio.playSound(shootSound, options);
 
@@ -318,8 +374,13 @@ function deleteIfInvader(possibleInvaderParticle) {
 
                     // play the hit sound
                     var options = new AudioInjectionOptions(); 
-                    var invaderPosition = getInvaderPosition(row, column);
-                    options.position = invaderPosition;
+                    if (soundInMyHead) {
+                        options.position = { x: MyAvatar.position.x + 0.0, 
+                                             y: MyAvatar.position.y + 0.1, 
+                                             z: MyAvatar.position.z + 0.0 };
+                    } else {
+                        options.position = getInvaderPosition(row, column);
+                    }
                     options.volume = 1.0;
                     Audio.playSound(hitSound, options);
                 }
@@ -346,4 +407,6 @@ Particles.particleCollisionWithParticle.connect(particleCollisionWithParticle);
 initializeMyShip();
 initializeInvaders();
 
+// shut down the game after 1 minute
+var gameTimer = Script.setTimeout(endGame, itemLifetimes * 1000);
 
