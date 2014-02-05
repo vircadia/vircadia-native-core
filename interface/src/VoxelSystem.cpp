@@ -561,30 +561,30 @@ int VoxelSystem::parseData(const QByteArray& packet) {
             
             const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
-            VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
-            dataAt += sizeof(VOXEL_PACKET_FLAGS);
-            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
-            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+            OCTREE_PACKET_FLAGS flags = (*(OCTREE_PACKET_FLAGS*)(dataAt));
+            dataAt += sizeof(OCTREE_PACKET_FLAGS);
+            OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+            dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
 
-            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
-            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+            OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
+            dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
 
             bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
             bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
 
-            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+            OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
             int flightTime = arrivedAt - sentAt;
 
-            VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-            int dataBytes = packet.size() - VOXEL_PACKET_HEADER_SIZE;
+            OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
+            int dataBytes = packet.size() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
             int subsection = 1;
             while (dataBytes > 0) {
                 if (packetIsCompressed) {
-                    if (dataBytes > sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE)) {
-                        sectionLength = (*(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
-                        dataAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
-                        dataBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+                    if (dataBytes > sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE)) {
+                        sectionLength = (*(OCTREE_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
+                        dataAt += sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+                        dataBytes -= sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                     } else {
                         sectionLength = 0;
                         dataBytes = 0; // stop looping something is wrong
