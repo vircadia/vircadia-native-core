@@ -337,7 +337,7 @@ void NodeList::processSTUNResponse(const QByteArray& packet) {
 
     const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
 
-    size_t attributeStartIndex = NUM_BYTES_STUN_HEADER;
+    int attributeStartIndex = NUM_BYTES_STUN_HEADER;
 
     if (memcmp(packet.data() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,

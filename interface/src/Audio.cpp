@@ -481,7 +481,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
             // copy the samples we'll resample from the ring buffer - this also
             // pushes the read pointer of the ring buffer forwards
-            int16_t ringBufferSamples[numNetworkOutputSamples];
+            int16_t* ringBufferSamples= new int16_t[numNetworkOutputSamples];
             _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
         
             // add the next numNetworkOutputSamples from each QByteArray
@@ -502,6 +502,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
                                           Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numNetworkOutputSamples)),
                                           Q_ARG(bool, true), Q_ARG(bool, false));
             }
+			delete[] ringBufferSamples;
         }
 
     }
