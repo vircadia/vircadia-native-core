@@ -840,7 +840,7 @@ void Menu::editPreferences() {
 
         if (skeletonModelURL.toString() != skeletonURLString) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getAvatar()->setSkeletonURL(skeletonModelURL);
+            applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
             shouldDispatchIdentityPacket = true;
         }
         

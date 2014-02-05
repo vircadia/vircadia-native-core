@@ -14,6 +14,7 @@
 #include <AvatarData.h>
 
 class AvatarMixerClientData : public AvatarData {
+    Q_OBJECT
 public:
     AvatarMixerClientData();
     

@@ -339,7 +339,7 @@ void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     _head.getFaceModel().setURL(faceModelURL);
 }
 
-void Avatar::setSkeletonURL(const QUrl &skeletonModelURL) {
+void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel.setURL(skeletonModelURL);
 }

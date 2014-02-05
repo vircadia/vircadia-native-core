@@ -114,7 +114,7 @@ public:
     virtual bool isMyAvatar() { return false; }
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonURL(const QUrl& skeletonURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     
     int parseData(const QByteArray& packet);
 
