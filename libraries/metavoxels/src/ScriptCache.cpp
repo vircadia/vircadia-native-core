@@ -24,16 +24,21 @@ ScriptCache* ScriptCache::getInstance() {
 
 ScriptCache::ScriptCache() :
     _networkAccessManager(NULL),
-    _engine(new QScriptEngine(this)) {
+    _engine(NULL) {
     
-    AttributeRegistry::getInstance()->configureScriptEngine(_engine);
+    setEngine(new QScriptEngine(this));
 }
 
 void ScriptCache::setEngine(QScriptEngine* engine) {
-    if (_engine->parent() == this) {
+    if (_engine && _engine->parent() == this) {
         delete _engine;
     }
-    _engine = engine;
+    AttributeRegistry::getInstance()->configureScriptEngine(_engine = engine);
+    _parametersString = engine->toStringHandle("parameters");
+    _lengthString = engine->toStringHandle("length");
+    _nameString = engine->toStringHandle("name");
+    _typeString = engine->toStringHandle("type");
+    _generatorString = engine->toStringHandle("generator");
 }
 
 QSharedPointer<NetworkProgram> ScriptCache::getProgram(const QUrl& url) {
@@ -129,6 +134,24 @@ QScriptValue& RootNetworkValue::getValue() {
     return _value;
 }
 
+const QList<ParameterInfo>& RootNetworkValue::getParameterInfo() {
+    if (isLoaded() && _parameterInfo.isEmpty()) {
+        ScriptCache* cache = _program->getCache();
+        QScriptEngine* engine = cache->getEngine();
+        QScriptValue parameters = _value.property(cache->getParametersString());
+        if (parameters.isArray()) {
+            int length = parameters.property(cache->getLengthString()).toInt32();
+            for (int i = 0; i < length; i++) {
+                QScriptValue parameter = parameters.property(i);
+                ParameterInfo info = { engine->toStringHandle(parameter.property(cache->getNameString()).toString()),
+                    QMetaType::type(parameter.property(cache->getTypeString()).toString().toUtf8().constData()) };
+                _parameterInfo.append(info);
+            }
+        }
+    }
+    return _parameterInfo;
+}
+
 DerivedNetworkValue::DerivedNetworkValue(const QSharedPointer<NetworkValue>& baseValue, const ScriptHash& parameters) :
     _baseValue(baseValue), 
     _parameters(parameters) {
@@ -137,6 +160,7 @@ DerivedNetworkValue::DerivedNetworkValue(const QSharedPointer<NetworkValue>& bas
 QScriptValue& DerivedNetworkValue::getValue() {
     if (!_value.isValid() && _baseValue->isLoaded()) {
         _value = _baseValue->getValue();
+        
     }
     return _value;
 }

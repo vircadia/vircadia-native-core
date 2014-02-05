@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <QDoubleSpinBox>
+#include <QFormLayout>
 #include <QHBoxLayout>
 #include <QItemEditorFactory>
 #include <QLineEdit>
@@ -191,5 +192,30 @@ void ParameterizedURLEditor::updateParameters() {
 }
 
 void ParameterizedURLEditor::continueUpdatingParameters() {
-    QScriptValue value = ScriptCache::getInstance()->getValue(_url.getURL())->getValue();
+    QVBoxLayout* layout = static_cast<QVBoxLayout*>(this->layout());
+    if (layout->count() > 1) {
+        QFormLayout* form = static_cast<QFormLayout*>(layout->takeAt(1));
+        for (int i = form->count() - 1; i >= 0; i--) {
+            QLayoutItem* item = form->takeAt(i);
+            if (item->widget()) {
+                delete item->widget();
+            }
+            delete item;
+        }
+        delete form;
+    }
+    QSharedPointer<NetworkValue> value = ScriptCache::getInstance()->getValue(_url.getURL());
+    const QList<ParameterInfo>& parameters = static_cast<RootNetworkValue*>(value.data())->getParameterInfo();
+    if (parameters.isEmpty()) {
+        return;
+    }
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form);
+    foreach (const ParameterInfo& parameter, parameters) {
+        QWidget* editor = QItemEditorFactory::defaultFactory()->createEditor(parameter.type, NULL);
+        if (editor) {
+            form->addRow(parameter.name.toString() + ":", editor);
+            
+        }
+    }
 }

@@ -10,6 +10,7 @@
 #define __interface__ScriptCache__
 
 #include <QHash>
+#include <QList>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QScriptProgram>
@@ -48,13 +49,23 @@ public:
     /// Loads a script value from the specified URL.
     QSharedPointer<NetworkValue> getValue(const ParameterizedURL& url);
 
+    const QScriptString& getParametersString() const { return _parametersString; }
+    const QScriptString& getLengthString() const { return _lengthString; }
+    const QScriptString& getNameString() const { return _nameString; }
+    const QScriptString& getTypeString() const { return _typeString; }
+    const QScriptString& getGeneratorString() const { return _generatorString; }
+
 private:
     
     QNetworkAccessManager* _networkAccessManager;
     QScriptEngine* _engine;
     QHash<QUrl, QWeakPointer<NetworkProgram> > _networkPrograms;
     QHash<ParameterizedURL, QWeakPointer<NetworkValue> > _networkValues;
-    
+    QScriptString _parametersString;
+    QScriptString _lengthString;
+    QScriptString _nameString;
+    QScriptString _typeString;
+    QScriptString _generatorString;
 };
 
 /// A program loaded from the network.
@@ -106,6 +117,13 @@ protected:
     QScriptValue _value;
 };
 
+/// Contains information about a script parameter.
+class ParameterInfo {
+public:
+    QScriptString name;
+    int type;
+};
+
 /// The direct result of running a program.
 class RootNetworkValue : public NetworkValue {
 public:
@@ -114,9 +132,12 @@ public:
 
     virtual QScriptValue& getValue();
 
+    const QList<ParameterInfo>& getParameterInfo();
+
 private:
     
     QSharedPointer<NetworkProgram> _program;
+    QList<ParameterInfo> _parameterInfo;
 };
 
 /// The result of running a program's generator using a set of arguments.
