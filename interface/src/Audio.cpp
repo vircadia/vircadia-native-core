@@ -417,7 +417,7 @@ void Audio::handleAudioInput() {
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
-	    delete[] inputAudioSamples;
+        delete[] inputAudioSamples;
     }
 }
 
