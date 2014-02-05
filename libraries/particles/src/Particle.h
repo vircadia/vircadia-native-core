@@ -63,7 +63,6 @@ const float DEFAULT_MODEL_SCALE = 1.0f;
 const bool IN_HAND = true; // it's in a hand
 const bool NOT_IN_HAND = !IN_HAND; // it's not in a hand
 
-
 /// A collection of properties of a particle used in the scripting API. Translates between the actual properties of a particle
 /// and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete set of
 /// particle properties via JavaScript hashes/QScriptValues
