@@ -101,10 +101,12 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
-    QString messageWithNewLine = message + "\n";
-    fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
-    Application::getInstance()->getLogger()->addMessage(messageWithNewLine.toLocal8Bit().constData());
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (message.size() > 0) {
+        QString messageWithNewLine = message + "\n";
+        fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
+        Application::getInstance()->getLogger()->addMessage(messageWithNewLine.toLocal8Bit().constData());
+    }
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :

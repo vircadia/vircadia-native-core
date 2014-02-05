@@ -65,6 +65,8 @@ bool shouldDo(float desiredInterval, float deltaTime) {
     return randFloat() < deltaTime / desiredInterval;
 }
 
+
+
 void outputBufferBits(const unsigned char* buffer, int length, QDebug* continuedDebug) {
     for (int i = 0; i < length; i++) {
         outputBits(buffer[i], continuedDebug);
@@ -76,6 +78,7 @@ void outputBits(unsigned char byte, QDebug* continuedDebug) {
 
     if (continuedDebug) {
         debug = *continuedDebug;
+        debug.nospace();
     }
 
     QString resultString;
@@ -85,12 +88,12 @@ void outputBits(unsigned char byte, QDebug* continuedDebug) {
     } else {
         resultString.sprintf("[ %d (0x%x): ", byte, byte);
     }
-    debug << resultString;
-
+    debug << qPrintable(resultString);
+    
     for (int i = 0; i < 8; i++) {
         resultString.sprintf("%d", byte >> (7 - i) & 1);
+        debug << qPrintable(resultString);
     }
-    debug << resultString;
     debug << " ]";
 }
 
