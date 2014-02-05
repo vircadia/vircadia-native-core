@@ -73,12 +73,12 @@ void DatagramProcessor::processDatagrams() {
                     if (wantExtraDebugging && packetTypeForPacket(incomingPacket) == PacketTypeVoxelData) {
                         int numBytesPacketHeader = numBytesForPacketHeader(incomingPacket);
                         unsigned char* dataAt = reinterpret_cast<unsigned char*>(incomingPacket.data()) + numBytesPacketHeader;
-                        dataAt += sizeof(VOXEL_PACKET_FLAGS);
-                        VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
-                        dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
-                        VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
-                        dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
-                        VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+                        dataAt += sizeof(OCTREE_PACKET_FLAGS);
+                        OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+                        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
+                        OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
+                        dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+                        OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
                         int flightTime = arrivedAt - sentAt;
                         
                         printf("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
