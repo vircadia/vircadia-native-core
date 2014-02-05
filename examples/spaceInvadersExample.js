@@ -222,7 +222,6 @@ function update() {
             } else {
                 options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
             }
-            print("options.position=" + options.position.x + ", " + options.position.y + ", " + options.position.z );
             options.volume = 1.0;
             Audio.playSound(moveSounds[currentMoveSound], options);
             
@@ -332,7 +331,6 @@ function fireMissile() {
         } else {
             options.position = missilePosition;
         }
-        print("options.position=" + options.position.x + ", " + options.position.y + ", " + options.position.z );
         options.volume = 1.0;
         Audio.playSound(shootSound, options);
 
@@ -383,7 +381,6 @@ function deleteIfInvader(possibleInvaderParticle) {
                     } else {
                         options.position = getInvaderPosition(row, column);
                     }
-                    print("options.position=" + options.position.x + ", " + options.position.y + ", " + options.position.z );
                     options.volume = 1.0;
                     Audio.playSound(hitSound, options);
                 }
