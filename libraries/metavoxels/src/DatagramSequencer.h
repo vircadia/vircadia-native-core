@@ -92,7 +92,11 @@ signals:
     /// Emitted when our acknowledgement of a received packet has been acknowledged by the remote side.
     /// \param index the index of the packet in our list of receive records
     void receiveAcknowledged(int index);
-    
+
+private slots:
+
+    void sendClearSharedObjectMessage(int id);
+
 private:
     
     class SendRecord {
@@ -166,6 +170,10 @@ public:
     float getPriority() const { return _priority; }
 
     void sendMessage(const QVariant& message);
+
+private slots:
+
+    void sendClearSharedObjectMessage(int id);
 
 private:
     

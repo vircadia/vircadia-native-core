@@ -161,6 +161,14 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     _attributeStreamer.persistTransientOffsets(mappings.attributeOffsets);
     _scriptStringStreamer.persistTransientOffsets(mappings.scriptStringOffsets);
     _sharedObjectStreamer.persistTransientOffsets(mappings.sharedObjectOffsets);
+    
+    // find out when shared objects' reference counts drop to one in order to clear their mappings
+    for (QHash<SharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
+            it != mappings.sharedObjectOffsets.constEnd(); it++) {
+        if (it.key()) {
+            connect(it.key().data(), SIGNAL(referenceCountDroppedToOne()), SLOT(clearSharedObject()));
+        }
+    }
 }
 
 Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
@@ -460,6 +468,12 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     *this >> rawObject;  
     object = static_cast<SharedObject*>(rawObject);
     return *this;
+}
+
+void Bitstream::clearSharedObject() {
+    SharedObjectPointer object(static_cast<SharedObject*>(sender()));
+    object->disconnect(this);
+    emit sharedObjectCleared(_sharedObjectStreamer.takePersistentID(object));
 }
 
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {

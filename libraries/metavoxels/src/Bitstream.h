@@ -67,6 +67,8 @@ public:
     
     void persistTransientValues(const QHash<int, T>& transientValues);
     
+    int takePersistentID(T value) { return _persistentIDs.take(value); }
+    
     RepeatedValueStreamer& operator<<(T value);
     RepeatedValueStreamer& operator>>(T& value);
     
@@ -290,7 +292,15 @@ public:
     
     Bitstream& operator<(const SharedObjectPointer& object);
     Bitstream& operator>(SharedObjectPointer& object);
+
+signals:
+
+    void sharedObjectCleared(int id);
+
+private slots:
     
+    void clearSharedObject();
+
 private:
    
     QDataStream& _underlying;

@@ -36,6 +36,8 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
     _incomingPacketStream.setByteOrder(QDataStream::LittleEndian);
     _outgoingDatagramStream.setByteOrder(QDataStream::LittleEndian);
 
+    connect(&_outputStream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
+
     memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
 }
 
@@ -203,6 +205,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     _receiveRecords.append(record);
 }
 
+void DatagramSequencer::sendClearSharedObjectMessage(int id) {
+    qDebug() << "cleared " << id;
+}
+
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // stop acknowledging the recorded packets
     while (!_receiveRecords.isEmpty() && _receiveRecords.first().packetNumber <= record.lastReceivedPacketNumber) {
@@ -269,6 +275,9 @@ void ReliableChannel::sendMessage(const QVariant& message) {
     _bitstream << message;
 }
 
+void ReliableChannel::sendClearSharedObjectMessage(int id) {
+}
+
 ReliableChannel::ReliableChannel(DatagramSequencer* sequencer) :
     QObject(sequencer),
     _dataStream(&_buffer),
@@ -277,10 +286,14 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer) :
     
     _buffer.open(QIODevice::WriteOnly);
     _dataStream.setByteOrder(QDataStream::LittleEndian);
+    
+    connect(&_bitstream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
 }
 
 void ReliableChannel::readData(QDataStream& in) {
     quint32 offset, size;
     in >> offset >> size;
+    
+    
     in.skipRawData(size);
 }
