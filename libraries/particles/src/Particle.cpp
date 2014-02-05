@@ -190,6 +190,12 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
             success = packetData->appendRawData((const unsigned char*)qPrintable(_modelURL), modelURLLength);
         }
     }
+
+    // modelScale
+    if (success) {
+        success = packetData->appendValue(getModelScale());
+    }
+
     // modelTranslation
     if (success) {
         success = packetData->appendValue(getModelTranslation());
@@ -198,11 +204,6 @@ bool Particle::appendParticleData(OctreePacketData* packetData) const {
     if (success) {
         success = packetData->appendValue(getModelRotation());
     }
-    // modelScale
-    if (success) {
-        success = packetData->appendValue(getModelScale());
-    }
-
     return success;
 }
 
@@ -319,6 +320,11 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += modelURLLength;
         bytesRead += modelURLLength;
 
+        // modelScale
+        memcpy(&_modelScale, dataAt, sizeof(_modelScale));
+        dataAt += sizeof(_modelScale);
+        bytesRead += sizeof(_modelScale);
+
         // modelTranslation
         memcpy(&_modelTranslation, dataAt, sizeof(_modelTranslation));
         dataAt += sizeof(_modelTranslation);
@@ -328,11 +334,6 @@ int Particle::readParticleDataFromBuffer(const unsigned char* data, int bytesLef
         int bytes = unpackOrientationQuatFromBytes(dataAt, _modelRotation);
         dataAt += bytes;
         bytesRead += bytes;
-
-        // modelScale
-        memcpy(&_modelScale, dataAt, sizeof(_modelScale));
-        dataAt += sizeof(_modelScale);
-        bytesRead += sizeof(_modelScale);
 
         //printf("Particle::readParticleDataFromBuffer()... "); debugDump();
     }
@@ -498,6 +499,13 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         processedBytes += modelURLLength;
     }
 
+    // modelScale
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
+        memcpy(&newParticle._modelScale, dataAt, sizeof(newParticle._modelScale));
+        dataAt += sizeof(newParticle._modelScale);
+        processedBytes += sizeof(newParticle._modelScale);
+    }
+
     // modelTranslation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
         memcpy(&newParticle._modelTranslation, dataAt, sizeof(newParticle._modelTranslation));
@@ -510,13 +518,6 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
         int bytes = unpackOrientationQuatFromBytes(dataAt, newParticle._modelRotation);
         dataAt += bytes;
         processedBytes += bytes;
-    }
-
-    // modelScale
-    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
-        memcpy(&newParticle._modelScale, dataAt, sizeof(newParticle._modelScale));
-        dataAt += sizeof(newParticle._modelScale);
-        processedBytes += sizeof(newParticle._modelScale);
     }
 
     const bool wantDebugging = false;
@@ -696,6 +697,14 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
         sizeOut += urlLength;
     }
 
+    // modelScale
+    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
+        float modelScale = properties.getModelScale();
+        memcpy(copyAt, &modelScale, sizeof(modelScale));
+        copyAt += sizeof(modelScale);
+        sizeOut += sizeof(modelScale);
+    }
+
     // modelTranslation
     if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_TRANSLATION) == CONTAINS_MODEL_TRANSLATION)) {
         glm::vec3 modelTranslation = properties.getModelTranslation(); // should this be relative to TREE_SCALE??
@@ -709,14 +718,6 @@ bool Particle::encodeParticleEditMessageDetails(PacketType command, ParticleID i
         int bytes = packOrientationQuatToBytes(copyAt, properties.getModelRotation());
         copyAt += bytes;
         sizeOut += bytes;
-    }
-
-    // modelScale
-    if (isNewParticle || ((packetContainsBits & CONTAINS_MODEL_SCALE) == CONTAINS_MODEL_SCALE)) {
-        float modelScale = properties.getModelScale();
-        memcpy(copyAt, &modelScale, sizeof(modelScale));
-        copyAt += sizeof(modelScale);
-        sizeOut += sizeof(modelScale);
     }
 
     bool wantDebugging = false;
@@ -931,9 +932,9 @@ ParticleProperties::ParticleProperties() :
     _inHand(false),
     _shouldDie(false),
     _modelURL(""),
+    _modelScale(DEFAULT_MODEL_SCALE),
     _modelTranslation(DEFAULT_MODEL_TRANSLATION),
     _modelRotation(DEFAULT_MODEL_ROTATION),
-    _modelScale(DEFAULT_MODEL_SCALE),
 
     _id(UNKNOWN_PARTICLE_ID),
     _idSet(false),
@@ -950,9 +951,9 @@ ParticleProperties::ParticleProperties() :
     _inHandChanged(false),
     _shouldDieChanged(false),
     _modelURLChanged(false),
+    _modelScaleChanged(false),
     _modelTranslationChanged(false),
     _modelRotationChanged(false),
-    _modelScaleChanged(false),
     _defaultSettings(true)
 {
 }
@@ -1004,16 +1005,16 @@ uint16_t ParticleProperties::getChangedBits() const {
         changedBits += CONTAINS_MODEL_URL;
     }
 
+    if (_modelScaleChanged) {
+        changedBits += CONTAINS_MODEL_SCALE;
+    }
+
     if (_modelTranslationChanged) {
         changedBits += CONTAINS_MODEL_TRANSLATION;
     }
 
     if (_modelRotationChanged) {
         changedBits += CONTAINS_MODEL_ROTATION;
-    }
-
-    if (_modelScaleChanged) {
-        changedBits += CONTAINS_MODEL_SCALE;
     }
 
     return changedBits;
@@ -1045,13 +1046,13 @@ QScriptValue ParticleProperties::copyToScriptValue(QScriptEngine* engine) const 
 
     properties.setProperty("modelURL", _modelURL);
 
+    properties.setProperty("modelScale", _modelScale);
+
     QScriptValue modelTranslation = vec3toScriptValue(engine, _modelTranslation);
     properties.setProperty("modelTranslation", modelTranslation);
 
     QScriptValue modelRotation = quatToScriptValue(engine, _modelRotation);
     properties.setProperty("modelRotation", modelRotation);
-
-    properties.setProperty("modelScale", _modelScale);
 
 
     if (_idSet) {
@@ -1203,7 +1204,17 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
             _modelURLChanged = true;
         }
     }
-    
+
+    QScriptValue modelScale = object.property("modelScale");
+    if (modelScale.isValid()) {
+        float newModelScale;
+        newModelScale = modelScale.toVariant().toFloat();
+        if (_defaultSettings || newModelScale != _modelScale) {
+            _modelScale = newModelScale;
+            _modelScaleChanged = true;
+        }
+    }
+
     QScriptValue modelTranslation = object.property("modelTranslation");
     if (modelTranslation.isValid()) {
         QScriptValue x = modelTranslation.property("x");
@@ -1238,16 +1249,6 @@ void ParticleProperties::copyFromScriptValue(const QScriptValue &object) {
                 _modelRotation = newModelRotation;
                 _modelRotationChanged = true;
             }
-        }
-    }
-
-    QScriptValue modelScale = object.property("modelScale");
-    if (modelScale.isValid()) {
-        float newModelScale;
-        newModelScale = modelScale.toVariant().toFloat();
-        if (_defaultSettings || newModelScale != _modelScale) {
-            _modelScale = newModelScale;
-            _modelScaleChanged = true;
         }
     }
 
@@ -1310,6 +1311,11 @@ void ParticleProperties::copyToParticle(Particle& particle) const {
         particle.setModelURL(_modelURL);
         somethingChanged = true;
     }
+
+    if (_modelScaleChanged) {
+        particle.setModelScale(_modelScale);
+        somethingChanged = true;
+    }
     
     if (_modelTranslationChanged) {
         particle.setModelTranslation(_modelTranslation);
@@ -1318,11 +1324,6 @@ void ParticleProperties::copyToParticle(Particle& particle) const {
     
     if (_modelRotationChanged) {
         particle.setModelRotation(_modelRotation);
-        somethingChanged = true;
-    }
-    
-    if (_modelScaleChanged) {
-        particle.setModelScale(_modelScale);
         somethingChanged = true;
     }
     
@@ -1350,9 +1351,9 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _inHand = particle.getInHand();
     _shouldDie = particle.getShouldDie();
     _modelURL = particle.getModelURL();
+    _modelScale = particle.getModelScale();
     _modelTranslation = particle.getModelTranslation();
     _modelRotation = particle.getModelRotation();
-    _modelScale = particle.getModelScale();
 
     _id = particle.getID();
     _idSet = true;
@@ -1368,9 +1369,9 @@ void ParticleProperties::copyFromParticle(const Particle& particle) {
     _inHandChanged = false;
     _shouldDieChanged = false;
     _modelURLChanged = false;
+    _modelScaleChanged = false;
     _modelTranslationChanged = false;
     _modelRotationChanged = false;
-    _modelScaleChanged = false;
     _defaultSettings = false;
 }
 

@@ -84,12 +84,11 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 const float alpha = 1.0f;
                 
                 Model* model = getModel(particle.getModelURL());
-                
-                glm::vec3 translationAdjustment = particle.getModelTranslation();
-
+                glm::vec3 translationAdjustment = particle.getModelTranslation() * radius;
+                    
                 // set the position
-                glm::vec3 translation(position.x, position.y, position.z);
-                model->setTranslation(translation + translationAdjustment);
+                glm::vec3 translation = position + translationAdjustment;
+                model->setTranslation(translation);
 
                 // set the rotation
                 glm::quat rotation = particle.getModelRotation();
@@ -100,13 +99,19 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 const float MODEL_SCALE = 0.00575f;
                 glm::vec3 scale(1.0f,1.0f,1.0f);
                 
-                // TODO: There is some kind of a bug in packing of the particle packets which is causing modelscale to
-                // sometimes be garbage.
-                float modelScale = 2.0f; /// particle.getModelScale()
+                float modelScale = particle.getModelScale();
                 model->setScale(scale * MODEL_SCALE * radius * modelScale);
 
                 model->simulate(0.0f);
                 model->render(alpha); // TODO: should we allow particles to have alpha on their models?
+
+                const bool wantDebugSphere = false;
+                if (wantDebugSphere) {
+                    glPushMatrix();
+                        glTranslatef(position.x, position.y, position.z);
+                        glutWireSphere(radius, 15, 15);
+                    glPopMatrix();
+                }
 
             glPopMatrix();
         } else {
