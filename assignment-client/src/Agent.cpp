@@ -23,8 +23,12 @@
 #include "Agent.h"
 
 Agent::Agent(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _voxelEditSender(),
+    _particleEditSender()
 {
+    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 }
 
 void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
