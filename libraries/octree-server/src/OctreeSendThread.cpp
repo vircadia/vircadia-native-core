@@ -92,6 +92,13 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
+    
+    // double check that the node has an active socket, otherwise, don't send...
+    const HifiSockAddr* nodeAddress = node->getActiveSocket();
+    if (!nodeAddress) {
+        return packetsSent; // without sending...
+    }
+    
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
@@ -136,14 +143,14 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
 
             // actually send it
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
+                                                                   nodeAddress->getAddress(),
+                                                                   nodeAddress->getPort());
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
+                                                                   nodeAddress->getAddress(),
+                                                                   nodeAddress->getPort());
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -162,8 +169,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             packetsSent++;
 
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
+                                                                   nodeAddress->getAddress(),
+                                                                   nodeAddress->getPort());
 
             packetSent = true;
 
@@ -183,8 +190,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
         if (nodeData->isPacketWaiting()) {
             // just send the voxel packet
             NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
+                                                                   nodeAddress->getAddress(),
+                                                                   nodeAddress->getPort());
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
