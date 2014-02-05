@@ -86,8 +86,7 @@ private:
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
-    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
-    QVector<QByteArray> _localInjectionByteArrays;
+    int16_t _localProceduralSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
@@ -95,6 +94,8 @@ private:
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
+    QAudioOutput* _proceduralAudioOutput;
+    QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
     
