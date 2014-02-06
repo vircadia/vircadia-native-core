@@ -22,8 +22,8 @@ public:
         : _damping(0.f),
         _elasticity(1.f),
         _penetration(0.f), 
-        _addedVelocity(0.f) { 
-        }
+        _addedVelocity(0.f) {
+    }
 
     ~CollisionInfo() {}
 
