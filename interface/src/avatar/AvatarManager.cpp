@@ -111,9 +111,6 @@ void AvatarManager::updateAvatars(float deltaTime) {
 }
 
 void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        return;
-    }
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);

@@ -380,7 +380,12 @@ void MyAvatar::renderDebugBodyPoints() {
 void MyAvatar::render(bool forceRenderHead) {
 
     // render body
-    renderBody(forceRenderHead);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        _skeletonModel.renderCollisionProxies(1.f);
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        renderBody(forceRenderHead);
+    }
 
     //renderDebugBodyPoints();
 
@@ -753,6 +758,21 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
     }
 }
 
+// this is a work in progress
+class PalmCollisionProxy {
+public:
+    PalmCollisionProxy() : _palmIndex(-1), _position(0.f), _radius(0.f) {}
+
+    PalmCollisionProxy(int index, const glm::vec3& position, float radius) : 
+        _palmIndex(index), _position(position), _radius(radius) {}
+
+    int _palmIndex;
+    glm::vec3 _position;
+    float _radius;
+};
+
+const float DEFAULT_HAND_RADIUS = 0.1f;
+
 void MyAvatar::updateAvatarCollisions(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
@@ -761,18 +781,28 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    float myRadius = (0.5f + COLLISION_RADIUS_SCALE) * getHeight();
+    float myRadius = getHeight();
 
     // precompute hand proxies before we start walking the avatarlist
-    QVector<glm::vec3> handPositions;
+    QVector<PalmCollisionProxy> palmProxies;
+    std::vector<PalmData>& palms = getHand().getPalms();
+    size_t numPalms = palms.size();
     glm::vec3 position;
-    if (_skeletonModel.getLeftHandPosition(position)) {
-        handPositions.push_back(position);
+    for (int i = 0; i < numPalms; ++i) {
+        PalmData& palm = palms[i];
+        if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
+            if (_skeletonModel.getLeftHandPosition(position)) {
+                float radius = DEFAULT_HAND_RADIUS;
+                palmProxies.push_back(PalmCollisionProxy(i, position, radius));
+            }
+        } else if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
+            if (_skeletonModel.getRightHandPosition(position)) {
+                float radius = DEFAULT_HAND_RADIUS;
+                palmProxies.push_back(PalmCollisionProxy(i, position, radius));
+            }
+        }
     }
-    if (_skeletonModel.getRightHandPosition(position)) {
-        handPositions.push_back(position);
-    }
-    
+
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -784,22 +814,17 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
-        float theirRadius = (0.5f + COLLISION_RADIUS_SCALE) * avatar->getHeight();
+        float theirRadius = avatar->getHeight();
         if (distance < myRadius + theirRadius) {
-            //printf("potential avatar collision d = %e\n", distance);
-            // collide the hands like spheres
-            for (int i = 0; i < handPositions.size(); ++i) {
-                glm::vec3 pos = handPositions[i];
-                distance = glm::length(_position - handPositions[i]);
-                printf("i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
-
-                // give each hand a spherical collision proxy
-                const float DEFAULT_HAND_RADIUS = 0.1f;
-
+            for (int i = 0; i < palmProxies.size(); ++i) {
+                glm::vec3 pos = palmProxies[i]._position;
                 // query against avatar
-                if (avatar->findSphereCollisionWithSkeleton(pos, DEFAULT_HAND_RADIUS, collisionInfo)) {
+                if (avatar->findSphereCollisionWithSkeleton(pos, palmProxies[i]._radius, collisionInfo)) {
+                    // push hand out of penetration
+                    palms[palmProxies[i]._palmIndex].addToPosition(0.5f * collisionInfo._penetration);
                     // print results
-                    printf("collision i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
+                    //distance = glm::length(collisionInfo._penetration);
+                    //printf("collision i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
                 }
             }
         }

@@ -160,7 +160,13 @@ void Avatar::render(bool forceRenderHead) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        renderBody(forceRenderHead);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+            _skeletonModel.renderCollisionProxies(1.f);
+        }
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+            renderBody(forceRenderHead);
+        }
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
