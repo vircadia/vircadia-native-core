@@ -205,8 +205,8 @@ bool Camera::getFrustumNeedsReshape() const {
 CameraMode Camera::getInterpolatedMode() const {
     const float SHIFT_THRESHOLD_INTO_FIRST_PERSON = 0.7f;
     const float SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON = 0.6f;
-    if (_mode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_INTO_FIRST_PERSON ||
-        _prevMode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON) {
+    if ((_mode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_INTO_FIRST_PERSON) ||
+        (_prevMode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON)) {
         return _prevMode;
     }
     return _mode;
