@@ -193,12 +193,6 @@ private:
     
     friend class DatagramSequencer;
     
-    class RemainingSpan {
-    public:
-        int unacknowledged;
-        int acknowledged;
-    };
-    
     ReliableChannel(DatagramSequencer* sequencer, int index);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
@@ -215,8 +209,7 @@ private:
     float _priority;
     
     int _offset;
-    int _sent;
-    QList<RemainingSpan> _remainingSpans;
+    int _acknowledged;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

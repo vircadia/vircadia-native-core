@@ -309,7 +309,7 @@ void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
 }
 
 int ReliableChannel::getBytesAvailable() const {
-    return _buffer.pos() - _sent;
+    return _buffer.size() - _acknowledged;
 }
 
 void ReliableChannel::sendMessage(const QVariant& message) {
@@ -328,7 +328,7 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index) :
     _bitstream(_dataStream),
     _priority(1.0f),
     _offset(0),
-    _sent(0) {
+    _acknowledged(0) {
     
     _buffer.open(QIODevice::WriteOnly);
     _dataStream.setByteOrder(QDataStream::LittleEndian);
@@ -337,40 +337,8 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index) :
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
-    // determine how many spans we can send
-    int remainingBytes = bytes;
-    int position = 0;
-    int spanCount = 0;
-    
-    foreach (const RemainingSpan& remainingSpan, _remainingSpans) {
-        if (remainingBytes == 0) {
-            break;
-        }
-        int spanBytes = qMin(remainingSpan.unacknowledged, remainingBytes);
-        remainingBytes -= spanBytes;
-        spanCount++;
-        position += remainingSpan.unacknowledged + remainingSpan.acknowledged;
-    }
-    if (remainingBytes > 0 && position < _buffer.pos()) {
-        spanCount++;
-    }
-    out << (quint32)spanCount;
-    
-    remainingBytes = bytes;
-    position = 0;
-    foreach (const RemainingSpan& remainingSpan, _remainingSpans) {
-        if (remainingBytes == 0) {
-            break;
-        }
-        int spanBytes = qMin(remainingSpan.unacknowledged, remainingBytes);
-        writeSpan(out, position, spanBytes, spans);
-        remainingBytes -= spanBytes;
-        position += remainingSpan.unacknowledged + remainingSpan.acknowledged;
-    }
-    if (remainingBytes > 0 && position < _buffer.pos()) {
-        int spanBytes = qMin((int)_buffer.pos() - position, remainingBytes);
-        writeSpan(out, position, spanBytes, spans);
-    }
+    // nothing for now
+    out << (quint32)0;
 }
 
 void ReliableChannel::writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans) {
@@ -382,12 +350,14 @@ void ReliableChannel::writeSpan(QDataStream& out, int position, int length, QVec
 }
 
 void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& span) {
+    // no-op for now
 }
 
 void ReliableChannel::readData(QDataStream& in) {
     quint32 segments;
     in >> segments;
     for (int i = 0; i < segments; i++) {
+        // ignore for now
         quint32 offset, size;
         in >> offset >> size;
         in.skipRawData(size);
