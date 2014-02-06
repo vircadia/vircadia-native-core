@@ -17,8 +17,7 @@
 #include <ThreadedAssignment.h>
 #include <EnvironmentData.h>
 
-#include <OctreeServer.h>
-
+#include "../octree/OctreeServer.h"
 
 #include "VoxelServerConsts.h"
 

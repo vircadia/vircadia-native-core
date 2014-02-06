@@ -275,6 +275,9 @@ function cleanupGame() {
     if (missileFired) {
         Particles.deleteParticle(myMissile);
     }
+    
+    Controller.releaseKeyEvents({text: " "});
+    
     Script.stop();
 }
 Script.scriptEnding.connect(cleanupGame);
