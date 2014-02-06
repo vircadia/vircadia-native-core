@@ -99,8 +99,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
     _culledOnce = false;
     _inhideOutOfView = false;
-    _treeIsBusy = false;
-
 }
 
 void VoxelSystem::elementDeleted(OctreeElement* element) {
@@ -594,9 +592,10 @@ int VoxelSystem::parseData(const QByteArray& packet) {
                 }
 
                 if (sectionLength) {
+                    PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData() section");
                     // ask the VoxelTree to read the bitstream into the tree
                     ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-                    lockTree();
+                    _tree->lockForWrite();
                     VoxelPacketData packetData(packetIsCompressed);
                     packetData.loadFinalizedContent(dataAt, sectionLength);
                     if (Application::getInstance()->getLogger()->extraDebugging()) {
@@ -608,7 +607,7 @@ int VoxelSystem::parseData(const QByteArray& packet) {
                                packetData.getUncompressedSize());
                     }
                     _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
-                    unlockTree();
+                    _tree->unlock();
 
                     dataBytes -= sectionLength;
                     dataAt += sectionLength;
@@ -1395,9 +1394,11 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
 int VoxelSystem::_nodeCount = 0;
 
 void VoxelSystem::killLocalVoxels() {
-    lockTree();
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::killLocalVoxels()");
+    _tree->lockForWrite();
     _tree->eraseAllOctreeElements();
-    unlockTree();
+    _tree->unlock();
     clearFreeBufferIndexes();
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
@@ -1416,10 +1417,12 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(OctreeElement* element, void
 }
 
 void VoxelSystem::clearAllNodesBufferIndex() {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::clearAllNodesBufferIndex()");
     _nodeCount = 0;
-    lockTree();
+    _tree->lockForRead(); // we won't change the tree so it's ok to treat this as a read
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
-    unlockTree();
+    _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes", _nodeCount);
     }
@@ -1481,7 +1484,8 @@ bool VoxelSystem::trueColorizeOperation(OctreeElement* element, void* extraData)
 }
 
 void VoxelSystem::trueColorize() {
-    PerformanceWarning warn(true, "trueColorize()",true);
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
     qDebug("setting true color for %d nodes", _nodeCount);
@@ -1951,9 +1955,13 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
         return;
     }
 
-    lockTree();
-    _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
-    unlockTree();
+    {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::... recurseTreeWithOperation(hideOutOfViewOperation)");
+        _tree->lockForRead();
+        _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
+        _tree->unlock();
+    }
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
 
@@ -2150,35 +2158,47 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
 
 bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                       VoxelDetail& detail, float& distance, BoxFace& face) {
-    lockTree();
-    OctreeElement* element;
-    if (!_tree->findRayIntersection(origin, direction, element, distance, face)) {
-        unlockTree();
-        return false;
+
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::findRayIntersection()");
+    bool result = false; // assume no intersection
+    if (_tree->tryLockForRead()) {
+        OctreeElement* element;
+        result = _tree->findRayIntersection(origin, direction, element, distance, face);
+        if (result) {
+            VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+            detail.x = voxel->getCorner().x;
+            detail.y = voxel->getCorner().y;
+            detail.z = voxel->getCorner().z;
+            detail.s = voxel->getScale();
+            detail.red = voxel->getColor()[0];
+            detail.green = voxel->getColor()[1];
+            detail.blue = voxel->getColor()[2];
+        }
+        _tree->unlock();
     }
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    detail.x = voxel->getCorner().x;
-    detail.y = voxel->getCorner().y;
-    detail.z = voxel->getCorner().z;
-    detail.s = voxel->getScale();
-    detail.red = voxel->getColor()[0];
-    detail.green = voxel->getColor()[1];
-    detail.blue = voxel->getColor()[2];
-    unlockTree();
-    return true;
+    return result;
 }
 
 bool VoxelSystem::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
-    lockTree();
-    bool result = _tree->findSpherePenetration(center, radius, penetration);
-    unlockTree();
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::findSpherePenetration()");
+    bool result = false; // assume no penetration
+    if (_tree->tryLockForRead()) {
+        result = _tree->findSpherePenetration(center, radius, penetration);
+        _tree->unlock();
+    }
     return result;
 }
 
 bool VoxelSystem::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    lockTree();
-    bool result = _tree->findCapsulePenetration(start, end, radius, penetration);
-    unlockTree();
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::findCapsulePenetration()");
+    bool result = false; // assume no penetration
+    if (_tree->tryLockForRead()) {
+        result = _tree->findCapsulePenetration(start, end, radius, penetration);
+        _tree->unlock();
+    }
     return result;
 }
 
@@ -2354,13 +2374,14 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
-    lockTree();
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::deleteVoxelAt()");
+    _tree->lockForWrite();
     _tree->deleteVoxelAt(x, y, z, s);
-    unlockTree();
+    _tree->unlock();
 
     // redraw!
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
-
 };
 
 VoxelTreeElement* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const {
@@ -2370,10 +2391,12 @@ VoxelTreeElement* VoxelSystem::getVoxelAt(float x, float y, float z, float s) co
 void VoxelSystem::createVoxel(float x, float y, float z, float s,
                               unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
 
-    //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
-    lockTree();
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::createVoxel()");
+
+    _tree->lockForWrite();
     _tree->createVoxel(x, y, z, s, red, green, blue, destructive);
-    unlockTree();
+    _tree->unlock();
 
     setupNewVoxelsForDrawing();
 };
@@ -2743,38 +2766,4 @@ unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
     unsigned long currentFreeMemory = getFreeMemoryGPU();
     return (_initialMemoryUsageGPU - currentFreeMemory);
 }
-
-void VoxelSystem::lockTree() {
-    _treeLock.lock();
-    _treeIsBusy = true;
-}
-
-void VoxelSystem::unlockTree() {
-    _treeIsBusy = false;
-    _treeLock.unlock();
-}
-
-
-void VoxelSystem::localVoxelCacheLoaded() {
-    qDebug() << "localVoxelCacheLoaded()";
-
-    // Make sure that the application has properly set up the view frustum for our loaded state
-    Application::getInstance()->initAvatarAndViewFrustum();
-
-    _tree->setDirtyBit(); // make sure the tree thinks it's dirty
-    _setupNewVoxelsForDrawingLastFinished = 0; // don't allow the setupNewVoxelsForDrawing() shortcuts
-    _writeRenderFullVBO = true; // this will disable individual node updates, was reset by killLocalVoxels()
-    setupNewVoxelsForDrawing();
-    _inhideOutOfView = false; // reenable hideOutOfView behavior
-}
-
-void VoxelSystem::beginLoadingLocalVoxelCache() {
-    qDebug() << "beginLoadingLocalVoxelCache()";
-    _writeRenderFullVBO = true; // this will disable individual node updates
-    _inhideOutOfView = true; // this will disable hidOutOfView which we want to do until local cache is loaded
-    killLocalVoxels();
-    qDebug() << "DONE beginLoadingLocalVoxelCache()";
-}
-
-
 
