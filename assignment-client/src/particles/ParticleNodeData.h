@@ -10,8 +10,9 @@
 #ifndef __hifi__ParticleNodeData__
 #define __hifi__ParticleNodeData__
 
-#include <OctreeQueryNode.h>
 #include <PacketHeaders.h>
+
+#include "../octree/OctreeQueryNode.h"
 
 class ParticleNodeData : public OctreeQueryNode {
 public:
