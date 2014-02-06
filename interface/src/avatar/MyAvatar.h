@@ -123,7 +123,7 @@ private:
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
-    void updateCollisionsWithAvatars(float deltaTime);
+    void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
