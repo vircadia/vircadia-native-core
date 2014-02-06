@@ -588,6 +588,15 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
     if (matchedAssignment) {
         refreshStaticAssignmentAndAddToQueue(matchedAssignment);
     }
+    
+    // cleanup the connection secrets that we set up for this node (on the other nodes)
+    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
+        SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+        if (otherNode) {
+            reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+        }
+    }
 }
 
 SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
