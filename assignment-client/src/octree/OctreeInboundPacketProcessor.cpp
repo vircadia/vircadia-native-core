@@ -39,7 +39,7 @@ void OctreeInboundPacketProcessor::resetStats() {
 }
 
 
-void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
+void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
 
     bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
@@ -55,8 +55,6 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
-
-        SharedNodePointer senderNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
         
         const unsigned char* packetData = reinterpret_cast<const unsigned char*>(packet.data());
 
@@ -90,7 +88,7 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
                                                                                   reinterpret_cast<const unsigned char*>(packet.data()),
                                                                                   packet.size(),
-                                                                                  editData, maxSize, senderNode.data());
+                                                                                  editData, maxSize, sendingNode.data());
             _myServer->getOctree()->unlock();
             quint64 endProcess = usecTimestampNow();
 
@@ -113,9 +111,9 @@ void OctreeInboundPacketProcessor::processPacket(const HifiSockAddr& senderSockA
 
         // Make sure our Node and NodeList knows we've heard from this node.
         QUuid& nodeUUID = DEFAULT_NODE_ID_REF;
-        if (senderNode) {
-            senderNode->setLastHeardMicrostamp(usecTimestampNow());
-            nodeUUID = senderNode->getUUID();
+        if (sendingNode) {
+            sendingNode->setLastHeardMicrostamp(usecTimestampNow());
+            nodeUUID = sendingNode->getUUID();
             if (debugProcessPacket) {
                 qDebug() << "sender has uuid=" << nodeUUID;
             }

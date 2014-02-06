@@ -49,7 +49,7 @@ protected:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread "this" individual processing thread
-    virtual void processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet);
+    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
 private:
     NodeToJurisdictionMap _jurisdictions;

@@ -470,8 +470,8 @@ private:
 
     PieMenu _pieMenu;
 
-    int parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderAddress);
-    void trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
+    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;

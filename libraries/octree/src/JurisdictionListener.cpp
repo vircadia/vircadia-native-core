@@ -61,16 +61,13 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     return isStillRunning();
 }
 
-void JurisdictionListener::processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet) {
+void JurisdictionListener::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     //qDebug() << "JurisdictionListener::processPacket()";
-    if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest) {
-        SharedNodePointer node = NodeList::getInstance()->nodeWithAddress(senderAddress);
-        if (node) {
-            QUuid nodeUUID = node->getUUID();
-            JurisdictionMap map;
-            map.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
-            _jurisdictions[nodeUUID] = map;
-        }
+    if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest && sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
+        JurisdictionMap map;
+        map.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+        _jurisdictions[nodeUUID] = map;
     }
 }
 

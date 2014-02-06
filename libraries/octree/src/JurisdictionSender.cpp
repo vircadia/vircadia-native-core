@@ -28,13 +28,11 @@ JurisdictionSender::~JurisdictionSender() {
 }
 
 
-void JurisdictionSender::processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet) {
+void JurisdictionSender::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest) {
-        QUuid nodeUUID;
-        deconstructPacketHeader(packet, nodeUUID);
-        if (!nodeUUID.isNull()) {
+        if (sendingNode) {
             lockRequestingNodes();
-            _nodesRequestingJurisdictions.push(nodeUUID);
+            _nodesRequestingJurisdictions.push(sendingNode->getUUID());
             unlockRequestingNodes();
         }
     }

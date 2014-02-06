@@ -246,18 +246,6 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
     }
 }
 
-SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
-    // naively returns the first node that has a matching active HifiSockAddr
-    // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach (const SharedNodePointer& node, getNodeHash()) {
-        if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
-            return node;
-        }
-    }
-
-    return SharedNodePointer();
-}
-
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
     QMutexLocker locker(&_nodeHashMutex);
     return _nodeHash.value(nodeUUID);

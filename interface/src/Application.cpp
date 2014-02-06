@@ -3948,27 +3948,25 @@ void Application::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void Application::trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
+void Application::trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
-    SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
-    if (serverNode) {
-        QUuid nodeUUID = serverNode->getUUID();
+    if (sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(packet, wasStatsPacket, serverNode->getClockSkewUsec());
+            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
         }
         _voxelSceneStatsLock.unlock();
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
+int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-    SharedNodePointer server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
@@ -3976,8 +3974,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& 
     int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
 
     // quick fix for crash... why would voxelServer be NULL?
-    if (server) {
-        QUuid nodeUUID = server->getUUID();
+    if (sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
@@ -3994,7 +3992,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& 
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
-        if (server->getType() == NodeType::VoxelServer) {
+        if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
         } else {
             jurisdiction = &_particleServerJurisdictions;

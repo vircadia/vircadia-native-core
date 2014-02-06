@@ -41,8 +41,7 @@ bool ReceivedPacketProcessor::process() {
         NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
         _packets.erase(_packets.begin()); // remove the oldest packet
         unlock(); // let others add to the packets
-        processPacket(*temporary.getDestinationNode()->getActiveSocket(),
-                      temporary.getByteArray()); // process our temporary copy
+        processPacket(temporary.getDestinationNode(), temporary.getByteArray()); // process our temporary copy
     }
     return isStillRunning();  // keep running till they terminate us
 }

@@ -104,7 +104,6 @@ public:
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(Node* node);
 
-    SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
