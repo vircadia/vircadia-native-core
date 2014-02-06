@@ -511,7 +511,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     // setup variables to read into from QDataStream
     qint8 nodeType;
     
-    QUuid nodeUUID;
+    QUuid nodeUUID, connectionUUID;
 
     HifiSockAddr nodePublicSocket;
     HifiSockAddr nodeLocalSocket;
@@ -534,7 +534,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
             nodePublicSocket.setAddress(_domainSockAddr.getAddress());
         }
 
-        addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
+        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
+        
+        packetStream >> connectionUUID;
+        node->setConnectionSecret(connectionUUID);
     }
 
     return readNodes;

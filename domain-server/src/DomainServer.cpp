@@ -21,6 +21,8 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
+#include "DomainServerNodeData.h"
+
 #include "DomainServer.h"
 
 const int RESTART_HOLD_TIME_MSECS = 5 * 1000;
@@ -57,8 +59,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
 
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
-
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), this, SLOT(nodeKilled(SharedNodePointer)));
+    
+    connect(nodeList, &NodeList::nodeAdded, this, &DomainServer::nodeAdded);
+    connect(nodeList, &NodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
@@ -270,9 +273,7 @@ void DomainServer::readAvailableDatagrams() {
                     if (nodeUUID.isNull()) {
                         // this is a check in from an unidentified node
                         // we need to generate a session UUID for this node
-                        qDebug() << "received a check-in from an unidentified node";
                         nodeUUID = QUuid::createUuid();
-                        qDebug() << "UUID set to" << nodeUUID;
                     }
                     
                     SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
@@ -303,14 +304,33 @@ void DomainServer::readAvailableDatagrams() {
                     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
                     broadcastDataStream << checkInNode->getUUID();
                     
+                    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(checkInNode->getLinkedData());
+                    
                     if (numInterestTypes > 0) {
                         // if the node has any interest types, send back those nodes as well
-                        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-                            if (node->getUUID() != nodeUUID &&
-                                memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
+                        foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+                            if (otherNode->getUUID() != nodeUUID &&
+                                memchr(nodeTypesOfInterest, otherNode->getType(), numInterestTypes)) {
                                 
                                 // don't send avatar nodes to other avatars, that will come from avatar mixer
-                                broadcastDataStream << *node.data();
+                                broadcastDataStream << *otherNode.data();
+                                
+                                // pack the secret that these two nodes will use to communicate with each other
+                                QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
+                                if (secretUUID.isNull()) {
+                                    // generate a new secret UUID these two nodes can use
+                                    secretUUID = QUuid::createUuid();
+                                    
+                                    // set that on the current Node's sessionSecretHash
+                                    nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
+                                    
+                                    // set it on the other Node's sessionSecretHash
+                                    reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
+                                        ->getSessionSecretHash().insert(nodeUUID, secretUUID);
+                                    
+                                }
+                                
+                                broadcastDataStream << secretUUID;
                             }
                         }
                     }
@@ -554,6 +574,11 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     // remove the old assignment from the _staticAssignmentHash
     // this must be done last so copies are created before the assignment passed by reference is killed
     _staticAssignmentHash.remove(oldUUID);
+}
+
+void DomainServer::nodeAdded(SharedNodePointer node) {
+    // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
+    node->setLinkedData(new DomainServerNodeData());
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
