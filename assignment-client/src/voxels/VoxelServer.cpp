@@ -32,12 +32,12 @@ Octree* VoxelServer::createTree() {
     return new VoxelTree(true);
 }
 
-bool VoxelServer::hasSpecialPacketToSend(Node* node) {
+bool VoxelServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     bool shouldSendEnvironments = _sendEnvironments && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, OCTREE_SEND_INTERVAL_USECS);
     return shouldSendEnvironments;
 }
 
-int VoxelServer::sendSpecialPacket(Node* node) {
+int VoxelServer::sendSpecialPacket(const SharedNodePointer& node) {
     int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_tempOutputBuffer), PacketTypeEnvironmentData);
     int envPacketLength = numBytesPacketHeader;
     int environmentsToSend = getSendMinimalEnvironment() ? 1 : getEnvironmentDataCount();

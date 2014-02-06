@@ -88,7 +88,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
                                                                                   reinterpret_cast<const unsigned char*>(packet.data()),
                                                                                   packet.size(),
-                                                                                  editData, maxSize, sendingNode.data());
+                                                                                  editData, maxSize, sendingNode);
             _myServer->getOctree()->unlock();
             quint64 endProcess = usecTimestampNow();
 

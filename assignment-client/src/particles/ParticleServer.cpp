@@ -43,7 +43,7 @@ void ParticleServer::beforeRun() {
     pruneDeletedParticlesTimer->start(PRUNE_DELETED_PARTICLES_INTERVAL_MSECS);
 }
 
-void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
+void ParticleServer::particleCreated(const Particle& newParticle, const SharedNodePointer& senderNode) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 
@@ -63,12 +63,12 @@ void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
     copyAt += sizeof(particleID);
     packetLength += sizeof(particleID);
 
-    NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
+    NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 
 // ParticleServer will use the "special packets" to send list of recently deleted particles
-bool ParticleServer::hasSpecialPacketToSend(Node* node) {
+bool ParticleServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     bool shouldSendDeletedParticles = false;
 
     // check to see if any new particles have been added since we last sent to this node...
@@ -83,7 +83,7 @@ bool ParticleServer::hasSpecialPacketToSend(Node* node) {
     return shouldSendDeletedParticles;
 }
 
-int ParticleServer::sendSpecialPacket(Node* node) {
+int ParticleServer::sendSpecialPacket(const SharedNodePointer& node) {
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     size_t packetLength = 0;
 

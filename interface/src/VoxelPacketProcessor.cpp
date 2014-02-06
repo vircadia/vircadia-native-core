@@ -66,11 +66,11 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
 
             switch(voxelPacketType) {
                 case PacketTypeParticleErase: {
-                    app->_particles.processEraseMessage(mutablePacket, *sendingNode->getActiveSocket(), sendingNode.data());
+                    app->_particles.processEraseMessage(mutablePacket, sendingNode);
                 } break;
 
                 case PacketTypeParticleData: {
-                    app->_particles.processDatagram(mutablePacket, *sendingNode->getActiveSocket(), sendingNode.data());
+                    app->_particles.processDatagram(mutablePacket, sendingNode);
                 } break;
 
                 case PacketTypeEnvironmentData: {

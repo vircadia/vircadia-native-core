@@ -48,7 +48,7 @@ bool OctreeSendThread::process() {
                     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                         printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                     }
-                    packetsSent = packetDistributor(node.data(), nodeData, viewFrustumChanged);
+                    packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
                 }
 
                 node->getMutex().unlock(); // we're done with this node for now.
@@ -86,7 +86,7 @@ quint64 OctreeSendThread::_totalBytes = 0;
 quint64 OctreeSendThread::_totalWastedBytes = 0;
 quint64 OctreeSendThread::_totalPackets = 0;
 
-int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     bool debug = _myServer->wantsDebugSending();
     quint64 now = usecTimestampNow();
 
@@ -212,7 +212,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
 }
 
 /// Version of voxel distributor that sends the deepest LOD level at once
-int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
     bool forceDebugging = false;
 
     int truePacketsSent = 0;
