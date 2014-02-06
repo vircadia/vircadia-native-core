@@ -18,8 +18,17 @@ send your resume to hiring@highfidelity.io
 Building Interface & other High Fidelity Components
 =========
 
-Interface is our OS X and Linux build-able client for accessing our virtual 
+Interface is our Windows, OS X, and Linux build-able client for accessing our virtual 
 world. 
+
+For detailed notes on building for Windows, please refer to the following wiki page:
+https://github.com/highfidelity/hifi/wiki/Building-on-Windows
+
+For detailed notes on building for Ubuntu, please refer to the following wiki page:
+https://github.com/highfidelity/hifi/wiki/Building-on-Ubuntu-13.04
+
+Building on Mac OS X and Linux:
+--------------------------------
 
 CMake
 -----
@@ -45,9 +54,9 @@ If Cmake throws you an error related to Qt5 it likely cannot find your Qt5 cmake
 You can solve this by setting an environment variable, QT_CMAKE_PREFIX_PATH, to the location of the folder distributed
 with Qt5 that contains them.
 
-For example, a Qt5 5.1.1 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
+For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.1.1/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake/
 
 The path it needs to be set to will depend on where and how Qt5 was installed.
 
@@ -64,7 +73,7 @@ components located in the build/target_name/Debug directories.
 
 Other dependencies & information
 ----
-In addition to CMake, Qt 5.1 is required to build all components.
+In addition to CMake, Qt 5.2 is required to build all components.
 
 What can I build on?
 We have successfully built on OS X 10.8, Ubuntu and a few other modern Linux 

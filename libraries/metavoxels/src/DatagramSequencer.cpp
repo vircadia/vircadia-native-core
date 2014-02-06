@@ -138,7 +138,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     }
     
     // read and dispatch the high-priority messages
-    quint32 highPriorityMessageCount;
+    int highPriorityMessageCount;
     _incomingPacketStream >> highPriorityMessageCount;
     int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
     for (int i = 0; i < highPriorityMessageCount; i++) {
