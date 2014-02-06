@@ -60,13 +60,14 @@ public:
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
     
+    void init();
+    void run(); /// runs continuously until Agent.stop() is called
+    void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
+    
     void timerFired();
 
 public slots:
-    void init();
-    void run(); /// runs continuously until Agent.stop() is called
     void stop();
-    void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
     
     QObject* setInterval(const QScriptValue& function, int intervalMS);
     QObject* setTimeout(const QScriptValue& function, int timeoutMS);

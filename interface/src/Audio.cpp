@@ -56,6 +56,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _numOutputCallbackBytes(0),
     _loopbackAudioOutput(NULL),
     _loopbackOutputDevice(NULL),
+    _proceduralAudioOutput(NULL),
+    _proceduralOutputDevice(NULL),
     _inputRingBuffer(0),
     _ringBuffer(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL),
     _scope(scope),
@@ -75,7 +77,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _muted(false)
 {
     // clear the array of locally injected samples
-    memset(_localInjectedSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -272,6 +274,9 @@ void Audio::start() {
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            
+            // setup a procedural audio output device
+            _proceduralAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
 
             gettimeofday(&_lastReceiveTime, NULL);
         }
@@ -332,7 +337,7 @@ void Audio::handleAudioInput() {
         memset(monoAudioSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 
         // zero out the locally injected audio in preparation for audio procedural sounds
-        memset(_localInjectedSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+        memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
 
         if (!_muted) {
             // we aren't muted, downsample the input audio
@@ -363,6 +368,22 @@ void Audio::handleAudioInput() {
         // add procedural effects to the appropriate input samples
         addProceduralSounds(monoAudioSamples,
                             NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        
+        if (!_proceduralOutputDevice) {
+            _proceduralOutputDevice = _proceduralAudioOutput->start();
+        }
+        
+        // send whatever procedural sounds we want to locally loop back to the _proceduralOutputDevice
+        QByteArray proceduralOutput;
+        proceduralOutput.resize(NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4 * sizeof(int16_t));
+        
+        linearResampling(_localProceduralSamples,
+                         reinterpret_cast<int16_t*>(proceduralOutput.data()),
+                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
+                         NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 4,
+                         _desiredInputFormat, _outputFormat);
+        
+        _proceduralOutputDevice->write(proceduralOutput);
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -396,7 +417,7 @@ void Audio::handleAudioInput() {
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
-	    delete[] inputAudioSamples;
+        delete[] inputAudioSamples;
     }
 }
 
@@ -431,12 +452,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
     static float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
         * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
-
-    static int numRequiredOutputSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / networkOutputToOutputRatio;
-
-    QByteArray outputBuffer;
-    outputBuffer.resize(numRequiredOutputSamples * sizeof(int16_t));
-
     
     if (!_ringBuffer.isStarved() && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
@@ -448,6 +463,14 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
+        
+        
+        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
+        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
+        
+        QByteArray outputBuffer;
+        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
+        
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
                                                          + (_jitterBufferSamples * 2))) {
             // starved and we don't have enough to start, keep waiting
@@ -458,64 +481,28 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
 
             // copy the samples we'll resample from the ring buffer - this also
             // pushes the read pointer of the ring buffer forwards
-            int16_t ringBufferSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
-            _ringBuffer.readSamples(ringBufferSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
-
-            // add the next NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL from each QByteArray
-            // in our _localInjectionByteArrays QVector to the _localInjectedSamples
-
-            // add to the output samples whatever is in the _localAudioOutput byte array
-            // that lets this user hear sound effects and loopback (if enabled)
-
-            for (int b = 0; b < _localInjectionByteArrays.size(); b++) {
-                QByteArray audioByteArray = _localInjectionByteArrays.at(b);
-
-                int16_t* byteArraySamples = (int16_t*) audioByteArray.data();
-
-                int samplesToRead = qMin((int)(audioByteArray.size() / sizeof(int16_t)),
-                                        NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-
-                for (int i = 0; i < samplesToRead; i++) {
-                    _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + byteArraySamples[i],
-                                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-                }
-
-                if (samplesToRead < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                    // there isn't anything left to inject from this byte array, remove it from the vector
-                    _localInjectionByteArrays.remove(b);
-                } else {
-                    // pull out the bytes we just read for outputs
-                    audioByteArray.remove(0, samplesToRead * sizeof(int16_t));
-
-                    // still data left to read - replace the byte array in the QVector with the smaller one
-                    _localInjectionByteArrays.replace(b, audioByteArray);
-                }
-            }
-
-            for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                ringBufferSamples[i * 2] = glm::clamp(ringBufferSamples[i * 2] + _localInjectedSamples[i],
-                                                      MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-                ringBufferSamples[(i * 2) + 1] = glm::clamp(ringBufferSamples[(i * 2) + 1] + _localInjectedSamples[i],
-                                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            }
+            int16_t* ringBufferSamples= new int16_t[numNetworkOutputSamples];
+            _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
+        
+            // add the next numNetworkOutputSamples from each QByteArray
+            // in our _localInjectionByteArrays QVector to the localInjectedSamples
 
             // copy the packet from the RB to the output
             linearResampling(ringBufferSamples,
                              (int16_t*) outputBuffer.data(),
-                             NETWORK_BUFFER_LENGTH_SAMPLES_STEREO,
-                             numRequiredOutputSamples,
+                             numNetworkOutputSamples,
+                             numDeviceOutputSamples,
                              _desiredOutputFormat, _outputFormat);
 
             if (_outputDevice) {
-
                 _outputDevice->write(outputBuffer);
 
                 // add output (@speakers) data just written to the scope
                 QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples,
-                                                                       NETWORK_BUFFER_LENGTH_BYTES_STEREO)),
+                                          Q_ARG(QByteArray, QByteArray((char*) ringBufferSamples, numNetworkOutputSamples)),
                                           Q_ARG(bool, true), Q_ARG(bool, false));
             }
+            delete[] ringBufferSamples;
         }
 
     }
@@ -672,7 +659,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             int16_t collisionSample = (int16_t) sample;
 
             monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + collisionSample,
+            _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
                                                   MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
 
             _collisionSoundMagnitude *= _collisionSoundDuration;
@@ -696,7 +683,7 @@ void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
             int16_t collisionSample = (int16_t) sample;
 
             monoInput[i] = glm::clamp(monoInput[i] + collisionSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            _localInjectedSamples[i] = glm::clamp(_localInjectedSamples[i] + collisionSample,
+            _localProceduralSamples[i] = glm::clamp(_localProceduralSamples[i] + collisionSample,
                                                   MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
 
             _drumSoundVolume *= (1.f - _drumSoundDecay);
@@ -727,8 +714,8 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
 }
 
 void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
-    // add this byte array to our QVector
-    _localInjectionByteArrays.append(audioByteArray);
+    // TODO: either create a new audio device (up to the limit of the sound card or a hard limit)
+    // or send to the mixer and use delayed loopback
 }
 
 void Audio::renderToolIcon(int screenHeight) {

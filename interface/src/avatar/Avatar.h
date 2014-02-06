@@ -20,7 +20,6 @@
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -58,8 +57,6 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-class MyAvatar;
-
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
 // this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
 // Grayson as he's building a street around here for demo dinner 2
@@ -73,7 +70,7 @@ public:
     ~Avatar();
 
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime);
     void render(bool forceRenderHead);
 
     //setters
@@ -125,15 +122,7 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-public slots:
-    void goHome();
-    void increaseSize();
-    void decreaseSize();
-    void resetSize();
-    void updateCollisionFlags();
-
-    friend class MyAvatar;
-
+    float getHeight() const;
 
 protected:
     Head _head;
@@ -162,7 +151,6 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
 
-    float getHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 

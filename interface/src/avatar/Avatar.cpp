@@ -107,7 +107,7 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
+void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -249,7 +249,9 @@ void Avatar::renderBody(bool forceRenderHead) {
     glm::vec3 pos = getPosition();
     //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
     _skeletonModel.render(1.0f);
-    _head.render(1.0f);
+    if (forceRenderHead) {
+        _head.render(1.0f);
+    }
     _hand.render(false);
 }
 
@@ -400,46 +402,6 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
     
     glEnd();
-}
-
-void Avatar::goHome() {
-    qDebug("Going Home!");
-    setPosition(START_LOCATION);
-}
-
-void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
-    }
-}
-
-void Avatar::resetSize() {
-    _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
-}
-
-void Avatar::updateCollisionFlags() {
-    _collisionFlags = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
-        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
-        _collisionFlags |= COLLISION_GROUP_AVATARS;
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
-        _collisionFlags |= COLLISION_GROUP_VOXELS;
-    }
-    //if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
-    //    _collisionFlags |= COLLISION_GROUP_PARTICLES;
-    //}
 }
 
 void Avatar::setScale(float scale) {

@@ -29,8 +29,8 @@ public:
     void render();
     void checkForLostTransmitter();
     void resetLevels();
-    void renderLevels(int width, int height);
-    bool isConnected() { return _isConnected; };
+    void renderLevels(int width, int height) const;
+    bool isConnected() const { return _isConnected; };
     const glm::vec3 getLastRotationRate() const { return _lastRotationRate; };
     const glm::vec3 getLastAcceleration() const { return _lastRotationRate; };
     const glm::vec3 getEstimatedRotation() const { return _estimatedRotation; };

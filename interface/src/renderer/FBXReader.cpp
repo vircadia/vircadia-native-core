@@ -1704,7 +1704,18 @@ FBXGeometry readSVO(const QByteArray& model) {
 
     VoxelTree tree;
     ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-    tree.readBitstreamToTree((unsigned char*)model.data(), model.size(), args);
+
+    unsigned char* dataAt = (unsigned char*)model.data();
+    size_t dataSize = model.size();
+
+    if (tree.getWantSVOfileVersions()) {
+        // skip the type/version
+        dataAt += sizeof(PacketType);
+        dataSize -= sizeof(PacketType);
+        dataAt += sizeof(PacketVersion);
+        dataSize -= sizeof(PacketVersion);
+    }   
+    tree.readBitstreamToTree(dataAt, dataSize, args);
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);
