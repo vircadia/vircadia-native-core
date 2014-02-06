@@ -64,7 +64,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
-    _ownerUUID(),
+    _sessionUUID(),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _publicSockAddr(),
@@ -257,7 +257,7 @@ void NodeList::reset() {
     _nodeTypesOfInterest.clear();
 
     // refresh the owner UUID
-    _ownerUUID = QUuid::createUuid();
+    _sessionUUID = QUuid::createUuid();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -492,13 +492,13 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
-void NodeList::setOwnerUUID(const QUuid& ownerUUID) {
-    QUuid oldUUID = _ownerUUID;
-    _ownerUUID = ownerUUID;
+void NodeList::setSessionUUID(const QUuid& sessionUUID) {
+    QUuid oldUUID = _sessionUUID;
+    _sessionUUID = sessionUUID;
     
-    if (ownerUUID != oldUUID) {
-        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _ownerUUID;
-        emit uuidChanged(ownerUUID);
+    if (sessionUUID != oldUUID) {
+        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _sessionUUID;
+        emit uuidChanged(sessionUUID);
     }
 }
 
@@ -522,7 +522,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     // pull our owner UUID from the packet, it's always the first thing
     QUuid newUUID;
     packetStream >> newUUID;
-    setOwnerUUID(newUUID);
+    setSessionUUID(newUUID);
     
     // pull each node in the packet
     while(packetStream.device()->pos() < packet.size()) {

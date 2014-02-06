@@ -72,8 +72,8 @@ public:
 
     unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
 
-    const QUuid& getOwnerUUID() const { return _ownerUUID; }
-    void setOwnerUUID(const QUuid& ownerUUID);
+    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    void setSessionUUID(const QUuid& sessionUUID);
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
 
@@ -146,7 +146,7 @@ private:
     QUdpSocket _nodeSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
-    QUuid _ownerUUID;
+    QUuid _sessionUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     HifiSockAddr _publicSockAddr;

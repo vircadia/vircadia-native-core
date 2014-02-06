@@ -17,5 +17,5 @@ DataServerScriptingInterface::DataServerScriptingInterface()
 }
 
 void DataServerScriptingInterface::setValueForKey(const QString& key, const QString& value) {
-    DataServerClient::putValueForKeyAndUUID(key, value, NodeList::getInstance()->getOwnerUUID());
+    DataServerClient::putValueForKeyAndUUID(key, value, NodeList::getInstance()->getSessionUUID());
 }
