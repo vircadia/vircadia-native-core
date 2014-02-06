@@ -9,11 +9,8 @@
 #ifndef __interface__AttributeRegistry__
 #define __interface__AttributeRegistry__
 
-#include <QColor>
-#include <QExplicitlySharedDataPointer>
 #include <QHash>
 #include <QObject>
-#include <QSharedData>
 #include <QSharedPointer>
 #include <QString>
 #include <QWidget>
@@ -21,9 +18,6 @@
 #include "Bitstream.h"
 #include "SharedObject.h"
 
-class QComboBox;
-class QFormLayout;
-class QPushButton;
 class QScriptContext;
 class QScriptEngine;
 class QScriptValue;
@@ -254,29 +248,6 @@ public:
     virtual void* createFromVariant(const QVariant& value) const;
     
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
-};
-
-/// Editor for RGBA values.
-class QRgbEditor : public QWidget {
-    Q_OBJECT
-    Q_PROPERTY(QColor color MEMBER _color WRITE setColor USER true)
-
-public:
-    
-    QRgbEditor(QWidget* parent);
-
-public slots:
-
-    void setColor(const QColor& color);
-        
-private slots:
-
-    void selectColor();    
-    
-private:
-    
-    QPushButton* _button;
-    QColor _color;
 };
 
 /// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).

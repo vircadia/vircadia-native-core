@@ -6,10 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QColorDialog>
-#include <QPushButton>
 #include <QScriptEngine>
-#include <QVBoxLayout>
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
@@ -29,12 +26,23 @@ AttributeRegistry::AttributeRegistry() :
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
 
+static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
+    QDebug debug = qDebug();
+    
+    for (int i = 0; i < context->argumentCount(); i++) {
+        debug << context->argument(i).toString();
+    }
+    
+    return QScriptValue();
+}
+
 void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
     QScriptValue registry = engine->newObject();
     registry.setProperty("colorAttribute", engine->newQObject(_colorAttribute.data()));
     registry.setProperty("normalAttribute", engine->newQObject(_normalAttribute.data()));
     registry.setProperty("getAttribute", engine->newFunction(getAttribute, 1));
     engine->globalObject().setProperty("AttributeRegistry", registry);
+    engine->globalObject().setProperty("qDebug", engine->newFunction(qDebugFunction, 1));
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -162,30 +170,9 @@ void* QRgbAttribute::createFromVariant(const QVariant& value) const {
 }
 
 QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
-    QRgbEditor* editor = new QRgbEditor(parent);
+    QColorEditor* editor = new QColorEditor(parent);
     editor->setColor(QColor::fromRgba(_defaultValue));
     return editor;
-}
-
-QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
-    QVBoxLayout* layout = new QVBoxLayout();
-    layout->setAlignment(Qt::AlignTop);
-    setLayout(layout);
-    layout->addWidget(_button = new QPushButton());
-    connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
-}
-
-void QRgbEditor::setColor(const QColor& color) {
-    QString name = (_color = color).name();
-    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color.rgb()).name()));
-    _button->setText(name);
-}
-
-void QRgbEditor::selectColor() {
-    QColor color = QColorDialog::getColor(_color, this, QString(), QColorDialog::ShowAlphaChannel);
-    if (color.isValid()) {
-        setColor(color);
-    }
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

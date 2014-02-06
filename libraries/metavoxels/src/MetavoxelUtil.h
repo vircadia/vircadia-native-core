@@ -9,15 +9,20 @@
 #ifndef __interface__MetavoxelUtil__
 #define __interface__MetavoxelUtil__
 
+#include <QColor>
 #include <QSharedPointer>
 #include <QUrl>
 #include <QUuid>
 #include <QWidget>
 
+#include <RegisteredMetaTypes.h>
+
 #include "Bitstream.h"
 
 class QByteArray;
+class QDoubleSpinBox;
 class QLineEdit;
+class QPushButton;
 
 class HifiSockAddr;
 class NetworkProgram;
@@ -40,6 +45,62 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
+
+/// Editor for color values.
+class QColorEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(QColor color MEMBER _color WRITE setColor NOTIFY colorChanged USER true)
+
+public:
+    
+    QColorEditor(QWidget* parent);
+
+signals:
+
+    void colorChanged(const QColor& color);
+
+public slots:
+
+    void setColor(const QColor& color);
+        
+private slots:
+
+    void selectColor();    
+    
+private:
+    
+    QPushButton* _button;
+    QColor _color;
+};
+
+/// Editor for vector values.
+class Vec3Editor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(glm::vec3 vector MEMBER _vector WRITE setVector NOTIFY vectorChanged USER true)
+    
+public:
+    
+    Vec3Editor(QWidget* parent);
+
+signals:
+
+    void vectorChanged(const glm::vec3& vector);
+
+public slots:
+
+    void setVector(const glm::vec3& vector);    
+
+private slots:
+    
+    void updateVector();
+
+private:
+    
+    QDoubleSpinBox* _x;
+    QDoubleSpinBox* _y;
+    QDoubleSpinBox* _z;
+    glm::vec3 _vector;
+};
 
 typedef QHash<QScriptString, QVariant> ScriptHash;
 

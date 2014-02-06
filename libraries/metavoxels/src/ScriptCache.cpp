@@ -159,8 +159,19 @@ DerivedNetworkValue::DerivedNetworkValue(const QSharedPointer<NetworkValue>& bas
 
 QScriptValue& DerivedNetworkValue::getValue() {
     if (!_value.isValid() && _baseValue->isLoaded()) {
-        _value = _baseValue->getValue();
+        RootNetworkValue* root = static_cast<RootNetworkValue*>(_baseValue.data());
+        ScriptCache* cache = root->getProgram()->getCache();
+        QScriptValue generator = _baseValue->getValue().property(cache->getGeneratorString());
+        if (generator.isFunction()) {
+            QScriptValueList arguments;
+            foreach (const ParameterInfo& parameter, root->getParameterInfo()) {
+                arguments.append(cache->getEngine()->newVariant(_parameters.value(parameter.name)));
+            }
+            _value = generator.call(QScriptValue(), arguments);
         
+        } else {
+            _value = _baseValue->getValue();                      
+        }
     }
     return _value;
 }

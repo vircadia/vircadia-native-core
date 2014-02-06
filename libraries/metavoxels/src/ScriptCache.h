@@ -130,6 +130,8 @@ public:
     
     RootNetworkValue(const QSharedPointer<NetworkProgram>& program);
 
+    const QSharedPointer<NetworkProgram>& getProgram() const { return _program; }
+
     virtual QScriptValue& getValue();
 
     const QList<ParameterInfo>& getParameterInfo();

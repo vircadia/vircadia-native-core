@@ -21,6 +21,7 @@
 #include "SharedObject.h"
 
 class QByteArray;
+class QColor;
 class QDataStream;
 class QUrl;
 
@@ -246,6 +247,9 @@ public:
     
     Bitstream& operator<<(const QByteArray& string);
     Bitstream& operator>>(QByteArray& string);
+    
+    Bitstream& operator<<(const QColor& color);
+    Bitstream& operator>>(QColor& color);
     
     Bitstream& operator<<(const QString& string);
     Bitstream& operator>>(QString& string);

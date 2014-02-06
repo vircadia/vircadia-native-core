@@ -24,6 +24,7 @@ REGISTER_SIMPLE_TYPE_STREAMER(bool)
 REGISTER_SIMPLE_TYPE_STREAMER(int)
 REGISTER_SIMPLE_TYPE_STREAMER(float)
 REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
+REGISTER_SIMPLE_TYPE_STREAMER(QColor)
 REGISTER_SIMPLE_TYPE_STREAMER(QString)
 REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
 REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
@@ -244,6 +245,17 @@ Bitstream& Bitstream::operator>>(QByteArray& string) {
     *this >> size;
     string.resize(size);
     return read(string.data(), size * BITS_IN_BYTE);
+}
+
+Bitstream& Bitstream::operator<<(const QColor& color) {
+    return *this << (int)color.rgba();
+}
+
+Bitstream& Bitstream::operator>>(QColor& color) {
+    int rgba;
+    *this >> rgba;
+    color.setRgba(rgba);
+    return *this;
 }
 
 Bitstream& Bitstream::operator<<(const QString& string) {

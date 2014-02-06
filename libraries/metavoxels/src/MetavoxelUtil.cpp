@@ -7,6 +7,7 @@
 //
 
 #include <QByteArray>
+#include <QColorDialog>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
@@ -14,6 +15,7 @@
 #include <QLineEdit>
 #include <QMetaType>
 #include <QPushButton>
+#include <QScriptEngine>
 #include <QStandardItemEditorCreator>
 #include <QVBoxLayout>
 #include <QtDebug>
@@ -81,6 +83,18 @@ static QItemEditorCreatorBase* createDoubleEditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* createQColorEditorCreator() {
+    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<QColorEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<QColor>(), creator);
+    return creator;
+}
+
+static QItemEditorCreatorBase* createVec3EditorCreator() {
+    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<Vec3Editor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<glm::vec3>(), creator);
+    return creator;
+}
+
 static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
     QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<ParameterizedURLEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<ParameterizedURL>(), creator);
@@ -88,6 +102,8 @@ static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
 }
 
 static QItemEditorCreatorBase* doubleEditorCreator = createDoubleEditorCreator();
+static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator();
+static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
 QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize) {
@@ -108,6 +124,63 @@ bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
         other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
+}
+
+QColorEditor::QColorEditor(QWidget* parent) : QWidget(parent) {
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setContentsMargins(QMargins());
+    layout->setAlignment(Qt::AlignTop);
+    setLayout(layout);
+    layout->addWidget(_button = new QPushButton());
+    connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
+}
+
+void QColorEditor::setColor(const QColor& color) {
+    QString name = (_color = color).name();
+    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color.rgb()).name()));
+    _button->setText(name);
+}
+
+void QColorEditor::selectColor() {
+    QColor color = QColorDialog::getColor(_color, this, QString(), QColorDialog::ShowAlphaChannel);
+    if (color.isValid()) {
+        setColor(color);
+        emit colorChanged(color);
+    }
+}
+
+Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
+    QHBoxLayout* layout = new QHBoxLayout();
+    layout->setContentsMargins(QMargins());
+    setLayout(layout);
+    
+    setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    
+    layout->addWidget(_x = new QDoubleSpinBox());
+    _x->setMinimum(-FLT_MAX);
+    _x->setMaximumWidth(100);
+    connect(_x, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+    
+    layout->addWidget(_y = new QDoubleSpinBox());
+    _y->setMinimum(-FLT_MAX);
+    _y->setMaximumWidth(100);
+    connect(_y, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+    
+    layout->addWidget(_z = new QDoubleSpinBox()); 
+    _z->setMinimum(-FLT_MAX);
+    _z->setMaximumWidth(100);
+    connect(_z, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+}
+
+void Vec3Editor::setVector(const glm::vec3& vector) {
+    _vector = vector;
+    _x->setValue(vector.x);
+    _y->setValue(vector.y);
+    _z->setValue(vector.z);
+}
+
+void Vec3Editor::updateVector() {
+    emit vectorChanged(_vector = glm::vec3(_x->value(), _y->value(), _z->value()));
 }
 
 ParameterizedURL::ParameterizedURL(const QUrl& url, const ScriptHash& parameters) :
@@ -172,8 +245,19 @@ void ParameterizedURLEditor::setURL(const ParameterizedURL& url) {
 }
 
 void ParameterizedURLEditor::updateURL() {
-    _url = ParameterizedURL(_line->text());
-    emit urlChanged(_url);
+    ScriptHash parameters;
+    if (layout()->count() > 1) {
+        QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+        for (int i = 0; i < form->rowCount(); i++) {
+            QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+            QByteArray valuePropertyName = widget->property("valuePropertyName").toByteArray();
+            const QMetaObject* widgetMetaObject = widget->metaObject();
+            QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
+            parameters.insert(ScriptCache::getInstance()->getEngine()->toStringHandle(
+                widget->property("parameterName").toString()), widgetProperty.read(widget));
+        }
+    }
+    emit urlChanged(_url = ParameterizedURL(_line->text(), parameters));
     if (_program) {
         _program->disconnect(this);
     }
@@ -212,10 +296,19 @@ void ParameterizedURLEditor::continueUpdatingParameters() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form);
     foreach (const ParameterInfo& parameter, parameters) {
-        QWidget* editor = QItemEditorFactory::defaultFactory()->createEditor(parameter.type, NULL);
-        if (editor) {
-            form->addRow(parameter.name.toString() + ":", editor);
-            
+        QWidget* widget = QItemEditorFactory::defaultFactory()->createEditor(parameter.type, NULL);
+        if (widget) {
+            form->addRow(parameter.name.toString() + ":", widget);
+            QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(parameter.type);
+            widget->setProperty("parameterName", parameter.name.toString());
+            widget->setProperty("valuePropertyName", valuePropertyName);
+            const QMetaObject* widgetMetaObject = widget->metaObject();
+            QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
+            widgetProperty.write(widget, _url.getParameters().value(parameter.name));
+            if (widgetProperty.hasNotifySignal()) {
+                connect(widget, QByteArray(SIGNAL()).append(widgetProperty.notifySignal().methodSignature()),
+                    SLOT(updateURL()));
+            }
         }
     }
 }
