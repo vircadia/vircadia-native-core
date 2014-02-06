@@ -151,6 +151,8 @@ public:
 
     bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
         glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
+    
+    void renderCollisionProxies(float alpha);
 
 protected:
 
@@ -208,8 +210,6 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
-    
-    void renderCollisionProxies(float alpha);
     
 private:
     
