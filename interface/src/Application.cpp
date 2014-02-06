@@ -2053,7 +2053,7 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled,
         // and make sure the tree is not already busy... because otherwise you'll have to wait.
-        if (!(_voxels.treeIsBusy() || _mousePressed)) {
+        if (!_mousePressed) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
                 _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
