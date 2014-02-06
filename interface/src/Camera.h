@@ -61,6 +61,8 @@ public:
     const glm::quat& getEyeOffsetOrientation () const { return _eyeOffsetOrientation; }
     float            getScale                () const { return _scale; }
     
+    CameraMode getInterpolatedMode() const;
+
     bool getFrustumNeedsReshape() const; // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.
 
@@ -68,6 +70,7 @@ private:
 
     bool        _needsToInitialize;
     CameraMode  _mode;
+    CameraMode  _prevMode;
     bool        _frustumNeedsReshape;
     glm::vec3   _position;
     glm::vec3   _idealPosition;

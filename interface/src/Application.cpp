@@ -2884,7 +2884,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    _avatarManager.renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
+    bool renderMyHead = (whichCamera.getInterpolatedMode() != CAMERA_MODE_FIRST_PERSON);
+    _avatarManager.renderAvatars(renderMyHead, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
