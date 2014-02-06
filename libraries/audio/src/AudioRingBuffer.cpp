@@ -70,9 +70,9 @@ qint64 AudioRingBuffer::readData(char *data, qint64 maxSize) {
         // read to the end of the buffer
         int numSamplesToEnd = (_buffer + _sampleCapacity) - _nextOutput;
         memcpy(data, _nextOutput, numSamplesToEnd * sizeof(int16_t));
-
+        
         // read the rest from the beginning of the buffer
-        memcpy(data + numSamplesToEnd, _buffer, (numReadSamples - numSamplesToEnd) * sizeof(int16_t));
+        memcpy(data + (numSamplesToEnd * sizeof(int16_t)), _buffer, (numReadSamples - numSamplesToEnd) * sizeof(int16_t));
     } else {
         // read the data
         memcpy(data, _nextOutput, numReadSamples * sizeof(int16_t));

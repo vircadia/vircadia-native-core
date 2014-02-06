@@ -75,7 +75,6 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
     if (!selfAvatarOnly) {
-        //  Render avatars of other nodes
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
             if (!avatar->isInitialized()) {
@@ -84,7 +83,7 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
                 avatar->render(forceRenderHead);
             } else {
-                avatar->render(false);
+                avatar->render(true);
             }
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }

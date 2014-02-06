@@ -64,7 +64,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
         int flightTime = arrivedAt - sentAt + clockSkew;
         
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-        int dataBytes = packetLength - OCTREE_PACKET_HEADER_SIZE;
+        int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
             qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"

@@ -15,9 +15,12 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
+#include <VoxelEditPacketSender.h>
+
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
@@ -39,6 +42,8 @@ signals:
 private:
     ScriptEngine _scriptEngine;
     ParticleTree _particleTree;
+    VoxelEditPacketSender _voxelEditSender;
+    ParticleEditPacketSender _particleEditSender;
 };
 
 #endif /* defined(__hifi__Agent__) */
