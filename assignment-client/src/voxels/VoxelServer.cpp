@@ -46,9 +46,7 @@ int VoxelServer::sendSpecialPacket(Node* node) {
         envPacketLength += getEnvironmentData(i)->getBroadcastData(_tempOutputBuffer + envPacketLength);
     }
 
-    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) _tempOutputBuffer, envPacketLength,
-                                                           node->getActiveSocket()->getAddress(),
-                                                           node->getActiveSocket()->getPort());
+    NodeList::getInstance()->writeDatagram((char*) _tempOutputBuffer, envPacketLength, SharedNodePointer(node));
     return envPacketLength;
 }
 

@@ -226,10 +226,7 @@ void MetavoxelClient::receivedData(const QByteArray& data) {
 
 void MetavoxelClient::sendData(const QByteArray& data) {
     QMutexLocker locker(&_node->getMutex());
-    const HifiSockAddr* address = _node->getActiveSocket();
-    if (address) {
-        NodeList::getInstance()->getNodeSocket().writeDatagram(data, address->getAddress(), address->getPort());
-    }
+    NodeList::getInstance()->writeDatagram(data, _node);
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {

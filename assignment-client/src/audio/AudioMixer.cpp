@@ -279,9 +279,7 @@ void AudioMixer::run() {
                 prepareMixForListeningNode(node.data());
 
                 memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-                nodeList->getNodeSocket().writeDatagram((char*) clientPacket, sizeof(clientPacket),
-                                                        node->getActiveSocket()->getAddress(),
-                                                        node->getActiveSocket()->getPort());
+                nodeList->writeDatagram((char*) clientPacket, sizeof(clientPacket), node);
             }
         }
 

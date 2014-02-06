@@ -142,15 +142,11 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             }
 
             // actually send it
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -168,9 +164,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             truePacketsSent++;
             packetsSent++;
 
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                   SharedNodePointer(node));
 
             packetSent = true;
 
@@ -189,9 +184,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting()) {
             // just send the voxel packet
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                   SharedNodePointer(node));
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();

@@ -76,6 +76,11 @@ public:
     void setSessionUUID(const QUuid& sessionUUID);
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
+    
+    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void(*linkedDataCreateCallback)(Node *);
 

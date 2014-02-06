@@ -24,7 +24,7 @@ public:
     /// \param packetData pointer to received data
     /// \param ssize_t packetLength size of received data
     /// \thread network receive thread
-    void queueReceivedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    void queueReceivedPacket(const SharedNodePointer& destinationNode, const QByteArray& packet);
 
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }

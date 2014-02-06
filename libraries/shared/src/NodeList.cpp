@@ -80,6 +80,37 @@ NodeList::~NodeList() {
     clear();
 }
 
+qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    
+    // setup the MD5 hash for source verification in the header
+    int numBytesPacketHeader = numBytesForPacketHeader(datagram);
+    QByteArray dataSecretHash = QCryptographicHash::hash(datagram.mid(numBytesPacketHeader)
+                                                         + destinationNode->getConnectionSecret().toRfc4122(),
+                                                         QCryptographicHash::Md5);
+    QByteArray datagramWithHash = datagram;
+    datagramWithHash.replace(numBytesPacketHeader - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH, dataSecretHash);
+    
+    // if we don't have an ovveriden address, assume they want to send to the node's active socket
+    const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
+    if (overridenSockAddr.isNull()) {
+        if (destinationNode->getActiveSocket()) {
+            // use the node's active socket as the destination socket
+            destinationSockAddr = destinationNode->getActiveSocket();
+        } else {
+            // we don't have a socket to send to, return 0
+            return 0;
+        }
+    }
+    
+    return _nodeSocket.writeDatagram(datagramWithHash, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+}
+
+qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
 void NodeList::setDomainHostname(const QString& domainHostname) {
 
     if (domainHostname != _domainHostname) {

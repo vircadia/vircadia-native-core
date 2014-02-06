@@ -409,10 +409,9 @@ void Audio::handleAudioInput() {
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
 
-            nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
-                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
-                                                    audioMixer->getActiveSocket()->getAddress(),
-                                                    audioMixer->getActiveSocket()->getPort());
+            nodeList->writeDatagram(monoAudioDataPacket,
+                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
+                                    audioMixer);
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);

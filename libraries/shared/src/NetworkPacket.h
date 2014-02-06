@@ -33,15 +33,15 @@ public:
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(const HifiSockAddr& sockAddr, const QByteArray& byteArray);
+    NetworkPacket(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
 
-    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
+    const SharedNodePointer& getDestinationNode() const { return _destinationNode; }
     const QByteArray& getByteArray() const { return _byteArray; }
 
 private:
-    void copyContents(const HifiSockAddr& sockAddr, const QByteArray& byteArray);
+    void copyContents(const SharedNodePointer& destinationNode, const QByteArray& byteArray);
 
-    HifiSockAddr _sockAddr;
+    SharedNodePointer _destinationNode;
     QByteArray _byteArray;
 };
 

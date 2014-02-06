@@ -73,9 +73,7 @@ void broadcastAvatarData() {
                     avatarByteArray.append(nodeData->toByteArray());
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
-                        nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
-                                                                node->getActiveSocket()->getAddress(),
-                                                                node->getActiveSocket()->getPort());
+                        nodeList->writeDatagram(mixedAvatarByteArray, node);
                         
                         // reset the packet
                         mixedAvatarByteArray.resize(numPacketHeaderBytes);
@@ -86,9 +84,7 @@ void broadcastAvatarData() {
                 }
             }
             
-            nodeList->getNodeSocket().writeDatagram(mixedAvatarByteArray,
-                                                    node->getActiveSocket()->getAddress(),
-                                                    node->getActiveSocket()->getPort());
+            nodeList->writeDatagram(mixedAvatarByteArray, node);
         }
     }
 }

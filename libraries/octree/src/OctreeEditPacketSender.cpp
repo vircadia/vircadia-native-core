@@ -92,8 +92,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             if (nodeList->getNodeActiveSocketOrPing(node.data())) {
-                const HifiSockAddr* nodeAddress = node->getActiveSocket();
-                queuePacketForSending(*nodeAddress, QByteArray(reinterpret_cast<char*>(buffer), length));
+                queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
 
                 // debugging output...
                 bool wantDebugging = false;

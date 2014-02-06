@@ -35,17 +35,24 @@ void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr&
     PacketType datagramPacketType = packetTypeForPacket(dataByteArray);
     if (datagramPacketType == PacketTypeJurisdiction) {
         int headerBytes = numBytesForPacketHeader(dataByteArray);
-        // PacketType_JURISDICTION, first byte is the node type...
-        switch (dataByteArray[headerBytes]) {
-            case NodeType::VoxelServer:
-                _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                                            dataByteArray);
-                break;
-            case NodeType::ParticleServer:
-                _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                                               dataByteArray);
-                break;
+        
+        QUuid nodeUUID;
+        SharedNodePointer matchedNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+        
+        if (matchedNode) {
+            // PacketType_JURISDICTION, first byte is the node type...
+            switch (dataByteArray[headerBytes]) {
+                case NodeType::VoxelServer:
+                    _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                dataByteArray);
+                    break;
+                case NodeType::ParticleServer:
+                    _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                   dataByteArray);
+                    break;
+            }
         }
+        
     } else if (datagramPacketType == PacketTypeParticleAddResponse) {
         // this will keep creatorTokenIDs to IDs mapped correctly
         Particle::handleAddParticleResponse(dataByteArray);

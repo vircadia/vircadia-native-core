@@ -63,9 +63,7 @@ void ParticleServer::particleCreated(const Particle& newParticle, Node* node) {
     copyAt += sizeof(particleID);
     packetLength += sizeof(particleID);
 
-    NodeList::getInstance()->getNodeSocket().writeDatagram((char*) outputBuffer, packetLength,
-                                                           node->getActiveSocket()->getAddress(),
-                                                           node->getActiveSocket()->getPort());
+    NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
 }
 
 
@@ -104,9 +102,7 @@ int ParticleServer::sendSpecialPacket(Node* node) {
 
             //qDebug() << "sending PacketType_PARTICLE_ERASE packetLength:" << packetLength;
 
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) outputBuffer, packetLength,
-                                                                   node->getActiveSocket()->getAddress(),
-                                                                   node->getActiveSocket()->getPort());
+            NodeList::getInstance()->writeDatagram((char*) outputBuffer, packetLength, SharedNodePointer(node));
         }
 
         nodeData->setLastDeletedParticlesSentAt(deletePacketSentAt);

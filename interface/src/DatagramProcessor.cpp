@@ -84,8 +84,16 @@ void DatagramProcessor::processDatagrams() {
                         printf("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
                     }
                     
-                    // add this packet to our list of voxel packets and process them on the voxel processing
-                    application->_voxelProcessor.queueReceivedPacket(senderSockAddr, incomingPacket);
+                    QUuid nodeUUID;
+                    deconstructPacketHeader(incomingPacket, nodeUUID);
+                    
+                    SharedNodePointer matchedNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+                    
+                    if (matchedNode) {
+                        // add this packet to our list of voxel packets and process them on the voxel processing
+                        application->_voxelProcessor.queueReceivedPacket(matchedNode, incomingPacket);
+                    }
+                    
                     break;
                 }
                 case PacketTypeMetavoxelData:

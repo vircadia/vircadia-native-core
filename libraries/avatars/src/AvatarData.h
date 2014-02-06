@@ -74,7 +74,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     
     Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
-    Q_PROPERTY(QURl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
+    Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
     AvatarData();
     ~AvatarData();

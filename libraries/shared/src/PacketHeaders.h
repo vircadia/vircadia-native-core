@@ -12,6 +12,7 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#include <QtCore/QCryptographicHash>
 #include <QtCore/QUuid>
 
 #include "UUID.h"
@@ -57,7 +58,9 @@ enum PacketType {
 
 typedef char PacketVersion;
 
-const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;;
+const int NUM_BYTES_MD5_HASH = 16;
+const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_STATIC_HEADER_BYTES;
 
 PacketVersion versionForPacketType(PacketType type);
 
