@@ -73,7 +73,7 @@ public:
     unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
 
     const QUuid& getOwnerUUID() const { return _ownerUUID; }
-    void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
+    void setOwnerUUID(const QUuid& ownerUUID);
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
 
@@ -124,6 +124,7 @@ public slots:
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
     void domainChanged(const QString& domainHostname);
+    void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 private:

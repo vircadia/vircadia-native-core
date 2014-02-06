@@ -205,6 +205,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);

@@ -64,7 +64,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
-    _ownerUUID(QUuid::createUuid()),
+    _ownerUUID(),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _publicSockAddr(),
@@ -492,6 +492,16 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
+void NodeList::setOwnerUUID(const QUuid& ownerUUID) {
+    QUuid oldUUID = _ownerUUID;
+    _ownerUUID = ownerUUID;
+    
+    if (ownerUUID != oldUUID) {
+        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _ownerUUID;
+        emit uuidChanged(ownerUUID);
+    }
+}
+
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
@@ -508,7 +518,13 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
-
+    
+    // pull our owner UUID from the packet, it's always the first thing
+    QUuid newUUID;
+    packetStream >> newUUID;
+    setOwnerUUID(newUUID);
+    
+    // pull each node in the packet
     while(packetStream.device()->pos() < packet.size()) {
         packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket;
 

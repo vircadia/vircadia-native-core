@@ -28,7 +28,7 @@ public:
     
     const QString& getUsername() const { return _username; }
     
-    void setUUID(const QUuid& uuid);
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() { return _uuid; }
     
     void updateDomain(const QString& domain);

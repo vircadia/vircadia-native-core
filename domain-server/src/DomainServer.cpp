@@ -209,6 +209,10 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
+const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
+    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
+    << NodeType::MetavoxelServer;
+
 void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
 
@@ -255,18 +259,22 @@ void DomainServer::readAvailableDatagrams() {
                     }
                 }
                 
-                const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-                    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
-                    << NodeType::MetavoxelServer;
-                
                 SharedAssignmentPointer matchingStaticAssignment;
                 
                 // check if this is a non-statically assigned node, a node that is assigned and checking in for the first time
                 // or a node that has already checked in and is continuing to report for duty
                 if (!STATICALLY_ASSIGNED_NODES.contains(nodeType)
                     || (matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
-                    || nodeList->getInstance()->nodeWithUUID(nodeUUID))
-                {
+                    || nodeList->getInstance()->nodeWithUUID(nodeUUID)) {
+                    
+                    if (nodeUUID.isNull()) {
+                        // this is a check in from an unidentified node
+                        // we need to generate a session UUID for this node
+                        qDebug() << "received a check-in from an unidentified node";
+                        nodeUUID = QUuid::createUuid();
+                        qDebug() << "UUID set to" << nodeUUID;
+                    }
+                    
                     SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                               nodeType,
                                                                               nodePublicAddress,
@@ -291,10 +299,12 @@ void DomainServer::readAvailableDatagrams() {
                     NodeType_t* nodeTypesOfInterest = reinterpret_cast<NodeType_t*>(receivedPacket.data()
                                                                                   + packetStream.device()->pos());
                     
+                    // always send the node their own UUID back
+                    QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
+                    broadcastDataStream << checkInNode->getUUID();
+                    
                     if (numInterestTypes > 0) {
-                        QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
-                        
-                        // if the node has sent no types of interest, assume they want nothing but their own ID back
+                        // if the node has any interest types, send back those nodes as well
                         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                             if (node->getUUID() != nodeUUID &&
                                 memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {

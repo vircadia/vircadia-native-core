@@ -126,8 +126,6 @@ public:
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
 
-    void updateWindowTitle();
-
     void wheelEvent(QWheelEvent* event);
 
     void makeVoxel(glm::vec3 position,
@@ -213,6 +211,7 @@ signals:
     
 public slots:
     void domainChanged(const QString& domainHostname);
+    void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
