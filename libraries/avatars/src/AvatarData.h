@@ -52,8 +52,7 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-enum KeyState
-{
+enum KeyState {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
