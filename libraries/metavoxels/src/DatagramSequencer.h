@@ -167,26 +167,33 @@ private:
     QHash<int, ReliableChannel*> _reliableInputChannels;
 };
 
-/// A list of contiguous spans, alternating between set and unset.
+/// A list of contiguous spans, alternating between set and unset.  Conceptually, the list is preceeded by a set
+/// span of infinite length and followed by an unset span of infinite length.  Within those bounds, it alternates
+/// between unset and set.
 class SpanList {
 public:
 
-    SpanList();
-
-    int getTotalSet() const { return _totalSet; }
-
-    /// Sets a region of the list.
-    /// \return the set length at the beginning of the list
-    int set(int offset, int length);
-
-private:
-    
     class Span {
     public:
         int unset;
         int set;
     };
     
+    SpanList();
+    
+    const QList<Span>& getSpans() const { return _spans; }
+    
+    /// Returns the total length set.
+    int getTotalSet() const { return _totalSet; }
+
+    /// Sets a region of the list.
+    /// \return the advancement of the set length at the beginning of the list
+    int set(int offset, int length);
+
+private:
+    
+    /// Sets the spans starting at the specified iterator, consuming at least the given length.
+    /// \return the actual amount set, which may be greater if we ran into an existing set span
     int setSpans(QList<Span>::iterator it, int length);
     
     QList<Span> _spans;
@@ -222,7 +229,8 @@ private:
     ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
-    void writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    int getBytesToWrite(bool& first, int length) const;
+    int writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
     
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
     
@@ -236,6 +244,7 @@ private:
     float _priority;
     
     int _offset;
+    int _writePosition;
     SpanList _acknowledged;
 };
 
