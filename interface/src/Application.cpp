@@ -154,8 +154,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false),
-        _logger(new FileLogger(this)),
-        _persistThread(NULL)
+        _logger(new FileLogger(this))
 {
     _myAvatar = _avatarManager.getMyAvatar();
 
@@ -316,12 +315,7 @@ Application::~Application() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
-    if (_persistThread) {
-        _persistThread->terminate();
-        _persistThread->deleteLater();
-        _persistThread = NULL;
-    }
-    
+
     storeSizeAndPosition();
     saveScripts();
     _sharedVoxelSystem.changeTree(new VoxelTree);
@@ -1907,9 +1901,6 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
-
-    updateLocalOctreeCache(true);
 }
 
 void Application::closeMirrorView() {
@@ -2062,7 +2053,7 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled,
         // and make sure the tree is not already busy... because otherwise you'll have to wait.
-        if (!(_voxels.treeIsBusy() || _mousePressed)) {
+        if (!_mousePressed) {
             {
                 PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
                 _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
@@ -2207,9 +2198,6 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
-        if (_persistThread) {
-            _persistThread->threadRoutine();
-        }
     }
 }
 
@@ -2884,7 +2872,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    _avatarManager.renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
+    bool renderMyHead = (whichCamera.getInterpolatedMode() != CAMERA_MODE_FIRST_PERSON);
+    _avatarManager.renderAvatars(renderMyHead, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3882,10 +3871,6 @@ void Application::domainChanged(const QString& domainHostname) {
     
     // reset the particle renderer
     _particles.clear();
-
-    // reset our persist thread
-    qDebug() << "Domain changed to" << domainHostname << ". Swapping persist cache.";
-    updateLocalOctreeCache();
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
@@ -4153,49 +4138,6 @@ void Application::toggleLogDialog() {
 
 void Application::initAvatarAndViewFrustum() {
     updateMyAvatar(0.f);
-}
-
-QString Application::getLocalVoxelCacheFileName() {
-    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QDir logDir(fileName);
-    if (!logDir.exists(fileName)) {
-        logDir.mkdir(fileName);
-    }
-
-    fileName.append(QString("/hifi.voxelscache."));
-    fileName.append(_profile.getLastDomain());
-    fileName.append(QString(".svo"));
-
-    return fileName;
-}
-
-
-void Application::updateLocalOctreeCache(bool firstTime) {
-    // only do this if we've already got a persistThread or we're told this is the first time
-    if (firstTime || _persistThread) {
-
-        if (_persistThread) {
-            _persistThread->terminate();
-            _persistThread->deleteLater();
-            _persistThread = NULL;
-        }
-
-        QString localVoxelCacheFileName = getLocalVoxelCacheFileName();
-        const int LOCAL_CACHE_PERSIST_INTERVAL = 1000 * 10; // every 10 seconds
-
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableLocalVoxelCache)) {
-            _persistThread = new OctreePersistThread(_voxels.getTree(),
-                                            localVoxelCacheFileName.toLocal8Bit().constData(),LOCAL_CACHE_PERSIST_INTERVAL);
-
-            qDebug() << "updateLocalOctreeCache()... localVoxelCacheFileName=" << localVoxelCacheFileName;
-        }
-
-        if (_persistThread) {
-            _voxels.beginLoadingLocalVoxelCache(); // while local voxels are importing, don't do individual node VBO updates
-            connect(_persistThread, SIGNAL(loadCompleted()), &_voxels, SLOT(localVoxelCacheLoaded()));
-            _persistThread->initialize(true);
-        }
-    }
 }
 
 void Application::checkVersion() {
