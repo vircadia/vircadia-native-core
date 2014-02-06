@@ -1256,7 +1256,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 pasteVoxels();
             }
 
-            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) && 
+                MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
