@@ -36,6 +36,7 @@ Camera::Camera() {
     _modeShiftRate     = 1.0f;
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
+    _prevMode          = CAMERA_MODE_THIRD_PERSON;
     _tightness         = 10.0f; // default
     _fieldOfView       = DEFAULT_FIELD_OF_VIEW_DEGREES; 
     _aspectRatio       = 16.f/9.f;
@@ -123,6 +124,7 @@ void Camera::setModeShiftRate ( float rate ) {
 
 void Camera::setMode(CameraMode m) { 
  
+    _prevMode = _mode;
     _mode = m;
     _modeShift = 0.0;
     _linearModeShift = 0.0;
@@ -197,6 +199,17 @@ void Camera::initialize() {
 // call to find out if the view frustum needs to be reshaped
 bool Camera::getFrustumNeedsReshape() const {
     return _frustumNeedsReshape;
+}
+
+// call this when deciding whether to render the head or not
+CameraMode Camera::getInterpolatedMode() const {
+    const float SHIFT_THRESHOLD_INTO_FIRST_PERSON = 0.7f;
+    const float SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON = 0.6f;
+    if ((_mode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_INTO_FIRST_PERSON) ||
+        (_prevMode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON)) {
+        return _prevMode;
+    }
+    return _mode;
 }
 
 // call this after reshaping the view frustum

@@ -46,9 +46,12 @@ void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, con
 bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
+    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(getMyPacketType());
+    
     if (_lastOctreePacketLength == getPacketLength()) {
-        if (memcmp(_lastOctreePacket + OCTREE_PACKET_HEADER_SIZE,
-                _octreePacket + OCTREE_PACKET_HEADER_SIZE , getPacketLength() - OCTREE_PACKET_HEADER_SIZE) == 0) {
+        if (memcmp(_lastOctreePacket + (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE),
+                _octreePacket + (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE),
+                   getPacketLength() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE)) == 0) {
             return true;
         }
     }
@@ -125,7 +128,7 @@ void OctreeQueryNode::resetOctreePacket(bool lastWasSurpressed) {
     *sequenceAt = _sequenceNumber;
     _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
-    if (!(lastWasSurpressed || _lastOctreePacketLength == OCTREE_PACKET_HEADER_SIZE)) {
+    if (!(lastWasSurpressed || _lastOctreePacketLength == (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE))) {
         _sequenceNumber++;
     }
 

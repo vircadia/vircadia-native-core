@@ -37,13 +37,15 @@ int packArithmeticallyCodedValue(int value, char* destination) {
         return 1;
     } else {
         // pack 255 and then recursively pack on
-        destination[0] = 255;
+        ((unsigned char*)destination)[0] = 255;
         return 1 + packArithmeticallyCodedValue(value - 255, destination + 1);
     }
 }
 
 PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
+        case PacketTypeParticleData:
+            return 1;
         default:
             return 0;
     }
