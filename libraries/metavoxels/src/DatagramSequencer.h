@@ -14,6 +14,7 @@
 #include <QByteArray>
 #include <QList>
 #include <QSet>
+#include <QVector>
 
 #include "Bitstream.h"
 
@@ -41,9 +42,6 @@ public:
     
     /// Returns the packet number of the sent packet at the specified index.
     int getSentPacketNumber(int index) const { return _sendRecords.at(index).packetNumber; }
-    
-    /// Sends a normal-priority reliable message.
-    void sendReliableMessage(const QVariant& data, int channel = 0);
     
     /// Adds a message to the high priority queue.  Will be sent with every outgoing packet until received.
     void sendHighPriorityMessage(const QVariant& data);
@@ -96,14 +94,24 @@ signals:
 private slots:
 
     void sendClearSharedObjectMessage(int id);
-
+    
 private:
+    
+    friend class ReliableChannel;
+    
+    class ChannelSpan {
+    public:
+        int channel;
+        int offset;
+        int length;
+    };
     
     class SendRecord {
     public:
         int packetNumber;
         int lastReceivedPacketNumber;
         Bitstream::WriteMappings mappings;
+        QVector<ChannelSpan> spans; 
     };
     
     class ReceiveRecord {
@@ -119,11 +127,13 @@ private:
     void sendRecordAcknowledged(const SendRecord& record);
     
     /// Appends some reliable data to the outgoing packet.
-    void appendReliableData(int bytes);
+    void appendReliableData(int bytes, QVector<ChannelSpan>& spans);
     
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
-    void sendPacket(const QByteArray& packet);
+    void sendPacket(const QByteArray& packet, const QVector<ChannelSpan>& spans);
+    
+    void handleHighPriorityMessage(const QVariant& data);
     
     QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
@@ -163,11 +173,15 @@ class ReliableChannel : public QObject {
     
 public:
 
+    int getIndex() const { return _index; }
+
     QDataStream& getDataStream() { return _dataStream; }
     Bitstream& getBitstream() { return _bitstream; }
 
     void setPriority(float priority) { _priority = priority; }
     float getPriority() const { return _priority; }
+
+    int getBytesAvailable() const;
 
     void sendMessage(const QVariant& message);
 
@@ -179,14 +193,30 @@ private:
     
     friend class DatagramSequencer;
     
-    ReliableChannel(DatagramSequencer* sequencer);
+    class RemainingSpan {
+    public:
+        int unacknowledged;
+        int acknowledged;
+    };
+    
+    ReliableChannel(DatagramSequencer* sequencer, int index);
+    
+    void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
+    void writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    
+    void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
     
     void readData(QDataStream& in);
     
+    int _index;
     QBuffer _buffer;
     QDataStream _dataStream;
     Bitstream _bitstream;
     float _priority;
+    
+    int _offset;
+    int _sent;
+    QList<RemainingSpan> _remainingSpans;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

@@ -69,6 +69,8 @@ public:
     
     int takePersistentID(T value) { return _persistentIDs.take(value); }
     
+    void removePersistentValue(int id) { _persistentValues.remove(id); }
+    
     RepeatedValueStreamer& operator<<(T value);
     RepeatedValueStreamer& operator>>(T& value);
     
@@ -226,6 +228,9 @@ public:
     
     /// Persists a set of read mappings recorded earlier.
     void persistReadMappings(const ReadMappings& mappings);
+
+    /// Removes a shared object from the read mappings.
+    void clearSharedObject(int id) { _sharedObjectStreamer.removePersistentValue(id); }
 
     Bitstream& operator<<(bool value);
     Bitstream& operator>>(bool& value);
