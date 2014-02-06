@@ -484,11 +484,6 @@ private:
 
     FileLogger* _logger;
 
-    OctreePersistThread* _persistThread;
-
-    QString getLocalVoxelCacheFileName();
-    void updateLocalOctreeCache(bool firstTime = false);
-    
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
