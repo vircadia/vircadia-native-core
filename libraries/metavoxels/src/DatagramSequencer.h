@@ -167,6 +167,32 @@ private:
     QHash<int, ReliableChannel*> _reliableInputChannels;
 };
 
+/// A list of contiguous spans, alternating between set and unset.
+class SpanList {
+public:
+
+    SpanList();
+
+    int getTotalSet() const { return _totalSet; }
+
+    /// Sets a region of the list.
+    /// \return the set length at the beginning of the list
+    int set(int offset, int length);
+
+private:
+    
+    class Span {
+    public:
+        int unset;
+        int set;
+    };
+    
+    int setSpans(QList<Span>::iterator it, int length);
+    
+    QList<Span> _spans;
+    int _totalSet;
+};
+
 /// Represents a single reliable channel multiplexed onto the datagram sequence.
 class ReliableChannel : public QObject {
     Q_OBJECT
@@ -193,7 +219,7 @@ private:
     
     friend class DatagramSequencer;
     
-    ReliableChannel(DatagramSequencer* sequencer, int index);
+    ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
     
     void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
     void writeSpan(QDataStream& out, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
@@ -204,12 +230,13 @@ private:
     
     int _index;
     QBuffer _buffer;
+    QByteArray _assemblyBuffer;
     QDataStream _dataStream;
     Bitstream _bitstream;
     float _priority;
     
     int _offset;
-    int _acknowledged;
+    SpanList _acknowledged;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */
