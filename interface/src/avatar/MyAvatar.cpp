@@ -225,7 +225,7 @@ void MyAvatar::simulate(float deltaTime) {
             updateCollisionWithVoxels(deltaTime, radius);
         }
         if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            updateAvatarCollisions(deltaTime);
+            updateCollisionsWithAvatars(deltaTime);
         }
     }
 
@@ -970,7 +970,7 @@ public:
 
 const float DEFAULT_HAND_RADIUS = 0.1f;
 
-void MyAvatar::updateAvatarCollisions(float deltaTime) {
+void MyAvatar::updateCollisionsWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
     const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
