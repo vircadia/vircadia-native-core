@@ -8,15 +8,13 @@
 
 #include <PacketHeaders.h>
 
-#include <ParticleServer.h>
-
-#include <VoxelServer.h>
-
 #include "Agent.h"
 #include "AssignmentFactory.h"
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include "metavoxels/MetavoxelServer.h"
+#include "particles/ParticleServer.h"
+#include "voxels/VoxelServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
     QDataStream packetStream(packet);

@@ -10,7 +10,7 @@
 #ifndef __particle_server__ParticleServer__
 #define __particle_server__ParticleServer__
 
-#include <OctreeServer.h>
+#include "../octree/OctreeServer.h"
 
 #include "Particle.h"
 #include "ParticleServerConsts.h"
