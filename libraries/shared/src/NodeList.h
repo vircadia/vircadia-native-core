@@ -30,8 +30,6 @@
 
 #include "Node.h"
 
-const int MAX_PACKET_SIZE = 1500;
-
 const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
 const quint64 DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
 const quint64 PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
