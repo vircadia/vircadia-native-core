@@ -10,16 +10,30 @@
 
 #include <QDataStream>
 #include <QMetaProperty>
+#include <QMetaType>
+#include <QUrl>
 #include <QtDebug>
+
+#include <RegisteredMetaTypes.h>
 
 #include "AttributeRegistry.h"
 #include "Bitstream.h"
+#include "ScriptCache.h"
 
-REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
-REGISTER_SIMPLE_TYPE_STREAMER(QString)
-REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
 REGISTER_SIMPLE_TYPE_STREAMER(bool)
 REGISTER_SIMPLE_TYPE_STREAMER(int)
+REGISTER_SIMPLE_TYPE_STREAMER(float)
+REGISTER_SIMPLE_TYPE_STREAMER(QByteArray)
+REGISTER_SIMPLE_TYPE_STREAMER(QColor)
+REGISTER_SIMPLE_TYPE_STREAMER(QString)
+REGISTER_SIMPLE_TYPE_STREAMER(QUrl)
+REGISTER_SIMPLE_TYPE_STREAMER(QVariantList)
+REGISTER_SIMPLE_TYPE_STREAMER(QVariantHash)
+
+// some types don't quite work with our macro
+static int vec3Streamer = Bitstream::registerTypeStreamer(qMetaTypeId<glm::vec3>(), new SimpleTypeStreamer<glm::vec3>());
+static int metaObjectStreamer = Bitstream::registerTypeStreamer(qMetaTypeId<const QMetaObject*>(),
+    new SimpleTypeStreamer<const QMetaObject*>());
 
 IDStreamer::IDStreamer(Bitstream& stream) :
     _stream(stream),
@@ -52,6 +66,11 @@ IDStreamer& IDStreamer::operator>>(int& value) {
 
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
+    
+    // register it as a subclass of all of its superclasses
+    for (const QMetaObject* superClass = metaObject->superClass(); superClass != NULL; superClass = superClass->superClass()) {
+        getMetaObjectSubClasses().insert(superClass, metaObject);
+    }
     return 0;
 }
 
@@ -61,13 +80,20 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     return 0;
 }
 
-Bitstream::Bitstream(QDataStream& underlying) :
+QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
+    return getMetaObjectSubClasses().values(metaObject);
+}
+
+Bitstream::Bitstream(QDataStream& underlying, QObject* parent) :
+    QObject(parent),
     _underlying(underlying),
     _byte(0),
     _position(0),
     _metaObjectStreamer(*this),
     _typeStreamerStreamer(*this),
-    _attributeStreamer(*this) {
+    _attributeStreamer(*this),
+    _scriptStringStreamer(*this),
+    _sharedObjectStreamer(*this) {
 }
 
 const int BITS_IN_BYTE = 8;
@@ -124,7 +150,9 @@ void Bitstream::reset() {
 Bitstream::WriteMappings Bitstream::getAndResetWriteMappings() {
     WriteMappings mappings = { _metaObjectStreamer.getAndResetTransientOffsets(),
         _typeStreamerStreamer.getAndResetTransientOffsets(),
-        _attributeStreamer.getAndResetTransientOffsets() };
+        _attributeStreamer.getAndResetTransientOffsets(),
+        _scriptStringStreamer.getAndResetTransientOffsets(),
+        _sharedObjectStreamer.getAndResetTransientOffsets() };
     return mappings;
 }
 
@@ -132,12 +160,24 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     _metaObjectStreamer.persistTransientOffsets(mappings.metaObjectOffsets);
     _typeStreamerStreamer.persistTransientOffsets(mappings.typeStreamerOffsets);
     _attributeStreamer.persistTransientOffsets(mappings.attributeOffsets);
+    _scriptStringStreamer.persistTransientOffsets(mappings.scriptStringOffsets);
+    _sharedObjectStreamer.persistTransientOffsets(mappings.sharedObjectOffsets);
+    
+    // find out when shared objects' reference counts drop to one in order to clear their mappings
+    for (QHash<SharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
+            it != mappings.sharedObjectOffsets.constEnd(); it++) {
+        if (it.key()) {
+            connect(it.key().data(), SIGNAL(referenceCountDroppedToOne()), SLOT(clearSharedObject()));
+        }
+    }
 }
 
 Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
     ReadMappings mappings = { _metaObjectStreamer.getAndResetTransientValues(),
         _typeStreamerStreamer.getAndResetTransientValues(),
-        _attributeStreamer.getAndResetTransientValues() };
+        _attributeStreamer.getAndResetTransientValues(),
+        _scriptStringStreamer.getAndResetTransientValues(),
+        _sharedObjectStreamer.getAndResetTransientValues() };
     return mappings;
 }
 
@@ -145,6 +185,8 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
     _metaObjectStreamer.persistTransientValues(mappings.metaObjectValues);
     _typeStreamerStreamer.persistTransientValues(mappings.typeStreamerValues);
     _attributeStreamer.persistTransientValues(mappings.attributeValues);
+    _scriptStringStreamer.persistTransientValues(mappings.scriptStringValues);
+    _sharedObjectStreamer.persistTransientValues(mappings.sharedObjectValues);
 }
 
 Bitstream& Bitstream::operator<<(bool value) {
@@ -205,6 +247,17 @@ Bitstream& Bitstream::operator>>(QByteArray& string) {
     return read(string.data(), size * BITS_IN_BYTE);
 }
 
+Bitstream& Bitstream::operator<<(const QColor& color) {
+    return *this << (int)color.rgba();
+}
+
+Bitstream& Bitstream::operator>>(QColor& color) {
+    int rgba;
+    *this >> rgba;
+    color.setRgba(rgba);
+    return *this;
+}
+
 Bitstream& Bitstream::operator<<(const QString& string) {
     *this << string.size();    
     return write(string.constData(), string.size() * sizeof(QChar) * BITS_IN_BYTE);
@@ -215,6 +268,17 @@ Bitstream& Bitstream::operator>>(QString& string) {
     *this >> size;
     string.resize(size);
     return read(string.data(), size * sizeof(QChar) * BITS_IN_BYTE);
+}
+
+Bitstream& Bitstream::operator<<(const QUrl& url) {
+    return *this << url.toString();
+}
+
+Bitstream& Bitstream::operator>>(QUrl& url) {
+    QString string;
+    *this >> string;
+    url = string;
+    return *this;
 }
 
 Bitstream& Bitstream::operator<<(const QVariant& value) {
@@ -302,11 +366,61 @@ Bitstream& Bitstream::operator>>(QObject*& object) {
 }
 
 Bitstream& Bitstream::operator<<(const QMetaObject* metaObject) {
-    return *this << (metaObject ? QByteArray::fromRawData(
-        metaObject->className(), strlen(metaObject->className())) : QByteArray());
+    _metaObjectStreamer << metaObject;
+    return *this;
 }
 
 Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
+    _metaObjectStreamer >> metaObject;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const TypeStreamer* streamer) {
+    _typeStreamerStreamer << streamer;    
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
+    _typeStreamerStreamer >> streamer;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const AttributePointer& attribute) {
+    _attributeStreamer << attribute;
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(AttributePointer& attribute) {
+    _attributeStreamer >> attribute;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const QScriptString& string) {
+    _scriptStringStreamer << string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(QScriptString& string) {
+    _scriptStringStreamer >> string;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<<(const SharedObjectPointer& object) {
+    _sharedObjectStreamer << object;
+    return *this;
+}
+
+Bitstream& Bitstream::operator>>(SharedObjectPointer& object) {
+    _sharedObjectStreamer >> object;
+    return *this;
+}
+
+Bitstream& Bitstream::operator<(const QMetaObject* metaObject) {
+    return *this << (metaObject ? QByteArray::fromRawData(metaObject->className(),
+        strlen(metaObject->className())) : QByteArray());
+}
+
+Bitstream& Bitstream::operator>(const QMetaObject*& metaObject) {
     QByteArray className;
     *this >> className;
     if (className.isEmpty()) {
@@ -320,12 +434,12 @@ Bitstream& Bitstream::operator>>(const QMetaObject*& metaObject) {
     return *this;
 }
 
-Bitstream& Bitstream::operator<<(const TypeStreamer* streamer) {
+Bitstream& Bitstream::operator<(const TypeStreamer* streamer) {
     const char* typeName = QMetaType::typeName(streamer->getType());
     return *this << QByteArray::fromRawData(typeName, strlen(typeName));
 }
 
-Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
+Bitstream& Bitstream::operator>(const TypeStreamer*& streamer) {
     QByteArray typeName;
     *this >> typeName;
     streamer = getTypeStreamers().value(QMetaType::type(typeName.constData()));
@@ -335,20 +449,53 @@ Bitstream& Bitstream::operator>>(const TypeStreamer*& streamer) {
     return *this;
 }
 
-Bitstream& Bitstream::operator<<(const AttributePointer& attribute) {
+Bitstream& Bitstream::operator<(const AttributePointer& attribute) {
     return *this << (QObject*)attribute.data();
 }
 
-Bitstream& Bitstream::operator>>(AttributePointer& attribute) {
+Bitstream& Bitstream::operator>(AttributePointer& attribute) {
     QObject* object;
     *this >> object;
     attribute = AttributeRegistry::getInstance()->registerAttribute(static_cast<Attribute*>(object));
     return *this;
 }
 
+Bitstream& Bitstream::operator<(const QScriptString& string) {
+    return *this << string.toString();
+}
+
+Bitstream& Bitstream::operator>(QScriptString& string) {
+    QString rawString;
+    *this >> rawString;
+    string = ScriptCache::getInstance()->getEngine()->toStringHandle(rawString);
+    return *this;
+}
+
+Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
+    return *this << object.data();
+}
+
+Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
+    QObject* rawObject;
+    *this >> rawObject;  
+    object = static_cast<SharedObject*>(rawObject);
+    return *this;
+}
+
+void Bitstream::clearSharedObject() {
+    SharedObjectPointer object(static_cast<SharedObject*>(sender()));
+    object->disconnect(this);
+    emit sharedObjectCleared(_sharedObjectStreamer.takePersistentID(object));
+}
+
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {
     static QHash<QByteArray, const QMetaObject*> metaObjects;
     return metaObjects;
+}
+
+QMultiHash<const QMetaObject*, const QMetaObject*>& Bitstream::getMetaObjectSubClasses() {
+    static QMultiHash<const QMetaObject*, const QMetaObject*> metaObjectSubClasses;
+    return metaObjectSubClasses;
 }
 
 QHash<int, const TypeStreamer*>& Bitstream::getTypeStreamers() {
