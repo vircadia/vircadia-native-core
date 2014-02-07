@@ -15,6 +15,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
+    qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
 }
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
@@ -71,5 +72,30 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     color.red = object.property("red").toVariant().toInt();
     color.green = object.property("green").toVariant().toInt();
     color.blue = object.property("blue").toVariant().toInt();
+}
+
+QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay) {
+    QScriptValue obj = engine->newObject();
+    QScriptValue origin = vec3toScriptValue(engine, pickRay.origin);
+    obj.setProperty("origin", origin);
+    QScriptValue direction = vec3toScriptValue(engine, pickRay.direction);
+    obj.setProperty("direction", direction);
+    return obj;
+
+}
+
+void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
+    QScriptValue originValue = object.property("origin");
+    if (originValue.isValid()) {
+        pickRay.origin.x = originValue.property("x").toVariant().toFloat();
+        pickRay.origin.y = originValue.property("y").toVariant().toFloat();
+        pickRay.origin.z = originValue.property("z").toVariant().toFloat();
+    }
+    QScriptValue directionValue = object.property("direction");
+    if (directionValue.isValid()) {
+        pickRay.direction.x = directionValue.property("x").toVariant().toFloat();
+        pickRay.direction.y = directionValue.property("y").toVariant().toFloat();
+        pickRay.direction.z = directionValue.property("z").toVariant().toFloat();
+    }
 }
 

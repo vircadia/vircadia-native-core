@@ -170,6 +170,7 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
+    ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
     Profile* getProfile() { return &_profile; }
@@ -238,6 +239,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void cameraMenuChanged();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
 
