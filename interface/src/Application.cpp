@@ -441,9 +441,9 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     if (OculusManager::isConnected()) {
-        _myCamera.setUpShift       (0.0f);
-        _myCamera.setDistance      (0.0f);
-        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setUpShift(0.0f);
+        _myCamera.setDistance(0.0f);
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead().getOrientation());
 
@@ -453,7 +453,7 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
 
@@ -1964,8 +1964,13 @@ void Application::updateMouseRay() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
-    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(), _mouseY / (float)_glWidget->height(),
-        _mouseRayOrigin, _mouseRayDirection);
+    // if the mouse pointer isn't visible, act like it's at the center of the screen
+    float x = 0.5f, y = 0.5f;
+    if (!_mouseHidden) {
+        x = _mouseX / (float)_glWidget->width();
+        y = _mouseY / (float)_glWidget->height();
+    }
+    _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2002,18 +2007,20 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
-    const float FAR_AWAY_STARE = TREE_SCALE;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         lookAtSpot = _myCamera.getPosition();
 
-    } else if (_mouseHidden) {
-        // if the mouse cursor is hidden, just look straight ahead
-        glm::vec3 rayOrigin, rayDirection;
-        _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
-        lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
     } else {
-        // just look in direction of the mouse ray
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * FAR_AWAY_STARE;
+        // look in direction of the mouse ray, but use distance from intersection, if any
+        float distance = TREE_SCALE;
+        if (_myAvatar->getLookAtTargetAvatar()) {
+            distance = glm::distance(_mouseRayOrigin,
+                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead().calculateAverageEyePosition()); 
+            
+        } else if (_isHoverVoxel) {
+            distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
+        }
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
@@ -2221,28 +2228,30 @@ void Application::updateMetavoxels(float deltaTime) {
     }
 }
 
+void Application::cameraMenuChanged() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            _myCamera.setMode(CAMERA_MODE_MIRROR);
+            _myCamera.setModeShiftRate(100.0f);
+        }
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    } else {
+        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    }
+}
+
 void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
     if (!OculusManager::isConnected() && !TV3DManager::isConnected()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
-                _myCamera.setMode(CAMERA_MODE_MIRROR);
-                _myCamera.setModeShiftRate(100.0f);
-            }
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
-            if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        } else {
-            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        }
-
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
             float xSign = _myCamera.getMode() == CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
@@ -4097,6 +4106,10 @@ void Application::loadScript(const QString& fileNameString) {
     
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData( static_cast<Avatar*>(_myAvatar), "MyAvatar");
+
+    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
+    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
+    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
     QThread* workerThread = new QThread(this);
 

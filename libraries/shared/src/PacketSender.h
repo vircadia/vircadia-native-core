@@ -13,6 +13,7 @@
 
 #include "GenericThread.h"
 #include "NetworkPacket.h"
+#include "NodeList.h"
 #include "SharedUtil.h"
 
 /// Generalized threaded processor for queueing and sending of outbound packets.

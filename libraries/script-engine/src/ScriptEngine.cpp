@@ -138,6 +138,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
+    registerGlobalObject("Vec3", &_vec3Library);
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
