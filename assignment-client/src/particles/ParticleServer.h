@@ -34,10 +34,10 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun();
-    virtual bool hasSpecialPacketToSend(Node* node);
-    virtual int sendSpecialPacket(Node* node);
+    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
+    virtual int sendSpecialPacket(const SharedNodePointer& node);
 
-    virtual void particleCreated(const Particle& newParticle, Node* senderNode);
+    virtual void particleCreated(const Particle& newParticle, const SharedNodePointer& senderNode);
 
 public slots:
     void pruneDeletedParticles();

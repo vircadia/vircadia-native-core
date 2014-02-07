@@ -39,7 +39,7 @@ public:
 
     virtual void run();
     
-    virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    virtual void readPendingDatagrams();
 
 private slots:
     
@@ -47,7 +47,7 @@ private slots:
     
 private:
     
-    void processData(const QByteArray& data, const HifiSockAddr& sender);
+    void processData(const QByteArray& data, const SharedNodePointer& sendingNode);
     
     QTimer _sendTimer;
     qint64 _lastSend;
@@ -64,9 +64,9 @@ class MetavoxelSession : public QObject {
 public:
     
     MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
-        const QByteArray& datagramHeader, const HifiSockAddr& sender);
+        const QByteArray& datagramHeader, const SharedNodePointer& sendingNode);
 
-    void receivedData(const QByteArray& data, const HifiSockAddr& sender);
+    void receivedData(const QByteArray& data, const SharedNodePointer& sendingNode);
 
     void sendDelta();
 
@@ -96,7 +96,7 @@ private:
     QTimer _timeoutTimer;
     DatagramSequencer _sequencer;
     
-    HifiSockAddr _sender;
+    SharedNodePointer _sendingNode;
     
     glm::vec3 _position;
     

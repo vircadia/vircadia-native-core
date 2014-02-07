@@ -14,7 +14,7 @@
 
 class NewlyCreatedParticleHook {
 public:
-    virtual void particleCreated(const Particle& newParticle, Node* senderNode) = 0;
+    virtual void particleCreated(const Particle& newParticle, const SharedNodePointer& senderNode) = 0;
 };
 
 class ParticleTree : public Octree {
@@ -35,11 +35,11 @@ public:
     virtual PacketType expectedDataPacketType() const { return PacketTypeParticleData; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, Node* senderNode);
+                    const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
     virtual void update();
 
-    void storeParticle(const Particle& particle, Node* senderNode = NULL);
+    void storeParticle(const Particle& particle, const SharedNodePointer& senderNode = SharedNodePointer());
     void updateParticle(const ParticleID& particleID, const ParticleProperties& properties);
     void addParticle(const ParticleID& particleID, const ParticleProperties& properties);
     void deleteParticle(const ParticleID& particleID);
@@ -67,7 +67,7 @@ public:
     bool encodeParticlesDeletedSince(quint64& sinceTime, unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetParticlesDeletedBefore(quint64 sinceTime);
 
-    void processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode);
+    void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     void handleAddParticleResponse(const QByteArray& packet);
 
 private:
@@ -82,7 +82,7 @@ private:
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData);
 
-    void notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode);
+    void notifyNewlyCreatedParticle(const Particle& newParticle, const SharedNodePointer& senderNode);
 
     QReadWriteLock _newlyCreatedHooksLock;
     std::vector<NewlyCreatedParticleHook*> _newlyCreatedHooks;

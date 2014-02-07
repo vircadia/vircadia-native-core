@@ -12,6 +12,7 @@
 #include <SharedUtil.h>
 
 #include <MetavoxelUtil.h>
+#include <ScriptCache.h>
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
@@ -37,6 +38,9 @@ void MetavoxelSystem::init() {
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");
+        
+        // let the script cache know to use our common access manager
+        ScriptCache::getInstance()->setNetworkAccessManager(Application::getInstance()->getNetworkAccessManager());
     }
     
     NodeList* nodeList = NodeList::getInstance();
@@ -140,9 +144,9 @@ void MetavoxelSystem::removeClient(const QUuid& uuid) {
     delete client;
 }
 
-void MetavoxelSystem::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
+void MetavoxelSystem::receivedData(const QByteArray& data, const SharedNodePointer& sendingNode) {
     int headerPlusIDSize;
-    QUuid sessionID = readSessionID(data, sender, headerPlusIDSize);
+    QUuid sessionID = readSessionID(data, sendingNode, headerPlusIDSize);
     if (sessionID.isNull()) {
         return;
     }
@@ -226,10 +230,7 @@ void MetavoxelClient::receivedData(const QByteArray& data) {
 
 void MetavoxelClient::sendData(const QByteArray& data) {
     QMutexLocker locker(&_node->getMutex());
-    const HifiSockAddr* address = _node->getActiveSocket();
-    if (address) {
-        NodeList::getInstance()->getNodeSocket().writeDatagram(data, address->getAddress(), address->getPort());
-    }
+    NodeList::getInstance()->writeDatagram(data, _node);
 }
 
 void MetavoxelClient::readPacket(Bitstream& in) {

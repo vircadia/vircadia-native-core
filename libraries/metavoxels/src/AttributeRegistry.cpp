@@ -6,15 +6,13 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <QColorDialog>
-#include <QPushButton>
 #include <QScriptEngine>
-#include <QVBoxLayout>
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
 
 REGISTER_META_OBJECT(QRgbAttribute)
+REGISTER_META_OBJECT(SharedObjectAttribute)
 
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
@@ -22,9 +20,20 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 }
 
 AttributeRegistry::AttributeRegistry() :
-    _guideAttribute(registerAttribute(new PolymorphicAttribute("guide", PolymorphicDataPointer(new DefaultMetavoxelGuide())))),
+    _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
+        SharedObjectPointer(new DefaultMetavoxelGuide())))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
+}
+
+static QScriptValue qDebugFunction(QScriptContext* context, QScriptEngine* engine) {
+    QDebug debug = qDebug();
+    
+    for (int i = 0; i < context->argumentCount(); i++) {
+        debug << context->argument(i).toString();
+    }
+    
+    return QScriptValue();
 }
 
 void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
@@ -33,6 +42,7 @@ void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
     registry.setProperty("normalAttribute", engine->newQObject(_normalAttribute.data()));
     registry.setProperty("getAttribute", engine->newFunction(getAttribute, 1));
     engine->globalObject().setProperty("AttributeRegistry", registry);
+    engine->globalObject().setProperty("qDebug", engine->newFunction(qDebugFunction, 1));
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
@@ -84,6 +94,10 @@ OwnedAttributeValue::OwnedAttributeValue(const AttributeValue& other) :
     AttributeValue(other.getAttribute(), other.getAttribute() ? other.copy() : NULL) {
 }
 
+OwnedAttributeValue::OwnedAttributeValue(const OwnedAttributeValue& other) :
+    AttributeValue(other.getAttribute(), other.getAttribute() ? other.copy() : NULL) {
+}
+
 OwnedAttributeValue::~OwnedAttributeValue() {
     if (_attribute) {
         _attribute->destroy(_value);
@@ -91,6 +105,16 @@ OwnedAttributeValue::~OwnedAttributeValue() {
 }
 
 OwnedAttributeValue& OwnedAttributeValue::operator=(const AttributeValue& other) {
+    if (_attribute) {
+        _attribute->destroy(_value);
+    }
+    if ((_attribute = other.getAttribute())) {
+        _value = other.copy();
+    }
+    return *this;
+}
+
+OwnedAttributeValue& OwnedAttributeValue::operator=(const OwnedAttributeValue& other) {
     if (_attribute) {
         _attribute->destroy(_value);
     }
@@ -146,41 +170,48 @@ void* QRgbAttribute::createFromVariant(const QVariant& value) const {
 }
 
 QWidget* QRgbAttribute::createEditor(QWidget* parent) const {
-    QRgbEditor* editor = new QRgbEditor(parent);
+    QColorEditor* editor = new QColorEditor(parent);
     editor->setColor(QColor::fromRgba(_defaultValue));
     return editor;
 }
 
-QRgbEditor::QRgbEditor(QWidget* parent) : QWidget(parent) {
-    setLayout(new QVBoxLayout());
-    layout()->addWidget(_button = new QPushButton());
-    connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
+SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,
+        const SharedObjectPointer& defaultValue) :
+    InlineAttribute<SharedObjectPointer>(name, defaultValue),
+    _metaObject(metaObject) {
+    
 }
 
-void QRgbEditor::setColor(const QColor& color) {
-    QString name = (_color = color).name();
-    _button->setStyleSheet(QString("background: %1; color: %2").arg(name, QColor::fromRgb(~color.rgb()).name()));
-    _button->setText(name);
-}
-
-void QRgbEditor::selectColor() {
-    QColor color = QColorDialog::getColor(_color, this, QString(), QColorDialog::ShowAlphaChannel);
-    if (color.isValid()) {
-        setColor(color);
+void SharedObjectAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    if (isLeaf) {
+        in >> *((SharedObjectPointer*)&value);
     }
 }
 
-PolymorphicData::~PolymorphicData() {
+void SharedObjectAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    if (isLeaf) {
+        out << decodeInline<SharedObjectPointer>(value);
+    }
 }
 
-template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone() {
-    return d->clone();
+bool SharedObjectAttribute::merge(void*& parent, void* children[]) const {
+    SharedObjectPointer firstChild = decodeInline<SharedObjectPointer>(children[0]);
+    for (int i = 1; i < MERGE_COUNT; i++) {
+        if (firstChild != decodeInline<SharedObjectPointer>(children[i])) {
+            *(SharedObjectPointer*)&parent = _defaultValue;
+            return false;
+        }
+    }
+    *(SharedObjectPointer*)&parent = firstChild;
+    return true;
 }
 
-PolymorphicAttribute::PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue) :
-    InlineAttribute<PolymorphicDataPointer>(name, defaultValue) {
+void* SharedObjectAttribute::createFromVariant(const QVariant& value) const {
+    return create(encodeInline(value.value<SharedObjectPointer>()));
 }
 
-bool PolymorphicAttribute::merge(void*& parent, void* children[]) const {
-    return false;
+QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
+    SharedObjectEditor* editor = new SharedObjectEditor(_metaObject, parent);
+    editor->setObject(_defaultValue);
+    return editor;
 }
