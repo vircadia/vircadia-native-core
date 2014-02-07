@@ -12,7 +12,6 @@
 #include <string.h>
 #include <QString>
 
-const int BITS_IN_BYTE  = 8;
 const int BITS_IN_OCTAL = 3;
 const int NUMBER_OF_COLORS = 3; // RGB!
 const int SIZE_OF_COLOR_DATA = NUMBER_OF_COLORS * sizeof(unsigned char); // size in bytes

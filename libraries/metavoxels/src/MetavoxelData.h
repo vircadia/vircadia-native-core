@@ -12,6 +12,7 @@
 #include <QBitArray>
 #include <QHash>
 #include <QSharedData>
+#include <QSharedPointer>
 #include <QScriptString>
 #include <QScriptValue>
 #include <QVector>
@@ -19,13 +20,14 @@
 #include <glm/glm.hpp>
 
 #include "AttributeRegistry.h"
+#include "MetavoxelUtil.h"
 
 class QScriptContext;
 
-class Box;
 class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
+class NetworkValue;
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
@@ -150,7 +152,9 @@ protected:
 typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
 
 /// Interface for objects that guide metavoxel visitors.
-class MetavoxelGuide : public PolymorphicData {
+class MetavoxelGuide : public SharedObject {
+    Q_OBJECT
+    
 public:
     
     /// Guides the specified visitor to the contained voxels.
@@ -159,30 +163,56 @@ public:
 
 /// Guides visitors through the explicit content of the system.
 class DefaultMetavoxelGuide : public MetavoxelGuide {
+    Q_OBJECT    
+    
 public:
     
-    virtual PolymorphicData* clone() const;
+    Q_INVOKABLE DefaultMetavoxelGuide();
     
     virtual void guide(MetavoxelVisitation& visitation);
 };
 
-/// Represents a guide implemented in Javascript.
-class ScriptedMetavoxelGuide : public MetavoxelGuide {
+/// A temporary test guide that just makes the existing voxels throb with delight.
+class ThrobbingMetavoxelGuide : public DefaultMetavoxelGuide {
+    Q_OBJECT
+    Q_PROPERTY(float rate MEMBER _rate)
+
 public:
-
-    ScriptedMetavoxelGuide(const QScriptValue& guideFunction);
-
-    virtual PolymorphicData* clone() const;
+    
+    Q_INVOKABLE ThrobbingMetavoxelGuide();
     
     virtual void guide(MetavoxelVisitation& visitation);
+    
+private:
+    
+    float _rate;
+};
 
+/// Represents a guide implemented in Javascript.
+class ScriptedMetavoxelGuide : public DefaultMetavoxelGuide {
+    Q_OBJECT
+    Q_PROPERTY(ParameterizedURL url MEMBER _url WRITE setURL)
+    
+public:
+
+    Q_INVOKABLE ScriptedMetavoxelGuide();
+
+    virtual void guide(MetavoxelVisitation& visitation);
+
+public slots:
+
+    void setURL(const ParameterizedURL& url);
+    
 private:
 
     static QScriptValue getInputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getOutputs(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue visit(QScriptContext* context, QScriptEngine* engine);
 
-    QScriptValue _guideFunction;
+    ParameterizedURL _url;
+
+    QSharedPointer<NetworkValue> _guideFunction;
+
     QScriptString _minimumHandle;
     QScriptString _sizeHandle;
     QScriptString _inputValuesHandle;
