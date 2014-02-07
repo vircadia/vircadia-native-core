@@ -268,8 +268,5 @@ void CameraScriptableObject::setMode(const QString& mode) {
     }
 }
 
-void CameraScriptableObject::setPosition(const glm::vec3& p) {
-    _camera->setTargetPosition(p);
-}
 
 

@@ -110,8 +110,12 @@ public:
 public slots:
     QString getMode() const;
     void setMode(const QString& mode);
-    void setPosition(const glm::vec3& p);
+    void setPosition(const glm::vec3& value) { _camera->setTargetPosition(value);}
+
     glm::vec3 getPosition() const { return _camera->getPosition(); }
+
+    void setOrientation(const glm::quat& value) { _camera->setTargetRotation(value); }
+    glm::quat getOrientation() const { return _camera->getRotation(); }
 
 private:
     Camera* _camera;
