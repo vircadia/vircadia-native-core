@@ -12,6 +12,7 @@
 #include <SharedUtil.h>
 
 #include <MetavoxelUtil.h>
+#include <ScriptCache.h>
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
@@ -37,6 +38,9 @@ void MetavoxelSystem::init() {
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");
+        
+        // let the script cache know to use our common access manager
+        ScriptCache::getInstance()->setNetworkAccessManager(Application::getInstance()->getNetworkAccessManager());
     }
     
     NodeList* nodeList = NodeList::getInstance();
