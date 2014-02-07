@@ -41,3 +41,8 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
     getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
 }
 
+
+RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const PickRay& ray) {
+    RayToVoxelIntersectionResult result;
+    return result;
+}
