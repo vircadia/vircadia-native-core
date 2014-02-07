@@ -1963,8 +1963,13 @@ void Application::updateMouseRay() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
-    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(), _mouseY / (float)_glWidget->height(),
-        _mouseRayOrigin, _mouseRayDirection);
+    // if the mouse pointer isn't visible, act like it's at the center of the screen
+    float x = 0.5f, y = 0.5f;
+    if (!_mouseHidden) {
+        x = _mouseX / (float)_glWidget->width();
+        y = _mouseY / (float)_glWidget->height();
+    }
+    _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2001,18 +2006,20 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
-    const float FAR_AWAY_STARE = TREE_SCALE;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         lookAtSpot = _myCamera.getPosition();
 
-    } else if (_mouseHidden) {
-        // if the mouse cursor is hidden, just look straight ahead
-        glm::vec3 rayOrigin, rayDirection;
-        _viewFrustum.computePickRay(0.5f, 0.5f, rayOrigin, rayDirection);
-        lookAtSpot = rayOrigin + rayDirection * FAR_AWAY_STARE;
     } else {
-        // just look in direction of the mouse ray
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * FAR_AWAY_STARE;
+        // look in direction of the mouse ray, but use distance from intersection, if any
+        float distance = TREE_SCALE;
+        if (_myAvatar->getLookAtTargetAvatar()) {
+            distance = glm::distance(_mouseRayOrigin,
+                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead().calculateAverageEyePosition()); 
+            
+        } else if (_isHoverVoxel) {
+            distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
+        }
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
     }
     if (_faceshift.isActive()) {
         // deflect using Faceshift gaze data
