@@ -232,9 +232,12 @@ Menu::Menu() :
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
+                                            appInstance,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H,false,
+                                            appInstance,SLOT(cameraMenuChanged()));
+                                            
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
                                            appInstance,
@@ -690,6 +693,9 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
     menu->removeAction(_actionHash.value(actionName));
 }
 
+void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
+    return _actionHash.value(menuOption)->setChecked(isChecked);
+}
 
 bool Menu::isOptionChecked(const QString& menuOption) {
     return _actionHash.value(menuOption)->isChecked();

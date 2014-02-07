@@ -124,7 +124,7 @@ QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event)
     return obj;
 }
 
-void keyEventFromScriptValue(const QScriptValue &object, KeyEvent& event) {
+void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
 
     event.isValid = false; // assume the worst
     event.isMeta = object.property("isMeta").toVariant().toBool();
@@ -231,7 +231,7 @@ QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& ev
     return obj;
 }
 
-void mouseEventFromScriptValue(const QScriptValue &object, MouseEvent& event) {
+void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event) {
     // nothing for now...
 }
 
@@ -242,7 +242,7 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     return obj;
 }
 
-void touchEventFromScriptValue(const QScriptValue &object, TouchEvent& event) {
+void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event) {
     // nothing for now...
 }
 
@@ -253,6 +253,8 @@ QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& ev
     return obj;
 }
 
-void wheelEventFromScriptValue(const QScriptValue &object, WheelEvent& event) {
+void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event) {
     // nothing for now...
 }
+
+

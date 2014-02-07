@@ -48,6 +48,7 @@ public:
     ~Menu();
 
     bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
