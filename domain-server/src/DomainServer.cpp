@@ -229,7 +229,7 @@ void DomainServer::readAvailableDatagrams() {
     
     QByteArray receivedPacket;
     NodeType_t nodeType;
-    QUuid nodeUUID;
+   
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
@@ -244,7 +244,7 @@ void DomainServer::readAvailableDatagrams() {
                 QDataStream packetStream(receivedPacket);
                 packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                 
-                deconstructPacketHeader(receivedPacket, nodeUUID);
+                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
                 
                 packetStream >> nodeType;
                 packetStream >> nodePublicAddress >> nodeLocalAddress;

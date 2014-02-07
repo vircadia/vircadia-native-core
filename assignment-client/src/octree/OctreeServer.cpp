@@ -463,10 +463,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
 
     PacketType packetType = packetTypeForPacket(dataByteArray);
     
-    QUuid nodeUUID;
-    deconstructPacketHeader(dataByteArray, nodeUUID);
-    
-    SharedNodePointer matchingNode = nodeList->nodeWithUUID(nodeUUID);
+    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(dataByteArray);
 
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
@@ -487,7 +484,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
             }
             OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
             if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                nodeData->initializeOctreeSendThread(this, nodeUUID);
+                nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
             }
         }
     } else if (packetType == PacketTypeJurisdictionRequest) {

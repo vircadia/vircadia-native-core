@@ -95,8 +95,7 @@ bool packetVersionMatch(const QByteArray& packet) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
        
-        QUuid nodeUUID;
-        deconstructPacketHeader(packet, nodeUUID);
+        QUuid nodeUUID = uuidFromPacketHeader(packet);
         
         qDebug() << "Packet mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << nodeUUID << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
@@ -120,9 +119,9 @@ int numBytesForPacketHeaderGivenPacketType(PacketType type) {
     return (int) ceilf((float)type / 255) + NUM_STATIC_HEADER_BYTES;
 }
 
-void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID) {
-    senderUUID = QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
-                                               NUM_BYTES_RFC4122_UUID));
+QUuid uuidFromPacketHeader(const QByteArray& packet) {
+    return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
+                                         NUM_BYTES_RFC4122_UUID));
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {

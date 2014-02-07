@@ -40,9 +40,6 @@ void DatagramProcessor::processDatagrams() {
         _packetCount++;
         _byteCount += incomingPacket.size();
         
-        QUuid nodeUUID;
-        deconstructPacketHeader(incomingPacket, nodeUUID);
-        
         if (packetVersionMatch(incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
@@ -87,7 +84,7 @@ void DatagramProcessor::processDatagrams() {
                         printf("got PacketType_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
                     }
                     
-                    SharedNodePointer matchedNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
+                    SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(incomingPacket);
                     
                     if (matchedNode) {
                         // add this packet to our list of voxel packets and process them on the voxel processing
@@ -103,7 +100,7 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeKillAvatar:
                 case PacketTypeAvatarIdentity: {
                     // update having heard from the avatar-mixer and record the bytes received
-                    SharedNodePointer avatarMixer = nodeList->nodeWithUUID(nodeUUID);
+                    SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
                     
                     if (avatarMixer) {
                         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());

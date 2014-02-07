@@ -142,11 +142,9 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
     
     switch (packetTypeForPacket(dataByteArray)) {
         case PacketTypeAvatarData: {
-            QUuid nodeUUID;
-            deconstructPacketHeader(dataByteArray, nodeUUID);
             
             // add or update the node in our list
-            SharedNodePointer avatarNode = nodeList->nodeWithUUID(nodeUUID);
+            SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(dataByteArray);
             
             if (avatarNode) {
                 // parse positional data from an node
@@ -156,11 +154,9 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
             break;
         }
         case PacketTypeAvatarIdentity: {
-            QUuid nodeUUID;
-            deconstructPacketHeader(dataByteArray, nodeUUID);
             
             // check if we have a matching node in our list
-            SharedNodePointer avatarNode = nodeList->nodeWithUUID(nodeUUID);
+            SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(dataByteArray);
             
             if (avatarNode && avatarNode->getLinkedData()) {
                 AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
@@ -170,7 +166,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
                     QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
                     
                     QByteArray individualByteArray = nodeData->identityByteArray();
-                    individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, nodeUUID.toRfc4122());
+                    individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());
                     
                     identityPacket.append(individualByteArray);
                     

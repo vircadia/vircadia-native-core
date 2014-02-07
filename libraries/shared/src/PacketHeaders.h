@@ -76,7 +76,7 @@ int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
 int numBytesForPacketHeaderGivenPacketType(PacketType type);
 
-void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID);
+QUuid uuidFromPacketHeader(const QByteArray& packet);
 
 PacketType packetTypeForPacket(const QByteArray& packet);
 PacketType packetTypeForPacket(const char* packet);

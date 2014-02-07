@@ -54,6 +54,13 @@ typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
+typedef quint8 PingType_t;
+namespace PingType {
+    const PingType_t Agnostic = 0;
+    const PingType_t Local = 1;
+    const PingType_t Public = 2;
+}
+
 class NodeList : public QObject {
     Q_OBJECT
 public:
@@ -100,7 +107,7 @@ public:
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
-    QByteArray constructPingPacket();
+    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
@@ -158,8 +165,8 @@ private:
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
 
-    void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
-    void timePingReply(const QByteArray& packet);
+    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
     void clear();

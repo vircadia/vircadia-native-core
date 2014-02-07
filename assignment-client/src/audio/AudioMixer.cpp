@@ -213,12 +213,10 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
     if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
         || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
         || mixerPacketType == PacketTypeInjectAudio) {
-        QUuid nodeUUID;
-        deconstructPacketHeader(dataByteArray, nodeUUID);
 
         NodeList* nodeList = NodeList::getInstance();
 
-        SharedNodePointer matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(dataByteArray);
 
         if (matchingNode) {
             nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, dataByteArray);
