@@ -15,6 +15,7 @@
 #include <QtDebug>
 
 #include <RegisteredMetaTypes.h>
+#include <SharedUtil.h>
 
 #include "AttributeRegistry.h"
 #include "Bitstream.h"
@@ -96,7 +97,6 @@ Bitstream::Bitstream(QDataStream& underlying, QObject* parent) :
     _sharedObjectStreamer(*this) {
 }
 
-const int BITS_IN_BYTE = 8;
 const int LAST_BIT_POSITION = BITS_IN_BYTE - 1;
 
 Bitstream& Bitstream::write(const void* data, int bits, int offset) {
