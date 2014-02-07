@@ -44,5 +44,22 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
 
 RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const PickRay& ray) {
     RayToVoxelIntersectionResult result;
+    if (_tree) {
+        if (_tree->tryLockForRead()) {
+            OctreeElement* element;
+            result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
+            if (result.intersects) {
+                VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+                result.voxel.x = voxel->getCorner().x;
+                result.voxel.y = voxel->getCorner().y;
+                result.voxel.z = voxel->getCorner().z;
+                result.voxel.s = voxel->getScale();
+                result.voxel.red = voxel->getColor()[0];
+                result.voxel.green = voxel->getColor()[1];
+                result.voxel.blue = voxel->getColor()[2];
+            }
+            _tree->unlock();
+        }
+    }
     return result;
 }
