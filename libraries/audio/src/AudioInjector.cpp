@@ -96,10 +96,6 @@ void AudioInjector::injectAudio() {
             // send off this audio packet
             nodeList->writeDatagram(injectAudioPacket, audioMixer);
             
-            if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
-                
-            }
-            
             currentSendPosition += bytesToCopy;
             
             // send two packets before the first sleep so the mixer can start playback right away

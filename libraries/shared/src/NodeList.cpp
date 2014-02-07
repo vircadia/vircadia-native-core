@@ -605,13 +605,16 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
     
+    PingType_t typeFromOriginalPing;
+    pingPacketStream >> typeFromOriginalPing;
+    
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
     
     QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
-    packetStream << timeFromOriginalPing << usecTimestampNow();
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
     
     return replyPacket;
 }
