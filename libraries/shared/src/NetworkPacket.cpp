@@ -8,9 +8,11 @@
 //  A really simple class that stores a network packet between being received and being processed
 //
 
+#include <cassert>
 #include <cstring>
 #include <QtDebug>
-#include <cassert>
+
+#include "SharedUtil.h"
 
 #include "NetworkPacket.h"
 
