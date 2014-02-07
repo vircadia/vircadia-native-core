@@ -48,6 +48,9 @@ private:
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     
+    QJsonObject jsonForSocket(const HifiSockAddr& socket);
+    QJsonObject jsonObjectForNode(const SharedNodePointer& node);
+    
     HTTPManager _HTTPManager;
     
     QHash<QUuid, SharedAssignmentPointer> _staticAssignmentHash;
