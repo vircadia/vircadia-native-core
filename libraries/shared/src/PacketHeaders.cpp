@@ -46,6 +46,17 @@ PacketVersion versionForPacketType(PacketType type) {
     switch (type) {
         case PacketTypeParticleData:
             return 1;
+        case PacketTypeDomainList:
+        case PacketTypeDomainListRequest:
+            return 1;
+        case PacketTypeCreateAssignment:
+        case PacketTypeRequestAssignment:
+            return 1;
+        case PacketTypeDataServerGet:
+        case PacketTypeDataServerPut:
+        case PacketTypeDataServerConfirm:
+        case PacketTypeDataServerSend:
+            return 1;
         default:
             return 0;
     }
