@@ -23,8 +23,8 @@ $(document).ready(function(){
         
       $.each(json.queued, function (uuid, data) {
         queuedTableBody += "<tr>";
-        queuedTableBody += "<td>" + uuid + "</td>";
         queuedTableBody += "<td>" + data.type + "</td>";
+        queuedTableBody += "<td>" + uuid + "</td>";
         queuedTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         queuedTableBody += "</tr>";
       });
