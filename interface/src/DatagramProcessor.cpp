@@ -121,7 +121,7 @@ void DatagramProcessor::processDatagrams() {
                     DataServerClient::processMessageFromDataServer(incomingPacket);
                     break;
                 default:
-                    NodeList::getInstance()->processNodeData(senderSockAddr, incomingPacket);
+                    nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;
             }
         }

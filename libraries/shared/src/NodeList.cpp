@@ -140,8 +140,6 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
         // setup the MD5 hash for source verification in the header
         replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
         
-        qDebug() << "Sending a packet of type" << packetTypeForPacket(datagram);
-        
         return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
     }
     
@@ -234,9 +232,10 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePing: {
             // send back a reply
-            if (sendingNodeForPacket(packet)) {
+            SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+            if (matchingNode) {
                 QByteArray replyPacket = constructPingReplyPacket(packet);
-                writeDatagram(replyPacket, sendingNodeForPacket(packet), senderSockAddr);
+                writeDatagram(replyPacket, matchingNode, senderSockAddr);
             }
             
             break;
@@ -608,6 +607,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         packetStream >> connectionUUID;
         node->setConnectionSecret(connectionUUID);
     }
+    
+    // ping inactive nodes in conjunction with receipt of list from domain-server
+    // this makes it happen every second and also pings any newly added nodes
+    pingInactiveNodes();
 
     return readNodes;
 }
@@ -681,9 +684,6 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
-
-        // try and ping the new node right away to open a connection
-        pingPublicAndLocalSocketsForInactiveNode(newNodeSharedPointer);
         
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
         
