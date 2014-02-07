@@ -94,7 +94,7 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
     // if we don't have an ovveriden address, assume they want to send to the node's active socket
     const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
     if (overridenSockAddr.isNull()) {
-        if (destinationNode->getActiveSocket()) {
+        if (getNodeActiveSocketOrPing(destinationNode)) {
             // use the node's active socket as the destination socket
             destinationSockAddr = destinationNode->getActiveSocket();
         } else {
@@ -196,7 +196,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         case PacketTypePing: {
             // send back a reply
             QByteArray replyPacket = constructPingReplyPacket(packet);
-            _nodeSocket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+            writeDatagram(replyPacket, sendingNodeForPacket(packet), senderSockAddr);
             break;
         }
         case PacketTypePingReply: {
@@ -249,6 +249,14 @@ int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr,
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
     QMutexLocker locker(&_nodeHashMutex);
     return _nodeHash.value(nodeUUID);
+}
+
+SharedNodePointer NodeList::sendingNodeForPacket(const QByteArray& packet) {
+    QUuid nodeUUID;
+    deconstructPacketHeader(packet, nodeUUID);
+    
+    // return the matching node, or NULL if there is no match
+    return nodeWithUUID(nodeUUID);
 }
 
 NodeHash NodeList::getNodeHash() {
@@ -606,12 +614,12 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     return replyPacket;
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
+void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node) {
     QByteArray pingPacket = constructPingPacket();
 
     // send the ping packet to the local and public sockets for this node
-    _nodeSocket.writeDatagram(pingPacket, node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
-    _nodeSocket.writeDatagram(pingPacket, node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
+    writeDatagram(pingPacket, node);
+    writeDatagram(pingPacket, node);
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -668,11 +676,8 @@ unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& des
     foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
         if (destinationNodeTypes.contains(node->getType())) {
-            if (getNodeActiveSocketOrPing(node.data())) {
-                // we know which socket is good for this node, send there
-                _nodeSocket.writeDatagram(packet, node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
-                ++n;
-            }
+            writeDatagram(packet, node);
+            ++n;
         }
     }
 
@@ -683,18 +688,19 @@ void NodeList::pingInactiveNodes() {
     foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(node.data());
+            pingPublicAndLocalSocketsForInactiveNode(node);
         }
     }
 }
 
-const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
-    if (node->getActiveSocket()) {
+const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(const SharedNodePointer& node) {
+    if (node && node->getActiveSocket()) {
         return node->getActiveSocket();
-    } else {
+    } else if (node) {
         pingPublicAndLocalSocketsForInactiveNode(node);
-        return NULL;
     }
+    
+    return NULL;
 }
 
 void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddress) {

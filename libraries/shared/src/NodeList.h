@@ -102,10 +102,11 @@ public:
 
     QByteArray constructPingPacket();
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
-    void pingPublicAndLocalSocketsForInactiveNode(Node* node);
+    void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
-
+    SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
+    
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
@@ -119,7 +120,7 @@ public:
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
 
-    const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
+    const HifiSockAddr* getNodeActiveSocketOrPing(const SharedNodePointer& node);
 public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
