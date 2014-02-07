@@ -468,7 +468,7 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
     if (packetType == getMyQueryMessageType()) {
         bool debug = false;
         if (debug) {
-            qDebug() << "Got PacketType_VOXEL_QUERY at" << usecTimestampNow();
+            qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow();
         }
        
         // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
