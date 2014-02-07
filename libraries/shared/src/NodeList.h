@@ -129,8 +129,6 @@ public:
 
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
-
-    const HifiSockAddr* getNodeActiveSocketOrPing(const SharedNodePointer& node);
 public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();

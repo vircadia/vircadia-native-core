@@ -105,12 +105,12 @@ QUuid uuidFromPacketHeader(const QByteArray& packet) {
 }
 
 QByteArray hashFromPacketHeader(const QByteArray& packet) {
-    return packet.mid(NUM_STATIC_HEADER_BYTES - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH);
+    return packet.mid(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH);
 }
 
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
-    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet))
-                                    + connectionUUID.toRfc4122(), QCryptographicHash::Md5);
+    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet)) + connectionUUID.toRfc4122(),
+                                    QCryptographicHash::Md5);
 }
 
 void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID) {

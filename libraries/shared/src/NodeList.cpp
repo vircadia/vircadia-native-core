@@ -127,7 +127,7 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
         // if we don't have an ovveriden address, assume they want to send to the node's active socket
         const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
         if (overridenSockAddr.isNull()) {
-            if (getNodeActiveSocketOrPing(destinationNode)) {
+            if (destinationNode->getActiveSocket()) {
                 // use the node's active socket as the destination socket
                 destinationSockAddr = destinationNode->getActiveSocket();
             } else {
@@ -139,6 +139,8 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
         QByteArray datagramCopy = datagram;
         // setup the MD5 hash for source verification in the header
         replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
+        
+        qDebug() << "Sending a packet of type" << packetTypeForPacket(datagram);
         
         return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
     }
@@ -680,8 +682,11 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
 
+        // try and ping the new node right away to open a connection
+        pingPublicAndLocalSocketsForInactiveNode(newNodeSharedPointer);
+        
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
-
+        
         _nodeHashMutex.unlock();
         
         qDebug() << "Added" << *newNode;
@@ -738,16 +743,6 @@ void NodeList::pingInactiveNodes() {
             pingPublicAndLocalSocketsForInactiveNode(node);
         }
     }
-}
-
-const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(const SharedNodePointer& node) {
-    if (node && node->getActiveSocket()) {
-        return node->getActiveSocket();
-    } else if (node) {
-        pingPublicAndLocalSocketsForInactiveNode(node);
-    }
-    
-    return NULL;
 }
 
 void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode) {
