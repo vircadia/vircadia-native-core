@@ -18,9 +18,7 @@
 #include <ifaddrs.h>
 #endif
 
-#include "HifiSockAddr.h"
-
-#include "SharedUtil.h" // for MAX_PACKET_SIZE
+#include "NodeList.h"
 
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
