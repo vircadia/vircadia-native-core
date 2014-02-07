@@ -119,7 +119,8 @@ public:
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
+    int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
     unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);

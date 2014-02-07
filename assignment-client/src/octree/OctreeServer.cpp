@@ -473,15 +473,9 @@ void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSo
        
         // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
         // need to make sure we have it in our nodeList.
-
-
         if (matchingNode) {
-            nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, dataByteArray);
-            if (!matchingNode->getActiveSocket()) {
-                // we don't have an active socket for this node, but they're talking to us
-                // this means they've heard from us and can reply, let's assume public is active
-                matchingNode->activatePublicSocket();
-            }
+            nodeList->updateNodeWithDataFromPacket(matchingNode, dataByteArray);
+            
             OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
             if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
                 nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());

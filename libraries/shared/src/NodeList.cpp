@@ -219,32 +219,28 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
     }
 }
 
-int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    QMutexLocker locker(&node->getMutex());
-
-    node->setLastHeardMicrostamp(usecTimestampNow());
-
-    if (!senderSockAddr.isNull() && !node->getActiveSocket()) {
-        if (senderSockAddr == node->getPublicSocket()) {
-            node->activatePublicSocket();
-        } else if (senderSockAddr == node->getLocalSocket()) {
-            node->activateLocalSocket();
-        }
+int NodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray &packet) {
+    QMutexLocker locker(&matchingNode->getMutex());
+    
+    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+    matchingNode->recordBytesReceived(packet.size());
+    
+    if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
+        linkedDataCreateCallback(matchingNode.data());
     }
+    
+    return matchingNode->getLinkedData()->parseData(packet);
+}
 
-    if (node->getActiveSocket() || senderSockAddr.isNull()) {
-        node->recordBytesReceived(packet.size());
-
-        if (!node->getLinkedData() && linkedDataCreateCallback) {
-            linkedDataCreateCallback(node);
-        }
-
-        int numParsedBytes = node->getLinkedData()->parseData(packet);
-        return numParsedBytes;
-    } else {
-        // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
-        return 0;
+int NodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
+    SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+    
+    if (matchingNode) {
+        updateNodeWithDataFromPacket(matchingNode, packet);
     }
+    
+    // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
+    return 0;
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {

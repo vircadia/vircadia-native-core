@@ -142,15 +142,7 @@ void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSoc
     
     switch (packetTypeForPacket(dataByteArray)) {
         case PacketTypeAvatarData: {
-            
-            // add or update the node in our list
-            SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(dataByteArray);
-            
-            if (avatarNode) {
-                // parse positional data from an node
-                nodeList->updateNodeWithData(avatarNode.data(), senderSockAddr, dataByteArray);
-                
-            }
+            nodeList->findNodeAndUpdateWithDataFromPacket(dataByteArray);
             break;
         }
         case PacketTypeAvatarIdentity: {

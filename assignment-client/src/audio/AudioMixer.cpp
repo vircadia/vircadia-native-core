@@ -213,20 +213,8 @@ void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSock
     if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
         || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
         || mixerPacketType == PacketTypeInjectAudio) {
-
-        NodeList* nodeList = NodeList::getInstance();
-
-        SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(dataByteArray);
-
-        if (matchingNode) {
-            nodeList->updateNodeWithData(matchingNode.data(), senderSockAddr, dataByteArray);
-
-            if (!matchingNode->getActiveSocket()) {
-                // we don't have an active socket for this node, but they're talking to us
-                // this means they've heard from us and can reply, let's assume public is active
-                matchingNode->activatePublicSocket();
-            }
-        }
+        
+        NodeList::getInstance()->findNodeAndUpdateWithDataFromPacket(dataByteArray);
     } else {
         // let processNodeData handle it.
         NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
