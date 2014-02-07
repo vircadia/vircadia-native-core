@@ -84,8 +84,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
     
     if (isMine) {
         _buckyBalls.simulate(deltaTime);
-        // TODO: recover this stuff after avatar-avatar collisions work again - Andrew
-        //updateCollisions();
+        updateCollisions();
     }
     
     calculateGeometry();
@@ -172,6 +171,7 @@ void Hand::updateCollisions() {
     int leftPalmIndex, rightPalmIndex;   
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
+    ModelCollisionList collisions;
     // check for collisions
     for (size_t i = 0; i < getNumPalms(); i++) {
         PalmData& palm = getPalms()[i];
@@ -224,9 +224,10 @@ void Hand::updateCollisions() {
                         }
                     }
                 }
-                glm::vec3 avatarPenetration;
-                if (avatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, avatarPenetration)) {
-                    totalPenetration = addPenetrations(totalPenetration, avatarPenetration);
+                if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
+                    for (size_t j = 0; j < collisions.size(); ++j) {
+                        totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+                    }
                     //  Check for collisions with the other avatar's leap palms
                 }
             }
@@ -234,18 +235,23 @@ void Hand::updateCollisions() {
             
         if (Menu::getInstance()->isOptionChecked(MenuOption::HandsCollideWithSelf)) {
             // and the current avatar (ignoring everything below the parent of the parent of the last free joint)
-            glm::vec3 owningPenetration;
+            collisions.clear();
             const Model& skeletonModel = _owningAvatar->getSkeletonModel();
             int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
                 skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                     (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
-            if (_owningAvatar->findSpherePenetration(palm.getPosition(), scaledPalmRadius, owningPenetration, skipIndex)) {
-                totalPenetration = addPenetrations(totalPenetration, owningPenetration);
+            if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions, skipIndex)) {
+                for (size_t j = 0; j < collisions.size(); ++j) {
+                    totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+                }
             }
         }
         
         // un-penetrate
         palm.addToPosition(-totalPenetration);
+
+        // we recycle the collisions container, so we clear it for the next loop
+        collisions.clear();
     }
 }
 

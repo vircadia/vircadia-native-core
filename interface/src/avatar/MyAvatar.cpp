@@ -225,7 +225,8 @@ void MyAvatar::simulate(float deltaTime) {
             updateCollisionWithVoxels(deltaTime, radius);
         }
         if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            updateCollisionWithAvatars(deltaTime);
+            // TODO: Andrew to implement this
+            //updateCollisionWithAvatars(deltaTime);
         }
     }
 
@@ -1017,8 +1018,9 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 glm::vec3 pos = palmProxies[i]._position;
                 // query against avatar
                 if (avatar->findSphereCollisionWithSkeleton(pos, palmProxies[i]._radius, collisionInfo)) {
+                    // TODO: Andrew to make this work
                     // push hand out of penetration
-                    palms[palmProxies[i]._palmIndex].addToPosition(0.5f * collisionInfo._penetration);
+                    //palms[palmProxies[i]._palmIndex].addToPosition(0.5f * collisionInfo._penetration * float(TREE_SCALE));
                     // print results
                     //distance = glm::length(collisionInfo._penetration);
                     //printf("collision i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);

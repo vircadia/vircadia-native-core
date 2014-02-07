@@ -17,6 +17,16 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class Model;
+
+// TODO: Andrew to move this into its own file
+class ModelCollisionInfo : public CollisionInfo {
+public:
+    ModelCollisionInfo() : CollisionInfo(), _model(NULL), _jointIndex(-1) {}
+    Model* _model;
+    int _jointIndex;
+};
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -149,8 +159,8 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
+    bool findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
+        ModelCollisionInfo& collision, float boneScale = 1.0f, int skipIndex = -1) const;
     
     void renderCollisionProxies(float alpha);
 

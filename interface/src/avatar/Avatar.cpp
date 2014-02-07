@@ -271,26 +271,26 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
-bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex) const {
+bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+        ModelCollisionList& collisions, int skeletonSkipIndex) {
     bool didPenetrate = false;
-    glm::vec3 totalPenetration;
     glm::vec3 skeletonPenetration;
-    if (_skeletonModel.findSpherePenetration(penetratorCenter, penetratorRadius,
-            skeletonPenetration, 1.0f, skeletonSkipIndex)) {
-        totalPenetration = addPenetrations(totalPenetration, skeletonPenetration);
+    ModelCollisionInfo collisionInfo;
+    int jointIndex = _skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, 
+            collisionInfo, 1.0f, skeletonSkipIndex);
+    if (jointIndex != -1) {
+        collisionInfo._model = &_skeletonModel;
+        collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
     glm::vec3 facePenetration;
-    if (_head.getFaceModel().findSpherePenetration(penetratorCenter, penetratorRadius, facePenetration)) {
-        totalPenetration = addPenetrations(totalPenetration, facePenetration);
+    jointIndex = _head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo);
+    if (jointIndex != -1) {
+        collisionInfo._model = &(_head.getFaceModel());
+        collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
-    if (didPenetrate) {
-        penetration = totalPenetration;
-        return true;
-    }
-    return false;
+    return didPenetrate;
 }
 
 bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
@@ -335,14 +335,17 @@ bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float s
     return false;
 }
 
+/* adebug TODO: make this work again
 bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-    if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
+    int jointIndex = _skeletonModel.findSphereCollision(sphereCenter, sphereRadius, collision._penetration);
+    if (jointIndex != -1) {
         collision._penetration /= (float)(TREE_SCALE);
         collision._addedVelocity = getVelocity();
         return true;
     }
     return false;
 }
+*/
 
 int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
@@ -402,6 +405,22 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
     
     glEnd();
+}
+
+void Avatar::updateCollisionFlags() {
+    _collisionFlags = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
+        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
+        _collisionFlags |= COLLISION_GROUP_AVATARS;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
+        _collisionFlags |= COLLISION_GROUP_VOXELS;
+    }
+    //if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
+    //    _collisionFlags |= COLLISION_GROUP_PARTICLES;
+    //}
 }
 
 void Avatar::setScale(float scale) {

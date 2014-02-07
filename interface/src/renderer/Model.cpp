@@ -437,11 +437,11 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
-bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, float boneScale, int skipIndex) const {
+bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
+    ModelCollisionInfo& collisionInfo, float boneScale, int skipIndex) const {
+    int jointIndex = -1;
     const glm::vec3 relativeCenter = penetratorCenter - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    bool didPenetrate = false;
     glm::vec3 totalPenetration;
     float radiusScale = extractUniformScale(_scale) * boneScale;
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -468,12 +468,16 @@ bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penet
         if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
                 startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            didPenetrate = true; 
+            // TODO: Andrew to try to keep the joint furthest toward the root
+            jointIndex = i;
         }
         outerContinue: ;
     }
-    if (didPenetrate) {
-        penetration = totalPenetration;
+    if (jointIndex != -1) {
+        // TODO? Andrew to store contactPoint 
+        // don't store collisionInfo._model at this stage, let the outer context do that
+        collisionInfo._penetration = totalPenetration;
+        collisionInfo._jointIndex = jointIndex;
         return true;
     }
     return false;
