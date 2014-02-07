@@ -207,17 +207,25 @@ void AudioMixer::prepareMixForListeningNode(Node* node) {
 }
 
 
-void AudioMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    // pull any new audio data from nodes off of the network stack
-    PacketType mixerPacketType = packetTypeForPacket(dataByteArray);
-    if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
-        || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-        || mixerPacketType == PacketTypeInjectAudio) {
-        
-        NodeList::getInstance()->findNodeAndUpdateWithDataFromPacket(dataByteArray);
-    } else {
-        // let processNodeData handle it.
-        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
+void AudioMixer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            // pull any new audio data from nodes off of the network stack
+            PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
+            if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
+                || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
+                || mixerPacketType == PacketTypeInjectAudio) {
+                
+                nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+            } else {
+                // let processNodeData handle it.
+                nodeList->processNodeData(senderSockAddr, receivedPacket);
+            }
+        }
     }
 }
 

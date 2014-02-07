@@ -136,47 +136,52 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void AvatarMixer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+void AvatarMixer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
     
     NodeList* nodeList = NodeList::getInstance();
     
-    switch (packetTypeForPacket(dataByteArray)) {
-        case PacketTypeAvatarData: {
-            nodeList->findNodeAndUpdateWithDataFromPacket(dataByteArray);
-            break;
-        }
-        case PacketTypeAvatarIdentity: {
-            
-            // check if we have a matching node in our list
-            SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(dataByteArray);
-            
-            if (avatarNode && avatarNode->getLinkedData()) {
-                AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                if (nodeData->hasIdentityChangedAfterParsing(dataByteArray)
-                    && !nodeData->hasSentIdentityBetweenKeyFrames()) {
-                    // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
-                    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
-                    
-                    QByteArray individualByteArray = nodeData->identityByteArray();
-                    individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());
-                    
-                    identityPacket.append(individualByteArray);
-                    
-                    nodeData->setHasSentIdentityBetweenKeyFrames(true);
-                    nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            switch (packetTypeForPacket(receivedPacket)) {
+                case PacketTypeAvatarData: {
+                    nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
+                    break;
                 }
+                case PacketTypeAvatarIdentity: {
+                    
+                    // check if we have a matching node in our list
+                    SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
+                    
+                    if (avatarNode && avatarNode->getLinkedData()) {
+                        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
+                        if (nodeData->hasIdentityChangedAfterParsing(receivedPacket)
+                            && !nodeData->hasSentIdentityBetweenKeyFrames()) {
+                            // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
+                            QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+                            
+                            QByteArray individualByteArray = nodeData->identityByteArray();
+                            individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());
+                            
+                            identityPacket.append(individualByteArray);
+                            
+                            nodeData->setHasSentIdentityBetweenKeyFrames(true);
+                            nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
+                        }
+                    }
+                }
+                case PacketTypeKillAvatar: {
+                    nodeList->processKillNode(receivedPacket);
+                    break;
+                }
+                default:
+                    // hand this off to the NodeList
+                    nodeList->processNodeData(senderSockAddr, receivedPacket);
+                    break;
             }
         }
-        case PacketTypeKillAvatar: {
-            nodeList->processKillNode(dataByteArray);
-            break;
-        }
-        default:
-            // hand this off to the NodeList
-            nodeList->processNodeData(senderSockAddr, dataByteArray);
-            break;
     }
-    
 }
 
 const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;

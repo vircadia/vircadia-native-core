@@ -39,7 +39,7 @@ public:
 
     virtual void run();
     
-    virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    virtual void readPendingDatagrams();
 
 private slots:
     

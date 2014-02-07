@@ -25,7 +25,7 @@ public slots:
     /// threaded run of assignment
     void run();
     
-    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    void readPendingDatagrams();
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,

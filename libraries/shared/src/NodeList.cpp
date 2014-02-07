@@ -94,7 +94,12 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
     }
     
-    if (packetTypeForPacket(packet) != PacketTypeDomainList && packetTypeForPacket(packet) != PacketTypeDomainListRequest) {
+    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
+        << PacketTypeDomainListRequest << PacketTypeStunResponse << PacketTypeDataServerConfirm
+        << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
+        << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
+    
+    if (!NON_VERIFIED_PACKETS.contains(packetTypeForPacket(packet))) {
         // figure out which node this is from
         SharedNodePointer sendingNode = sendingNodeForPacket(packet);
         if (sendingNode) {
@@ -102,13 +107,15 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
                 return true;
             } else {
-                qDebug() << "Packet hash mismatch" << packetTypeForPacket(packet) << "received from known node with UUID"
-                << uuidFromPacketHeader(packet);
+                qDebug() << "Packet hash mismatch on" << packetTypeForPacket(packet) << "- Sender"
+                    << uuidFromPacketHeader(packet);
             }
         } else {
             qDebug() << "Packet of type" << packetTypeForPacket(packet) << "received from unknown node with UUID"
-            << uuidFromPacketHeader(packet);
+                << uuidFromPacketHeader(packet);
         }
+    } else {
+        return true;
     }
     
     return false;

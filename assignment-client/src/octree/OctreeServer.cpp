@@ -458,36 +458,43 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    NodeList* nodeList = NodeList::getInstance();
-
-    PacketType packetType = packetTypeForPacket(dataByteArray);
+void OctreeServer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
     
-    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(dataByteArray);
-
-    if (packetType == getMyQueryMessageType()) {
-        bool debug = false;
-        if (debug) {
-            qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow();
-        }
-       
-        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
-        // need to make sure we have it in our nodeList.
-        if (matchingNode) {
-            nodeList->updateNodeWithDataFromPacket(matchingNode, dataByteArray);
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType packetType = packetTypeForPacket(receivedPacket);
             
-            OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
-            if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
+            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            
+            if (packetType == getMyQueryMessageType()) {
+                bool debug = false;
+                if (debug) {
+                    qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow();
+                }
+                
+                // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
+                    }
+                }
+            } else if (packetType == PacketTypeJurisdictionRequest) {
+                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+            } else {
+                // let processNodeData handle it.
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
-    } else if (packetType == PacketTypeJurisdictionRequest) {
-        _jurisdictionSender->queueReceivedPacket(matchingNode, dataByteArray);
-    } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-       _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, dataByteArray);
-   } else {
-       // let processNodeData handle it.
-       NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 

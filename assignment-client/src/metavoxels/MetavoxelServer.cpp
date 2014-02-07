@@ -41,15 +41,24 @@ void MetavoxelServer::run() {
     _sendTimer.start(SEND_INTERVAL);
 }
 
-void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    switch (dataByteArray.at(0)) {
-        case PacketTypeMetavoxelData:
-            processData(dataByteArray, senderSockAddr);
-            break;
-        
-        default:
-            NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
-            break;
+void MetavoxelServer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            switch (packetTypeForPacket(receivedPacket)) {
+                case PacketTypeMetavoxelData:
+                    processData(receivedPacket, senderSockAddr);
+                    break;
+                    
+                default:
+                    NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                    break;
+            }
+        }
     }
 }
 

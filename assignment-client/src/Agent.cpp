@@ -31,36 +31,43 @@ Agent::Agent(const QByteArray& packet) :
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 }
 
-void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    PacketType datagramPacketType = packetTypeForPacket(dataByteArray);
-    if (datagramPacketType == PacketTypeJurisdiction) {
-        int headerBytes = numBytesForPacketHeader(dataByteArray);
-        
-        QUuid nodeUUID;
-        SharedNodePointer matchedNode = NodeList::getInstance()->nodeWithUUID(nodeUUID);
-        
-        if (matchedNode) {
-            // PacketType_JURISDICTION, first byte is the node type...
-            switch (dataByteArray[headerBytes]) {
-                case NodeType::VoxelServer:
-                    _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
-                                                                                                                dataByteArray);
-                    break;
-                case NodeType::ParticleServer:
-                    _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
-                                                                                                                   dataByteArray);
-                    break;
+void Agent::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+            if (datagramPacketType == PacketTypeJurisdiction) {
+                int headerBytes = numBytesForPacketHeader(receivedPacket);
+                
+                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
+                
+                if (matchedNode) {
+                    // PacketType_JURISDICTION, first byte is the node type...
+                    switch (receivedPacket[headerBytes]) {
+                        case NodeType::VoxelServer:
+                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                        receivedPacket);
+                            break;
+                        case NodeType::ParticleServer:
+                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                           receivedPacket);
+                            break;
+                    }
+                }
+                
+            } else if (datagramPacketType == PacketTypeParticleAddResponse) {
+                // this will keep creatorTokenIDs to IDs mapped correctly
+                Particle::handleAddParticleResponse(receivedPacket);
+                
+                // also give our local particle tree a chance to remap any internal locally created particles
+                _particleTree.handleAddParticleResponse(receivedPacket);
+            } else {
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
-        
-    } else if (datagramPacketType == PacketTypeParticleAddResponse) {
-        // this will keep creatorTokenIDs to IDs mapped correctly
-        Particle::handleAddParticleResponse(dataByteArray);
-        
-        // also give our local particle tree a chance to remap any internal locally created particles
-        _particleTree.handleAddParticleResponse(dataByteArray);
-    } else {
-        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 

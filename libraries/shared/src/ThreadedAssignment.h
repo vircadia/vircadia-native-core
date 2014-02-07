@@ -23,8 +23,10 @@ public slots:
     
     virtual void deleteLater();
     
-    virtual void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) = 0;
+    virtual void readPendingDatagrams() = 0;
 protected:
+    bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
+    
     void commonInit(const char* targetName, NodeType_t nodeType);
     bool _isFinished;
 private slots:
