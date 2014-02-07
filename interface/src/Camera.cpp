@@ -57,7 +57,6 @@ Camera::Camera() :
     _linearModeShift(0.0f),
     _modeShiftRate(1.0f),
     _scale(1.0f)
-    //,_wantsAutoFollow(true)
 {
 }
 

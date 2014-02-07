@@ -67,9 +67,6 @@ public:
     bool getFrustumNeedsReshape() const; // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.
     
-    bool getWantsAutoFollow() const { return _wantsAutoFollow; }
-    void setWantsAutoFollow(bool value) { _wantsAutoFollow = value; }
-
 private:
 
     bool _needsToInitialize;
@@ -101,8 +98,6 @@ private:
     float _modeShiftRate;
     float _scale;
     
-    bool _wantsAutoFollow;
-
     void updateFollowMode(float deltaTime);
 };
 
@@ -117,9 +112,6 @@ public slots:
     void setMode(const QString& mode);
     void setPosition(const glm::vec3& p);
     glm::vec3 getPosition() const { return _camera->getPosition(); }
-
-    //bool getWantsAutoFollow() const { return _camera->getWantsAutoFollow(); }
-    //void setWantsAutoFollow(bool value) { _camera->setWantsAutoFollow(value); }
 
 private:
     Camera* _camera;
