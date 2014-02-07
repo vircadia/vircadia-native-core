@@ -14,6 +14,7 @@
 #include <QListWidget>
 #include <QMetaProperty>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 #include <AttributeRegistry.h>
@@ -80,6 +81,9 @@ MetavoxelEditor::MetavoxelEditor() :
     QVBoxLayout* valueLayout = new QVBoxLayout();
     _value->setLayout(valueLayout);
 
+    valueLayout->addWidget(_valueArea = new QScrollArea());
+    _valueArea->setWidgetResizable(true);
+
     updateAttributes();
     
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
@@ -145,14 +149,14 @@ void MetavoxelEditor::updateValueEditor() {
     }
     _value->setVisible(true);
     
-    if (!_value->layout()->isEmpty()) {
-        delete _value->layout()->takeAt(0);
+    if (_valueArea->widget()) {
+        delete _valueArea->widget();
     }
       
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     QWidget* editor = attribute->createEditor();
     if (editor) {
-        _value->layout()->addWidget(editor);
+        _valueArea->setWidget(editor);
     }
 }
 
@@ -274,9 +278,13 @@ void MetavoxelEditor::render() {
             glutSolidCube(1.0);
             glDisable(GL_CULL_FACE);
         }
+        glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
         glutWireCube(1.0);
     
         glPopMatrix();
+        
+    } else {
+        glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
     }
     
     glLineWidth(1.0f);
@@ -292,7 +300,6 @@ void MetavoxelEditor::render() {
     
     _gridProgram.bind();
     
-    glColor3f(GRID_BRIGHTNESS, GRID_BRIGHTNESS, GRID_BRIGHTNESS);
     Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
     
     _gridProgram.release();
@@ -363,11 +370,8 @@ void MetavoxelEditor::applyValue(const glm::vec3& minimum, const glm::vec3& maxi
 }
 
 QVariant MetavoxelEditor::getValue() const {
-    if (_value->layout()->isEmpty()) {
-        return QVariant();
-    }
-    QWidget* editor = _value->layout()->itemAt(0)->widget();
-    return editor->metaObject()->userProperty().read(editor);
+    QWidget* editor = _valueArea->widget();
+    return editor ? editor->metaObject()->userProperty().read(editor) : QVariant();
 }
 
 ProgramObject MetavoxelEditor::_gridProgram;

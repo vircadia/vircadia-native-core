@@ -6,11 +6,18 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QDateTime>
 #include <QScriptEngine>
 #include <QtDebug>
 
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
+#include "ScriptCache.h"
+
+REGISTER_META_OBJECT(MetavoxelGuide)
+REGISTER_META_OBJECT(DefaultMetavoxelGuide)
+REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
+REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
@@ -61,7 +68,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
         firstVisitation.outputNodes[i] = node;
     }
     static_cast<MetavoxelGuide*>(firstVisitation.info.inputValues.last().getInlineValue<
-        PolymorphicDataPointer>().data())->guide(firstVisitation);
+        SharedObjectPointer>().data())->guide(firstVisitation);
     for (int i = 0; i < outputs.size(); i++) {
         AttributeValue& value = firstVisitation.info.outputValues[i];
         if (!value.getAttribute()) {
@@ -129,7 +136,7 @@ void MetavoxelData::read(Bitstream& in) {
     in >> rootCount;
     for (int i = 0; i < rootCount; i++) {
         AttributePointer attribute;
-        in.getAttributeStreamer() >> attribute;
+        in >> attribute;
         MetavoxelNode*& root = _roots[attribute];
         root = new MetavoxelNode(attribute);
         root->read(attribute, in);
@@ -140,7 +147,7 @@ void MetavoxelData::write(Bitstream& out) const {
     out << _size;
     out << _roots.size();
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
-        out.getAttributeStreamer() << it.key();
+        out << it.key();
         it.value()->write(it.key(), out);
     }
 }
@@ -169,7 +176,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
     in >> changedCount;
     for (int i = 0; i < changedCount; i++) {
         AttributePointer attribute;
-        in.getAttributeStreamer() >> attribute;
+        in >> attribute;
         MetavoxelNode*& root = _roots[attribute];
         if (root) {
             MetavoxelNode* oldRoot = root;
@@ -187,7 +194,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, Bitstream& in) {
     in >> removedCount;
     for (int i = 0; i < removedCount; i++) {
         AttributePointer attribute;
-        in.getAttributeStreamer() >> attribute;
+        in >> attribute;
         _roots.take(attribute)->decrementReferenceCount(attribute);
     }
 }
@@ -227,7 +234,7 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) c
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = _roots.constBegin(); it != _roots.constEnd(); it++) {
         MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
         if (it.value() != referenceRoot) {
-            out.getAttributeStreamer() << it.key();
+            out << it.key();
             if (referenceRoot) {
                 it.value()->writeDelta(it.key(), *referenceRoot, out);
             } else {
@@ -248,7 +255,7 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, Bitstream& out) c
     for (QHash<AttributePointer, MetavoxelNode*>::const_iterator it = expandedReference->_roots.constBegin();
             it != expandedReference->_roots.constEnd(); it++) {
         if (!_roots.contains(it.key())) {
-            out.getAttributeStreamer() << it.key();
+            out << it.key();
         }
     }
     
@@ -425,8 +432,7 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, cons
 MetavoxelVisitor::~MetavoxelVisitor() {
 }
 
-PolymorphicData* DefaultMetavoxelGuide::clone() const {
-    return new DefaultMetavoxelGuide();
+DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
 void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
@@ -470,7 +476,7 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             (i & Y_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f,
             (i & Z_MAXIMUM_FLAG) ? nextVisitation.info.size : 0.0f);
         static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
-            PolymorphicDataPointer>().data())->guide(nextVisitation);
+            SharedObjectPointer>().data())->guide(nextVisitation);
         for (int j = 0; j < nextVisitation.outputNodes.size(); j++) {
             AttributeValue& value = nextVisitation.info.outputValues[j];
             if (!value.getAttribute()) {
@@ -512,6 +518,25 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
             value = node->getAttributeValue(value.getAttribute()); 
         }
     }
+}
+
+ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(10.0) {
+}
+
+void ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
+    AttributePointer colorAttribute = AttributeRegistry::getInstance()->getColorAttribute();
+    for (int i = 0; i < visitation.info.inputValues.size(); i++) {
+        AttributeValue& attributeValue = visitation.info.inputValues[i]; 
+        if (attributeValue.getAttribute() == colorAttribute) {
+            QRgb base = attributeValue.getInlineValue<QRgb>();
+            double seconds = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            double amplitude = sin(_rate * seconds) * 0.5 + 0.5;
+            attributeValue.setInlineValue<QRgb>(qRgba(qRed(base) * amplitude, qGreen(base) * amplitude,
+                qBlue(base) * amplitude, qAlpha(base)));
+        }
+    }
+    
+    DefaultMetavoxelGuide::guide(visitation);
 }
 
 static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,
@@ -569,35 +594,47 @@ QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngin
     return result;
 }
 
-ScriptedMetavoxelGuide::ScriptedMetavoxelGuide(const QScriptValue& guideFunction) :
-    _guideFunction(guideFunction),
-    _minimumHandle(guideFunction.engine()->toStringHandle("minimum")),
-    _sizeHandle(guideFunction.engine()->toStringHandle("size")),
-    _inputValuesHandle(guideFunction.engine()->toStringHandle("inputValues")),
-    _outputValuesHandle(guideFunction.engine()->toStringHandle("outputValues")),
-    _isLeafHandle(guideFunction.engine()->toStringHandle("isLeaf")),
-    _getInputsFunction(guideFunction.engine()->newFunction(getInputs, 0)),
-    _getOutputsFunction(guideFunction.engine()->newFunction(getOutputs, 0)),
-    _visitFunction(guideFunction.engine()->newFunction(visit, 1)),
-    _info(guideFunction.engine()->newObject()),
-    _minimum(guideFunction.engine()->newArray(3)) {
-    
-    _arguments.append(guideFunction.engine()->newObject());
-    QScriptValue visitor = guideFunction.engine()->newObject();
-    visitor.setProperty("getInputs", _getInputsFunction);
-    visitor.setProperty("getOutputs", _getOutputsFunction);
-    visitor.setProperty("visit", _visitFunction);
-    _arguments[0].setProperty("visitor", visitor);
-    _arguments[0].setProperty("info", _info);
-    _info.setProperty(_minimumHandle, _minimum);
-}
-
-PolymorphicData* ScriptedMetavoxelGuide::clone() const {
-    return new ScriptedMetavoxelGuide(_guideFunction);
+ScriptedMetavoxelGuide::ScriptedMetavoxelGuide() {
 }
 
 void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    QScriptValue data = _guideFunction.engine()->newVariant(QVariant::fromValue<void*>(this));
+    QScriptValue guideFunction;
+    if (_guideFunction) {
+        guideFunction = _guideFunction->getValue();    
+        
+    } else if (_url.isValid()) {
+        _guideFunction = ScriptCache::getInstance()->getValue(_url);
+        guideFunction = _guideFunction->getValue();
+    }
+    if (!guideFunction.isValid()) {
+        // before we load, just use the default behavior
+        DefaultMetavoxelGuide::guide(visitation);
+        return;
+    }
+    QScriptEngine* engine = guideFunction.engine();
+    if (!_minimumHandle.isValid()) {
+        _minimumHandle = engine->toStringHandle("minimum");
+        _sizeHandle = engine->toStringHandle("size");
+        _inputValuesHandle = engine->toStringHandle("inputValues");
+        _outputValuesHandle = engine->toStringHandle("outputValues");
+        _isLeafHandle = engine->toStringHandle("isLeaf");
+        _getInputsFunction = engine->newFunction(getInputs, 0);
+        _getOutputsFunction = engine->newFunction(getOutputs, 0);
+        _visitFunction = engine->newFunction(visit, 1);
+        _info = engine->newObject();
+        _minimum = engine->newArray(3);
+        
+        _arguments.clear();
+        _arguments.append(engine->newObject());
+        QScriptValue visitor = engine->newObject();
+        visitor.setProperty("getInputs", _getInputsFunction);
+        visitor.setProperty("getOutputs", _getOutputsFunction);
+        visitor.setProperty("visit", _visitFunction);
+        _arguments[0].setProperty("visitor", visitor);
+        _arguments[0].setProperty("info", _info);
+        _info.setProperty(_minimumHandle, _minimum);
+    }
+    QScriptValue data = engine->newVariant(QVariant::fromValue<void*>(this));
     _getInputsFunction.setData(data);
     _visitFunction.setData(data);
     _minimum.setProperty(0, visitation.info.minimum.x);
@@ -606,10 +643,16 @@ void ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     _info.setProperty(_sizeHandle, visitation.info.size);
     _info.setProperty(_isLeafHandle, visitation.info.isLeaf);
     _visitation = &visitation;
-    _guideFunction.call(QScriptValue(), _arguments);
-    if (_guideFunction.engine()->hasUncaughtException()) {
-        qDebug() << "Script error: " << _guideFunction.engine()->uncaughtException().toString();
+    guideFunction.call(QScriptValue(), _arguments);
+    if (engine->hasUncaughtException()) {
+        qDebug() << "Script error: " << engine->uncaughtException().toString();
     }
+}
+
+void ScriptedMetavoxelGuide::setURL(const ParameterizedURL& url) {
+    _url = url;
+    _guideFunction.reset();
+    _minimumHandle = QScriptString();
 }
 
 bool MetavoxelVisitation::allInputNodesLeaves() const {

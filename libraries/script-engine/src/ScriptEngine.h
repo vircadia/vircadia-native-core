@@ -25,6 +25,7 @@ class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
 #include "Quat.h"
+#include "Vec3.h"
 
 const QString NO_SCRIPT("");
 
@@ -100,6 +101,7 @@ private:
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
     Quat _quatLibrary;
+    Vec3 _vec3Library;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */
