@@ -200,10 +200,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     audioThread->start();
 
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
-
+    connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
+    connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
+    connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -243,6 +245,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->moveToThread(_nodeThread);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+    
+    // send the identity packet for our avatar each second to our avatar mixer
+    QTimer* identityPacketTimer = new QTimer();
+    connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
+    identityPacketTimer->start(1000);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
@@ -1852,12 +1859,6 @@ void Application::init() {
     }
     qDebug("Loaded settings");
 
-    if (!_profile.getUsername().isEmpty()) {
-        // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::FaceMeshURL, _profile.getUserString(), &_profile);
-        DataServerClient::getValueForKeyAndUserString(DataServerKey::SkeletonURL, _profile.getUserString(), &_profile);
-    }
-
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
@@ -2551,10 +2552,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
 
             // make sure we still have an active socket
-            if (node->getActiveSocket()) {
-                nodeList->getNodeSocket().writeDatagram((char*) voxelQueryPacket, packetLength,
-                                                        node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
-            }
+            nodeList->writeDatagram(reinterpret_cast<const char*>(voxelQueryPacket), packetLength, node);
 
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
@@ -3858,7 +3856,7 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
     
-    QString title = QString() + _profile.getUsername() + " " + nodeList->getOwnerUUID().toString()
+    QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
@@ -3881,6 +3879,13 @@ void Application::domainChanged(const QString& domainHostname) {
     
     // reset the particle renderer
     _particles.clear();
+}
+
+void Application::nodeAdded(SharedNodePointer node) {
+    if (node->getType() == NodeType::AvatarMixer) {
+        // new avatar mixer, send off our identity packet right away
+        _myAvatar->sendIdentityPacket();
+    }
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
@@ -3952,27 +3957,25 @@ void Application::nodeKilled(SharedNodePointer node) {
     }
 }
 
-void Application::trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket) {
+void Application::trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from it's address.
-    SharedNodePointer serverNode = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
-    if (serverNode) {
-        QUuid nodeUUID = serverNode->getUUID();
+    if (sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
         if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
             VoxelSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-            stats.trackIncomingOctreePacket(packet, wasStatsPacket, serverNode->getClockSkewUsec());
+            stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
         }
         _voxelSceneStatsLock.unlock();
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
+int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-    SharedNodePointer server = NodeList::getInstance()->nodeWithAddress(senderSockAddr);
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
@@ -3980,8 +3983,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& 
     int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
 
     // quick fix for crash... why would voxelServer be NULL?
-    if (server) {
-        QUuid nodeUUID = server->getUUID();
+    if (sendingNode) {
+        QUuid nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _voxelSceneStatsLock.lockForWrite();
@@ -3998,7 +4001,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const HifiSockAddr& 
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
-        if (server->getType() == NodeType::VoxelServer) {
+        if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
         } else {
             jurisdiction = &_particleServerJurisdictions;

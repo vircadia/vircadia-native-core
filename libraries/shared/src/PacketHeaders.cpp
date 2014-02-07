@@ -69,13 +69,20 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     int numTypeBytes = packArithmeticallyCodedValue(type, packet);
     packet[numTypeBytes] = versionForPacketType(type);
     
-    QUuid packUUID = connectionUUID.isNull() ? NodeList::getInstance()->getOwnerUUID() : connectionUUID;
+    char* position = packet + numTypeBytes + sizeof(PacketVersion);
+    
+    QUuid packUUID = connectionUUID.isNull() ? NodeList::getInstance()->getSessionUUID() : connectionUUID;
     
     QByteArray rfcUUID = packUUID.toRfc4122();
-    memcpy(packet + numTypeBytes + sizeof(PacketVersion), rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
+    memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
+    position += NUM_BYTES_RFC4122_UUID;
+    
+    // pack 16 bytes of zeros where the md5 hash will be placed one data is packed
+    memset(position, 0, NUM_BYTES_MD5_HASH);
+    position += NUM_BYTES_MD5_HASH;
     
     // return the number of bytes written for pointer pushing
-    return numTypeBytes + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    return position - packet;
 }
 
 bool packetVersionMatch(const QByteArray& packet) {
@@ -88,8 +95,7 @@ bool packetVersionMatch(const QByteArray& packet) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
        
-        QUuid nodeUUID;
-        deconstructPacketHeader(packet, nodeUUID);
+        QUuid nodeUUID = uuidFromPacketHeader(packet);
         
         qDebug() << "Packet mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << nodeUUID << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
@@ -101,21 +107,21 @@ bool packetVersionMatch(const QByteArray& packet) {
 
 int numBytesForPacketHeader(const QByteArray& packet) {
     // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    return numBytesArithmeticCodingFromBuffer(packet.data()) + NUM_STATIC_HEADER_BYTES;
 }
 
 int numBytesForPacketHeader(const char* packet) {
     // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    return numBytesArithmeticCodingFromBuffer(packet) + NUM_STATIC_HEADER_BYTES;
 }
 
 int numBytesForPacketHeaderGivenPacketType(PacketType type) {
-    return (int) ceilf((float)type / 255) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    return (int) ceilf((float)type / 255) + NUM_STATIC_HEADER_BYTES;
 }
 
-void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID) {
-    senderUUID = QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
-                                               NUM_BYTES_RFC4122_UUID));
+QUuid uuidFromPacketHeader(const QByteArray& packet) {
+    return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
+                                         NUM_BYTES_RFC4122_UUID));
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {

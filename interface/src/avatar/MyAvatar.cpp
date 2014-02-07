@@ -608,6 +608,9 @@ void MyAvatar::saveData(QSettings* settings) {
 
     settings->setValue("leanScale", _leanScale);
     settings->setValue("scale", _targetScale);
+    
+    settings->setValue("faceModelURL", _faceModelURL);
+    settings->setValue("skeletonModelURL", _skeletonModelURL);
 
     settings->endGroup();
 }
@@ -632,6 +635,9 @@ void MyAvatar::loadData(QSettings* settings) {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
+    
+    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
 
     settings->endGroup();
 }
@@ -639,6 +645,13 @@ void MyAvatar::loadData(QSettings* settings) {
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void MyAvatar::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(AvatarData::identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {

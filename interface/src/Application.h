@@ -126,8 +126,6 @@ public:
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
 
-    void updateWindowTitle();
-
     void wheelEvent(QWheelEvent* event);
 
     void makeVoxel(glm::vec3 position,
@@ -214,6 +212,8 @@ signals:
     
 public slots:
     void domainChanged(const QString& domainHostname);
+    void updateWindowTitle();
+    void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     
@@ -472,8 +472,8 @@ private:
 
     PieMenu _pieMenu;
 
-    int parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderAddress);
-    void trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
+    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;

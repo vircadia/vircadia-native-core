@@ -20,6 +20,7 @@ public slots:
     /// runs the avatar mixer
     void run();
 
+    void nodeAdded(SharedNodePointer nodeAdded);
     void nodeKilled(SharedNodePointer killedNode);
     
     void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);

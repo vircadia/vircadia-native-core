@@ -61,7 +61,7 @@ bool OctreeEditPacketSender::serversExist() const {
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()) {
-            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
+            if (nodeList->getNodeActiveSocketOrPing(node)) {
                 QUuid nodeUUID = node->getUUID();
                 // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
                 if (_serverJurisdictions) {
@@ -91,9 +91,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
-                const HifiSockAddr* nodeAddress = node->getActiveSocket();
-                queuePacketForSending(*nodeAddress, QByteArray(reinterpret_cast<char*>(buffer), length));
+            if (nodeList->getNodeActiveSocketOrPing(node)) {
+                queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
 
                 // debugging output...
                 bool wantDebugging = false;

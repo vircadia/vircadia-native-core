@@ -54,7 +54,7 @@ public:
     virtual PacketType expectedDataPacketType() const { return PacketTypeVoxelData; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, Node* senderNode);
+                    const unsigned char* editData, int maxLength, const SharedNodePointer& node);
     void processSetVoxelsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
 
 /**

@@ -30,7 +30,9 @@ public:
     void exit(int retCode = 0);
     
 public slots:
-    /// Called by NodeList to inform us that a node has been killed.
+    /// Called by NodeList to inform us a node has been added
+    void nodeAdded(SharedNodePointer node);
+    /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
 private:
