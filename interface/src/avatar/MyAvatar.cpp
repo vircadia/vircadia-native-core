@@ -792,23 +792,27 @@ void MyAvatar::updateThrust(float deltaTime) {
     const int VIEW_CONTROLLER = 1;
     for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
         PalmData& palm = getHand().getPalms()[i];
-        if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
-            if (palm.getJoystickY() != 0.f) {
-                FingerData& finger = palm.getFingers()[0];
-                if (finger.isActive()) {
+
+        // If the script hasn't captured this joystick, then let the default behavior work
+        if (!Application::getInstance()->getControllerScriptingInterface()->isJoystickCaptured(palm.getSixenseID())) {
+            if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
+                if (palm.getJoystickY() != 0.f) {
+                    FingerData& finger = palm.getFingers()[0];
+                    if (finger.isActive()) {
+                    }
+                    _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
                 }
-                _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
-            }
-            if (palm.getJoystickX() != 0.f) {
-                _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
-            }
-        } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
-            if (palm.getJoystickX() != 0.f) {
-                _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
-            }
-            if (palm.getJoystickY() != 0.f) {
-                getHand().setPitchUpdate(getHand().getPitchUpdate() +
-                                         (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
+                if (palm.getJoystickX() != 0.f) {
+                    _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
+                }
+            } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
+                if (palm.getJoystickX() != 0.f) {
+                    _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
+                }
+                if (palm.getJoystickY() != 0.f) {
+                    getHand().setPitchUpdate(getHand().getPitchUpdate() +
+                                             (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
+                }
             }
         }
 
