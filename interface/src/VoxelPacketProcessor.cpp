@@ -48,7 +48,7 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             mutablePacket = mutablePacket.mid(statsMessageLength);
-            if (!packetVersionMatch(packet)) {
+            if (!NodeList::getInstance()->packetVersionAndHashMatch(packet)) {
                 return; // bail since piggyback data doesn't match our versioning
             }
         } else {

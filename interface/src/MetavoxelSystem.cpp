@@ -144,9 +144,9 @@ void MetavoxelSystem::removeClient(const QUuid& uuid) {
     delete client;
 }
 
-void MetavoxelSystem::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
+void MetavoxelSystem::receivedData(const QByteArray& data, const SharedNodePointer& sendingNode) {
     int headerPlusIDSize;
-    QUuid sessionID = readSessionID(data, sender, headerPlusIDSize);
+    QUuid sessionID = readSessionID(data, sendingNode, headerPlusIDSize);
     if (sessionID.isNull()) {
         return;
     }

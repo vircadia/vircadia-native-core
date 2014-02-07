@@ -82,6 +82,8 @@ public:
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     
+    bool packetVersionAndHashMatch(const QByteArray& packet);
+    
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
@@ -112,20 +114,20 @@ public:
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
-    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
+    int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
     unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
-
-    const HifiSockAddr* getNodeActiveSocketOrPing(const SharedNodePointer& node);
 public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();

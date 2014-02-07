@@ -90,8 +90,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     timer->start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
     
     // connect our readPendingDatagrams method to the readyRead() signal of the socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams,
-            Qt::QueuedConnection);
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -111,50 +110,45 @@ void AssignmentClient::readPendingDatagrams() {
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if (packetVersionMatch(receivedPacket)) {
-            if (_currentAssignment) {
-                // have the threaded current assignment handle this datagram
-                QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, receivedPacket),
-                                          Q_ARG(HifiSockAddr, senderSockAddr));
-            } else if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
+                // construct the deployed assignment from the packet data
+                _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
                 
                 if (_currentAssignment) {
-                    qDebug() << "Dropping received assignment since we are currently running one.";
-                } else {
-                    // construct the deployed assignment from the packet data
-                    _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
+                    qDebug() << "Received an assignment -" << *_currentAssignment;
                     
-                    if (_currentAssignment) {
-                        qDebug() << "Received an assignment -" << *_currentAssignment;
-                        
-                        // switch our nodelist domain IP and port to whoever sent us the assignment
-                        
-                        nodeList->setDomainSockAddr(senderSockAddr);
-                        nodeList->setSessionUUID(_currentAssignment->getUUID());
-                        
-                        qDebug() << "Destination IP for assignment is" << nodeList->getDomainIP().toString();
-                        
-                        // start the deployed assignment
-                        QThread* workerThread = new QThread(this);
-                        
-                        connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
-                        
-                        connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
-                        connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
-                        connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
-                        connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
-                        
-                        _currentAssignment->moveToThread(workerThread);
-                        
-                        // move the NodeList to the thread used for the _current assignment
-                        nodeList->moveToThread(workerThread);
-                        
-                        // Starts an event loop, and emits workerThread->started()
-                        workerThread->start();
-                    } else {
-                        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
-                    }
+                    // switch our nodelist domain IP and port to whoever sent us the assignment
+                    
+                    nodeList->setDomainSockAddr(senderSockAddr);
+                    nodeList->setSessionUUID(_currentAssignment->getUUID());
+                    
+                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainIP().toString();
+                    
+                    // start the deployed assignment
+                    QThread* workerThread = new QThread(this);
+                    
+                    connect(workerThread, SIGNAL(started()), _currentAssignment, SLOT(run()));
+                    
+                    connect(_currentAssignment, SIGNAL(finished()), this, SLOT(assignmentCompleted()));
+                    connect(_currentAssignment, SIGNAL(finished()), workerThread, SLOT(quit()));
+                    connect(_currentAssignment, SIGNAL(finished()), _currentAssignment, SLOT(deleteLater()));
+                    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+                    
+                    _currentAssignment->moveToThread(workerThread);
+                    
+                    // move the NodeList to the thread used for the _current assignment
+                    nodeList->moveToThread(workerThread);
+                    
+                    // let the assignment handle the incoming datagrams for its duration
+                    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
+                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment,
+                            &ThreadedAssignment::readPendingDatagrams);
+                    
+                    // Starts an event loop, and emits workerThread->started()
+                    workerThread->start();
+                } else {
+                    qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
             } else {
                 // have the NodeList attempt to handle it
@@ -170,9 +164,13 @@ void AssignmentClient::assignmentCompleted() {
     
     qDebug("Assignment finished or never started - waiting for new assignment.");
     
-    _currentAssignment = NULL;
-    
     NodeList* nodeList = NodeList::getInstance();
+    
+    // have us handle incoming NodeList datagrams again
+    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
+    
+    _currentAssignment = NULL;
     
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
