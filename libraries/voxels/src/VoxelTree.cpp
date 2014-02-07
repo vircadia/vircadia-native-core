@@ -522,7 +522,7 @@ bool VoxelTree::handlesEditPacketType(PacketType packetType) const {
 }
 
 int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, Node* senderNode) {
+                    const unsigned char* editData, int maxLength, const SharedNodePointer& node) {
     
     // we handle these types of "edit" packets
     switch (packetType) {

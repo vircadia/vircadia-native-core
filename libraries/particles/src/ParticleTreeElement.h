@@ -121,7 +121,7 @@ public:
 protected:
     virtual void init(unsigned char * octalCode);
 
-    void storeParticle(const Particle& particle, Node* senderNode = NULL);
+    void storeParticle(const Particle& particle);
 
     ParticleTree* _myTree;
     QList<Particle>* _particles;

@@ -30,6 +30,7 @@ typedef unsigned long long quint64;
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
 
@@ -51,8 +52,7 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-enum KeyState
-{
+enum KeyState {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
@@ -72,7 +72,9 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-
+    
+    Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
+    Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
     AvatarData();
     ~AvatarData();
@@ -142,6 +144,14 @@ public:
         return false;
     }
     
+    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    QByteArray identityByteArray();
+    
+    const QUrl& getFaceModelURL() const { return _faceModelURL; }
+    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -168,6 +178,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
+    QUrl _faceModelURL;
+    QUrl _skeletonModelURL;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

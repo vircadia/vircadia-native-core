@@ -63,7 +63,7 @@ public:
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
 
 protected:
-    virtual void processPacket(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
 private:
     void trackInboundPackets(const QUuid& nodeUUID, int sequence, quint64 transitTime, 

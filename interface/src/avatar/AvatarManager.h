@@ -20,7 +20,7 @@
 
 class MyAvatar;
 
-class AvatarManager : public QObject, public DataServerCallbackObject, public AvatarHashMap {
+class AvatarManager : public QObject, public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);
@@ -35,13 +35,14 @@ public:
     void clearOtherAvatars();
 
 public slots:
-    void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
-    
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
-
+    
 private:
     AvatarManager(const AvatarManager& other);
+    
+    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarIdentityPacket(const QByteArray& packet);
+    void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades();

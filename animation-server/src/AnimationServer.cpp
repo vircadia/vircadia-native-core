@@ -835,7 +835,11 @@ void AnimationServer::readPendingDatagrams() {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);
                 // PacketType_JURISDICTION, first byte is the node type...
                 if (receivedPacket.data()[headerBytes] == NodeType::VoxelServer && ::jurisdictionListener) {
-                    ::jurisdictionListener->queueReceivedPacket(nodeSockAddr, receivedPacket);
+                    
+                    SharedNodePointer matchedNode = NodeList::getInstance()->sendingNodeForPacket(receivedPacket);
+                    if (matchedNode) {
+                        ::jurisdictionListener->queueReceivedPacket(matchedNode, receivedPacket);
+                    }
                 }
             }
             NodeList::getInstance()->processNodeData(nodeSockAddr, receivedPacket);

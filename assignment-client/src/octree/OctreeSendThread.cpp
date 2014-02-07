@@ -48,7 +48,7 @@ bool OctreeSendThread::process() {
                     if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
                         printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                     }
-                    packetsSent = packetDistributor(node.data(), nodeData, viewFrustumChanged);
+                    packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
                 }
 
                 node->getMutex().unlock(); // we're done with this node for now.
@@ -86,7 +86,7 @@ quint64 OctreeSendThread::_totalBytes = 0;
 quint64 OctreeSendThread::_totalWastedBytes = 0;
 quint64 OctreeSendThread::_totalPackets = 0;
 
-int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     bool debug = _myServer->wantsDebugSending();
     quint64 now = usecTimestampNow();
 
@@ -142,15 +142,11 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             }
 
             // actually send it
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) statsMessage, statsMessageLength,
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) statsMessage, statsMessageLength, SharedNodePointer(node));
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -168,9 +164,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
             truePacketsSent++;
             packetsSent++;
 
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                   SharedNodePointer(node));
 
             packetSent = true;
 
@@ -189,9 +184,8 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
         // If there's actually a packet waiting, then send it.
         if (nodeData->isPacketWaiting()) {
             // just send the voxel packet
-            NodeList::getInstance()->getNodeSocket().writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
-                                                                   nodeAddress->getAddress(),
-                                                                   nodeAddress->getPort());
+            NodeList::getInstance()->writeDatagram((char*) nodeData->getPacket(), nodeData->getPacketLength(),
+                                                   SharedNodePointer(node));
             packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
@@ -218,7 +212,7 @@ int OctreeSendThread::handlePacketSend(Node* node, OctreeQueryNode* nodeData, in
 }
 
 /// Version of voxel distributor that sends the deepest LOD level at once
-int OctreeSendThread::packetDistributor(Node* node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
     bool forceDebugging = false;
 
     int truePacketsSent = 0;

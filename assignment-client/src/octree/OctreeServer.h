@@ -58,8 +58,8 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun() { };
-    virtual bool hasSpecialPacketToSend(Node* node) { return false; }
-    virtual int sendSpecialPacket(Node* node) { return 0; }
+    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
+    virtual int sendSpecialPacket(const SharedNodePointer& node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
 
