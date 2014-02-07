@@ -238,6 +238,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void cameraMenuChanged();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
 

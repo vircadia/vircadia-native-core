@@ -10,6 +10,7 @@
 #include <VoxelConstants.h>
 
 #include "Camera.h"
+#include "Menu.h"
 #include "Util.h"
 
 const float CAMERA_MINIMUM_MODE_SHIFT_RATE     = 0.5f;
@@ -17,6 +18,10 @@ const float CAMERA_MINIMUM_MODE_SHIFT_RATE     = 0.5f;
 const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_TIGHTNESS = 100.0f;
+
+const float CAMERA_INDEPENDENT_MODE_UP_SHIFT  = 0.0f;
+const float CAMERA_INDEPENDENT_MODE_DISTANCE  = 0.0f;
+const float CAMERA_INDEPENDENT_MODE_TIGHTNESS = 100.0f;
 
 const float CAMERA_THIRD_PERSON_MODE_UP_SHIFT  = -0.2f;
 const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
@@ -27,33 +32,33 @@ const float CAMERA_MIRROR_MODE_DISTANCE        = 0.17f;
 const float CAMERA_MIRROR_MODE_TIGHTNESS       = 100.0f;
 
 
-Camera::Camera() {
-
-    _needsToInitialize   = true;
-    _frustumNeedsReshape = true;
-    
-    _modeShift         = 1.0f;
-    _modeShiftRate     = 1.0f;
-    _linearModeShift   = 0.0f;
-    _mode              = CAMERA_MODE_THIRD_PERSON;
-    _prevMode          = CAMERA_MODE_THIRD_PERSON;
-    _tightness         = 10.0f; // default
-    _fieldOfView       = DEFAULT_FIELD_OF_VIEW_DEGREES; 
-    _aspectRatio       = 16.f/9.f;
-    _nearClip          = 0.08f; // default
-    _farClip           = 50.0f * TREE_SCALE; // default
-    _upShift           = 0.0f;
-    _distance          = 0.0f;
-    _previousUpShift   = 0.0f;
-    _previousDistance  = 0.0f;
-    _previousTightness = 0.0f;
-    _newUpShift        = 0.0f;
-    _newDistance       = 0.0f;
-    _newTightness      = 0.0f;
-    _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
-    _position          = glm::vec3(0.0f, 0.0f, 0.0f);
-    _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
-    _scale             = 1.0f;
+Camera::Camera() : 
+    _needsToInitialize(true),
+    _mode(CAMERA_MODE_THIRD_PERSON),
+    _prevMode(CAMERA_MODE_THIRD_PERSON),
+    _frustumNeedsReshape(true),
+    _position(0.0f, 0.0f, 0.0f),
+    _idealPosition(0.0f, 0.0f, 0.0f),
+    _targetPosition(0.0f, 0.0f, 0.0f),
+    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _aspectRatio(16.f/9.f),
+    _nearClip(0.08f), // default
+    _farClip(50.0f * TREE_SCALE), // default
+    _upShift(0.0f),
+    _distance(0.0f),
+    _tightness(10.0f), // default
+    _previousUpShift(0.0f),
+    _previousDistance(0.0f),
+    _previousTightness(0.0f),
+    _newUpShift(0.0f),
+    _newDistance(0.0f),
+    _newTightness(0.0f),
+    _modeShift(1.0f),
+    _linearModeShift(0.0f),
+    _modeShiftRate(1.0f),
+    _scale(1.0f)
+    //,_wantsAutoFollow(true)
+{
 }
 
 void Camera::update(float deltaTime)  {
@@ -66,12 +71,9 @@ void Camera::update(float deltaTime)  {
 
 // use iterative forces to keep the camera at the desired position and angle
 void Camera::updateFollowMode(float deltaTime) {  
-
     if (_linearModeShift < 1.0f) {
         _linearModeShift += _modeShiftRate * deltaTime;
-        
         _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE );
-
         _upShift   = _previousUpShift   * (1.0f - _modeShift) + _newUpShift   * _modeShift;
         _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;
         _tightness = _previousTightness * (1.0f - _modeShift) + _newTightness * _modeShift;
@@ -98,7 +100,6 @@ void Camera::updateFollowMode(float deltaTime) {
         _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position = _idealPosition;
         _needsToInitialize = false;
-
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
@@ -137,16 +138,19 @@ void Camera::setMode(CameraMode m) {
         _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
         _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
-        
     } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
         _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
         _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
-        
     } else if (_mode == CAMERA_MODE_MIRROR) {
         _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
         _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
         _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
+    } else if (_mode == CAMERA_MODE_INDEPENDENT) {
+        _newUpShift   = CAMERA_INDEPENDENT_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_INDEPENDENT_MODE_DISTANCE;
+        _newTightness = CAMERA_INDEPENDENT_MODE_TIGHTNESS;
+        
     }
 }
 
@@ -217,5 +221,56 @@ void Camera::setFrustumWasReshaped() {
     _frustumNeedsReshape = false;
 }
 
+
+QString CameraScriptableObject::getMode() const {
+    QString mode("unknown");
+    switch(_camera->getMode()) {
+        case CAMERA_MODE_THIRD_PERSON:
+            mode = "third person";
+            break;
+        case CAMERA_MODE_FIRST_PERSON:
+            mode = "first person";
+            break;
+        case CAMERA_MODE_MIRROR:
+            mode = "mirror";
+            break;
+        case CAMERA_MODE_INDEPENDENT:
+            mode = "independent";
+            break;
+        default:
+            break;
+    }
+    return mode;
+}
+
+void CameraScriptableObject::setMode(const QString& mode) {
+    CameraMode currentMode = _camera->getMode();
+    CameraMode targetMode = currentMode;
+    if (mode == "third person") {
+        targetMode = CAMERA_MODE_THIRD_PERSON;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+    } else if (mode == "first person") {
+        targetMode = CAMERA_MODE_FIRST_PERSON;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+    } else if (mode == "mirror") {
+        targetMode = CAMERA_MODE_MIRROR;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+    } else if (mode == "independent") {
+        targetMode = CAMERA_MODE_INDEPENDENT;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+    }
+    if (currentMode != targetMode) {
+        _camera->setMode(targetMode);
+        _camera->setModeShiftRate(10.0f);
+    }
+}
+
+void CameraScriptableObject::setPosition(const glm::vec3& p) {
+    _camera->setTargetPosition(p);
+}
 
 

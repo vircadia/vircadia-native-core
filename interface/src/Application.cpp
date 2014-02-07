@@ -434,9 +434,9 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     if (OculusManager::isConnected()) {
-        _myCamera.setUpShift       (0.0f);
-        _myCamera.setDistance      (0.0f);
-        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setUpShift(0.0f);
+        _myCamera.setDistance(0.0f);
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead().getOrientation());
 
@@ -446,7 +446,7 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
+        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
 
@@ -2220,28 +2220,30 @@ void Application::updateMetavoxels(float deltaTime) {
     }
 }
 
+void Application::cameraMenuChanged() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            _myCamera.setMode(CAMERA_MODE_MIRROR);
+            _myCamera.setModeShiftRate(100.0f);
+        }
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    } else {
+        if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+            _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            _myCamera.setModeShiftRate(1.0f);
+        }
+    }
+}
+
 void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
     if (!OculusManager::isConnected() && !TV3DManager::isConnected()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
-                _myCamera.setMode(CAMERA_MODE_MIRROR);
-                _myCamera.setModeShiftRate(100.0f);
-            }
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
-            if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        } else {
-            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
-                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-                _myCamera.setModeShiftRate(1.0f);
-            }
-        }
-
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
             float xSign = _myCamera.getMode() == CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
@@ -4094,6 +4096,10 @@ void Application::loadScript(const QString& fileNameString) {
     
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData( static_cast<Avatar*>(_myAvatar), "MyAvatar");
+
+    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera);
+    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
+    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
     QThread* workerThread = new QThread(this);
 
