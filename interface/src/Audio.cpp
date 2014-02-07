@@ -388,7 +388,7 @@ void Audio::handleAudioInput() {
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
-        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer)) {
+        if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead().getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();

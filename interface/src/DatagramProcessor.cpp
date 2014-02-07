@@ -40,7 +40,7 @@ void DatagramProcessor::processDatagrams() {
         _packetCount++;
         _byteCount += incomingPacket.size();
         
-        if (packetVersionMatch(incomingPacket)) {
+        if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
                 case PacketTypeTransmitterData:
@@ -121,7 +121,7 @@ void DatagramProcessor::processDatagrams() {
                     DataServerClient::processMessageFromDataServer(incomingPacket);
                     break;
                 default:
-                    NodeList::getInstance()->processNodeData(senderSockAddr, incomingPacket);
+                    nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;
             }
         }

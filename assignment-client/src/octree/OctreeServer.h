@@ -67,7 +67,7 @@ public:
 public slots:
     /// runs the voxel server assignment
     void run();
-    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    void readPendingDatagrams();
 
 protected:
     void parsePayload();

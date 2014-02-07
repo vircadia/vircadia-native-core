@@ -52,7 +52,7 @@ private:
 
     Q_INVOKABLE void addClient(const SharedNodePointer& node);
     Q_INVOKABLE void removeClient(const QUuid& uuid);
-    Q_INVOKABLE void receivedData(const QByteArray& data, const HifiSockAddr& sender);
+    Q_INVOKABLE void receivedData(const QByteArray& data, const SharedNodePointer& sendingNode);
 
     class Point {
     public:

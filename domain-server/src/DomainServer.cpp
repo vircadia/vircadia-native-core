@@ -236,7 +236,7 @@ void DomainServer::readAvailableDatagrams() {
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if (packetVersionMatch(receivedPacket)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType requestType = packetTypeForPacket(receivedPacket);
             if (requestType == PacketTypeDomainListRequest) {
                 
