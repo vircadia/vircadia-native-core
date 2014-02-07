@@ -76,6 +76,16 @@ function checkCamera() {
 
 Script.willSendVisualDataCallback.connect(checkCamera);
 
+function mouseMoveEvent(event) {
+    print("mouseMoveEvent event.x,y=" + event.x + ", " + event.y);
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    print("called Camera.computePickRay()");
+    print("computePickRay origin=" + pickRay.origin.x + ", " + pickRay.origin.y + ", " + pickRay.origin.z);
+    print("computePickRay direction=" + pickRay.direction.x + ", " + pickRay.direction.y + ", " + pickRay.direction.z);
+}
+
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
+
 
 function keyPressEvent(event) {
     if (joysticksCaptured) {

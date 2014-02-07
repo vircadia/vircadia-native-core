@@ -10,6 +10,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <RegisteredMetaTypes.h>
+#include <ViewFrustum.h>
 
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 90.0f;
 
@@ -105,7 +107,7 @@ private:
 class CameraScriptableObject  : public QObject {
     Q_OBJECT
 public:
-    CameraScriptableObject(Camera* camera) { _camera = camera; }
+    CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum);
 
 public slots:
     QString getMode() const;
@@ -117,7 +119,10 @@ public slots:
     void setOrientation(const glm::quat& value) { _camera->setTargetRotation(value); }
     glm::quat getOrientation() const { return _camera->getRotation(); }
 
+    PickRay computePickRay(float x, float y);
+
 private:
     Camera* _camera;
+    ViewFrustum* _viewFrustum;
 };
 #endif

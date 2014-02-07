@@ -4097,7 +4097,7 @@ void Application::loadScript(const QString& fileNameString) {
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData( static_cast<Avatar*>(_myAvatar), "MyAvatar");
 
-    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera);
+    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 

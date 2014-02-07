@@ -8,7 +8,9 @@
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
+#include <EventTypes.h>
 
+#include "Application.h"
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
@@ -168,22 +170,22 @@ void Camera::setAspectRatio(float a) {
     _frustumNeedsReshape = true; 
 }
 
-void Camera::setNearClip   (float n) { 
+void Camera::setNearClip(float n) { 
     _nearClip = n; 
     _frustumNeedsReshape = true; 
 }
 
-void Camera::setFarClip    (float f) { 
+void Camera::setFarClip(float f) { 
     _farClip = f; 
     _frustumNeedsReshape = true; 
 }
 
-void Camera::setEyeOffsetPosition  (const glm::vec3& p) {
+void Camera::setEyeOffsetPosition(const glm::vec3& p) {
     _eyeOffsetPosition = p;
     _frustumNeedsReshape = true;
 }
 
-void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
+void Camera::setEyeOffsetOrientation(const glm::quat& o) {
     _eyeOffsetOrientation = o;
     _frustumNeedsReshape = true;
 }
@@ -220,6 +222,19 @@ void Camera::setFrustumWasReshaped() {
     _frustumNeedsReshape = false;
 }
 
+
+CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
+    _camera(camera), _viewFrustum(viewFrustum) 
+{
+}
+
+PickRay CameraScriptableObject::computePickRay(float x, float y) {
+    float screenWidth = Application::getInstance()->getGLWidget()->width();
+    float screenHeight = Application::getInstance()->getGLWidget()->height();
+    PickRay result;
+    _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    return result;
+}
 
 QString CameraScriptableObject::getMode() const {
     QString mode("unknown");
