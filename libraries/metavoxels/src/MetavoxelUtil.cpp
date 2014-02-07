@@ -154,22 +154,9 @@ Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
     layout->setContentsMargins(QMargins());
     setLayout(layout);
     
-    setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    
-    layout->addWidget(_x = new QDoubleSpinBox());
-    _x->setMinimum(-FLT_MAX);
-    _x->setMaximumWidth(100);
-    connect(_x, SIGNAL(valueChanged(double)), SLOT(updateVector()));
-    
-    layout->addWidget(_y = new QDoubleSpinBox());
-    _y->setMinimum(-FLT_MAX);
-    _y->setMaximumWidth(100);
-    connect(_y, SIGNAL(valueChanged(double)), SLOT(updateVector()));
-    
-    layout->addWidget(_z = new QDoubleSpinBox()); 
-    _z->setMinimum(-FLT_MAX);
-    _z->setMaximumWidth(100);
-    connect(_z, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+    layout->addWidget(_x = createComponentBox());
+    layout->addWidget(_y = createComponentBox());
+    layout->addWidget(_z = createComponentBox());
 }
 
 void Vec3Editor::setVector(const glm::vec3& vector) {
@@ -181,6 +168,14 @@ void Vec3Editor::setVector(const glm::vec3& vector) {
 
 void Vec3Editor::updateVector() {
     emit vectorChanged(_vector = glm::vec3(_x->value(), _y->value(), _z->value()));
+}
+
+QDoubleSpinBox* Vec3Editor::createComponentBox() {
+    QDoubleSpinBox* box = new QDoubleSpinBox();
+    box->setMinimum(-FLT_MAX);
+    box->setMaximumWidth(100);
+    connect(box, SIGNAL(valueChanged(double)), SLOT(updateVector()));
+    return box;
 }
 
 ParameterizedURL::ParameterizedURL(const QUrl& url, const ScriptHash& parameters) :

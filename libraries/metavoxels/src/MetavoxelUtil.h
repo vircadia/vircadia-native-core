@@ -96,6 +96,8 @@ private slots:
 
 private:
     
+    QDoubleSpinBox* createComponentBox();
+    
     QDoubleSpinBox* _x;
     QDoubleSpinBox* _y;
     QDoubleSpinBox* _z;
