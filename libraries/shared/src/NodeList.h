@@ -84,6 +84,8 @@ public:
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     
+    bool packetVersionAndHashMatch(const QByteArray& packet);
+    
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,

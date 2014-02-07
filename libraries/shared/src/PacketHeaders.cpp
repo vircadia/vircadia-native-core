@@ -85,26 +85,6 @@ int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionU
     return position - packet;
 }
 
-bool packetVersionMatch(const QByteArray& packet) {
-    // currently this just checks if the version in the packet matches our return from versionForPacketType
-    // may need to be expanded in the future for types and versions that take > than 1 byte
-    
-    if (packet[1] == versionForPacketType(packetTypeForPacket(packet)) || packetTypeForPacket(packet) == PacketTypeStunResponse) {
-        return true;
-    } else {
-        PacketType mismatchType = packetTypeForPacket(packet);
-        int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
-       
-        QUuid nodeUUID = uuidFromPacketHeader(packet);
-        
-        qDebug() << "Packet mismatch on" << packetTypeForPacket(packet) << "- Sender"
-            << nodeUUID << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
-            << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
-
-        return false;
-    }
-}
-
 int numBytesForPacketHeader(const QByteArray& packet) {
     // returns the number of bytes used for the type, version, and UUID
     return numBytesArithmeticCodingFromBuffer(packet.data()) + NUM_STATIC_HEADER_BYTES;
@@ -122,6 +102,20 @@ int numBytesForPacketHeaderGivenPacketType(PacketType type) {
 QUuid uuidFromPacketHeader(const QByteArray& packet) {
     return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
                                          NUM_BYTES_RFC4122_UUID));
+}
+
+QByteArray hashFromPacketHeader(const QByteArray& packet) {
+    return packet.mid(NUM_STATIC_HEADER_BYTES - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH);
+}
+
+QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
+    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet))
+                                    + connectionUUID.toRfc4122(), QCryptographicHash::Md5);
+}
+
+void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID) {
+    packet.replace(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH,
+                   hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {

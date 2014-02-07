@@ -80,30 +80,64 @@ NodeList::~NodeList() {
     clear();
 }
 
-qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-                               const HifiSockAddr& overridenSockAddr) {
+bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
+    // currently this just checks if the version in the packet matches our return from versionForPacketType
+    // may need to be expanded in the future for types and versions that take > than 1 byte
     
-    // setup the MD5 hash for source verification in the header
-    int numBytesPacketHeader = numBytesForPacketHeader(datagram);
-    QByteArray dataSecretHash = QCryptographicHash::hash(datagram.mid(numBytesPacketHeader)
-                                                         + destinationNode->getConnectionSecret().toRfc4122(),
-                                                         QCryptographicHash::Md5);
-    QByteArray datagramWithHash = datagram;
-    datagramWithHash.replace(numBytesPacketHeader - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH, dataSecretHash);
+    if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
+        && packetTypeForPacket(packet) != PacketTypeStunResponse) {
+        PacketType mismatchType = packetTypeForPacket(packet);
+        int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
+        
+        qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
+            << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
+            << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+    }
     
-    // if we don't have an ovveriden address, assume they want to send to the node's active socket
-    const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
-    if (overridenSockAddr.isNull()) {
-        if (getNodeActiveSocketOrPing(destinationNode)) {
-            // use the node's active socket as the destination socket
-            destinationSockAddr = destinationNode->getActiveSocket();
+    if (packetTypeForPacket(packet) != PacketTypeDomainList && packetTypeForPacket(packet) != PacketTypeDomainListRequest) {
+        // figure out which node this is from
+        SharedNodePointer sendingNode = sendingNodeForPacket(packet);
+        if (sendingNode) {
+            // check if the md5 hash in the header matches the hash we would expect
+            if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
+                return true;
+            } else {
+                qDebug() << "Packet hash mismatch" << packetTypeForPacket(packet) << "received from known node with UUID"
+                << uuidFromPacketHeader(packet);
+            }
         } else {
-            // we don't have a socket to send to, return 0
-            return 0;
+            qDebug() << "Packet of type" << packetTypeForPacket(packet) << "received from unknown node with UUID"
+            << uuidFromPacketHeader(packet);
         }
     }
     
-    return _nodeSocket.writeDatagram(datagramWithHash, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+    return false;
+}
+
+qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    if (destinationNode) {
+        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
+        if (overridenSockAddr.isNull()) {
+            if (getNodeActiveSocketOrPing(destinationNode)) {
+                // use the node's active socket as the destination socket
+                destinationSockAddr = destinationNode->getActiveSocket();
+            } else {
+                // we don't have a socket to send to, return 0
+                return 0;
+            }
+        }
+        
+        QByteArray datagramCopy = datagram;
+        // setup the MD5 hash for source verification in the header
+        replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
+        
+        return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+    }
+    
+    // didn't have a destinationNode to send to, return 0
+    return 0;
 }
 
 qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
@@ -191,8 +225,11 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePing: {
             // send back a reply
-            QByteArray replyPacket = constructPingReplyPacket(packet);
-            writeDatagram(replyPacket, sendingNodeForPacket(packet), senderSockAddr);
+            if (sendingNodeForPacket(packet)) {
+                QByteArray replyPacket = constructPingReplyPacket(packet);
+                writeDatagram(replyPacket, sendingNodeForPacket(packet), senderSockAddr);
+            }
+            
             break;
         }
         case PacketTypePingReply: {
@@ -716,9 +753,9 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
     
     // if this is a local or public ping then we can activate a socket
     // we do nothing with agnostic pings, those are simply for timing
-    if (pingType == PingType::Local) {
+    if (pingType == PingType::Local && sendingNode->getActiveSocket() != &sendingNode->getLocalSocket()) {
         sendingNode->activateLocalSocket();
-    } else if (pingType == PingType::Public) {
+    } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
         sendingNode->activatePublicSocket();
     }
 }

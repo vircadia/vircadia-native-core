@@ -40,7 +40,7 @@ void DatagramProcessor::processDatagrams() {
         _packetCount++;
         _byteCount += incomingPacket.size();
         
-        if (packetVersionMatch(incomingPacket)) {
+        if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
                 case PacketTypeTransmitterData:

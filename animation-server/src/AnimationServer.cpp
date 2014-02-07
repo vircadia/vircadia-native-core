@@ -830,7 +830,7 @@ void AnimationServer::readPendingDatagrams() {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                nodeSockAddr.getAddressPointer(), nodeSockAddr.getPortPointer());
-        if (packetVersionMatch(receivedPacket)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeJurisdiction) {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);
                 // PacketType_JURISDICTION, first byte is the node type...

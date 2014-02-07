@@ -111,7 +111,7 @@ void AssignmentClient::readPendingDatagrams() {
         nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        if (packetVersionMatch(receivedPacket)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (_currentAssignment) {
                 // have the threaded current assignment handle this datagram
                 QMetaObject::invokeMethod(_currentAssignment, "processDatagram", Qt::QueuedConnection,
