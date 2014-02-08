@@ -28,9 +28,13 @@ IF (APPLE)
    ENDIF (DARWIN_VERSION GREATER 12)
 ENDIF(APPLE)
 
+# targets only supported on mac
+IF (APPLE)
+add_subdirectory(animation-server)
+ENDIF(APPLE)
+
 # targets not supported on windows
 if (NOT WIN32)
-add_subdirectory(animation-server)
 add_subdirectory(data-server)
 endif (NOT WIN32)
 
