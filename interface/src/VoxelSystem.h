@@ -201,7 +201,7 @@ private:
     static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool clearOcclusionsOperation(OctreeElement* element, void* extraData);
-	static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
+    static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
@@ -317,11 +317,12 @@ private:
     void unlockTree();
 
     bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
-	bool _usePrimitiveRenderer;					///< Flag primitive renderer for use
-	PrimitiveRenderer* _renderer;				///< Voxel renderer
+    bool _usePrimitiveRenderer;                    ///< Flag primitive renderer for use
+    PrimitiveRenderer* _renderer;                ///< Voxel renderer
 
-	static unsigned char _sOctantIndexToBitMask[8];				///< Map octant index to partition mask
-	static unsigned char _sOctantIndexToSharedBitMask[8][8];		///< Map octant indices to shared partition mask
+    static const int _sNumOctantsPerHemiVoxel = 4;
+    static unsigned char _sOctantIndexToBitMask[8];                ///< Map octant index to partition mask
+    static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
 
 };
 
