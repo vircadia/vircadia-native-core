@@ -82,7 +82,6 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
-    float getHeadYawRate() const { return _head.yawRate; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
