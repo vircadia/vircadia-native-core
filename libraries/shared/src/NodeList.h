@@ -52,6 +52,13 @@ typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
+typedef quint8 PingType_t;
+namespace PingType {
+    const PingType_t Agnostic = 0;
+    const PingType_t Local = 1;
+    const PingType_t Public = 2;
+}
+
 class NodeList : public QObject {
     Q_OBJECT
 public:
@@ -70,10 +77,17 @@ public:
 
     unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
 
-    const QUuid& getOwnerUUID() const { return _ownerUUID; }
-    void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
+    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    void setSessionUUID(const QUuid& sessionUUID);
 
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
+    
+    bool packetVersionAndHashMatch(const QByteArray& packet);
+    
+    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void(*linkedDataCreateCallback)(Node *);
 
@@ -93,27 +107,27 @@ public:
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
-    QByteArray constructPingPacket();
+    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
-    void pingPublicAndLocalSocketsForInactiveNode(Node* node);
+    void pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node);
 
-    SharedNodePointer nodeWithAddress(const HifiSockAddr& senderSockAddr);
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
-
-    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
+    
+    SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet);
+    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
+    int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
     unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
-
-    const HifiSockAddr* getNodeActiveSocketOrPing(Node* node);
 public slots:
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
@@ -122,6 +136,7 @@ public slots:
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
     void domainChanged(const QString& domainHostname);
+    void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 private:
@@ -143,15 +158,15 @@ private:
     QUdpSocket _nodeSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
-    QUuid _ownerUUID;
+    QUuid _sessionUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
 
-    void activateSocketFromNodeCommunication(const HifiSockAddr& nodeSockAddr);
-    void timePingReply(const QByteArray& packet);
+    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void resetDomainData(char domainField[], const char* domainData);
     void domainLookup();
     void clear();

@@ -13,7 +13,7 @@
 
 #include <SharedUtil.h>
 
-#include <AvatarData.h>
+#include <HeadData.h>
 
 #include <VoxelConstants.h>
 
@@ -47,6 +47,7 @@ public:
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     
     glm::quat getOrientation() const;
+    glm::quat getTweakedOrientation() const;
     glm::quat getCameraOrientation () const;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
@@ -70,9 +71,15 @@ public:
     
     /// Returns the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
-    
-    float yawRate;
 
+    void tweakPitch(float pitch) { _tweakedPitch = pitch; }
+    void tweakYaw(float yaw) { _tweakedYaw = yaw; }
+    void tweakRoll(float roll) { _tweakedRoll = roll; }
+
+    float getTweakedPitch() const;
+    float getTweakedYaw() const;
+    float getTweakedRoll() const;
+    
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
@@ -96,6 +103,12 @@ private:
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
+
+    // tweaked angles affect the rendered head, but not the camera
+    float _tweakedPitch;
+    float _tweakedYaw;
+    float _tweakedRoll;
+
     bool _isCameraMoving;
     FaceModel _faceModel;
     

@@ -396,9 +396,9 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    _head.tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    _head.tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    _head.tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -608,6 +608,9 @@ void MyAvatar::saveData(QSettings* settings) {
 
     settings->setValue("leanScale", _leanScale);
     settings->setValue("scale", _targetScale);
+    
+    settings->setValue("faceModelURL", _faceModelURL);
+    settings->setValue("skeletonModelURL", _skeletonModelURL);
 
     settings->endGroup();
 }
@@ -632,6 +635,9 @@ void MyAvatar::loadData(QSettings* settings) {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
+    
+    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
 
     settings->endGroup();
 }
@@ -639,6 +645,13 @@ void MyAvatar::loadData(QSettings* settings) {
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void MyAvatar::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(AvatarData::identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {

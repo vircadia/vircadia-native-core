@@ -64,7 +64,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
-    _ownerUUID(QUuid::createUuid()),
+    _sessionUUID(),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _publicSockAddr(),
@@ -78,6 +78,78 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 
 NodeList::~NodeList() {
     clear();
+}
+
+bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
+    // currently this just checks if the version in the packet matches our return from versionForPacketType
+    // may need to be expanded in the future for types and versions that take > than 1 byte
+    
+    if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
+        && packetTypeForPacket(packet) != PacketTypeStunResponse) {
+        PacketType mismatchType = packetTypeForPacket(packet);
+        int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
+        
+        qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
+            << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
+            << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
+    }
+    
+    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
+        << PacketTypeDomainListRequest << PacketTypeStunResponse << PacketTypeDataServerConfirm
+        << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
+        << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
+    
+    if (!NON_VERIFIED_PACKETS.contains(packetTypeForPacket(packet))) {
+        // figure out which node this is from
+        SharedNodePointer sendingNode = sendingNodeForPacket(packet);
+        if (sendingNode) {
+            // check if the md5 hash in the header matches the hash we would expect
+            if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
+                return true;
+            } else {
+                qDebug() << "Packet hash mismatch on" << packetTypeForPacket(packet) << "- Sender"
+                    << uuidFromPacketHeader(packet);
+            }
+        } else {
+            qDebug() << "Packet of type" << packetTypeForPacket(packet) << "received from unknown node with UUID"
+                << uuidFromPacketHeader(packet);
+        }
+    } else {
+        return true;
+    }
+    
+    return false;
+}
+
+qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    if (destinationNode) {
+        // if we don't have an ovveriden address, assume they want to send to the node's active socket
+        const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
+        if (overridenSockAddr.isNull()) {
+            if (destinationNode->getActiveSocket()) {
+                // use the node's active socket as the destination socket
+                destinationSockAddr = destinationNode->getActiveSocket();
+            } else {
+                // we don't have a socket to send to, return 0
+                return 0;
+            }
+        }
+        
+        QByteArray datagramCopy = datagram;
+        // setup the MD5 hash for source verification in the header
+        replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
+        
+        return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+    }
+    
+    // didn't have a destinationNode to send to, return 0
+    return 0;
+}
+
+qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+                               const HifiSockAddr& overridenSockAddr) {
+    return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
 void NodeList::setDomainHostname(const QString& domainHostname) {
@@ -111,44 +183,38 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
     }
 }
 
-void NodeList::timePingReply(const QByteArray& packet) {
-    QUuid nodeUUID;
-    deconstructPacketHeader(packet, nodeUUID);
+void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
+    quint8 pingType;
+    quint64 ourOriginalTime, othersReplyTime;
     
-    if (matchingNode) {
-        QDataStream packetStream(packet);
-        packetStream.skipRawData(numBytesForPacketHeader(packet));
-        
-        quint64 ourOriginalTime, othersReplyTime;
-        
-        packetStream >> ourOriginalTime >> othersReplyTime;
-        
-        quint64 now = usecTimestampNow();
-        int pingTime = now - ourOriginalTime;
-        int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
-        
-        // The other node's expected time should be our original time plus the one way flight time
-        // anything other than that is clock skew
-        quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
-        int clockSkew = othersReplyTime - othersExprectedReply;
-        
-        matchingNode->setPingMs(pingTime / 1000);
-        matchingNode->setClockSkewUsec(clockSkew);
-        
-        const bool wantDebug = false;
-        
-        if (wantDebug) {
-            qDebug() << "PING_REPLY from node " << *matchingNode << "\n" <<
-            "                     now: " << now << "\n" <<
-            "                 ourTime: " << ourOriginalTime << "\n" <<
-            "                pingTime: " << pingTime << "\n" <<
-            "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
-            "         othersReplyTime: " << othersReplyTime << "\n" <<
-            "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-            "               clockSkew: " << clockSkew;
-        }
+    packetStream >> pingType >> ourOriginalTime >> othersReplyTime;
+    
+    quint64 now = usecTimestampNow();
+    int pingTime = now - ourOriginalTime;
+    int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+    
+    // The other node's expected time should be our original time plus the one way flight time
+    // anything other than that is clock skew
+    quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
+    int clockSkew = othersReplyTime - othersExprectedReply;
+    
+    sendingNode->setPingMs(pingTime / 1000);
+    sendingNode->setClockSkewUsec(clockSkew);
+    
+    const bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "PING_REPLY from node " << *sendingNode << "\n" <<
+        "                     now: " << now << "\n" <<
+        "                 ourTime: " << ourOriginalTime << "\n" <<
+        "                pingTime: " << pingTime << "\n" <<
+        "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+        "         othersReplyTime: " << othersReplyTime << "\n" <<
+        "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+        "               clockSkew: " << clockSkew;
     }
 }
 
@@ -164,16 +230,25 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePing: {
             // send back a reply
-            QByteArray replyPacket = constructPingReplyPacket(packet);
-            _nodeSocket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+            SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+            if (matchingNode) {
+                QByteArray replyPacket = constructPingReplyPacket(packet);
+                writeDatagram(replyPacket, matchingNode, senderSockAddr);
+            }
+            
             break;
         }
         case PacketTypePingReply: {
-            // activate the appropriate socket for this node, if not yet updated
-            activateSocketFromNodeCommunication(senderSockAddr);
-
-            // set the ping time for this node for stat collection
-            timePingReply(packet);
+            SharedNodePointer sendingNode = sendingNodeForPacket(packet);
+            
+            if (sendingNode) {
+                // activate the appropriate socket for this node, if not yet updated
+                activateSocketFromNodeCommunication(packet, sendingNode);
+                
+                // set the ping time for this node for stat collection
+                timePingReply(packet, sendingNode);
+            }
+            
             break;
         }
         case PacketTypeStunResponse: {
@@ -187,49 +262,40 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
     }
 }
 
-int NodeList::updateNodeWithData(Node *node, const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    QMutexLocker locker(&node->getMutex());
-
-    node->setLastHeardMicrostamp(usecTimestampNow());
-
-    if (!senderSockAddr.isNull() && !node->getActiveSocket()) {
-        if (senderSockAddr == node->getPublicSocket()) {
-            node->activatePublicSocket();
-        } else if (senderSockAddr == node->getLocalSocket()) {
-            node->activateLocalSocket();
-        }
+int NodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray &packet) {
+    QMutexLocker locker(&matchingNode->getMutex());
+    
+    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+    matchingNode->recordBytesReceived(packet.size());
+    
+    if (!matchingNode->getLinkedData() && linkedDataCreateCallback) {
+        linkedDataCreateCallback(matchingNode.data());
     }
-
-    if (node->getActiveSocket() || senderSockAddr.isNull()) {
-        node->recordBytesReceived(packet.size());
-
-        if (!node->getLinkedData() && linkedDataCreateCallback) {
-            linkedDataCreateCallback(node);
-        }
-
-        int numParsedBytes = node->getLinkedData()->parseData(packet);
-        return numParsedBytes;
-    } else {
-        // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
-        return 0;
-    }
+    
+    return matchingNode->getLinkedData()->parseData(packet);
 }
 
-SharedNodePointer NodeList::nodeWithAddress(const HifiSockAddr &senderSockAddr) {
-    // naively returns the first node that has a matching active HifiSockAddr
-    // note that there can be multiple nodes that have a matching active socket, so this isn't a good way to uniquely identify
-    foreach (const SharedNodePointer& node, getNodeHash()) {
-        if (node->getActiveSocket() && *node->getActiveSocket() == senderSockAddr) {
-            return node;
-        }
+int NodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
+    SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+    
+    if (matchingNode) {
+        updateNodeWithDataFromPacket(matchingNode, packet);
     }
-
-    return SharedNodePointer();
+    
+    // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
+    return 0;
 }
 
 SharedNodePointer NodeList::nodeWithUUID(const QUuid& nodeUUID) {
     QMutexLocker locker(&_nodeHashMutex);
     return _nodeHash.value(nodeUUID);
+}
+
+SharedNodePointer NodeList::sendingNodeForPacket(const QByteArray& packet) {
+    QUuid nodeUUID = uuidFromPacketHeader(packet);
+    
+    // return the matching node, or NULL if there is no match
+    return nodeWithUUID(nodeUUID);
 }
 
 NodeHash NodeList::getNodeHash() {
@@ -257,7 +323,7 @@ void NodeList::reset() {
     _nodeTypesOfInterest.clear();
 
     // refresh the owner UUID
-    _ownerUUID = QUuid::createUuid();
+    _sessionUUID = QUuid::createUuid();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -492,6 +558,16 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
+void NodeList::setSessionUUID(const QUuid& sessionUUID) {
+    QUuid oldUUID = _sessionUUID;
+    _sessionUUID = sessionUUID;
+    
+    if (sessionUUID != oldUUID) {
+        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _sessionUUID;
+        emit uuidChanged(sessionUUID);
+    }
+}
+
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
@@ -501,14 +577,20 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     // setup variables to read into from QDataStream
     qint8 nodeType;
     
-    QUuid nodeUUID;
+    QUuid nodeUUID, connectionUUID;
 
     HifiSockAddr nodePublicSocket;
     HifiSockAddr nodeLocalSocket;
     
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
-
+    
+    // pull our owner UUID from the packet, it's always the first thing
+    QUuid newUUID;
+    packetStream >> newUUID;
+    setSessionUUID(newUUID);
+    
+    // pull each node in the packet
     while(packetStream.device()->pos() < packet.size()) {
         packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket;
 
@@ -518,8 +600,15 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
             nodePublicSocket.setAddress(_domainSockAddr.getAddress());
         }
 
-        addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
+        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
+        
+        packetStream >> connectionUUID;
+        node->setConnectionSecret(connectionUUID);
     }
+    
+    // ping inactive nodes in conjunction with receipt of list from domain-server
+    // this makes it happen every second and also pings any newly added nodes
+    pingInactiveNodes();
 
     return readNodes;
 }
@@ -544,10 +633,12 @@ void NodeList::sendAssignment(Assignment& assignment) {
     _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
 }
 
-QByteArray NodeList::constructPingPacket() {
+QByteArray NodeList::constructPingPacket(PingType_t pingType) {
     QByteArray pingPacket = byteArrayWithPopluatedHeader(PacketTypePing);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
+    
+    packetStream << pingType;
     packetStream << usecTimestampNow();
     
     return pingPacket;
@@ -557,23 +648,28 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
     
+    PingType_t typeFromOriginalPing;
+    pingPacketStream >> typeFromOriginalPing;
+    
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
     
     QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
-    packetStream << timeFromOriginalPing << usecTimestampNow();
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
     
     return replyPacket;
 }
 
-void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) {
-    QByteArray pingPacket = constructPingPacket();
-
+void NodeList::pingPublicAndLocalSocketsForInactiveNode(const SharedNodePointer& node) {
+    
     // send the ping packet to the local and public sockets for this node
-    _nodeSocket.writeDatagram(pingPacket, node->getLocalSocket().getAddress(), node->getLocalSocket().getPort());
-    _nodeSocket.writeDatagram(pingPacket, node->getPublicSocket().getAddress(), node->getPublicSocket().getPort());
+    QByteArray localPingPacket = constructPingPacket(PingType::Local);
+    writeDatagram(localPingPacket, node, node->getLocalSocket());
+    
+    QByteArray publicPingPacket = constructPingPacket(PingType::Public);
+    writeDatagram(publicPingPacket, node, node->getPublicSocket());
 }
 
 SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
@@ -586,9 +682,9 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
-
+        
         _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
-
+        
         _nodeHashMutex.unlock();
         
         qDebug() << "Added" << *newNode;
@@ -630,11 +726,8 @@ unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& des
     foreach (const SharedNodePointer& node, getNodeHash()) {
         // only send to the NodeTypes we are asked to send to.
         if (destinationNodeTypes.contains(node->getType())) {
-            if (getNodeActiveSocketOrPing(node.data())) {
-                // we know which socket is good for this node, send there
-                _nodeSocket.writeDatagram(packet, node->getActiveSocket()->getAddress(), node->getActiveSocket()->getPort());
-                ++n;
-            }
+            writeDatagram(packet, node);
+            ++n;
         }
     }
 
@@ -645,34 +738,25 @@ void NodeList::pingInactiveNodes() {
     foreach (const SharedNodePointer& node, getNodeHash()) {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(node.data());
+            pingPublicAndLocalSocketsForInactiveNode(node);
         }
     }
 }
 
-const HifiSockAddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
-    if (node->getActiveSocket()) {
-        return node->getActiveSocket();
-    } else {
-        pingPublicAndLocalSocketsForInactiveNode(node);
-        return NULL;
-    }
-}
-
-void NodeList::activateSocketFromNodeCommunication(const HifiSockAddr& nodeAddress) {
-
-    foreach (const SharedNodePointer& node, _nodeHash) {
-        if (!node->getActiveSocket()) {
-            // check both the public and local addresses for each node to see if we find a match
-            // prioritize the private address so that we prune erroneous local matches
-            if (node->getPublicSocket() ==  nodeAddress) {
-                node->activatePublicSocket();
-                break;
-            } else if (node->getLocalSocket() == nodeAddress) {
-                node->activateLocalSocket();
-                break;
-            }
-        }
+void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+    // deconstruct this ping packet to see if it is a public or local reply
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    quint8 pingType;
+    packetStream >> pingType;
+    
+    // if this is a local or public ping then we can activate a socket
+    // we do nothing with agnostic pings, those are simply for timing
+    if (pingType == PingType::Local && sendingNode->getActiveSocket() != &sendingNode->getLocalSocket()) {
+        sendingNode->activateLocalSocket();
+    } else if (pingType == PingType::Public && !sendingNode->getActiveSocket()) {
+        sendingNode->activatePublicSocket();
     }
 }
 

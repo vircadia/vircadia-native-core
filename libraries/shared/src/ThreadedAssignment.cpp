@@ -60,3 +60,16 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
         NodeList::getInstance()->sendDomainServerCheckIn();
     }
 }
+
+bool ThreadedAssignment::readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (nodeList->getNodeSocket().hasPendingDatagrams()) {
+        destinationByteArray.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        nodeList->getNodeSocket().readDatagram(destinationByteArray.data(), destinationByteArray.size(),
+                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        return true;
+    } else {
+        return false;
+    }
+}

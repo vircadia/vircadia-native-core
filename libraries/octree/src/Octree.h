@@ -156,7 +156,7 @@ public:
     bool includeExistsBits;
     OctreeElement* destinationNode;
     QUuid sourceUUID;
-    Node* sourceNode;
+    SharedNodePointer sourceNode;
     bool wantImportProgress;
 
     ReadBitstreamToTreeParams(
@@ -164,7 +164,7 @@ public:
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElement* destinationNode = NULL,
         QUuid sourceUUID = QUuid(),
-        Node* sourceNode = NULL,
+        SharedNodePointer sourceNode = SharedNodePointer(),
         bool wantImportProgress = false) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),
@@ -190,7 +190,7 @@ public:
     virtual PacketType expectedDataPacketType() const { return PacketTypeUnknown; }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, Node* senderNode) { return 0; }
+                    const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
 
 
     virtual void update() { }; // nothing to do by default
