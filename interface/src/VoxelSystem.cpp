@@ -60,6 +60,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
       _initialized(false),
+      _showCulledSharedFaces(false),
 	  _usePrimitiveRenderer(false),
 	  _renderer(0) {
 
@@ -350,8 +351,7 @@ void VoxelSystem::cleanupVoxelMemory() {
 
             _writeVoxelShaderData = _readVoxelShaderData = NULL;
 
-        } else 
-		if (! _usePrimitiveRenderer) {
+        } else {
             // Destroy  glBuffers
             glDeleteBuffers(1, &_vboVerticesID);
             glDeleteBuffers(1, &_vboColorsID);
@@ -373,10 +373,8 @@ void VoxelSystem::cleanupVoxelMemory() {
             _readColorsArray = NULL;
             _writeColorsArray = NULL;
         }
-		else {
-			delete _renderer;
-			_renderer = 0;
-		}
+		delete _renderer;
+		_renderer = 0;
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
@@ -461,8 +459,7 @@ void VoxelSystem::initVoxelMemory() {
 
         _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
         _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
-    } else 
-	if (! _usePrimitiveRenderer) {
+    } else {
 
         // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
         // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
@@ -525,27 +522,7 @@ void VoxelSystem::initVoxelMemory() {
             _shadowMapProgram.release();
         }
     }
-	else {
-		_renderer = new PrimitiveRenderer(_maxVoxels);
-        // create our simple fragment shader if we're the first system to init
-        if (!_perlinModulateProgram.isLinked()) {
-            switchToResourcesParentIfRequired();
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
-            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
-            _perlinModulateProgram.link();
-
-            _perlinModulateProgram.bind();
-            _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
-            _perlinModulateProgram.release();
-
-            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/shadow_map.frag");
-            _shadowMapProgram.link();
-
-            _shadowMapProgram.bind();
-            _shadowMapProgram.setUniformValue("shadowMap", 0);
-            _shadowMapProgram.release();
-        }
-	}
+	_renderer = new PrimitiveRenderer(_maxVoxels);
 
     _initialized = true;
 
@@ -690,12 +667,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
         if (_writeRenderFullVBO) {
 			if (_usePrimitiveRenderer) {
-				delete _renderer;
-				_renderer = new PrimitiveRenderer(_maxVoxels);
+				_renderer->release();
 			}
-			else {
-				clearFreeBufferIndexes();
-			}
+		    clearFreeBufferIndexes();
         }
         _voxelsUpdated = newTreeToArrays(_tree->getRoot());
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
@@ -851,7 +825,8 @@ void VoxelSystem::cleanupRemovedVoxels() {
     // we also might have VBO slots that have been abandoned, if too many of our VBO slots
     // are abandonded we want to rerender our full VBOs
     const float TOO_MANY_ABANDONED_RATIO = 0.5f;
-    if (!_writeRenderFullVBO && (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
+    if (!_usePrimitiveRenderer && !_writeRenderFullVBO && 
+        (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
             qDebug() << "cleanupRemovedVoxels().. _abandonedVBOSlots ["
                 << _abandonedVBOSlots << "] > TOO_MANY_ABANDONED_RATIO";
@@ -1054,12 +1029,17 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
 					node->setVoxelSystem(this);
 				}
 				inspectForInteriorOcclusionsOperation(node, 0);
-
-				if (node->getInteriorOcclusions() != OctreeElement::HalfSpace::All) {
+                unsigned char occlusions;
+                if (_showCulledSharedFaces) {
+                    occlusions = ~node->getInteriorOcclusions();
+                } else {
+                    occlusions = node->getInteriorOcclusions();
+                }
+				if (occlusions != OctreeElement::HalfSpace::All) {
 					Cube* cube = new Cube(
 						startVertex.x, startVertex.y, startVertex.z, voxelScale, 
 						color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX],
-						node->getInteriorOcclusions());
+						occlusions);
 					if (cube) {
 						primitiveIndex = _renderer->add(cube);
 						node->setPrimitiveIndex(primitiveIndex);
@@ -1491,6 +1471,7 @@ void VoxelSystem::killLocalVoxels() {
     _tree->eraseAllOctreeElements();
     unlockTree();
     clearFreeBufferIndexes();
+    _renderer->release();
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
 }
@@ -1541,7 +1522,7 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 			// all faces which are completely covered by four child octants.
 			unsigned char exteriorOcclusionsA = childA->getExteriorOcclusions();
 
-			if (exteriorOcclusionsA == 0) {
+			if (exteriorOcclusionsA == OctreeElement::HalfSpace::None) {
 				// There is nothing to be done with this child, next...
 				continue;
 			}
@@ -1554,7 +1535,7 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 					// Get child B's occluding faces
 					unsigned char exteriorOcclusionsB = childB->getExteriorOcclusions();
 
-					if (exteriorOcclusionsB == 0) {
+					if (exteriorOcclusionsB == OctreeElement::HalfSpace::None) {
 						// There is nothing to be done with this child, next...
 						continue;
 					}
@@ -1580,7 +1561,7 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
 
 			// Inform the child
 			childA->setInteriorOcclusions(occludedSharedFace[i]);
-			if (occludedSharedFace[i]) {
+			if (occludedSharedFace[i] != OctreeElement::HalfSpace::None) {
 				//const glm::vec3& v = voxel->getCorner();
 				//float s = voxel->getScale();
 
@@ -1630,7 +1611,7 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 	{
 		// Derive the exterior occlusions of the voxel elements from the exclusions
 		// of its children
-		unsigned char exteriorOcclusions = 0;
+		unsigned char exteriorOcclusions = OctreeElement::HalfSpace::None;
 		for (int i = 6; --i >= 0; ) {
 			if (exteriorOcclusionsCt[i] == 4) {
 
@@ -1653,7 +1634,7 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 			//		occupied. Hence, the subtree from this node could be
 			//		pruned and replaced by a leaf voxel, if the visible 
 			//		properties of the children are the same
-		} else if (exteriorOcclusions) {
+		} else if (exteriorOcclusions != OctreeElement::HalfSpace::None) {
 			//const glm::vec3& v = voxel->getCorner();
 			//float s = voxel->getScale();
 
@@ -1675,11 +1656,11 @@ bool VoxelSystem::clearOcclusionsOperation(OctreeElement* element, void* extraDa
 		voxel->setExteriorOcclusions(OctreeElement::HalfSpace::All);
 
 		// And the sibling occluders
-		voxel->setInteriorOcclusions(0);
+		voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
 		rc = false;
 	} else {
-		voxel->setExteriorOcclusions(0);
-		voxel->setInteriorOcclusions(0);
+		voxel->setExteriorOcclusions(OctreeElement::HalfSpace::None);
+		voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
 		rc = true;
 	}
 
@@ -1690,10 +1671,9 @@ void VoxelSystem::cullSharedFaces() {
     _nodeCount = 0;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
-		cleanupVoxelMemory();
 		_useVoxelShader = false;
 		_usePrimitiveRenderer = true;
-		initVoxelMemory();
+        _renderer->release();
 		clearAllNodesBufferIndex();
 		lockTree();
 	    _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
@@ -1706,9 +1686,8 @@ void VoxelSystem::cullSharedFaces() {
 		unlockTree();
         qDebug("culling shared faces in %d nodes", _nodeCount);
     } else {
-		cleanupVoxelMemory();
 		_usePrimitiveRenderer = false;
-		initVoxelMemory();
+        _renderer->release();
 		clearAllNodesBufferIndex();
 		lockTree();
 	    _tree->recurseTreeWithOperation(clearOcclusionsOperation);
@@ -1721,6 +1700,18 @@ void VoxelSystem::cullSharedFaces() {
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 
+}
+
+void VoxelSystem::showCulledSharedFaces() {
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowCulledSharedFaces)) {
+		_showCulledSharedFaces = true;
+    } else {
+		_showCulledSharedFaces = false;
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
+        cullSharedFaces();
+    }
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {
@@ -2650,31 +2641,37 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld", debug::valueOf(_voxelsDirty),
-        _voxelsInWriteArrays, minDirty, maxDirty);
+    if (!_usePrimitiveRenderer) {
+        qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld", debug::valueOf(_voxelsDirty),
+            _voxelsInWriteArrays, minDirty, maxDirty);
 
-    qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld",
-        args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
+        qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld",
+            args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
-    qDebug(" inPrimitiveRenderer %ld \n completely culled %ld \n",
-        args.nodesInPrimitiveRenderer, args.culledLeafNodes);
+        qDebug(" memory usage %ld \n gpu memory usage %ld \n", _memoryUsageRAM, _memoryUsageVBO);
 
-    glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
-    glBufferIndex maxInVBO = 0;
+        glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
+        glBufferIndex maxInVBO = 0;
 
-    for (glBufferIndex i = 0; i < _maxVoxels; i++) {
-        if (args.hasIndexFound[i]) {
-            minInVBO = std::min(minInVBO,i);
-            maxInVBO = std::max(maxInVBO,i);
+        for (glBufferIndex i = 0; i < _maxVoxels; i++) {
+            if (args.hasIndexFound[i]) {
+                minInVBO = std::min(minInVBO,i);
+                maxInVBO = std::max(maxInVBO,i);
+            }
         }
+
+        qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld",
+                minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
+
+        qDebug(" _freeIndexes.size()=%ld",
+                _freeIndexes.size());
+    } else {
+        qDebug(" PrimitiveRenderer nodes %ld \n completely culled nodes %ld \n",
+            args.nodesInPrimitiveRenderer, args.culledLeafNodes);
+
+        qDebug(" memory usage %ld \n gpu memory usage %ld \n",
+            _renderer->getMemoryUsage(), _renderer->getMemoryUsageGPU());
     }
-
-    qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld",
-            minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
-
-    qDebug(" _freeIndexes.size()=%ld",
-            _freeIndexes.size());
-
     qDebug("DONE WITH Local Voxel Tree Statistics >>>>>>>>>>>>");
 }
 

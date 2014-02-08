@@ -140,6 +140,7 @@ public slots:
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
     void cullSharedFaces();
+    void showCulledSharedFaces();
 
     void cancelImport();
 
@@ -315,6 +316,7 @@ private:
     void lockTree();
     void unlockTree();
 
+    bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
 	bool _usePrimitiveRenderer;					///< Flag primitive renderer for use
 	PrimitiveRenderer* _renderer;				///< Voxel renderer
 
