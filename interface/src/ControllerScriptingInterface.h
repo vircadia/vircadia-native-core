@@ -38,7 +38,7 @@ public:
     bool isMouseCaptured() const { return _mouseCaptured; }
     bool isTouchCaptured() const { return _touchCaptured; }
     bool isWheelCaptured() const { return _wheelCaptured; }
-
+    bool isJoystickCaptured(int joystickIndex) const;
 
 public slots:
     virtual bool isPrimaryButtonPressed() const;
@@ -70,6 +70,9 @@ public slots:
     virtual void captureWheelEvents() { _wheelCaptured = true; }
     virtual void releaseWheelEvents() { _wheelCaptured = false; }
 
+    virtual void captureJoystick(int joystickIndex);
+    virtual void releaseJoystick(int joystickIndex);
+
 private:
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;
@@ -80,6 +83,7 @@ private:
     bool _touchCaptured;
     bool _wheelCaptured;
     QMultiMap<int,KeyEvent> _capturedKeys;
+    QSet<int> _capturedJoysticks;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip

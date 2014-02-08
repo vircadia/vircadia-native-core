@@ -242,7 +242,9 @@ void Avatar::renderBody(bool forceRenderHead) {
     glm::vec3 pos = getPosition();
     //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
     _skeletonModel.render(1.0f);
-    _head.render(1.0f);
+    if (forceRenderHead) {
+        _head.render(1.0f);
+    }
     _hand.render(false);
 }
 
@@ -332,6 +334,16 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
         return true;
     }
     return false;
+}
+
+void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
+    AvatarData::setFaceModelURL(faceModelURL);
+    _head.getFaceModel().setURL(faceModelURL);
+}
+
+void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
+    AvatarData::setSkeletonModelURL(skeletonModelURL);
+    _skeletonModel.setURL(skeletonModelURL);
 }
 
 int Avatar::parseData(const QByteArray& packet) {

@@ -65,7 +65,6 @@ public:
     int y;
 };
 
-
 Q_DECLARE_METATYPE(KeyEvent)
 Q_DECLARE_METATYPE(MouseEvent)
 Q_DECLARE_METATYPE(TouchEvent)
@@ -74,15 +73,15 @@ Q_DECLARE_METATYPE(WheelEvent)
 void registerEventTypes(QScriptEngine* engine);
 
 QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event);
-void keyEventFromScriptValue(const QScriptValue &object, KeyEvent& event);
+void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event);
 
 QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event);
-void mouseEventFromScriptValue(const QScriptValue &object, MouseEvent& event);
+void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event);
 
 QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event);
-void touchEventFromScriptValue(const QScriptValue &object, TouchEvent& event);
+void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);
 
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
-void wheelEventFromScriptValue(const QScriptValue &object, WheelEvent& event);
+void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
 
 #endif // __hifi_EventTypes_h__

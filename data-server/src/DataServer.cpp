@@ -136,7 +136,7 @@ void DataServer::readPendingDatagrams() {
         }
         
         if ((requestType == PacketTypeDataServerPut || requestType == PacketTypeDataServerGet) &&
-            packetVersionMatch(receivedPacket)) {
+            receivedPacket[numBytesArithmeticCodingFromBuffer(receivedPacket.data())] == versionForPacketType(requestType)) {
             
             QDataStream packetStream(receivedPacket);
             int numReceivedHeaderBytes = numBytesForPacketHeader(receivedPacket);

@@ -75,7 +75,6 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
     if (!selfAvatarOnly) {
-        //  Render avatars of other nodes
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
             if (!avatar->isInitialized()) {
@@ -84,7 +83,7 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
                 avatar->render(forceRenderHead);
             } else {
-                avatar->render(false);
+                avatar->render(true);
             }
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
@@ -124,47 +123,29 @@ void AvatarManager::renderAvatarFades() {
     }
 }
 
-void AvatarManager::processDataServerResponse(const QString& userString, const QStringList& keyList,
-                                              const QStringList &valueList) {
-    QUuid avatarKey = QUuid(userString);
-    if (avatarKey == MY_AVATAR_KEY) {
-        // ignore updates to our own mesh
-        return;
-    }
-    for (int i = 0; i < keyList.size(); i++) {
-        if (valueList[i] != " ") {
-            if (keyList[i] == DataServerKey::FaceMeshURL || keyList[i] == DataServerKey::SkeletonURL) {
-                // mesh URL for a UUID, find avatar in our list
-                AvatarSharedPointer matchingAvatar = _avatarHash.value(avatarKey);
-                if (matchingAvatar) {
-                    Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
-                    if (keyList[i] == DataServerKey::FaceMeshURL) {
-                        qDebug() << "Changing mesh to" << valueList[i] << "for avatar with UUID"
-                            << uuidStringWithoutCurlyBraces(avatarKey);
-                        
-                        QMetaObject::invokeMethod(&(avatar->getHead().getFaceModel()),
-                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-                    } else if (keyList[i] == DataServerKey::SkeletonURL) {
-                        qDebug() << "Changing skeleton to" << valueList[i] << "for avatar with UUID"
-                            << uuidStringWithoutCurlyBraces(avatarKey.toString());
-                        
-                        QMetaObject::invokeMethod(&(avatar->getSkeletonModel()),
-                                                  "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
-                    }
-                }
-            }
-        }
+void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
+    switch (packetTypeForPacket(datagram)) {
+        case PacketTypeBulkAvatarData:
+            processAvatarDataPacket(datagram, mixerWeakPointer);
+            break;
+        case PacketTypeAvatarIdentity:
+            processAvatarIdentityPacket(datagram);
+            break;
+        case PacketTypeKillAvatar:
+            processKillAvatar(datagram);
+            break;
+        default:
+            break;
     }
 }
 
-void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
-    
+void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
     int bytesRead = numBytesForPacketHeader(datagram);
     
     QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
     int numDummyHeaderBytes = dummyAvatarByteArray.size();
     int numDummyHeaderBytesWithoutUUID = numDummyHeaderBytes - NUM_BYTES_RFC4122_UUID;
-
+    
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < datagram.size() && mixerWeakPointer.data()) {
@@ -181,10 +162,6 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
             matchingAvatar = AvatarSharedPointer(avatar);
             _avatarHash.insert(nodeUUID, matchingAvatar);
             
-            // new UUID requires mesh and skeleton request to data-server
-            DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
-                                                      nodeUUID, this);
-            
             qDebug() << "Adding avatar with UUID" << nodeUUID << "to AvatarManager hash.";
         }
         
@@ -196,6 +173,35 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         
         // have the matching (or new) avatar parse the data from the packet
         bytesRead += matchingAvatar->parseData(dummyAvatarByteArray) - numDummyHeaderBytesWithoutUUID;
+    }
+
+}
+
+void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
+    // setup a data stream to parse the packet
+    QDataStream identityStream(packet);
+    identityStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    QUuid nodeUUID;
+    
+    while (!identityStream.atEnd()) {
+        
+        QUrl faceMeshURL, skeletonURL;
+        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL;
+        
+        // mesh URL for a UUID, find avatar in our list
+        AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+        if (matchingAvatar) {
+            Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
+            
+            if (avatar->getFaceModelURL() != faceMeshURL) {
+                avatar->setFaceModelURL(faceMeshURL);
+            }
+            
+            if (avatar->getSkeletonModelURL() != skeletonURL) {
+                avatar->setSkeletonModelURL(skeletonURL);
+            }
+        }
     }
 }
 

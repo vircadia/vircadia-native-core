@@ -270,6 +270,48 @@ int AvatarData::parseData(const QByteArray& packet) {
     return sourceBuffer - startPosition;
 }
 
+bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    QUuid avatarUUID;
+    QUrl faceModelURL, skeletonModelURL;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
+    
+    bool hasIdentityChanged = false;
+    
+    if (faceModelURL != _faceModelURL) {
+        setFaceModelURL(faceModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    if (skeletonModelURL != _skeletonModelURL) {
+        setSkeletonModelURL(skeletonModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    return hasIdentityChanged;
+}
+
+QByteArray AvatarData::identityByteArray() {
+    QByteArray identityData;
+    QDataStream identityStream(&identityData, QIODevice::Append);
+    
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
+    
+    return identityData;
+}
+
+void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
+    qDebug() << "Changing face model for avatar to" << faceModelURL.toString();
+    _faceModelURL = faceModelURL;
+}
+
+void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    qDebug() << "Changing skeleton model for avatar to" << skeletonModelURL.toString();
+    _skeletonModelURL = skeletonModelURL;
+}
+
 void AvatarData::setClampedTargetScale(float targetScale) {
     
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);

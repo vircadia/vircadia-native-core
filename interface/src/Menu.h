@@ -49,6 +49,7 @@ public:
     ~Menu();
 
     bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
@@ -179,7 +180,6 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DisableColorVoxels = "Disable Colored Voxels";
     const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableLocalVoxelCache = "Disable Local Voxel Cache";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";

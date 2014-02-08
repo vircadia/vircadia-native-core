@@ -24,8 +24,8 @@
 class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
-#include "DataServerScriptingInterface.h"
 #include "Quat.h"
+#include "Vec3.h"
 
 const QString NO_SCRIPT("");
 
@@ -43,9 +43,6 @@ public:
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
-    
-    /// Access the DataServerScriptingInterface for access to its underlying UUID
-    const DataServerScriptingInterface& getDataServerScriptingInterface() { return _dataServerScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents);
@@ -97,7 +94,6 @@ private:
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
-    DataServerScriptingInterface _dataServerScriptingInterface;
     AvatarData* _avatarData;
     bool _wantMenuItems;
     QString _scriptMenuName;
@@ -105,6 +101,7 @@ private:
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
     Quat _quatLibrary;
+    Vec3 _vec3Library;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */

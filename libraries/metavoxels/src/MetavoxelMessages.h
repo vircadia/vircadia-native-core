@@ -21,6 +21,17 @@ class CloseSessionMessage {
 
 DECLARE_STREAMABLE_METATYPE(CloseSessionMessage)
 
+/// Clears the mapping for a shared object.
+class ClearSharedObjectMessage {
+    STREAMABLE
+
+public:
+    
+    STREAM int id;
+};
+
+DECLARE_STREAMABLE_METATYPE(ClearSharedObjectMessage)
+
 /// A message containing the state of a client.
 class ClientStateMessage {
     STREAMABLE

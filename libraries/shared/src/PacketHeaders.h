@@ -12,6 +12,7 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#include <QtCore/QCryptographicHash>
 #include <QtCore/QUuid>
 
 #include "UUID.h"
@@ -54,12 +55,15 @@ enum PacketType {
     PacketTypeParticleAddOrEdit,
     PacketTypeParticleErase,
     PacketTypeParticleAddResponse,
-    PacketTypeMetavoxelData
+    PacketTypeMetavoxelData,
+    PacketTypeAvatarIdentity
 };
 
 typedef char PacketVersion;
 
-const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;;
+const int NUM_BYTES_MD5_HASH = 16;
+const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_STATIC_HEADER_BYTES;
 
 PacketVersion versionForPacketType(PacketType type);
 
@@ -69,17 +73,20 @@ QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connection
 int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
 int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
 
-bool packetVersionMatch(const QByteArray& packet);
-
 int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
 int numBytesForPacketHeaderGivenPacketType(PacketType type);
 
-void deconstructPacketHeader(const QByteArray& packet, QUuid& senderUUID);
+QUuid uuidFromPacketHeader(const QByteArray& packet);
+
+QByteArray hashFromPacketHeader(const QByteArray& packet);
+QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
+void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID);
 
 PacketType packetTypeForPacket(const QByteArray& packet);
 PacketType packetTypeForPacket(const char* packet);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
+int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
 #endif

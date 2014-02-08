@@ -14,8 +14,11 @@
 #include <QByteArray>
 #include <QList>
 #include <QSet>
+#include <QVector>
 
 #include "Bitstream.h"
+
+class ReliableChannel;
 
 /// Performs simple datagram sequencing, packet fragmentation and reassembly.
 class DatagramSequencer : public QObject {
@@ -46,6 +49,18 @@ public:
     /// Returns a reference to the list of high priority messages not yet acknowledged.
     const QList<HighPriorityMessage>& getHighPriorityMessages() const { return _highPriorityMessages; }
     
+    /// Sets the maximum packet size.  This is a soft limit that determines how much
+    /// reliable data we include with each transmission.
+    void setMaxPacketSize(int maxPacketSize) { _maxPacketSize = maxPacketSize; }
+    
+    int getMaxPacketSize() const { return _maxPacketSize; }
+    
+    /// Returns the output channel at the specified index, creating it if necessary.
+    ReliableChannel* getReliableOutputChannel(int index = 0);
+    
+    /// Returns the intput channel at the 
+    ReliableChannel* getReliableInputChannel(int index = 0);
+    
     /// Starts a new packet for transmission.
     /// \return a reference to the Bitstream to use for writing to the packet
     Bitstream& startPacket();
@@ -75,14 +90,28 @@ signals:
     /// Emitted when our acknowledgement of a received packet has been acknowledged by the remote side.
     /// \param index the index of the packet in our list of receive records
     void receiveAcknowledged(int index);
+
+private slots:
+
+    void sendClearSharedObjectMessage(int id);
     
 private:
+    
+    friend class ReliableChannel;
+    
+    class ChannelSpan {
+    public:
+        int channel;
+        int offset;
+        int length;
+    };
     
     class SendRecord {
     public:
         int packetNumber;
         int lastReceivedPacketNumber;
         Bitstream::WriteMappings mappings;
+        QVector<ChannelSpan> spans; 
     };
     
     class ReceiveRecord {
@@ -97,9 +126,14 @@ private:
     /// Notes that the described send was acknowledged by the other party.
     void sendRecordAcknowledged(const SendRecord& record);
     
+    /// Appends some reliable data to the outgoing packet.
+    void appendReliableData(int bytes, QVector<ChannelSpan>& spans);
+    
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
-    void sendPacket(const QByteArray& packet);
+    void sendPacket(const QByteArray& packet, const QVector<ChannelSpan>& spans);
+    
+    void handleHighPriorityMessage(const QVariant& data);
     
     QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
@@ -126,6 +160,92 @@ private:
     
     QList<HighPriorityMessage> _highPriorityMessages;
     int _receivedHighPriorityMessages;
+    
+    int _maxPacketSize;
+    
+    QHash<int, ReliableChannel*> _reliableOutputChannels;
+    QHash<int, ReliableChannel*> _reliableInputChannels;
+};
+
+/// A list of contiguous spans, alternating between set and unset.  Conceptually, the list is preceeded by a set
+/// span of infinite length and followed by an unset span of infinite length.  Within those bounds, it alternates
+/// between unset and set.
+class SpanList {
+public:
+
+    class Span {
+    public:
+        int unset;
+        int set;
+    };
+    
+    SpanList();
+    
+    const QList<Span>& getSpans() const { return _spans; }
+    
+    /// Returns the total length set.
+    int getTotalSet() const { return _totalSet; }
+
+    /// Sets a region of the list.
+    /// \return the advancement of the set length at the beginning of the list
+    int set(int offset, int length);
+
+private:
+    
+    /// Sets the spans starting at the specified iterator, consuming at least the given length.
+    /// \return the actual amount set, which may be greater if we ran into an existing set span
+    int setSpans(QList<Span>::iterator it, int length);
+    
+    QList<Span> _spans;
+    int _totalSet;
+};
+
+/// Represents a single reliable channel multiplexed onto the datagram sequence.
+class ReliableChannel : public QObject {
+    Q_OBJECT
+    
+public:
+
+    int getIndex() const { return _index; }
+
+    QDataStream& getDataStream() { return _dataStream; }
+    Bitstream& getBitstream() { return _bitstream; }
+
+    void setPriority(float priority) { _priority = priority; }
+    float getPriority() const { return _priority; }
+
+    int getBytesAvailable() const;
+
+    void sendMessage(const QVariant& message);
+
+private slots:
+
+    void sendClearSharedObjectMessage(int id);
+
+private:
+    
+    friend class DatagramSequencer;
+    
+    ReliableChannel(DatagramSequencer* sequencer, int index, bool output);
+    
+    void writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans);
+    int getBytesToWrite(bool& first, int length) const;
+    int writeSpan(QDataStream& out, bool& first, int position, int length, QVector<DatagramSequencer::ChannelSpan>& spans);
+    
+    void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
+    
+    void readData(QDataStream& in);
+    
+    int _index;
+    QBuffer _buffer;
+    QByteArray _assemblyBuffer;
+    QDataStream _dataStream;
+    Bitstream _bitstream;
+    float _priority;
+    
+    int _offset;
+    int _writePosition;
+    SpanList _acknowledged;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */
