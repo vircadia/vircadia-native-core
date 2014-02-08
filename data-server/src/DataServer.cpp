@@ -20,6 +20,11 @@ const quint16 DATA_SERVER_LISTEN_PORT = 3282;
 
 const char REDIS_HOSTNAME[] = "127.0.0.1";
 const unsigned short REDIS_PORT = 6379;
+const int ARGV_FIXED_INDEX_START = 2;
+
+const char REDIS_HASH_MULTIPLE_SET[] = "HMSET";
+const char REDIS_HASH_SET[] = "HSET";
+const char REDIS_HASH_GET_ALL[] = "HGETALL";
 
 DataServer::DataServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -64,6 +69,71 @@ void DataServer::readPendingDatagrams() {
                              senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
         PacketType requestType = packetTypeForPacket(receivedPacket);
+        
+        if ((requestType == PacketTypeDataServerHashPut || requestType == PacketTypeDataServerHashGet) &&
+            packetVersionMatch(receivedPacket)) {
+            
+            QDataStream packetStream(receivedPacket);
+            int numReceivedHeaderBytes = numBytesForPacketHeader(receivedPacket);
+            packetStream.skipRawData(numReceivedHeaderBytes);
+            
+            // pull the sequence number used for this packet
+            quint8 sequenceNumber = 0;
+            
+            packetStream >> sequenceNumber;
+            
+            // pull the UUID that we will need as part of the key
+            QString userString;
+            packetStream >> userString;
+            
+            if (requestType == PacketTypeDataServerHashPut) {
+                QString dataKey, dataValue;
+                QStringList redisCommandKeys, redisCommandValues;
+                
+                while(true) {
+                    packetStream >> dataKey >> dataValue;
+                    if (dataKey.isNull() || dataKey.isEmpty()) {
+                        break;
+                    }
+                    redisAppendCommand(_redis, "%s %s %s %s",
+                                       REDIS_HASH_SET,
+                                       qPrintable(userString),
+                                       qPrintable(dataKey),
+                                       qPrintable(dataValue));
+                };
+                
+                redisReply* reply = NULL;
+                redisGetReply(_redis, (void **) &reply);
+                
+                if (reply->type == REDIS_REPLY_INTEGER && reply->integer == 0) {
+                    QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerConfirm, _uuid);
+                    replyPacket.append(sequenceNumber);
+                    _socket.writeDatagram(replyPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+                }
+                
+                freeReplyObject(reply);
+                reply = NULL;
+            } else {
+                
+                redisReply* reply = (redisReply*) redisCommand(_redis, "%s %s", REDIS_HASH_GET_ALL, qPrintable(userString));
+                
+                QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerHashSend, _uuid);
+                QDataStream sendPacketStream(&sendPacket, QIODevice::Append);
+                
+                sendPacketStream << sequenceNumber;
+                sendPacketStream << userString;
+                
+                if (reply->type == REDIS_REPLY_ARRAY && reply->elements > 0) {
+                    for (int i = 0; i < reply->elements; i++) {
+                        sendPacketStream << QString(reply->element[i]->str);
+                    }
+                }
+                // reply back with the send packet
+                _socket.writeDatagram(sendPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
+                freeReplyObject(reply);
+                reply = NULL;
+            }
+        }
         
         if ((requestType == PacketTypeDataServerPut || requestType == PacketTypeDataServerGet) &&
             packetVersionMatch(receivedPacket)) {

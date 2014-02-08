@@ -23,6 +23,7 @@
 #include <QStandardPaths>
 #include <QUuid>
 #include <QWindow>
+#include <QMessageBox>
 
 #include <UUID.h>
 
@@ -114,7 +115,12 @@ Menu::Menu() :
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                    this,
-                                   SLOT(goToLocation()));
+                                  SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::NameLocation,
+                                  Qt::CTRL | Qt::Key_N,
+                                  this,
+                                  SLOT(nameLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoTo,
                                   Qt::Key_At,
@@ -152,8 +158,9 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
-
+    // TODO: add new shortcut
+    addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, 0, appInstance, SLOT(nudgeVoxels()));
+    
     #ifdef __APPLE__
         addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Backspace, appInstance, SLOT(deleteVoxels()));
     #else
@@ -962,6 +969,70 @@ void Menu::goTo() {
     }
     
     sendFakeEnterEvent();
+}
+
+void Menu::namedLocationCreated(LocationManager::LocationCreateResponse response, NamedLocation* location) {
+    
+    if (response == LocationManager::AlreadyExists) {
+        QMessageBox msgBox;
+        msgBox.setText("That name has been claimed by " + location->getCreatedBy() + ", try something else.");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText("Go to user");
+        int ret = msgBox.exec();
+        
+        if (ret == QMessageBox::Ok) {
+            DataServerClient::getValuesForKeysAndUserString(
+                                                            QStringList()
+                                                            << DataServerKey::Domain
+                                                            << DataServerKey::Position
+                                                            << DataServerKey::Orientation,
+                                                            location->getCreatedBy(),
+                                                            Application::getInstance()->getProfile());
+        }
+    }
+}
+
+void Menu::nameLocation() {
+    // check if user is logged in or show login dialog if not
+    Profile* profile = Application::getInstance()->getProfile();
+    if (profile->getUsername().isNull()) {
+        QMessageBox msgBox;
+        msgBox.setText("We need to tie this location to your username.");
+        msgBox.setInformativeText("Please login first, then try naming the location again.");
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.button(QMessageBox::Ok)->setText("Login");
+        if (msgBox.exec() == QMessageBox::Ok) {
+            login();
+        }
+        return;
+    }
+    
+    QInputDialog nameDialog(Application::getInstance()->getWindow());
+    nameDialog.setWindowTitle("Name this location");
+    nameDialog.setLabelText("Name this location, then share that name with others.\n"
+                            "When they come here, they'll be in the same location and orientation\n"
+                            "(wherever you are standing and looking now) as you.\n\n"
+                            "Location name:");
+
+    nameDialog.setWindowFlags(Qt::Sheet);
+    nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
+    
+    if (nameDialog.exec() == QDialog::Accepted) {
+        
+        QString locationName = nameDialog.textValue().trimmed();
+        if (locationName.isEmpty()) {
+            return;
+        }
+        
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        
+        LocationManager* manager = new LocationManager();
+        connect(manager,
+                SIGNAL(creationCompleted(LocationManager::LocationCreateResponse, NamedLocation*)),
+                SLOT(namedLocationCreated(LocationManager::LocationCreateResponse, NamedLocation*)));
+
+        manager->createNamedLocation(locationName, profile->getUsername(), myAvatar->getPosition(), myAvatar->getOrientation());
+    }
 }
 
 void Menu::goToLocation() {

@@ -18,6 +18,11 @@
 
 #include "HifiSockAddr.h"
 
+class DataServerCallerObject {
+public:
+    virtual QHash<QString, QString> getHashData() = 0;
+};
+
 class DataServerCallbackObject {
 public:
     virtual void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList) = 0;
@@ -35,14 +40,16 @@ public:
     static void getValueForKeyAndUUID(const QString& key, const QUuid& uuid, DataServerCallbackObject* callbackObject);
     static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid, DataServerCallbackObject* callbackObject);
     static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
-                                                    DataServerCallbackObject* callbackObject);
-    
+                                              DataServerCallbackObject* callbackObject);
+    static void getHashFieldsForKey(const QString serverKey, QString keyValue, DataServerCallbackObject* callbackObject);
+    static void putHashFieldsForKey(const QString serverKey, QString keyValue, DataServerCallerObject* callerObject);
     static void processMessageFromDataServer(const QByteArray& packet);
     
     static void resendUnmatchedPackets();
 private:
     static void processConfirmFromDataServer(const QByteArray& packet);
     static void processSendFromDataServer(const QByteArray& packet);
+    static void processHashSendFromDataServer(const QByteArray& packet);
     static void removeMatchedPacketFromMap(const QByteArray& packet);
     
     static QMap<quint8, QByteArray> _unmatchedPackets;
@@ -57,6 +64,7 @@ namespace DataServerKey {
     const QString Position = "position";
     const QString Orientation = "orientation";
     const QString UUID = "uuid";
+    const QString NamedLocation = "namedlocation";
 }
 
 #endif /* defined(__hifi__DataServerClient__) */

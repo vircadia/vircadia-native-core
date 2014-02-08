@@ -88,6 +88,44 @@ void DataServerClient::getValueForKeyAndUserString(const QString& key, const QSt
     getValuesForKeysAndUserString(QStringList(key), userString, callbackObject);
 }
 
+void DataServerClient::getHashFieldsForKey(const QString serverKey, QString keyValue, DataServerCallbackObject* callbackObject) {
+
+    QByteArray getPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerHashGet);
+    QDataStream packetStream(&getPacket, QIODevice::Append);
+    packetStream << _sequenceNumber << serverKey + ":" + keyValue;
+    
+    // add the getPacket to our map of unconfirmed packets, will be deleted once we get a response from the nameserver
+    _unmatchedPackets.insert(_sequenceNumber, getPacket);
+    _callbackObjects.insert(_sequenceNumber, callbackObject);
+    
+    // send the get to the data server
+    NodeList::getInstance()->getNodeSocket().writeDatagram(getPacket, dataServerSockAddr().getAddress(),
+                                                           dataServerSockAddr().getPort());
+    _sequenceNumber++;
+}
+
+void DataServerClient::putHashFieldsForKey(const QString serverKey, QString keyValue, DataServerCallerObject* callerObject) {
+    
+    QByteArray putPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerHashPut);
+    QDataStream packetStream(&putPacket, QIODevice::Append);
+    packetStream << _sequenceNumber << serverKey + ":" + keyValue;
+    
+    QHash<QString, QString> hashData(callerObject->getHashData());
+    QHash<QString, QString>::const_iterator i = hashData.constBegin();
+    while (i != hashData.constEnd()) {
+        packetStream << i.key() << i.value();
+        ++i;
+    }
+    // add the getPacket to our map of unconfirmed packets, will be deleted once we get a response from the nameserver
+    _unmatchedPackets.insert(_sequenceNumber, putPacket);
+    
+    // send this put request to the data server
+    NodeList::getInstance()->getNodeSocket().writeDatagram(putPacket, dataServerSockAddr().getAddress(),
+                                                           dataServerSockAddr().getPort());
+    
+    _sequenceNumber++;
+}
+
 void DataServerClient::processConfirmFromDataServer(const QByteArray& packet) {
     removeMatchedPacketFromMap(packet);
 }
@@ -113,11 +151,46 @@ void DataServerClient::processSendFromDataServer(const QByteArray& packet) {
                                                   valueListString.split(MULTI_KEY_VALUE_SEPARATOR));
     }
 }
+void DataServerClient::processHashSendFromDataServer(const QByteArray& packet) {
+ 
+    // pull the user string from the packet so we know who to associate this with
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    quint8 sequenceNumber = 0;
+    packetStream >> sequenceNumber;
+    
+    if (_callbackObjects.find(sequenceNumber) != _callbackObjects.end()) {
+        // remove the packet from our two maps, it's matched
+        DataServerCallbackObject* callbackObject = _callbackObjects.take(sequenceNumber);
+        _unmatchedPackets.remove(sequenceNumber);
+        
+        QString userString, keyString, valueString;
+        QStringList keyList, valueList;
+        
+        packetStream >> userString;
+                
+        while(true) {
+            packetStream >> keyString;
+            packetStream >> valueString;
+            if (keyString.isNull()  || keyString.isEmpty()) {
+                break;
+            }
+            
+            keyList << keyString;
+            valueList << valueString;
+        }
+        callbackObject->processDataServerResponse(userString, keyList, valueList);
+    }
+}
 
 void DataServerClient::processMessageFromDataServer(const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDataServerSend:
             processSendFromDataServer(packet);
+            break;
+        case PacketTypeDataServerHashSend:
+            processHashSendFromDataServer(packet);
             break;
         case PacketTypeDataServerConfirm:
             processConfirmFromDataServer(packet);

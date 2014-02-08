@@ -15,6 +15,7 @@
 #include <QPointer>
 
 #include <AbstractMenuInterface.h>
+#include "location/LocationManager.h"
 
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
@@ -101,6 +102,7 @@ private slots:
     void editPreferences();
     void goToDomain();
     void goToLocation();
+    void nameLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void lodToolsClosed();
@@ -111,6 +113,7 @@ private slots:
     void resetSwatchColors();
     void showMetavoxelEditor();
     void audioMuteToggled();
+    void namedLocationCreated(LocationManager::LocationCreateResponse response, NamedLocation* location);
 
 private:
     static Menu* _instance;
@@ -210,6 +213,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString NameLocation = "Name this location";
     const QString GoTo = "Go To...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";

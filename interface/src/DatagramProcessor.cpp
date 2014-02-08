@@ -116,7 +116,10 @@ void DatagramProcessor::processDatagrams() {
                 }
                 case PacketTypeDataServerGet:
                 case PacketTypeDataServerPut:
+                case PacketTypeDataServerHashPut:
+                case PacketTypeDataServerHashGet:
                 case PacketTypeDataServerSend:
+                case PacketTypeDataServerHashSend:
                 case PacketTypeDataServerConfirm:
                     DataServerClient::processMessageFromDataServer(incomingPacket);
                     break;
