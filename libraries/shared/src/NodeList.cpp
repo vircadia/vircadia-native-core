@@ -184,39 +184,37 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
     
-    if (sendingNode) {
-        QDataStream packetStream(packet);
-        packetStream.skipRawData(numBytesForPacketHeader(packet));
-        
-        quint64 ourOriginalTime, othersReplyTime;
-        
-        packetStream >> ourOriginalTime >> othersReplyTime;
-        
-        quint64 now = usecTimestampNow();
-        int pingTime = now - ourOriginalTime;
-        int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
-        
-        // The other node's expected time should be our original time plus the one way flight time
-        // anything other than that is clock skew
-        quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
-        int clockSkew = othersReplyTime - othersExprectedReply;
-        
-        sendingNode->setPingMs(pingTime / 1000);
-        sendingNode->setClockSkewUsec(clockSkew);
-        
-        const bool wantDebug = false;
-        
-        if (wantDebug) {
-            qDebug() << "PING_REPLY from node " << *sendingNode << "\n" <<
-            "                     now: " << now << "\n" <<
-            "                 ourTime: " << ourOriginalTime << "\n" <<
-            "                pingTime: " << pingTime << "\n" <<
-            "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
-            "         othersReplyTime: " << othersReplyTime << "\n" <<
-            "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-            "               clockSkew: " << clockSkew;
-        }
+    quint8 pingType;
+    quint64 ourOriginalTime, othersReplyTime;
+    
+    packetStream >> pingType >> ourOriginalTime >> othersReplyTime;
+    
+    quint64 now = usecTimestampNow();
+    int pingTime = now - ourOriginalTime;
+    int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+    
+    // The other node's expected time should be our original time plus the one way flight time
+    // anything other than that is clock skew
+    quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
+    int clockSkew = othersReplyTime - othersExprectedReply;
+    
+    sendingNode->setPingMs(pingTime / 1000);
+    sendingNode->setClockSkewUsec(clockSkew);
+    
+    const bool wantDebug = false;
+    
+    if (wantDebug) {
+        qDebug() << "PING_REPLY from node " << *sendingNode << "\n" <<
+        "                     now: " << now << "\n" <<
+        "                 ourTime: " << ourOriginalTime << "\n" <<
+        "                pingTime: " << pingTime << "\n" <<
+        "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
+        "         othersReplyTime: " << othersReplyTime << "\n" <<
+        "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+        "               clockSkew: " << clockSkew;
     }
 }
 

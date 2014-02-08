@@ -374,7 +374,7 @@ void DomainServer::readAvailableDatagrams() {
     }
 }
 
-QJsonObject jsonForSocket(const HifiSockAddr& socket) {
+QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
     QJsonObject socketJSON;
 
     socketJSON["ip"] = socket.getAddress().toString();
@@ -388,7 +388,7 @@ const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
 const char JSON_KEY_POOL[] = "pool";
 
-QJsonObject jsonObjectForNode(Node* node) {
+QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     QJsonObject nodeJson;
 
     // re-format the type name so it matches the target name
@@ -402,12 +402,13 @@ QJsonObject jsonObjectForNode(Node* node) {
     // add the node socket information
     nodeJson[JSON_KEY_PUBLIC_SOCKET] = jsonForSocket(node->getPublicSocket());
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
-
+    
     // if the node has pool information, add it
-    if (node->getLinkedData() && !((Assignment*) node->getLinkedData())->getPool().isEmpty()) {
-        nodeJson[JSON_KEY_POOL] = ((Assignment*) node->getLinkedData())->getPool();
+    SharedAssignmentPointer matchingAssignment = _staticAssignmentHash.value(node->getUUID());
+    if (matchingAssignment) {
+        nodeJson[JSON_KEY_POOL] = matchingAssignment->getPool();
     }
-
+    
     return nodeJson;
 }
 
@@ -427,10 +428,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             
             // enumerate the NodeList to find the assigned nodes
             foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-                if (node->getLinkedData()) {
+                if (_staticAssignmentHash.value(node->getUUID())) {
                     // add the node using the UUID as the key
                     QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                    assignedNodesJSON[uuidString] = jsonObjectForNode(node.data());
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(node);
                 }
             }
             
@@ -473,7 +474,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
                 // add the node using the UUID as the key
                 QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-                nodesJSON[uuidString] = jsonObjectForNode(node.data());
+                nodesJSON[uuidString] = jsonObjectForNode(node);
             }
             
             rootJSON["nodes"] = nodesJSON;
