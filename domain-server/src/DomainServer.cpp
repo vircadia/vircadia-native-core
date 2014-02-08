@@ -171,7 +171,7 @@ void DomainServer::createStaticAssignmentsForTypeGivenConfigString(Assignment::T
     
     QStringList multiConfigList = configString.split(";", QString::SkipEmptyParts);
     
-    const QString ASSIGNMENT_CONFIG_POOL_REGEX = "--pool\\s*(\\w+)";
+    const QString ASSIGNMENT_CONFIG_POOL_REGEX = "--pool\\s*([\\w-]+)";
     QRegExp poolRegex(ASSIGNMENT_CONFIG_POOL_REGEX);
     
     // read each config to a payload for this type of assignment
