@@ -396,9 +396,9 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    _head.tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    _head.tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    _head.tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
