@@ -5,6 +5,9 @@
  *    @author: Norman Crafts
  *    @copyright 2014, High Fidelity, Inc. All rights reserved.
  */
+
+#include <QMutexLocker>
+
 #include "InterfaceConfig.h"
 #include "OctreeElement.h"
 #include "PrimitiveRenderer.h"
@@ -33,6 +36,10 @@ void Primitive::releaseVertexElements() {
     vReleaseVertexElements();
 }
 
+int Primitive::getMemoryUsage() {
+    return vGetMemoryUsage();
+}
+
 
 Cube::Cube(
     float x,
@@ -43,7 +50,8 @@ Cube::Cube(
     unsigned char g,
     unsigned char b,
     unsigned char faceExclusions
-    ) {
+    ) :
+        _cpuMemoryUsage(0) {
     initialize(x, y, z, s, r, g, b, faceExclusions);
 }
 
@@ -125,6 +133,8 @@ void Cube::initializeVertices(
 
                 // Add vertex element to list
                 _vertices.push_back(v);
+                _cpuMemoryUsage += sizeof(VertexElement);
+                _cpuMemoryUsage += sizeof(VertexElement*);
             }
         }
     }
@@ -138,6 +148,7 @@ void Cube::terminateVertices() {
     for ( ; it != end; ++it) {
         delete *it;
     }
+    _cpuMemoryUsage -= _vertices.size() * (sizeof(VertexElement) + sizeof(VertexElement*));
     _vertices.clear();
 }
 
@@ -171,6 +182,8 @@ void Cube::initializeTris(
 
                 // Add tri element to list
                 _tris.push_back(tri);
+                _cpuMemoryUsage += sizeof(TriElement);
+                _cpuMemoryUsage += sizeof(TriElement*);
             }
 
             // Now store triangle ACD
@@ -182,6 +195,8 @@ void Cube::initializeTris(
 
                 // Add tri element to list
                 _tris.push_back(tri);
+                _cpuMemoryUsage += sizeof(TriElement);
+                _cpuMemoryUsage += sizeof(TriElement*);
             }
         }
     }
@@ -195,6 +210,7 @@ void Cube::terminateTris() {
     for ( ; it != end; ++it) {
         delete *it;
     }
+    _cpuMemoryUsage -= _tris.size() * (sizeof(TriElement) + sizeof(TriElement*));
     _tris.clear();
 }
 
@@ -214,6 +230,10 @@ void Cube::vReleaseVertexElements() {
     terminateVertices();
 }
 
+int Cube::vGetMemoryUsage() {
+    return _cpuMemoryUsage;
+}
+
 unsigned char Cube::_sFaceIndexToHalfSpaceMask[6] = {
     OctreeElement::HalfSpace::Bottom,
     OctreeElement::HalfSpace::Top,
@@ -223,10 +243,8 @@ unsigned char Cube::_sFaceIndexToHalfSpaceMask[6] = {
     OctreeElement::HalfSpace::Far,
 };
 
-#define CW_CONSTRUCTION
-#ifdef CW_CONSTRUCTION
 // Construction vectors ordered such that the vertices of each face are
-// CW in a right-handed coordinate system with B-L-N at 0,0,0. 
+// clockwise in a right-handed coordinate system with B-L-N at 0,0,0. 
 float Cube::_sVertexIndexToConstructionVector[24][3] = {
     // Bottom
     { 0,0,0 },
@@ -259,42 +277,6 @@ float Cube::_sVertexIndexToConstructionVector[24][3] = {
     { 1,1,1 },
     { 0,1,1 },
 };
-#else // CW_CONSTRUCTION
-// Construction vectors ordered such that the vertices of each face are
-// CCW in a right-handed coordinate system with B-L-N at 0,0,0. 
-float Cube::_sVertexIndexToConstructionVector[24][3] = {
-    // Bottom
-    { 0,0,0 },
-    { 0,0,1 },
-    { 1,0,1 },
-    { 1,0,0 },
-    // Top
-    { 0,1,0 },
-    { 1,1,0 },
-    { 1,1,1 },
-    { 0,1,1 },
-    // Right
-    { 1,0,0 },
-    { 1,0,1 },
-    { 1,1,1 },
-    { 1,1,0 },
-    // Left
-    { 0,0,0 },
-    { 0,1,0 },
-    { 0,1,1 },
-    { 0,0,1 },
-    // Near
-    { 0,0,0 },
-    { 1,0,0 },
-    { 1,1,0 },
-    { 0,1,0 },
-    // Far
-    { 0,0,1 },
-    { 0,1,1 },
-    { 1,1,1 },
-    { 1,0,1 },
-};
-#endif
 
 // Normals for a right-handed coordinate system
 float Cube::_sVertexIndexToNormalVector[6][3] = {
@@ -325,8 +307,20 @@ void Renderer::remove(
     vRemove(id);
 }
 
+void Renderer::release() {
+    vRelease();
+}
+
 void Renderer::render() {
     vRender();
+}
+
+int Renderer::getMemoryUsage() {
+    return vGetMemoryUsage();
+}
+
+int Renderer::getMemoryUsageGPU() {
+    return vGetMemoryUsageGPU();
 }
 
 PrimitiveRenderer::PrimitiveRenderer(
@@ -334,9 +328,9 @@ PrimitiveRenderer::PrimitiveRenderer(
     ) :
         _maxCount(maxCount),
         _vertexElementCount(0),
-        _maxVertexElementCount(maxCount),
+        _maxVertexElementCount(0),
         _triElementCount(0),
-        _maxTriElementCount(maxCount),
+        _maxTriElementCount(0),
         _primitiveCount(0),
 
         _triBufferId(0),
@@ -366,7 +360,8 @@ void PrimitiveRenderer::initializeGL() {
     glGenBuffers(1, &_vertexBufferId);
 
     // Set up the element array buffer containing the index ids
-    int size = _maxCount * sizeof(GLint) * 3;
+    _maxTriElementCount = _maxCount * 3 * 2;
+    int size = _maxTriElementCount * sizeof(GLint);
     _gpuMemoryUsage += size;
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _triBufferId);
@@ -376,7 +371,8 @@ void PrimitiveRenderer::initializeGL() {
     // Set up the array buffer in the form of array of structures
     // I chose AOS because it maximizes the amount of data tranferred
     // by a single glBufferSubData call.
-    size = _maxCount * sizeof(VertexElement);
+    _maxVertexElementCount = _maxCount * 4;
+    size = _maxVertexElementCount * sizeof(VertexElement);
     _gpuMemoryUsage += size;
 
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferId);
@@ -429,60 +425,22 @@ void PrimitiveRenderer::terminateBookkeeping() {
     while (_deconstructTriElementIndex.remove() != 0)
         ;
 
-    std::map<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
-    std::map<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
+    _vertexElementCount = 0;
+    _triElementCount = 0;
+
+    QMap<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
+    QMap<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
 
     for ( ; it != end; ++it) {
-        Primitive *primitive = it->second;
-        delete primitive;
-    }
-}
-
-int PrimitiveRenderer::vAdd(
-    Primitive* primitive
-    ) {
-
-    int index = getAvailablePrimitiveIndex();
-    if (index != 0) {
-        try {
-            // Take ownership of primitive, including responsibility
-            // for destruction
-            _indexToPrimitiveMap[index] = primitive;
-            constructElements(primitive);
-
-            // No need to keep an extra copy of the vertices
-            primitive->releaseVertexElements();
-        } catch(...) {
-            // STL failed, recycle the index
-            _availablePrimitiveIndex.add(index);
-            index = 0;
+        Primitive* primitive = it.value();
+        if (primitive) {
+            _cpuMemoryUsage -= primitive->getMemoryUsage();
+            delete primitive;
         }
     }
-    return index;
-}
 
-void PrimitiveRenderer::vRemove(
-    int index
-    ) {
-
-    try {
-
-        // Locate the primitive by id in the associative map
-        std::map<int, Primitive *>::iterator it = _indexToPrimitiveMap.find(index);
-        if (it != _indexToPrimitiveMap.end()) {
-            Primitive *primitive = it->second;
-            if (primitive) {
-                _indexToPrimitiveMap[index] = 0;
-                deconstructElements(primitive);
-                _availablePrimitiveIndex.add(index);
-            }
-            // Not necessary to remove the item from the associative map, because 
-            // the index is going to be re-used, but if you want to... uncomment the following:
-            //_indexToPrimitiveMap.erase(it);
-        }
-    } catch(...) {
-        // STL failed
-    }
+    _cpuMemoryUsage -= _indexToPrimitiveMap.size() * sizeof(Primitive*);
+    _indexToPrimitiveMap.clear();
 }
 
 void PrimitiveRenderer::constructElements(
@@ -491,8 +449,8 @@ void PrimitiveRenderer::constructElements(
 
     // Load vertex elements
     VertexElementIndexList& vertexElementIndexList = primitive->vertexElementIndices();
+    VertexElementList const & vertices = primitive->vertexElements();
     {
-        VertexElementList const & vertices = primitive->vertexElements();
         VertexElementList::const_iterator it  = vertices.begin();
         VertexElementList::const_iterator end = vertices.end();
 
@@ -507,7 +465,7 @@ void PrimitiveRenderer::constructElements(
     }
 
     // Load tri elements
-    {
+    if (vertexElementIndexList.size() == vertices.size()) {
         TriElementList& tris = primitive->triElements();
         TriElementList::iterator it  = tris.begin();
         TriElementList::iterator end = tris.end();
@@ -530,6 +488,8 @@ void PrimitiveRenderer::constructElements(
                 transferTriElement(index, tri->indices);
             }
         }
+    } else {
+        // TODO: failure mode
     }
 }
 
@@ -647,14 +607,89 @@ void PrimitiveRenderer::transferTriElement(
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+int PrimitiveRenderer::vAdd(
+    Primitive* primitive
+    ) {
+
+    QMutexLocker lock(&_guard);
+    int index = getAvailablePrimitiveIndex();
+    if (index != 0) {
+        try {
+            // Take ownership of primitive, including responsibility
+            // for destruction
+            _indexToPrimitiveMap[index] = primitive;
+            _constructPrimitiveIndex.add(index);
+            _cpuMemoryUsage += primitive->getMemoryUsage();
+            _cpuMemoryUsage += sizeof(Primitive*);
+        } catch(...) {
+            // STL failed, recycle the index
+            _availablePrimitiveIndex.add(index);
+            index = 0;
+        }
+    }
+    return index;
+}
+
+void PrimitiveRenderer::vRemove(
+    int index
+    ) {
+
+    try {
+        QMutexLocker lock(&_guard);
+
+        // Locate and remove the primitive by id in the associative map
+        Primitive* primitive = _indexToPrimitiveMap.take(index);
+        if (primitive) {
+            _cpuMemoryUsage -= primitive->getMemoryUsage();
+            deconstructElements(primitive);
+            _availablePrimitiveIndex.add(index);
+        }
+    } catch(...) {
+        // STL failed
+    }
+}
+
+void PrimitiveRenderer::vRelease() {
+
+    QMutexLocker lock(&_guard);
+    terminateBookkeeping();
+#if 0
+    QMap<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
+    QMap<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
+
+    for ( ; it != end; ++it) {
+        Primitive* primitive = it->second;
+        if (primitive) {
+            it->second = 0;
+            deconstructElements(primitive);
+            _availablePrimitiveIndex.add(it->first);
+        }
+    }
+#endif
+}
+
 void PrimitiveRenderer::vRender() {
+    int id;
+
+    QMutexLocker lock(&_guard);
 
     // Now would be an appropriate time to set the element array buffer ids
     // scheduled for deconstruction to the degenerate case.
-    int id;
     while ((id = _deconstructTriElementIndex.remove()) != 0) {
         deconstructTriElement(id);
         _availableTriElementIndex.add(id);
+    }
+
+    while ((id = _constructPrimitiveIndex.remove()) != 0) {
+        Primitive* primitive = _indexToPrimitiveMap[id];
+        if (primitive) {
+            constructElements(primitive);
+
+            // No need to keep an extra copy of the vertices
+            _cpuMemoryUsage -= primitive->getMemoryUsage();
+            primitive->releaseVertexElements();
+            _cpuMemoryUsage += primitive->getMemoryUsage();
+        }
     }
 
     // The application uses clockwise winding for the definition of front face, but I
@@ -683,8 +718,13 @@ void PrimitiveRenderer::vRender() {
 
     glDisable(GL_CULL_FACE);
 
-    // TODO: does the interface ever change the winding order?
-    //glFrontFace(GL_CW);
     err = glGetError();
 }
 
+int PrimitiveRenderer::vGetMemoryUsage() {
+    return _cpuMemoryUsage;
+}
+
+int PrimitiveRenderer::vGetMemoryUsageGPU() {
+    return _gpuMemoryUsage;
+}

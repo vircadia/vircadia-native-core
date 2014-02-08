@@ -9,7 +9,9 @@
 #ifndef __interface__PrimitiveRenderer__
 #define __interface__PrimitiveRenderer__
 
-#include <vector>
+#include <QVector>
+#include <QMutex>
+
 #include "Queue.h"
 
 /// Vertex element structure.
@@ -46,9 +48,9 @@ typedef
 
     } TriElement;
 
-typedef std::vector<VertexElement *, std::allocator<VertexElement *> > VertexElementList;
-typedef std::vector<int, std::allocator<int> > VertexElementIndexList;
-typedef std::vector<TriElement *, std::allocator<TriElement *> > TriElementList;
+typedef QVector<VertexElement *> VertexElementList;
+typedef QVector<int> VertexElementIndexList;
+typedef QVector<TriElement *> TriElementList;
 
 /// 
 ///    @class Primitive
@@ -80,6 +82,10 @@ public:
     /// Release vertex elements.
     ///
     void releaseVertexElements();
+
+    /// Get memory usage.
+    ///
+    int getMemoryUsage();
 
 protected:
     /// Default constructor prohibited to API user, restricted to service implementer.
@@ -116,6 +122,10 @@ private:
     /// Release vertex elements.
     ///
     virtual void vReleaseVertexElements() = 0;
+
+    /// Get memory usage.
+    ///
+    virtual int vGetMemoryUsage() = 0;
 
 };
 
@@ -186,12 +196,14 @@ private:
     VertexElementIndexList& vVertexElementIndices();
     TriElementList& vTriElements();
     void vReleaseVertexElements();
-
+    int vGetMemoryUsage();
 
 private:
     VertexElementList _vertices;                ///< Vertex element list
-    VertexElementIndexList _vertexIndices;        ///< Vertex element index list
-    TriElementList _tris;                        ///< Tri element list
+    VertexElementIndexList _vertexIndices;      ///< Vertex element index list
+    TriElementList _tris;                       ///< Tri element list
+
+    int _cpuMemoryUsage;                        ///< Memory allocation of object
 
     static const int _sNumFacesPerCube = 6;
     static const int _sNumVerticesPerCube = 24;
@@ -225,11 +237,23 @@ public:
         int id                                    ///< Primitive id
         );
 
+    /// Clear all primitives from renderer database
+    ///
+    void release();
+
     /// Render primitive database.
     ///    The render method assumes appropriate GL context and state has
     ///    already been provided for
     ///
     void render();
+
+    /// Get memory usage.
+    ///
+    int getMemoryUsage();
+
+    /// Get GPU memory usage.
+    ///
+    int getMemoryUsageGPU();
 
 protected:
     /// Default constructor prohibited to API user, restricted to service implementer.
@@ -261,11 +285,26 @@ private:
         int id                                    ///< Primitive id
         ) = 0;
 
+    /// Clear all primitives from renderer database
+    ///    Service implementer to provide private override for this method
+    ///    in derived class
+    ///
+    virtual void vRelease() = 0;
+
     /// Render primitive database.
     ///    Service implementer to provide private virtual override for this method
     ///    in derived class
     ///
     virtual void vRender() = 0;
+
+    /// Get memory usage.
+    ///
+    virtual int vGetMemoryUsage() = 0;
+
+    /// Get GPU memory usage.
+    ///
+    virtual int vGetMemoryUsageGPU() = 0;
+
 };
 
 ///
@@ -373,9 +412,21 @@ private:
         int id
         );
 
+    /// Clear all primitives from renderer database
+    ///
+    void vRelease();
+
     /// Render triangle database.
     ///
     void vRender();
+
+    /// Get memory usage.
+    ///
+    int vGetMemoryUsage();
+
+    /// Get gpu memory usage.
+    ///
+    int vGetMemoryUsageGPU();
 
 private:
 
@@ -384,23 +435,26 @@ private:
     // GL related parameters
 
     GLuint _triBufferId;                        ///< GL element array buffer id
-    GLuint _vertexBufferId;                        ///< GL vertex array buffer id
+    GLuint _vertexBufferId;                     ///< GL vertex array buffer id
 
     // Book keeping parameters
 
     int _vertexElementCount;                    ///< Count of vertices
-    int _maxVertexElementCount;                    ///< Max count of vertices
+    int _maxVertexElementCount;                 ///< Max count of vertices
 
-    int _triElementCount;                        ///< Count of triangles
+    int _triElementCount;                       ///< Count of triangles
     int _maxTriElementCount;                    ///< Max count of triangles
 
-    std::map<int, Primitive*> _indexToPrimitiveMap;    ///< Associative map between index and primitive
+    QMap<int, Primitive*> _indexToPrimitiveMap; ///< Associative map between index and primitive
     int _primitiveCount;                        ///< Count of primitives
 
-    Queue<int> _availablePrimitiveIndex;        ///< Queue of primitive indices available
-    Queue<int> _availableVertexElementIndex;    ///< Queue of vertex element indices available
-    Queue<int> _availableTriElementIndex;        ///< Queue of triangle element indices available
-    Queue<int> _deconstructTriElementIndex;        ///< Queue of triangle element indices requiring GL update
+    Queue<int, SingleThreaded, SingleThreaded> _availablePrimitiveIndex;        ///< Queue of primitive indices available
+    Queue<int, SingleThreaded, SingleThreaded> _availableVertexElementIndex;    ///< Queue of vertex element indices available
+    Queue<int, SingleThreaded, SingleThreaded> _availableTriElementIndex;       ///< Queue of triangle element indices available
+    Queue<int, SingleThreaded, SingleThreaded> _deconstructTriElementIndex;     ///< Queue of triangle element indices requiring deletion from GL
+    Queue<int, SingleThreaded, SingleThreaded> _constructPrimitiveIndex;        ///< Queue of primitives requiring addition to GL
+
+    QMutex _guard;
 
     // Statistics parameters, not necessary for proper operation
 
