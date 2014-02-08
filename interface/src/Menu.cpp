@@ -998,7 +998,7 @@ void Menu::namedLocationCreated(LocationManager::LocationCreateResponse response
 void Menu::nameLocation() {
     // check if user is logged in or show login dialog if not
     Profile* profile = Application::getInstance()->getProfile();
-    if (profile->getUsername().isNull()) {
+    if (profile->getUUID().isNull()) {
         QMessageBox msgBox;
         msgBox.setText("We need to tie this location to your username.");
         msgBox.setInformativeText("Please login first, then try naming the location again.");

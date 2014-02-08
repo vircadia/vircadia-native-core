@@ -56,6 +56,9 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeDataServerPut:
         case PacketTypeDataServerConfirm:
         case PacketTypeDataServerSend:
+        case PacketTypeDataServerHashPut:
+        case PacketTypeDataServerHashGet:
+        case PacketTypeDataServerHashSend:
             return 1;
         default:
             return 0;

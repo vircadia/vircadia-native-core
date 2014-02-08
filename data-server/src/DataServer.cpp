@@ -69,9 +69,9 @@ void DataServer::readPendingDatagrams() {
                              senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
         PacketType requestType = packetTypeForPacket(receivedPacket);
-        
+
         if ((requestType == PacketTypeDataServerHashPut || requestType == PacketTypeDataServerHashGet) &&
-            packetVersionMatch(receivedPacket)) {
+            receivedPacket[numBytesArithmeticCodingFromBuffer(receivedPacket.data())] == versionForPacketType(requestType)) {
             
             QDataStream packetStream(receivedPacket);
             int numReceivedHeaderBytes = numBytesForPacketHeader(receivedPacket);
@@ -95,6 +95,7 @@ void DataServer::readPendingDatagrams() {
                     if (dataKey.isNull() || dataKey.isEmpty()) {
                         break;
                     }
+                    
                     redisAppendCommand(_redis, "%s %s %s %s",
                                        REDIS_HASH_SET,
                                        qPrintable(userString),
@@ -127,6 +128,7 @@ void DataServer::readPendingDatagrams() {
                     for (int i = 0; i < reply->elements; i++) {
                         sendPacketStream << QString(reply->element[i]->str);
                     }
+                    qDebug() << "Found data for key" << userString;
                 }
                 // reply back with the send packet
                 _socket.writeDatagram(sendPacket, senderSockAddr.getAddress(), senderSockAddr.getPort());
