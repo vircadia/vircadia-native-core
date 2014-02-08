@@ -90,6 +90,10 @@ qt5_wrap_ui(QT_UI_HEADERS ${QT_UI_FILES})
 set(INTERFACE_SRCS ${INTERFACE_SRCS} ${QT_UI_HEADERS})
 
 if (APPLE)
+
+  # configure CMake to use a custom Info.plist
+  SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
+
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns)
