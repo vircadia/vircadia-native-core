@@ -201,6 +201,7 @@ public:
 
 	struct HalfSpace {
 		enum {
+            None    = 0x00,
 			Bottom	= 0x01,
 			Top		= 0x02,
 			Right	= 0x04,
