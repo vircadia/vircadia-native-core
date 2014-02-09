@@ -27,6 +27,8 @@ public:
     QString getUserString() const;
     
     const QString& getUsername() const { return _username; }
+
+    const QString& getDisplayName() const { return _displayName; }
     
     void setUUID(const QUuid& uuid);
     const QUuid& getUUID() { return _uuid; }
@@ -51,8 +53,11 @@ public:
 private:
     
     void setUsername(const QString& username);
+
+    void setDisplayName(const QString& displaName);
     
     QString _username;
+    QString _displayName;
     QUuid _uuid;
     QString _lastDomain;
     glm::vec3 _lastPosition;

@@ -770,6 +770,11 @@ void Menu::editPreferences() {
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
+    QString displayNameString = applicationInstance->getProfile()->getDisplayName();
+    QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
+    displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Display name:", displayNameEdit);
+
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
