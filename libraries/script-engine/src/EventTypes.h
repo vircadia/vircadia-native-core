@@ -66,6 +66,7 @@ public:
     bool isMeta;
     bool isAlt;
     QVector<glm::vec2> points;
+    float radius;
 };
 
 class WheelEvent {

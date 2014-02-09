@@ -137,6 +137,7 @@ function printTouchEvent(eventName, event) {
     for (var i = 0; i < event.points.length; i++) {
         print("   event.points[" + i + "].x.y:" + event.points[i].x + ", " + event.points[i].y);
     }
+    print("    event.radius=" + event.radius);
     
 }
 

@@ -323,7 +323,8 @@ TouchEvent::TouchEvent() :
     isControl(false),
     isMeta(false),
     isAlt(false),
-    points()
+    points(),
+    radius(0)
 {
 };
 
@@ -345,9 +346,27 @@ TouchEvent::TouchEvent(const QTouchEvent& event) {
         }
         touchAvgX /= (float)(numTouches);
         touchAvgY /= (float)(numTouches);
+    } else {
+        // I'm not sure this should ever happen, why would Qt send us a touch event for only one point?
+        // maybe this happens in the case of a multi-touch where all but the last finger is released?
+        touchAvgX = tPoints[0].pos().x();
+        touchAvgY = tPoints[0].pos().y();
     }
     x = touchAvgX;
     y = touchAvgY;
+    
+    // after calculating the center point (average touch point), determine the maximum radius
+    float maxRadius = 0.0f;
+    glm::vec2 center(x,y);
+    for (int i = 0; i < numTouches; ++i) {
+        glm::vec2 touchPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
+        float thisRadius = glm::distance(center,touchPoint);
+        if (thisRadius > maxRadius) {
+            maxRadius = thisRadius;
+        }
+    }
+    radius = maxRadius;
+        
 
     isPressed = event.touchPointStates().testFlag(Qt::TouchPointPressed);
     isMoved = event.touchPointStates().testFlag(Qt::TouchPointMoved);
@@ -382,6 +401,7 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
         index++;
     }    
     obj.setProperty("points", pointsObj);
+    obj.setProperty("radius", event.radius);
     return obj;
 }
 
