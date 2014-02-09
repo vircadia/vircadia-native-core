@@ -84,6 +84,7 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
+    bool goToDestination(QString destination);
 
 public slots:
     void bandwidthDetails();

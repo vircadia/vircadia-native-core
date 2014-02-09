@@ -101,6 +101,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
+const QString CUSTOM_URL_SCHEME = "hifi:";
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString messageWithNewLine = message + "\n";
@@ -678,6 +680,21 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
         _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
+}
+
+bool Application::event(QEvent* event) {
+    
+    // handle custom URL
+    if (event->type() == QEvent::FileOpen) {
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
+            QString destination = fileEvent->url().toLocalFile().remove(QRegExp(CUSTOM_URL_SCHEME + "|/"));
+            Menu::getInstance()->goToDestination(destination);
+        }
+        
+        return false;
+    }
+    return QApplication::event(event);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
