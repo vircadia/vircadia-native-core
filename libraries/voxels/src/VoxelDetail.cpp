@@ -5,6 +5,8 @@
 //  Created by Brad Hefta-Gaub on 1/29/2014
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
+
+#include <RegisteredMetaTypes.h>
 #include "VoxelDetail.h"
 
 void registerVoxelMetaTypes(QScriptEngine* engine) {
@@ -72,6 +74,9 @@ QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, co
             break;
     }
     obj.setProperty("face", faceName);
+
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
     return obj;
 }
 
@@ -97,6 +102,10 @@ void rayToVoxelIntersectionResultFromScriptValue(const QScriptValue& object, Ray
     } else {
         value.face = MAX_Z_FACE;
     };
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
 }
 
 

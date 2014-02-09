@@ -20,6 +20,12 @@ function mouseMoveEvent(event) {
     if (intersection.intersects) {
         print("intersection voxel.red/green/blue=" + intersection.voxel.red + ", " 
                     + intersection.voxel.green + ", " + intersection.voxel.blue);
+        print("intersection voxel.x/y/z/s=" + intersection.voxel.x + ", " 
+                    + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
+        print("intersection face=" + intersection.face);
+        print("intersection distance=" + intersection.distance);
+        print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
+                    + intersection.intersection.y + ", " + intersection.intersection.z);
     }
 }
 

@@ -1287,7 +1287,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchUpdateEvent(event); // send events to any registered scripts
+    TouchEvent thisEvent(*event, _lastTouchEvent);
+    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -1318,9 +1320,10 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchBeginEvent(event); // send events to any registered scripts
-
+    TouchEvent thisEvent(*event, _lastTouchEvent);
+    _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
     touchUpdateEvent(event);
+    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -1334,7 +1337,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchEndEvent(event); // send events to any registered scripts
+    TouchEvent thisEvent(*event, _lastTouchEvent);
+    _controllerScriptingInterface.emitTouchEndEvent(thisEvent); // send events to any registered scripts
+    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {

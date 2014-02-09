@@ -28,9 +28,10 @@ public:
     void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(MouseEvent(*event)); }
     void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(MouseEvent(*event)); }
 
-    void emitTouchBeginEvent(QTouchEvent* event) { emit touchBeginEvent(*event); }
-    void emitTouchEndEvent(QTouchEvent* event) { emit touchEndEvent(*event); }
-    void emitTouchUpdateEvent(QTouchEvent* event) { emit touchUpdateEvent(*event); }
+    void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
+    void emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }
+    void emitTouchUpdateEvent(const TouchEvent& event) { emit touchUpdateEvent(event); }
+    
     void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
 
     bool isKeyCaptured(QKeyEvent* event) const;
