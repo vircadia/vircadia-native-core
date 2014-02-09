@@ -13,8 +13,10 @@ include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
-
 setup_hifi_project(${TARGET_NAME} TRUE)
+
+find_package(Qt5Script REQUIRED)
+qt5_use_modules(${TARGET_NAME} Script)
 
 # link in the shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
