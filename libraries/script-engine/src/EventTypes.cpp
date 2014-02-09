@@ -323,14 +323,16 @@ TouchEvent::TouchEvent() :
     isControl(false),
     isMeta(false),
     isAlt(false),
+    touchPoints(0),
     points(),
     radius(0.0f),
     isPinching(false),
     isPinchOpening(false),
     angles(),
     angle(0.0f),
-    rotatingClockwise(false),
-    rotatingCounterClockwise(false)
+    deltaAngle(0.0f),
+    isRotating(false),
+    rotating("none")
 {
 };
 
@@ -359,9 +361,9 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     const QList<QTouchEvent::TouchPoint>& tPoints = event.touchPoints();
     float touchAvgX = 0.0f;
     float touchAvgY = 0.0f;
-    int numTouches = tPoints.count();
-    if (numTouches > 1) {
-        for (int i = 0; i < numTouches; ++i) {
+    touchPoints = tPoints.count();
+    if (touchPoints > 1) {
+        for (int i = 0; i < touchPoints; ++i) {
             touchAvgX += tPoints[i].pos().x();
             touchAvgY += tPoints[i].pos().y();
             
@@ -369,8 +371,8 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
             glm::vec2 thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
             points << thisPoint;
         }
-        touchAvgX /= (float)(numTouches);
-        touchAvgY /= (float)(numTouches);
+        touchAvgX /= (float)(touchPoints);
+        touchAvgY /= (float)(touchPoints);
     } else {
         // I'm not sure this should ever happen, why would Qt send us a touch event for only one point?
         // maybe this happens in the case of a multi-touch where all but the last finger is released?
@@ -384,7 +386,7 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     // also calculate the rotation angle for each point
     float maxRadius = 0.0f;
     glm::vec2 center(x,y);
-    for (int i = 0; i < numTouches; ++i) {
+    for (int i = 0; i < touchPoints; ++i) {
         glm::vec2 touchPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
         float thisRadius = glm::distance(center,touchPoint);
         if (thisRadius > maxRadius) {
@@ -397,13 +399,12 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     }
     radius = maxRadius;
 
-    // after calculating the center point (average touch point), determine the maximum radius
+    // after calculating the angles for each touch point, determine the average angle
     float totalAngle = 0.0f;
-    for (int i = 0; i < numTouches; ++i) {
+    for (int i = 0; i < touchPoints; ++i) {
         totalAngle += angles[i];
     }
-    angle = totalAngle/numTouches;
-
+    angle = totalAngle/(float)touchPoints;
     
     isPressed = event.touchPointStates().testFlag(Qt::TouchPointPressed);
     isMoved = event.touchPointStates().testFlag(Qt::TouchPointMoved);
@@ -431,15 +432,16 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
     }
     
     // determine if the points are rotating...
+    deltaAngle = angle - other.angle;
     if (other.angle < angle) {
-        rotatingClockwise = true;
-        rotatingCounterClockwise = false;
+        isRotating = true;
+        rotating = "clockwise";
     } else if (other.angle > angle) {
-        rotatingClockwise = false;
-        rotatingCounterClockwise = true;
+        isRotating = true;
+        rotating = "counterClockwise";
     } else {
-        rotatingClockwise = false;
-        rotatingCounterClockwise = false;
+        isRotating = false;
+        rotating = "none";
     }
 }
 
@@ -456,6 +458,7 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     obj.setProperty("isMeta", event.isMeta);
     obj.setProperty("isControl", event.isControl);
     obj.setProperty("isAlt", event.isAlt);
+    obj.setProperty("touchPoints", event.touchPoints);
     
     QScriptValue pointsObj = engine->newArray();
     int index = 0;
@@ -470,6 +473,7 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     obj.setProperty("isPinchOpening", event.isPinchOpening);
 
     obj.setProperty("angle", event.angle);
+    obj.setProperty("deltaAngle", event.deltaAngle);
     QScriptValue anglesObj = engine->newArray();
     index = 0;
     foreach (float angle, event.angles) {
@@ -478,8 +482,8 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     }    
     obj.setProperty("angles", anglesObj);
 
-    obj.setProperty("rotatingClockwise", event.rotatingClockwise);
-    obj.setProperty("rotatingCounterClockwise", event.rotatingCounterClockwise);
+    obj.setProperty("isRotating", event.isRotating);
+    obj.setProperty("rotating", event.rotating);
     return obj;
 }
 

@@ -1218,6 +1218,11 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
+const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
+const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
+const float HOVER_VOXEL_FREQUENCY = 7040.f;
+const float HOVER_VOXEL_DECAY = 0.999f;
+
 void Application::mousePressEvent(QMouseEvent* event) {
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1320,7 +1325,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
+    TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
     _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
     touchUpdateEvent(event);
     _lastTouchEvent = thisEvent;
@@ -2007,12 +2012,9 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
 
-    //  Check for a new hover voxel
     if (!_mousePressed) {
-        {
-            PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-            _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
-        }
+        PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
+        _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
     }
 }
 
