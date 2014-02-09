@@ -1198,7 +1198,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 return;
             }
             if (_isHoverVoxel) {
-                _myAvatar->orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
+                //_myAvatar->orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
                 return;
             }
         }
