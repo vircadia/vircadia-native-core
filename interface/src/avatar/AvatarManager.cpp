@@ -8,6 +8,7 @@
 
 #include <PerfStat.h>
 #include <UUID.h>
+#include <glm/gtx/string_cast.hpp>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -74,6 +75,91 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
+    // -------------------------------------------------------------------------------------
+    // Josecpujol(begin): test code, as I dont seem to get any avatar. Render some text here
+    // -------------------------------------------------------------------------------------
+    glm::dvec3 textPosition(100.0, 50.0, 100.0);
+    char text[] = "my string";
+
+    // Draw a fake avatar
+    glPushMatrix();
+    glColor3f(1.0,0,0);
+    double radius = 10.0;
+    glTranslated(textPosition.x, textPosition.y - 2 * radius, textPosition.z);
+    glutSolidSphere(radius, 10, 10);
+    glPopMatrix();
+
+    // Draw a mark where the text should be
+    glPushMatrix();
+    glColor3f(1.0,1.0,0);
+    glTranslated(textPosition.x, textPosition.y, textPosition.z); 
+    glutSolidSphere(1.0, 10, 10);
+    glPopMatrix();
+        
+    glPushMatrix();
+    glTranslated(textPosition.x, textPosition.y, textPosition.z); 
+    // Extract rotation matrix from the modelview matrix
+    glm::dmat4 modelViewMatrix;
+
+    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
+    glm::dmat4 modelViewMatrix2(modelViewMatrix);
+    glm::dvec3 upVector(modelViewMatrix[1]);
+  
+    // Delete rotation info
+    modelViewMatrix[0][0] = modelViewMatrix[1][1] = modelViewMatrix[2][2] = 1.0;
+    modelViewMatrix[0][1] = modelViewMatrix[0][2] = 0.0;
+    modelViewMatrix[1][0] = modelViewMatrix[1][2] = 0.0;
+    modelViewMatrix[2][0] = modelViewMatrix[2][1] = 0.0;
+
+    glLoadMatrixd((GLdouble*)&modelViewMatrix);  // Override current matrix with our own
+    glScalef(1.0, -1.0, 1.0);  // TextRenderer::draw paints the text upside down. This fixes that
+
+    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
+    // We project y = 0 and y = 1  and check the difference in projection coordinates
+    
+    GLdouble projectionMatrix[16];
+    GLint viewportMatrix[4];
+    GLdouble result0[3];
+    GLdouble result1[3];
+    glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
+
+    glm::dvec3 testPoint0 = textPosition;
+    glm::dvec3 testPoint1 = textPosition + upVector;
+    
+    bool success;
+    success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
+        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        &result0[0], &result0[1], &result0[2]);
+    success = success && 
+        gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
+        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        &result1[0], &result1[1], &result1[2]);
+
+    if (success) {
+        double textWindowHeight = abs(result1[1] - result0[1]);
+        std::cout << "diff x=" << result1[0] - result0[0] << " diff y="<< result1[1] - result0[1] << " diff z="<< result1[2] - result0[2] << std::endl;
+        float textPointSize = 12.0;
+        float scaleFactor = textPointSize / textWindowHeight;
+
+      //  glScalef(scaleFactor, scaleFactor, 1.0);
+
+        glColor3f(0.0f, 1.0f, 0.0f);
+
+        // TextRenderer, based on QT opengl text rendering functions
+        TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
+        renderer->draw(0,0, text);   
+        delete renderer;
+    }
+   
+    glPopMatrix();
+
+    // -------------------------------------------------------------------------------------
+    // josecpujol(end)
+    // -------------------------------------------------------------------------------------
+
+
+
     if (!selfAvatarOnly) {
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
