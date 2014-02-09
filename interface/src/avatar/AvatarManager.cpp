@@ -97,13 +97,12 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     glPopMatrix();
         
     glPushMatrix();
+    glm::dmat4 modelViewMatrix2;
+    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
     glTranslated(textPosition.x, textPosition.y, textPosition.z); 
     // Extract rotation matrix from the modelview matrix
     glm::dmat4 modelViewMatrix;
-
     glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
-    glm::dmat4 modelViewMatrix2(modelViewMatrix);
-    glm::dvec3 upVector(modelViewMatrix[1]);
   
     // Delete rotation info
     modelViewMatrix[0][0] = modelViewMatrix[1][1] = modelViewMatrix[2][2] = 1.0;
@@ -116,16 +115,17 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project y = 0 and y = 1  and check the difference in projection coordinates
-    
     GLdouble projectionMatrix[16];
     GLint viewportMatrix[4];
     GLdouble result0[3];
     GLdouble result1[3];
+
+    glm::dvec3 upVector(modelViewMatrix2[1]);
     glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
     glGetIntegerv(GL_VIEWPORT, viewportMatrix);
 
     glm::dvec3 testPoint0 = textPosition;
-    glm::dvec3 testPoint1 = textPosition + upVector;
+    glm::dvec3 testPoint1 = textPosition +  upVector;
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
@@ -138,16 +138,15 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        std::cout << "diff x=" << result1[0] - result0[0] << " diff y="<< result1[1] - result0[1] << " diff z="<< result1[2] - result0[2] << std::endl;
-        float textPointSize = 12.0;
-        float scaleFactor = textPointSize / textWindowHeight;
+        float textScale = 1.0;
+        float scaleFactor = textScale / textWindowHeight;
 
-      //  glScalef(scaleFactor, scaleFactor, 1.0);
+        glScalef(scaleFactor, scaleFactor, 1.0);
 
-        glColor3f(0.0f, 1.0f, 0.0f);
+        glColor3f(1.0, 1.0, 0.0);
 
         // TextRenderer, based on QT opengl text rendering functions
-        TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
+        TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::NO_EFFECT);
         renderer->draw(0,0, text);   
         delete renderer;
     }
