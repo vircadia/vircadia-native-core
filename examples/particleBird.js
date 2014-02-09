@@ -4,6 +4,7 @@
 //
 //  This sample script moves a voxel around like a bird and sometimes makes tweeting noises 
 //
+
 function vLength(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
@@ -15,20 +16,24 @@ function randVector(a, b) {
     var rval = { x: a + Math.random() * (b - a), y: a + Math.random() * (b - a), z: a + Math.random() * (b - a) };
     return rval;
 }
+
 function vMinus(a, b) { 
     var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
     return rval;
 }
+
 function vPlus(a, b) { 
     var rval = { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
     return rval;
 }
+
 function vCopy(a, b) {
     a.x = b.x;
     a.y = b.y;
     a.z = b.z;
     return;
 }
+
 //  Returns a vector which is fraction of the way between a and b
 function vInterpolate(a, b, fraction) { 
     var rval = { x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction, z: a.z + (b.z - a.z) * fraction };
@@ -62,6 +67,7 @@ if (which < 0.2) {
     size = 0.15;
 } 
 
+
 var startTimeInSeconds = new Date().getTime() / 1000;
 
 var birdLifetime = 20; // lifetime of the bird in seconds!
@@ -72,15 +78,19 @@ var frame = 0;
 var moving = false;
 var tweeting = 0;
 var moved = false;
-var CHANCE_OF_MOVING = 0.05;
+
+var CHANCE_OF_MOVING = 0.00;
+var CHANCE_OF_FLAPPING = 0.05;
 var CHANCE_OF_TWEETING = 0.05;
 var START_HEIGHT_ABOVE_ME = 1.5;
+var BIRD_GRAVITY = -0.1;
+var BIRD_FLAP = 1.0;
 var myPosition = MyAvatar.position;
 var properties = {
     lifetime: birdLifetime,
     position: { x: myPosition.x, y: myPosition.y + START_HEIGHT_ABOVE_ME, z: myPosition.z },  
-    velocity: { x: 0, y: 0, z: 0 },
-    gravity: { x: 0, y: 0, z: 0 },
+    velocity: { x: 0, y: Math.random() * BIRD_FLAP, z: 0 },
+    gravity: { x: 0, y: BIRD_GRAVITY, z: 0 },
     radius : 0.1,
     color: { red: 0,
          green: 255,
@@ -94,6 +104,7 @@ function moveBird() {
     // check to see if we've been running long enough that our bird is dead
     var nowTimeInSeconds = new Date().getTime() / 1000;
     if ((nowTimeInSeconds - startTimeInSeconds) >= birdLifetime) {
+
         print("our bird is dying, stop our script");
         Script.stop();
         return;
@@ -115,11 +126,22 @@ function moveBird() {
         } else {
             tweeting -= 1;
         }
+        if (Math.random() < CHANCE_OF_FLAPPING) { 
+            //  Add a little upward impulse to our bird 
+            // TODO:  Get velocity 
+            // 
+            var newProperties = {
+                    velocity: { x:0.0, y: Math.random() * BIRD_FLAP, z: 0.0 }
+                };
+                Particles.editParticle(particleID, newProperties);
+                print("flap!");
+        }
         // Moving behavior 
         if (moving == false) {
             if (Math.random() < CHANCE_OF_MOVING) {
-                targetPosition = randVector(- range, range);
+                targetPosition = randVector(-range, range);
                 targetPosition = vPlus(targetPosition, myPosition);
+
                 if (targetPosition.x < 0) {
                     targetPosition.x = 0;
                 }
@@ -170,5 +192,6 @@ function moveBird() {
         }
     }
 }
+
 // register the call back so it fires before each data send
 Script.willSendVisualDataCallback.connect(moveBird);
