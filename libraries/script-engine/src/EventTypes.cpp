@@ -343,36 +343,6 @@ TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
     calculateMetaAttributes(other);
 }
 
-#if 0 ////////////////////////////////////////////////////////////////////////
- 
--- returns the smallest angle between the two angles
--- ie: the difference between the two angles via the shortest distance
-function smallestAngleDiff( target, source )
-   local a = target - source
-   
-   if (a > 180) then
-      a = a - 360
-   elseif (a < -180) then
-      a = a + 360
-   end
-   
-   return a
-end
-
--- calculates rotation amount based on the average change in tracking point rotation
-local function calcAverageRotation( points )
-    
-   local total = 0
-   for i=1, #points do
-      local point = points[i]
-      total = total + smallestAngleDiff( point.angle, point.prevAngle )
-   end
-   
-   return total / #points
-end
-
-#endif ////////////////////////////////////////////////////////////////////////
-
 // returns the degrees between two points (note: 0 degrees is 'east')
 float angleBetweenPoints(const glm::vec2& a, const glm::vec2& b ) {
     glm::vec2 length = b - a;
