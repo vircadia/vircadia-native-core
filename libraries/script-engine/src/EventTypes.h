@@ -55,6 +55,8 @@ class TouchEvent {
 public:
     TouchEvent();
     TouchEvent(const QTouchEvent& event);
+    TouchEvent(const QTouchEvent& event, const TouchEvent& other);
+
     float x;
     float y;
     bool isPressed;
@@ -67,6 +69,12 @@ public:
     bool isAlt;
     QVector<glm::vec2> points;
     float radius;
+    bool isPinching;
+    bool isPinchOpening;
+
+private:
+    void initWithQTouchEvent(const QTouchEvent& event);
+    void calculateMetaAttributes(const TouchEvent& other);
 };
 
 class WheelEvent {

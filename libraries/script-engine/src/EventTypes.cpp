@@ -324,12 +324,22 @@ TouchEvent::TouchEvent() :
     isMeta(false),
     isAlt(false),
     points(),
-    radius(0)
+    radius(0),
+    isPinching(false),
+    isPinchOpening(false)
 {
 };
 
-
 TouchEvent::TouchEvent(const QTouchEvent& event) {
+    initWithQTouchEvent(event);
+}
+
+TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
+    initWithQTouchEvent(event);
+    calculateMetaAttributes(other);
+}
+
+void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     // convert the touch points into an average    
     const QList<QTouchEvent::TouchPoint>& tPoints = event.touchPoints();
     float touchAvgX = 0.0f;
@@ -366,7 +376,6 @@ TouchEvent::TouchEvent(const QTouchEvent& event) {
         }
     }
     radius = maxRadius;
-        
 
     isPressed = event.touchPointStates().testFlag(Qt::TouchPointPressed);
     isMoved = event.touchPointStates().testFlag(Qt::TouchPointMoved);
@@ -379,6 +388,21 @@ TouchEvent::TouchEvent(const QTouchEvent& event) {
     isControl = event.modifiers().testFlag(Qt::ControlModifier);
     isAlt = event.modifiers().testFlag(Qt::AltModifier);
 }
+
+void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
+    // calculate comparative event attributes...
+    if (other.radius > radius) {
+        isPinching = true;
+        isPinchOpening = false;
+    } else if (other.radius < radius) {
+        isPinchOpening = true;
+        isPinching = false;
+    } else {
+        isPinching = other.isPinching;
+        isPinchOpening = other.isPinchOpening;
+    }
+}
+
 
 QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event) {
     QScriptValue obj = engine->newObject();
@@ -402,6 +426,8 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     }    
     obj.setProperty("points", pointsObj);
     obj.setProperty("radius", event.radius);
+    obj.setProperty("isPinching", event.isPinching);
+    obj.setProperty("isPinchOpening", event.isPinchOpening);
     return obj;
 }
 

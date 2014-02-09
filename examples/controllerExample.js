@@ -125,6 +125,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 function printTouchEvent(eventName, event) {
     print(eventName);
+    
     print("    event.x,y=" + event.x + ", " + event.y);
     print("    event.isPressed=" + event.isPressed);
     print("    event.isMoved=" + event.isMoved);
@@ -135,9 +136,11 @@ function printTouchEvent(eventName, event) {
     print("    event.isMeta=" + event.isMeta);
     print("    event.isAlt=" + event.isAlt);
     for (var i = 0; i < event.points.length; i++) {
-        print("   event.points[" + i + "].x.y:" + event.points[i].x + ", " + event.points[i].y);
+        print("    event.points[" + i + "].x.y:" + event.points[i].x + ", " + event.points[i].y);
     }
     print("    event.radius=" + event.radius);
+    print("    event.isPinching=" + event.isPinching);
+    print("    event.isPinchOpening=" + event.isPinchOpening);
     
 }
 

@@ -490,6 +490,8 @@ private:
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
+    
+    TouchEvent _lastTouchEvent;
 };
 
 #endif /* defined(__interface__Application__) */
