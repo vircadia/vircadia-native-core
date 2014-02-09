@@ -1320,10 +1320,11 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
+    TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
     _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
+
+    _lastTouchEvent = thisEvent; // and we reset our last event to this event before we call our update
     touchUpdateEvent(event);
-    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -2007,12 +2008,9 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
 
-    //  Check for a new hover voxel
     if (!_mousePressed) {
-        {
-            PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-            _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
-        }
+        PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
+        _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
     }
 }
 

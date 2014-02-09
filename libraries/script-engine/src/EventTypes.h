@@ -67,14 +67,16 @@ public:
     bool isControl;
     bool isMeta;
     bool isAlt;
+    int touchPoints;
     QVector<glm::vec2> points;
     float radius;
     bool isPinching;
     bool isPinchOpening;
     QVector<float> angles; // angle from center to each point
-    float angle;
-    bool rotatingClockwise;
-    bool rotatingCounterClockwise;
+    float angle; // the average of the angles
+    float deltaAngle; // the change in average angle from last event
+    bool isRotating;
+    QString rotating;
 
 private:
     void initWithQTouchEvent(const QTouchEvent& event);

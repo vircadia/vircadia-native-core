@@ -20,7 +20,7 @@ function checkController() {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-    var triggerToggled=false;
+    var triggerToggled = false;
 
     // this is expected for hydras
     if (numberOfTriggers == 2 && controllersPerTrigger == 2) {
@@ -146,8 +146,8 @@ function printTouchEvent(eventName, event) {
     for (var i = 0; i < event.points.length; i++) {
         print("    event.angles[" + i + "]:" + event.angles[i]);
     }
-    print("    event.rotatingClockwise=" + event.rotatingClockwise);
-    print("    event.rotatingCounterClockwise=" + event.rotatingCounterClockwise);
+    print("    event.isRotating=" + event.isRotating);
+    print("    event.rotating=" + event.rotating);
 }
 
 function touchBeginEvent(event) {
