@@ -28,7 +28,6 @@ var PITCH_TOUCH_POINTS = 3;
 
 function printTouchEvent(eventName, event) {
     print(eventName);
-    
     print("    event.x,y=" + event.x + ", " + event.y);
     print("    event.isPressed=" + event.isPressed);
     print("    event.isMoved=" + event.isMoved);

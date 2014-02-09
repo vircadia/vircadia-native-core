@@ -336,11 +336,19 @@ TouchEvent::TouchEvent() :
 {
 };
 
-TouchEvent::TouchEvent(const QTouchEvent& event) {
+TouchEvent::TouchEvent(const QTouchEvent& event) :
+    // these values are not set by initWithQTouchEvent() because they only apply to comparing to other events
+    isPinching(false),
+    isPinchOpening(false),
+    deltaAngle(0.0f),
+    isRotating(false),
+    rotating("none")
+{
     initWithQTouchEvent(event);
 }
 
-TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
+TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other)
+{
     initWithQTouchEvent(event);
     calculateMetaAttributes(other);
 }
@@ -430,16 +438,23 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
         isPinching = other.isPinching;
         isPinchOpening = other.isPinchOpening;
     }
-    
+
     // determine if the points are rotating...
-    deltaAngle = angle - other.angle;
-    if (other.angle < angle) {
-        isRotating = true;
-        rotating = "clockwise";
-    } else if (other.angle > angle) {
-        isRotating = true;
-        rotating = "counterClockwise";
+    // note: if the number of touch points change between events, then we don't consider ourselves to be rotating
+    if (touchPoints == other.touchPoints) {
+        deltaAngle = angle - other.angle;
+        if (other.angle < angle) {
+            isRotating = true;
+            rotating = "clockwise";
+        } else if (other.angle > angle) {
+            isRotating = true;
+            rotating = "counterClockwise";
+        } else {
+            isRotating = false;
+            rotating = "none";
+        }
     } else {
+        deltaAngle = 0.0f;
         isRotating = false;
         rotating = "none";
     }

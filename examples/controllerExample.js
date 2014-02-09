@@ -20,7 +20,7 @@ function checkController() {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-    var triggerToggled=false;
+    var triggerToggled = false;
 
     // this is expected for hydras
     if (numberOfTriggers == 2 && controllersPerTrigger == 2) {
