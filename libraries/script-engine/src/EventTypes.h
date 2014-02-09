@@ -23,13 +23,7 @@ class KeyEvent {
 public:
     KeyEvent();
     KeyEvent(const QKeyEvent& event);
-    inline bool operator==(const KeyEvent& other) const { 
-                            return other.key == key 
-                                && other.isShifted == isShifted 
-                                && other.isControl == isControl
-                                && other.isMeta == isMeta
-                                && other.isAlt == isAlt
-                                && other.isKeypad == isKeypad; }
+    bool operator==(const KeyEvent& other) const;
     int key;
     QString text;
     bool isShifted;
@@ -43,26 +37,52 @@ public:
 
 class MouseEvent {
 public:
-    MouseEvent() : x(0), y(0) { }; 
+    MouseEvent(); 
     MouseEvent(const QMouseEvent& event);
     int x;
     int y;
+    QString button;
+    bool isLeftButton;
+    bool isRightButton;
+    bool isMiddleButton;
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
 };
 
 class TouchEvent {
 public:
-    TouchEvent() : x(0), y(0) { };
+    TouchEvent();
     TouchEvent(const QTouchEvent& event);
     float x;
     float y;
+    bool isPressed;
+    bool isMoved;
+    bool isStationary;
+    bool isReleased; 
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
+    QVector<glm::vec2> points;
 };
 
 class WheelEvent {
 public:
-    WheelEvent() : x(0), y(0)  { }; 
+    WheelEvent();
     WheelEvent(const QWheelEvent& event);
     int x;
     int y;
+    int delta;
+    QString orientation;
+    bool isLeftButton;
+    bool isRightButton;
+    bool isMiddleButton;
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
 };
 
 Q_DECLARE_METATYPE(KeyEvent)
