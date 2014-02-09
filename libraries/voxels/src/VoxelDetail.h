@@ -12,6 +12,7 @@
 
 #include <QtScript/QScriptEngine>
 
+#include <AABox.h>
 #include <SharedUtil.h>
 #include "VoxelConstants.h"
 
@@ -32,5 +33,18 @@ void registerVoxelMetaTypes(QScriptEngine* engine);
 QScriptValue voxelDetailToScriptValue(QScriptEngine* engine, const VoxelDetail& color);
 void voxelDetailFromScriptValue(const QScriptValue &object, VoxelDetail& color);
 
+class RayToVoxelIntersectionResult {
+public:
+    RayToVoxelIntersectionResult();
+    bool intersects;
+    VoxelDetail voxel;
+    float distance;
+    BoxFace face;
+};
+
+Q_DECLARE_METATYPE(RayToVoxelIntersectionResult)
+
+QScriptValue rayToVoxelIntersectionResultToScriptValue(QScriptEngine* engine, const RayToVoxelIntersectionResult& results);
+void rayToVoxelIntersectionResultFromScriptValue(const QScriptValue& object, RayToVoxelIntersectionResult& results);
 
 #endif /* defined(__hifi__VoxelDetail__) */

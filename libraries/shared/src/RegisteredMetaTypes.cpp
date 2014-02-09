@@ -81,7 +81,6 @@ QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay)
     QScriptValue direction = vec3toScriptValue(engine, pickRay.direction);
     obj.setProperty("direction", direction);
     return obj;
-
 }
 
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
