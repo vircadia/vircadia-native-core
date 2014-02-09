@@ -71,6 +71,10 @@ public:
     float radius;
     bool isPinching;
     bool isPinchOpening;
+    QVector<float> angles; // angle from center to each point
+    float angle;
+    bool rotatingClockwise;
+    bool rotatingCounterClockwise;
 
 private:
     void initWithQTouchEvent(const QTouchEvent& event);

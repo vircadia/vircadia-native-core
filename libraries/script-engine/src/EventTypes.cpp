@@ -245,8 +245,8 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
 }
 
 MouseEvent::MouseEvent() : 
-    x(0), 
-    y(0), 
+    x(0.0f), 
+    y(0.0f),
     isLeftButton(false), 
     isRightButton(false), 
     isMiddleButton(false),
@@ -313,8 +313,8 @@ void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event) {
 }
 
 TouchEvent::TouchEvent() : 
-    x(0), 
-    y(0),
+    x(0.0f), 
+    y(0.0f),
     isPressed(false),
     isMoved(false),
     isStationary(false),
@@ -324,9 +324,13 @@ TouchEvent::TouchEvent() :
     isMeta(false),
     isAlt(false),
     points(),
-    radius(0),
+    radius(0.0f),
     isPinching(false),
-    isPinchOpening(false)
+    isPinchOpening(false),
+    angles(),
+    angle(0.0f),
+    rotatingClockwise(false),
+    rotatingCounterClockwise(false)
 {
 };
 
@@ -337,6 +341,47 @@ TouchEvent::TouchEvent(const QTouchEvent& event) {
 TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
     initWithQTouchEvent(event);
     calculateMetaAttributes(other);
+}
+
+#if 0 ////////////////////////////////////////////////////////////////////////
+ 
+-- returns the smallest angle between the two angles
+-- ie: the difference between the two angles via the shortest distance
+function smallestAngleDiff( target, source )
+   local a = target - source
+   
+   if (a > 180) then
+      a = a - 360
+   elseif (a < -180) then
+      a = a + 360
+   end
+   
+   return a
+end
+
+-- calculates rotation amount based on the average change in tracking point rotation
+local function calcAverageRotation( points )
+    
+   local total = 0
+   for i=1, #points do
+      local point = points[i]
+      total = total + smallestAngleDiff( point.angle, point.prevAngle )
+   end
+   
+   return total / #points
+end
+
+#endif ////////////////////////////////////////////////////////////////////////
+
+// returns the degrees between two points (note: 0 degrees is 'east')
+float angleBetweenPoints(const glm::vec2& a, const glm::vec2& b ) {
+    glm::vec2 length = b - a;
+    float radian = std::atan2(length.y, length.x);
+    float angle = radian * 180.0f / PIE;
+    if (angle < 0) {
+        angle += 360.0f;
+    };
+    return angle;
 }
 
 void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
@@ -366,6 +411,7 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
     y = touchAvgY;
     
     // after calculating the center point (average touch point), determine the maximum radius
+    // also calculate the rotation angle for each point
     float maxRadius = 0.0f;
     glm::vec2 center(x,y);
     for (int i = 0; i < numTouches; ++i) {
@@ -374,9 +420,21 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
         if (thisRadius > maxRadius) {
             maxRadius = thisRadius;
         }
+        
+        // calculate the angle for this point
+        float thisAngle = angleBetweenPoints(center,touchPoint);
+        angles << thisAngle;
     }
     radius = maxRadius;
 
+    // after calculating the center point (average touch point), determine the maximum radius
+    float totalAngle = 0.0f;
+    for (int i = 0; i < numTouches; ++i) {
+        totalAngle += angles[i];
+    }
+    angle = totalAngle/numTouches;
+
+    
     isPressed = event.touchPointStates().testFlag(Qt::TouchPointPressed);
     isMoved = event.touchPointStates().testFlag(Qt::TouchPointMoved);
     isStationary = event.touchPointStates().testFlag(Qt::TouchPointStationary);
@@ -400,6 +458,18 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
     } else {
         isPinching = other.isPinching;
         isPinchOpening = other.isPinchOpening;
+    }
+    
+    // determine if the points are rotating...
+    if (other.angle < angle) {
+        rotatingClockwise = true;
+        rotatingCounterClockwise = false;
+    } else if (other.angle > angle) {
+        rotatingClockwise = false;
+        rotatingCounterClockwise = true;
+    } else {
+        rotatingClockwise = false;
+        rotatingCounterClockwise = false;
     }
 }
 
@@ -428,6 +498,18 @@ QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& ev
     obj.setProperty("radius", event.radius);
     obj.setProperty("isPinching", event.isPinching);
     obj.setProperty("isPinchOpening", event.isPinchOpening);
+
+    obj.setProperty("angle", event.angle);
+    QScriptValue anglesObj = engine->newArray();
+    index = 0;
+    foreach (float angle, event.angles) {
+        anglesObj.setProperty(index, angle);
+        index++;
+    }    
+    obj.setProperty("angles", anglesObj);
+
+    obj.setProperty("rotatingClockwise", event.rotatingClockwise);
+    obj.setProperty("rotatingCounterClockwise", event.rotatingCounterClockwise);
     return obj;
 }
 
@@ -436,9 +518,9 @@ void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event) {
 }
 
 WheelEvent::WheelEvent() : 
-    x(0), 
-    y(0), 
-    delta(0), 
+    x(0.0f), 
+    y(0.0f),
+    delta(0.0f), 
     orientation("UNKNOwN"), 
     isLeftButton(false), 
     isRightButton(false), 

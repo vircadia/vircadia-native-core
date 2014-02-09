@@ -141,7 +141,13 @@ function printTouchEvent(eventName, event) {
     print("    event.radius=" + event.radius);
     print("    event.isPinching=" + event.isPinching);
     print("    event.isPinchOpening=" + event.isPinchOpening);
-    
+
+    print("    event.angle=" + event.angle);
+    for (var i = 0; i < event.points.length; i++) {
+        print("    event.angles[" + i + "]:" + event.angles[i]);
+    }
+    print("    event.rotatingClockwise=" + event.rotatingClockwise);
+    print("    event.rotatingCounterClockwise=" + event.rotatingCounterClockwise);
 }
 
 function touchBeginEvent(event) {
