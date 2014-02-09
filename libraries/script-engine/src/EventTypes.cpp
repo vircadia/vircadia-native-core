@@ -347,8 +347,7 @@ TouchEvent::TouchEvent(const QTouchEvent& event) :
     initWithQTouchEvent(event);
 }
 
-TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other)
-{
+TouchEvent::TouchEvent(const QTouchEvent& event, const TouchEvent& other) {
     initWithQTouchEvent(event);
     calculateMetaAttributes(other);
 }
