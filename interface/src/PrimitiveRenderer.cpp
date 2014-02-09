@@ -360,7 +360,7 @@ void PrimitiveRenderer::initializeGL() {
     glGenBuffers(1, &_vertexBufferId);
 
     // Set up the element array buffer containing the index ids
-    _maxTriElementCount = _maxCount * 3 * 2;
+    _maxTriElementCount = _maxCount * _sIndicesPerTri * 2;
     int size = _maxTriElementCount * sizeof(GLint);
     _gpuMemoryUsage += size;
 
@@ -379,16 +379,17 @@ void PrimitiveRenderer::initializeGL() {
     glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Initialize the first vertex element in the buffer to all zeros, the
-    // degenerate case
+    // Reserve the the first element for the degenerate case
     _vertexElementCount = 1;
     _triElementCount = 1;
 
-    VertexElement v;
-    memset(&v, 0, sizeof(v));
-
-    transferVertexElement(0, &v);
+    // Initialize the first tri element in the buffer to all zeros, the
+    // degenerate case
     deconstructTriElement(0);
+
+    // Initialize the first vertex element in the buffer to all zeros, the
+    // degenerate case
+    deconstructVertexElement(0);
 
     GLint err = glGetError();
 }
@@ -396,8 +397,9 @@ void PrimitiveRenderer::initializeGL() {
 void PrimitiveRenderer::initializeBookkeeping() {
 
     // Start primitive count at one, because zero is reserved for the degenerate triangle
+    _primitives.resize(_maxCount + 1);
     _primitiveCount = 1;
-    _cpuMemoryUsage = sizeof(PrimitiveRenderer);
+    _cpuMemoryUsage = sizeof(PrimitiveRenderer) + _primitives.size() * sizeof(Primitive *);
 }
 
 void PrimitiveRenderer::terminate() {
@@ -415,6 +417,14 @@ void PrimitiveRenderer::terminateGL() {
 
 void PrimitiveRenderer::terminateBookkeeping() {
 
+    for (int i = _primitiveCount + 1; --i > 0; ) {
+        Primitive* primitive = _primitives[i];
+        if (primitive) {
+            _cpuMemoryUsage -= primitive->getMemoryUsage();
+            _primitives[i] = 0;
+            delete primitive;
+        }
+    }
     // Drain all of the queues, stop updating the counters
     while (_availableVertexElementIndex.remove() != 0)
         ;
@@ -425,22 +435,10 @@ void PrimitiveRenderer::terminateBookkeeping() {
     while (_deconstructTriElementIndex.remove() != 0)
         ;
 
-    _vertexElementCount = 0;
-    _triElementCount = 0;
+    _vertexElementCount = 1;
+    _triElementCount = 1;
+    _primitiveCount = 1;
 
-    QMap<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
-    QMap<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
-
-    for ( ; it != end; ++it) {
-        Primitive* primitive = it.value();
-        if (primitive) {
-            _cpuMemoryUsage -= primitive->getMemoryUsage();
-            delete primitive;
-        }
-    }
-
-    _cpuMemoryUsage -= _indexToPrimitiveMap.size() * sizeof(Primitive*);
-    _indexToPrimitiveMap.clear();
 }
 
 void PrimitiveRenderer::constructElements(
@@ -460,6 +458,8 @@ void PrimitiveRenderer::constructElements(
                 vertexElementIndexList.push_back(index);
                 VertexElement* vertex = *it;
                 transferVertexElement(index, vertex);
+            } else {
+                break;
             }
         }
     }
@@ -486,6 +486,8 @@ void PrimitiveRenderer::constructElements(
 
                 tri->id = index;
                 transferTriElement(index, tri->indices);
+            } else {
+                break;
             }
         }
     } else {
@@ -510,6 +512,7 @@ void PrimitiveRenderer::deconstructElements(
             _deconstructTriElementIndex.add(tri->id);
         }
     }
+
     // Return the vertex element index to the available queue, it is not necessary
     // to zero the data
     {
@@ -525,7 +528,6 @@ void PrimitiveRenderer::deconstructElements(
         }
     }
 
-    // destroy primitive
     delete primitive;
 }
 
@@ -533,11 +535,13 @@ int PrimitiveRenderer::getAvailablePrimitiveIndex() {
 
     // Check the available primitive index queue first for an available index.
     int index = _availablePrimitiveIndex.remove();
-    // Remember that the primitive index 0 is used not used.
+    // Remember that the primitive index 0 is not used.
     if (index == 0) {
         // There are no primitive indices available from the queue, 
         // make one up
-        index = _primitiveCount++;
+        if (_primitiveCount < _maxCount) {
+            index = _primitiveCount++;
+        }
     }
     return index;
 }
@@ -581,9 +585,21 @@ void PrimitiveRenderer::deconstructTriElement(
     int idx
     ) {
 
-    // Set the element to the degenerate case.
-    int degenerate[3] = { 0, 0, 0 };
+    // Set the tri element to the degenerate case.
+    static int degenerate[3] = { 0, 0, 0 };
     transferTriElement(idx, degenerate);
+
+}
+
+void PrimitiveRenderer::deconstructVertexElement(
+    int idx
+    ) {
+
+    // Set the vertex element to the degenerate case.
+    VertexElement degenerate;
+    memset(&degenerate, 0, sizeof(degenerate));
+
+    transferVertexElement(idx, &degenerate);
 
 }
 
@@ -603,7 +619,7 @@ void PrimitiveRenderer::transferTriElement(
     ) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _triBufferId);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, idx * sizeof(GLint) * 3, sizeof(GLint) * 3, tri);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, idx * _sBytesPerTriElement, _sBytesPerTriElement, tri);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
@@ -617,10 +633,9 @@ int PrimitiveRenderer::vAdd(
         try {
             // Take ownership of primitive, including responsibility
             // for destruction
-            _indexToPrimitiveMap[index] = primitive;
+            _primitives[index] = primitive;
             _constructPrimitiveIndex.add(index);
             _cpuMemoryUsage += primitive->getMemoryUsage();
-            _cpuMemoryUsage += sizeof(Primitive*);
         } catch(...) {
             // STL failed, recycle the index
             _availablePrimitiveIndex.add(index);
@@ -638,8 +653,9 @@ void PrimitiveRenderer::vRemove(
         QMutexLocker lock(&_guard);
 
         // Locate and remove the primitive by id in the associative map
-        Primitive* primitive = _indexToPrimitiveMap.take(index);
+        Primitive* primitive = _primitives[index];
         if (primitive) {
+            _primitives[index] = 0;
             _cpuMemoryUsage -= primitive->getMemoryUsage();
             deconstructElements(primitive);
             _availablePrimitiveIndex.add(index);
@@ -653,19 +669,6 @@ void PrimitiveRenderer::vRelease() {
 
     QMutexLocker lock(&_guard);
     terminateBookkeeping();
-#if 0
-    QMap<int, Primitive *>::iterator it  = _indexToPrimitiveMap.begin();
-    QMap<int, Primitive *>::iterator end = _indexToPrimitiveMap.end();
-
-    for ( ; it != end; ++it) {
-        Primitive* primitive = it->second;
-        if (primitive) {
-            it->second = 0;
-            deconstructElements(primitive);
-            _availablePrimitiveIndex.add(it->first);
-        }
-    }
-#endif
 }
 
 void PrimitiveRenderer::vRender() {
@@ -681,7 +684,7 @@ void PrimitiveRenderer::vRender() {
     }
 
     while ((id = _constructPrimitiveIndex.remove()) != 0) {
-        Primitive* primitive = _indexToPrimitiveMap[id];
+        Primitive* primitive = _primitives[id];
         if (primitive) {
             constructElements(primitive);
 
@@ -692,10 +695,10 @@ void PrimitiveRenderer::vRender() {
         }
     }
 
-    // The application uses clockwise winding for the definition of front face, but I
-    // arbitrarily chose counter-clockwise (that is the gl default) to construct the triangulation
+    // The application uses clockwise winding for the definition of front face, this renderer
+    // aalso uses clockwise (that is the gl default) to construct the triangulation
     // so...
-    //glFrontFace(GL_CCW);
+    //glFrontFace(GL_CW);
     glEnable(GL_CULL_FACE);
 
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferId);

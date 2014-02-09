@@ -48,8 +48,16 @@ typedef
 
     } TriElement;
 
+/// Vertex element list container.
+///
 typedef QVector<VertexElement *> VertexElementList;
+
+/// Vertex element index list container.
+///
 typedef QVector<int> VertexElementIndexList;
+
+/// Triangle element list container
+///
 typedef QVector<TriElement *> TriElementList;
 
 /// 
@@ -120,10 +128,14 @@ private:
     virtual TriElementList& vTriElements() = 0;
 
     /// Release vertex elements.
+    ///    Service implementer to provide private override for this method
+    ///    in derived class
     ///
     virtual void vReleaseVertexElements() = 0;
 
     /// Get memory usage.
+    ///    Service implementer to provide private override for this method
+    ///    in derived class
     ///
     virtual int vGetMemoryUsage() = 0;
 
@@ -132,7 +144,7 @@ private:
 
 /// 
 ///    @class Cube
-///    Class for accessing the vertex and tri elements of a cube
+///    Class for accessing the vertex and triangle elements of a cube
 ///
 class Cube: public Primitive {
 public:
@@ -365,6 +377,12 @@ private:
         int idx
         );
 
+    /// Deconstruct the vertex element from the GL buffer.
+    ///
+    void deconstructVertexElement(
+        int idx
+        );
+
     /// Transfer the vertex element to the GL buffer.
     ///
     void transferVertexElement(
@@ -445,7 +463,7 @@ private:
     int _triElementCount;                       ///< Count of triangles
     int _maxTriElementCount;                    ///< Max count of triangles
 
-    QMap<int, Primitive*> _indexToPrimitiveMap; ///< Associative map between index and primitive
+    QVector<Primitive *> _primitives;           ///< Vector of primitive
     int _primitiveCount;                        ///< Count of primitives
 
     Queue<int, SingleThreaded, SingleThreaded> _availablePrimitiveIndex;        ///< Queue of primitive indices available
@@ -461,6 +479,9 @@ private:
     int _gpuMemoryUsage;
     int _cpuMemoryUsage;
 
+
+    static const int _sIndicesPerTri = 3;
+    static const int _sBytesPerTriElement = sizeof(GLint) * _sIndicesPerTri;
 };
 
 
