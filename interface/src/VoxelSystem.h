@@ -85,6 +85,7 @@ public:
 
     virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
+    void inspectForOcclusions();
     bool hasViewChanged();
     bool isViewChanging();
 
@@ -317,11 +318,12 @@ private:
     void unlockTree();
 
     bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
-    bool _usePrimitiveRenderer;                    ///< Flag primitive renderer for use
-    PrimitiveRenderer* _renderer;                ///< Voxel renderer
+    bool _inInspectForOcclusions;               ///< Flag occupancy of inspectForOcclusions method
+    bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
+    PrimitiveRenderer* _renderer;               ///< Voxel renderer
 
     static const int _sNumOctantsPerHemiVoxel = 4;
-    static unsigned char _sOctantIndexToBitMask[8];                ///< Map octant index to partition mask
+    static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
     static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
 
 };

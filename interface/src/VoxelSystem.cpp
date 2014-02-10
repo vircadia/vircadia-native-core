@@ -60,6 +60,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
       _initialized(false),
+      _inInspectForOcclusions(false),
       _showCulledSharedFaces(false),
       _usePrimitiveRenderer(false),
       _renderer(0) {
@@ -1028,7 +1029,6 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
                 } else {
                     node->setVoxelSystem(this);
                 }
-                inspectForInteriorOcclusionsOperation(node, 0);
                 unsigned char occlusions;
                 if (_showCulledSharedFaces) {
                     occlusions = ~node->getInteriorOcclusions();
@@ -1675,15 +1675,7 @@ void VoxelSystem::cullSharedFaces() {
         _usePrimitiveRenderer = true;
         _renderer->release();
         clearAllNodesBufferIndex();
-        lockTree();
-        _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
-        _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
-        unlockTree();
-
-        _nodeCount = 0;
-        lockTree();
-        _tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
-        unlockTree();
+        inspectForOcclusions();
         qDebug("culling shared faces in %d nodes", _nodeCount);
     } else {
         _usePrimitiveRenderer = false;
@@ -1710,8 +1702,30 @@ void VoxelSystem::showCulledSharedFaces() {
         _showCulledSharedFaces = false;
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
-        cullSharedFaces();
+        _writeRenderFullVBO = true;
+        _tree->setDirtyBit();
+        setupNewVoxelsForDrawing();
     }
+}
+
+void VoxelSystem::inspectForOcclusions() {
+
+    // don't re-enter...
+    if (_inInspectForOcclusions) {
+        return;
+    }
+
+    _inInspectForOcclusions = true;
+
+    bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showDebugDetails, "inspectForOcclusions()");
+
+    lockTree();
+    _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
+    _tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
+    unlockTree();
+
+    _inInspectForOcclusions = false;
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {
@@ -2338,11 +2352,12 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
         voxel->setDirtyBit();
         voxel->markWithChangedTime();
         // and this?
-        {
-            VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-            thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->updateNodeInArrays(voxel, true, true);
-            thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
-        }
+// no, not needed, because markWithChangedTime notifies hooks, which calls elementUpdated, which calls updateNodeInArrays
+//        {
+//            VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
+//            thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->updateNodeInArrays(voxel, true, true);
+//            thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
+//        }
         args->nodesShown++;
     }
 
@@ -2386,7 +2401,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // we need to hide it. Additionally we know that ALL of it's children are also fully OUTSIDE so we can recurse
             // the children and simply mark them as hidden
             args->tree->recurseNodeWithOperation(voxel, hideAllSubTreeOperation, args );
-
             return false;
 
         } break;
@@ -2576,24 +2590,28 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(OctreeElement* element, v
     }
 
     unsigned long nodeIndex = 0;
-    if (voxel->isKnownBufferIndex()) {
-        args->nodesInVBO++;
-        nodeIndex = voxel->getBufferIndex();
-    }
-
     if (voxel->getPrimitiveIndex()) {
         args->nodesInPrimitiveRenderer++;
         nodeIndex = voxel->getPrimitiveIndex();
-    }
-
-    if (voxel->isKnownBufferIndex() || (voxel->getPrimitiveIndex() != 0)) {
 
         const bool extraDebugging = false; // enable for extra debugging
         if (extraDebugging) {
-            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s, culledFaces=0x%02x \n",
+            qDebug("node In Renderer... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s, culledFaces=0x%02x \n",
                     voxel->getCorner().x, voxel->getCorner().y, voxel->getCorner().z, voxel->getScale(),
                     nodeIndex, debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()),
                     voxel->getInteriorOcclusions());
+        }
+    }
+
+    if (voxel->isKnownBufferIndex()) {
+        args->nodesInVBO++;
+        nodeIndex = voxel->getBufferIndex();
+
+        const bool extraDebugging = false; // enable for extra debugging
+        if (extraDebugging) {
+            qDebug("node In VBO... [%f,%f,%f] %f ... index=%ld, isDirty=%s, shouldRender=%s \n",
+                    voxel->getCorner().x, voxel->getCorner().y, voxel->getCorner().z, voxel->getScale(),
+                    nodeIndex, debug::valueOf(voxel->isDirty()), debug::valueOf(voxel->getShouldRender()));
         }
 
         if (args->hasIndexFound[nodeIndex]) {
