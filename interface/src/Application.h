@@ -419,8 +419,6 @@ private:
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
     bool _isHoverVoxel;
-    bool _isHoverVoxelSounding;
-    nodeColor _hoverVoxelOriginalColor;
 
     VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
@@ -490,6 +488,8 @@ private:
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
+    
+    TouchEvent _lastTouchEvent;
 };
 
 #endif /* defined(__interface__Application__) */

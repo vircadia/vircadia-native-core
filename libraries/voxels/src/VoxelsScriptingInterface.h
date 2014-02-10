@@ -12,18 +12,22 @@
 #include <QtCore/QObject>
 
 #include <OctreeScriptingInterface.h>
+#include <RegisteredMetaTypes.h>
 
 #include "VoxelConstants.h"
 #include "VoxelEditPacketSender.h"
+#include "VoxelTree.h"
 
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelsScriptingInterface : public OctreeScriptingInterface {
     Q_OBJECT
-public:    
+public:
+    VoxelsScriptingInterface() : _tree(NULL) {};
     VoxelEditPacketSender* getVoxelPacketSender() { return (VoxelEditPacketSender*)getPacketSender(); }
 
     virtual NodeType_t getServerNodeType() const { return NodeType::VoxelServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new VoxelEditPacketSender(); }
+    void setVoxelTree(VoxelTree* tree) { _tree = tree; }
 
 public slots:
     /// queues the creation of a voxel which will be sent by calling process on the PacketSender
@@ -53,8 +57,12 @@ public slots:
     /// \param scale the scale of the voxel (in meter units)
     void eraseVoxel(float x, float y, float z, float scale);
 
+    /// If the scripting context has visible voxels, this will determine a ray intersection
+    RayToVoxelIntersectionResult findRayIntersection(const PickRay& ray);
+
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
+    VoxelTree* _tree;
 };
 
 #endif /* defined(__hifi__VoxelsScriptingInterface__) */

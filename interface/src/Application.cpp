@@ -135,7 +135,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _mousePressed(false),
         _isHoverVoxel(false),
-        _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _mouseVoxelScaleInitialized(false),
         _justEditedVoxel(false),
@@ -448,7 +447,7 @@ void Application::paintGL() {
         _myCamera.setTargetRotation(_myAvatar->getHead().getOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
+        _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
         _myCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
 
@@ -1199,7 +1198,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 return;
             }
             if (_isHoverVoxel) {
-                _myAvatar->orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
+                //_myAvatar->orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
                 return;
             }
         }
@@ -1218,11 +1217,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
-
-const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
-const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
-const float HOVER_VOXEL_FREQUENCY = 7040.f;
-const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
@@ -1263,37 +1257,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 pasteVoxels();
             }
 
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) && 
-                MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
-                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
-                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
-                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
-                _hoverVoxelOriginalColor[3] = 1;
-                const float RED_CLICK_FREQUENCY = 1000.f;
-                const float GREEN_CLICK_FREQUENCY = 1250.f;
-                const float BLUE_CLICK_FREQUENCY = 1330.f;
-                const float MIDDLE_A_FREQUENCY = 440.f;
-                float frequency = MIDDLE_A_FREQUENCY +
-                    (_hoverVoxel.red / 255.f * RED_CLICK_FREQUENCY +
-                    _hoverVoxel.green / 255.f * GREEN_CLICK_FREQUENCY +
-                    _hoverVoxel.blue / 255.f * BLUE_CLICK_FREQUENCY) / 3.f;
-
-                _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY, false);
-                _isHoverVoxelSounding = true;
-
-                const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
-                glm::vec3 newTarget = getMouseVoxelWorldCoordinates(_hoverVoxel);
-                glm::vec3 myPosition = _myAvatar->getPosition();
-
-                // If there is not an action tool set (add, delete, color), move to this voxel
-                if (Menu::getInstance()->isOptionChecked(MenuOption::ClickToFly) &&
-                     !(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
-                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
-                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
-                    _myAvatar->setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
-                }
-            }
-
         } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
             deleteVoxelUnderCursor();
         }
@@ -1324,7 +1287,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchUpdateEvent(event); // send events to any registered scripts
+    TouchEvent thisEvent(*event, _lastTouchEvent);
+    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -1355,8 +1320,10 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchBeginEvent(event); // send events to any registered scripts
+    TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
+    _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
 
+    _lastTouchEvent = thisEvent; // and we reset our last event to this event before we call our update
     touchUpdateEvent(event);
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1371,7 +1338,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
-    _controllerScriptingInterface.emitTouchEndEvent(event); // send events to any registered scripts
+    TouchEvent thisEvent(*event, _lastTouchEvent);
+    _controllerScriptingInterface.emitTouchEndEvent(thisEvent); // send events to any registered scripts
+    _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -2039,45 +2008,9 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
 
-    //  If we have clicked on a voxel, update it's color
-    if (_isHoverVoxelSounding) {
-        VoxelTreeElement* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        if (hoveredNode) {
-            float bright = _audio.getCollisionSoundMagnitude();
-            nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
-                                    _hoverVoxelOriginalColor[1] * (1.f - bright),
-                                    _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
-            hoveredNode->setColor(clickColor);
-            if (bright < 0.01f) {
-                hoveredNode->setColor(_hoverVoxelOriginalColor);
-                _isHoverVoxelSounding = false;
-            }
-        } else {
-            //  Voxel is not found, clear all
-            _isHoverVoxelSounding = false;
-            _isHoverVoxel = false;
-        }
-    } else {
-        //  Check for a new hover voxel
-        glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled,
-        // and make sure the tree is not already busy... because otherwise you'll have to wait.
-        if (!_mousePressed) {
-            {
-                PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-                _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
-            }
-            if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel &&
-                    glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
-
-                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
-                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
-                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
-                _hoverVoxelOriginalColor[3] = 1;
-                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY, false);
-                _isHoverVoxelSounding = true;
-            }
-        }
+    if (!_mousePressed) {
+        PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
+        _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
     }
 }
 
@@ -4101,6 +4034,7 @@ void Application::loadScript(const QString& fileNameString) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
     
