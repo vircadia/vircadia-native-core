@@ -48,6 +48,7 @@ public:
     ~Menu();
 
     bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
@@ -190,6 +191,7 @@ namespace MenuOption {
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
+    const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";

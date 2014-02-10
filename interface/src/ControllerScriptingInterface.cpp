@@ -219,3 +219,19 @@ void ControllerScriptingInterface::releaseKeyEvents(const KeyEvent& event) {
     }
 }
 
+bool ControllerScriptingInterface::isJoystickCaptured(int joystickIndex) const {
+    return _capturedJoysticks.contains(joystickIndex);
+}
+
+void ControllerScriptingInterface::captureJoystick(int joystickIndex) {
+    if (!isJoystickCaptured(joystickIndex)) {
+        _capturedJoysticks.insert(joystickIndex);
+    }
+}
+
+void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
+    if (isJoystickCaptured(joystickIndex)) {
+        _capturedJoysticks.remove(joystickIndex);
+    }
+}
+

@@ -236,9 +236,12 @@ Menu::Menu() :
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
+                                            appInstance,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H,false,
+                                            appInstance,SLOT(cameraMenuChanged()));
+                                            
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
                                            appInstance,
@@ -458,6 +461,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
+                                           0,
+                                           true,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
@@ -694,6 +702,9 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
     menu->removeAction(_actionHash.value(actionName));
 }
 
+void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
+    return _actionHash.value(menuOption)->setChecked(isChecked);
+}
 
 bool Menu::isOptionChecked(const QString& menuOption) {
     return _actionHash.value(menuOption)->isChecked();
@@ -764,12 +775,12 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
-    QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
+    QString faceURLString = applicationInstance->getAvatar()->getHead().getFaceModel().getURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURLEdit);
 
-    QString skeletonURLString = applicationInstance->getProfile()->getSkeletonModelURL().toString();
+    QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
     QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Skeleton URL:", skeletonURLEdit);
@@ -830,27 +841,25 @@ void Menu::editPreferences() {
     int ret = dialog.exec();
     if (ret == QDialog::Accepted) {
         QUrl faceModelURL(faceURLEdit->text());
+        
+        bool shouldDispatchIdentityPacket = false;
 
         if (faceModelURL.toString() != faceURLString) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
-            applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
-
-            // send the new face mesh URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKeyAndUserString(DataServerKey::FaceMeshURL,
-                                                          faceModelURL.toString().toLocal8Bit().constData(),
-                                                          applicationInstance->getProfile()->getUserString());
+            applicationInstance->getAvatar()->setFaceModelURL(faceModelURL);
+            shouldDispatchIdentityPacket = true;
         }
 
         QUrl skeletonModelURL(skeletonURLEdit->text());
 
         if (skeletonModelURL.toString() != skeletonURLString) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
-            applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
-
-            // send the new skeleton model URL to the data-server (if we have a client UUID)
-            DataServerClient::putValueForKeyAndUserString(DataServerKey::SkeletonURL,
-                                                          skeletonModelURL.toString().toLocal8Bit().constData(),
-                                                          applicationInstance->getProfile()->getUserString());
+            applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
+            shouldDispatchIdentityPacket = true;
+        }
+        
+        if (shouldDispatchIdentityPacket) {
+            applicationInstance->getAvatar()->sendIdentityPacket();
         }
 
         applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());

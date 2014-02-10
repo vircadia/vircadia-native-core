@@ -65,6 +65,10 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _averageInputLoudness(0),
+    _noiseGateOpen(false),
+    _noiseGateEnabled(true),
+    _noiseGateFramesToClose(0),
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),
@@ -348,12 +352,40 @@ void Audio::handleAudioInput() {
                              _inputFormat, _desiredInputFormat);
 
             float loudness = 0;
-
+            float thisSample = 0;
+            int samplesOverNoiseGate = 0;
+            
+            const float NOISE_GATE_HEIGHT = 3.f;
+            const int NOISE_GATE_WIDTH = 5;
+            const int NOISE_GATE_CLOSE_FRAME_DELAY = 30;
+            
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                loudness += fabsf(monoAudioSamples[i]);
+                thisSample = fabsf(monoAudioSamples[i]);
+                loudness += thisSample;
+                //  Noise Reduction:  Count peaks above the average loudness
+                if (thisSample > (_averageInputLoudness * NOISE_GATE_HEIGHT)) {
+                    samplesOverNoiseGate++;
+                }
             }
-
             _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            const float LOUDNESS_AVERAGING_FRAMES = 1000.f;   //  This will be about 10 seconds
+            _averageInputLoudness = (1.f - 1.f / LOUDNESS_AVERAGING_FRAMES) * _averageInputLoudness + (1.f / LOUDNESS_AVERAGING_FRAMES) * _lastInputLoudness;
+            
+            if (_noiseGateEnabled) {
+                if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
+                    _noiseGateOpen = true;
+                    _noiseGateFramesToClose = NOISE_GATE_CLOSE_FRAME_DELAY;
+                } else {
+                    if (--_noiseGateFramesToClose == 0) {
+                        _noiseGateOpen = false;
+                    }
+                }
+                if (!_noiseGateOpen) {
+                    for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                        monoAudioSamples[i] = 0;
+                    }
+                }
+            }
 
             // add input data just written to the scope
             QMetaObject::invokeMethod(_scope, "addSamples", Qt::QueuedConnection,
@@ -388,7 +420,7 @@ void Audio::handleAudioInput() {
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
-        if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
+        if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
             glm::vec3 headPosition = interfaceAvatar->getHead().getPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
@@ -409,10 +441,9 @@ void Audio::handleAudioInput() {
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
 
-            nodeList->getNodeSocket().writeDatagram(monoAudioDataPacket,
-                                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
-                                                    audioMixer->getActiveSocket()->getAddress(),
-                                                    audioMixer->getActiveSocket()->getPort());
+            nodeList->writeDatagram(monoAudioDataPacket,
+                                    NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes,
+                                    audioMixer);
 
             Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                 .updateValue(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
@@ -523,6 +554,10 @@ bool Audio::mousePressEvent(int x, int y) {
 void Audio::toggleMute() {
     _muted = !_muted;
     muteToggled();
+}
+
+void Audio::toggleAudioNoiseReduction() {
+    _noiseGateEnabled = !_noiseGateEnabled;
 }
 
 void Audio::render(int screenWidth, int screenHeight) {

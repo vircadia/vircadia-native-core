@@ -58,8 +58,8 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun() { };
-    virtual bool hasSpecialPacketToSend(Node* node) { return false; }
-    virtual int sendSpecialPacket(Node* node) { return 0; }
+    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
+    virtual int sendSpecialPacket(const SharedNodePointer& node) { return 0; }
 
     static void attachQueryNodeToNode(Node* newNode);
 
@@ -67,7 +67,7 @@ public:
 public slots:
     /// runs the voxel server assignment
     void run();
-    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    void readPendingDatagrams();
 
 protected:
     void parsePayload();

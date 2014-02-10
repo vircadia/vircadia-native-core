@@ -56,7 +56,6 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-    
 
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
@@ -76,6 +75,9 @@ public:
 
     void activatePublicSocket();
     void activateLocalSocket();
+    
+    const QUuid& getConnectionSecret() const { return _connectionSecret; }
+    void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
     NodeData* getLinkedData() const { return _linkedData; }
     void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
@@ -109,6 +111,7 @@ private:
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
     HifiSockAddr* _activeSocket;
+    QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     NodeData* _linkedData;
     bool _isAlive;

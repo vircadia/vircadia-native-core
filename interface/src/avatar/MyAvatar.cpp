@@ -400,9 +400,9 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
     const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
     const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
-    _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
-    _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
-    _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
+    _head.tweakPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    _head.tweakYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    _head.tweakRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -617,6 +617,9 @@ void MyAvatar::saveData(QSettings* settings) {
 
     settings->setValue("leanScale", _leanScale);
     settings->setValue("scale", _targetScale);
+    
+    settings->setValue("faceModelURL", _faceModelURL);
+    settings->setValue("skeletonModelURL", _skeletonModelURL);
 
     settings->endGroup();
 }
@@ -641,6 +644,9 @@ void MyAvatar::loadData(QSettings* settings) {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
+    
+    setFaceModelURL(settings->value("faceModelURL").toUrl());
+    setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
 
     settings->endGroup();
 }
@@ -648,6 +654,13 @@ void MyAvatar::loadData(QSettings* settings) {
 void MyAvatar::sendKillAvatar() {
     QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void MyAvatar::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(AvatarData::identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
@@ -801,23 +814,27 @@ void MyAvatar::updateThrust(float deltaTime) {
     const int VIEW_CONTROLLER = 1;
     for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
         PalmData& palm = getHand().getPalms()[i];
-        if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
-            if (palm.getJoystickY() != 0.f) {
-                FingerData& finger = palm.getFingers()[0];
-                if (finger.isActive()) {
+
+        // If the script hasn't captured this joystick, then let the default behavior work
+        if (!Application::getInstance()->getControllerScriptingInterface()->isJoystickCaptured(palm.getSixenseID())) {
+            if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
+                if (palm.getJoystickY() != 0.f) {
+                    FingerData& finger = palm.getFingers()[0];
+                    if (finger.isActive()) {
+                    }
+                    _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
                 }
-                _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
-            }
-            if (palm.getJoystickX() != 0.f) {
-                _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
-            }
-        } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
-            if (palm.getJoystickX() != 0.f) {
-                _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
-            }
-            if (palm.getJoystickY() != 0.f) {
-                getHand().setPitchUpdate(getHand().getPitchUpdate() +
-                                         (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
+                if (palm.getJoystickX() != 0.f) {
+                    _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
+                }
+            } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
+                if (palm.getJoystickX() != 0.f) {
+                    _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
+                }
+                if (palm.getJoystickY() != 0.f) {
+                    getHand().setPitchUpdate(getHand().getPitchUpdate() +
+                                             (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
+                }
             }
         }
 

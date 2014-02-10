@@ -94,6 +94,8 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    
+    void sendIdentityPacket();
 
 private:
     bool _mousePressed;

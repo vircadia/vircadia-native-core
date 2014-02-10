@@ -458,43 +458,43 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
+void OctreeServer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    
     NodeList* nodeList = NodeList::getInstance();
-
-    PacketType packetType = packetTypeForPacket(dataByteArray);
-
-    if (packetType == getMyQueryMessageType()) {
-        bool debug = false;
-        if (debug) {
-            qDebug() << "Got PacketType_VOXEL_QUERY at" << usecTimestampNow();
-        }
-       
-        // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
-        // need to make sure we have it in our nodeList.
-        QUuid nodeUUID;
-        deconstructPacketHeader(dataByteArray, nodeUUID);
-
-        SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
-
-        if (node) {
-            nodeList->updateNodeWithData(node.data(), senderSockAddr, dataByteArray);
-            if (!node->getActiveSocket()) {
-                // we don't have an active socket for this node, but they're talking to us
-                // this means they've heard from us and can reply, let's assume public is active
-                node->activatePublicSocket();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType packetType = packetTypeForPacket(receivedPacket);
+            
+            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            
+            if (packetType == getMyQueryMessageType()) {
+                bool debug = false;
+                if (debug) {
+                    qDebug() << "Got PacketTypeVoxelQuery at" << usecTimestampNow();
+                }
+                
+                // If we got a PacketType_VOXEL_QUERY, then we're talking to an NodeType_t_AVATAR, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        nodeData->initializeOctreeSendThread(this, matchingNode->getUUID());
+                    }
+                }
+            } else if (packetType == PacketTypeJurisdictionRequest) {
+                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+            } else {
+                // let processNodeData handle it.
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
-            OctreeQueryNode* nodeData = (OctreeQueryNode*) node->getLinkedData();
-            if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                nodeData->initializeOctreeSendThread(this, nodeUUID);
-            }
         }
-    } else if (packetType == PacketTypeJurisdictionRequest) {
-        _jurisdictionSender->queueReceivedPacket(senderSockAddr, dataByteArray);
-    } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-       _octreeInboundPacketProcessor->queueReceivedPacket(senderSockAddr, dataByteArray);
-   } else {
-       // let processNodeData handle it.
-       NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
@@ -655,8 +655,4 @@ void OctreeServer::run() {
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
 }

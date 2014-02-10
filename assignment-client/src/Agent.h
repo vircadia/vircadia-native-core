@@ -35,7 +35,7 @@ public:
 public slots:
     void run();
     
-    void processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr);
+    void readPendingDatagrams();
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();

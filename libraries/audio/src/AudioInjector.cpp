@@ -93,12 +93,8 @@ void AudioInjector::injectAudio() {
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
-            if (audioMixer && nodeList->getNodeActiveSocketOrPing(audioMixer.data())) {
-                // send off this audio packet
-                nodeList->getNodeSocket().writeDatagram(injectAudioPacket,
-                                                        audioMixer->getActiveSocket()->getAddress(),
-                                                        audioMixer->getActiveSocket()->getPort());
-            }
+            // send off this audio packet
+            nodeList->writeDatagram(injectAudioPacket, audioMixer);
             
             currentSendPosition += bytesToCopy;
             

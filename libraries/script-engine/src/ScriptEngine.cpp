@@ -44,7 +44,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
                            AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
-    _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -126,6 +125,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
@@ -137,9 +137,9 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Data", &_dataServerScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
+    registerGlobalObject("Vec3", &_vec3Library);
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
