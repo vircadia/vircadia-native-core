@@ -40,6 +40,7 @@ public:
     VoxelDetail voxel;
     float distance;
     BoxFace face;
+    glm::vec3 intersection;
 };
 
 Q_DECLARE_METATYPE(RayToVoxelIntersectionResult)

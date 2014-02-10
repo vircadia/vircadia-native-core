@@ -57,6 +57,7 @@ RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const
                 result.voxel.red = voxel->getColor()[0];
                 result.voxel.green = voxel->getColor()[1];
                 result.voxel.blue = voxel->getColor()[2];
+                result.intersection = ray.origin + (ray.direction * result.distance);
             }
             _tree->unlock();
         }
