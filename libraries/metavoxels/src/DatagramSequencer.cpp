@@ -20,7 +20,8 @@ const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
-DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
+DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* parent) :
+    QObject(parent),
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
     _outputStream(_outgoingPacketStream),
     _incomingDatagramStream(&_incomingDatagramBuffer),
@@ -395,6 +396,10 @@ void CircularBuffer::appendToBuffer(int offset, int length, CircularBuffer& buff
 
 bool CircularBuffer::atEnd() const {
     return _offset >= _size;
+}
+
+qint64 CircularBuffer::bytesAvailable() const {
+    return _size - _offset + QIODevice::bytesAvailable();
 }
 
 bool CircularBuffer::canReadLine() const {

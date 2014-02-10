@@ -32,7 +32,7 @@ public:
         int firstPacketNumber;
     };
     
-    DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
+    DatagramSequencer(const QByteArray& datagramHeader = QByteArray(), QObject* parent = NULL);
     
     /// Returns the packet number of the last packet sent.
     int getOutgoingPacketNumber() const { return _outgoingPacketNumber; }
@@ -195,6 +195,7 @@ public:
     void appendToBuffer(int offset, int length, CircularBuffer& buffer) const;
 
     virtual bool atEnd() const;
+    virtual qint64 bytesAvailable() const;
     virtual bool canReadLine() const;
     virtual bool open(OpenMode flags);
     virtual qint64 pos() const;

@@ -55,6 +55,7 @@ private:
     
     DatagramSequencer* _sequencer;
     Endpoint* _other;
+    QList<QPair<QByteArray, int> > _delayedDatagrams;
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;

@@ -76,7 +76,7 @@ static QByteArray createRandomBytes() {
 }
 
 Endpoint::Endpoint(const QByteArray& datagramHeader) :
-    _sequencer(new DatagramSequencer(datagramHeader)),
+    _sequencer(new DatagramSequencer(datagramHeader, this)),
     _highPriorityMessagesToSend(0.0f) {
     
     connect(_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendDatagram(const QByteArray&)));
@@ -136,6 +136,18 @@ static bool messagesEqual(const QVariant& firstMessage, const QVariant& secondMe
 }
 
 bool Endpoint::simulate(int iterationNumber) {
+    // update/send our delayed datagrams
+    for (QList<QPair<QByteArray, int> >::iterator it = _delayedDatagrams.begin(); it != _delayedDatagrams.end(); ) {
+        if (it->second-- == 1) {
+            _other->_sequencer->receivedDatagram(it->first);
+            datagramsReceived++;    
+            it = _delayedDatagrams.erase(it);
+        
+        } else {
+            it++;
+        }
+    }
+
     // enqueue some number of high priority messages
     const float MIN_HIGH_PRIORITY_MESSAGES = 0.0f;
     const float MAX_HIGH_PRIORITY_MESSAGES = 2.0f;
@@ -177,10 +189,27 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     datagramsSent++;
     
     // some datagrams are dropped
-    const float DROP_PROBABILITY = 0.25f;
+    const float DROP_PROBABILITY = 0.1f;
     if (randFloat() < DROP_PROBABILITY) {
         return;
     }
+    
+    // some are received out of order
+    const float REORDER_PROBABILITY = 0.1f;
+    if (randFloat() < REORDER_PROBABILITY) {
+        const int MIN_DELAY = 1;
+        const int MAX_DELAY = 5;
+        // have to copy the datagram; the one we're passed is a reference to a shared buffer
+        _delayedDatagrams.append(QPair<QByteArray, int>(QByteArray(datagram.constData(), datagram.size()),
+            randIntInRange(MIN_DELAY, MAX_DELAY)));
+        
+        // and some are duplicated
+        const float DUPLICATE_PROBABILITY = 0.01f;
+        if (randFloat() > DUPLICATE_PROBABILITY) {
+            return;
+        }
+    }
+    
     _other->_sequencer->receivedDatagram(datagram);
     datagramsReceived++;
 }
