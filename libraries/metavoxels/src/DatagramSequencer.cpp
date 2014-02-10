@@ -591,14 +591,13 @@ void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSeq
                 break;
             }
             spanCount++;
-            
-            remainingBytes -= getBytesToWrite(first, span.unset);
+            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, span.unset));
             position += (span.unset + span.set);
         }
         int leftover = _buffer.pos() - position;
         if (remainingBytes > 0 && leftover > 0) {
             spanCount++;
-            remainingBytes -= getBytesToWrite(first, leftover);
+            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, leftover));
         }
     }
     
@@ -615,8 +614,9 @@ void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSeq
             remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, span.unset), spans);
             position += (span.unset + span.set);
         }
-        if (remainingBytes > 0 && position < _buffer.pos()) {
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, (int)(_buffer.pos() - position)), spans);
+        int leftover = _buffer.pos() - position;
+        if (remainingBytes > 0 && leftover > 0) {
+            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, leftover), spans);
         }
     }
 }

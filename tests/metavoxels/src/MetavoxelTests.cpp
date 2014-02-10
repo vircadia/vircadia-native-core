@@ -19,10 +19,13 @@ MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
 static int datagramsSent = 0;
 static int datagramsReceived = 0;
 static int highPriorityMessagesSent = 0;
+static int highPriorityMessagesReceived = 0;
 static int unreliableMessagesSent = 0;
 static int unreliableMessagesReceived = 0;
 static int streamedBytesSent = 0;
+static int streamedBytesReceived = 0;
 static int lowPriorityStreamedBytesSent = 0;
+static int lowPriorityStreamedBytesReceived = 0;
 
 bool MetavoxelTests::run() {
     
@@ -46,10 +49,11 @@ bool MetavoxelTests::run() {
         }
     }
     
-    qDebug() << "Sent" << highPriorityMessagesSent << "high priority messages";
+    qDebug() << "Sent" << highPriorityMessagesSent << "high priority messages, received" << highPriorityMessagesReceived;
     qDebug() << "Sent" << unreliableMessagesSent << "unreliable messages, received" << unreliableMessagesReceived;
-    qDebug() << "Sent" << streamedBytesSent << "streamed bytes";
-    qDebug() << "Sent" << lowPriorityStreamedBytesSent << "low-priority streamed bytes";
+    qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
+    qDebug() << "Sent" << lowPriorityStreamedBytesSent << "low-priority streamed bytes, received" <<
+        lowPriorityStreamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     
     qDebug() << "All tests passed!";
@@ -87,9 +91,10 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     output->setPriority(0.25f);
     const int MIN_LOW_PRIORITY_DATA = 100000;
     const int MAX_LOW_PRIORITY_DATA = 200000;
-    _lowPriorityDataStreamed.append(createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA));
-    //output->getBuffer().write(_lowPriorityDataStreamed);
-    //lowPriorityStreamedBytesSent += _lowPriorityDataStreamed.size();
+    QByteArray bytes = createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA);
+    _lowPriorityDataStreamed.append(bytes);
+    output->getBuffer().write(bytes);
+    lowPriorityStreamedBytesSent += bytes.size();
 }
 
 static QVariant createRandomMessage() {
@@ -172,7 +177,7 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
     datagramsSent++;
     
     // some datagrams are dropped
-    const float DROP_PROBABILITY = 0.1f;
+    const float DROP_PROBABILITY = 0.25f;
     if (randFloat() < DROP_PROBABILITY) {
         return;
     }
@@ -188,6 +193,7 @@ void Endpoint::handleHighPriorityMessage(const QVariant& message) {
     if (!messagesEqual(message, sentMessage)) {
         throw QString("Sent/received high priority message mismatch.");
     }
+    highPriorityMessagesReceived++;
 }
 
 void Endpoint::readMessage(Bitstream& in) {
@@ -219,6 +225,7 @@ void Endpoint::readReliableChannel() {
     if (compare != bytes) {
         throw QString("Sent/received streamed data mismatch.");
     }
+    streamedBytesReceived += bytes.size();
 }
 
 void Endpoint::readLowPriorityReliableChannel() {
@@ -232,4 +239,5 @@ void Endpoint::readLowPriorityReliableChannel() {
     if (compare != bytes) {
         throw QString("Sent/received low-priority streamed data mismatch.");
     }
+    lowPriorityStreamedBytesReceived += bytes.size();
 }
