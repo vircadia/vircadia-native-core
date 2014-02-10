@@ -87,7 +87,7 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
         && packetTypeForPacket(packet) != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
-        int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
+        int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
         qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
