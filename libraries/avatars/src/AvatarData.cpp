@@ -301,13 +301,15 @@ QByteArray AvatarData::identityByteArray() {
 }
 
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
-    qDebug() << "Changing face model for avatar to" << faceModelURL.toString();
-    _faceModelURL = faceModelURL;
+    _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
+    
+    qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    qDebug() << "Changing skeleton model for avatar to" << skeletonModelURL.toString();
-    _skeletonModelURL = skeletonModelURL;
+    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
+    
+    qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {

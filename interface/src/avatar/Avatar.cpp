@@ -338,12 +338,12 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
 
 void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    _head.getFaceModel().setURL(faceModelURL);
+    _head.getFaceModel().setURL(_faceModelURL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel.setURL(skeletonModelURL);
+    _skeletonModel.setURL(_skeletonModelURL);
 }
 
 int Avatar::parseData(const QByteArray& packet) {
