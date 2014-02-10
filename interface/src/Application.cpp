@@ -1827,6 +1827,9 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings");
+    
+    // fire off an immediate domain-server check in now that settings are loaded
+    NodeList::getInstance()->sendDomainServerCheckIn();
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
