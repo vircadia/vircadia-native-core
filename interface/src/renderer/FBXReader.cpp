@@ -819,44 +819,6 @@ QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
     }
 }
 
-// VBox = helper class that measures a bounding box around a collection of vertices
-// This is a work in progress -- Andrew
-class VBox {
-public:
-    VBox() : _maxCorner(-FLT_MAX), _minCorner(FLT_MAX) {}
-
-    void addVertex(const glm::vec3& vertex) {
-        if (vertex.x > _maxCorner.x) {
-            _maxCorner.x = vertex.x;
-        }
-        if (vertex.y > _maxCorner.y) {
-            _maxCorner.y = vertex.y;
-        }
-        if (vertex.z > _maxCorner.z) {
-            _maxCorner.z = vertex.z;
-        }
-        if (vertex.x < _minCorner.x) {
-            _minCorner.x = vertex.x;
-        }
-        if (vertex.y < _minCorner.y) {
-            _minCorner.y = vertex.y;
-        }
-        if (vertex.z < _minCorner.z) {
-            _minCorner.z = vertex.z;
-        }
-    }
-
-    glm::vec3 getCenter() const { return 0.5f * (_minCorner + _maxCorner); }
-
-    float getMaxDimension() const {
-        glm::vec3 dim = _maxCorner - _minCorner;
-        return glm::max(glm::max(dim.x, dim.y), dim.z);
-    }
-
-    glm::vec3 _maxCorner;
-    glm::vec3 _minCorner;
-};
-
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -1283,17 +1245,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.leftFingertipJointIndices = getIndices(jointLeftFingertipIDs, modelIDs);
     geometry.rightFingertipJointIndices = getIndices(jointRightFingertipIDs, modelIDs);
 
-    bool hasBothHands = (geometry.rightHandJointIndex != -1 && geometry.leftHandJointIndex != -1);
-
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
 
-    VBox rightHandBox;
-    VBox leftHandBox;
-    
     geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     
@@ -1422,24 +1379,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const FBXCluster& fbxCluster = extracted.mesh.clusters.at(i);
                 int jointIndex = fbxCluster.jointIndex;
                 FBXJoint& joint = geometry.joints[jointIndex];
-
-                bool isRightHand = hasBothHands && jointIndex == geometry.rightHandJointIndex;
-                bool isLeftHand = hasBothHands && jointIndex == geometry.leftHandJointIndex;
-                if (hasBothHands && !isRightHand && !isLeftHand) {
-                    // check to see if this 
-                    int parentIndex = joint.parentIndex;
-                    while (parentIndex != -1) {
-                        if (parentIndex == geometry.rightHandJointIndex) {
-                            isRightHand = true;
-                            break;
-                        } else if (parentIndex == geometry.leftHandJointIndex) {
-                            isLeftHand = true;
-                            break;
-                        }
-                        parentIndex = geometry.joints[parentIndex].parentIndex;
-                    }
-                }
-
                 glm::vec3 boneEnd = extractTranslation(inverseModelTransform * joint.bindTransform);
                 glm::vec3 boneDirection;
                 float boneLength;
@@ -1463,12 +1402,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             const glm::vec3& vertex = extracted.mesh.vertices.at(it.value());
-                            // track vertex if it is on one of the hands
-                            if (isRightHand) {
-                                rightHandBox.addVertex(radiusScale * vertex);
-                            } else if (isLeftHand) {
-                                leftHandBox.addVertex(radiusScale * vertex);
-                            }
                             float proj = glm::dot(boneDirection, vertex - boneEnd);
                             if (proj < 0.0f && proj > -boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
@@ -1590,11 +1523,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
         geometry.attachments.append(attachment);
-    }
-    if (hasBothHands) {
-        // use measured sizes of "hands" for bone radius of the joints
-        geometry.joints[geometry.rightHandJointIndex].boneRadius = 0.5f * rightHandBox.getMaxDimension();
-        geometry.joints[geometry.leftHandJointIndex].boneRadius = 0.5f * leftHandBox.getMaxDimension();
     }
 
     return geometry;
