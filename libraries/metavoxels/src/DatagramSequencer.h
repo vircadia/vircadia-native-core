@@ -58,7 +58,7 @@ public:
     /// Returns the output channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableOutputChannel(int index = 0);
     
-    /// Returns the intput channel at the 
+    /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
     /// Starts a new packet for transmission.
@@ -208,6 +208,7 @@ public:
 
     int getIndex() const { return _index; }
 
+    QBuffer& getBuffer() { return _buffer; }
     QDataStream& getDataStream() { return _dataStream; }
     Bitstream& getBitstream() { return _bitstream; }
 

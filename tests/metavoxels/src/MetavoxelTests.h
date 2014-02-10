@@ -49,6 +49,8 @@ private slots:
     void sendDatagram(const QByteArray& datagram);    
     void handleHighPriorityMessage(const QVariant& message);
     void readMessage(Bitstream& in);
+    void readReliableChannel();
+    void readLowPriorityReliableChannel();
     
 private:
     
@@ -57,6 +59,8 @@ private:
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;
+    QByteArray _dataStreamed;
+    QByteArray _lowPriorityDataStreamed;
 };
 
 /// A simple test message.

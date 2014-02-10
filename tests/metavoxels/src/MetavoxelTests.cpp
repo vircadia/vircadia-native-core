@@ -17,9 +17,13 @@ MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
     QCoreApplication(argc, argv) {
 }
 
+static int datagramsSent = 0;
+static int datagramsReceived = 0;
 static int highPriorityMessagesSent = 0;
 static int unreliableMessagesSent = 0;
 static int unreliableMessagesReceived = 0;
+static int streamedBytesSent = 0;
+static int lowPriorityStreamedBytesSent = 0;
 
 bool MetavoxelTests::run() {
     
@@ -43,13 +47,29 @@ bool MetavoxelTests::run() {
         }
     }
     
-    qDebug() << "Sent " << highPriorityMessagesSent << " high priority messages";
-    
-    qDebug() << "Sent " << unreliableMessagesSent << " unreliable messages, received " << unreliableMessagesReceived;
+    qDebug() << "Sent" << highPriorityMessagesSent << "high priority messages";
+    qDebug() << "Sent" << unreliableMessagesSent << "unreliable messages, received" << unreliableMessagesReceived;
+    qDebug() << "Sent" << streamedBytesSent << "streamed bytes";
+    qDebug() << "Sent" << lowPriorityStreamedBytesSent << "low-priority streamed bytes";
+    qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     
     qDebug() << "All tests passed!";
     
     return false;
+}
+
+static QByteArray createRandomBytes(int minimumSize, int maximumSize) {
+    QByteArray bytes(randIntInRange(minimumSize, maximumSize), 0);
+    for (int i = 0; i < bytes.size(); i++) {
+        bytes[i] = rand();
+    }
+    return bytes;
+}
+
+static QByteArray createRandomBytes() {
+    const int MIN_BYTES = 4;
+    const int MAX_BYTES = 16;
+    return createRandomBytes(MIN_BYTES, MAX_BYTES);
 }
 
 Endpoint::Endpoint(const QByteArray& datagramHeader) :
@@ -60,16 +80,17 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     connect(_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
     connect(_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
-}
-
-static QByteArray createRandomBytes() {
-    const int MIN_BYTES = 4;
-    const int MAX_BYTES = 16;
-    QByteArray bytes(randIntInRange(MIN_BYTES, MAX_BYTES), 0);
-    for (int i = 0; i < bytes.size(); i++) {
-        bytes[i] = rand();
-    }
-    return bytes;
+    connect(&_sequencer->getReliableInputChannel()->getBuffer(), SIGNAL(readyRead()), SLOT(readReliableChannel()));
+    connect(&_sequencer->getReliableInputChannel(1)->getBuffer(), SIGNAL(readyRead()), SLOT(readLowPriorityReliableChannel()));
+    
+    // enqueue a large amount of data in a low-priority channel
+    ReliableChannel* output = _sequencer->getReliableOutputChannel(1);
+    output->setPriority(0.25f);
+    const int MIN_LOW_PRIORITY_DATA = 100000;
+    const int MAX_LOW_PRIORITY_DATA = 200000;
+    _lowPriorityDataStreamed = createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA);
+    output->getBuffer().write(_lowPriorityDataStreamed);
+    lowPriorityStreamedBytesSent += _lowPriorityDataStreamed.size();
 }
 
 static QVariant createRandomMessage() {
@@ -123,6 +144,14 @@ bool Endpoint::simulate(int iterationNumber) {
         _highPriorityMessagesToSend -= 1.0f;
     }
     
+    // stream some random data
+    const int MIN_BYTES_TO_STREAM = 10;
+    const int MAX_BYTES_TO_STREAM = 100;
+    QByteArray bytes = createRandomBytes(MIN_BYTES_TO_STREAM, MAX_BYTES_TO_STREAM);
+    _dataStreamed.append(bytes);
+    streamedBytesSent += bytes.size();
+    _sequencer->getReliableOutputChannel()->getDataStream().writeRawData(bytes.constData(), bytes.size());
+    
     // send a packet
     try {
         Bitstream& out = _sequencer->startPacket();
@@ -141,12 +170,15 @@ bool Endpoint::simulate(int iterationNumber) {
 }
 
 void Endpoint::sendDatagram(const QByteArray& datagram) {
+    datagramsSent++;
+    
     // some datagrams are dropped
     const float DROP_PROBABILITY = 0.1f;
     if (randFloat() < DROP_PROBABILITY) {
         return;
     }
     _other->_sequencer->receivedDatagram(datagram);
+    datagramsReceived++;
 }
 
 void Endpoint::handleHighPriorityMessage(const QVariant& message) {
@@ -175,4 +207,30 @@ void Endpoint::readMessage(Bitstream& in) {
         }
     }
     throw QString("Received unsent/already sent unreliable message.");
+}
+
+void Endpoint::readReliableChannel() {
+    QByteArray bytes = _sequencer->getReliableInputChannel()->getBuffer().readAll();
+    if (_other->_dataStreamed.size() < bytes.size()) {
+        throw QString("Received unsent/already sent streamed data.");
+    }
+    QByteArray compare = _other->_dataStreamed;
+    _other->_dataStreamed = _other->_dataStreamed.mid(bytes.size());
+    compare.truncate(bytes.size());
+    if (compare != bytes) {
+        throw QString("Sent/received streamed data mismatch.");
+    }
+}
+
+void Endpoint::readLowPriorityReliableChannel() {
+    QByteArray bytes = _sequencer->getReliableInputChannel(1)->getBuffer().readAll();
+    if (_other->_lowPriorityDataStreamed.size() < bytes.size()) {
+        throw QString("Received unsent/already sent low-priority streamed data.");
+    }
+    QByteArray compare = _other->_lowPriorityDataStreamed;
+    _other->_lowPriorityDataStreamed = _other->_lowPriorityDataStreamed.mid(bytes.size());
+    compare.truncate(bytes.size());
+    if (compare != bytes) {
+        throw QString("Sent/received low-priority streamed data mismatch.");
+    }
 }

@@ -195,7 +195,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     for (int i = 0; i < reliableChannels; i++) {
         quint32 channelIndex;
         _incomingPacketStream >> channelIndex;
-        getReliableOutputChannel(channelIndex)->readData(_incomingPacketStream);
+        getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
     }
     
     _incomingPacketStream.device()->seek(0);
@@ -369,7 +369,7 @@ int SpanList::set(int offset, int length) {
 int SpanList::setSpans(QList<Span>::iterator it, int length) {
     int remainingLength = length;
     int totalRemoved = 0;
-    for (; it != _spans.end(); it++) {
+    for (; it != _spans.end(); it = _spans.erase(it)) {
         if (remainingLength < it->unset) {
             it->unset -= remainingLength;
             totalRemoved += remainingLength;
@@ -378,7 +378,6 @@ int SpanList::setSpans(QList<Span>::iterator it, int length) {
         int combined = it->unset + it->set;
         remainingLength = qMax(remainingLength - combined, 0);
         totalRemoved += combined;
-        it = _spans.erase(it);
         _totalSet -= it->set;
     }
     return qMax(length, totalRemoved);
