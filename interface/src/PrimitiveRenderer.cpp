@@ -437,11 +437,15 @@ void PrimitiveRenderer::terminateBookkeeping() {
     while (_deconstructTriElementIndex.remove() != 0)
         ;
 
+    while (_constructPrimitiveIndex.remove() != 0)
+        ;
+
     // Reset the counters
     _vertexElementCount = 1;
     _triElementCount = 1;
     _primitiveCount = 1;
 
+    _cpuMemoryUsage = sizeof(PrimitiveRenderer) + _primitives.size() * sizeof(Primitive *);
 }
 
 void PrimitiveRenderer::constructElements(
