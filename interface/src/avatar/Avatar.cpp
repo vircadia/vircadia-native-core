@@ -276,16 +276,12 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     bool didPenetrate = false;
     glm::vec3 skeletonPenetration;
     ModelCollisionInfo collisionInfo;
-    int jointIndex = _skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, 
-            collisionInfo, 1.0f, skeletonSkipIndex);
-    if (jointIndex != -1) {
+    if (_skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo, 1.0f, skeletonSkipIndex)) {
         collisionInfo._model = &_skeletonModel;
         collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
-    glm::vec3 facePenetration;
-    jointIndex = _head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo);
-    if (jointIndex != -1) {
+    if (_head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo)) {
         collisionInfo._model = &(_head.getFaceModel());
         collisions.push_back(collisionInfo);
         didPenetrate = true; 
@@ -447,18 +443,13 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
-void Avatar::poke(ModelCollisionInfo& collision) {
-    if (collision._model == &_skeletonModel
-        && collision._jointIndex != -1) {
-        // TODO: Andrew to make this work
-        printf("ADEBUG model = 0x%x  joint = %d  p = [%e, %e, %e]\n",
-                collision._model,
-                collision._jointIndex,
-                collision._contactPoint.x,
-                collision._contactPoint.y,
-                collision._contactPoint.z
-                );
+bool Avatar::poke(ModelCollisionInfo& collision) {
+    // ATM poke() can only affect the Skeleton (not the head)
+    // TODO: make poke affect head
+    if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+        return _skeletonModel.poke(collision);
     }
+    return false;
 }
 
 float Avatar::getPelvisFloatingHeight() const {

@@ -164,6 +164,10 @@ public:
     
     void renderCollisionProxies(float alpha);
 
+    /// \param collisionInfo info about the collision
+    /// \return true if collision affects the Model
+    bool poke(ModelCollisionInfo& collisionInfo);
+
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;

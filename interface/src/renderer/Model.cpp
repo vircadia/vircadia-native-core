@@ -552,6 +552,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     glm::vec3 relativePosition = position - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+    if (freeLineage.isEmpty()) {
+        return false;
+    }
     if (lastFreeIndex == -1) {
         lastFreeIndex = freeLineage.last();
     }
@@ -708,6 +711,37 @@ void Model::renderCollisionProxies(float alpha) {
     }
     
     glPopMatrix();
+}
+
+bool Model::poke(ModelCollisionInfo& collision) {
+    // This needs work.  At the moment it can wiggle joints that are free to move (such as arms)
+    // but unmovable joints (such as torso) cannot be influenced at all.
+    glm::vec3 jointPosition(0.f);
+    if (getJointPosition(collision._jointIndex, jointPosition)) {
+        int jointIndex = collision._jointIndex;
+        const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
+        if (joint.parentIndex != -1) {
+            // compute the approximate distance (travel) that the joint needs to move
+            glm::vec3 start;
+            getJointPosition(joint.parentIndex, start);
+            glm::vec3 contactPoint = collision._contactPoint - start;
+            glm::vec3 penetrationEnd = contactPoint + collision._penetration;
+            glm::vec3 axis = glm::cross(contactPoint, penetrationEnd);
+            float travel = glm::length(axis);
+            const float MIN_TRAVEL = 1.0e-8f;
+            if (travel > MIN_TRAVEL) {
+                // compute the new position of the joint
+                float angle = asinf(travel / (glm::length(contactPoint) * glm::length(penetrationEnd)));
+                axis = glm::normalize(axis);
+                glm::vec3 end;
+                getJointPosition(jointIndex, end);
+                glm::vec3 newEnd = start + glm::angleAxis(glm::degrees(angle), axis) * (end - start);
+                // try to move it
+                return setJointPosition(jointIndex, newEnd, -1, true);
+            }
+        }
+    }
+    return false;
 }
 
 void Model::deleteGeometry() {

@@ -224,9 +224,9 @@ void Hand::updateCollisions() {
                 }
                 if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
                     for (size_t j = 0; j < collisions.size(); ++j) {
-                        totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
-                        // TODO: Andrew to poke avatar using collision info
-                        avatar->poke(collisions[j]);
+                        if (!avatar->poke(collisions[j])) {
+                            totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+                        }
                     }
                 }
             }

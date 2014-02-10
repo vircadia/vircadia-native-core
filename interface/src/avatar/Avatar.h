@@ -128,7 +128,9 @@ public:
 
     float getHeight() const;
 
-    void poke(ModelCollisionInfo& collision);
+    /// \param collision a data structure for storing info about collisions against Models
+    /// \return true if the collision affects the Avatar models
+    bool poke(ModelCollisionInfo& collision);
 
 public slots:
     void updateCollisionFlags();
