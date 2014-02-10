@@ -33,6 +33,9 @@ class NetworkProgram;
 /// \return the session ID, or a null ID if invalid (in which case a warning will be logged)
 QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize);
 
+/// Performs the runtime equivalent of Qt's SIGNAL macro, which is to attach a prefix to the signature.
+QByteArray signal(const char* signature);
+
 /// A streamable axis-aligned bounding box.
 class Box {
     STREAMABLE

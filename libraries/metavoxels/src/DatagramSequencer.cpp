@@ -20,7 +20,8 @@ const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
-DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader) :
+DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* parent) :
+    QObject(parent),
     _outgoingPacketStream(&_outgoingPacketData, QIODevice::WriteOnly),
     _outputStream(_outgoingPacketStream),
     _incomingDatagramStream(&_incomingDatagramBuffer),
@@ -174,10 +175,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     }
     
     // read and dispatch the high-priority messages
-    int highPriorityMessageCount;
+    quint32 highPriorityMessageCount;
     _incomingPacketStream >> highPriorityMessageCount;
     int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (int i = 0; i < highPriorityMessageCount; i++) {
+    for (quint32 i = 0; i < highPriorityMessageCount; i++) {
         QVariant data;
         _inputStream >> data;
         if (i >= _receivedHighPriorityMessages) {
@@ -192,10 +193,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     // read the reliable data, if any
     quint32 reliableChannels;
     _incomingPacketStream >> reliableChannels;
-    for (int i = 0; i < reliableChannels; i++) {
+    for (quint32 i = 0; i < reliableChannels; i++) {
         quint32 channelIndex;
         _incomingPacketStream >> channelIndex;
-        getReliableOutputChannel(channelIndex)->readData(_incomingPacketStream);
+        getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
     }
     
     _incomingPacketStream.device()->seek(0);
@@ -311,6 +312,178 @@ void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
     }
 }
 
+const int INITIAL_CIRCULAR_BUFFER_CAPACITY = 16;
+
+CircularBuffer::CircularBuffer(QObject* parent) :
+    QIODevice(parent),
+    _data(INITIAL_CIRCULAR_BUFFER_CAPACITY, 0),
+    _position(0),
+    _size(0),
+    _offset(0) {
+}
+
+void CircularBuffer::append(const char* data, int length) {
+    // resize to fit
+    int oldSize = _size;
+    resize(_size + length);
+    
+    // write our data in up to two segments: one from the position to the end, one from the beginning
+    int end = (_position + oldSize) % _data.size();
+    int firstSegment = qMin(length, _data.size() - end);
+    memcpy(_data.data() + end, data, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        memcpy(_data.data(), data + firstSegment, secondSegment);
+    }
+}
+
+void CircularBuffer::remove(int length) {
+    _position = (_position + length) % _data.size();
+    _size -= length;
+}
+
+QByteArray CircularBuffer::readBytes(int offset, int length) const {
+    // write in up to two segments
+    QByteArray array;
+    int start = (_position + offset) % _data.size();
+    int firstSegment = qMin(length, _data.size() - start);
+    array.append(_data.constData() + start, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        array.append(_data.constData(), secondSegment);
+    }
+    return array;
+}
+
+void CircularBuffer::writeToStream(int offset, int length, QDataStream& out) const {
+    // write in up to two segments
+    int start = (_position + offset) % _data.size();
+    int firstSegment = qMin(length, _data.size() - start);
+    out.writeRawData(_data.constData() + start, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        out.writeRawData(_data.constData(), secondSegment);
+    }
+}
+
+void CircularBuffer::readFromStream(int offset, int length, QDataStream& in) {
+    // resize to fit
+    int requiredSize = offset + length;
+    if (requiredSize > _size) {
+        resize(requiredSize);
+    }
+    
+    // read in up to two segments
+    int start = (_position + offset) % _data.size();
+    int firstSegment = qMin(length, _data.size() - start);
+    in.readRawData(_data.data() + start, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        in.readRawData(_data.data(), secondSegment);
+    }
+}
+
+void CircularBuffer::appendToBuffer(int offset, int length, CircularBuffer& buffer) const {
+    // append in up to two segments
+    int start = (_position + offset) % _data.size();
+    int firstSegment = qMin(length, _data.size() - start);
+    buffer.append(_data.constData() + start, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        buffer.append(_data.constData(), secondSegment);
+    }
+}
+
+bool CircularBuffer::atEnd() const {
+    return _offset >= _size;
+}
+
+qint64 CircularBuffer::bytesAvailable() const {
+    return _size - _offset + QIODevice::bytesAvailable();
+}
+
+bool CircularBuffer::canReadLine() const {
+    for (int offset = _offset; offset < _size; offset++) {
+        if (_data.at((_position + offset) % _data.size()) == '\n') {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CircularBuffer::open(OpenMode flags) {
+    return QIODevice::open(flags | QIODevice::Unbuffered);
+}
+
+qint64 CircularBuffer::pos() const {
+    return _offset;
+}
+
+bool CircularBuffer::seek(qint64 pos) {
+    if (pos < 0 || pos > _size) {
+        return false;
+    }
+    _offset = pos;
+    return true;
+}
+
+qint64 CircularBuffer::size() const {
+    return _size;
+}
+
+qint64 CircularBuffer::readData(char* data, qint64 length) {
+    int readable = qMin((int)length, _size - _offset);
+    
+    // read in up to two segments
+    int start = (_position + _offset) % _data.size();
+    int firstSegment = qMin((int)length, _data.size() - start);
+    memcpy(data, _data.constData() + start, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        memcpy(data + firstSegment, _data.constData(), secondSegment);
+    }
+    _offset += readable;
+    return readable;
+}
+
+qint64 CircularBuffer::writeData(const char* data, qint64 length) {
+    // resize to fit
+    int requiredSize = _offset + length;
+    if (requiredSize > _size) {
+        resize(requiredSize);
+    }
+    
+    // write in up to two segments
+    int start = (_position + _offset) % _data.size();
+    int firstSegment = qMin((int)length, _data.size() - start);
+    memcpy(_data.data() + start, data, firstSegment);
+    int secondSegment = length - firstSegment;
+    if (secondSegment > 0) {
+        memcpy(_data.data(), data + firstSegment, secondSegment);
+    }
+    _offset += length;
+    return length;
+}
+
+void CircularBuffer::resize(int size) {
+    if (size > _data.size()) {
+        // double our capacity until we can fit the desired length
+        int newCapacity = _data.size();
+        do {
+            newCapacity *= 2;
+        } while (size > newCapacity);
+        
+        int oldCapacity = _data.size();
+        _data.resize(newCapacity);
+        
+        int trailing = _position + _size - oldCapacity;
+        if (trailing > 0) {
+            memcpy(_data.data() + oldCapacity, _data.constData(), trailing);
+        }
+    }
+    _size = size;
+}
+
 SpanList::SpanList() : _totalSet(0) {
 }
 
@@ -369,7 +542,7 @@ int SpanList::set(int offset, int length) {
 int SpanList::setSpans(QList<Span>::iterator it, int length) {
     int remainingLength = length;
     int totalRemoved = 0;
-    for (; it != _spans.end(); it++) {
+    for (; it != _spans.end(); it = _spans.erase(it)) {
         if (remainingLength < it->unset) {
             it->unset -= remainingLength;
             totalRemoved += remainingLength;
@@ -378,7 +551,6 @@ int SpanList::setSpans(QList<Span>::iterator it, int length) {
         int combined = it->unset + it->set;
         remainingLength = qMax(remainingLength - combined, 0);
         totalRemoved += combined;
-        it = _spans.erase(it);
         _totalSet -= it->set;
     }
     return qMax(length, totalRemoved);
@@ -424,14 +596,13 @@ void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSeq
                 break;
             }
             spanCount++;
-            
-            remainingBytes -= getBytesToWrite(first, span.unset);
+            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, span.unset));
             position += (span.unset + span.set);
         }
         int leftover = _buffer.pos() - position;
         if (remainingBytes > 0 && leftover > 0) {
             spanCount++;
-            remainingBytes -= getBytesToWrite(first, leftover);
+            remainingBytes -= getBytesToWrite(first, qMin(remainingBytes, leftover));
         }
     }
     
@@ -448,8 +619,9 @@ void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSeq
             remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, span.unset), spans);
             position += (span.unset + span.set);
         }
-        if (remainingBytes > 0 && position < _buffer.pos()) {
-            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, (int)(_buffer.pos() - position)), spans);
+        int leftover = _buffer.pos() - position;
+        if (remainingBytes > 0 && leftover > 0) {
+            remainingBytes -= writeSpan(out, first, position, qMin(remainingBytes, leftover), spans);
         }
     }
 }
@@ -473,16 +645,16 @@ int ReliableChannel::writeSpan(QDataStream& out, bool& first, int position, int 
     spans.append(span);
     out << (quint32)span.offset;
     out << (quint32)length;
-    out.writeRawData(_buffer.data().constData() + position, length);
+    _buffer.writeToStream(position, length, out);
     return length;
 }
 
 void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& span) {
     int advancement = _acknowledged.set(span.offset - _offset, span.length);
     if (advancement > 0) {
-        // TODO: better way of pruning buffer
-        _buffer.buffer() = _buffer.buffer().right(_buffer.size() - advancement);
+        _buffer.remove(advancement);
         _buffer.seek(_buffer.size());
+        
         _offset += advancement;
         _writePosition = qMax(_writePosition - advancement, 0);
     } 
@@ -491,38 +663,40 @@ void ReliableChannel::spanAcknowledged(const DatagramSequencer::ChannelSpan& spa
 void ReliableChannel::readData(QDataStream& in) {
     quint32 segments;
     in >> segments;
-    for (int i = 0; i < segments; i++) {
+    bool readSome = false;
+    for (quint32 i = 0; i < segments; i++) {
         quint32 offset, size;
         in >> offset >> size;
         
         int position = offset - _offset;
         int end = position + size;
-        if (_assemblyBuffer.size() < end) {
-            _assemblyBuffer.resize(end);
-        }
         if (end <= 0) {
             in.skipRawData(size);
+            
         } else if (position < 0) {
             in.skipRawData(-position);
-            in.readRawData(_assemblyBuffer.data(), size + position);
+            _assemblyBuffer.readFromStream(0, end, in);
+            
         } else {
-            in.readRawData(_assemblyBuffer.data() + position, size);
+            _assemblyBuffer.readFromStream(position, size, in);
         }
         int advancement = _acknowledged.set(position, size);
         if (advancement > 0) {
-            // TODO: better way of pruning buffer
-            _buffer.buffer().append(_assemblyBuffer.constData(), advancement);
-            emit _buffer.readyRead();
-            _assemblyBuffer = _assemblyBuffer.right(_assemblyBuffer.size() - advancement);
+            _assemblyBuffer.appendToBuffer(0, advancement, _buffer);
+            _assemblyBuffer.remove(advancement);
             _offset += advancement;
+            readSome = true;
         }
     }
     
-    // when the read head is sufficiently advanced into the buffer, prune it off.  this along
-    // with other buffer usages should be replaced with a circular buffer
-    const int PRUNE_SIZE = 8192;
-    if (_buffer.pos() > PRUNE_SIZE) {
-        _buffer.buffer() = _buffer.buffer().right(_buffer.size() - _buffer.pos());
+    // let listeners know that there's data to read
+    if (readSome) {
+        emit _buffer.readyRead();
+    }
+    
+    // prune any read data from the buffer
+    if (_buffer.pos() > 0) {
+        _buffer.remove((int)_buffer.pos());
         _buffer.seek(0);
     }
 }

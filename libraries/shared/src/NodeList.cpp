@@ -27,7 +27,7 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "alpha.highfidelity.io";
+const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
 NodeList* NodeList::_sharedInstance = NULL;
@@ -59,7 +59,7 @@ NodeList* NodeList::getInstance() {
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
     _nodeHashMutex(QMutex::Recursive),
-    _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
+    _domainHostname(),
     _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(this),
     _ownerType(newOwnerType),
@@ -81,13 +81,10 @@ NodeList::~NodeList() {
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-    // currently this just checks if the version in the packet matches our return from versionForPacketType
-    // may need to be expanded in the future for types and versions that take > than 1 byte
-    
     if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
         && packetTypeForPacket(packet) != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
-        int numPacketTypeBytes = arithmeticCodingValueFromBuffer(packet.data());
+        int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
         qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
@@ -498,7 +495,7 @@ void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
 
     //  Lookup the IP address of the domain server if we need to
-    if (_domainSockAddr.getAddress().isNull()) {
+    if (_domainSockAddr.getAddress().isNull() && !_domainHostname.isEmpty()) {
         qDebug("Looking up DS hostname %s.", _domainHostname.toLocal8Bit().constData());
         QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
 
@@ -527,8 +524,8 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else {
-        // construct the DS check in packet if we need to
+    } else if (!_domainSockAddr.getAddress().isNull()) {
+        // construct the DS check in packet if we can
 
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
         QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
@@ -807,7 +804,8 @@ void NodeList::loadData(QSettings *settings) {
 
     if (domainServerHostname.size() > 0) {
         _domainHostname = domainServerHostname;
-        emit domainChanged(_domainHostname);
+    } else {
+        _domainHostname = DEFAULT_DOMAIN_HOSTNAME;
     }
 
     settings->endGroup();

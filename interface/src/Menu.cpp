@@ -778,11 +778,13 @@ void Menu::editPreferences() {
     QString faceURLString = applicationInstance->getAvatar()->getHead().getFaceModel().getURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
     form->addRow("Face URL:", faceURLEdit);
 
     QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
     QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);

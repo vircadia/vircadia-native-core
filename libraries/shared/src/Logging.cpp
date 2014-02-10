@@ -98,6 +98,9 @@ const char* stringForLogType(QtMsgType msgType) {
 const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
 
 void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (message.isEmpty()) {
+        return;
+    }
     // log prefix is in the following format
     // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
 

@@ -82,6 +82,14 @@ bool AttributeValue::operator==(void* other) const {
     return _attribute && _attribute->equal(_value, other);
 }
 
+bool AttributeValue::operator!=(const AttributeValue& other) const {
+    return _attribute != other._attribute || (_attribute && !_attribute->equal(_value, other._value));
+}
+
+bool AttributeValue::operator!=(void* other) const {
+    return !_attribute || !_attribute->equal(_value, other);
+}
+
 OwnedAttributeValue::OwnedAttributeValue(const AttributePointer& attribute, void* value) :
     AttributeValue(attribute, value) {
 }
