@@ -79,7 +79,7 @@ public:
 
     /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
     /// continuing to update it's orientation to keep looking at the item
-    void stopKeepLookingAt() { _isKeepLookingAt = false; }
+    void stopLooking() { _isKeepLookingAt = false; }
     
 private:
 
@@ -143,7 +143,7 @@ public slots:
 
     /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
     /// continuing to update it's orientation to keep looking at the item
-    void stopKeepLookingAt() { _camera->stopKeepLookingAt();}
+    void stopLooking() { _camera->stopLooking();}
 
     PickRay computePickRay(float x, float y);
 

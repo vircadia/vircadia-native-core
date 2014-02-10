@@ -20,7 +20,7 @@ var oldMode = Camera.getMode();
 function cancelLookAt() {
     if (lookingAtSomething) {
         lookingAtSomething = false;
-        Camera.stopKeepLookingAt();
+        Camera.stopLooking();
         Camera.setMode(oldMode);
         releaseMovementKeys();
     }
