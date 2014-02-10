@@ -12,9 +12,8 @@
 #include <QCoreApplication>
 #include <QVariantList>
 
-#include <Bitstream.h>
+#include <DatagramSequencer.h>
 
-class DatagramSequencer;
 class SequencedTestMessage;
 
 /// Tests various aspects of the metavoxel library.
@@ -59,8 +58,8 @@ private:
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;
-    QByteArray _dataStreamed;
-    QByteArray _lowPriorityDataStreamed;
+    CircularBuffer _dataStreamed;
+    CircularBuffer _lowPriorityDataStreamed;
 };
 
 /// A simple test message.

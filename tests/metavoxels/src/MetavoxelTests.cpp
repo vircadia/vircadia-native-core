@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 
-#include <DatagramSequencer.h>
 #include <SharedUtil.h>
 
 #include "MetavoxelTests.h"
@@ -88,9 +87,9 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     output->setPriority(0.25f);
     const int MIN_LOW_PRIORITY_DATA = 100000;
     const int MAX_LOW_PRIORITY_DATA = 200000;
-    _lowPriorityDataStreamed = createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA);
-    output->getBuffer().write(_lowPriorityDataStreamed);
-    lowPriorityStreamedBytesSent += _lowPriorityDataStreamed.size();
+    _lowPriorityDataStreamed.append(createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA));
+    //output->getBuffer().write(_lowPriorityDataStreamed);
+    //lowPriorityStreamedBytesSent += _lowPriorityDataStreamed.size();
 }
 
 static QVariant createRandomMessage() {
@@ -210,26 +209,26 @@ void Endpoint::readMessage(Bitstream& in) {
 }
 
 void Endpoint::readReliableChannel() {
-    QByteArray bytes = _sequencer->getReliableInputChannel()->getBuffer().readAll();
+    CircularBuffer& buffer = _sequencer->getReliableInputChannel()->getBuffer();
+    QByteArray bytes = buffer.read(buffer.bytesAvailable());
     if (_other->_dataStreamed.size() < bytes.size()) {
         throw QString("Received unsent/already sent streamed data.");
     }
-    QByteArray compare = _other->_dataStreamed;
-    _other->_dataStreamed = _other->_dataStreamed.mid(bytes.size());
-    compare.truncate(bytes.size());
+    QByteArray compare = _other->_dataStreamed.readBytes(0, bytes.size());
+    _other->_dataStreamed.remove(bytes.size());
     if (compare != bytes) {
         throw QString("Sent/received streamed data mismatch.");
     }
 }
 
 void Endpoint::readLowPriorityReliableChannel() {
-    QByteArray bytes = _sequencer->getReliableInputChannel(1)->getBuffer().readAll();
+    CircularBuffer& buffer = _sequencer->getReliableInputChannel(1)->getBuffer();
+    QByteArray bytes = buffer.read(buffer.bytesAvailable());
     if (_other->_lowPriorityDataStreamed.size() < bytes.size()) {
         throw QString("Received unsent/already sent low-priority streamed data.");
     }
-    QByteArray compare = _other->_lowPriorityDataStreamed;
-    _other->_lowPriorityDataStreamed = _other->_lowPriorityDataStreamed.mid(bytes.size());
-    compare.truncate(bytes.size());
+    QByteArray compare = _other->_lowPriorityDataStreamed.readBytes(0, bytes.size());
+    _other->_lowPriorityDataStreamed.remove(bytes.size());
     if (compare != bytes) {
         throw QString("Sent/received low-priority streamed data mismatch.");
     }
