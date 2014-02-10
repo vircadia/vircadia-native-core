@@ -90,7 +90,7 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
     foreach (const Streamable& str, streamables) {
         const QString& name = str.clazz.name;
 
-        out << "Bitstream& operator<< (Bitstream& out, const " << name << "& obj) {\n";
+        out << "Bitstream& operator<<(Bitstream& out, const " << name << "& obj) {\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    out << static_cast<const " << base << "&>(obj);\n";
         }
@@ -100,7 +100,7 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    return out;\n";
         out << "}\n";
 
-        out << "Bitstream& operator>> (Bitstream& in, " << name << "& obj) {\n";
+        out << "Bitstream& operator>>(Bitstream& in, " << name << "& obj) {\n";
         foreach (const QString& base, str.clazz.bases) {
             out << "    in >> static_cast<" << base << "&>(obj);\n";
         }
@@ -110,6 +110,58 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
         out << "    return in;\n";
         out << "}\n";
 
+        out << "bool operator==(const " << name << "& first, const " << name << "& second) {\n";
+        if (str.clazz.bases.isEmpty() && str.fields.isEmpty()) {
+            out << "    return true";   
+        } else {
+            out << "    return ";
+            bool first = true;
+            foreach (const QString& base, str.clazz.bases) {
+                if (!first) {
+                    out << " &&\n";
+                    out << "        ";
+                }
+                out << "static_cast<" << base << "&>(first) == static_cast<" << base << "&>(second)";
+                first = false;
+            }
+            foreach (const QString& field, str.fields) {
+                if (!first) {
+                    out << " &&\n";
+                    out << "        ";
+                }
+                out << "first." << field << " == second." << field;    
+                first = false;
+            }
+        }
+        out << ";\n";
+        out << "}\n";
+
+        out << "bool operator!=(const " << name << "& first, const " << name << "& second) {\n";
+        if (str.clazz.bases.isEmpty() && str.fields.isEmpty()) {
+            out << "    return false";   
+        } else {
+            out << "    return ";
+            bool first = true;
+            foreach (const QString& base, str.clazz.bases) {
+                if (!first) {
+                    out << " ||\n";
+                    out << "        ";
+                }
+                out << "static_cast<" << base << "&>(first) != static_cast<" << base << "&>(second)";
+                first = false;
+            }
+            foreach (const QString& field, str.fields) {
+                if (!first) {
+                    out << " ||\n";
+                    out << "        ";
+                }
+                out << "first." << field << " != second." << field;    
+                first = false;
+            }
+        }
+        out << ";\n";
+        out << "}\n";
+        
         out << "const int " << name << "::Type = registerStreamableMetaType<" << name << ">();\n\n";
     }
 }
