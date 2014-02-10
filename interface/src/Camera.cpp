@@ -246,7 +246,6 @@ void Camera::lookAt(const glm::vec3& lookAt) {
 }
 
 void Camera::keepLookingAt(const glm::vec3& point) {
-    qDebug() << "Camera::keepLookingAt()... point=" << point.x << ", "<< point.y << ", " << point.z;
     lookAt(point);
     _isKeepLookingAt = true;
     _lookingAt = point;
