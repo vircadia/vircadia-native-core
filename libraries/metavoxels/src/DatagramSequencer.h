@@ -32,7 +32,7 @@ public:
         int firstPacketNumber;
     };
     
-    DatagramSequencer(const QByteArray& datagramHeader = QByteArray());
+    DatagramSequencer(const QByteArray& datagramHeader = QByteArray(), QObject* parent = NULL);
     
     /// Returns the packet number of the last packet sent.
     int getOutgoingPacketNumber() const { return _outgoingPacketNumber; }
@@ -58,7 +58,7 @@ public:
     /// Returns the output channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableOutputChannel(int index = 0);
     
-    /// Returns the intput channel at the 
+    /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
     /// Starts a new packet for transmission.
@@ -167,6 +167,56 @@ private:
     QHash<int, ReliableChannel*> _reliableInputChannels;
 };
 
+/// A circular buffer, where one may efficiently append data to the end or remove data from the beginning.
+class CircularBuffer : public QIODevice {
+public:
+
+    CircularBuffer(QObject* parent = NULL);
+
+    /// Appends data to the end of the buffer.
+    void append(const QByteArray& data) { append(data.constData(), data.size()); }
+
+    /// Appends data to the end of the buffer.
+    void append(const char* data, int length);
+
+    /// Removes data from the beginning of the buffer.
+    void remove(int length);
+
+    /// Reads part of the data from the buffer.
+    QByteArray readBytes(int offset, int length) const;
+
+    /// Writes part of the buffer to the supplied stream.
+    void writeToStream(int offset, int length, QDataStream& out) const;
+
+    /// Reads part of the buffer from the supplied stream.
+    void readFromStream(int offset, int length, QDataStream& in);
+
+    /// Appends part of the buffer to the supplied other buffer.
+    void appendToBuffer(int offset, int length, CircularBuffer& buffer) const;
+
+    virtual bool atEnd() const;
+    virtual qint64 bytesAvailable() const;
+    virtual bool canReadLine() const;
+    virtual bool open(OpenMode flags);
+    virtual qint64 pos() const;
+    virtual bool seek(qint64 pos);
+    virtual qint64 size() const;
+    
+protected:
+
+    virtual qint64 readData(char* data, qint64 length);
+    virtual qint64 writeData(const char* data, qint64 length);
+
+private:
+    
+    void resize(int size);
+    
+    QByteArray _data;
+    int _position;
+    int _size;
+    int _offset;
+};
+
 /// A list of contiguous spans, alternating between set and unset.  Conceptually, the list is preceeded by a set
 /// span of infinite length and followed by an unset span of infinite length.  Within those bounds, it alternates
 /// between unset and set.
@@ -208,6 +258,7 @@ public:
 
     int getIndex() const { return _index; }
 
+    CircularBuffer& getBuffer() { return _buffer; }
     QDataStream& getDataStream() { return _dataStream; }
     Bitstream& getBitstream() { return _bitstream; }
 
@@ -237,8 +288,8 @@ private:
     void readData(QDataStream& in);
     
     int _index;
-    QBuffer _buffer;
-    QByteArray _assemblyBuffer;
+    CircularBuffer _buffer;
+    CircularBuffer _assemblyBuffer;
     QDataStream _dataStream;
     Bitstream _bitstream;
     float _priority;
