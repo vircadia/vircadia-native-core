@@ -300,15 +300,11 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/defaultAvatar_head.fbx");
-
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
     
     qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
 }
-
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/defaultAvatar_body.fbx");
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
