@@ -360,8 +360,8 @@ void PrimitiveRenderer::initializeGL() {
     glGenBuffers(1, &_vertexBufferId);
 
     // Set up the element array buffer containing the index ids
-    _maxTriElementCount = _maxCount * _sIndicesPerTri * 2;
-    int size = _maxTriElementCount * sizeof(GLint);
+    _maxTriElementCount = _maxCount * 2;
+    int size = _maxTriElementCount * _sIndicesPerTri * sizeof(GLint);
     _gpuMemoryUsage += size;
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _triBufferId);
@@ -371,7 +371,7 @@ void PrimitiveRenderer::initializeGL() {
     // Set up the array buffer in the form of array of structures
     // I chose AOS because it maximizes the amount of data tranferred
     // by a single glBufferSubData call.
-    _maxVertexElementCount = _maxCount * 4;
+    _maxVertexElementCount = _maxCount * 8;
     size = _maxVertexElementCount * sizeof(VertexElement);
     _gpuMemoryUsage += size;
 
@@ -417,6 +417,7 @@ void PrimitiveRenderer::terminateGL() {
 
 void PrimitiveRenderer::terminateBookkeeping() {
 
+    // Delete all of the primitives
     for (int i = _primitiveCount + 1; --i > 0; ) {
         Primitive* primitive = _primitives[i];
         if (primitive) {
@@ -425,7 +426,8 @@ void PrimitiveRenderer::terminateBookkeeping() {
             delete primitive;
         }
     }
-    // Drain all of the queues, stop updating the counters
+
+    // Drain the queues
     while (_availableVertexElementIndex.remove() != 0)
         ;
 
@@ -435,6 +437,7 @@ void PrimitiveRenderer::terminateBookkeeping() {
     while (_deconstructTriElementIndex.remove() != 0)
         ;
 
+    // Reset the counters
     _vertexElementCount = 1;
     _triElementCount = 1;
     _primitiveCount = 1;
@@ -455,7 +458,10 @@ void PrimitiveRenderer::constructElements(
         for ( ; it != end; ++it ) {
             int index = getAvailableVertexElementIndex();
             if (index != 0) {
+                // Store the vertex element index in the primitive's
+                // vertex element index list
                 vertexElementIndexList.push_back(index);
+
                 VertexElement* vertex = *it;
                 transferVertexElement(index, vertex);
             } else {
@@ -502,11 +508,11 @@ void PrimitiveRenderer::deconstructElements(
     // Schedule the tri elements of the face for deconstruction
     {
         TriElementList& tris = primitive->triElements();
-        TriElementList::iterator it  = tris.begin();
-        TriElementList::iterator end = tris.end();
+        TriElementList::const_iterator it  = tris.begin();
+        TriElementList::const_iterator end = tris.end();
 
         for ( ; it != end; ++it) {
-            TriElement* tri = *it;
+            TriElement const* tri = *it;
 
             // Put the tri element index into decon queue
             _deconstructTriElementIndex.add(tri->id);
@@ -517,8 +523,8 @@ void PrimitiveRenderer::deconstructElements(
     // to zero the data
     {
         VertexElementIndexList& vertexIndexList = primitive->vertexElementIndices();
-        VertexElementIndexList::iterator it  = vertexIndexList.begin();
-        VertexElementIndexList::iterator end = vertexIndexList.end();
+        VertexElementIndexList::const_iterator it  = vertexIndexList.begin();
+        VertexElementIndexList::const_iterator end = vertexIndexList.end();
 
         for ( ; it != end; ++it) {
             int index = *it;
@@ -563,15 +569,15 @@ int PrimitiveRenderer::getAvailableVertexElementIndex() {
 
 int PrimitiveRenderer::getAvailableTriElementIndex() {
 
-    // Check the deconstruct tri element queue first for an available index.
+    // Check the tri elements scheduled for deconstruction queue first to 
+    // intercept and reuse an index without it having to be destroyed
     int index = _deconstructTriElementIndex.remove();
-    // Remember that the tri element 0 is used for degenerate triangles.
     if (index == 0) {
-        // There are no tri elements in the deconstruct tri element queue that are reusable.
-        // Check the available tri element queue.
+        // Nothing available in the deconstruction queue, now
+        // check the available tri element queue for an available index.
         index = _availableTriElementIndex.remove();
         if (index == 0) {
-            // There are no reusable tri elements available from any queue, 
+            // There are no reusable tri elements available from the queue, 
             // grab one from the end of the list
             if (_triElementCount < _maxTriElementCount) {
                 index = _triElementCount++;
