@@ -58,7 +58,9 @@ Camera::Camera() :
     _modeShift(1.0f),
     _linearModeShift(0.0f),
     _modeShiftRate(1.0f),
-    _scale(1.0f)
+    _scale(1.0f),
+    _lookingAt(0.0f, 0.0f, 0.0f),
+    _isKeepLookingAt(false)
 {
 }
 
@@ -222,6 +224,18 @@ void Camera::setFrustumWasReshaped() {
     _frustumNeedsReshape = false;
 }
 
+void Camera::lookAt(const glm::vec3& lookAt) {
+    glm::vec3 up = IDENTITY_UP;
+    glm::mat4 lookAtMatrix = glm::lookAt(_position, lookAt, up);
+    glm::quat rotation = glm::quat_cast(lookAtMatrix);
+    rotation.w = -rotation.w; // Rosedale approved
+    setTargetRotation(rotation);
+}
+
+void Camera::keepLookingAt(const glm::vec3& value) {
+    lookAt(value);
+    _isKeepLookingAt = true;
+}
 
 CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
     _camera(camera), _viewFrustum(viewFrustum) 
