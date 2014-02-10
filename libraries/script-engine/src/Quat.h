@@ -26,6 +26,7 @@ public slots:
     glm::vec3 getFront(const glm::quat& orientation);
     glm::vec3 getRight(const glm::quat& orientation);
     glm::vec3 getUp(const glm::quat& orientation);
+    glm::vec3 safeEulerAngles(const glm::quat& orientation);
 };
 
 

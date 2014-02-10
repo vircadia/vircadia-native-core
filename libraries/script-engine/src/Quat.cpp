@@ -10,6 +10,7 @@
 //
 
 #include <OctreeConstants.h>
+#include <SharedUtil.h>
 #include "Quat.h"
 
 glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
@@ -34,4 +35,8 @@ glm::vec3 Quat::getRight(const glm::quat& orientation) {
 
 glm::vec3 Quat::getUp(const glm::quat& orientation) {
     return orientation * IDENTITY_UP;
+}
+
+glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {
+    return safeEulerAngles(orientation);
 }
