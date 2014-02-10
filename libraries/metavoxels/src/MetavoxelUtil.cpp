@@ -141,6 +141,12 @@ QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode
     return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
 }
 
+QByteArray signal(const char* signature) {
+    static QByteArray prototype = SIGNAL(dummyMethod());
+    QByteArray signal = prototype;
+    return signal.replace("dummyMethod()", signature);
+}
+
 bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
@@ -322,8 +328,7 @@ void ParameterizedURLEditor::continueUpdatingParameters() {
             QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
             widgetProperty.write(widget, _url.getParameters().value(parameter.name));
             if (widgetProperty.hasNotifySignal()) {
-                connect(widget, QByteArray(SIGNAL()).append(widgetProperty.notifySignal().methodSignature()),
-                    SLOT(updateURL()));
+                connect(widget, signal(widgetProperty.notifySignal().methodSignature()), SLOT(updateURL()));
             }
         }
     }

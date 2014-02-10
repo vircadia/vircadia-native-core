@@ -175,10 +175,10 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     }
     
     // read and dispatch the high-priority messages
-    int highPriorityMessageCount;
+    quint32 highPriorityMessageCount;
     _incomingPacketStream >> highPriorityMessageCount;
     int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (int i = 0; i < highPriorityMessageCount; i++) {
+    for (quint32 i = 0; i < highPriorityMessageCount; i++) {
         QVariant data;
         _inputStream >> data;
         if (i >= _receivedHighPriorityMessages) {
@@ -193,7 +193,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     // read the reliable data, if any
     quint32 reliableChannels;
     _incomingPacketStream >> reliableChannels;
-    for (int i = 0; i < reliableChannels; i++) {
+    for (quint32 i = 0; i < reliableChannels; i++) {
         quint32 channelIndex;
         _incomingPacketStream >> channelIndex;
         getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
@@ -664,7 +664,7 @@ void ReliableChannel::readData(QDataStream& in) {
     quint32 segments;
     in >> segments;
     bool readSome = false;
-    for (int i = 0; i < segments; i++) {
+    for (quint32 i = 0; i < segments; i++) {
         quint32 offset, size;
         in >> offset >> size;
         
