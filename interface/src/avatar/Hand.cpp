@@ -219,16 +219,15 @@ void Hand::updateCollisions() {
                                     // add slapback here
                                 }
                             }
-                            
-                            
                         }
                     }
                 }
                 if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
                     for (size_t j = 0; j < collisions.size(); ++j) {
                         totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+                        // TODO: Andrew to poke avatar using collision info
+                        avatar->poke(collisions[i]);
                     }
-                    //  Check for collisions with the other avatar's leap palms
                 }
             }
         }

@@ -126,6 +126,8 @@ public:
 
     float getHeight() const;
 
+    void poke(ModelCollisionInfo& collision);
+
 public slots:
     void updateCollisionFlags();
 

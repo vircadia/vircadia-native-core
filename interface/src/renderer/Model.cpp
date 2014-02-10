@@ -474,10 +474,10 @@ bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetra
         outerContinue: ;
     }
     if (jointIndex != -1) {
-        // TODO? Andrew to store contactPoint 
         // don't store collisionInfo._model at this stage, let the outer context do that
         collisionInfo._penetration = totalPenetration;
         collisionInfo._jointIndex = jointIndex;
+        collisionInfo._contactPoint = penetratorCenter + penetratorRadius * glm::normalize(totalPenetration);
         return true;
     }
     return false;

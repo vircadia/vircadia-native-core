@@ -437,6 +437,20 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
+void Avatar::poke(ModelCollisionInfo& collision) {
+    if (collision._model == &_skeletonModel
+        && collision._jointIndex != -1) {
+        // TODO: Andrew to make this work
+        printf("ADEBUG model = 0x%x  joint = %d  p = [%e, %e, %e]\n",
+                collision._model,
+                collision._jointIndex,
+                collision._contactPoint.x,
+                collision._contactPoint.y,
+                collision._contactPoint.z
+                );
+    }
+}
+
 float Avatar::getPelvisFloatingHeight() const {
     return -_skeletonModel.getBindExtents().minimum.y;
 }
