@@ -5,7 +5,7 @@
 //  Created by Stephen Birarda on 1/23/2014.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-
+#include <string>
 #include <PerfStat.h>
 #include <UUID.h>
 #include <glm/gtx/string_cast.hpp>
@@ -79,7 +79,7 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     // Josecpujol(begin): test code, as I dont seem to get any avatar. Render some text here
     // -------------------------------------------------------------------------------------
     glm::dvec3 textPosition(100.0, 50.0, 100.0);
-    char text[] = "my string";
+    std::string text("my string");
 
     // Draw a fake avatar
     glPushMatrix();
@@ -143,12 +143,16 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
 
         glScalef(scaleFactor, scaleFactor, 1.0);
 
-        glColor3f(1.0, 1.0, 0.0);
-
+        glColor3f(0.93, 0.93, 0.93);
+        
         // TextRenderer, based on QT opengl text rendering functions
-        TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::NO_EFFECT);
-        renderer->draw(0,0, text);   
-        delete renderer;
+        TextRenderer* textRenderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::NO_EFFECT);
+        int width = 0;
+        for (std::string::iterator it = text.begin(); it != text.end(); it++) {
+            width += (textRenderer->computeWidth(*it));
+        }
+        textRenderer->draw(-width/2.0, 0, text.c_str());   
+        delete textRenderer;
     }
    
     glPopMatrix();
