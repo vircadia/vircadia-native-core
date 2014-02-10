@@ -464,6 +464,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
+                                           0,
+                                           true,
+                                           appInstance->getAudio(),
+                                           SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,

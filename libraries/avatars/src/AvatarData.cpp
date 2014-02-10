@@ -107,7 +107,6 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
     // Instantaneous audio loudness (used to drive facial animation)
-    //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float);
 
@@ -215,7 +214,6 @@ int AvatarData::parseData(const QByteArray& packet) {
     sourceBuffer += sizeof(_headData->_lookAtPosition);
     
     // Instantaneous audio loudness (used to drive facial animation)
-    //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
     
