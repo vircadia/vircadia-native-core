@@ -18,7 +18,6 @@ using namespace std;
 
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
-    yawRate(0.0f),
     _returnHeadToCenter(false),
     _position(0.0f, 0.0f, 0.0f),
     _rotation(0.0f, 0.0f, 0.0f),
@@ -37,6 +36,9 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
+    _tweakedPitch(0.f),
+    _tweakedYaw(0.f),
+    _tweakedRoll(0.f),
     _isCameraMoving(false),
     _faceModel(this)
 {
@@ -186,9 +188,14 @@ glm::quat Head::getOrientation() const {
     return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
 }
 
+glm::quat Head::getTweakedOrientation() const {
+    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+}
+
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation();
+    return owningAvatar->getWorldAlignedOrientation()
+            * glm::quat(glm::radians(glm::vec3(_pitch, 0.f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
@@ -198,6 +205,18 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
 
 glm::vec3 Head::getScalePivot() const {
     return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
+}
+
+float Head::getTweakedYaw() const {
+    return glm::clamp(_yaw + _tweakedYaw, MIN_HEAD_YAW, MAX_HEAD_YAW);
+}
+
+float Head::getTweakedPitch() const {
+    return glm::clamp(_pitch + _tweakedPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH);
+}
+
+float Head::getTweakedRoll() const {
+    return glm::clamp(_roll + _tweakedRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {

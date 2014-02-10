@@ -52,6 +52,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
     _publicSocket(publicSocket),
     _localSocket(localSocket),
     _activeSocket(NULL),
+    _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),

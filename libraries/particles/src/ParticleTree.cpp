@@ -90,7 +90,7 @@ bool ParticleTree::findAndUpdateOperation(OctreeElement* element, void* extraDat
     return true;
 }
 
-void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
+void ParticleTree::storeParticle(const Particle& particle, const SharedNodePointer& senderNode) {
     // First, look for the existing particle in the tree..
     FindAndUpdateParticleArgs args = { particle, false };
     recurseTreeWithOperation(findAndUpdateOperation, &args);
@@ -101,7 +101,7 @@ void ParticleTree::storeParticle(const Particle& particle, Node* senderNode) {
         float size = std::max(MINIMUM_PARTICLE_ELEMENT_SIZE, particle.getRadius());
         ParticleTreeElement* element = (ParticleTreeElement*)getOrCreateChildElementAt(position.x, position.y, position.z, size);
 
-        element->storeParticle(particle, senderNode);
+        element->storeParticle(particle);
     }
     // what else do we need to do here to get reaveraging to work
     _isDirty = true;
@@ -386,7 +386,7 @@ const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) 
 
 
 int ParticleTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, Node* senderNode) {
+                    const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
@@ -415,7 +415,7 @@ int ParticleTree::processEditPacketData(PacketType packetType, const unsigned ch
     return processedBytes;
 }
 
-void ParticleTree::notifyNewlyCreatedParticle(const Particle& newParticle, Node* senderNode) {
+void ParticleTree::notifyNewlyCreatedParticle(const Particle& newParticle, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
     for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
         _newlyCreatedHooks[i]->particleCreated(newParticle, senderNode);
@@ -596,8 +596,7 @@ void ParticleTree::forgetParticlesDeletedBefore(quint64 sinceTime) {
 }
 
 
-void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr,
-        Node* sourceNode) {
+void ParticleTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
 
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;

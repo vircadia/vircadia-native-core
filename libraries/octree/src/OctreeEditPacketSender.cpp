@@ -60,19 +60,17 @@ bool OctreeEditPacketSender::serversExist() const {
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getType() == getMyNodeType()) {
-            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
-                QUuid nodeUUID = node->getUUID();
-                // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
-                if (_serverJurisdictions) {
-                    // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
-                    // missing at least one jurisdiction
-                    if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
-                        atLeastOnJurisdictionMissing = true;
-                    }
+        if (node->getType() == getMyNodeType() &&  node->getActiveSocket()) {
+            QUuid nodeUUID = node->getUUID();
+            // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
+            if (_serverJurisdictions) {
+                // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
+                // missing at least one jurisdiction
+                if ((*_serverJurisdictions).find(nodeUUID) == (*_serverJurisdictions).end()) {
+                    atLeastOnJurisdictionMissing = true;
                 }
-                hasServers = true;
             }
+            hasServers = true;
         }
         if (atLeastOnJurisdictionMissing) {
             break; // no point in looking further...
@@ -91,9 +89,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
-                const HifiSockAddr* nodeAddress = node->getActiveSocket();
-                queuePacketForSending(*nodeAddress, QByteArray(reinterpret_cast<char*>(buffer), length));
+            if (node->getActiveSocket()) {
+                queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(buffer), length));
 
                 // debugging output...
                 bool wantDebugging = false;

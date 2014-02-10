@@ -107,7 +107,6 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
     // Instantaneous audio loudness (used to drive facial animation)
-    //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float);
 
@@ -215,7 +214,6 @@ int AvatarData::parseData(const QByteArray& packet) {
     sourceBuffer += sizeof(_headData->_lookAtPosition);
     
     // Instantaneous audio loudness (used to drive facial animation)
-    //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
     
@@ -268,6 +266,48 @@ int AvatarData::parseData(const QByteArray& packet) {
     }
     
     return sourceBuffer - startPosition;
+}
+
+bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    QUuid avatarUUID;
+    QUrl faceModelURL, skeletonModelURL;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
+    
+    bool hasIdentityChanged = false;
+    
+    if (faceModelURL != _faceModelURL) {
+        setFaceModelURL(faceModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    if (skeletonModelURL != _skeletonModelURL) {
+        setSkeletonModelURL(skeletonModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    return hasIdentityChanged;
+}
+
+QByteArray AvatarData::identityByteArray() {
+    QByteArray identityData;
+    QDataStream identityStream(&identityData, QIODevice::Append);
+    
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
+    
+    return identityData;
+}
+
+void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
+    qDebug() << "Changing face model for avatar to" << faceModelURL.toString();
+    _faceModelURL = faceModelURL;
+}
+
+void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    qDebug() << "Changing skeleton model for avatar to" << skeletonModelURL.toString();
+    _skeletonModelURL = skeletonModelURL;
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {

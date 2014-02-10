@@ -41,15 +41,27 @@ void MetavoxelServer::run() {
     _sendTimer.start(SEND_INTERVAL);
 }
 
-void MetavoxelServer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    switch (dataByteArray.at(0)) {
-        case PacketTypeMetavoxelData:
-            processData(dataByteArray, senderSockAddr);
-            break;
-        
-        default:
-            NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
-            break;
+void MetavoxelServer::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            switch (packetTypeForPacket(receivedPacket)) {
+                case PacketTypeMetavoxelData: {
+                    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+                    if (matchingNode) {
+                        processData(receivedPacket, matchingNode);
+                    }
+                    break;
+                }
+                default:
+                    NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                    break;
+            }
+        }
     }
 }
 
@@ -67,10 +79,10 @@ void MetavoxelServer::sendDeltas() {
     _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
 }
 
-void MetavoxelServer::processData(const QByteArray& data, const HifiSockAddr& sender) {
+void MetavoxelServer::processData(const QByteArray& data, const SharedNodePointer& sendingNode) {
     // read the session id
     int headerPlusIDSize;
-    QUuid sessionID = readSessionID(data, sender, headerPlusIDSize);
+    QUuid sessionID = readSessionID(data, sendingNode, headerPlusIDSize);
     if (sessionID.isNull()) {
         return;
     }
@@ -78,18 +90,19 @@ void MetavoxelServer::processData(const QByteArray& data, const HifiSockAddr& se
     // forward to session, creating if necessary
     MetavoxelSession*& session = _sessions[sessionID];
     if (!session) {
-        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize), sender);
+        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize),
+                                       sendingNode);
     }
-    session->receivedData(data, sender);
+    session->receivedData(data, sendingNode);
 }
 
 MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
-        const QByteArray& datagramHeader, const HifiSockAddr& sender) :
+        const QByteArray& datagramHeader, const SharedNodePointer& sendingNode) :
     QObject(server),
     _server(server),
     _sessionId(sessionId),
     _sequencer(datagramHeader),
-    _sender(sender) {
+    _sendingNode(sendingNode) {
     
     const int TIMEOUT_INTERVAL = 30 * 1000;
     _timeoutTimer.setInterval(TIMEOUT_INTERVAL);
@@ -105,15 +118,15 @@ MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& session
     SendRecord record = { 0 };
     _sendRecords.append(record);
     
-    qDebug() << "Opened session [sessionId=" << _sessionId << ", sender=" << _sender << "]";
+    qDebug() << "Opened session [sessionId=" << _sessionId << ", sendingNode=" << sendingNode << "]";
 }
 
-void MetavoxelSession::receivedData(const QByteArray& data, const HifiSockAddr& sender) {
+void MetavoxelSession::receivedData(const QByteArray& data, const SharedNodePointer& sendingNode) {
     // reset the timeout timer
     _timeoutTimer.start();
 
     // save the most recent sender
-    _sender = sender;
+    _sendingNode = sendingNode;
     
     // process through sequencer
     _sequencer.receivedDatagram(data);
@@ -131,12 +144,12 @@ void MetavoxelSession::sendDelta() {
 }
 
 void MetavoxelSession::timedOut() {
-    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sender=" << _sender << "]";
+    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sendingNode=" << _sendingNode << "]";
     _server->removeSession(_sessionId);
 }
 
 void MetavoxelSession::sendData(const QByteArray& data) {
-    NodeList::getInstance()->getNodeSocket().writeDatagram(data, _sender.getAddress(), _sender.getPort());
+    NodeList::getInstance()->writeDatagram(data, _sendingNode);
 }
 
 void MetavoxelSession::readPacket(Bitstream& in) {
@@ -152,7 +165,7 @@ void MetavoxelSession::clearSendRecordsBefore(int index) {
 void MetavoxelSession::handleMessage(const QVariant& message) {
     int userType = message.userType();
     if (userType == CloseSessionMessage::Type) {
-        qDebug() << "Session closed [sessionId=" << _sessionId << ", sender=" << _sender << "]";
+        qDebug() << "Session closed [sessionId=" << _sessionId << ", sendingNode=" << _sendingNode << "]";
         _server->removeSession(_sessionId);
     
     } else if (userType == ClientStateMessage::Type) {

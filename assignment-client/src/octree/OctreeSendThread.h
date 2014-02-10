@@ -36,8 +36,8 @@ private:
     QUuid _nodeUUID;
     OctreeServer* _myServer;
 
-    int handlePacketSend(Node* node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(Node* node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(const SharedNodePointer& node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
 };

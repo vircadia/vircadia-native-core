@@ -106,7 +106,7 @@ static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator()
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
-QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize) {
+QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize) {
     // get the header size
     int headerSize = numBytesForPacketHeader(data);
     
@@ -114,7 +114,7 @@ QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& hea
     const int UUID_BYTES = 16;
     headerPlusIDSize = headerSize + UUID_BYTES;
     if (data.size() < headerPlusIDSize) {
-        qWarning() << "Metavoxel data too short [size=" << data.size() << ", sender=" << sender << "]\n";
+        qWarning() << "Metavoxel data too short [size=" << data.size() << ", sendingNode=" << sendingNode << "]\n";
         return QUuid();
     }
     return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));

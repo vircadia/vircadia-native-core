@@ -43,8 +43,8 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun();
-    virtual bool hasSpecialPacketToSend(Node* node);
-    virtual int sendSpecialPacket(Node* node);
+    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
+    virtual int sendSpecialPacket(const SharedNodePointer& node);
 
 
 private:

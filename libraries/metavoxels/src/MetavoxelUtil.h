@@ -15,6 +15,7 @@
 #include <QUuid>
 #include <QWidget>
 
+#include <NodeList.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Bitstream.h"
@@ -30,7 +31,7 @@ class NetworkProgram;
 /// Reads and returns the session ID from a datagram.
 /// \param[out] headerPlusIDSize the size of the header (including the session ID) within the data
 /// \return the session ID, or a null ID if invalid (in which case a warning will be logged)
-QUuid readSessionID(const QByteArray& data, const HifiSockAddr& sender, int& headerPlusIDSize);
+QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize);
 
 /// A streamable axis-aligned bounding box.
 class Box {

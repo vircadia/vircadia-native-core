@@ -10,10 +10,13 @@
 
 #include <QtDebug>
 
+#include <SharedUtil.h>
+
 #include "DatagramSequencer.h"
 #include "MetavoxelMessages.h"
 
-const int MAX_DATAGRAM_SIZE = 1500;
+// in sequencer parlance, a "packet" may consist of multiple datagrams.  clarify when we refer to actual datagrams
+const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
@@ -515,7 +518,8 @@ void ReliableChannel::readData(QDataStream& in) {
         }
     }
     
-    // TODO: better way of pruning buffer?
+    // when the read head is sufficiently advanced into the buffer, prune it off.  this along
+    // with other buffer usages should be replaced with a circular buffer
     const int PRUNE_SIZE = 8192;
     if (_buffer.pos() > PRUNE_SIZE) {
         _buffer.buffer() = _buffer.buffer().right(_buffer.size() - _buffer.pos());

@@ -30,7 +30,9 @@ public:
     void exit(int retCode = 0);
     
 public slots:
-    /// Called by NodeList to inform us that a node has been killed.
+    /// Called by NodeList to inform us a node has been added
+    void nodeAdded(SharedNodePointer node);
+    /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
 private:
@@ -45,6 +47,9 @@ private:
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
+    
+    QJsonObject jsonForSocket(const HifiSockAddr& socket);
+    QJsonObject jsonObjectForNode(const SharedNodePointer& node);
     
     HTTPManager _HTTPManager;
     
