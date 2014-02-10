@@ -33,7 +33,6 @@ Hand::Hand(Avatar* owningAvatar) :
     _collisionCenter(0,0,0),
     _collisionAge(0),
     _collisionDuration(0),
-    _pitchUpdate(0),
     _grabDelta(0, 0, 0),
     _grabDeltaVelocity(0, 0, 0),
     _grabStartRotation(0, 0, 0, 1),

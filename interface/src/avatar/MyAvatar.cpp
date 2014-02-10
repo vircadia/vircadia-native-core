@@ -323,6 +323,7 @@ void MyAvatar::simulate(float deltaTime) {
 
     updateChatCircle(deltaTime);
 
+    // TODO: this should be removed and turned into JS instead
     //  Get any position, velocity, or rotation update from Grab Drag controller
     glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
     if (glm::length(moveFromGrab) > EPSILON) {
@@ -796,39 +797,6 @@ void MyAvatar::updateThrust(float deltaTime) {
             deltaTime *
             up;
         }
-    }
-    //  Add thrust and rotation from hand controllers
-    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD;
-    const float JOYSTICK_YAW_MAG = YAW_MAG;
-    const float JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5f;
-    const int THRUST_CONTROLLER = 0;
-    const int VIEW_CONTROLLER = 1;
-    for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-        PalmData& palm = getHand().getPalms()[i];
-
-        // If the script hasn't captured this joystick, then let the default behavior work
-        if (!Application::getInstance()->getControllerScriptingInterface()->isJoystickCaptured(palm.getSixenseID())) {
-            if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
-                if (palm.getJoystickY() != 0.f) {
-                    FingerData& finger = palm.getFingers()[0];
-                    if (finger.isActive()) {
-                    }
-                    _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
-                }
-                if (palm.getJoystickX() != 0.f) {
-                    _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
-                }
-            } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
-                if (palm.getJoystickX() != 0.f) {
-                    _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
-                }
-                if (palm.getJoystickY() != 0.f) {
-                    getHand().setPitchUpdate(getHand().getPitchUpdate() +
-                                             (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
-                }
-            }
-        }
-
     }
 
     //  Update speed brake status

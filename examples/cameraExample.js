@@ -69,6 +69,13 @@ function checkCamera() {
         var viewJoystickPosition = Controller.getJoystickPosition(VIEW_CONTROLLER);
         yaw -= viewJoystickPosition.x * JOYSTICK_YAW_MAG * deltaTime;
         pitch += viewJoystickPosition.y * JOYSTICK_PITCH_MAG * deltaTime;
+        if (yaw > 360) {
+            yaw -= 360;
+        }
+        if (yaw < -360) {
+            yaw += 360;
+        }
+        print("pitch="+ pitch + " yaw="+ yaw + " roll=" + roll);
         var orientation = Quat.fromPitchYawRoll(pitch, yaw, roll);
         Camera.setOrientation(orientation);
     }

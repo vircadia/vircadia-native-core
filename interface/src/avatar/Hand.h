@@ -58,10 +58,6 @@ public:
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
     
-    // Pitch from controller input to view
-    const float getPitchUpdate() const { return _pitchUpdate; }
-    void setPitchUpdate(float pitchUpdate) { _pitchUpdate = pitchUpdate; }
-    
     // Get the drag distance to move
     glm::vec3 getAndResetGrabDelta();
     glm::vec3 getAndResetGrabDeltaVelocity();
@@ -100,8 +96,6 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
-    
-    float _pitchUpdate;
     
     glm::vec3 _grabDelta;
     glm::vec3 _grabDeltaVelocity;
