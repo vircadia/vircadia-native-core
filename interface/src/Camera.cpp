@@ -96,8 +96,12 @@ void Camera::updateFollowMode(float deltaTime) {
         t = 1.0;
     }
     
-    // Update position and rotation, setting directly if tightness is 0.0
+    // handle keepLookingAt
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
     
+    // Update position and rotation, setting directly if tightness is 0.0
     if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
         _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
@@ -157,6 +161,15 @@ void Camera::setMode(CameraMode m) {
     }
 }
 
+void Camera::setTargetPosition(const glm::vec3& t) { 
+    _targetPosition = t; 
+
+    // handle keepLookingAt
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
+    
+}
 
 void Camera::setTargetRotation( const glm::quat& targetRotation ) {
     _targetRotation = targetRotation;
@@ -226,15 +239,17 @@ void Camera::setFrustumWasReshaped() {
 
 void Camera::lookAt(const glm::vec3& lookAt) {
     glm::vec3 up = IDENTITY_UP;
-    glm::mat4 lookAtMatrix = glm::lookAt(_position, lookAt, up);
+    glm::mat4 lookAtMatrix = glm::lookAt(_targetPosition, lookAt, up);
     glm::quat rotation = glm::quat_cast(lookAtMatrix);
     rotation.w = -rotation.w; // Rosedale approved
     setTargetRotation(rotation);
 }
 
-void Camera::keepLookingAt(const glm::vec3& value) {
-    lookAt(value);
+void Camera::keepLookingAt(const glm::vec3& point) {
+    qDebug() << "Camera::keepLookingAt()... point=" << point.x << ", "<< point.y << ", " << point.z;
+    lookAt(point);
     _isKeepLookingAt = true;
+    _lookingAt = point;
 }
 
 CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :

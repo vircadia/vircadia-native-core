@@ -5,45 +5,118 @@
 //  Created by Brad Hefta-Gaub on 2/6/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
-//  This is an example script that demonstrates use of the Camera class
+//  This is an example script that demonstrates use of the Camera class's lookAt(), keepLookingAt(), and stopLookingAt()
+//  features.
+//
+//  To use the script, click on a voxel, and the camera will switch into independent mode and fix it's lookAt on the point
+//  on the face of the voxel that you clicked. Click again and it will stop looking at that point. While in this fixed mode
+//  you can use the arrow keys to change the position of the camera.
 //
 //
 
+var lookingAtSomething = false;
 var oldMode = Camera.getMode();
-function mousePressEvent(event) {
-    print("mousePressEvent event.x,y=" + event.x + ", " + event.y);
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    print("called Camera.computePickRay()");
-    print("computePickRay origin=" + pickRay.origin.x + ", " + pickRay.origin.y + ", " + pickRay.origin.z);
-    print("computePickRay direction=" + pickRay.direction.x + ", " + pickRay.direction.y + ", " + pickRay.direction.z);
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var intersection = Voxels.findRayIntersection(pickRay);
-    if (intersection.intersects) {
-        print("intersection voxel.red/green/blue=" + intersection.voxel.red + ", " 
-                    + intersection.voxel.green + ", " + intersection.voxel.blue);
-        print("intersection voxel.x/y/z/s=" + intersection.voxel.x + ", " 
-                    + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
-        print("intersection face=" + intersection.face);
-        print("intersection distance=" + intersection.distance);
-        print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
-                    + intersection.intersection.y + ", " + intersection.intersection.z);
-                    
-        print("looking at intersection point");
-        oldMode = Camera.getMode();
-        Camera.setMode("independent");
-        //Camera.lookAt({x:0, y:0, z:0} );
-        Camera.lookAt(intersection.intersection);
+
+function cancelLookAt() {
+    if (lookingAtSomething) {
+        lookingAtSomething = false;
+        Camera.stopKeepLookingAt();
+        Camera.setMode(oldMode);
+        releaseMovementKeys();
     }
 }
 
-function mouseReleaseEvent(event) {
-    Camera.setMode(oldMode);
+function captureMovementKeys() {
+    Controller.captureKeyEvents({ text: "up" }); // Z-
+    Controller.captureKeyEvents({ text: "down" }); // Z+
+    Controller.captureKeyEvents({ text: "UP" }); // Y+ 
+    Controller.captureKeyEvents({ text: "DOWN" }); // Y-
+    Controller.captureKeyEvents({ text: "left" }); // X+
+    Controller.captureKeyEvents({ text: "right" }); // X-
 }
 
+function releaseMovementKeys() {
+    Controller.releaseKeyEvents({ text: "up" }); // Z-
+    Controller.releaseKeyEvents({ text: "down" }); // Z+
+    Controller.releaseKeyEvents({ text: "UP" }); // Y+ 
+    Controller.releaseKeyEvents({ text: "DOWN" }); // Y-
+    Controller.releaseKeyEvents({ text: "left" }); // X+
+    Controller.releaseKeyEvents({ text: "right" }); // X-
+}
+
+var cameraPosition = Camera.getPosition();
+function moveCamera() {
+    if (lookingAtSomething) {
+        Camera.setPosition(cameraPosition);
+    }
+}
+
+Script.willSendVisualDataCallback.connect(moveCamera);
+
+
+function mousePressEvent(event) {
+    if (lookingAtSomething) {
+        cancelLookAt();
+    } else {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var intersection = Voxels.findRayIntersection(pickRay);
+        if (intersection.intersects) {
+        
+            // remember the old mode we were in
+            oldMode = Camera.getMode();
+
+            print("looking at intersection point: " + intersection.intersection.x + ", " 
+                        + intersection.intersection.y + ", " + intersection.intersection.z);
+
+            // switch to independent mode
+            Camera.setMode("independent");
+
+            // tell the camera to fix it's look at on the point we clicked
+            Camera.keepLookingAt(intersection.intersection);
+
+            // keep track of the fact that we're in this looking at mode
+            lookingAtSomething = true;
+            
+            captureMovementKeys();
+            cameraPosition = Camera.getPosition();
+        }
+    }
+}
 Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+
+function keyPressEvent(event) {
+    if (lookingAtSomething) {
+
+        if (event.text == "ESC") {
+            cancelLookAt();
+        }
+
+        var MOVE_DELTA = 0.5;
+
+        if (event.text == "UP" && !event.isShifted) {
+            cameraPosition.z -= MOVE_DELTA;
+        }
+        if (event.text == "DOWN" && !event.isShifted) {
+            cameraPosition.z += MOVE_DELTA;
+        }
+        if (event.text == "LEFT" && !event.isShifted) {
+            cameraPosition.x += MOVE_DELTA;
+        }
+        if (event.text == "RIGHT" && !event.isShifted) {
+            cameraPosition.x -= MOVE_DELTA;
+        }
+        if (event.text == "UP" && event.isShifted) {
+            cameraPosition.y += MOVE_DELTA;
+        }
+        if (event.text == "DOWN" && event.isShifted) {
+            cameraPosition.y -= MOVE_DELTA;
+        }
+    }
+}
+Controller.keyPressEvent.connect(keyPressEvent);
 
 function scriptEnding() {
+    cancelLookAt();
 }
 Script.scriptEnding.connect(scriptEnding);
 

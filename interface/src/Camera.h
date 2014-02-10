@@ -38,7 +38,7 @@ public:
     void setUpShift(float u) { _upShift = u; }
     void setDistance(float d) { _distance = d; }
     void setPosition(const glm::vec3& p) { _position = p; }
-    void setTargetPosition(const glm::vec3& t) { _targetPosition = t; }
+    void setTargetPosition(const glm::vec3& t);
     void setTightness(float t) { _tightness = t; }
     void setTargetRotation(const glm::quat& rotation);
     
