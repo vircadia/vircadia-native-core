@@ -1052,6 +1052,9 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 setPosition(_position - 0.5f * penetration);
                 glm::vec3 pushOut = 0.5f * penetration;
             }
+
+            // collide their hands against our movable limbs
+            
         }
     }
 }
