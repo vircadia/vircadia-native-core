@@ -209,21 +209,26 @@ void MyAvatar::simulate(float deltaTime) {
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
 
-    // Only collide if we are not moving to a target
-    if (_isCollisionsOn && (glm::length(_moveTarget) < EPSILON)) {
-
+    if (_collisionFlags != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
+        float radius = getHeight() * COLLISION_RADIUS_SCALE;
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-            _collisionRadius *= COLLISION_RADIUS_SCALAR;
-        } else {
-            _collisionRadius = getHeight() * COLLISION_RADIUS_SCALE;
+            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            radius *= COLLISION_RADIUS_SCALAR;
         }
 
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            updateCollisionWithEnvironment(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            updateCollisionWithVoxels(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            // Note, hand-vs-avatar collisions are done elsewhere
+            // This is where we avatar-vs-avatar bounding capsule
+            updateCollisionWithAvatars(deltaTime);
+        }
     }
 
     // add thrust to velocity
@@ -476,7 +481,12 @@ void MyAvatar::renderDebugBodyPoints() {
 void MyAvatar::render(bool forceRenderHead) {
 
     // render body
-    renderBody(forceRenderHead);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        _skeletonModel.renderCollisionProxies(1.f);
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        renderBody(forceRenderHead);
+    }
 
     //renderDebugBodyPoints();
 
@@ -878,10 +888,9 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
+void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
-    float radius = _collisionRadius;
-    const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
+    const float ENVIRONMENT_SURFACE_ELASTICITY = 0.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
@@ -896,8 +905,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
 }
 
 
-void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
-    float radius = _collisionRadius;
+void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_ELASTICITY = 0.4f;
     const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
@@ -917,8 +925,8 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     //  Update the avatar in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
-    //  if elasticity = 1.0, collision is inelastic.
-    //  if elasticity > 1.0, collision is elastic.
+    //  if elasticity = 0.0, collision is 100% inelastic.
+    //  if elasticity = 1.0, collision is elastic.
     //
     _position -= penetration;
     static float HALTING_VELOCITY = 0.2f;
@@ -927,7 +935,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     if (penetrationLength > EPSILON) {
         _elapsedTimeSinceCollision = 0.0f;
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= glm::dot(_velocity, direction) * direction * elasticity;
+        _velocity -= glm::dot(_velocity, direction) * direction * (1.f + elasticity);
         _velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if ((glm::length(_velocity) < HALTING_VELOCITY) && (glm::length(_thrust) == 0.f)) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
@@ -966,11 +974,34 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
     }
 }
 
-void MyAvatar::updateAvatarCollisions(float deltaTime) {
+const float DEFAULT_HAND_RADIUS = 0.1f;
 
+void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    // loop through all the other avatars for potential interactions
+    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    if (avatars.size() <= 1) {
+        // no need to compute a bunch of stuff if we have one or fewer avatars
+        return;
+    }
+    float myRadius = getHeight();
+
+    CollisionInfo collisionInfo;
+    foreach (const AvatarSharedPointer& avatarPointer, avatars) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (static_cast<Avatar*>(this) == avatar) {
+            // don't collide with ourselves
+            continue;
+        }
+        float distance = glm::length(_position - avatar->getPosition());        
+        if (_distanceToNearestAvatar > distance) {
+            _distanceToNearestAvatar = distance;
+        }
+        float theirRadius = avatar->getHeight();
+        if (distance < myRadius + theirRadius) {
+            // TODO: Andrew to make avatar-avatar capsule collisions work here
+        }
+    }
 }
 
 class SortedAvatar {
