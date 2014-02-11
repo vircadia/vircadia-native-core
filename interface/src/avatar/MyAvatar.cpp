@@ -323,22 +323,6 @@ void MyAvatar::simulate(float deltaTime) {
 
     updateChatCircle(deltaTime);
 
-    // TODO: this should be removed and turned into JS instead
-    //  Get any position, velocity, or rotation update from Grab Drag controller
-    glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
-    if (glm::length(moveFromGrab) > EPSILON) {
-        _position += moveFromGrab;
-        _velocity = glm::vec3(0, 0, 0);
-    }
-    _velocity += _hand.getAndResetGrabDeltaVelocity();
-    glm::quat deltaRotation = _hand.getAndResetGrabRotation();
-    const float GRAB_CONTROLLER_TURN_SCALING = 0.5f;
-    glm::vec3 euler = safeEulerAngles(deltaRotation) * GRAB_CONTROLLER_TURN_SCALING;
-    //  Adjust body yaw by yaw from controller
-    setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
-    //  Adjust head pitch from controller
-    getHead().setPitch(getHead().getPitch() - euler.x);
-
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head

@@ -58,11 +58,6 @@ public:
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
     const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
     
-    // Get the drag distance to move
-    glm::vec3 getAndResetGrabDelta();
-    glm::vec3 getAndResetGrabDeltaVelocity();
-    glm::quat getAndResetGrabRotation();
-
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -96,11 +91,6 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
-    
-    glm::vec3 _grabDelta;
-    glm::vec3 _grabDeltaVelocity;
-    glm::quat _grabStartRotation;
-    glm::quat _grabCurrentRotation;
 };
 
 #endif

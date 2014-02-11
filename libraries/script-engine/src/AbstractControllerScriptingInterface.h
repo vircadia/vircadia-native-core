@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "EventTypes.h"
 
@@ -37,6 +38,7 @@ public slots:
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const = 0;
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const = 0;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const = 0;
+    virtual glm::quat getSpatialControlRawRotation(int controlIndex) const = 0;
 
     virtual void captureKeyEvents(const KeyEvent& event) = 0;
     virtual void releaseKeyEvents(const KeyEvent& event) = 0;

@@ -19,6 +19,46 @@ var INITIAL_THRUST_MULTPLIER = 1.0;
 var THRUST_INCREASE_RATE = 1.05;
 var MAX_THRUST_MULTIPLIER = 75.0;
 var thrustMultiplier = INITIAL_THRUST_MULTPLIER;
+var grabDelta = { x: 0, y: 0, z: 0};
+var grabDeltaVelocity = { x: 0, y: 0, z: 0};
+var grabStartRotation = { x: 0, y: 0, z: 0, w: 1};
+var grabCurrentRotation = { x: 0, y: 0, z: 0, w: 1};
+var grabbingWithRightHand = false;
+var wasGrabbingWithRightHand = false;
+var grabbingWithLeftHand = false;
+var wasGrabbingWithLeftHand = false;
+var EPSILON = 0.000001; //smallish positive number - used as margin of error for some computations
+var velocity = { x: 0, y: 0, z: 0};
+
+
+var LEFT_PALM = 0;
+var LEFT_BUTTON_4 = 4;
+var RIGHT_PALM = 2;
+var RIGHT_BUTTON_4 = 10;
+
+function getAndResetGrabDelta() {
+    var HAND_GRAB_SCALE_DISTANCE = 2.0;
+    var delta = Vec3.multiply(grabDelta, (MyAvatar.scale * HAND_GRAB_SCALE_DISTANCE));
+    grabDelta = { x: 0, y: 0, z: 0};
+    var avatarRotation = MyAvatar.orientation;
+    var result = Vec3.multiplyQbyV(avatarRotation, Vec3.multiply(delta, -1));
+    return result;
+}
+
+function getAndResetGrabDeltaVelocity() {
+    var HAND_GRAB_SCALE_VELOCITY = 5.0;
+    var delta = Vec3.multiply(grabDeltaVelocity, (MyAvatar.scale * HAND_GRAB_SCALE_VELOCITY));
+    grabDeltaVelocity = { x: 0, y: 0, z: 0};
+    var avatarRotation = MyAvatar.orientation;
+    var result = Quat.multiply(avatarRotation, Vec3.multiply(delta, -1));
+    return result;
+}
+
+function getAndResetGrabRotation() {
+    var quatDiff = Quat.multiply(grabCurrentRotation, Quat.inverse(grabStartRotation));
+    grabStartRotation = grabCurrentRotation;
+    return quatDiff;
+}
 
 function flyWithHydra() {
     var deltaTime = 1/60; // approximately our FPS - maybe better to be elapsed time since last call
@@ -70,6 +110,54 @@ function flyWithHydra() {
         var newPitch = MyAvatar.headPitch + (viewJoystickPosition.y * JOYSTICK_PITCH_MAG * deltaTime);
         MyAvatar.headPitch = newPitch;
     }
+    
+    // check for and handle grab behaviors
+    grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
+    grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
+
+    if (grabbingWithRightHand) {
+        grabDelta = Vec3.sum(grabDelta, Vec3.multiply(Controller.getSpatialControlVelocity(RIGHT_PALM), deltaTime));
+        grabCurrentRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
+    }
+    if (!grabbingWithRightHand && wasGrabbingWithRightHand) {
+        // Just ending grab, capture velocity
+        grabDeltaVelocity = Controller.getSpatialControlVelocity(RIGHT_PALM);
+    }
+    if (grabbingWithRightHand && !wasGrabbingWithRightHand) {
+        // Just starting grab, capture starting rotation
+        grabStartRotation = Controller.getSpatialControlRawRotation(RIGHT_PALM);
+    }
+
+    grabbing = grabbingWithRightHand || grabbingWithLeftHand;
+
+    if (grabbing) {
+    
+        // move position
+        var moveFromGrab = getAndResetGrabDelta();
+        if (Vec3.length(moveFromGrab) > EPSILON) {
+            position = Vec3.sum(position, moveFromGrab);
+            velocity = { x: 0, y: 0, z: 0};
+        }
+        
+        // add some velocity...
+        velocity = Vec3.sum(velocity, getAndResetGrabDeltaVelocity());
+        
+        // add some rotation...
+        var deltaRotation = getAndResetGrabRotation();
+        var GRAB_CONTROLLER_TURN_SCALING = 0.5;
+        var euler = Vec3.multiply(Quat.safeEulerAngles(deltaRotation), GRAB_CONTROLLER_TURN_SCALING);
+    
+        //  Adjust body yaw by yaw from controller
+        var orientation = Quat.multiply(Quat.angleAxis(-euler.y, {x:0, y: 1, z:0}), MyAvatar.orientation);
+        MyAvatar.orientation = orientation;
+
+        //  Adjust head pitch from controller
+        //getHead().setPitch(getHead().getPitch() - euler.x);
+        MyAvatar.headPitch = MyAvatar.headPitch - euler.x;
+    }
+    
+    wasGrabbingWithRightHand = grabbingWithRightHand;
+    wasGrabbingWithLeftHand = grabbingWithLeftHand;
 }
 
 Script.willSendVisualDataCallback.connect(flyWithHydra);
