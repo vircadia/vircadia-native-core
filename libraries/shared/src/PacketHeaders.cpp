@@ -57,6 +57,9 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeDataServerConfirm:
         case PacketTypeDataServerSend:
             return 1;
+        case PacketTypeVoxelSet:
+        case PacketTypeVoxelSetDestructive:
+            return 1;
         default:
             return 0;
     }
