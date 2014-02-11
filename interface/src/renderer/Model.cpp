@@ -305,6 +305,15 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+Extents Model::getStaticExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
+    Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }

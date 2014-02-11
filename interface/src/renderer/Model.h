@@ -66,6 +66,9 @@ public:
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
+
+    /// Returns the extents of the unmovable joints of the model.
+    Extents getStaticExtents() const;
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }

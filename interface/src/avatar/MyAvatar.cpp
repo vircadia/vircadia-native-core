@@ -225,8 +225,6 @@ void MyAvatar::simulate(float deltaTime) {
             updateCollisionWithVoxels(deltaTime, radius);
         }
         if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            // Note, hand-vs-avatar collisions are done elsewhere
-            // This is where we avatar-vs-avatar bounding capsule
             updateCollisionWithAvatars(deltaTime);
         }
     }
@@ -974,7 +972,43 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
     }
 }
 
-const float DEFAULT_HAND_RADIUS = 0.1f;
+bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float heightA,
+        const glm::vec3 positionB, float radiusB, float heightB, glm::vec3& penetration) {
+    glm::vec3 positionBA = positionB - positionA;
+    float xzDistance = sqrt(positionBA.x * positionBA.x + positionBA.z * positionBA.z);
+    if (xzDistance < (radiusA + radiusB)) {
+        float yDistance = fabs(positionBA.y);
+        float halfHeights = 0.5 * (heightA + heightB);
+        if (yDistance < halfHeights) {
+            // cylinders collide
+            if (xzDistance > 0.f) {
+                positionBA.y = 0.f;
+                // note, penetration should point from A into B
+                penetration = positionBA * ((radiusA + radiusB - xzDistance) / xzDistance);
+                return true;
+            } else {
+                // exactly coaxial -- we'll return false for this case
+                return false;
+            }
+        } else if (yDistance < halfHeights + radiusA + radiusB) {
+            // caps collide
+            if (positionBA.y < 0.f) {
+                // A is above B
+                positionBA.y += halfHeights;
+                float BA = glm::length(positionBA);
+                penetration = positionBA * (radiusA + radiusB - BA) / BA;
+                return true;
+            } else {
+                // A is below B
+                positionBA.y -= halfHeights;
+                float BA = glm::length(positionBA);
+                penetration = positionBA * (radiusA + radiusB - BA) / BA;
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
@@ -984,7 +1018,14 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    float myRadius = getHeight();
+    float myBoundingRadius = 0.5f * getHeight();
+
+    // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
+    // TODO: make the collision work without assuming avatar orientation
+    Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    float myCapsuleHeight = staticScale.y;
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
@@ -997,9 +1038,20 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
-        float theirRadius = avatar->getHeight();
-        if (distance < myRadius + theirRadius) {
-            // TODO: Andrew to make avatar-avatar capsule collisions work here
+        float theirBoundingRadius = 0.5f * avatar->getHeight();
+        if (distance < myBoundingRadius + theirBoundingRadius) {
+            Extents theirStaticExtents = _skeletonModel.getStaticExtents();
+            glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
+            float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+            float theirCapsuleHeight = staticScale.y;
+
+            glm::vec3 penetration(0.f);
+            if (findAvatarAvatarPenetration(_position, myCapsuleRadius, myCapsuleHeight,
+                avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
+                // move the avatar out by half the penetration
+                setPosition(_position - 0.5f * penetration);
+                glm::vec3 pushOut = 0.5f * penetration;
+            }
         }
     }
 }
