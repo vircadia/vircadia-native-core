@@ -4042,7 +4042,7 @@ void Application::loadScript(const QString& fileNameString) {
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
     
     // hook our avatar object into this script engine
-    scriptEngine->setAvatarData( static_cast<Avatar*>(_myAvatar), "MyAvatar");
+    scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
 
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
