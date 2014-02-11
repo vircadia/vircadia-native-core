@@ -29,4 +29,7 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(metavoxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 
+IF (WIN32)
+	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
+ENDIF(WIN32)
 
