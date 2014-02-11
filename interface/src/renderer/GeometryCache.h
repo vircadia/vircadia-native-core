@@ -9,17 +9,19 @@
 #ifndef __interface__GeometryCache__
 #define __interface__GeometryCache__
 
+// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QHash>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QOpenGLBuffer>
 #include <QSharedPointer>
 #include <QWeakPointer>
 
 #include "FBXReader.h"
-#include "InterfaceConfig.h"
 
 class QNetworkReply;
-class QOpenGLBuffer;
 
 class NetworkGeometry;
 class NetworkMesh;
@@ -76,19 +78,19 @@ signals:
 
 private slots:
     
-    void makeModelRequest();
-    void handleModelReplyError();    
-    void handleMappingReplyError();
-    void maybeReadModelWithMapping();
+    void makeRequest();
+    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleReplyError();
     void loadFallback();
     
 private:
     
     void maybeLoadFallback();
     
-    QNetworkRequest _modelRequest;
-    QNetworkReply* _modelReply;
-    QNetworkReply* _mappingReply;
+    QNetworkRequest _request;
+    QNetworkReply* _reply;
+    QVariantHash _mapping;
+    QUrl _textureBase;
     QSharedPointer<NetworkGeometry> _fallback;
     
     int _attempts;
@@ -110,8 +112,8 @@ public:
 class NetworkMesh {
 public:
     
-    GLuint indexBufferID;
-    GLuint vertexBufferID;
+    QOpenGLBuffer indexBuffer;
+    QOpenGLBuffer vertexBuffer;
     
     QVector<NetworkMeshPart> parts;
     

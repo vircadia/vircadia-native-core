@@ -1568,14 +1568,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
-    QBuffer modelBuffer(const_cast<QByteArray*>(&model));
-    modelBuffer.open(QIODevice::ReadOnly);
+QVariantHash readMapping(const QByteArray& data) {
+    QBuffer buffer(const_cast<QByteArray*>(&data));
+    buffer.open(QIODevice::ReadOnly);
+    return parseMapping(&buffer);
+}
 
-    QBuffer mappingBuffer(const_cast<QByteArray*>(&mapping));
-    mappingBuffer.open(QIODevice::ReadOnly);
-
-    return extractFBXGeometry(parseFBX(&modelBuffer), parseMapping(&mappingBuffer));
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping) {
+    QBuffer buffer(const_cast<QByteArray*>(&model));
+    buffer.open(QIODevice::ReadOnly);
+    return extractFBXGeometry(parseFBX(&buffer), mapping);
 }
 
 bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {

@@ -768,13 +768,13 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
             continue;
         }
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
-        
+        const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
+
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
-        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
-      
+        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
