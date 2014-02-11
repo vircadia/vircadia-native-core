@@ -225,8 +225,9 @@ void MyAvatar::simulate(float deltaTime) {
             updateCollisionWithVoxels(deltaTime, radius);
         }
         if (_collisionFlags & COLLISION_GROUP_AVATARS) {
-            // TODO: Andrew to implement this
-            //updateCollisionWithAvatars(deltaTime);
+            // Note, hand-vs-avatar collisions are done elsewhere
+            // This is where we avatar-vs-avatar bounding capsule
+            updateCollisionWithAvatars(deltaTime);
         }
     }
 
@@ -973,19 +974,6 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
     }
 }
 
-// this is a work in progress
-class PalmCollisionProxy {
-public:
-    PalmCollisionProxy() : _palmIndex(-1), _position(0.f), _radius(0.f) {}
-
-    PalmCollisionProxy(int index, const glm::vec3& position, float radius) : 
-        _palmIndex(index), _position(position), _radius(radius) {}
-
-    int _palmIndex;
-    glm::vec3 _position;
-    float _radius;
-};
-
 const float DEFAULT_HAND_RADIUS = 0.1f;
 
 void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
@@ -997,26 +985,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         return;
     }
     float myRadius = getHeight();
-
-    // precompute hand proxies before we start walking the avatarlist
-    QVector<PalmCollisionProxy> palmProxies;
-    std::vector<PalmData>& palms = getHand().getPalms();
-    size_t numPalms = palms.size();
-    glm::vec3 position;
-    for (int i = 0; i < numPalms; ++i) {
-        PalmData& palm = palms[i];
-        if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_LEFT_HAND) {
-            if (_skeletonModel.getLeftHandPosition(position)) {
-                float radius = DEFAULT_HAND_RADIUS;
-                palmProxies.push_back(PalmCollisionProxy(i, position, radius));
-            }
-        } else if (palm.getSixenseID() == SIXENSE_CONTROLLER_ID_RIGHT_HAND) {
-            if (_skeletonModel.getRightHandPosition(position)) {
-                float radius = DEFAULT_HAND_RADIUS;
-                palmProxies.push_back(PalmCollisionProxy(i, position, radius));
-            }
-        }
-    }
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
@@ -1031,18 +999,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirRadius = avatar->getHeight();
         if (distance < myRadius + theirRadius) {
-            for (int i = 0; i < palmProxies.size(); ++i) {
-                glm::vec3 pos = palmProxies[i]._position;
-                // query against avatar
-                if (avatar->findSphereCollisionWithSkeleton(pos, palmProxies[i]._radius, collisionInfo)) {
-                    // TODO: Andrew to make this work
-                    // push hand out of penetration
-                    //palms[palmProxies[i]._palmIndex].addToPosition(0.5f * collisionInfo._penetration * float(TREE_SCALE));
-                    // print results
-                    //distance = glm::length(collisionInfo._penetration);
-                    //printf("collision i = %d   p = [%e, %e, %e]  d = %e\n", i, pos.x, pos.y, pos.z, distance);
-                }
-            }
+            // TODO: Andrew to make avatar-avatar capsule collisions work here
         }
     }
 }
