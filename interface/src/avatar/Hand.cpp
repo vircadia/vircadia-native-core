@@ -223,7 +223,7 @@ void Hand::updateCollisions() {
                     }
                 }
                 if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
-                    for (size_t j = 0; j < collisions.size(); ++j) {
+                    for (int j = 0; j < collisions.size(); ++j) {
                         if (!avatar->poke(collisions[j])) {
                             totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
                         }
@@ -240,7 +240,7 @@ void Hand::updateCollisions() {
                 skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                     (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
             if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions, skipIndex)) {
-                for (size_t j = 0; j < collisions.size(); ++j) {
+                for (int j = 0; j < collisions.size(); ++j) {
                     totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
                 }
             }
