@@ -58,7 +58,7 @@ public slots:
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const;
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
-
+    virtual glm::quat getSpatialControlRawRotation(int controlIndex) const;
     virtual void captureKeyEvents(const KeyEvent& event);
     virtual void releaseKeyEvents(const KeyEvent& event);
 
