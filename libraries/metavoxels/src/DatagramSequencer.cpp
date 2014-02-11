@@ -181,7 +181,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
     for (quint32 i = 0; i < highPriorityMessageCount; i++) {
         QVariant data;
         _inputStream >> data;
-        if (i >= _receivedHighPriorityMessages) {
+        if ((int)i >= _receivedHighPriorityMessages) {
             handleHighPriorityMessage(data);
         }
     }
