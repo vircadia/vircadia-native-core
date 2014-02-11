@@ -390,7 +390,7 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url) {
+void Model::setURL(const QUrl& url, const QUrl& fallback) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
@@ -401,7 +401,7 @@ void Model::setURL(const QUrl& url) {
     deleteGeometry();
     _dilatedTextures.clear();
     
-    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
+    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 
 glm::vec4 Model::computeAverageColor() const {

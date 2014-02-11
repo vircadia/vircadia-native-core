@@ -37,7 +37,8 @@ public:
     void renderGrid(int xDivisions, int yDivisions);
 
     /// Loads geometry from the specified URL.
-    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url);
+    /// \param fallback a fallback URL to load if the desired one is unavailable
+    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl());
     
 private:
     
@@ -58,7 +59,7 @@ class NetworkGeometry : public QObject {
 
 public:
     
-    NetworkGeometry(const QUrl& url);
+    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback);
     ~NetworkGeometry();
 
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
@@ -69,18 +70,26 @@ public:
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
+signals:
+
+    void loaded();
+
 private slots:
     
     void makeModelRequest();
     void handleModelReplyError();    
     void handleMappingReplyError();
     void maybeReadModelWithMapping();
+    void loadFallback();
     
 private:
+    
+    void maybeLoadFallback();
     
     QNetworkRequest _modelRequest;
     QNetworkReply* _modelReply;
     QNetworkReply* _mappingReply;
+    QSharedPointer<NetworkGeometry> _fallback;
     
     int _attempts;
     FBXGeometry _geometry;
