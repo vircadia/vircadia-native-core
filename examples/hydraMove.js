@@ -138,8 +138,6 @@ function handleGrabBehavior() {
         MyAvatar.headPitch = MyAvatar.headPitch - euler.x;
     }
 
-    //print("velocity=" +velocity.x +"," +velocity.y +"," +velocity.z + " length=" + Vec3.length(velocity));
-
     // add some velocity...
     if (stoppedGrabbing) {
         velocity = Vec3.sum(velocity, getAndResetGrabDeltaVelocity());
