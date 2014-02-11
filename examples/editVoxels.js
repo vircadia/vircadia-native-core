@@ -7,15 +7,21 @@
 //
 //  Captures mouse clicks and edits voxels accordingly.
 //
-//  click = create a new voxel on this face, same color as old 
-//  Alt + click = delete this voxel 
+//  click = create a new voxel on this face, same color as old (default color picker state)
+//  right click or control + click = delete this voxel 
 //  shift + click = recolor this voxel
+//  1 - 8 = pick new color from palette
 //
 //  Click and drag to create more new voxels in the same direction
 //
 
 function vLength(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+function vMinus(a, b) { 
+    var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    return rval;
 }
 
 var key_alt = false;
@@ -37,31 +43,32 @@ colors[4] = { red: 193, green: 99,  blue: 122 };
 colors[5] = { red: 255, green: 54,  blue: 69 };
 colors[6] = { red: 124, green: 36,  blue: 36 };
 colors[7] = { red: 63,  green: 35,  blue: 19 };
-var numColors = 6;
-var whichColor = 0;
+var numColors = 8;
+var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
 var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Electronic/ElectronicBurst1.raw");
 var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Bubbles/bubbles1.raw");
 var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Electronic/ElectronicBurst6.raw");
+var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Collisions-ballhitsandcatches/ballcatch2.raw");
 var audioOptions = new AudioInjectionOptions(); 
+audioOptions.volume = 0.5;
 
 function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
-    audioOptions.volume = 1.0;
-    audioOptions.position = { x: intersection.voxel.x, y: intersection.voxel.y, z: intersection.voxel.z };
+    audioOptions.position = { x: pickRay.origin.x + pickRay.direction.x, 
+                              y: pickRay.origin.y + pickRay.direction.y, 
+                              z: pickRay.origin.z + pickRay.direction.z };
 
     if (intersection.intersects) {
-         if (key_alt) {
+         if (event.isRightButton || event.isControl) {
             //  Delete voxel
             Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
             Audio.playSound(deleteSound, audioOptions);
 
-        } else if (key_shift) {
+        } else if (event.isShifted) {
             //  Recolor Voxel
-            whichColor++;
-            if (whichColor == numColors) whichColor = 0; 
             Voxels.setVoxel(intersection.voxel.x, 
                             intersection.voxel.y, 
                             intersection.voxel.z, 
@@ -70,7 +77,9 @@ function mousePressEvent(event) {
             Audio.playSound(changeColorSound, audioOptions);
         } else {
             //  Add voxel on face
-            var newVoxel = {    
+            if (whichColor == -1) {
+                //  Copy mode - use clicked voxel color
+                var newVoxel = {    
                     x: intersection.voxel.x,
                     y: intersection.voxel.y,
                     z: intersection.voxel.z,
@@ -78,6 +87,16 @@ function mousePressEvent(event) {
                     red: intersection.voxel.red,
                     green: intersection.voxel.green,
                     blue: intersection.voxel.blue };
+            } else {
+                var newVoxel = {    
+                    x: intersection.voxel.x,
+                    y: intersection.voxel.y,
+                    z: intersection.voxel.z,    
+                    s: intersection.voxel.s,
+                    red: colors[whichColor].red,
+                    green: colors[whichColor].green,
+                    blue: colors[whichColor].blue };
+            }
                     
             if (intersection.face == "MIN_X_FACE") {
                 newVoxel.x -= newVoxel.s;
@@ -108,7 +127,18 @@ function mousePressEvent(event) {
 function keyPressEvent(event) {
     key_alt = event.isAlt;
     key_shift = event.isShifted;
+    var nVal = parseInt(event.text);
+    if (event.text == "0") {
+        print("Color = Copy");
+        whichColor = -1;
+        Audio.playSound(clickSound, audioOptions);
+    } else if ((nVal > 0) && (nVal <= numColors)) {
+        whichColor = nVal - 1;
+        print("Color = " + (whichColor + 1));
+        Audio.playSound(clickSound, audioOptions);
+    }
 }
+
 function keyReleaseEvent(event) {
     key_alt = false;
     key_shift = false; 
