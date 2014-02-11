@@ -21,6 +21,7 @@
 #include "SkeletonModel.h"
 #include "world.h"
 
+
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
@@ -114,6 +115,7 @@ public:
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setDisplayName(const QString& displayName);
     
     int parseData(const QByteArray& packet);
 
@@ -152,7 +154,13 @@ private:
 
     bool _initialized;
 
+    int _displayNameWidth;
+
+
+
     void renderBody(bool forceRenderHead);
+
+    void renderDisplayName();
 };
 
 #endif

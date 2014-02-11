@@ -858,7 +858,14 @@ void Menu::editPreferences() {
             applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
             shouldDispatchIdentityPacket = true;
         }
+
+        QString displayNameStr(displayNameEdit->text());
         
+        if (displayNameStr != displayNameString) {
+            applicationInstance->getAvatar()->setDisplayName(displayNameStr);
+            shouldDispatchIdentityPacket = true;
+        }
+                
         if (shouldDispatchIdentityPacket) {
             applicationInstance->getAvatar()->sendIdentityPacket();
         }

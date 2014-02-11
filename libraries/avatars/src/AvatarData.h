@@ -149,8 +149,10 @@ public:
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    const QString& getDisplayNameStr() const { return _displayNameStr; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setDisplayNameStr(const QString& displayName);
     
 protected:
     glm::vec3 _position;
@@ -180,6 +182,7 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QString _displayNameStr;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

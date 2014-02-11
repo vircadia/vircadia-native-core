@@ -28,6 +28,7 @@
 #include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
 
+
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
@@ -74,7 +75,8 @@ Avatar::Avatar() :
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _owningAvatarMixer(),
-    _initialized(false)
+    _initialized(false), 
+    _displayNameWidth(0)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -82,6 +84,8 @@ Avatar::Avatar() :
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     _handData = &_hand;
+
+
 }
 
 Avatar::~Avatar() {
@@ -145,22 +149,27 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayDirection = direction;
 }
 
-static TextRenderer* textRenderer() {
+static TextRenderer* chatTextRenderer() {
     static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
     return renderer;
 }
 
+static TextRenderer* displayNameTextRenderer() {
+    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::SHADOW_EFFECT);
+    return renderer;
+}
+
 void Avatar::render(bool forceRenderHead) {
-    
+
     {
         // glow when moving in the distance
         glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
         const float GLOW_DISTANCE = 5.0f;
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
-        
+
         // render body
         renderBody(forceRenderHead);
-    
+  
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
         float height = getHeight();
@@ -176,13 +185,15 @@ void Avatar::render(bool forceRenderHead) {
             glPopMatrix();
         }
     }
-    
-   
+
+    // render display name
+    renderDisplayName();
+       
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer()->computeWidth(*it));
+            width += (lastWidth = chatTextRenderer()->computeWidth(*it));
         }
         glPushMatrix();
         
@@ -201,7 +212,7 @@ void Avatar::render(bool forceRenderHead) {
         glDisable(GL_LIGHTING);
         glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            chatTextRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
             
         } else {
             // rather than using substr and allocating a new string, just replace the last
@@ -209,10 +220,10 @@ void Avatar::render(bool forceRenderHead) {
             int lastIndex = _chatMessage.size() - 1;
             char lastChar = _chatMessage[lastIndex];
             _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            chatTextRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
             glColor3f(0, 1, 0);
-            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
+            chatTextRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
         glDepthMask(true);
@@ -246,6 +257,77 @@ void Avatar::renderBody(bool forceRenderHead) {
         _head.render(1.0f);
     }
     _hand.render(false);
+}
+
+void Avatar::renderDisplayName() {
+
+    if (_displayNameStr.isEmpty()) {
+        return;
+    }
+  
+    glm::vec3 textPosition = _head.getPosition(); //+ glm::vec3(0,50,0);
+    glPushMatrix();
+    glDepthMask(false);
+
+    glm::dmat4 modelViewMatrix2;
+    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
+    glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
+    // Extract rotation matrix from the modelview matrix
+    glm::dmat4 modelViewMatrix;
+    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
+  
+    // Delete rotation info
+    modelViewMatrix[0][0] = modelViewMatrix[1][1] = modelViewMatrix[2][2] = 1.0;
+    modelViewMatrix[0][1] = modelViewMatrix[0][2] = 0.0;
+    modelViewMatrix[1][0] = modelViewMatrix[1][2] = 0.0;
+    modelViewMatrix[2][0] = modelViewMatrix[2][1] = 0.0;
+
+    glLoadMatrixd((GLdouble*)&modelViewMatrix);  // Override current matrix with our own
+    glScalef(1.0, -1.0, 1.0);  // TextRenderer::draw paints the text upside down. This fixes that
+
+    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
+    // We project y = 0 and y = 1  and check the difference in projection coordinates
+    GLdouble projectionMatrix[16];
+    GLint viewportMatrix[4];
+    GLdouble result0[3];
+    GLdouble result1[3];
+
+    glm::dvec3 upVector(modelViewMatrix2[1]);
+    glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
+
+    glm::dvec3 testPoint0 = glm::dvec3(textPosition);
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
+    
+    bool success;
+    success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
+        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        &result0[0], &result0[1], &result0[2]);
+    success = success && 
+        gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
+        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        &result1[0], &result1[1], &result1[2]);
+
+    if (success) {
+        double textWindowHeight = abs(result1[1] - result0[1]);
+        float textScale = 1.0;
+        float scaleFactor = 1.0;
+        if (textWindowHeight > EPSILON) {
+            scaleFactor = textScale / textWindowHeight;
+        }
+
+        glScalef(scaleFactor, scaleFactor, 1.0);
+
+        glColor3f(0.93, 0.93, 0.93);
+        
+        // TextRenderer, based on QT opengl text rendering functions
+
+        QByteArray ba = _displayNameStr.toLocal8Bit();
+        const char *text = ba.data();
+        displayNameTextRenderer()->draw(-_displayNameWidth/2.0, 0, text); 
+    }
+    glDepthMask(true);
+    glPopMatrix();
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
@@ -344,6 +426,15 @@ void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
 void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel.setURL(skeletonModelURL);
+}
+
+void Avatar::setDisplayName(const QString& displayName) {
+    AvatarData::setDisplayNameStr(displayName);
+    int width = 0;
+    for (int i = 0; i < displayName.size(); i++) {
+        width += (displayNameTextRenderer()->computeWidth(displayName[i].toLatin1()));
+    }
+    _displayNameWidth = width;
 }
 
 int Avatar::parseData(const QByteArray& packet) {

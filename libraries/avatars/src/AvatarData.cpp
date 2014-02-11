@@ -274,7 +274,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
+    QString displayNameStr;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> displayNameStr;
     
     bool hasIdentityChanged = false;
     
@@ -287,7 +288,12 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
         setSkeletonModelURL(skeletonModelURL);
         hasIdentityChanged = true;
     }
-    
+
+    if (displayNameStr != _displayNameStr) {
+        setDisplayNameStr(displayNameStr);
+        hasIdentityChanged = true;
+    }
+        
     return hasIdentityChanged;
 }
 
@@ -295,7 +301,7 @@ QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     
-    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _displayNameStr;
     
     return identityData;
 }
@@ -309,6 +315,12 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     qDebug() << "Changing skeleton model for avatar to" << skeletonModelURL.toString();
     _skeletonModelURL = skeletonModelURL;
 }
+
+void AvatarData::setDisplayNameStr(const QString& displayName) {
+    qDebug() << "Changing display name for avatar to" << displayName;
+    _displayNameStr = displayName;
+}
+
 
 void AvatarData::setClampedTargetScale(float targetScale) {
     
