@@ -13,6 +13,7 @@
 #include <QVBoxLayout>
 
 #include "Bitstream.h"
+#include "MetavoxelUtil.h"
 #include "SharedObject.h"
 
 SharedObject::SharedObject() : _referenceCount(0) {
@@ -204,8 +205,7 @@ void SharedObjectEditor::updateType() {
             QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
             widgetProperty.write(widget, property.read(newObject));
             if (widgetProperty.hasNotifySignal()) {
-                connect(widget, QByteArray(SIGNAL()).append(widgetProperty.notifySignal().methodSignature()),
-                    SLOT(propertyChanged()));
+                connect(widget, signal(widgetProperty.notifySignal().methodSignature()), SLOT(propertyChanged()));
             }
         }
     }

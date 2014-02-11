@@ -169,14 +169,18 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(editMenu, "Physics");
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
-    addCheckableActionToQMenuAndActionHash(editMenu,
-                                           MenuOption::Collisions,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantCollisionsOn(bool)));
+
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
+
+    QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
+
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 0, false, avatar, SLOT(updateCollisionFlags()));
+    // TODO: make this option work
+    //addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 0, false, avatar, SLOT(updateCollisionFlags()));
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -781,11 +785,13 @@ void Menu::editPreferences() {
     QString faceURLString = applicationInstance->getAvatar()->getHead().getFaceModel().getURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
     form->addRow("Face URL:", faceURLEdit);
 
     QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
     QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);

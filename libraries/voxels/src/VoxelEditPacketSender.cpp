@@ -14,24 +14,13 @@
 #include <PacketHeaders.h>
 #include "VoxelEditPacketSender.h"
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// Function:    createVoxelEditMessage()
-// Description: creates an "insert" or "remove" voxel message for a voxel code
-//              corresponding to the closest voxel which encloses a cube with
-//              lower corners at x,y,z, having side of length S.
-//              The input values x,y,z range 0.0 <= v < 1.0
-//              message should be either 'S' for SET or 'E' for ERASE
-//
-// IMPORTANT:   The buffer is returned to you a buffer which you MUST delete when you are
-//              done with it.
-//
-// HACK ATTACK: Well, what if this is larger than the MTU? That's the caller's problem, we
-//              just truncate the message
-//
-// Complaints:  Brad :)
 #define GUESS_OF_VOXELCODE_SIZE 10
 #define MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE 1500
 #define SIZE_OF_COLOR_DATA sizeof(rgbColor)
+/// creates an "insert" or "remove" voxel message for a voxel code corresponding to the closest voxel which encloses a cube 
+/// with lower corners at x,y,z, having side of length S. The input values x,y,z range 0.0 <= v < 1.0 message should be either
+/// PacketTypeVoxelSet, PacketTypeVoxelSetDestructive, or PacketTypeVoxelErase. The buffer is returned to caller becomes
+/// responsibility of caller and MUST be deleted by caller.
 bool createVoxelEditMessage(PacketType command, short int sequence,
                             int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
     
@@ -144,9 +133,9 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PacketType type, int numberOf
 
     for (int i = 0; i < numberOfDetails; i++) {
         // use MAX_PACKET_SIZE since it's static and guarenteed to be larger than _maxPacketSize
-        static unsigned char bufferOut[MAX_PACKET_SIZE]; 
+        unsigned char bufferOut[MAX_PACKET_SIZE]; 
         int sizeOut = 0;
-        
+
         if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], _maxPacketSize, sizeOut)) {
             queueOctreeEditMessage(type, bufferOut, sizeOut);
         }

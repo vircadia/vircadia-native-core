@@ -15,7 +15,6 @@
 #include <glm/gtc/noise.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <AvatarData.h>
 #include <SharedUtil.h>
 
 #include "InterfaceConfig.h"
