@@ -27,15 +27,29 @@ function vMinus(a, b) {
 
 var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
+var ORBIT_RATE_ALTITUDE = 100.0;
+var ORBIT_RATE_AZIMUTH = 60.0;
+
+var oldMode = Camera.getMode();
 
 var key_alt = false;
 var key_shift = false;
 var isAdding = false; 
+var isOrbiting = false;
+var orbitAzimuth = 0.0;
+var orbitAltitude = 0.0;
+var orbitCenter = { x: 0, y: 0, z: 0 };
+var orbitPosition = { x: 0, y: 0, z: 0 };
+var orbitRadius = 0.0;
 
 var lastVoxelPosition = { x: 0, y: 0, z: 0 };
 var lastVoxelColor = { red: 0, green: 0, blue: 0 };
 var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
+
+var mouseX = 0;
+var mouseY = 0; 
+
 
 //  Create a table of the different colors you can choose
 var colors = new Array();
@@ -72,12 +86,28 @@ function getNewVoxelPosition() {
 }
 
 function mousePressEvent(event) {
+    mouseX = event.x;
+    mouseY = event.y;
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
-
     if (intersection.intersects) {
-         if (event.isRightButton || event.isControl) {
+        if (event.isAlt) {
+            // start orbit camera! 
+            oldMode = Camera.getMode();
+            Camera.setMode("independent");
+            isOrbiting = true;
+            Camera.keepLookingAt(intersection.intersection);
+            // get position for initial azimuth, elevation
+            orbitCenter = intersection.intersection; 
+            var cameraPosition = Camera.getPosition();
+            var orbitVector = Vec3.subtract(cameraPosition, orbitCenter);
+            orbitRadius = vLength(orbitVector);
+            print("Orbit radius = " + orbitRadius);
+            orbitAzimuth = Math.atan(orbitVector.z / orbitVector.x);
+            orbitAltitude = Math.atan(orbitVector.y / orbitVector.x);
+
+        } else if (event.isRightButton || event.isControl) {
             //  Delete voxel
             Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
             Audio.playSound(deleteSound, audioOptions);
@@ -175,6 +205,20 @@ function keyReleaseEvent(event) {
     key_shift = false; 
 }
 function mouseMoveEvent(event) {
+    if (isOrbiting) {
+        var dx = event.x - mouseX; 
+        var dy = event.y - mouseY;
+        orbitAzimuth += dx / ORBIT_RATE_AZIMUTH;
+        orbitAltitude += dy / ORBIT_RATE_ALTITUDE;
+        //print("Azimuth, Altitude: " + orbitAzimuth + ", " + orbitAltitude);
+        var orbitVector = { x:(Math.cos(orbitAzimuth) * Math.cos(orbitAltitude)) * orbitRadius, 
+                            y:Math.sin(orbitAltitude) * orbitRadius,
+                            z:(Math.sin(orbitAzimuth) * Math.cos(orbitAltitude)) * orbitRadius }; 
+        orbitPosition = Vec3.sum(orbitCenter, orbitVector);
+        Camera.setPosition(orbitPosition);
+        mouseX = event.x; 
+        mouseY = event.y;
+    }
     if (isAdding) {
         var pickRay = Camera.computePickRay(event.x, event.y);
         var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x, 
@@ -218,6 +262,10 @@ function mouseMoveEvent(event) {
 
 function mouseReleaseEvent(event) {
     isAdding = false;
+    isOrbiting = false; 
+    MyAvatar.position = orbitPosition;
+    Camera.stopLooking();
+    Camera.setMode(oldMode);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
