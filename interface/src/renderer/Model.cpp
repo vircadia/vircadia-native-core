@@ -713,6 +713,20 @@ void Model::renderCollisionProxies(float alpha) {
     glPopMatrix();
 }
 
+bool Model::isPokeable(ModelCollisionInfo& collision) const {
+    // the joint is pokable by a collision if it exists and is free to move
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
+    if (joint.parentIndex == -1  || 
+        _jointStates.isEmpty())
+    {
+        return false;
+    }
+    // an empty freeLineage means the joint can't move
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(collision._jointIndex).freeLineage;
+    return !freeLineage.isEmpty();
+}
+
 bool Model::poke(ModelCollisionInfo& collision) {
     // This needs work.  At the moment it can wiggle joints that are free to move (such as arms)
     // but unmovable joints (such as torso) cannot be influenced at all.

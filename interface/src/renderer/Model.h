@@ -164,6 +164,9 @@ public:
     
     void renderCollisionProxies(float alpha);
 
+    /// \return true if the collision would move the model
+    bool isPokeable(ModelCollisionInfo& collision) const;
+
     /// \param collisionInfo info about the collision
     /// \return true if collision affects the Model
     bool poke(ModelCollisionInfo& collisionInfo);

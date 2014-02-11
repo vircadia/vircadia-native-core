@@ -224,7 +224,8 @@ void Hand::updateCollisions() {
                 }
                 if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
                     for (int j = 0; j < collisions.size(); ++j) {
-                        if (!avatar->poke(collisions[j])) {
+                        // we don't resolve penetrations that would poke the other avatar
+                        if (!avatar->isPokeable(collisions[j])) {
                             totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
                         }
                     }
