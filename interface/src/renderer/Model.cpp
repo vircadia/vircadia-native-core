@@ -725,9 +725,7 @@ void Model::renderCollisionProxies(float alpha) {
 bool Model::isPokeable(ModelCollisionInfo& collision) const {
     // the joint is pokable by a collision if it exists and is free to move
     const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
-    if (joint.parentIndex == -1  || 
-        _jointStates.isEmpty())
-    {
+    if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     // an empty freeLineage means the joint can't move
