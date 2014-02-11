@@ -9,7 +9,10 @@
 //
 //
 
+#include <glm/gtx/vector_angle.hpp>
+
 #include <OctreeConstants.h>
+#include <SharedUtil.h>
 #include "Quat.h"
 
 glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
@@ -24,6 +27,11 @@ glm::quat Quat::fromPitchYawRoll(float pitch, float yaw, float roll) {
     return glm::quat(glm::radians(glm::vec3(pitch, yaw, roll)));
 }
 
+glm::quat Quat::inverse(const glm::quat& q) {
+    return glm::inverse(q);
+}
+
+
 glm::vec3 Quat::getFront(const glm::quat& orientation) {
     return orientation * IDENTITY_FRONT;
 }
@@ -35,3 +43,12 @@ glm::vec3 Quat::getRight(const glm::quat& orientation) {
 glm::vec3 Quat::getUp(const glm::quat& orientation) {
     return orientation * IDENTITY_UP;
 }
+
+glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {
+    return ::safeEulerAngles(orientation);
+}
+
+glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
+    return glm::angleAxis(angle, v);
+}
+
