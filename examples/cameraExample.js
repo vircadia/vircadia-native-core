@@ -75,7 +75,6 @@ function checkCamera() {
         if (yaw < -360) {
             yaw += 360;
         }
-        print("pitch="+ pitch + " yaw="+ yaw + " roll=" + roll);
         var orientation = Quat.fromPitchYawRoll(pitch, yaw, roll);
         Camera.setOrientation(orientation);
     }
