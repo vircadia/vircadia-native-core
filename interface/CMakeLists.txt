@@ -95,6 +95,8 @@ if (APPLE)
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
 
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
+  set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
+
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns)
 
