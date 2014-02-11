@@ -185,6 +185,12 @@ public:
     /// Reads part of the data from the buffer.
     QByteArray readBytes(int offset, int length) const;
 
+    /// Reads part of the data from the buffer.
+    void readBytes(int offset, int length, char* data) const;
+
+    /// Writes to part of the data in the buffer.
+    void writeBytes(int offset, int length, const char* data);
+
     /// Writes part of the buffer to the supplied stream.
     void writeToStream(int offset, int length, QDataStream& out) const;
 
@@ -267,7 +273,15 @@ public:
 
     int getBytesAvailable() const;
 
+    /// Sends a framed message on this channel.
     void sendMessage(const QVariant& message);
+
+    /// For input channels, sets whether the channel is expecting a framed message.
+    void setExpectingMessage(bool expectingMessage) { _expectingMessage = expectingMessage; }
+
+signals:
+
+    void receivedMessage(const QVariant& message);
 
 private slots:
 
@@ -286,6 +300,7 @@ private:
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
     
     void readData(QDataStream& in);
+    void handleMessage(const QVariant& message);
     
     int _index;
     CircularBuffer _buffer;
@@ -297,6 +312,7 @@ private:
     int _offset;
     int _writePosition;
     SpanList _acknowledged;
+    bool _expectingMessage;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

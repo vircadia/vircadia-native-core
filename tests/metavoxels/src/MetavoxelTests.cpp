@@ -83,8 +83,14 @@ Endpoint::Endpoint(const QByteArray& datagramHeader) :
     connect(_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
     connect(_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
-    connect(&_sequencer->getReliableInputChannel()->getBuffer(), SIGNAL(readyRead()), SLOT(readReliableChannel()));
-    connect(&_sequencer->getReliableInputChannel(1)->getBuffer(), SIGNAL(readyRead()), SLOT(readLowPriorityReliableChannel()));
+    
+    ReliableChannel* firstInput = _sequencer->getReliableInputChannel();
+    firstInput->setExpectingMessage(false);
+    connect(&firstInput->getBuffer(), SIGNAL(readyRead()), SLOT(readReliableChannel()));
+    
+    ReliableChannel* secondInput = _sequencer->getReliableInputChannel(1);
+    secondInput->setExpectingMessage(false);
+    connect(&secondInput->getBuffer(), SIGNAL(readyRead()), SLOT(readLowPriorityReliableChannel()));
     
     // enqueue a large amount of data in a low-priority channel
     ReliableChannel* output = _sequencer->getReliableOutputChannel(1);
