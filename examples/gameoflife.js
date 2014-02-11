@@ -115,7 +115,6 @@ function sendNextCells() {
 var sentFirstBoard = false;
 
 function step() {
-print("step()...");
   if (sentFirstBoard) {
     // we've already sent the first full board, perform a step in time
     updateCells();
