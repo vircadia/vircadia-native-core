@@ -834,6 +834,12 @@ QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
     }
 }
 
+QString getString(const QVariant& value) {
+    // if it's a list, return the first entry
+    QVariantList list = value.toList();
+    return list.isEmpty() ? value.toString() : list.at(0).toString();
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -847,14 +853,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QString> bumpTextures;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = processID(joints.value("jointEyeLeft", "jointEyeLeft").toString());
-    QString jointEyeRightName = processID(joints.value("jointEyeRight", "jointEyeRight").toString());
-    QString jointNeckName = processID(joints.value("jointNeck", "jointNeck").toString());
-    QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
-    QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
-    QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
-    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
-    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
+    QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
+    QString jointNeckName = processID(getString(joints.value("jointNeck", "jointNeck")));
+    QString jointRootName = processID(getString(joints.value("jointRoot", "jointRoot")));
+    QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
+    QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
+    QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
+    QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
     QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
     QVariantList jointRightFingerNames = joints.values("jointRightFinger");
     QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
