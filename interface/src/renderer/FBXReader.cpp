@@ -1265,7 +1265,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
-    
+
     geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     

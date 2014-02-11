@@ -167,6 +167,10 @@ namespace MenuOption {
     const QString ChatCircling = "Chat Circling";
     const QString CollisionProxies = "Collision Proxies";
     const QString Collisions = "Collisions";
+    const QString CollideWithAvatars = "Collide With Avatars";
+    const QString CollideWithParticles = "Collide With Particles";
+    const QString CollideWithVoxels = "Collide With Voxels";
+    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
