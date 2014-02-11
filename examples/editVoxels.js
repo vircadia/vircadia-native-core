@@ -11,6 +11,7 @@
 //  right click or control + click = delete this voxel 
 //  shift + click = recolor this voxel
 //  1 - 8 = pick new color from palette
+//  9 = create a new voxel in front of the camera 
 //
 //  Click and drag to create more new voxels in the same direction
 //
@@ -23,6 +24,9 @@ function vMinus(a, b) {
     var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
     return rval;
 }
+
+var NEW_VOXEL_SIZE = 1.0;
+var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 
 var key_alt = false;
 var key_shift = false;
@@ -54,12 +58,23 @@ var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-publ
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
 
+function setAudioPosition() {
+    var camera = Camera.getPosition();
+    var forwardVector = Quat.getFront(MyAvatar.orientation);
+    audioOptions.position = Vec3.sum(camera, forwardVector);
+}
+
+function getNewVoxelPosition() { 
+    var camera = Camera.getPosition();
+    var forwardVector = Quat.getFront(MyAvatar.orientation);
+    var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, NEW_VOXEL_DISTANCE_FROM_CAMERA));
+    return newPosition;
+}
+
 function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
-    audioOptions.position = { x: pickRay.origin.x + pickRay.direction.x, 
-                              y: pickRay.origin.y + pickRay.direction.y, 
-                              z: pickRay.origin.z + pickRay.direction.z };
+    audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
 
     if (intersection.intersects) {
          if (event.isRightButton || event.isControl) {
@@ -136,6 +151,22 @@ function keyPressEvent(event) {
         whichColor = nVal - 1;
         print("Color = " + (whichColor + 1));
         Audio.playSound(clickSound, audioOptions);
+    } else if (event.text == "9") {
+        // Create a brand new 1 meter voxel in front of your avatar 
+        var color = whichColor; 
+        if (color == -1) color = 0;
+        var newPosition = getNewVoxelPosition();
+        var newVoxel = {    
+                    x: newPosition.x,
+                    y: newPosition.y ,
+                    z: newPosition.z,    
+                    s: NEW_VOXEL_SIZE,
+                    red: colors[color].red,
+                    green: colors[color].green,
+                    blue: colors[color].blue };
+        Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
+        setAudioPosition();
+        Audio.playSound(addSound, audioOptions);
     }
 }
 
