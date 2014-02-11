@@ -63,7 +63,7 @@ QByteArray AvatarData::toByteArray() {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    // lazily allocate memory for HandData in case we're not an Avatar instance
     if (!_handData) {
         _handData = new HandData(this);
     }

@@ -113,7 +113,6 @@ private:
     bool _isCollisionsOn;
     bool _isThrustOn;
     float _thrustMultiplier;
-    float _collisionRadius;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
@@ -126,9 +125,9 @@ private:
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
-    void updateAvatarCollisions(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime);
-    void updateCollisionWithVoxels(float deltaTime);
+    void updateCollisionWithAvatars(float deltaTime);
+    void updateCollisionWithEnvironment(float deltaTime, float radius);
+    void updateCollisionWithVoxels(float deltaTime, float radius);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
