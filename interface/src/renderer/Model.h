@@ -61,7 +61,7 @@ public:
     void simulate(float deltaTime);
     bool render(float alpha);
     
-    Q_INVOKABLE void setURL(const QUrl& url);
+    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
     const QUrl& getURL() const { return _url; }
     
     /// Returns the extents of the model in its bind pose.

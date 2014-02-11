@@ -345,12 +345,14 @@ bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, floa
 
 void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    _head.getFaceModel().setURL(_faceModelURL);
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fbx");
+    _head.getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel.setURL(_skeletonModelURL);
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fbx");
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
 }
 
 int Avatar::parseData(const QByteArray& packet) {
