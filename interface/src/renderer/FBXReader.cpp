@@ -1274,6 +1274,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
     geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    geometry.staticExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    geometry.staticExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -1430,6 +1432,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         boneDirection /= boneLength;
                     }
                 }
+                bool jointIsStatic = joint.freeLineage.isEmpty();
+                glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1446,6 +1450,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             if (proj < 0.0f && proj > -boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
                                     vertex, boneEnd + boneDirection * proj));
+                            }
+                            if (jointIsStatic) {
+                                // expand the extents of static (nonmovable) joints
+                                geometry.staticExtents.minimum = glm::min(geometry.staticExtents.minimum, vertex + jointTranslation);
+                                geometry.staticExtents.maximum = glm::max(geometry.staticExtents.maximum, vertex + jointTranslation);
                             }
                         }
 

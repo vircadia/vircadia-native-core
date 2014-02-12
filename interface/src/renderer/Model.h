@@ -66,6 +66,9 @@ public:
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
+
+    /// Returns the extents of the unmovable joints of the model.
+    Extents getStaticExtents() const;
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -163,6 +166,9 @@ public:
         ModelCollisionInfo& collision, float boneScale = 1.0f, int skipIndex = -1) const;
     
     void renderCollisionProxies(float alpha);
+
+    /// \return true if the collision would move the model
+    bool isPokeable(ModelCollisionInfo& collision) const;
 
     /// \param collisionInfo info about the collision
     /// \return true if collision affects the Model
