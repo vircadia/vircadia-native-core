@@ -37,6 +37,8 @@ static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * NUM_AUDI
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
+static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 100;
+
 // Mute icon configration
 static const int ICON_SIZE = 24;
 static const int ICON_LEFT = 0;
@@ -66,6 +68,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
     _averageInputLoudness(0),
+    _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
     _noiseGateFramesToClose(0),
@@ -82,6 +85,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL);
+    // Create the noise sample array
+    _noiseSampleFrames = new float[NUMBER_OF_NOISE_SAMPLE_FRAMES];
 }
 
 void Audio::init(QGLWidget *parent) {
@@ -355,9 +360,17 @@ void Audio::handleAudioInput() {
             float thisSample = 0;
             int samplesOverNoiseGate = 0;
             
-            const float NOISE_GATE_HEIGHT = 3.f;
+#define NOISE_MIN_SAMPLE
+#ifdef NOISE_MIN_SAMPLE
+            const float NOISE_GATE_HEIGHT = 12.f;
             const int NOISE_GATE_WIDTH = 5;
-            const int NOISE_GATE_CLOSE_FRAME_DELAY = 30;
+            const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
+#else
+            const float NOISE_GATE_HEIGHT = 6.f;
+            const int NOISE_GATE_WIDTH = 5;
+            const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
+#endif
+            
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 thisSample = fabsf(monoAudioSamples[i]);
@@ -368,8 +381,32 @@ void Audio::handleAudioInput() {
                 }
             }
             _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            //qDebug("%.1f", _lastInputLoudness);
+            
+#ifdef NOISE_MIN_SAMPLE
+            _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
+            if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
+                float smallestSample = MAXFLOAT;
+                for (int i = 0; i < NUMBER_OF_NOISE_SAMPLE_FRAMES; i++) {
+                    if (_noiseSampleFrames[i] < smallestSample) {
+                        smallestSample = _noiseSampleFrames[i];
+                    }
+                }
+                _averageInputLoudness = smallestSample;
+                _noiseGateSampleCounter = 0;
+                qDebug("smallest sample = %.1f",  _averageInputLoudness);
+            }
+#else
+            _noiseGateSampleCounter++;
+            if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
+                qDebug("average loudness = %.1f",  _averageInputLoudness);
+                _noiseGateSampleCounter = 0;
+            }
+            
             const float LOUDNESS_AVERAGING_FRAMES = 1000.f;   //  This will be about 10 seconds
             _averageInputLoudness = (1.f - 1.f / LOUDNESS_AVERAGING_FRAMES) * _averageInputLoudness + (1.f / LOUDNESS_AVERAGING_FRAMES) * _lastInputLoudness;
+#endif
+            
             
             if (_noiseGateEnabled) {
                 if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
@@ -487,7 +524,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     if (!_ringBuffer.isStarved() && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
         // we don't have any audio data left in the output buffer
         // we just starved
-        qDebug() << "Audio output just starved.";
+        //qDebug() << "Audio output just starved.";
         _ringBuffer.setIsStarved(true);
         _numFramesDisplayStarve = 10;
     }
@@ -505,7 +542,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
                                                          + (_jitterBufferSamples * 2))) {
             // starved and we don't have enough to start, keep waiting
-            qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.";
+            //qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.";
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             _ringBuffer.setIsStarved(false);

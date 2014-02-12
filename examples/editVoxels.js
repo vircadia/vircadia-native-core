@@ -65,10 +65,10 @@ var numColors = 8;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
-var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Electronic/ElectronicBurst1.raw");
-var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Bubbles/bubbles1.raw");
+var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/slider+-+whoosh1.raw");
+var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/slider+-+whoosh2.raw");
 var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Electronic/ElectronicBurst6.raw");
-var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Collisions-ballhitsandcatches/ballcatch2.raw");
+var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
 
@@ -94,18 +94,18 @@ function mousePressEvent(event) {
     if (intersection.intersects) {
         if (event.isAlt) {
             // start orbit camera! 
+            var cameraPosition = Camera.getPosition();
             oldMode = Camera.getMode();
             Camera.setMode("independent");
             isOrbiting = true;
             Camera.keepLookingAt(intersection.intersection);
             // get position for initial azimuth, elevation
             orbitCenter = intersection.intersection; 
-            var cameraPosition = Camera.getPosition();
             var orbitVector = Vec3.subtract(cameraPosition, orbitCenter);
             orbitRadius = vLength(orbitVector);
-            print("Orbit radius = " + orbitRadius);
             orbitAzimuth = Math.atan(orbitVector.z / orbitVector.x);
-            orbitAltitude = Math.atan(orbitVector.y / orbitVector.x);
+            orbitAltitude = Math.atan(orbitVector.y / Math.sqrt(orbitVector.z * orbitVector.z + orbitVector.x * orbitVector.x));
+            print("start: radius, azimuth, altitude = " + orbitRadius + ", " + orbitAzimuth + ", " + orbitAltitude);
 
         } else if (event.isRightButton || event.isControl) {
             //  Delete voxel
@@ -210,6 +210,7 @@ function mouseMoveEvent(event) {
         var dy = event.y - mouseY;
         orbitAzimuth += dx / ORBIT_RATE_AZIMUTH;
         orbitAltitude += dy / ORBIT_RATE_ALTITUDE;
+        print("drag: radius, azimuth, altitude = " + orbitRadius + ", " + orbitAzimuth + ", " + orbitAltitude);
         //print("Azimuth, Altitude: " + orbitAzimuth + ", " + orbitAltitude);
         var orbitVector = { x:(Math.cos(orbitAzimuth) * Math.cos(orbitAltitude)) * orbitRadius, 
                             y:Math.sin(orbitAltitude) * orbitRadius,
@@ -261,11 +262,18 @@ function mouseMoveEvent(event) {
 }
 
 function mouseReleaseEvent(event) {
+    if (isOrbiting) {
+        var cameraOrientation = Camera.getOrientation();
+        var eulers = Quat.safeEulerAngles(cameraOrientation);
+        Camera.stopLooking();
+        print("pitch, yaw " + eulers.x + ", " + eulers.y);
+        MyAvatar.headPitch = eulers.x;
+        MyAvatar.bodyYaw = eulers.y;
+        MyAvatar.position = Camera.getPosition();
+        Camera.setMode(oldMode);
+    }
     isAdding = false;
     isOrbiting = false; 
-    MyAvatar.position = orbitPosition;
-    Camera.stopLooking();
-    Camera.setMode(oldMode);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);

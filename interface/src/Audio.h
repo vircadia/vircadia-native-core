@@ -110,6 +110,8 @@ private:
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
     float _averageInputLoudness;
+    float* _noiseSampleFrames;
+    int _noiseGateSampleCounter;
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
     int _noiseGateFramesToClose;
