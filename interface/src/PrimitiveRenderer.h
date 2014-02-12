@@ -9,10 +9,9 @@
 #ifndef __interface__PrimitiveRenderer__
 #define __interface__PrimitiveRenderer__
 
+#include <QStack>
 #include <QVector>
 #include <QMutex>
-
-#include "Queue.h"
 
 /// Vertex element structure.
 ///    Using the array of structures approach to specifying
@@ -466,11 +465,11 @@ private:
     QVector<Primitive *> _primitives;           ///< Vector of primitive
     int _primitiveCount;                        ///< Count of primitives
 
-    Queue<int, SingleThreaded, SingleThreaded> _availablePrimitiveIndex;        ///< Queue of primitive indices available
-    Queue<int, SingleThreaded, SingleThreaded> _availableVertexElementIndex;    ///< Queue of vertex element indices available
-    Queue<int, SingleThreaded, SingleThreaded> _availableTriElementIndex;       ///< Queue of triangle element indices available
-    Queue<int, SingleThreaded, SingleThreaded> _deconstructTriElementIndex;     ///< Queue of triangle element indices requiring deletion from GL
-    Queue<int, SingleThreaded, SingleThreaded> _constructPrimitiveIndex;        ///< Queue of primitives requiring addition to GL
+    QStack<int> _availablePrimitiveIndex;       ///< Queue of primitive indices available
+    QStack<int> _availableVertexElementIndex;   ///< Queue of vertex element indices available
+    QStack<int> _availableTriElementIndex;      ///< Queue of triangle element indices available
+    QStack<int> _deconstructTriElementIndex;    ///< Queue of triangle element indices requiring deletion from GL
+    QStack<int> _constructPrimitiveIndex;       ///< Queue of primitives requiring addition to GL
 
     QMutex _guard;
 

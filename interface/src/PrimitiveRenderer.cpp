@@ -379,10 +379,6 @@ void PrimitiveRenderer::initializeGL() {
     glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Reserve the the first element for the degenerate case
-    _vertexElementCount = 1;
-    _triElementCount = 1;
-
     // Initialize the first tri element in the buffer to all zeros, the
     // degenerate case
     deconstructTriElement(0);
@@ -398,8 +394,19 @@ void PrimitiveRenderer::initializeBookkeeping() {
 
     // Start primitive count at one, because zero is reserved for the degenerate triangle
     _primitives.resize(_maxCount + 1);
+
+    // Set the counters
     _primitiveCount = 1;
-    _cpuMemoryUsage = sizeof(PrimitiveRenderer) + _primitives.size() * sizeof(Primitive *);
+    _vertexElementCount = 1;
+    _triElementCount = 1;
+
+    // Guesstimate the memory consumption
+    _cpuMemoryUsage = sizeof(PrimitiveRenderer);
+    _cpuMemoryUsage += _availablePrimitiveIndex.capacity() * sizeof(int);
+    _cpuMemoryUsage += _availableVertexElementIndex.capacity() * sizeof(int);
+    _cpuMemoryUsage += _availableTriElementIndex.capacity() * sizeof(int);
+    _cpuMemoryUsage += _deconstructTriElementIndex.capacity() * sizeof(int);
+    _cpuMemoryUsage += _constructPrimitiveIndex.capacity() * sizeof(int);
 }
 
 void PrimitiveRenderer::terminate() {
@@ -428,22 +435,11 @@ void PrimitiveRenderer::terminateBookkeeping() {
     }
 
     // Drain the queues
-    while (_availableVertexElementIndex.remove() != 0)
-        ;
-
-    while (_availableTriElementIndex.remove() != 0)
-        ;
-
-    while (_deconstructTriElementIndex.remove() != 0)
-        ;
-
-    while (_constructPrimitiveIndex.remove() != 0)
-        ;
-
-    // Reset the counters
-    _vertexElementCount = 1;
-    _triElementCount = 1;
-    _primitiveCount = 1;
+    _availablePrimitiveIndex.clear();
+    _availableVertexElementIndex.clear();
+    _availableTriElementIndex.clear();
+    _deconstructTriElementIndex.clear();
+    _constructPrimitiveIndex.clear();
 
     _cpuMemoryUsage = sizeof(PrimitiveRenderer) + _primitives.size() * sizeof(Primitive *);
 }
@@ -519,7 +515,7 @@ void PrimitiveRenderer::deconstructElements(
             TriElement const* tri = *it;
 
             // Put the tri element index into decon queue
-            _deconstructTriElementIndex.add(tri->id);
+            _deconstructTriElementIndex.push(tri->id);
         }
     }
 
@@ -534,7 +530,7 @@ void PrimitiveRenderer::deconstructElements(
             int index = *it;
 
             // Put the vertex element index into the available queue
-            _availableVertexElementIndex.add(index);
+            _availableVertexElementIndex.push(index);
         }
     }
 
@@ -543,50 +539,56 @@ void PrimitiveRenderer::deconstructElements(
 
 int PrimitiveRenderer::getAvailablePrimitiveIndex() {
 
+    int index;
+
     // Check the available primitive index queue first for an available index.
-    int index = _availablePrimitiveIndex.remove();
-    // Remember that the primitive index 0 is not used.
-    if (index == 0) {
+    if (!_availablePrimitiveIndex.isEmpty()) {
+        index = _availablePrimitiveIndex.pop();
+    } else if (_primitiveCount < _maxCount) {
         // There are no primitive indices available from the queue, 
         // make one up
-        if (_primitiveCount < _maxCount) {
-            index = _primitiveCount++;
-        }
+        index = _primitiveCount++;
+    } else {
+        index = 0;
     }
     return index;
 }
 
 int PrimitiveRenderer::getAvailableVertexElementIndex() {
 
+    int index;
+
     // Check the available vertex element queue first for an available index.
-    int index = _availableVertexElementIndex.remove();
-    // Remember that the vertex element 0 is used for degenerate triangles.
-    if (index == 0) {
+    if (!_availableVertexElementIndex.isEmpty()) {
+        index = _availableVertexElementIndex.pop();
+    } else if (_vertexElementCount < _maxVertexElementCount) {
         // There are no vertex elements available from the queue, 
         // grab one from the end of the list
-        if (_vertexElementCount < _maxVertexElementCount) {
-            index = _vertexElementCount++;
-        }
+        index = _vertexElementCount++;
+    } else {
+        index = 0;
     }
     return index;
 }
 
 int PrimitiveRenderer::getAvailableTriElementIndex() {
 
+    int index;
+
     // Check the tri elements scheduled for deconstruction queue first to 
     // intercept and reuse an index without it having to be destroyed
-    int index = _deconstructTriElementIndex.remove();
-    if (index == 0) {
+    if (!_deconstructTriElementIndex.isEmpty()) {
+        index = _deconstructTriElementIndex.pop();
+    } else if (!_availableTriElementIndex.isEmpty()) {
         // Nothing available in the deconstruction queue, now
         // check the available tri element queue for an available index.
-        index = _availableTriElementIndex.remove();
-        if (index == 0) {
-            // There are no reusable tri elements available from the queue, 
-            // grab one from the end of the list
-            if (_triElementCount < _maxTriElementCount) {
-                index = _triElementCount++;
-            }
-        }
+        index = _availableTriElementIndex.pop();
+    } else if (_triElementCount < _maxTriElementCount) {
+        // There are no reusable tri elements available from the queue, 
+        // grab one from the end of the list
+        index = _triElementCount++;
+    } else {
+        index = 0;
     }
     return index;
 }
@@ -644,11 +646,11 @@ int PrimitiveRenderer::vAdd(
             // Take ownership of primitive, including responsibility
             // for destruction
             _primitives[index] = primitive;
-            _constructPrimitiveIndex.add(index);
+            _constructPrimitiveIndex.push(index);
             _cpuMemoryUsage += primitive->getMemoryUsage();
         } catch(...) {
-            // STL failed, recycle the index
-            _availablePrimitiveIndex.add(index);
+            // Qt failed, recycle the index
+            _availablePrimitiveIndex.push(index);
             index = 0;
         }
     }
@@ -662,23 +664,27 @@ void PrimitiveRenderer::vRemove(
     try {
         QMutexLocker lock(&_guard);
 
-        // Locate and remove the primitive by id in the associative map
+        // Locate and remove the primitive by id in the vector map
         Primitive* primitive = _primitives[index];
         if (primitive) {
             _primitives[index] = 0;
             _cpuMemoryUsage -= primitive->getMemoryUsage();
             deconstructElements(primitive);
-            _availablePrimitiveIndex.add(index);
+
+            // Queue the index onto the available primitive stack.
+            _availablePrimitiveIndex.push(index);
         }
     } catch(...) {
-        // STL failed
+        // Qt failed
     }
 }
 
 void PrimitiveRenderer::vRelease() {
 
     QMutexLocker lock(&_guard);
+
     terminateBookkeeping();
+    initializeBookkeeping();
 }
 
 void PrimitiveRenderer::vRender() {
@@ -686,14 +692,19 @@ void PrimitiveRenderer::vRender() {
 
     QMutexLocker lock(&_guard);
 
-    // Now would be an appropriate time to set the element array buffer ids
-    // scheduled for deconstruction to the degenerate case.
-    while ((id = _deconstructTriElementIndex.remove()) != 0) {
+    // Iterate over the set of triangle element array buffer ids scheduled for
+    // destruction. Set the triangle element to the degenerate case. Queue the id
+    // onto the available tri element stack.
+    while (!_deconstructTriElementIndex.isEmpty()) {
+        id = _deconstructTriElementIndex.pop();
         deconstructTriElement(id);
-        _availableTriElementIndex.add(id);
+        _availableTriElementIndex.push(id);
     }
 
-    while ((id = _constructPrimitiveIndex.remove()) != 0) {
+    // Iterate over the set of primitive ids scheduled for construction. Transfer 
+    // primitive data to the GPU.
+    while (!_constructPrimitiveIndex.isEmpty()) {
+        id = _constructPrimitiveIndex.pop();
         Primitive* primitive = _primitives[id];
         if (primitive) {
             constructElements(primitive);
