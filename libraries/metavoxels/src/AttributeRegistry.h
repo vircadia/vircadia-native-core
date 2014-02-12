@@ -24,7 +24,7 @@ class QScriptValue;
 
 class Attribute;
 
-typedef QSharedPointer<Attribute> AttributePointer;
+typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 /// Maintains information about metavoxel attribute types.
 class AttributeRegistry {
@@ -141,7 +141,7 @@ public:
 };
 
 /// Represents a registered attribute.
-class Attribute : public QObject {
+class Attribute : public SharedObject {
     Q_OBJECT
     
 public:

@@ -45,11 +45,18 @@ MetavoxelEditor::MetavoxelEditor() :
     attributeGroup->setLayout(attributeLayout);
     
     attributeLayout->addWidget(_attributes = new QListWidget());
-    connect(_attributes, SIGNAL(itemSelectionChanged()), SLOT(updateValueEditor()));
+    connect(_attributes, SIGNAL(itemSelectionChanged()), SLOT(selectedAttributeChanged()));
+
+    QHBoxLayout* attributeButtonLayout = new QHBoxLayout();
+    attributeLayout->addLayout(attributeButtonLayout);
 
     QPushButton* newAttribute = new QPushButton("New...");
-    attributeLayout->addWidget(newAttribute);
+    attributeButtonLayout->addWidget(newAttribute);
     connect(newAttribute, SIGNAL(clicked()), SLOT(createNewAttribute()));
+
+    attributeButtonLayout->addWidget(_deleteAttribute = new QPushButton("Delete"));
+    _deleteAttribute->setEnabled(false);
+    connect(_deleteAttribute, SIGNAL(clicked()), SLOT(deleteSelectedAttribute()));
 
     QFormLayout* formLayout = new QFormLayout();
     topLayout->addLayout(formLayout);
@@ -141,19 +148,20 @@ bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
-void MetavoxelEditor::updateValueEditor() {
+void MetavoxelEditor::selectedAttributeChanged() {
     QString selected = getSelectedAttribute();
     if (selected.isNull()) {
+        _deleteAttribute->setEnabled(false);
         _value->setVisible(false);
         return;
     }
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
+    
     _value->setVisible(true);
     
     if (_valueArea->widget()) {
         delete _valueArea->widget();
     }
-      
-    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
     QWidget* editor = attribute->createEditor();
     if (editor) {
         _valueArea->setWidget(editor);
@@ -186,6 +194,10 @@ void MetavoxelEditor::createNewAttribute() {
     AttributeRegistry::getInstance()->registerAttribute(new QRgbAttribute(nameText));
     
     updateAttributes(nameText);
+}
+
+void MetavoxelEditor::deleteSelectedAttribute() {
+    
 }
 
 void MetavoxelEditor::centerGridPosition() {

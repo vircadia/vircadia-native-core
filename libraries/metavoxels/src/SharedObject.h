@@ -44,49 +44,99 @@ private:
 };
 
 /// A pointer to a shared object.
-class SharedObjectPointer {
+template<class T> class SharedObjectPointerTemplate {
 public:
     
-    SharedObjectPointer(SharedObject* data = NULL);
-    SharedObjectPointer(const SharedObjectPointer& other);
-    ~SharedObjectPointer();
+    SharedObjectPointerTemplate(T* data = NULL);
+    SharedObjectPointerTemplate(const SharedObjectPointerTemplate<T>& other);
+    ~SharedObjectPointerTemplate();
 
-    SharedObject* data() { return _data; }
-    const SharedObject* data() const { return _data; }
-    const SharedObject* constData() const { return _data; }
-
+    T* data() const { return _data; }
+    
     void detach();
 
-    void swap(SharedObjectPointer& other) { qSwap(_data, other._data); }
+    void swap(SharedObjectPointerTemplate<T>& other) { qSwap(_data, other._data); }
 
     void reset();
 
-    operator SharedObject*() { return _data; }
-    operator const SharedObject*() const { return _data; }
-
     bool operator!() const { return !_data; }
-
-    bool operator!=(const SharedObjectPointer& other) const { return _data != other._data; }
-
-    SharedObject& operator*() { return *_data; }
-    const SharedObject& operator*() const { return *_data; }
-
-    SharedObject* operator->() { return _data; }
-    const SharedObject* operator->() const { return _data; }
-
-    SharedObjectPointer& operator=(SharedObject* data);
-    SharedObjectPointer& operator=(const SharedObjectPointer& other);
-
-    bool operator==(const SharedObjectPointer& other) const { return _data == other._data; }
-
-private:
+    operator T*() const { return _data; }
+    T& operator*() const { return *_data; }
+    T* operator->() const { return _data; }
     
-    SharedObject* _data;
+    SharedObjectPointerTemplate<T>& operator=(T* data);
+    SharedObjectPointerTemplate<T>& operator=(const SharedObjectPointerTemplate<T>& other);
+
+    bool operator==(const SharedObjectPointerTemplate<T>& other) const { return _data == other._data; }
+    bool operator!=(const SharedObjectPointerTemplate<T>& other) const { return _data != other._data; }
+    
+private:
+
+    T* _data;
 };
 
-Q_DECLARE_METATYPE(SharedObjectPointer)
+template<class T> inline SharedObjectPointerTemplate<T>::SharedObjectPointerTemplate(T* data) : _data(data) {
+    if (_data) {
+        _data->incrementReferenceCount();
+    }
+}
 
-uint qHash(const SharedObjectPointer& pointer, uint seed = 0);
+template<class T> inline SharedObjectPointerTemplate<T>::SharedObjectPointerTemplate(const SharedObjectPointerTemplate<T>& other) :
+    _data(other._data) {
+    
+    if (_data) {
+        _data->incrementReferenceCount();
+    }
+}
+
+template<class T> inline SharedObjectPointerTemplate<T>::~SharedObjectPointerTemplate() {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+}
+
+template<class T> inline void SharedObjectPointerTemplate<T>::detach() {
+    if (_data && _data->getReferenceCount() > 1) {
+        _data->decrementReferenceCount();
+        (_data = _data->clone())->incrementReferenceCount();
+    }
+}
+
+template<class T> inline void SharedObjectPointerTemplate<T>::reset() {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    _data = NULL;
+}
+
+template<class T> inline SharedObjectPointerTemplate<T>& SharedObjectPointerTemplate<T>::operator=(T* data) {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    if ((_data = data)) {
+        _data->incrementReferenceCount();
+    }
+    return *this;
+}
+
+template<class T> inline SharedObjectPointerTemplate<T>& SharedObjectPointerTemplate<T>::operator=(
+        const SharedObjectPointerTemplate<T>& other) {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    if ((_data = other._data)) {
+        _data->incrementReferenceCount();
+    }
+    return *this;
+}
+
+template<class T> uint qHash(const SharedObjectPointerTemplate<T>& pointer, uint seed = 0) {
+    return qHash(pointer.data(), seed);
+}
+
+typedef SharedObjectPointerTemplate<SharedObject> SharedObjectPointer;
+
+Q_DECLARE_METATYPE(SharedObjectPointer)
 
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {

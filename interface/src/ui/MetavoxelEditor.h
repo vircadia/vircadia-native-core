@@ -17,6 +17,7 @@ class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
 class QListWidget;
+class QPushButton;
 class QScrollArea;
 
 /// Allows editing metavoxels.
@@ -31,8 +32,9 @@ public:
 
 private slots:
     
-    void updateValueEditor();
+    void selectedAttributeChanged();
     void createNewAttribute();
+    void deleteSelectedAttribute();
     void centerGridPosition();
     void alignGridPosition();
     
@@ -49,6 +51,7 @@ private:
     QVariant getValue() const;
     
     QListWidget* _attributes;
+    QPushButton* _deleteAttribute;
     QComboBox* _gridPlane;
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;

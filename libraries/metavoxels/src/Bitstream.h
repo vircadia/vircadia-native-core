@@ -31,7 +31,7 @@ class Bitstream;
 class OwnedAttributeValue;
 class TypeStreamer;
 
-typedef QSharedPointer<Attribute> AttributePointer;
+typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows

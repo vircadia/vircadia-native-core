@@ -72,62 +72,6 @@ bool SharedObject::equals(const SharedObject* other) const {
     return true;
 }
 
-SharedObjectPointer::SharedObjectPointer(SharedObject* data) : _data(data) {
-    if (_data) {
-        _data->incrementReferenceCount();
-    }
-}
-
-SharedObjectPointer::SharedObjectPointer(const SharedObjectPointer& other) : _data(other._data) {
-    if (_data) {
-        _data->incrementReferenceCount();
-    }
-}
-
-SharedObjectPointer::~SharedObjectPointer() {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-}
-
-void SharedObjectPointer::detach() {
-    if (_data && _data->getReferenceCount() > 1) {
-        _data->decrementReferenceCount();
-        (_data = _data->clone())->incrementReferenceCount();
-    }
-}
-
-void SharedObjectPointer::reset() {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    _data = NULL;
-}
-
-SharedObjectPointer& SharedObjectPointer::operator=(SharedObject* data) {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    if ((_data = data)) {
-        _data->incrementReferenceCount();
-    }
-    return *this;
-}
-
-SharedObjectPointer& SharedObjectPointer::operator=(const SharedObjectPointer& other) {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    if ((_data = other._data)) {
-        _data->incrementReferenceCount();
-    }
-    return *this;
-}
-
-uint qHash(const SharedObjectPointer& pointer, uint seed) {
-    return qHash(pointer.data(), seed);
-}
-
 SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setAlignment(Qt::AlignTop);
