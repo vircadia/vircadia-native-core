@@ -71,6 +71,7 @@
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ControllerScriptingInterface.h"
+#include "ui/ImageOverlay.h"
 
 
 class QAction;
@@ -490,6 +491,9 @@ private:
     void takeSnapshot();
     
     TouchEvent _lastTouchEvent;
+    
+    ImageOverlay _testOverlayA;
+    ImageOverlay _testOverlayB;
 };
 
 #endif /* defined(__interface__Application__) */

@@ -1870,6 +1870,9 @@ void Application::init() {
 
     _audio.init(_glWidget);
 
+    _testOverlayA.init(_glWidget, QString("./resources/images/hifi-interface-tools.svg"), QRect(100,100,62,40), QRect(0,0,62,40));
+    _testOverlayB.init(_glWidget, QString("./resources/images/hifi-interface-tools.svg"), QRect(170,100,62,40), QRect(0,80,62,40));
+
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
@@ -2996,6 +2999,9 @@ void Application::displayOverlay() {
     if (_pieMenu.isDisplayed()) {
         _pieMenu.render();
     }
+
+    _testOverlayA.render(); //
+    _testOverlayB.render(); //
 
     glPopMatrix();
 }
