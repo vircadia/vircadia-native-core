@@ -305,6 +305,15 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+Extents Model::getStaticExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
+    Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
@@ -711,6 +720,18 @@ void Model::renderCollisionProxies(float alpha) {
     }
     
     glPopMatrix();
+}
+
+bool Model::isPokeable(ModelCollisionInfo& collision) const {
+    // the joint is pokable by a collision if it exists and is free to move
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
+    if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    // an empty freeLineage means the joint can't move
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(collision._jointIndex).freeLineage;
+    return !freeLineage.isEmpty();
 }
 
 bool Model::poke(ModelCollisionInfo& collision) {
