@@ -24,8 +24,8 @@
 class ParticlesScriptingInterface;
 
 #include "AbstractControllerScriptingInterface.h"
-#include "DataServerScriptingInterface.h"
 #include "Quat.h"
+#include "Vec3.h"
 
 const QString NO_SCRIPT("");
 
@@ -43,9 +43,6 @@ public:
 
     /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
-    
-    /// Access the DataServerScriptingInterface for access to its underlying UUID
-    const DataServerScriptingInterface& getDataServerScriptingInterface() { return _dataServerScriptingInterface; }
 
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents);
@@ -59,13 +56,21 @@ public:
     bool isAvatar() const { return _isAvatar; }
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
-
-public slots:
+    
     void init();
     void run(); /// runs continuously until Agent.stop() is called
-    void stop();
     void evaluate(); /// initializes the engine, and evaluates the script, but then returns control to caller
+    
+    void timerFired();
 
+public slots:
+    void stop();
+    
+    QObject* setInterval(const QScriptValue& function, int intervalMS);
+    QObject* setTimeout(const QScriptValue& function, int timeoutMS);
+    void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    
 signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
@@ -73,20 +78,22 @@ signals:
     void finished(const QString& fileNameString);
 
 protected:
-    
     QString _scriptContents;
     bool _isFinished;
     bool _isRunning;
     bool _isInitialized;
     QScriptEngine _engine;
     bool _isAvatar;
+    QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
+    QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
+    void stopTimer(QTimer* timer);
+    
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static ParticlesScriptingInterface _particlesScriptingInterface;
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     AudioScriptingInterface _audioScriptingInterface;
-    DataServerScriptingInterface _dataServerScriptingInterface;
     AvatarData* _avatarData;
     bool _wantMenuItems;
     QString _scriptMenuName;
@@ -94,6 +101,7 @@ private:
     AbstractMenuInterface* _menu;
     static int _scriptNumber;
     Quat _quatLibrary;
+    Vec3 _vec3Library;
 };
 
 #endif /* defined(__hifi__ScriptEngine__) */

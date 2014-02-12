@@ -59,6 +59,8 @@ void VoxelTreeElement::splitChildren() {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             addChildAtIndex(i)->setColor(ourColor);
         }
+        nodeColor noColor = { 0, 0, 0, 0};
+        setColor(noColor); // set our own color to noColor so we are a pure non-leaf
     }
 }
 
@@ -148,7 +150,11 @@ void VoxelTreeElement::setColor(const nodeColor& color) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
         _isDirty = true;
-        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
+        if (color[3]) {
+            _density = 1.0f; // If color set, assume leaf, re-averaging will update density if needed.
+        } else {
+            _density = 0.0f;
+        }
         markWithChangedTime();
     }
 }

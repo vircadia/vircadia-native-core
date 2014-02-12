@@ -23,33 +23,51 @@
 #include "Agent.h"
 
 Agent::Agent(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _voxelEditSender(),
+    _particleEditSender()
 {
+    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
+    _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 }
 
-void Agent::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr) {
-    PacketType datagramPacketType = packetTypeForPacket(dataByteArray);
-    if (datagramPacketType == PacketTypeJurisdiction) {
-        int headerBytes = numBytesForPacketHeader(dataByteArray);
-        // PacketType_JURISDICTION, first byte is the node type...
-        switch (dataByteArray[headerBytes]) {
-            case NodeType::VoxelServer:
-                _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                                            dataByteArray);
-                break;
-            case NodeType::ParticleServer:
-                _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(senderSockAddr,
-                                                                                                               dataByteArray);
-                break;
+void Agent::readPendingDatagrams() {
+    QByteArray receivedPacket;
+    HifiSockAddr senderSockAddr;
+    NodeList* nodeList = NodeList::getInstance();
+    
+    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+            if (datagramPacketType == PacketTypeJurisdiction) {
+                int headerBytes = numBytesForPacketHeader(receivedPacket);
+                
+                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
+                
+                if (matchedNode) {
+                    // PacketType_JURISDICTION, first byte is the node type...
+                    switch (receivedPacket[headerBytes]) {
+                        case NodeType::VoxelServer:
+                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                        receivedPacket);
+                            break;
+                        case NodeType::ParticleServer:
+                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
+                                                                                                                           receivedPacket);
+                            break;
+                    }
+                }
+                
+            } else if (datagramPacketType == PacketTypeParticleAddResponse) {
+                // this will keep creatorTokenIDs to IDs mapped correctly
+                Particle::handleAddParticleResponse(receivedPacket);
+                
+                // also give our local particle tree a chance to remap any internal locally created particles
+                _particleTree.handleAddParticleResponse(receivedPacket);
+            } else {
+                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+            }
         }
-    } else if (datagramPacketType == PacketTypeParticleAddResponse) {
-        // this will keep creatorTokenIDs to IDs mapped correctly
-        Particle::handleAddParticleResponse(dataByteArray);
-        
-        // also give our local particle tree a chance to remap any internal locally created particles
-        _particleTree.handleAddParticleResponse(dataByteArray);
-    } else {
-        NodeList::getInstance()->processNodeData(senderSockAddr, dataByteArray);
     }
 }
 
@@ -88,10 +106,6 @@ void Agent::run() {
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-    
-    QTimer* pingNodesTimer = new QTimer(this);
-    connect(pingNodesTimer, SIGNAL(timeout()), nodeList, SLOT(pingInactiveNodes()));
-    pingNodesTimer->start(PING_INACTIVE_NODE_INTERVAL_USECS / 1000);
     
     // tell our script engine about our local particle tree
     _scriptEngine.getParticlesScriptingInterface()->setParticleTree(&_particleTree);

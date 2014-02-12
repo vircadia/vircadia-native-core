@@ -63,7 +63,7 @@ QByteArray AvatarData::toByteArray() {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    // lazily allocate memory for HandData in case we're not an Avatar instance
     if (!_handData) {
         _handData = new HandData(this);
     }
@@ -107,7 +107,6 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += sizeof(_headData->_lookAtPosition);
      
     // Instantaneous audio loudness (used to drive facial animation)
-    //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float);
 
@@ -215,7 +214,6 @@ int AvatarData::parseData(const QByteArray& packet) {
     sourceBuffer += sizeof(_headData->_lookAtPosition);
     
     // Instantaneous audio loudness (used to drive facial animation)
-    //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
     
@@ -268,6 +266,50 @@ int AvatarData::parseData(const QByteArray& packet) {
     }
     
     return sourceBuffer - startPosition;
+}
+
+bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    QUuid avatarUUID;
+    QUrl faceModelURL, skeletonModelURL;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
+    
+    bool hasIdentityChanged = false;
+    
+    if (faceModelURL != _faceModelURL) {
+        setFaceModelURL(faceModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    if (skeletonModelURL != _skeletonModelURL) {
+        setSkeletonModelURL(skeletonModelURL);
+        hasIdentityChanged = true;
+    }
+    
+    return hasIdentityChanged;
+}
+
+QByteArray AvatarData::identityByteArray() {
+    QByteArray identityData;
+    QDataStream identityStream(&identityData, QIODevice::Append);
+    
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
+    
+    return identityData;
+}
+
+void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
+    _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
+    
+    qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
+}
+
+void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
+    
+    qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {

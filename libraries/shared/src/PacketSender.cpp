@@ -47,8 +47,8 @@ PacketSender::~PacketSender() {
 }
 
 
-void PacketSender::queuePacketForSending(const HifiSockAddr& address, const QByteArray& packet) {
-    NetworkPacket networkPacket(address, packet);
+void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+    NetworkPacket networkPacket(destinationNode, packet);
     lock();
     _packets.push_back(networkPacket);
     unlock();
@@ -263,9 +263,7 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        NodeList::getInstance()->getNodeSocket().writeDatagram(temporary.getByteArray(),
-                                                               temporary.getSockAddr().getAddress(),
-                                                               temporary.getSockAddr().getPort());
+        NodeList::getInstance()->writeDatagram(temporary.getByteArray(), temporary.getDestinationNode());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;

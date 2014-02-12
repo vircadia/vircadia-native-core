@@ -72,9 +72,9 @@ Avatar::Avatar() :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
-    _isCollisionsOn(true),
     _moving(false),
     _owningAvatarMixer(),
+    _collisionFlags(0),
     _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -107,7 +107,7 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
+void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
@@ -160,7 +160,13 @@ void Avatar::render(bool forceRenderHead) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        renderBody(forceRenderHead);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+            _skeletonModel.renderCollisionProxies(1.f);
+        }
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+            renderBody(forceRenderHead);
+        }
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
@@ -243,7 +249,9 @@ void Avatar::renderBody(bool forceRenderHead) {
     glm::vec3 pos = getPosition();
     //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
     _skeletonModel.render(1.0f);
-    _head.render(1.0f);
+    if (forceRenderHead) {
+        _head.render(1.0f);
+    }
     _hand.render(false);
 }
 
@@ -263,34 +271,28 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
-bool Avatar::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex) const {
+bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+        ModelCollisionList& collisions, int skeletonSkipIndex) {
     bool didPenetrate = false;
-    glm::vec3 totalPenetration;
     glm::vec3 skeletonPenetration;
-    if (_skeletonModel.findSpherePenetration(penetratorCenter, penetratorRadius,
-            skeletonPenetration, 1.0f, skeletonSkipIndex)) {
-        totalPenetration = addPenetrations(totalPenetration, skeletonPenetration);
+    ModelCollisionInfo collisionInfo;
+    if (_skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo, 1.0f, skeletonSkipIndex)) {
+        collisionInfo._model = &_skeletonModel;
+        collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
-    glm::vec3 facePenetration;
-    if (_head.getFaceModel().findSpherePenetration(penetratorCenter, penetratorRadius, facePenetration)) {
-        totalPenetration = addPenetrations(totalPenetration, facePenetration);
+    if (_head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo)) {
+        collisionInfo._model = &(_head.getFaceModel());
+        collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
-    if (didPenetrate) {
-        penetration = totalPenetration;
-        return true;
-    }
-    return false;
+    return didPenetrate;
 }
 
-bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-    // TODO: provide an early exit using bounding sphere of entire avatar
-
+bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
     const HandData* handData = getHandData();
     if (handData) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < NUM_HANDS; i++) {
             const PalmData* palm = handData->getPalm(i);
             if (palm && palm->hasPaddle()) {
                 // create a disk collision proxy where the hand is
@@ -326,13 +328,31 @@ bool Avatar::findSphereCollision(const glm::vec3& sphereCenter, float sphereRadi
             }
         }
     }
+    return false;
+}
 
-    if (_skeletonModel.findSpherePenetration(sphereCenter, sphereRadius, collision._penetration)) {
+/* adebug TODO: make this work again
+bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    int jointIndex = _skeletonModel.findSphereCollision(sphereCenter, sphereRadius, collision._penetration);
+    if (jointIndex != -1) {
         collision._penetration /= (float)(TREE_SCALE);
         collision._addedVelocity = getVelocity();
         return true;
     }
     return false;
+}
+*/
+
+void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
+    AvatarData::setFaceModelURL(faceModelURL);
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fbx");
+    _head.getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
+}
+
+void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
+    AvatarData::setSkeletonModelURL(skeletonModelURL);
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fbx");
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
 }
 
 int Avatar::parseData(const QByteArray& packet) {
@@ -395,28 +415,20 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
-void Avatar::goHome() {
-    qDebug("Going Home!");
-    setPosition(START_LOCATION);
-}
-
-void Avatar::increaseSize() {
-    if ((1.f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
-        _targetScale *= (1.f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+void Avatar::updateCollisionFlags() {
+    _collisionFlags = 0;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
+        _collisionFlags |= COLLISION_GROUP_ENVIRONMENT;
     }
-}
-
-void Avatar::decreaseSize() {
-    if (MIN_AVATAR_SCALE < (1.f - SCALING_RATIO) * _targetScale) {
-        _targetScale *= (1.f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
+        _collisionFlags |= COLLISION_GROUP_AVATARS;
     }
-}
-
-void Avatar::resetSize() {
-    _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
+        _collisionFlags |= COLLISION_GROUP_VOXELS;
+    }
+    //if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
+    //    _collisionFlags |= COLLISION_GROUP_PARTICLES;
+    //}
 }
 
 void Avatar::setScale(float scale) {
@@ -431,6 +443,22 @@ void Avatar::setScale(float scale) {
 float Avatar::getHeight() const {
     Extents extents = _skeletonModel.getBindExtents();
     return extents.maximum.y - extents.minimum.y;
+}
+
+bool Avatar::isPokeable(ModelCollisionInfo& collision) const {
+    // ATM only the Skeleton is pokeable
+    // TODO: make poke affect head
+    if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+        return _skeletonModel.isPokeable(collision);
+    }
+    return false;
+}
+
+bool Avatar::poke(ModelCollisionInfo& collision) {
+    if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+        return _skeletonModel.poke(collision);
+    }
+    return false;
 }
 
 float Avatar::getPelvisFloatingHeight() const {

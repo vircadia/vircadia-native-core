@@ -126,8 +126,6 @@ public:
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
 
-    void updateWindowTitle();
-
     void wheelEvent(QWheelEvent* event);
 
     void makeVoxel(glm::vec3 position,
@@ -170,6 +168,7 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
+    ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
     Profile* getProfile() { return &_profile; }
@@ -213,6 +212,8 @@ signals:
     
 public slots:
     void domainChanged(const QString& domainHostname);
+    void updateWindowTitle();
+    void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     
@@ -238,6 +239,7 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
+    void cameraMenuChanged();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
 
@@ -282,10 +284,8 @@ private:
     void updateSixense(float deltaTime);
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
-    void updateMyAvatarSimulation(float deltaTime);
     void updateParticles(float deltaTime);
     void updateMetavoxels(float deltaTime);
-    void updateTransmitter(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateAudio(float deltaTime);
@@ -297,7 +297,7 @@ private:
     void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderHighlightVoxel(VoxelDetail voxel);
 
-    void updateAvatar(float deltaTime);
+    void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
@@ -377,8 +377,6 @@ private:
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
     Profile _profile;               // The data-server linked profile for this user
 
-    Transmitter _myTransmitter;     // Gets UDP data from transmitter app used to animate the avatar
-
     Faceshift _faceshift;
 
     SixenseManager _sixenseManager;
@@ -396,8 +394,6 @@ private:
     glm::mat4 _shadowMatrix;
 
     Environment _environment;
-
-    int _headMouseX, _headMouseY;
 
     int _mouseX;
     int _mouseY;
@@ -417,16 +413,12 @@ private:
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
-    float _yawFromTouch;
-    float _pitchFromTouch;
 
     VoxelDetail _mouseVoxelDragging;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
     bool _isHoverVoxel;
-    bool _isHoverVoxelSounding;
-    nodeColor _hoverVoxelOriginalColor;
 
     VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
@@ -442,9 +434,6 @@ private:
     bool _lookingAlongX;
     bool _lookingAwayFromOrigin;
     glm::vec3 _nudgeGuidePosition;
-
-    glm::vec3 _transmitterPickStart;
-    glm::vec3 _transmitterPickEnd;
 
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
@@ -481,8 +470,8 @@ private:
 
     PieMenu _pieMenu;
 
-    int parseOctreeStats(const QByteArray& packet, const HifiSockAddr& senderAddress);
-    void trackIncomingVoxelPacket(const QByteArray& packet, const HifiSockAddr& senderSockAddr, bool wasStatsPacket);
+    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToJurisdictionMap _particleServerJurisdictions;
@@ -495,15 +484,12 @@ private:
 
     FileLogger* _logger;
 
-    OctreePersistThread* _persistThread;
-
-    QString getLocalVoxelCacheFileName();
-    void updateLocalOctreeCache(bool firstTime = false);
-    
     void checkVersion();
     void displayUpdateDialog();
     bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
+    
+    TouchEvent _lastTouchEvent;
 };
 
 #endif /* defined(__interface__Application__) */

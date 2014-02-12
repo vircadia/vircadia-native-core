@@ -23,13 +23,7 @@ class KeyEvent {
 public:
     KeyEvent();
     KeyEvent(const QKeyEvent& event);
-    inline bool operator==(const KeyEvent& other) const { 
-                            return other.key == key 
-                                && other.isShifted == isShifted 
-                                && other.isControl == isControl
-                                && other.isMeta == isMeta
-                                && other.isAlt == isAlt
-                                && other.isKeypad == isKeypad; }
+    bool operator==(const KeyEvent& other) const;
     int key;
     QString text;
     bool isShifted;
@@ -43,28 +37,68 @@ public:
 
 class MouseEvent {
 public:
-    MouseEvent() : x(0), y(0) { }; 
+    MouseEvent(); 
     MouseEvent(const QMouseEvent& event);
     int x;
     int y;
+    QString button;
+    bool isLeftButton;
+    bool isRightButton;
+    bool isMiddleButton;
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
 };
 
 class TouchEvent {
 public:
-    TouchEvent() : x(0), y(0) { };
+    TouchEvent();
     TouchEvent(const QTouchEvent& event);
+    TouchEvent(const QTouchEvent& event, const TouchEvent& other);
+
     float x;
     float y;
+    bool isPressed;
+    bool isMoved;
+    bool isStationary;
+    bool isReleased; 
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
+    int touchPoints;
+    QVector<glm::vec2> points;
+    float radius;
+    bool isPinching;
+    bool isPinchOpening;
+    QVector<float> angles; // angle from center to each point
+    float angle; // the average of the angles
+    float deltaAngle; // the change in average angle from last event
+    bool isRotating;
+    QString rotating;
+
+private:
+    void initWithQTouchEvent(const QTouchEvent& event);
+    void calculateMetaAttributes(const TouchEvent& other);
 };
 
 class WheelEvent {
 public:
-    WheelEvent() : x(0), y(0)  { }; 
+    WheelEvent();
     WheelEvent(const QWheelEvent& event);
     int x;
     int y;
+    int delta;
+    QString orientation;
+    bool isLeftButton;
+    bool isRightButton;
+    bool isMiddleButton;
+    bool isShifted;
+    bool isControl;
+    bool isMeta;
+    bool isAlt;
 };
-
 
 Q_DECLARE_METATYPE(KeyEvent)
 Q_DECLARE_METATYPE(MouseEvent)
@@ -74,15 +108,15 @@ Q_DECLARE_METATYPE(WheelEvent)
 void registerEventTypes(QScriptEngine* engine);
 
 QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event);
-void keyEventFromScriptValue(const QScriptValue &object, KeyEvent& event);
+void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event);
 
 QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event);
-void mouseEventFromScriptValue(const QScriptValue &object, MouseEvent& event);
+void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event);
 
 QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event);
-void touchEventFromScriptValue(const QScriptValue &object, TouchEvent& event);
+void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);
 
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
-void wheelEventFromScriptValue(const QScriptValue &object, WheelEvent& event);
+void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
 
 #endif // __hifi_EventTypes_h__

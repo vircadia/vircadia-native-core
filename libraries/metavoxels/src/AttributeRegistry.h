@@ -9,18 +9,15 @@
 #ifndef __interface__AttributeRegistry__
 #define __interface__AttributeRegistry__
 
-#include <QColor>
-#include <QExplicitlySharedDataPointer>
 #include <QHash>
 #include <QObject>
-#include <QSharedData>
 #include <QSharedPointer>
 #include <QString>
 #include <QWidget>
 
 #include "Bitstream.h"
+#include "SharedObject.h"
 
-class QPushButton;
 class QScriptContext;
 class QScriptEngine;
 class QScriptValue;
@@ -108,6 +105,9 @@ public:
     bool operator==(const AttributeValue& other) const;
     bool operator==(void* other) const;
     
+    bool operator!=(const AttributeValue& other) const;
+    bool operator!=(void* other) const;
+    
 protected:
     
     AttributePointer _attribute;
@@ -127,11 +127,17 @@ public:
     /// Creates an owned attribute with a copy of the specified other value.
     OwnedAttributeValue(const AttributeValue& other);
     
+    /// Creates an owned attribute with a copy of the specified other value.
+    OwnedAttributeValue(const OwnedAttributeValue& other);
+    
     /// Destroys the current value, if any.
     ~OwnedAttributeValue();
     
     /// Destroys the current value, if any, and copies the specified other value.
     OwnedAttributeValue& operator=(const AttributeValue& other);
+    
+    /// Destroys the current value, if any, and copies the specified other value.
+    OwnedAttributeValue& operator=(const OwnedAttributeValue& other);
 };
 
 /// Represents a registered attribute.
@@ -247,104 +253,28 @@ public:
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
 };
 
-/// Editor for RGBA values.
-class QRgbEditor : public QWidget {
+/// An attribute that takes the form of QObjects of a given meta-type (a subclass of SharedObject).
+class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     Q_OBJECT
-    Q_PROPERTY(QColor color MEMBER _color WRITE setColor USER true)
-
+    Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject)
+    
 public:
     
-    QRgbEditor(QWidget* parent);
+    Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(), const QMetaObject* metaObject = NULL,
+        const SharedObjectPointer& defaultValue = SharedObjectPointer());
 
-public slots:
-
-    void setColor(const QColor& color);
-        
-private slots:
-
-    void selectColor();    
-    
-private:
-    
-    QPushButton* _button;
-    QColor _color;
-};
-
-/// An attribute class that stores pointers to its values.
-template<class T> class PointerAttribute : public Attribute {
-public:
-    
-    PointerAttribute(const QString& name, T defaultValue = T()) : Attribute(name), _defaultValue(defaultValue) { }
-    
-    virtual void* create(void* copy) const { new T(*static_cast<T*>(copy)); }
-    virtual void destroy(void* value) const { delete static_cast<T*>(value); }
-    
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
     virtual void write(Bitstream& out, void* value, bool isLeaf) const;
 
-    virtual bool equal(void* first, void* second) const { return *static_cast<T*>(first) == *static_cast<T*>(second); }
-
-    virtual void* getDefaultValue() const { return const_cast<void*>((void*)&_defaultValue); }
+    virtual bool merge(void*& parent, void* children[]) const;
+    
+    virtual void* createFromVariant(const QVariant& value) const;
+    
+    virtual QWidget* createEditor(QWidget* parent = NULL) const;
 
 private:
     
-    T _defaultValue;
-}; 
-
-template<class T> inline void PointerAttribute<T>::read(Bitstream& in, void*& value, bool isLeaf) const {
-    if (isLeaf) {
-        in.read(value, sizeof(T) * 8);
-    }
-}
-
-template<class T> inline void PointerAttribute<T>::write(Bitstream& out, void* value, bool isLeaf) const {
-    if (isLeaf) {
-        out.write(value, sizeof(T) * 8);
-    }
-}
-
-/// Provides merging using the =, ==, += and /= operators.
-template<class T> class SimplePointerAttribute : public PointerAttribute<T> {
-public:
-    
-    SimplePointerAttribute(const QString& name, T defaultValue = T()) : PointerAttribute<T>(name, defaultValue) { }
-    
-    virtual bool merge(void*& parent, void* children[]) const;
-};
-
-template<class T> inline bool SimplePointerAttribute<T>::merge(void*& parent, void* children[]) const {
-    T& merged = *static_cast<T*>(parent);
-    merged = *static_cast<T*>(children[0]);
-    bool allChildrenEqual = true;
-    for (int i = 1; i < Attribute::MERGE_COUNT; i++) {
-        merged += *static_cast<T*>(children[i]);
-        allChildrenEqual &= (*static_cast<T*>(children[0]) == *static_cast<T*>(children[i]));
-    }
-    merged /= Attribute::MERGE_COUNT;
-    return allChildrenEqual;
-}
-
-/// Base class for polymorphic attribute data.  
-class PolymorphicData : public QSharedData {
-public:
-    
-    virtual ~PolymorphicData();
-    
-    /// Creates a new clone of this object.
-    virtual PolymorphicData* clone() const = 0;
-};
-
-template<> PolymorphicData* QExplicitlySharedDataPointer<PolymorphicData>::clone();
-
-typedef QExplicitlySharedDataPointer<PolymorphicData> PolymorphicDataPointer;
-
-/// Provides polymorphic streaming and averaging.
-class PolymorphicAttribute : public InlineAttribute<PolymorphicDataPointer> {
-public:
-
-    PolymorphicAttribute(const QString& name, const PolymorphicDataPointer& defaultValue = PolymorphicDataPointer());
-    
-    virtual bool merge(void*& parent, void* children[]) const;
+    const QMetaObject* _metaObject;
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

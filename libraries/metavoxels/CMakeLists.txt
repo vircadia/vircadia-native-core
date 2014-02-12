@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME metavoxels)
 
+find_package(Qt5Network REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
@@ -16,7 +17,7 @@ setup_hifi_library(${TARGET_NAME})
 include(${MACRO_DIR}/AutoMTC.cmake)
 auto_mtc(${TARGET_NAME} ${ROOT_DIR})
 
-qt5_use_modules(${TARGET_NAME} Widgets Script)
+qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})

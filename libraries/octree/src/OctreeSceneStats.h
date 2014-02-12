@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 #include <NodeList.h>
+#include <SharedUtil.h>
 #include "JurisdictionMap.h"
 
 #define GREENISH  0x40ff40d0

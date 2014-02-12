@@ -601,6 +601,7 @@ public:
     FBXMesh mesh;
     QMultiHash<int, int> newIndices;
     QVector<QHash<int, int> > blendshapeIndexMaps;
+    QVector<QPair<int, int> > partMaterialTextures;
 };
 
 class MeshData {
@@ -667,6 +668,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
 ExtractedMesh extractMesh(const FBXNode& object) {
     MeshData data;
     QVector<int> materials;
+    QVector<int> textures;
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
             data.vertices = createVec3Vector(getDoubleVector(child.properties, 0));
@@ -703,19 +705,32 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                     materials = getIntVector(subdata.properties, 0);
                 }
             }
+        } else if (child.name == "LayerElementTexture") {
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "TextureId") {
+                    textures = getIntVector(subdata.properties, 0);
+                }
+            }
         }
     }
 
     // convert the polygons to quads and triangles
     int polygonIndex = 0;
+    QHash<QPair<int, int>, int> materialTextureParts;
     for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
         int endIndex = beginIndex;
         while (data.polygonIndices.at(endIndex++) >= 0);
 
-        int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
-        data.extracted.mesh.parts.resize(max(data.extracted.mesh.parts.size(), materialIndex + 1));
-        FBXMeshPart& part = data.extracted.mesh.parts[materialIndex];
-
+        QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
+            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
+        int& partIndex = materialTextureParts[materialTexture];
+        if (partIndex == 0) {
+            data.extracted.partMaterialTextures.append(materialTexture);
+            data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
+            partIndex = data.extracted.mesh.parts.size();
+        }
+        FBXMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
+        
         if (endIndex - beginIndex == 4) {
             appendIndex(data, part.quadIndices, beginIndex++);
             appendIndex(data, part.quadIndices, beginIndex++);
@@ -819,6 +834,12 @@ QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
     }
 }
 
+QString getString(const QVariant& value) {
+    // if it's a list, return the first entry
+    QVariantList list = value.toList();
+    return list.isEmpty() ? value.toString() : list.at(0).toString();
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -832,14 +853,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QString> bumpTextures;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = processID(joints.value("jointEyeLeft", "jointEyeLeft").toString());
-    QString jointEyeRightName = processID(joints.value("jointEyeRight", "jointEyeRight").toString());
-    QString jointNeckName = processID(joints.value("jointNeck", "jointNeck").toString());
-    QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
-    QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
-    QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
-    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
-    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
+    QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
+    QString jointNeckName = processID(getString(joints.value("jointNeck", "jointNeck")));
+    QString jointRootName = processID(getString(joints.value("jointRoot", "jointRoot")));
+    QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
+    QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
+    QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
+    QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
     QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
     QVariantList jointRightFingerNames = joints.values("jointRightFinger");
     QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
@@ -1250,9 +1271,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
-    
+
     geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    geometry.staticExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    geometry.staticExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -1265,41 +1288,60 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
 
         // look for textures, material properties
-        int partIndex = extracted.mesh.parts.size() - 1;
+        int materialIndex = 0;
+        int textureIndex = 0;
         bool generateTangents = false;
-        foreach (const QString& childID, childMap.values(modelID)) {
-            if (partIndex < 0) {
-                break;
-            }
-            FBXMeshPart& part = extracted.mesh.parts[partIndex];
-            if (textureFilenames.contains(childID)) {
-                part.diffuseFilename = textureFilenames.value(childID);
-                continue;
-            }
-            if (!materials.contains(childID)) {
-                continue;
-            }
-            Material material = materials.value(childID);
-            part.diffuseColor = material.diffuse;
-            part.specularColor = material.specular;
-            part.shininess = material.shininess;
-            QString diffuseTextureID = diffuseTextures.value(childID);
-            if (!diffuseTextureID.isNull()) {
-                part.diffuseFilename = textureFilenames.value(diffuseTextureID);
+        QList<QString> children = childMap.values(modelID);
+        for (int i = children.size() - 1; i >= 0; i--) {
+            const QString& childID = children.at(i);
+            if (materials.contains(childID)) {
+                Material material = materials.value(childID);
+                
+                QByteArray diffuseFilename;
+                QString diffuseTextureID = diffuseTextures.value(childID);
+                if (!diffuseTextureID.isNull()) {
+                    diffuseFilename = textureFilenames.value(diffuseTextureID);
 
-                // FBX files generated by 3DSMax have an intermediate texture parent, apparently
-                foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
-                    if (textureFilenames.contains(childTextureID)) {
-                        part.diffuseFilename = textureFilenames.value(childTextureID);
+                    // FBX files generated by 3DSMax have an intermediate texture parent, apparently
+                    foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
+                        if (textureFilenames.contains(childTextureID)) {
+                            diffuseFilename = textureFilenames.value(childTextureID);
+                        }
                     }
                 }
+                
+                QByteArray normalFilename;
+                QString bumpTextureID = bumpTextures.value(childID);
+                if (!bumpTextureID.isNull()) {
+                    normalFilename = textureFilenames.value(bumpTextureID);
+                    generateTangents = true;
+                }
+                
+                for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
+                    if (extracted.partMaterialTextures.at(j).first == materialIndex) {
+                        FBXMeshPart& part = extracted.mesh.parts[j];
+                        part.diffuseColor = material.diffuse;
+                        part.specularColor = material.specular;
+                        part.shininess = material.shininess;
+                        if (!diffuseFilename.isNull()) {
+                            part.diffuseFilename = diffuseFilename;
+                        }
+                        if (!normalFilename.isNull()) {
+                            part.normalFilename = normalFilename;
+                        }
+                    }
+                }
+                materialIndex++;
+                
+            } else if (textureFilenames.contains(childID)) {
+                QByteArray filename = textureFilenames.value(childID);
+                for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
+                    if (extracted.partMaterialTextures.at(j).second == textureIndex) {
+                        extracted.mesh.parts[j].diffuseFilename = filename;
+                    }
+                }
+                textureIndex++;
             }
-            QString bumpTextureID = bumpTextures.value(childID);
-            if (!bumpTextureID.isNull()) {
-                part.normalFilename = textureFilenames.value(bumpTextureID);
-                generateTangents = true;
-            }
-            partIndex--;
         }
 
         // if we have a normal map (and texture coordinates), we must compute tangents
@@ -1390,6 +1432,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         boneDirection /= boneLength;
                     }
                 }
+                bool jointIsStatic = joint.freeLineage.isEmpty();
+                glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1406,6 +1450,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             if (proj < 0.0f && proj > -boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
                                     vertex, boneEnd + boneDirection * proj));
+                            }
+                            if (jointIsStatic) {
+                                // expand the extents of static (nonmovable) joints
+                                geometry.staticExtents.minimum = glm::min(geometry.staticExtents.minimum, vertex + jointTranslation);
+                                geometry.staticExtents.maximum = glm::max(geometry.staticExtents.maximum, vertex + jointTranslation);
                             }
                         }
 
@@ -1632,7 +1681,18 @@ FBXGeometry readSVO(const QByteArray& model) {
 
     VoxelTree tree;
     ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-    tree.readBitstreamToTree((unsigned char*)model.data(), model.size(), args);
+
+    unsigned char* dataAt = (unsigned char*)model.data();
+    size_t dataSize = model.size();
+
+    if (tree.getWantSVOfileVersions()) {
+        // skip the type/version
+        dataAt += sizeof(PacketType);
+        dataSize -= sizeof(PacketType);
+        dataAt += sizeof(PacketVersion);
+        dataSize -= sizeof(PacketVersion);
+    }   
+    tree.readBitstreamToTree(dataAt, dataSize, args);
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);

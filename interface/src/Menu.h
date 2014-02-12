@@ -48,6 +48,7 @@ public:
     ~Menu();
 
     bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
@@ -166,6 +167,10 @@ namespace MenuOption {
     const QString ChatCircling = "Chat Circling";
     const QString CollisionProxies = "Collision Proxies";
     const QString Collisions = "Collisions";
+    const QString CollideWithAvatars = "Collide With Avatars";
+    const QString CollideWithParticles = "Collide With Particles";
+    const QString CollideWithVoxels = "Collide With Voxels";
+    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
@@ -177,7 +182,6 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DisableColorVoxels = "Disable Colored Voxels";
     const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableLocalVoxelCache = "Disable Local Voxel Cache";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
@@ -188,6 +192,7 @@ namespace MenuOption {
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
+    const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";

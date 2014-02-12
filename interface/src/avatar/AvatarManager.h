@@ -20,44 +20,35 @@
 
 class MyAvatar;
 
-class AvatarManager : public QObject, public DataServerCallbackObject, public AvatarHashMap {
+class AvatarManager : public QObject, public AvatarHashMap {
     Q_OBJECT
 public:
     AvatarManager(QObject* parent = 0);
-
-    void clear();
 
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
-    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
-    
-    void updateAvatars(float deltaTime);
+    void updateOtherAvatars(float deltaTime);
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     
-    void clearMixedAvatars();
+    void clearOtherAvatars();
 
 public slots:
-    void processDataServerResponse(const QString& userString, const QStringList& keyList, const QStringList& valueList);
-    
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
-
+    
 private:
     AvatarManager(const AvatarManager& other);
+    
+    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
+    void processAvatarIdentityPacket(const QByteArray& packet);
+    void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades();
     
     // virtual override
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    QWeakPointer<AvatarData> _lookAtTargetAvatar;
-    glm::vec3 _lookAtOtherPosition;
-    float _lookAtIndicatorScale;
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;

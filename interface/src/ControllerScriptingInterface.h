@@ -28,9 +28,10 @@ public:
     void emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(MouseEvent(*event)); }
     void emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(MouseEvent(*event)); }
 
-    void emitTouchBeginEvent(QTouchEvent* event) { emit touchBeginEvent(*event); }
-    void emitTouchEndEvent(QTouchEvent* event) { emit touchEndEvent(*event); }
-    void emitTouchUpdateEvent(QTouchEvent* event) { emit touchUpdateEvent(*event); }
+    void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
+    void emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }
+    void emitTouchUpdateEvent(const TouchEvent& event) { emit touchUpdateEvent(event); }
+    
     void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
 
     bool isKeyCaptured(QKeyEvent* event) const;
@@ -38,7 +39,7 @@ public:
     bool isMouseCaptured() const { return _mouseCaptured; }
     bool isTouchCaptured() const { return _touchCaptured; }
     bool isWheelCaptured() const { return _wheelCaptured; }
-
+    bool isJoystickCaptured(int joystickIndex) const;
 
 public slots:
     virtual bool isPrimaryButtonPressed() const;
@@ -57,7 +58,7 @@ public slots:
     virtual glm::vec3 getSpatialControlPosition(int controlIndex) const;
     virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
     virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
-
+    virtual glm::quat getSpatialControlRawRotation(int controlIndex) const;
     virtual void captureKeyEvents(const KeyEvent& event);
     virtual void releaseKeyEvents(const KeyEvent& event);
 
@@ -70,6 +71,9 @@ public slots:
     virtual void captureWheelEvents() { _wheelCaptured = true; }
     virtual void releaseWheelEvents() { _wheelCaptured = false; }
 
+    virtual void captureJoystick(int joystickIndex);
+    virtual void releaseJoystick(int joystickIndex);
+
 private:
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;
@@ -80,6 +84,7 @@ private:
     bool _touchCaptured;
     bool _wheelCaptured;
     QMultiMap<int,KeyEvent> _capturedKeys;
+    QSet<int> _capturedJoysticks;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip

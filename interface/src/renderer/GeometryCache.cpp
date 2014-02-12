@@ -290,19 +290,24 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
     buffer.release();
 }
 
-QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
+QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback) {
+    if (!url.isValid() && fallback.isValid()) {
+        return getGeometry(fallback);
+    }
     QSharedPointer<NetworkGeometry> geometry = _networkGeometry.value(url);
     if (geometry.isNull()) {
-        geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url));
+        geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url, fallback.isValid() ?
+            getGeometry(fallback) : QSharedPointer<NetworkGeometry>()));
         _networkGeometry.insert(url, geometry);
     }
     return geometry;
 }
 
-NetworkGeometry::NetworkGeometry(const QUrl& url) :
+NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback) :
     _modelRequest(url),
     _modelReply(NULL),
     _mappingReply(NULL),
+    _fallback(fallback),
     _attempts(0)
 {
     if (!url.isValid()) {
@@ -369,18 +374,37 @@ void NetworkGeometry::makeModelRequest() {
 void NetworkGeometry::handleModelReplyError() {
     QDebug debug = qDebug() << _modelReply->errorString();
     
+    QNetworkReply::NetworkError error = _modelReply->error();
     _modelReply->disconnect(this);
     _modelReply->deleteLater();
     _modelReply = NULL;
     
-    // retry with increasing delays
-    const int MAX_ATTEMPTS = 8;
-    const int BASE_DELAY_MS = 1000;
-    if (++_attempts < MAX_ATTEMPTS) {
-        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeModelRequest()));
-        debug << " -- retrying...";
-        
+    // retry for certain types of failures
+    switch (error) {
+        case QNetworkReply::RemoteHostClosedError:
+        case QNetworkReply::TimeoutError:
+        case QNetworkReply::TemporaryNetworkFailureError:
+        case QNetworkReply::ProxyConnectionClosedError:
+        case QNetworkReply::ProxyTimeoutError:
+        case QNetworkReply::UnknownNetworkError:
+        case QNetworkReply::UnknownProxyError:
+        case QNetworkReply::UnknownContentError:
+        case QNetworkReply::ProtocolFailure: {        
+            // retry with increasing delays
+            const int MAX_ATTEMPTS = 8;
+            const int BASE_DELAY_MS = 1000;
+            if (++_attempts < MAX_ATTEMPTS) {
+                QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeModelRequest()));
+                debug << " -- retrying...";
+                return;
+            }
+            // fall through to final failure
+        }    
+        default:
+            maybeLoadFallback();
+            break;
     }
+    
 }
 
 void NetworkGeometry::handleMappingReplyError() {
@@ -415,6 +439,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << url << ": " << error;
+        maybeLoadFallback();
         return;
     }
     
@@ -506,6 +531,24 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         _meshes.append(networkMesh);
+    }
+    
+    emit loaded();
+}
+
+void NetworkGeometry::loadFallback() {
+    _geometry = _fallback->_geometry;
+    _meshes = _fallback->_meshes;
+    emit loaded();
+}
+
+void NetworkGeometry::maybeLoadFallback() {
+    if (_fallback) {
+        if (_fallback->isLoaded()) {
+            loadFallback();
+        } else {
+            connect(_fallback.data(), SIGNAL(loaded()), SLOT(loadFallback()));
+        }
     }
 }
 

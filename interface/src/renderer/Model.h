@@ -17,6 +17,16 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class Model;
+
+// TODO: Andrew to move this into its own file
+class ModelCollisionInfo : public CollisionInfo {
+public:
+    ModelCollisionInfo() : CollisionInfo(), _model(NULL), _jointIndex(-1) {}
+    Model* _model;
+    int _jointIndex;
+};
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -51,11 +61,14 @@ public:
     void simulate(float deltaTime);
     bool render(float alpha);
     
-    Q_INVOKABLE void setURL(const QUrl& url);
+    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
     const QUrl& getURL() const { return _url; }
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
+
+    /// Returns the extents of the unmovable joints of the model.
+    Extents getStaticExtents() const;
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -149,8 +162,17 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, float boneScale = 1.0f, int skipIndex = -1) const;
+    bool findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
+        ModelCollisionInfo& collision, float boneScale = 1.0f, int skipIndex = -1) const;
+    
+    void renderCollisionProxies(float alpha);
+
+    /// \return true if the collision would move the model
+    bool isPokeable(ModelCollisionInfo& collision) const;
+
+    /// \param collisionInfo info about the collision
+    /// \return true if collision affects the Model
+    bool poke(ModelCollisionInfo& collisionInfo);
 
 protected:
 
@@ -208,8 +230,6 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
-    
-    void renderCollisionProxies(float alpha);
     
 private:
     

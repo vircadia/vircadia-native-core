@@ -172,6 +172,21 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlVelocity(int controlInd
     return glm::vec3(0); // bad index
 }
 
+glm::quat ControllerScriptingInterface::getSpatialControlRawRotation(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getRawRotation();
+            case TIP_SPATIALCONTROL:
+                return palmData->getRawRotation(); // currently the tip doesn't have a unique rotation, use the palm rotation
+        }
+    }
+    return glm::quat(); // bad index
+}
+
 glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex) const {
     int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
     int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
@@ -216,6 +231,22 @@ void ControllerScriptingInterface::releaseKeyEvents(const KeyEvent& event) {
         if (isKeyCaptured(event)) {
             _capturedKeys.remove(event.key, event);
         }
+    }
+}
+
+bool ControllerScriptingInterface::isJoystickCaptured(int joystickIndex) const {
+    return _capturedJoysticks.contains(joystickIndex);
+}
+
+void ControllerScriptingInterface::captureJoystick(int joystickIndex) {
+    if (!isJoystickCaptured(joystickIndex)) {
+        _capturedJoysticks.insert(joystickIndex);
+    }
+}
+
+void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
+    if (isJoystickCaptured(joystickIndex)) {
+        _capturedJoysticks.remove(joystickIndex);
     }
 }
 

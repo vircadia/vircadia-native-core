@@ -30,6 +30,7 @@ typedef unsigned long long quint64;
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
 
@@ -51,8 +52,10 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-enum KeyState
-{
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+
+enum KeyState {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
@@ -64,6 +67,7 @@ class AvatarData : public NodeData {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
@@ -72,7 +76,9 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-
+    
+    Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
+    Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
     AvatarData();
     ~AvatarData();
@@ -129,18 +135,21 @@ public:
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    /// Checks for penetration between the described sphere and the avatar.
-    /// \param penetratorCenter the center of the penetration test sphere
-    /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param penetration[out] the vector in which to store the penetration
-    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
-    /// \return whether or not the sphere penetrated
-    virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex = -1) const { return false; }
-
-    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
         return false;
     }
+
+    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+        return false;
+    }
+    
+    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    QByteArray identityByteArray();
+    
+    const QUrl& getFaceModelURL() const { return _faceModelURL; }
+    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     
 protected:
     glm::vec3 _position;
@@ -168,6 +177,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
+    QUrl _faceModelURL;
+    QUrl _skeletonModelURL;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

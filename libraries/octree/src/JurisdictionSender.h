@@ -37,7 +37,7 @@ public:
     void setNodeType(NodeType_t type) { _nodeType = type; }
 
 protected:
-    virtual void processPacket(const HifiSockAddr& senderAddress, const QByteArray& packet);
+    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { _requestingNodeMutex.lock(); }

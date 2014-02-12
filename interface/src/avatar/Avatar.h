@@ -20,7 +20,6 @@
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
-#include "devices/Transmitter.h"
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -58,7 +57,7 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-class MyAvatar;
+typedef QVector<ModelCollisionInfo> ModelCollisionList;
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
 // this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
@@ -73,7 +72,7 @@ public:
     ~Avatar();
 
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime);
     void render(bool forceRenderHead);
 
     //setters
@@ -83,7 +82,6 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
-    float getHeadYawRate() const { return _head.yawRate; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
@@ -99,34 +97,46 @@ public:
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param penetration[out] the vector in which to store the penetration
+    /// \param collisions[out] a list of collisions
     /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
-    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex = -1) const;
+    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+        ModelCollisionList& collisions, int skeletonSkipIndex = -1);
 
-    /// Checks for collision between the a sphere and the avatar.
+    /// Checks for collision between the a sphere and the avatar's (paddle) hands.
     /// \param collisionCenter the center of the penetration test sphere
     /// \param collisionRadius the radius of the penetration test sphere
     /// \param collision[out] the details of the collision point
     /// \return whether or not the sphere collided
-    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+    bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+
+    /// Checks for collision between the a sphere and the avatar's skeleton (including hand capsules).
+    /// \param collisionCenter the center of the penetration test sphere
+    /// \param collisionRadius the radius of the penetration test sphere
+    /// \param collision[out] the details of the collision point
+    /// \return whether or not the sphere collided
+    //bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
     
     virtual bool isMyAvatar() { return false; }
-
+    
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    
     int parseData(const QByteArray& packet);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
+    float getHeight() const;
+
+    /// \return true if we expect the avatar would move as a result of the collision
+    bool isPokeable(ModelCollisionInfo& collision) const;
+
+    /// \param collision a data structure for storing info about collisions against Models
+    /// \return true if the collision affects the Avatar models
+    bool poke(ModelCollisionInfo& collision);
+
 public slots:
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
-    void goHome();
-    void increaseSize();
-    void decreaseSize();
-    void resetSize();
-
-    friend class MyAvatar;
-
+    void updateCollisionFlags();
 
 protected:
     Head _head;
@@ -142,10 +152,11 @@ protected:
     glm::vec3 _worldUpDirection;
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
-    bool _isCollisionsOn;
     float _stringLength;
     bool _moving; ///< set when position is changing
     QWeakPointer<Node> _owningAvatarMixer;
+
+    uint32_t _collisionFlags;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -154,7 +165,6 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
 
-    float getHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 

@@ -9,29 +9,36 @@
 //
 //
 
+var alwaysLook = true; // if you want the mouse look to happen only when you click, change this to false
 var isMouseDown = false;
 var lastX = 0;
 var lastY = 0;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
+var wantDebugging = false;
 
 function mousePressEvent(event) {
-    print("mousePressEvent event.x,y=" + event.x + ", " + event.y);
+    if (wantDebugging) {
+        print("mousePressEvent event.x,y=" + event.x + ", " + event.y);
+    }
     isMouseDown = true;
     lastX = event.x;
     lastY = event.y;
 }
 
 function mouseReleaseEvent(event) {
-    print("mouseReleaseEvent event.x,y=" + event.x + ", " + event.y);
+    if (wantDebugging) {
+        print("mouseReleaseEvent event.x,y=" + event.x + ", " + event.y);
+    }
     isMouseDown = false;
 }
 
 function mouseMoveEvent(event) {
-    print("mouseMoveEvent event.x,y=" + event.x + ", " + event.y);
+    if (wantDebugging) {
+        print("mouseMoveEvent event.x,y=" + event.x + ", " + event.y);
+    }
 
-    if (isMouseDown) {
-        print("isMouseDown... attempting to change pitch...");
+    if (alwaysLook || isMouseDown) {
         var MOUSE_YAW_SCALE = -0.25;
         var MOUSE_PITCH_SCALE = -12.5;
         var FIXED_MOUSE_TIMESTEP = 0.016;
@@ -43,12 +50,26 @@ function mouseMoveEvent(event) {
 }
 
 function update() {
+    if (wantDebugging) {
+        print("update()...");
+    }
     // rotate body yaw for yaw received from mouse
-    MyAvatar.orientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
+    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.fromVec3( { x: 0, y: yawFromMouse, z: 0 } ));
+    if (wantDebugging) {
+        print("changing orientation"
+            + " [old]MyAvatar.orientation="+MyAvatar.orientation.x + "," + MyAvatar.orientation.y + "," 
+            + MyAvatar.orientation.z + "," + MyAvatar.orientation.w
+            + " newOrientation="+newOrientation.x + "," + newOrientation.y + "," + newOrientation.z + "," + newOrientation.w);
+    }
+    MyAvatar.orientation = newOrientation;
     yawFromMouse = 0;
 
     // apply pitch from mouse
-    MyAvatar.headPitch = MyAvatar.headPitch + pitchFromMouse;
+    var newPitch = MyAvatar.headPitch + pitchFromMouse;
+    if (wantDebugging) {
+        print("changing pitch [old]MyAvatar.headPitch="+MyAvatar.headPitch+ " newPitch="+newPitch);
+    }
+    MyAvatar.headPitch = newPitch;
     pitchFromMouse = 0;
 }
 

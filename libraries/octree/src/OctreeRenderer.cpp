@@ -26,7 +26,7 @@ void OctreeRenderer::init() {
 OctreeRenderer::~OctreeRenderer() {
 }
 
-void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const HifiSockAddr& senderSockAddr, Node* sourceNode) {
+void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     bool extraDebugging = false; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
@@ -64,7 +64,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Hifi
         int flightTime = arrivedAt - sentAt + clockSkew;
         
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
-        int dataBytes = packetLength - OCTREE_PACKET_HEADER_SIZE;
+        int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
             qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"

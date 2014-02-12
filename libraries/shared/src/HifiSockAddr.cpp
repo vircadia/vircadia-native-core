@@ -45,8 +45,6 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) {
 }
 
 HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
-    //HifiSockAddr temp(rhsSockAddr);
-    //swap(temp);
     _address = rhsSockAddr._address;
     _port = rhsSockAddr._port;
     

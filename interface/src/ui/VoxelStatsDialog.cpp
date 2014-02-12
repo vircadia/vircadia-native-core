@@ -265,7 +265,7 @@ void VoxelStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serv
             std::stringstream extraDetails("");
             std::stringstream linkDetails("");
             
-            if (nodeList->getNodeActiveSocketOrPing(node.data())) {
+            if (node->getActiveSocket()) {
                 serverDetails << "active ";
             } else {
                 serverDetails << "inactive ";

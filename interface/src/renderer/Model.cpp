@@ -305,6 +305,15 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+Extents Model::getStaticExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
+    Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
@@ -390,7 +399,7 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url) {
+void Model::setURL(const QUrl& url, const QUrl& fallback) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
@@ -401,7 +410,7 @@ void Model::setURL(const QUrl& url) {
     deleteGeometry();
     _dilatedTextures.clear();
     
-    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
+    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -437,11 +446,11 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
-bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, float boneScale, int skipIndex) const {
+bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
+    ModelCollisionInfo& collisionInfo, float boneScale, int skipIndex) const {
+    int jointIndex = -1;
     const glm::vec3 relativeCenter = penetratorCenter - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    bool didPenetrate = false;
     glm::vec3 totalPenetration;
     float radiusScale = extractUniformScale(_scale) * boneScale;
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -468,12 +477,16 @@ bool Model::findSpherePenetration(const glm::vec3& penetratorCenter, float penet
         if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
                 startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            didPenetrate = true; 
+            // TODO: Andrew to try to keep the joint furthest toward the root
+            jointIndex = i;
         }
         outerContinue: ;
     }
-    if (didPenetrate) {
-        penetration = totalPenetration;
+    if (jointIndex != -1) {
+        // don't store collisionInfo._model at this stage, let the outer context do that
+        collisionInfo._penetration = totalPenetration;
+        collisionInfo._jointIndex = jointIndex;
+        collisionInfo._contactPoint = penetratorCenter + penetratorRadius * glm::normalize(totalPenetration);
         return true;
     }
     return false;
@@ -548,6 +561,9 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     glm::vec3 relativePosition = position - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+    if (freeLineage.isEmpty()) {
+        return false;
+    }
     if (lastFreeIndex == -1) {
         lastFreeIndex = freeLineage.last();
     }
@@ -704,6 +720,49 @@ void Model::renderCollisionProxies(float alpha) {
     }
     
     glPopMatrix();
+}
+
+bool Model::isPokeable(ModelCollisionInfo& collision) const {
+    // the joint is pokable by a collision if it exists and is free to move
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
+    if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    // an empty freeLineage means the joint can't move
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(collision._jointIndex).freeLineage;
+    return !freeLineage.isEmpty();
+}
+
+bool Model::poke(ModelCollisionInfo& collision) {
+    // This needs work.  At the moment it can wiggle joints that are free to move (such as arms)
+    // but unmovable joints (such as torso) cannot be influenced at all.
+    glm::vec3 jointPosition(0.f);
+    if (getJointPosition(collision._jointIndex, jointPosition)) {
+        int jointIndex = collision._jointIndex;
+        const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
+        if (joint.parentIndex != -1) {
+            // compute the approximate distance (travel) that the joint needs to move
+            glm::vec3 start;
+            getJointPosition(joint.parentIndex, start);
+            glm::vec3 contactPoint = collision._contactPoint - start;
+            glm::vec3 penetrationEnd = contactPoint + collision._penetration;
+            glm::vec3 axis = glm::cross(contactPoint, penetrationEnd);
+            float travel = glm::length(axis);
+            const float MIN_TRAVEL = 1.0e-8f;
+            if (travel > MIN_TRAVEL) {
+                // compute the new position of the joint
+                float angle = asinf(travel / (glm::length(contactPoint) * glm::length(penetrationEnd)));
+                axis = glm::normalize(axis);
+                glm::vec3 end;
+                getJointPosition(jointIndex, end);
+                glm::vec3 newEnd = start + glm::angleAxis(glm::degrees(angle), axis) * (end - start);
+                // try to move it
+                return setJointPosition(jointIndex, newEnd, -1, true);
+            }
+        }
+    }
+    return false;
 }
 
 void Model::deleteGeometry() {

@@ -113,8 +113,6 @@ public:
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
 
-    bool treeIsBusy() const { return _treeIsBusy; }
-
     VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
 
 signals:
@@ -148,9 +146,6 @@ public slots:
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
     void setVoxelsAsPoints(bool voxelsAsPoints);
-
-    void localVoxelCacheLoaded();
-    void beginLoadingLocalVoxelCache();
 
 protected:
     float _treeScale;
@@ -312,10 +307,6 @@ private:
     bool _useFastVoxelPipeline;
 
     bool _inhideOutOfView;
-    bool _treeIsBusy; // is the tree mutex locked? if so, it's busy, and if you can avoid it, don't access the tree
-
-    void lockTree();
-    void unlockTree();
 
     bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
     bool _inInspectForOcclusions;               ///< Flag occupancy of inspectForOcclusions method

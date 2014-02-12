@@ -105,8 +105,9 @@ protected:
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
-    std::vector<EditPacketBuffer*> _preServerPackets; // these will get packed into other larger packets
-    std::vector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
+    QMutex _pendingPacketsLock;
+    QVector<EditPacketBuffer*> _preServerPackets; // these will get packed into other larger packets
+    QVector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
 
     NodeToJurisdictionMap* _serverJurisdictions;
     

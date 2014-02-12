@@ -45,7 +45,9 @@ public:
     
     void render(int screenWidth, int screenHeight);
     
-    float getLastInputLoudness() const { return _lastInputLoudness; }
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _averageInputLoudness, 0.f); }
+    
+    void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
     
     void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
     void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
@@ -73,6 +75,7 @@ public slots:
     void handleAudioInput();
     void reset();
     void toggleMute();
+    void toggleAudioNoiseReduction();
     
     virtual void handleAudioByteArray(const QByteArray& audioByteArray);
 
@@ -86,8 +89,7 @@ private:
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
-    int16_t _localInjectedSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
-    QVector<QByteArray> _localInjectionByteArrays;
+    int16_t _localProceduralSamples[NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
     QAudioOutput* _audioOutput;
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
@@ -95,6 +97,8 @@ private:
     int _numOutputCallbackBytes;
     QAudioOutput* _loopbackAudioOutput;
     QIODevice* _loopbackOutputDevice;
+    QAudioOutput* _proceduralAudioOutput;
+    QIODevice* _proceduralOutputDevice;
     AudioRingBuffer _inputRingBuffer;
     AudioRingBuffer _ringBuffer;
     
@@ -105,6 +109,10 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
+    float _averageInputLoudness;
+    bool _noiseGateOpen;
+    bool _noiseGateEnabled;
+    int _noiseGateFramesToClose;
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;

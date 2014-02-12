@@ -44,7 +44,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
                            AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
-    _dataServerScriptingInterface(),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -126,6 +125,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<ParticleID> >(&_engine);
+    qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(&_engine);
 
     QScriptValue soundConstructorValue = _engine.newFunction(soundConstructor);
     QScriptValue soundMetaObject = _engine.newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
@@ -137,9 +137,9 @@ void ScriptEngine::init() {
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
-    registerGlobalObject("Data", &_dataServerScriptingInterface);
     registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
+    registerGlobalObject("Vec3", &_vec3Library);
 
     registerGlobalObject("Voxels", &_voxelsScriptingInterface);
 
@@ -208,11 +208,7 @@ void ScriptEngine::run() {
             break;
         }
 
-        bool willSendVisualDataCallBack = false;
         if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _voxelsScriptingInterface.getVoxelPacketSender()->releaseQueuedMessages();
 
@@ -223,9 +219,6 @@ void ScriptEngine::run() {
         }
 
         if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // allow the scripter's call back to setup visual data
-            willSendVisualDataCallBack = true;
-
             // release the queue of edit voxel messages.
             _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
 
@@ -251,9 +244,7 @@ void ScriptEngine::run() {
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
-        if (willSendVisualDataCallBack) {
-            emit willSendVisualDataCallback();
-        }
+        emit willSendVisualDataCallback();
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
@@ -298,4 +289,50 @@ void ScriptEngine::stop() {
     _isFinished = true;
 }
 
+void ScriptEngine::timerFired() {
+    QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
+    
+    // call the associated JS function, if it exists
+    QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
+    if (timerFunction.isValid()) {
+        timerFunction.call();
+    }
+    
+    if (!callingTimer->isActive()) {
+        // this timer is done, we can kill it
+        qDebug() << "Deleting a single shot timer";
+        delete callingTimer;
+    }
+}
 
+QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
+    // create the timer, add it to the map, and start it
+    QTimer* newTimer = new QTimer(this);
+    newTimer->setSingleShot(isSingleShot);
+    
+    connect(newTimer, &QTimer::timeout, this, &ScriptEngine::timerFired);
+    
+    // make sure the timer stops when the script does
+    connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+    
+    _timerFunctionMap.insert(newTimer, function);
+    
+    newTimer->start(intervalMS);
+    return newTimer;
+}
+
+QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
+    return setupTimerWithInterval(function, intervalMS, false);
+}
+
+QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
+    return setupTimerWithInterval(function, timeoutMS, true);
+}
+
+void ScriptEngine::stopTimer(QTimer *timer) {
+    if (_timerFunctionMap.contains(timer)) {
+        timer->stop();
+        _timerFunctionMap.remove(timer);
+        delete timer;
+    }
+}
