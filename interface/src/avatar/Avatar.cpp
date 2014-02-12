@@ -445,9 +445,16 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
-bool Avatar::poke(ModelCollisionInfo& collision) {
-    // ATM poke() can only affect the Skeleton (not the head)
+bool Avatar::isPokeable(ModelCollisionInfo& collision) const {
+    // ATM only the Skeleton is pokeable
     // TODO: make poke affect head
+    if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+        return _skeletonModel.isPokeable(collision);
+    }
+    return false;
+}
+
+bool Avatar::poke(ModelCollisionInfo& collision) {
     if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
         return _skeletonModel.poke(collision);
     }

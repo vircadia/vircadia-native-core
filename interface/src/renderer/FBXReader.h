@@ -159,6 +159,7 @@ public:
     glm::vec3 neckPivot;
     
     Extents bindExtents;
+    Extents staticExtents;
     
     QVector<FBXAttachment> attachments;
 };
