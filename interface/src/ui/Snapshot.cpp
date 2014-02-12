@@ -53,10 +53,10 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
                                 shot.text(LOCATION_Y).toFloat(),
                                 shot.text(LOCATION_Z).toFloat()));
     
-    data->setOrientation(glm::quat(shot.text(ORIENTATION_X).toFloat(),
+    data->setOrientation(glm::quat(shot.text(ORIENTATION_W).toFloat(),
+                                   shot.text(ORIENTATION_X).toFloat(),
                                    shot.text(ORIENTATION_Y).toFloat(),
-                                   shot.text(ORIENTATION_Z).toFloat(),
-                                   shot.text(ORIENTATION_W).toFloat()));
+                                   shot.text(ORIENTATION_Z).toFloat()));
     
     data->setDomain(shot.text(DOMAIN_KEY));
                                    
