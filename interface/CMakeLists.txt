@@ -148,10 +148,11 @@ endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
 # likewise with Visage library for webcam feature tracking
 if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
-    add_definitions(-DHAVE_VISAGE)
+    add_definitions(-DHAVE_VISAGE -DVISAGE_STATIC)
     include_directories(SYSTEM ${VISAGE_INCLUDE_DIRS})
     if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${VISAGE_INCLUDE_DIRS}")
+        add_definitions(_DMAC_OS_X)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment -isystem ${VISAGE_INCLUDE_DIRS}")
     endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${VISAGE_LIBRARIES})
 endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
