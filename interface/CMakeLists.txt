@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
+set(VISAGE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/visage)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -132,9 +133,10 @@ find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(Sixense)
+find_package(Visage)
 find_package(ZLIB)
 
-# likewise with Sixense library for Razer Hydra
+# include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     add_definitions(-DHAVE_SIXENSE)
     include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
@@ -143,6 +145,16 @@ if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
+
+# likewise with Visage library for webcam feature tracking
+if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
+    add_definitions(-DHAVE_VISAGE)
+    include_directories(SYSTEM ${VISAGE_INCLUDE_DIRS})
+    if (APPLE OR UNIX)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${VISAGE_INCLUDE_DIRS}")
+    endif (APPLE OR UNIX)
+    target_link_libraries(${TARGET_NAME} ${VISAGE_LIBRARIES})
+endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
 
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)

@@ -55,6 +55,7 @@
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -378,6 +379,7 @@ private:
     Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
