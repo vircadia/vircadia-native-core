@@ -6,16 +6,20 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include <SharedUtil.h>
+
 #ifdef HAVE_VISAGE
 #include <VisageTracker2.h>
 #endif
 
-#include <SharedUtil.h>
-
 #include "Visage.h"
 
 namespace VisageSDK {
-    void initializeLicenseManager(char* licenseKeyFileName);
+#ifdef WIN32
+    void __declspec(dllimport) initializeLicenseManager(char* licenseKeyFileName);
+#else
+	void initializeLicenseManager(char* licenseKeyFileName);
+#endif
 }
 
 using namespace VisageSDK;
@@ -23,7 +27,7 @@ using namespace VisageSDK;
 Visage::Visage() {
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
-    initializeLicenseManager("resources/visage/license.vlc");
+    initializeLicenseManager("resources/visage");
     _tracker = new VisageTracker2("resources/visage/Facial Features Tracker - Asymmetric.cfg");
     _tracker->trackFromCam();
 #endif

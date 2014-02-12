@@ -37,9 +37,9 @@ else (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
     endif (VISAGE_CORE_LIBRARY AND VISAGE_VISION_LIBRARY AND VISAGE_OPENCV_LIBRARY)
     
   elseif (WIN32)
-    find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h /usr/include/libxml2)
-    find_path(VISAGE_OPENCV_INCLUDE_DIR cv.h ${VISAGE_ROOT_DIR}/dependencies/OpenCV_Win32/include)
-    find_path(VISAGE_OPENCV2_INCLUDE_DIR opencv.hpp ${VISAGE_ROOT_DIR}/dependencies/OpenCV_Win32/include/opencv2)
+    find_path(VISAGE_XML_INCLUDE_DIR libxml/xmlreader.h ${VISAGE_ROOT_DIR}/dependencies/libxml2/include)
+    find_path(VISAGE_OPENCV_INCLUDE_DIR opencv/cv.h ${VISAGE_ROOT_DIR}/dependencies/OpenCV/include)
+    find_path(VISAGE_OPENCV2_INCLUDE_DIR cv.h ${VISAGE_ROOT_DIR}/dependencies/OpenCV/include/opencv)
     if (VISAGE_INCLUDE_DIR AND VISAGE_XML_INCLUDE_DIR AND VISAGE_OPENCV_INCLUDE_DIR AND VISAGE_OPENCV2_INCLUDE_DIR)
       set(VISAGE_INCLUDE_DIRS
         "${VISAGE_INCLUDE_DIR};${VISAGE_XML_INCLUDE_DIR};${VISAGE_OPENCV_INCLUDE_DIR};${VISAGE_OPENCV2_INCLUDE_DIR}"
@@ -48,7 +48,7 @@ else (VISAGE_LIBRARIES AND VISAGE_INCLUDE_DIRS)
     
     find_library(VISAGE_CORE_LIBRARY vscore.lib ${VISAGE_ROOT_DIR}/lib)
     find_library(VISAGE_VISION_LIBRARY vsvision.lib ${VISAGE_ROOT_DIR}/lib)
-    find_library(VISAGE_OPENCV_LIBRARY OpenCV.lib ${VISAGE_ROOT_DIR}/dependencies/OpenCV_Win32/lib)
+    find_library(VISAGE_OPENCV_LIBRARY opencv_core243.lib ${VISAGE_ROOT_DIR}/dependencies/OpenCV/lib)
     if (VISAGE_CORE_LIBRARY AND VISAGE_VISION_LIBRARY AND VISAGE_OPENCV_LIBRARY)
       set(VISAGE_LIBRARIES "${VISAGE_CORE_LIBRARY};${VISAGE_VISION_LIBRARY};${VISAGE_OPENCV_LIBRARY}"
         CACHE INTERNAL "Visage libraries")
