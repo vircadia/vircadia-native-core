@@ -167,12 +167,12 @@ public:
     
     void renderCollisionProxies(float alpha);
 
-    /// \return true if the collision would move the model
-    bool isPokeable(ModelCollisionInfo& collision) const;
+    /// \return true if the collision is against a moveable joint
+    bool collisionHitsMoveableJoint(ModelCollisionInfo& collision) const;
 
     /// \param collisionInfo info about the collision
-    /// \return true if collision affects the Model
-    bool poke(ModelCollisionInfo& collisionInfo);
+    /// Use the collisionInfo to affect the model
+    void  applyCollision(ModelCollisionInfo& collisionInfo);
 
 protected:
 

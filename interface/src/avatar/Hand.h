@@ -67,6 +67,9 @@ public:
     glm::vec3 getAndResetGrabDeltaVelocity();
     glm::quat getAndResetGrabRotation();
 
+    void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
+    void collideAgainstOurself();
+
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -96,10 +99,6 @@ private:
     void renderLeapHands(bool isMine);
     void renderLeapFingerTrails();
     
-    void updateCollisions();
-    void collideAgainstOtherAvatars();
-    void collideAgainstOurself();
-
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);

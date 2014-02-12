@@ -445,20 +445,19 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
-bool Avatar::isPokeable(ModelCollisionInfo& collision) const {
+bool Avatar::collisionWouldMoveAvatar(ModelCollisionInfo& collision) const {
     // ATM only the Skeleton is pokeable
     // TODO: make poke affect head
     if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
-        return _skeletonModel.isPokeable(collision);
+        return _skeletonModel.collisionHitsMoveableJoint(collision);
     }
     return false;
 }
 
-bool Avatar::poke(ModelCollisionInfo& collision) {
+void Avatar::applyCollision(ModelCollisionInfo& collision) {
     if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
-        return _skeletonModel.poke(collision);
+        _skeletonModel.applyCollision(collision);
     }
-    return false;
 }
 
 float Avatar::getPelvisFloatingHeight() const {

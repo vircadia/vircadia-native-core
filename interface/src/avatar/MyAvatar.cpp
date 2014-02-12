@@ -344,6 +344,7 @@ void MyAvatar::simulate(float deltaTime) {
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
+    _hand.collideAgainstOurself(); 
     _hand.simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -1050,11 +1051,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
-                glm::vec3 pushOut = 0.5f * penetration;
             }
 
-            // collide their hands against our movable limbs
-            
+            // collide our hands against them
+            _hand.collideAgainstAvatar(avatar, true);
+
+            // collide their hands against us
+            avatar->getHand().collideAgainstAvatar(this, false);
         }
     }
 }
