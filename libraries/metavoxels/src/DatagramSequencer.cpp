@@ -42,6 +42,7 @@ DatagramSequencer::DatagramSequencer(const QByteArray& datagramHeader, QObject* 
     _outgoingDatagramStream.setByteOrder(QDataStream::LittleEndian);
 
     connect(&_outputStream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
+    connect(this, SIGNAL(receivedHighPriorityMessage(const QVariant&)), SLOT(handleHighPriorityMessage(const QVariant&)));
 
     memcpy(_outgoingDatagram.data(), datagramHeader.constData(), _datagramHeaderSize);
 }
@@ -182,7 +183,7 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         QVariant data;
         _inputStream >> data;
         if ((int)i >= _receivedHighPriorityMessages) {
-            handleHighPriorityMessage(data);
+            emit receivedHighPriorityMessage(data);
         }
     }
     _receivedHighPriorityMessages = highPriorityMessageCount;
@@ -208,9 +209,22 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
 }
 
 void DatagramSequencer::sendClearSharedObjectMessage(int id) {
-    // for now, high priority
-    ClearSharedObjectMessage message = { id };
-    sendHighPriorityMessage(QVariant::fromValue(message));
+    // send it low-priority unless the channel has messages disabled
+    ReliableChannel* channel = getReliableOutputChannel();
+    if (channel->getMessagesEnabled()) {
+        ClearMainChannelSharedObjectMessage message = { id };
+        channel->sendMessage(QVariant::fromValue(message));
+        
+    } else {
+        ClearSharedObjectMessage message = { id };
+        sendHighPriorityMessage(QVariant::fromValue(message));
+    }
+}
+
+void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
+    if (data.userType() == ClearSharedObjectMessage::Type) {
+        _inputStream.clearSharedObject(data.value<ClearSharedObjectMessage>().id);
+    }
 }
 
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
@@ -301,15 +315,6 @@ void DatagramSequencer::sendPacket(const QByteArray& packet, const QVector<Chann
         offset += payloadSize;
         
     } while(offset < packet.size());
-}
-
-void DatagramSequencer::handleHighPriorityMessage(const QVariant& data) {
-    if (data.userType() == ClearSharedObjectMessage::Type) {
-        _inputStream.clearSharedObject(data.value<ClearSharedObjectMessage>().id);
-    
-    } else {
-        emit receivedHighPriorityMessage(data);
-    }
 }
 
 const int INITIAL_CIRCULAR_BUFFER_CAPACITY = 16;
@@ -592,6 +597,16 @@ void ReliableChannel::sendClearSharedObjectMessage(int id) {
     sendMessage(QVariant::fromValue(message));
 }
 
+void ReliableChannel::handleMessage(const QVariant& message) {
+    if (message.userType() == ClearSharedObjectMessage::Type) {
+        _bitstream.clearSharedObject(message.value<ClearSharedObjectMessage>().id);
+    
+    } else if (message.userType() == ClearMainChannelSharedObjectMessage::Type) {
+        static_cast<DatagramSequencer*>(parent())->_inputStream.clearSharedObject(
+            message.value<ClearMainChannelSharedObjectMessage>().id);
+    }
+}
+
 ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool output) :
     QObject(sequencer),
     _index(index),
@@ -600,12 +615,13 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _priority(1.0f),
     _offset(0),
     _writePosition(0),
-    _expectingMessage(true) {
+    _messagesEnabled(true) {
     
     _buffer.open(output ? QIODevice::WriteOnly : QIODevice::ReadOnly);
     _dataStream.setByteOrder(QDataStream::LittleEndian);
     
     connect(&_bitstream, SIGNAL(sharedObjectCleared(int)), SLOT(sendClearSharedObjectMessage(int)));
+    connect(this, SIGNAL(receivedMessage(const QVariant&)), SLOT(handleMessage(const QVariant&)));
 }
 
 void ReliableChannel::writeData(QDataStream& out, int bytes, QVector<DatagramSequencer::ChannelSpan>& spans) {
@@ -719,7 +735,7 @@ void ReliableChannel::readData(QDataStream& in) {
     forever {
         // if we're expecting a message, peek into the buffer to see if we have the whole thing.
         // if so, read it in, handle it, and loop back around in case there are more
-        if (_expectingMessage) {
+        if (_messagesEnabled) {
             int available = _buffer.bytesAvailable();
             if (available >= sizeof(quint32)) {
                 quint32 length;
@@ -729,7 +745,7 @@ void ReliableChannel::readData(QDataStream& in) {
                     QVariant message;
                     _bitstream >> message;
                     _bitstream.reset();
-                    handleMessage(message);
+                    emit receivedMessage(message);
                     continue;
                 }
             }
@@ -747,11 +763,3 @@ void ReliableChannel::readData(QDataStream& in) {
     }
 }
 
-void ReliableChannel::handleMessage(const QVariant& message) {
-    if (message.userType() == ClearSharedObjectMessage::Type) {
-        _bitstream.clearSharedObject(message.value<ClearSharedObjectMessage>().id);
-    
-    } else {
-        emit receivedMessage(message);
-    }
-}

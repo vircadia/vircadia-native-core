@@ -94,6 +94,7 @@ signals:
 private slots:
 
     void sendClearSharedObjectMessage(int id);
+    void handleHighPriorityMessage(const QVariant& data);
     
 private:
     
@@ -132,8 +133,6 @@ private:
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
     void sendPacket(const QByteArray& packet, const QVector<ChannelSpan>& spans);
-    
-    void handleHighPriorityMessage(const QVariant& data);
     
     QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
@@ -273,11 +272,12 @@ public:
 
     int getBytesAvailable() const;
 
+    /// Sets whether we expect to write/read framed messages.
+    void setMessagesEnabled(bool enabled) { _messagesEnabled = enabled; }
+    bool getMessagesEnabled() const { return _messagesEnabled; }
+
     /// Sends a framed message on this channel.
     void sendMessage(const QVariant& message);
-
-    /// For input channels, sets whether the channel is expecting a framed message.
-    void setExpectingMessage(bool expectingMessage) { _expectingMessage = expectingMessage; }
 
 signals:
 
@@ -286,7 +286,8 @@ signals:
 private slots:
 
     void sendClearSharedObjectMessage(int id);
-
+    void handleMessage(const QVariant& message);
+    
 private:
     
     friend class DatagramSequencer;
@@ -300,7 +301,6 @@ private:
     void spanAcknowledged(const DatagramSequencer::ChannelSpan& span);
     
     void readData(QDataStream& in);
-    void handleMessage(const QVariant& message);
     
     int _index;
     CircularBuffer _buffer;
@@ -312,7 +312,7 @@ private:
     int _offset;
     int _writePosition;
     SpanList _acknowledged;
-    bool _expectingMessage;
+    bool _messagesEnabled;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

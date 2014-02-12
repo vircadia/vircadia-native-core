@@ -32,6 +32,17 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(ClearSharedObjectMessage)
 
+/// Clears the mapping for a shared object on the main channel (as opposed to the one on which the message was sent).
+class ClearMainChannelSharedObjectMessage {
+    STREAMABLE
+
+public:
+    
+    STREAM int id; 
+};
+
+DECLARE_STREAMABLE_METATYPE(ClearMainChannelSharedObjectMessage)
+
 /// A message containing the state of a client.
 class ClientStateMessage {
     STREAMABLE
