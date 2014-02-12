@@ -109,7 +109,7 @@ Menu::Menu() :
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
                                    this,
-                                   SLOT(goToDomain()));
+                                   SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
@@ -889,7 +889,18 @@ void Menu::editPreferences() {
     sendFakeEnterEvent();
 }
 
-void Menu::goToDomain() {
+void Menu::goToDomain(const QString newDomain) {
+    if (NodeList::getInstance()->getDomainHostname() != newDomain) {
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        Application::getInstance()->getAvatar()->sendKillAvatar();
+        
+        // give our nodeList the new domain-server hostname
+        NodeList::getInstance()->setDomainHostname(newDomain);
+    }
+}
+
+void Menu::goToDomainDialog() {
 
     QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
 
@@ -913,15 +924,44 @@ void Menu::goToDomain() {
             // the user input a new hostname, use that
             newHostname = domainDialog.textValue();
         }
-
-        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        Application::getInstance()->getAvatar()->sendKillAvatar();
-
-        // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
+        
+        goToDomain(newHostname);
     }
 
     sendFakeEnterEvent();
+}
+
+bool Menu::goToDestination(QString destination) {
+    
+    QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    
+    const int NUMBER_OF_COORDINATE_ITEMS = 3;
+    const int X_ITEM = 0;
+    const int Y_ITEM = 1;
+    const int Z_ITEM = 2;
+    if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
+        
+        double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
+        double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
+        double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
+        
+        glm::vec3 newAvatarPos(x, y, z);
+        
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        glm::vec3 avatarPos = myAvatar->getPosition();
+        if (newAvatarPos != avatarPos) {
+            // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+            MyAvatar::sendKillAvatar();
+            
+            qDebug("Going To Location: %f, %f, %f...", x, y, z);
+            myAvatar->setPosition(newAvatarPos);
+        }
+        
+        return true;
+    }
+    
+    // no coordinates were parsed
+    return false;
 }
 
 void Menu::goTo() {
@@ -939,31 +979,8 @@ void Menu::goTo() {
         
         destination = gotoDialog.textValue();
         
-        QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
-        
-        const int NUMBER_OF_COORDINATE_ITEMS = 3;
-        const int X_ITEM = 0;
-        const int Y_ITEM = 1;
-        const int Z_ITEM = 2;
-        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-            
-            double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
-            double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
-            double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
-            
-            glm::vec3 newAvatarPos(x, y, z);
-            
-            MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-            glm::vec3 avatarPos = myAvatar->getPosition();
-            if (newAvatarPos != avatarPos) {
-                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                MyAvatar::sendKillAvatar();
-                
-                qDebug("Going To Location: %f, %f, %f...", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
-            }
-            
-        } else {
+        // go to coordinate destination or to Username
+        if (!goToDestination(destination)) {
             // there's a username entered by the user, make a request to the data-server
             DataServerClient::getValuesForKeysAndUserString(
                                                             QStringList()
@@ -994,29 +1011,7 @@ void Menu::goToLocation() {
 
     int dialogReturn = coordinateDialog.exec();
     if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
-        QByteArray newCoordinates;
-
-        QString delimiterPattern(",");
-        QStringList coordinateItems = coordinateDialog.textValue().split(delimiterPattern);
-
-        const int NUMBER_OF_COORDINATE_ITEMS = 3;
-        const int X_ITEM = 0;
-        const int Y_ITEM = 1;
-        const int Z_ITEM = 2;
-        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-            double x = coordinateItems[X_ITEM].toDouble();
-            double y = coordinateItems[Y_ITEM].toDouble();
-            double z = coordinateItems[Z_ITEM].toDouble();
-            glm::vec3 newAvatarPos(x, y, z);
-
-            if (newAvatarPos != avatarPos) {
-                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                MyAvatar::sendKillAvatar();
-
-                qDebug("Going To Location: %f, %f, %f...", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
-            }
-        }
+        goToDestination(coordinateDialog.textValue());
     }
 
     sendFakeEnterEvent();

@@ -807,7 +807,8 @@ void NodeList::loadData(QSettings *settings) {
     } else {
         _domainHostname = DEFAULT_DOMAIN_HOSTNAME;
     }
-
+    
+    emit domainChanged(_domainHostname);
     settings->endGroup();
 }
 

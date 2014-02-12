@@ -127,7 +127,8 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-
+    void dropEvent(QDropEvent *event);
+    
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,

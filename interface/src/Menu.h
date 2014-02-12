@@ -84,6 +84,8 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
+    bool goToDestination(QString destination);
+    void goToDomain(const QString newDomain);
 
 public slots:
     void bandwidthDetails();
@@ -100,7 +102,7 @@ private slots:
     void aboutApp();
     void login();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
