@@ -238,9 +238,9 @@ Menu::Menu() :
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             appInstance,SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H,false,
-                                            appInstance,SLOT(cameraMenuChanged()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
+                                            appInstance, SLOT(cameraMenuChanged()));
                                             
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
@@ -266,14 +266,8 @@ Menu::Menu() :
                                   appInstance->getAvatar(),
                                   SLOT(resetSize()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::OffAxisProjection,
-                                           0,
-                                           true);
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::TurnWithHead,
-                                           0,
-                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
@@ -298,7 +292,6 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, false);
 
