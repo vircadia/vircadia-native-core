@@ -194,6 +194,7 @@ private:
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
     static bool getVoxelEnclosingOperation(OctreeElement* element, void* extraData);
+    static bool recreateVoxelGeometryInViewOperation(OctreeElement* element, void* extraData);
 
     int updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, bool forceDraw);
     int forceRemoveNodeFromArrays(VoxelTreeElement* node);
@@ -212,6 +213,7 @@ private:
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
 
+    QReadWriteLock _writeArraysLock;
     QReadWriteLock _readArraysLock;
 
 

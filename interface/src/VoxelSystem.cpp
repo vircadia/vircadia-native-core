@@ -57,9 +57,12 @@ GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     : NodeData(),
-      _treeScale(treeScale),
-      _maxVoxels(maxVoxels),
-      _initialized(false) {
+    _treeScale(treeScale),
+    _maxVoxels(maxVoxels),
+    _initialized(false),
+    _writeArraysLock(QReadWriteLock::Recursive),
+    _readArraysLock(QReadWriteLock::Recursive)
+ {
 
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
@@ -124,8 +127,16 @@ void VoxelSystem::setDisableFastVoxelPipeline(bool disableFastVoxelPipeline) {
 
 void VoxelSystem::elementUpdated(OctreeElement* element) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+//qDebug() << "VoxelSystem::elementUpdated()...";
+
     // If we're in SetupNewVoxelsForDrawing() or _writeRenderFullVBO then bail..
     if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
+/*
+qDebug() << "VoxelSystem::elementUpdated()... BAILING!!! "
+        << "_writeRenderFullVBO="<< _writeRenderFullVBO
+        << "_inSetupNewVoxelsForDrawing="<< _inSetupNewVoxelsForDrawing 
+        << "_useFastVoxelPipeline="<< _useFastVoxelPipeline; 
+*/
         return;
     }
 
@@ -135,6 +146,8 @@ void VoxelSystem::elementUpdated(OctreeElement* element) {
         float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
         int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
         shouldRender = voxel->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
+
+//qDebug() << "VoxelSystem::elementUpdated()... recalcing should render!!";
 
         if (voxel->getShouldRender() != shouldRender) {
             voxel->setShouldRender(shouldRender);
@@ -163,11 +176,13 @@ void VoxelSystem::elementUpdated(OctreeElement* element) {
 
         const bool REUSE_INDEX = true;
         const bool DONT_FORCE_REDRAW = false;
+//qDebug() << "VoxelSystem::elementUpdated()... calling updateNodeInArrays()!!!";
         updateNodeInArrays(voxel, REUSE_INDEX, DONT_FORCE_REDRAW);
         _voxelsUpdated++;
 
         voxel->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
 
+//qDebug() << "VoxelSystem::elementUpdated()... calling setupNewVoxelsForDrawingSingleNode()!!!";
         setupNewVoxelsForDrawingSingleNode();
     }
 }
@@ -409,7 +424,8 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 }
 
 void VoxelSystem::initVoxelMemory() {
-    _readArraysLock.lockForWrite();
+    //_readArraysLock.lockForWrite();
+    //_writeArraysLock.lockForWrite();
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
@@ -524,7 +540,8 @@ void VoxelSystem::initVoxelMemory() {
 
     _initialized = true;
 
-    _readArraysLock.unlock();
+    //_writeArraysLock.unlock();
+    //_readArraysLock.unlock();
 }
 
 void VoxelSystem::writeToSVOFile(const char* filename, VoxelTreeElement* element) const {
@@ -741,9 +758,90 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
 
+
+
+class recreateVoxelGeometryInViewArgs {
+public:
+    VoxelSystem* thisVoxelSystem;
+    ViewFrustum thisViewFrustum;
+    unsigned long nodesScanned;
+    float voxelSizeScale;
+    int boundaryLevelAdjust;
+
+    recreateVoxelGeometryInViewArgs(VoxelSystem* voxelSystem) :
+        thisVoxelSystem(voxelSystem),
+        thisViewFrustum(*voxelSystem->getViewFrustum()),
+        nodesScanned(0),
+        voxelSizeScale(Menu::getInstance()->getVoxelSizeScale()),
+        boundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust())
+    {
+    }
+};
+
+// The goal of this operation is to remove any old references to old geometry, and if the voxel
+// should be visible, create new geometry for it.
+bool VoxelSystem::recreateVoxelGeometryInViewOperation(OctreeElement* element, void* extraData) {
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+    recreateVoxelGeometryInViewArgs* args = (recreateVoxelGeometryInViewArgs*)extraData;
+
+    args->nodesScanned++;
+    
+    // reset the old geometry...
+    // note: this doesn't "mark the voxel as changed", so it only releases the old buffer index thereby forgetting the
+    // old geometry
+    voxel->setBufferIndex(GLBUFFER_INDEX_UNKNOWN); 
+
+    bool shouldRender = voxel->calculateShouldRender(&args->thisViewFrustum, args->voxelSizeScale, args->boundaryLevelAdjust);
+    bool inView = voxel->isInView(args->thisViewFrustum);
+    voxel->setShouldRender(inView && shouldRender);
+
+    if (shouldRender) {
+        bool falseColorize = false;
+        if (falseColorize) {
+            voxel->setFalseColor(0,0,255); // false colorize
+        }
+        // These are both needed to force redraw...
+        voxel->setDirtyBit();
+        qDebug() << "recreateVoxelGeometryInViewOperation()... calling voxel->markWithChangedTime()";
+        voxel->markWithChangedTime(); // this will notifyUpdateHooks, which will result in our geometry being created
+    }
+
+    return true; // keep recursing!
+}
+
+
+// TODO: does cleanupRemovedVoxels() ever get called?
+// TODO: other than cleanupRemovedVoxels() is there anyplace we attempt to detect too many abandoned slots???
 void VoxelSystem::recreateVoxelGeometryInView() {
-    // this is a temporary solution... we need a full implementation that actually does a full redraw into clean VBOs
-    hideOutOfView(true);
+
+qDebug() << "recreateVoxelGeometryInView()...";
+
+    recreateVoxelGeometryInViewArgs args(this);
+    _writeArraysLock.lockForWrite(); // don't let anyone read or write our write arrays until we're done
+    _tree->lockForRead(); // don't let anyone change our tree structure until we're run
+    
+    // reset our write arrays bookkeeping to think we've got no voxels in it
+    clearFreeBufferIndexes(); // does this do everything we need?
+    /**
+    // clear out all our abandoned indexes - they are all available
+    // TODO: is it possible freeBufferIndex() will get called???
+    _voxelsInWriteArrays = 0;
+    _freeIndexLock.lock();
+    _freeIndexes.clear();
+    _freeIndexLock.unlock();
+    **/
+    
+    //_voxelsUpdated = 0; // ????
+    //_writeRenderFullVBO = true;
+
+    // do we need to reset out _writeVoxelDirtyArray arrays??
+    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+
+    
+    
+    _tree->recurseTreeWithOperation(recreateVoxelGeometryInViewOperation,(void*)&args);
+    _tree->unlock();
+    _writeArraysLock.unlock();
 }
 
 void VoxelSystem::checkForCulling() {
@@ -784,7 +882,8 @@ void VoxelSystem::checkForCulling() {
 
     if (fullRedraw) {
         // this will remove all old geometry and recreate the correct geometry for all in view voxels
-        recreateVoxelGeometryInView();
+        //recreateVoxelGeometryInView();
+        hideOutOfView(forceFullFrustum);
     } else {
         hideOutOfView(forceFullFrustum);
     }
@@ -905,12 +1004,26 @@ void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "copyWrittenDataToReadArrays()");
 
-    if (_voxelsDirty && _voxelsUpdated) {
-        if (fullVBOs) {
-            copyWrittenDataToReadArraysFullVBOs();
+    // attempt to get the writeArraysLock for reading and the readArraysLock for writing 
+    // so we can copy from the write to the read...  if we fail, that's ok, we'll get it the next
+    // time around, the only side effect is the VBOs won't be updated this frame
+    const int WAIT_FOR_LOCK_IN_MS = 5;
+    if (_readArraysLock.tryLockForWrite(WAIT_FOR_LOCK_IN_MS)) {
+        if (_writeArraysLock.tryLockForRead(WAIT_FOR_LOCK_IN_MS)) {
+            if (_voxelsDirty && _voxelsUpdated) {
+                if (fullVBOs) {
+                    copyWrittenDataToReadArraysFullVBOs();
+                } else {
+                    copyWrittenDataToReadArraysPartialVBOs();
+                }
+            }
+            _writeArraysLock.unlock();
         } else {
-            copyWrittenDataToReadArraysPartialVBOs();
+            qDebug() << "couldn't get _writeArraysLock.LockForRead()...";
         }
+        _readArraysLock.unlock();
+    } else {
+        qDebug() << "couldn't get _readArraysLock.LockForWrite()...";
     }
 }
 
@@ -1105,7 +1218,8 @@ void VoxelSystem::changeTree(VoxelTree* newTree) {
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
-    setupNewVoxelsForDrawing();
+    // TODO: hmmmmm?????
+    //setupNewVoxelsForDrawing();
 }
 
 void VoxelSystem::updateFullVBOs() {
@@ -1166,17 +1280,27 @@ void VoxelSystem::updateVBOs() {
     // would like to include _callsToTreesToArrays
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
     if (_voxelsDirty) {
-        if (_readRenderFullVBO) {
-            updateFullVBOs();
+    
+        // attempt to lock the read arrays, to for copying from them to the actual GPU VBOs.
+        // if we fail to get the lock, that's ok, our VBOs will update on the next frame...
+        const int WAIT_FOR_LOCK_IN_MS = 5;
+        if (_readArraysLock.tryLockForRead(WAIT_FOR_LOCK_IN_MS)) {
+            if (_readRenderFullVBO) {
+                updateFullVBOs();
+            } else {
+                updatePartialVBOs();
+            }
+            _voxelsDirty = false;
+            _readRenderFullVBO = false;
+            _readArraysLock.unlock();
         } else {
-            updatePartialVBOs();
+            qDebug() << "updateVBOs().... couldn't get _readArraysLock.tryLockForRead()";
         }
-        _voxelsDirty = false;
-        _readRenderFullVBO = false;
     }
     _callsToTreesToArrays = 0; // clear it
 }
 
+// this should only be called on the main application thread during render
 void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
     bool showWarning = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarning, "updateVBOSegment()");
