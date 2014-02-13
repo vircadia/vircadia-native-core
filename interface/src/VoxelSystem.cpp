@@ -413,8 +413,8 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 }
 
 void VoxelSystem::initVoxelMemory() {
-    //_readArraysLock.lockForWrite();
-    //_writeArraysLock.lockForWrite();
+    _readArraysLock.lockForWrite();
+    _writeArraysLock.lockForWrite();
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
@@ -529,8 +529,8 @@ void VoxelSystem::initVoxelMemory() {
 
     _initialized = true;
 
-    //_writeArraysLock.unlock();
-    //_readArraysLock.unlock();
+    _writeArraysLock.unlock();
+    _readArraysLock.unlock();
 }
 
 void VoxelSystem::writeToSVOFile(const char* filename, VoxelTreeElement* element) const {
