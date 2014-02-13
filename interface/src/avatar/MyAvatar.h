@@ -34,7 +34,7 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
-    void updateFromGyros(bool turnWithHead);
+    void updateFromGyros(float deltaTime);
     void updateTransmitter(float deltaTime);
 
     void render(bool forceRenderHead);

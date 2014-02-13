@@ -112,23 +112,7 @@ void MyAvatar::updateTransmitter(float deltaTime) {
 void MyAvatar::update(float deltaTime) {
     updateTransmitter(deltaTime);
 
-    // TODO: resurrect touch interactions between avatars
-    //// rotate body yaw for yaw received from multitouch
-    //setOrientation(getOrientation() * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
-    //_yawFromTouch = 0.f;
-    //
-    //// apply pitch from touch
-    //_head.setPitch(_head.getPitch() + _pitchFromTouch);
-    //_pitchFromTouch = 0.0f;
-    //
-    //float TOUCH_YAW_SCALE = -0.25f;
-    //float TOUCH_PITCH_SCALE = -12.5f;
-    //float FIXED_TOUCH_TIMESTEP = 0.016f;
-    //_yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-    //_pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
-
-    // Update my avatar's state from gyros
-    updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+    updateFromGyros(deltaTime);
 
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -364,7 +348,7 @@ void MyAvatar::simulate(float deltaTime) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(bool turnWithHead) {
+void MyAvatar::updateFromGyros(float deltaTime) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     glm::vec3 estimatedPosition, estimatedRotation;
 
@@ -372,7 +356,7 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned beyond the screen
-        if (turnWithHead) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
             const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.5f;
             const float FACESHIFT_MIN_YAW_TURN = 15.f;
             const float FACESHIFT_MAX_YAW_TURN = 50.f;
@@ -387,11 +371,12 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         }
     } else {
         // restore rotation, lean to neutral positions
-        const float RESTORE_RATE = 0.05f;
-        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
-        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, RESTORE_RATE));
-        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
-        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
+        const float RESTORE_PERIOD = 1.f;   // seconds
+        float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
+        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, restorePercentage));
+        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, restorePercentage));
+        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, restorePercentage));
+        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, restorePercentage));
         return;
     }
 
