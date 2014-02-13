@@ -76,7 +76,8 @@ Avatar::Avatar() :
     _moving(false),
     _owningAvatarMixer(),
     _initialized(false), 
-    _displayNameWidth(0)
+    _displayNameWidth(0), 
+    _isShowDisplayName(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -187,7 +188,9 @@ void Avatar::render(bool forceRenderHead) {
     }
 
     // render display name
-    renderDisplayName();
+    if (_isShowDisplayName) {
+        renderDisplayName();
+    }
        
     if (!_chatMessage.empty()) {
         int width = 0;
@@ -261,11 +264,14 @@ void Avatar::renderBody(bool forceRenderHead) {
 
 void Avatar::renderDisplayName() {
 
-    if (_displayNameStr.isEmpty()) {
-        return;
+    QString displayName;
+    if (_displayName.isEmpty()) {
+        displayName = "test string";
+    } else {
+        displayName = _displayName;
     }
-  
-    glm::vec3 textPosition = _head.getPosition(); //+ glm::vec3(0,50,0);
+
+    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * getHeight();  // Scale is already considered in getHeight
     glPushMatrix();
     glDepthMask(false);
 
@@ -318,11 +324,11 @@ void Avatar::renderDisplayName() {
 
         glScalef(scaleFactor, scaleFactor, 1.0);
 
-        glColor3f(0.93, 0.93, 0.93);
+        glColor3f((GLfloat)0.93, (GLfloat)0.93, (GLfloat)0.93);
         
         // TextRenderer, based on QT opengl text rendering functions
 
-        QByteArray ba = _displayNameStr.toLocal8Bit();
+        QByteArray ba = displayName.toLocal8Bit();
         const char *text = ba.data();
         displayNameTextRenderer()->draw(-_displayNameWidth/2.0, 0, text); 
     }
@@ -429,7 +435,7 @@ void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
 }
 
 void Avatar::setDisplayName(const QString& displayName) {
-    AvatarData::setDisplayNameStr(displayName);
+    AvatarData::setDisplayName(displayName);
     int width = 0;
     for (int i = 0; i < displayName.size(); i++) {
         width += (displayNameTextRenderer()->computeWidth(displayName[i].toLatin1()));
@@ -517,5 +523,9 @@ float Avatar::getPelvisFloatingHeight() const {
 
 float Avatar::getPelvisToHeadLength() const {
     return glm::distance(_position, _head.getPosition());
+}
+
+void Avatar::setShowDisplayName(bool showDisplayName) {
+    _isShowDisplayName = showDisplayName;
 }
 

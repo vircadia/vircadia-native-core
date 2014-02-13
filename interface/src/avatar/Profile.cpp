@@ -17,7 +17,6 @@
 
 Profile::Profile(const QString &username) :
     _username(),
-    _displayName(),
     _uuid(),
     _lastDomain(),
     _lastPosition(0.0, 0.0, 0.0),
@@ -165,8 +164,4 @@ void Profile::processDataServerResponse(const QString& userString, const QString
 
 void Profile::setUsername(const QString& username) {
     _username = username;
-}
-
-void Profile::setDisplayName(const QString& displayName) {
-    _displayName = displayName;
 }

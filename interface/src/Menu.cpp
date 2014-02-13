@@ -781,7 +781,7 @@ void Menu::editPreferences() {
     skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
-    QString displayNameString = applicationInstance->getProfile()->getDisplayName();
+    QString displayNameString = applicationInstance->getAvatar()->getDisplayNameStr();
     QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
     displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Display name:", displayNameEdit);

@@ -116,6 +116,8 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
+
+    void setShowDisplayName(bool showDisplayName);
     
     int parseData(const QByteArray& packet);
 
@@ -150,11 +152,15 @@ protected:
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
+
+
+
 private:
 
     bool _initialized;
 
     int _displayNameWidth;
+    bool _isShowDisplayName;
 
 
 

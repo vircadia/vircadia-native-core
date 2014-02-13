@@ -63,6 +63,7 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    setShowDisplayName(true);
 }
 
 MyAvatar::~MyAvatar() {
@@ -611,6 +612,7 @@ void MyAvatar::saveData(QSettings* settings) {
     
     settings->setValue("faceModelURL", _faceModelURL);
     settings->setValue("skeletonModelURL", _skeletonModelURL);
+    settings->setValue("displayName", _displayName);
 
     settings->endGroup();
 }
@@ -638,6 +640,7 @@ void MyAvatar::loadData(QSettings* settings) {
     
     setFaceModelURL(settings->value("faceModelURL").toUrl());
     setSkeletonModelURL(settings->value("skeletonModelURL").toUrl());
+    setDisplayName(settings->value("displayName").toString());
 
     settings->endGroup();
 }
@@ -689,8 +692,12 @@ void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
                     (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
                 _lookAtTargetAvatar = avatarPointer;
+                avatar->setShowDisplayName(true);
                 return;
+            } else {
+                avatar->setShowDisplayName(false);
             }
+
         }
         _lookAtTargetAvatar.clear();
     }
