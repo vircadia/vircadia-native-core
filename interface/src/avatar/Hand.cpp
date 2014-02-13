@@ -304,7 +304,7 @@ void Hand::render(bool isMine) {
         }
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
         renderLeapHands(isMine);
     }
 

@@ -161,7 +161,7 @@ Menu::Menu() :
     #endif
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
@@ -339,14 +339,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
 
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
                                            MenuOption::FaceshiftTCP,
                                            0,
                                            false,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
@@ -356,7 +356,7 @@ Menu::Menu() :
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);
