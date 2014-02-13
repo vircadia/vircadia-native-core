@@ -837,7 +837,6 @@ void MyAvatar::updateThrust(float deltaTime) {
                 }
             }
         }
-
     }
 
     //  Update speed brake status
@@ -902,7 +901,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
     }
 }
-
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_ELASTICITY = 0.4f;
