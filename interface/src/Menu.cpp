@@ -317,6 +317,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");

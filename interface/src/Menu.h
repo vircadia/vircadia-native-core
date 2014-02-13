@@ -175,6 +175,7 @@ namespace MenuOption {
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
+    const QString AutoAdjustLOD = "Automatically Adjust LOD";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
