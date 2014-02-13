@@ -1,10 +1,10 @@
-/** 
- *    @file PrimitiveRenderer.cpp
- *    A geometric primitive renderer.
- *
- *    @author: Norman Crafts
- *    @copyright 2014, High Fidelity, Inc. All rights reserved.
- */
+/// 
+///    @file PrimitiveRenderer.cpp
+///    A geometric primitive renderer.
+///
+///    @author: Norman Crafts
+///    @copyright 2014, High Fidelity, Inc. All rights reserved.
+///
 
 #include <QMutexLocker>
 
@@ -20,7 +20,7 @@ Primitive::~Primitive() {
 
 // Simple dispatch between API and SPI
 
-VertexElementList const & Primitive::vertexElements() const {
+const VertexElementList& Primitive::vertexElements() const {
     return vVertexElements();
 }
 
@@ -52,14 +52,14 @@ Cube::Cube(
     unsigned char faceExclusions
     ) :
         _cpuMemoryUsage(0) {
-    initialize(x, y, z, s, r, g, b, faceExclusions);
+    init(x, y, z, s, r, g, b, faceExclusions);
 }
 
 Cube::~Cube() {
     terminate();
 }
 
-void Cube::initialize(
+void Cube::init(
     float x,
     float y,
     float z,
@@ -93,9 +93,10 @@ void Cube::initializeVertices(
 
     for (int i = 0; i < _sNumVerticesPerCube; i++) {
         // Check whether the vertex is necessary for the faces indicated by faceExclusions bit mask.
+        // uncomment this line to load all faces: if (~0x00 & _sFaceIndexToHalfSpaceMask[i >> 2]) {
+        // uncomment this line to include shared faces: if (faceExclusions & _sFaceIndexToHalfSpaceMask[i >> 2]) {
+        // uncomment this line to exclude shared faces: 
         if (~faceExclusions & _sFaceIndexToHalfSpaceMask[i >> 2]) {
-        //if (~0x00 & _sFaceIndexToHalfSpaceMask[i >> 2]) {
-        //if (faceExclusions & _sFaceIndexToHalfSpaceMask[i >> 2]) {
 
             VertexElement* v = new VertexElement();
             if (v) {
@@ -142,10 +143,7 @@ void Cube::initializeVertices(
 
 void Cube::terminateVertices() {
 
-    VertexElementList::iterator it  = _vertices.begin();
-    VertexElementList::iterator end = _vertices.end();
-
-    for ( ; it != end; ++it) {
+    for (VertexElementList::iterator it = _vertices.begin(); it != _vertices.end(); ++it) {
         delete *it;
     }
     _cpuMemoryUsage -= _vertices.size() * (sizeof(VertexElement) + sizeof(VertexElement*));
@@ -159,10 +157,10 @@ void Cube::initializeTris(
     int index = 0;
     for (int i = 0; i < _sNumFacesPerCube; i++) {
         // Check whether the vertex is necessary for the faces indicated by faceExclusions bit mask.
-        // uncomment this line to exclude shared faces: 
-        if (~faceExclusions & _sFaceIndexToHalfSpaceMask[i]) {
         // uncomment this line to load all faces: if (~0x00 & _sFaceIndexToHalfSpaceMask[i]) {
         // uncomment this line to include shared faces: if (faceExclusions & _sFaceIndexToHalfSpaceMask[i]) {
+        // uncomment this line to exclude shared faces: 
+        if (~faceExclusions & _sFaceIndexToHalfSpaceMask[i]) {
             
             int start = index;
             // Create the triangulated face, two tris, six indices referencing four vertices, both
@@ -174,7 +172,7 @@ void Cube::initializeTris(
 
             // Store triangle ABC
 
-            TriElement *tri = new TriElement();
+            TriElement* tri = new TriElement();
             if (tri) {
                 tri->indices[0] = index++;
                 tri->indices[1] = index++;
@@ -204,17 +202,14 @@ void Cube::initializeTris(
 
 void Cube::terminateTris() {
 
-    TriElementList::iterator it  = _tris.begin();
-    TriElementList::iterator end = _tris.end();
-
-    for ( ; it != end; ++it) {
+    for (TriElementList::iterator it = _tris.begin(); it != _tris.end(); ++it) {
         delete *it;
     }
     _cpuMemoryUsage -= _tris.size() * (sizeof(TriElement) + sizeof(TriElement*));
     _tris.clear();
 }
 
-VertexElementList const & Cube::vVertexElements() const {
+const VertexElementList& Cube::vVertexElements() const {
     return _vertices;
 }
 
@@ -340,7 +335,7 @@ PrimitiveRenderer::PrimitiveRenderer(
         _cpuMemoryUsage(0)
 
 {
-    initialize();
+    init();
 }
 
 PrimitiveRenderer::~PrimitiveRenderer() {
@@ -348,7 +343,7 @@ PrimitiveRenderer::~PrimitiveRenderer() {
     terminate();
 }
 
-void PrimitiveRenderer::initialize() {
+void PrimitiveRenderer::init() {
 
     initializeGL();
     initializeBookkeeping();
@@ -450,12 +445,9 @@ void PrimitiveRenderer::constructElements(
 
     // Load vertex elements
     VertexElementIndexList& vertexElementIndexList = primitive->vertexElementIndices();
-    VertexElementList const & vertices = primitive->vertexElements();
+    const VertexElementList& vertices = primitive->vertexElements();
     {
-        VertexElementList::const_iterator it  = vertices.begin();
-        VertexElementList::const_iterator end = vertices.end();
-
-        for ( ; it != end; ++it ) {
+        for (VertexElementList::const_iterator it = vertices.begin(); it != vertices.end(); ++it ) {
             int index = getAvailableVertexElementIndex();
             if (index != 0) {
                 // Store the vertex element index in the primitive's
@@ -473,10 +465,8 @@ void PrimitiveRenderer::constructElements(
     // Load tri elements
     if (vertexElementIndexList.size() == vertices.size()) {
         TriElementList& tris = primitive->triElements();
-        TriElementList::iterator it  = tris.begin();
-        TriElementList::iterator end = tris.end();
 
-        for ( ; it != end; ++it) {
+        for (TriElementList::iterator it = tris.begin(); it != tris.end(); ++it) {
             TriElement* tri = *it;
             int index = getAvailableTriElementIndex();
             if (index != 0) {
@@ -508,11 +498,9 @@ void PrimitiveRenderer::deconstructElements(
     // Schedule the tri elements of the face for deconstruction
     {
         TriElementList& tris = primitive->triElements();
-        TriElementList::const_iterator it  = tris.begin();
-        TriElementList::const_iterator end = tris.end();
 
-        for ( ; it != end; ++it) {
-            TriElement const* tri = *it;
+        for (TriElementList::const_iterator it = tris.begin(); it != tris.end(); ++it) {
+            const TriElement* tri = *it;
 
             // Put the tri element index into decon queue
             _deconstructTriElementIndex.push(tri->id);
@@ -523,10 +511,8 @@ void PrimitiveRenderer::deconstructElements(
     // to zero the data
     {
         VertexElementIndexList& vertexIndexList = primitive->vertexElementIndices();
-        VertexElementIndexList::const_iterator it  = vertexIndexList.begin();
-        VertexElementIndexList::const_iterator end = vertexIndexList.end();
 
-        for ( ; it != end; ++it) {
+        for (VertexElementIndexList::const_iterator it = vertexIndexList.begin(); it != vertexIndexList.end(); ++it) {
             int index = *it;
 
             // Put the vertex element index into the available queue
@@ -728,10 +714,10 @@ void PrimitiveRenderer::vRender() {
     glVertexPointer(3, GL_FLOAT, sizeof(VertexElement), 0);
 
     glEnableClientState(GL_NORMAL_ARRAY);
-    glNormalPointer(GL_FLOAT, sizeof(VertexElement), (GLvoid const *)12);
+    glNormalPointer(GL_FLOAT, sizeof(VertexElement), (const GLvoid*)12);
 
     glEnableClientState(GL_COLOR_ARRAY);
-    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(VertexElement), (GLvoid const *)24);
+    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(VertexElement), (const GLvoid*)24);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     GLint err = glGetError();

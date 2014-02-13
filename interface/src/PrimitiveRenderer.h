@@ -74,7 +74,7 @@ public:
     /// Vertex element accessor.
     ///    @return A list of vertex elements of the primitive
     ///
-    VertexElementList const & vertexElements() const;
+    const VertexElementList& vertexElements() const;
 
     /// Vertex element index accessor.
     ///    @return A list of vertex element indices of the primitive
@@ -103,7 +103,7 @@ private:
     /// Copy constructor prohibited.
     ///
     Primitive(
-        Primitive const & prim
+        const Primitive& prim
         );
 
     // SPI methods are defined here
@@ -112,7 +112,7 @@ private:
     ///    Service implementer to provide private override for this method
     ///    in derived class
     ///
-    virtual VertexElementList const & vVertexElements() const = 0;
+    virtual const VertexElementList& vVertexElements() const = 0;
 
     /// Vertex element index accessor.
     ///    Service implementer to provide private override for this method
@@ -166,10 +166,10 @@ private:
     /// Copy constructor prohibited.
     ///
     Cube (
-        Cube const & cube
+        const Cube& cube
         );
 
-    void initialize(
+    void init(
         float x,
         float y,
         float z,
@@ -203,7 +203,7 @@ private:
 
     // SPI virtual override methods go here
 
-    VertexElementList const & vVertexElements() const;
+    const VertexElementList& vVertexElements() const;
     VertexElementIndexList& vVertexElementIndices();
     TriElementList& vTriElements();
     void vReleaseVertexElements();
@@ -275,7 +275,7 @@ private:
     /// Copy constructor prohibited.
     ///
     Renderer(
-        Renderer const & primitive
+        const Renderer& primitive
         );
 
     // SPI methods are defined here
@@ -341,10 +341,10 @@ private:
     /// Copy constructor prohibited.
     ///
     PrimitiveRenderer(
-        PrimitiveRenderer const & renderer
+        const PrimitiveRenderer& renderer
         );
 
-    void initialize();
+    void init();
     void terminate();
 
     /// Allocate and initialize GL buffers.
