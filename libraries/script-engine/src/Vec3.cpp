@@ -26,7 +26,9 @@ glm::vec3 Vec3::multiplyQbyV(const glm::quat& q, const glm::vec3& v) {
 glm::vec3 Vec3::sum(const glm::vec3& v1, const glm::vec3& v2) {
     return v1 + v2;
 }
-
+glm::vec3 Vec3::subtract(const glm::vec3& v1, const glm::vec3& v2) {
+        return v1 - v2;
+}
 float Vec3::length(const glm::vec3& v) {
     return glm::length(v);
 }
