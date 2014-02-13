@@ -92,7 +92,7 @@ public:
 
     /// Get memory usage.
     ///
-    int getMemoryUsage();
+    unsigned long getMemoryUsage();
 
 protected:
     /// Default constructor prohibited to API user, restricted to service implementer.
@@ -136,7 +136,7 @@ private:
     ///    Service implementer to provide private override for this method
     ///    in derived class
     ///
-    virtual int vGetMemoryUsage() = 0;
+    virtual unsigned long vGetMemoryUsage() = 0;
 
 };
 
@@ -207,14 +207,14 @@ private:
     VertexElementIndexList& vVertexElementIndices();
     TriElementList& vTriElements();
     void vReleaseVertexElements();
-    int vGetMemoryUsage();
+    unsigned long vGetMemoryUsage();
 
 private:
     VertexElementList _vertices;                ///< Vertex element list
     VertexElementIndexList _vertexIndices;      ///< Vertex element index list
     TriElementList _tris;                       ///< Tri element list
 
-    int _cpuMemoryUsage;                        ///< Memory allocation of object
+    unsigned long _cpuMemoryUsage;              ///< Memory allocation of object
 
     static const int _sNumFacesPerCube = 6;
     static const int _sNumVerticesPerCube = 24;
@@ -260,11 +260,11 @@ public:
 
     /// Get memory usage.
     ///
-    int getMemoryUsage();
+    unsigned long getMemoryUsage();
 
     /// Get GPU memory usage.
     ///
-    int getMemoryUsageGPU();
+    unsigned long getMemoryUsageGPU();
 
 protected:
     /// Default constructor prohibited to API user, restricted to service implementer.
@@ -310,11 +310,11 @@ private:
 
     /// Get memory usage.
     ///
-    virtual int vGetMemoryUsage() = 0;
+    virtual unsigned long vGetMemoryUsage() = 0;
 
     /// Get GPU memory usage.
     ///
-    virtual int vGetMemoryUsageGPU() = 0;
+    virtual unsigned long vGetMemoryUsageGPU() = 0;
 
 };
 
@@ -439,11 +439,11 @@ private:
 
     /// Get memory usage.
     ///
-    int vGetMemoryUsage();
+    unsigned long vGetMemoryUsage();
 
     /// Get gpu memory usage.
     ///
-    int vGetMemoryUsageGPU();
+    unsigned long vGetMemoryUsageGPU();
 
 private:
 
@@ -475,8 +475,8 @@ private:
 
     // Statistics parameters, not necessary for proper operation
 
-    int _gpuMemoryUsage;
-    int _cpuMemoryUsage;
+    unsigned long _gpuMemoryUsage;
+    unsigned long _cpuMemoryUsage;
 
 
     static const int _sIndicesPerTri = 3;

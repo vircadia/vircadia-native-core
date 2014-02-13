@@ -36,7 +36,7 @@ void Primitive::releaseVertexElements() {
     vReleaseVertexElements();
 }
 
-int Primitive::getMemoryUsage() {
+unsigned long Primitive::getMemoryUsage() {
     return vGetMemoryUsage();
 }
 
@@ -225,7 +225,7 @@ void Cube::vReleaseVertexElements() {
     terminateVertices();
 }
 
-int Cube::vGetMemoryUsage() {
+unsigned long Cube::vGetMemoryUsage() {
     return _cpuMemoryUsage;
 }
 
@@ -310,11 +310,11 @@ void Renderer::render() {
     vRender();
 }
 
-int Renderer::getMemoryUsage() {
+unsigned long Renderer::getMemoryUsage() {
     return vGetMemoryUsage();
 }
 
-int Renderer::getMemoryUsageGPU() {
+unsigned long Renderer::getMemoryUsageGPU() {
     return vGetMemoryUsageGPU();
 }
 
@@ -322,14 +322,17 @@ PrimitiveRenderer::PrimitiveRenderer(
     int maxCount
     ) :
         _maxCount(maxCount),
-        _vertexElementCount(0),
-        _maxVertexElementCount(0),
-        _triElementCount(0),
-        _maxTriElementCount(0),
-        _primitiveCount(0),
-
         _triBufferId(0),
         _vertexBufferId(0),
+
+        _vertexElementCount(0),
+        _maxVertexElementCount(0),
+
+        _triElementCount(0),
+        _maxTriElementCount(0),
+
+        _primitives(),
+        _primitiveCount(0),
 
         _gpuMemoryUsage(0),
         _cpuMemoryUsage(0)
@@ -412,9 +415,15 @@ void PrimitiveRenderer::terminate() {
 
 void PrimitiveRenderer::terminateGL() {
 
-    glDeleteBuffers(1, &_vertexBufferId);
-    glDeleteBuffers(1, &_triBufferId);
-    GLint err = glGetError();
+    if (_vertexBufferId) {
+        glDeleteBuffers(1, &_vertexBufferId);
+        _vertexBufferId = 0;
+    }
+
+    if (_triBufferId) {
+        glDeleteBuffers(1, &_triBufferId);
+        _triBufferId = 0;
+    }
 }
 
 void PrimitiveRenderer::terminateBookkeeping() {
@@ -720,21 +729,18 @@ void PrimitiveRenderer::vRender() {
     glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(VertexElement), (const GLvoid*)24);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    GLint err = glGetError();
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _triBufferId);
     glDrawElements(GL_TRIANGLES, 3 * _triElementCount, GL_UNSIGNED_INT, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glDisable(GL_CULL_FACE);
-
-    err = glGetError();
 }
 
-int PrimitiveRenderer::vGetMemoryUsage() {
+unsigned long PrimitiveRenderer::vGetMemoryUsage() {
     return _cpuMemoryUsage;
 }
 
-int PrimitiveRenderer::vGetMemoryUsageGPU() {
+unsigned long PrimitiveRenderer::vGetMemoryUsageGPU() {
     return _gpuMemoryUsage;
 }
