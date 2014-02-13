@@ -67,13 +67,53 @@ class MetavoxelEditMessage {
 
 public:
     
-    STREAM Box region;
-    STREAM float granularity;
-    STREAM OwnedAttributeValue value;
+    STREAM QVariant edit;
     
     void apply(MetavoxelData& data) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelEditMessage)
+
+/// Abstract base class for edits.
+class MetavoxelEdit {
+public:
+
+    virtual ~MetavoxelEdit();
+    
+    virtual void apply(MetavoxelData& data) const = 0;
+};
+
+/// An edit that sets the region within a box to a value.
+class BoxSetEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+
+    STREAM Box region;
+    STREAM float granularity;
+    STREAM OwnedAttributeValue value;
+    
+    BoxSetEdit(const Box& region = Box(), float granularity = 0.0f,
+        const OwnedAttributeValue& value = OwnedAttributeValue());
+    
+    virtual void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(BoxSetEdit)
+
+/// An edit that sets the entire tree to a value.
+class GlobalSetEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM OwnedAttributeValue value;
+    
+    GlobalSetEdit(const OwnedAttributeValue& value = OwnedAttributeValue());
+    
+    virtual void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(GlobalSetEdit)
 
 #endif /* defined(__interface__MetavoxelMessages__) */

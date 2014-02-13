@@ -20,6 +20,8 @@ class QListWidget;
 class QPushButton;
 class QScrollArea;
 
+class MetavoxelTool;
+
 /// Allows editing metavoxels.
 class MetavoxelEditor : public QDialog {
     Q_OBJECT
@@ -28,6 +30,14 @@ public:
     
     MetavoxelEditor();
 
+    QString getSelectedAttribute() const;
+    
+    double getGridSpacing() const;
+    double getGridPosition() const;
+    glm::quat getGridRotation() const;
+    
+    QVariant getValue() const;
+    
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
 private slots:
@@ -37,38 +47,84 @@ private slots:
     void deleteSelectedAttribute();
     void centerGridPosition();
     void alignGridPosition();
+    void updateTool();
     
     void render();
     
 private:
     
-    void updateAttributes(const QString& select = QString());
-    QString getSelectedAttribute() const;
-    double getGridSpacing() const;
-    glm::quat getGridRotation() const;
-    void resetState();
-    void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
-    QVariant getValue() const;
+    void updateAttributes(const QString& select = QString());    
+    MetavoxelTool* getActiveTool() const;
     
     QListWidget* _attributes;
     QPushButton* _deleteAttribute;
+    
     QComboBox* _gridPlane;
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;
+    
+    QComboBox* _toolBox;
+    
     QGroupBox* _value;
     QScrollArea* _valueArea;
+    
+    static ProgramObject _gridProgram;
+};
+
+/// Base class for editor tools.
+class MetavoxelTool : public QWidget {
+    Q_OBJECT
+
+public:
+
+    MetavoxelTool(MetavoxelEditor* editor);
+    
+    /// Renders the tool's interface, if any.
+    virtual void render();
+
+protected:
+    
+    MetavoxelEditor* _editor;
+};
+
+/// Allows setting the value of a region by dragging out a box.
+class BoxSetTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    BoxSetTool(MetavoxelEditor* editor);
+
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
+private:
+    
+    void resetState();
+    void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
     
     enum State { HOVERING_STATE, DRAGGING_STATE, RAISING_STATE };
     
     State _state;
     
     glm::vec2 _mousePosition; ///< the position of the mouse in rotated space
-    
     glm::vec2 _startPosition; ///< the first corner of the selection base
     glm::vec2 _endPosition; ///< the second corner of the selection base
     float _height; ///< the selection height
+};
+
+/// Allows setting the value across the entire space.
+class GlobalSetTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
     
-    static ProgramObject _gridProgram;
+    GlobalSetTool(MetavoxelEditor* editor);
+
+private slots:
+    
+    void apply();
 };
 
 #endif /* defined(__interface__MetavoxelEditor__) */

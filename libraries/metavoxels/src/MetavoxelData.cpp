@@ -43,8 +43,7 @@ MetavoxelData& MetavoxelData::operator=(const MetavoxelData& other) {
 
 Box MetavoxelData::getBounds() const {
     float halfSize = _size * 0.5f;
-    Box bounds = { glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(halfSize, halfSize, halfSize) };
-    return bounds;
+    return Box(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(halfSize, halfSize, halfSize));
 }
 
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {

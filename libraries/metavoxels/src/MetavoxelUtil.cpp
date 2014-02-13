@@ -155,6 +155,10 @@ QByteArray signal(const char* signature) {
     return signal.replace("dummyMethod()", signature);
 }
 
+Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
+    minimum(minimum), maximum(maximum) {
+}
+
 bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
