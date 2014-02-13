@@ -794,16 +794,9 @@ bool VoxelSystem::recreateVoxelGeometryInViewOperation(OctreeElement* element, v
     bool shouldRender = voxel->calculateShouldRender(&args->thisViewFrustum, args->voxelSizeScale, args->boundaryLevelAdjust);
     bool inView = voxel->isInView(args->thisViewFrustum);
     voxel->setShouldRender(inView && shouldRender);
-
-    if (shouldRender) {
-        bool falseColorize = false;
-        if (falseColorize) {
-            voxel->setFalseColor(0,0,255); // false colorize
-        }
-        // These are both needed to force redraw...
-        voxel->setDirtyBit();
-        qDebug() << "recreateVoxelGeometryInViewOperation()... calling voxel->markWithChangedTime()";
-        voxel->markWithChangedTime(); // this will notifyUpdateHooks, which will result in our geometry being created
+    if (shouldRender && inView) {
+        // recreate the geometry
+        args->thisVoxelSystem->updateNodeInArrays(voxel, false, true); // DONT_REUSE_INDEX, FORCE_REDRAW
     }
 
     return true; // keep recursing!
@@ -814,30 +807,17 @@ bool VoxelSystem::recreateVoxelGeometryInViewOperation(OctreeElement* element, v
 // TODO: other than cleanupRemovedVoxels() is there anyplace we attempt to detect too many abandoned slots???
 void VoxelSystem::recreateVoxelGeometryInView() {
 
-qDebug() << "recreateVoxelGeometryInView()...";
+    qDebug() << "recreateVoxelGeometryInView()...";
 
     recreateVoxelGeometryInViewArgs args(this);
     _writeArraysLock.lockForWrite(); // don't let anyone read or write our write arrays until we're done
     _tree->lockForRead(); // don't let anyone change our tree structure until we're run
     
     // reset our write arrays bookkeeping to think we've got no voxels in it
-    clearFreeBufferIndexes(); // does this do everything we need?
-    /**
-    // clear out all our abandoned indexes - they are all available
-    // TODO: is it possible freeBufferIndex() will get called???
-    _voxelsInWriteArrays = 0;
-    _freeIndexLock.lock();
-    _freeIndexes.clear();
-    _freeIndexLock.unlock();
-    **/
-    
-    //_voxelsUpdated = 0; // ????
-    //_writeRenderFullVBO = true;
+    clearFreeBufferIndexes();
 
     // do we need to reset out _writeVoxelDirtyArray arrays??
     memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-
-    
     
     _tree->recurseTreeWithOperation(recreateVoxelGeometryInViewOperation,(void*)&args);
     _tree->unlock();
@@ -882,8 +862,7 @@ void VoxelSystem::checkForCulling() {
 
     if (fullRedraw) {
         // this will remove all old geometry and recreate the correct geometry for all in view voxels
-        //recreateVoxelGeometryInView();
-        hideOutOfView(forceFullFrustum);
+        recreateVoxelGeometryInView();
     } else {
         hideOutOfView(forceFullFrustum);
     }
