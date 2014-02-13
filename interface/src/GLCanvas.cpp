@@ -75,7 +75,7 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
-        if (url.url().toLower().endsWith("jpg")) {
+        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
             event->acceptProposedAction();
             break;
         }
