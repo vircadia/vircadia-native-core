@@ -178,7 +178,7 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         }        
         glm::vec3 totalPenetration;
         ModelCollisionList collisions;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
             //  Check for palm collisions
             glm::vec3 myPalmPosition = palm.getPosition();
             float palmCollisionDistance = 0.1f;
@@ -220,10 +220,10 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                         totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
                     }
                 } else {
-                    // when this !isMyHand then avatar is MyAvatar and we apply the collision
+                    // when !isMyHand then avatar is MyAvatar and we apply the collision
                     // which might not do anything (hand hit unmovable part of MyAvatar) however
-                    // we don't resolve the hand's penetration (we expect their simulation
-                    // to do the right thing).
+                    // we don't resolve the hand's penetration because we expect the remote 
+                    // simulation to do the right thing.
                     avatar->applyCollision(collisions[j]);
                 }
             }
