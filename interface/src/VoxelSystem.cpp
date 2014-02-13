@@ -60,8 +60,8 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
       _initialized(false),
-      _inInspectForOcclusions(false),
       _showCulledSharedFaces(false),
+      _inInspectForOcclusions(false),
       _usePrimitiveRenderer(false),
       _renderer(0) {
 
@@ -251,8 +251,6 @@ VoxelSystem::~VoxelSystem() {
 
     cleanupVoxelMemory();
     delete _tree;
-
-    _renderer = 0;
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
@@ -371,8 +369,10 @@ void VoxelSystem::cleanupVoxelMemory() {
             _readColorsArray = NULL;
             _writeColorsArray = NULL;
         }
+
         delete _renderer;
         _renderer = 0;
+
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
@@ -1471,7 +1471,9 @@ void VoxelSystem::killLocalVoxels() {
     _tree->eraseAllOctreeElements();
     _tree->unlock();
     clearFreeBufferIndexes();
-    _renderer->release();
+    if (_renderer) {
+        _renderer->release();
+    }
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
 }
@@ -1675,13 +1677,17 @@ void VoxelSystem::cullSharedFaces() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
         _useVoxelShader = false;
         _usePrimitiveRenderer = true;
-        _renderer->release();
+        if (_renderer) {
+            _renderer->release();
+        }
         clearAllNodesBufferIndex();
         inspectForOcclusions();
         qDebug("culling shared faces in %d nodes", _nodeCount);
     } else {
         _usePrimitiveRenderer = false;
-        _renderer->release();
+        if (_renderer) {
+            _renderer->release();
+        }
         clearAllNodesBufferIndex();
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(clearOcclusionsOperation);
