@@ -413,7 +413,7 @@ void Audio::handleAudioInput() {
                 averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
                 _noiseGateMeasuredFloor = smallestSample;
                 _noiseGateSampleCounter = 0;
-                qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
+                //qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
             }
 
             if (_noiseGateEnabled) {
