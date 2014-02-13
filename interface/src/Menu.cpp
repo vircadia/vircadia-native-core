@@ -162,7 +162,7 @@ Menu::Menu() :
     #endif
 
     addDisabledActionAndSeparator(editMenu, "Physics");
-    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
+    addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
@@ -239,9 +239,9 @@ Menu::Menu() :
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             appInstance,SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H,false,
-                                            appInstance,SLOT(cameraMenuChanged()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
+                                            appInstance, SLOT(cameraMenuChanged()));
                                             
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
                                            false,
@@ -267,14 +267,8 @@ Menu::Menu() :
                                   appInstance->getAvatar(),
                                   SLOT(resetSize()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::OffAxisProjection,
-                                           0,
-                                           true);
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::TurnWithHead,
-                                           0,
-                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
@@ -299,7 +293,6 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, false);
 
@@ -340,14 +333,14 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::CollisionProxies);
 
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
                                            MenuOption::FaceshiftTCP,
                                            0,
                                            false,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
@@ -357,7 +350,7 @@ Menu::Menu() :
                                            true,
                                            appInstance->getSixenseManager(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::VoxelDrumming, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::PlaySlaps, 0, false);

@@ -197,7 +197,7 @@ namespace MenuOption {
     const QString DisableDeltaSending = "Disable Delta Sending";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
-    const QString DisplayLeapHands = "Display Leap Hands";
+    const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
@@ -237,7 +237,6 @@ namespace MenuOption {
     const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
-    const QString ParticleCloud = "Particle Cloud";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
