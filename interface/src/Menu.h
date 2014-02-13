@@ -183,7 +183,7 @@ namespace MenuOption {
     const QString DisableDeltaSending = "Disable Delta Sending";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
-    const QString DisplayLeapHands = "Display Leap Hands";
+    const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
