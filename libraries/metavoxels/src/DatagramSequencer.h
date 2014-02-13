@@ -70,7 +70,7 @@ public:
     
     /// Processes a datagram received from the other party, emitting readyToRead when the entire packet
     /// has been successfully assembled.
-    void receivedDatagram(const QByteArray& datagram);
+    Q_INVOKABLE void receivedDatagram(const QByteArray& datagram);
 
 signals:
     

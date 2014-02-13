@@ -23,8 +23,6 @@
 
 #include "renderer/ProgramObject.h"
 
-class MetavoxelClient;
-
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public QObject {
     Q_OBJECT
@@ -32,28 +30,20 @@ class MetavoxelSystem : public QObject {
 public:
 
     MetavoxelSystem();
-    ~MetavoxelSystem();
 
     void init();
     
     void applyEdit(const MetavoxelEditMessage& edit);
     
-    void processData(const QByteArray& data, const HifiSockAddr& sender);
-    
     void simulate(float deltaTime);
     void render();
     
-public slots:
+private slots:
 
-    void nodeAdded(SharedNodePointer node);
-    void nodeKilled(SharedNodePointer node);
-    
+    void maybeAttachClient(const SharedNodePointer& node);
+
 private:
-
-    Q_INVOKABLE void addClient(const SharedNodePointer& node);
-    Q_INVOKABLE void removeClient(const QUuid& uuid);
-    Q_INVOKABLE void receivedData(const QByteArray& data, const SharedNodePointer& sendingNode);
-
+    
     class Point {
     public:
         glm::vec4 vertex;
@@ -76,13 +66,10 @@ private:
     QVector<Point> _points;
     PointVisitor _pointVisitor;
     QOpenGLBuffer _buffer;
-    
-    QHash<QUuid, MetavoxelClient*> _clients;
-    QHash<QUuid, MetavoxelClient*> _clientsBySessionID;
 };
 
 /// A client session associated with a single server.
-class MetavoxelClient : public QObject {
+class MetavoxelClient : public NodeData {
     Q_OBJECT    
     
 public:
@@ -90,13 +77,11 @@ public:
     MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
 
-    const QUuid& getSessionID() const { return _sessionID; }
-
     void applyEdit(const MetavoxelEditMessage& edit);
 
     void simulate(float deltaTime, MetavoxelVisitor& visitor);
 
-    void receivedData(const QByteArray& data);
+    virtual int parseData(const QByteArray& packet);
 
 private slots:
     
@@ -117,7 +102,6 @@ private:
     };
     
     SharedNodePointer _node;
-    QUuid _sessionID;
     
     DatagramSequencer _sequencer;
     
