@@ -127,16 +127,9 @@ void VoxelSystem::setDisableFastVoxelPipeline(bool disableFastVoxelPipeline) {
 
 void VoxelSystem::elementUpdated(OctreeElement* element) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-//qDebug() << "VoxelSystem::elementUpdated()...";
 
     // If we're in SetupNewVoxelsForDrawing() or _writeRenderFullVBO then bail..
     if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
-/*
-qDebug() << "VoxelSystem::elementUpdated()... BAILING!!! "
-        << "_writeRenderFullVBO="<< _writeRenderFullVBO
-        << "_inSetupNewVoxelsForDrawing="<< _inSetupNewVoxelsForDrawing 
-        << "_useFastVoxelPipeline="<< _useFastVoxelPipeline; 
-*/
         return;
     }
 
@@ -146,8 +139,6 @@ qDebug() << "VoxelSystem::elementUpdated()... BAILING!!! "
         float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
         int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
         shouldRender = voxel->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
-
-//qDebug() << "VoxelSystem::elementUpdated()... recalcing should render!!";
 
         if (voxel->getShouldRender() != shouldRender) {
             voxel->setShouldRender(shouldRender);
@@ -176,13 +167,11 @@ qDebug() << "VoxelSystem::elementUpdated()... BAILING!!! "
 
         const bool REUSE_INDEX = true;
         const bool DONT_FORCE_REDRAW = false;
-//qDebug() << "VoxelSystem::elementUpdated()... calling updateNodeInArrays()!!!";
         updateNodeInArrays(voxel, REUSE_INDEX, DONT_FORCE_REDRAW);
         _voxelsUpdated++;
 
         voxel->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
 
-//qDebug() << "VoxelSystem::elementUpdated()... calling setupNewVoxelsForDrawingSingleNode()!!!";
         setupNewVoxelsForDrawingSingleNode();
     }
 }
