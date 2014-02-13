@@ -21,6 +21,7 @@
 #include "Bitstream.h"
 
 class QByteArray;
+class QComboBox;
 class QDoubleSpinBox;
 class QLineEdit;
 class QPushButton;
@@ -49,6 +50,33 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
+
+/// Editor for meta-object values.
+class QMetaObjectEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject WRITE setMetaObject NOTIFY metaObjectChanged USER true)
+
+public:
+    
+    QMetaObjectEditor(QWidget* parent);
+
+signals:
+    
+    void metaObjectChanged(const QMetaObject* metaObject);
+
+public slots:
+    
+    void setMetaObject(const QMetaObject* metaObject);
+
+private slots:
+    
+    void updateMetaObject();
+    
+private:
+    
+    QComboBox* _box;
+    const QMetaObject* _metaObject;
+};
 
 /// Editor for color values.
 class QColorEditor : public QWidget {

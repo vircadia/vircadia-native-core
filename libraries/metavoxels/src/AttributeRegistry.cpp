@@ -53,6 +53,10 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
     return pointer;
 }
 
+void AttributeRegistry::deregisterAttribute(const QString& name) {
+    _attributes.remove(name);
+}
+
 QScriptValue AttributeRegistry::getAttribute(QScriptContext* context, QScriptEngine* engine) {
     return engine->newQObject(getInstance()->getAttribute(context->argument(0).toString()).data(), QScriptEngine::QtOwnership,
         QScriptEngine::PreferExistingWrapperObject);

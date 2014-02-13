@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <QColorDialog>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
@@ -104,6 +105,12 @@ static QItemEditorCreatorBase* createDoubleEditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* createQMetaObjectEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QMetaObjectEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<const QMetaObject*>(), creator);
+    return creator;
+} 
+
 static QItemEditorCreatorBase* createQColorEditorCreator() {
     QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QColorEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<QColor>(), creator);
@@ -123,6 +130,7 @@ static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
 }
 
 static QItemEditorCreatorBase* doubleEditorCreator = createDoubleEditorCreator();
+static QItemEditorCreatorBase* qMetaObjectEditorCreator = createQMetaObjectEditorCreator();
 static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator();
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
@@ -151,6 +159,29 @@ bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
         other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
+}
+
+QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setContentsMargins(QMargins());
+    layout->setAlignment(Qt::AlignTop);
+    setLayout(layout);
+    layout->addWidget(_box = new QComboBox());
+    connect(_box, SIGNAL(currentIndexChanged(int)), SLOT(updateMetaObject()));
+    
+    foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(&SharedObject::staticMetaObject)) {
+        _box->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+    }
+}
+
+void QMetaObjectEditor::setMetaObject(const QMetaObject* metaObject) {
+    _metaObject = metaObject;
+    _box->setCurrentIndex(_metaObject ? _box->findText(_metaObject->className()) : -1);
+}
+
+void QMetaObjectEditor::updateMetaObject() {
+    int index = _box->currentIndex();
+    emit metaObjectChanged(_metaObject = (index == -1) ? NULL : _box->itemData(index).value<const QMetaObject*>());
 }
 
 QColorEditor::QColorEditor(QWidget* parent) : QWidget(parent) {

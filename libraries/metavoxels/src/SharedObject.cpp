@@ -16,6 +16,8 @@
 #include "MetavoxelUtil.h"
 #include "SharedObject.h"
 
+REGISTER_META_OBJECT(SharedObject)
+
 SharedObject::SharedObject() : _referenceCount(0) {
 }
 
@@ -72,7 +74,7 @@ bool SharedObject::equals(const SharedObject* other) const {
     return true;
 }
 
-SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent) : QWidget(parent) {
+SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nullable, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setAlignment(Qt::AlignTop);
     setLayout(layout);
@@ -81,9 +83,14 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* p
     layout->addLayout(form);
     
     form->addRow("Type:", _type = new QComboBox());
-    _type->addItem("(none)");
+    if (nullable) {
+        _type->addItem("(none)");
+    }
     foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(metaObject)) {
-        _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+        // add add constructable subclasses
+        if (metaObject->constructorCount() > 0) {
+            _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+        }
     }
     connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
 }

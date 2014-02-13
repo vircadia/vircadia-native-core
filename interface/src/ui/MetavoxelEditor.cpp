@@ -155,14 +155,13 @@ void MetavoxelEditor::selectedAttributeChanged() {
         _value->setVisible(false);
         return;
     }
-    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
-    
+    _deleteAttribute->setEnabled(true);
     _value->setVisible(true);
     
     if (_valueArea->widget()) {
         delete _valueArea->widget();
     }
-    QWidget* editor = attribute->createEditor();
+    QWidget* editor = AttributeRegistry::getInstance()->getAttribute(selected)->createEditor();
     if (editor) {
         _valueArea->setWidget(editor);
     }
@@ -181,6 +180,10 @@ void MetavoxelEditor::createNewAttribute() {
     QLineEdit name;
     form.addRow("Name:", &name);
     
+    SharedObjectEditor editor(&Attribute::staticMetaObject, false);
+    editor.setObject(new QRgbAttribute());
+    layout.addWidget(&editor);
+    
     QDialogButtonBox buttons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(&buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(&buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -191,13 +194,17 @@ void MetavoxelEditor::createNewAttribute() {
         return;
     }
     QString nameText = name.text().trimmed();
-    AttributeRegistry::getInstance()->registerAttribute(new QRgbAttribute(nameText));
+    SharedObjectPointer attribute = editor.getObject();
+    attribute->setObjectName(nameText);
+    AttributeRegistry::getInstance()->registerAttribute(attribute.staticCast<Attribute>());
     
     updateAttributes(nameText);
 }
 
 void MetavoxelEditor::deleteSelectedAttribute() {
-    
+    AttributeRegistry::getInstance()->deregisterAttribute(getSelectedAttribute());
+    _attributes->selectionModel()->clear();
+    updateAttributes();
 }
 
 void MetavoxelEditor::centerGridPosition() {

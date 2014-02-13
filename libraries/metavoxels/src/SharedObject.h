@@ -21,7 +21,7 @@ class SharedObject : public QObject {
     
 public:
 
-    SharedObject();
+    Q_INVOKABLE SharedObject();
 
     int getReferenceCount() const { return _referenceCount; }
     void incrementReferenceCount();
@@ -63,6 +63,8 @@ public:
     operator T*() const { return _data; }
     T& operator*() const { return *_data; }
     T* operator->() const { return _data; }
+    
+    template<class X> SharedObjectPointerTemplate<X> staticCast() const;
     
     SharedObjectPointerTemplate<T>& operator=(T* data);
     SharedObjectPointerTemplate<T>& operator=(const SharedObjectPointerTemplate<T>& other);
@@ -109,6 +111,10 @@ template<class T> inline void SharedObjectPointerTemplate<T>::reset() {
     _data = NULL;
 }
 
+template<class T> template<class X> inline SharedObjectPointerTemplate<X> SharedObjectPointerTemplate<T>::staticCast() const {
+    return SharedObjectPointerTemplate<X>(static_cast<X*>(_data));
+}
+
 template<class T> inline SharedObjectPointerTemplate<T>& SharedObjectPointerTemplate<T>::operator=(T* data) {
     if (_data) {
         _data->decrementReferenceCount();
@@ -141,11 +147,13 @@ Q_DECLARE_METATYPE(SharedObjectPointer)
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {
     Q_OBJECT
-    Q_PROPERTY(SharedObjectPointer object MEMBER _object WRITE setObject USER true)
+    Q_PROPERTY(SharedObjectPointer object READ getObject WRITE setObject USER true)
 
 public:
     
-    SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent);
+    SharedObjectEditor(const QMetaObject* metaObject, bool nullable = true, QWidget* parent = NULL);
+
+    const SharedObjectPointer& getObject() const { return _object; }
 
 public slots:
 

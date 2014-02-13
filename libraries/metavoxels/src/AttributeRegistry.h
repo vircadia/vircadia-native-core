@@ -48,6 +48,9 @@ public:
     /// attribute
     AttributePointer registerAttribute(AttributePointer attribute);
     
+    /// Deregisters an attribute.
+    void deregisterAttribute(const QString& name);
+    
     /// Retrieves an attribute by name.
     AttributePointer getAttribute(const QString& name) const { return _attributes.value(name); }
     
@@ -260,7 +263,8 @@ class SharedObjectAttribute : public InlineAttribute<SharedObjectPointer> {
     
 public:
     
-    Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(), const QMetaObject* metaObject = NULL,
+    Q_INVOKABLE SharedObjectAttribute(const QString& name = QString(),
+        const QMetaObject* metaObject = &SharedObject::staticMetaObject,
         const SharedObjectPointer& defaultValue = SharedObjectPointer());
 
     virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
