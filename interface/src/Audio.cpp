@@ -397,7 +397,7 @@ void Audio::handleAudioInput() {
             float averageOfAllSampleFrames = 0.f;
             _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
             if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-                float smallestSample = MAXFLOAT;
+                float smallestSample = FLT_MAX;
                 for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i+= NOISE_GATE_FRAMES_TO_AVERAGE) {
                     float thisAverage = 0.0f;
                     for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
