@@ -27,21 +27,24 @@ function vMinus(a, b) {
 
 var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
-var ORBIT_RATE_ALTITUDE = 100.0;
-var ORBIT_RATE_AZIMUTH = 60.0;
+var ORBIT_RATE_ALTITUDE = 200.0;
+var ORBIT_RATE_AZIMUTH = 90.0;
+var PIXELS_PER_EXTRUDE_VOXEL = 16;
 
 var oldMode = Camera.getMode();
 
 var key_alt = false;
 var key_shift = false;
 var isAdding = false; 
+var isExtruding = false; 
 var isOrbiting = false;
 var orbitAzimuth = 0.0;
 var orbitAltitude = 0.0;
 var orbitCenter = { x: 0, y: 0, z: 0 };
 var orbitPosition = { x: 0, y: 0, z: 0 };
 var orbitRadius = 0.0;
-
+var extrudeDirection = { x: 0, y: 0, z: 0 };
+var extrudeScale = 0.0;
 var lastVoxelPosition = { x: 0, y: 0, z: 0 };
 var lastVoxelColor = { red: 0, green: 0, blue: 0 };
 var lastVoxelScale = 0;
@@ -49,6 +52,7 @@ var dragStart = { x: 0, y: 0 };
 
 var mouseX = 0;
 var mouseY = 0; 
+
 
 
 //  Create a table of the different colors you can choose
@@ -65,9 +69,9 @@ var numColors = 8;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
-var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/slider+-+whoosh1.raw");
-var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/slider+-+whoosh2.raw");
-var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Electronic/ElectronicBurst6.raw");
+var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create.raw");
+var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete.raw");
+var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
@@ -83,6 +87,18 @@ function getNewVoxelPosition() {
     var forwardVector = Quat.getFront(MyAvatar.orientation);
     var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, NEW_VOXEL_DISTANCE_FROM_CAMERA));
     return newPosition;
+}
+
+function fixEulerAngles(eulers) {
+    var rVal = { x: 0, y: 0, z: eulers.z };
+    if (eulers.x >= 90.0) {
+        rVal.x = 180.0 - eulers.x;
+        rVal.y = eulers.y - 180.0;
+    } else if (eulers.x <= -90.0) {
+        rVal.x = 180.0 - eulers.x;
+        rVal.y = eulers.y - 180.0;
+    }
+    return rVal;
 }
 
 function mousePressEvent(event) {
@@ -102,10 +118,9 @@ function mousePressEvent(event) {
             // get position for initial azimuth, elevation
             orbitCenter = intersection.intersection; 
             var orbitVector = Vec3.subtract(cameraPosition, orbitCenter);
-            orbitRadius = vLength(orbitVector);
-            orbitAzimuth = Math.atan(orbitVector.z / orbitVector.x);
-            orbitAltitude = Math.atan(orbitVector.y / Math.sqrt(orbitVector.z * orbitVector.z + orbitVector.x * orbitVector.x));
-            print("start: radius, azimuth, altitude = " + orbitRadius + ", " + orbitAzimuth + ", " + orbitAltitude);
+            orbitRadius = vLength(orbitVector); 
+            orbitAzimuth = Math.atan2(orbitVector.z, orbitVector.x);
+            orbitAltitude = Math.asin(orbitVector.y / Vec3.length(orbitVector));
 
         } else if (event.isRightButton || event.isControl) {
             //  Delete voxel
@@ -197,6 +212,11 @@ function keyPressEvent(event) {
         Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
         setAudioPosition();
         Audio.playSound(addSound, audioOptions);
+    } else if (event.text == " ") {
+        //  Reset my orientation!
+        var orientation = { x:0, y:0, z:0, w:1 };
+        Camera.setOrientation(orientation);
+        MyAvatar.orientation = orientation;
     }
 }
 
@@ -206,57 +226,57 @@ function keyReleaseEvent(event) {
 }
 function mouseMoveEvent(event) {
     if (isOrbiting) {
+        var cameraOrientation = Camera.getOrientation();
+        var origEulers = Quat.safeEulerAngles(cameraOrientation);
+        var newEulers = fixEulerAngles(Quat.safeEulerAngles(cameraOrientation));
         var dx = event.x - mouseX; 
         var dy = event.y - mouseY;
         orbitAzimuth += dx / ORBIT_RATE_AZIMUTH;
         orbitAltitude += dy / ORBIT_RATE_ALTITUDE;
-        print("drag: radius, azimuth, altitude = " + orbitRadius + ", " + orbitAzimuth + ", " + orbitAltitude);
-        //print("Azimuth, Altitude: " + orbitAzimuth + ", " + orbitAltitude);
-        var orbitVector = { x:(Math.cos(orbitAzimuth) * Math.cos(orbitAltitude)) * orbitRadius, 
+         var orbitVector = { x:(Math.cos(orbitAltitude) * Math.cos(orbitAzimuth)) * orbitRadius, 
                             y:Math.sin(orbitAltitude) * orbitRadius,
-                            z:(Math.sin(orbitAzimuth) * Math.cos(orbitAltitude)) * orbitRadius }; 
+                            z:(Math.cos(orbitAltitude) * Math.sin(orbitAzimuth)) * orbitRadius }; 
         orbitPosition = Vec3.sum(orbitCenter, orbitVector);
         Camera.setPosition(orbitPosition);
         mouseX = event.x; 
         mouseY = event.y;
     }
     if (isAdding) {
-        var pickRay = Camera.computePickRay(event.x, event.y);
-        var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x, 
+        //  Watch the drag direction to tell which way to 'extrude' this voxel
+        if (!isExtruding) {
+            var pickRay = Camera.computePickRay(event.x, event.y);
+            var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x, 
                                     y: pickRay.origin.y - lastVoxelPosition.y, 
                                     z: pickRay.origin.z - lastVoxelPosition.z };
-        var distance = vLength(lastVoxelDistance);
-        var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
-        mouseSpot.x += pickRay.origin.x;
-        mouseSpot.y += pickRay.origin.y;
-        mouseSpot.z += pickRay.origin.z;
-        var dx = mouseSpot.x - lastVoxelPosition.x;
-        var dy = mouseSpot.y - lastVoxelPosition.y;
-        var dz = mouseSpot.z - lastVoxelPosition.z;
-        if (dx > lastVoxelScale) {
-            lastVoxelPosition.x += lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-        } else if (dx < -lastVoxelScale) {
-            lastVoxelPosition.x -= lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-        } else if (dy > lastVoxelScale) {
-            lastVoxelPosition.y += lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-        } else if (dy < -lastVoxelScale) {
-            lastVoxelPosition.y -= lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-        } else if (dz > lastVoxelScale) {
-            lastVoxelPosition.z += lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
-        } else if (dz < -lastVoxelScale) {
-            lastVoxelPosition.z -= lastVoxelScale;
-            Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
-                            lastVoxelScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
+            var distance = vLength(lastVoxelDistance);
+            var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
+            mouseSpot.x += pickRay.origin.x;
+            mouseSpot.y += pickRay.origin.y;
+            mouseSpot.z += pickRay.origin.z;
+            var dx = mouseSpot.x - lastVoxelPosition.x;
+            var dy = mouseSpot.y - lastVoxelPosition.y;
+            var dz = mouseSpot.z - lastVoxelPosition.z;
+            extrudeScale = lastVoxelScale;
+            extrudeDirection = { x: 0, y: 0, z: 0 };
+            isExtruding = true;
+            if (dx > lastVoxelScale) extrudeDirection.x = extrudeScale;
+            else if (dx < -lastVoxelScale) extrudeDirection.x = -extrudeScale;
+            else if (dy > lastVoxelScale) extrudeDirection.y = extrudeScale;
+            else if (dy < -lastVoxelScale) extrudeDirection.y = -extrudeScale;
+            else if (dz > lastVoxelScale) extrudeDirection.z = extrudeScale;
+            else if (dz < -lastVoxelScale) extrudeDirection.z = -extrudeScale;
+            else isExtruding = false; 
+        } else {
+            //  We have got an extrusion direction, now look for mouse move beyond threshold to add new voxel
+            var dx = event.x - mouseX; 
+            var dy = event.y - mouseY;
+            if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
+                lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
+                Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
+                            extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
+                mouseX = event.x;
+                mouseY = event.y;
+            }
         }
     }
 }
@@ -265,15 +285,15 @@ function mouseReleaseEvent(event) {
     if (isOrbiting) {
         var cameraOrientation = Camera.getOrientation();
         var eulers = Quat.safeEulerAngles(cameraOrientation);
-        Camera.stopLooking();
-        print("pitch, yaw " + eulers.x + ", " + eulers.y);
-        MyAvatar.headPitch = eulers.x;
-        MyAvatar.bodyYaw = eulers.y;
         MyAvatar.position = Camera.getPosition();
+        MyAvatar.orientation = cameraOrientation;
+        Camera.stopLooking();
         Camera.setMode(oldMode);
+        Camera.setOrientation(cameraOrientation);
     }
     isAdding = false;
     isOrbiting = false; 
+    isExtruding = false; 
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);

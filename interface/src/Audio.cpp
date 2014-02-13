@@ -394,7 +394,7 @@ void Audio::handleAudioInput() {
                 }
                 _averageInputLoudness = smallestSample;
                 _noiseGateSampleCounter = 0;
-                qDebug("smallest sample = %.1f",  _averageInputLoudness);
+                //qDebug("smallest sample = %.1f",  _averageInputLoudness);
             }
 #else
             _noiseGateSampleCounter++;
