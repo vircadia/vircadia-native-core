@@ -889,6 +889,17 @@ void Menu::editPreferences() {
     sendFakeEnterEvent();
 }
 
+void Menu::goToDomain(const QString newDomain) {
+    if (NodeList::getInstance()->getDomainHostname() != newDomain) {
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        Application::getInstance()->getAvatar()->sendKillAvatar();
+        
+        // give our nodeList the new domain-server hostname
+        NodeList::getInstance()->setDomainHostname(newDomain);
+    }
+}
+
 void Menu::goToDomain() {
 
     QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
@@ -913,15 +924,42 @@ void Menu::goToDomain() {
             // the user input a new hostname, use that
             newHostname = domainDialog.textValue();
         }
-
-        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        Application::getInstance()->getAvatar()->sendKillAvatar();
-
-        // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
+        
+        goToDomain(newHostname);
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::goToOrientation(QString orientation) {
+    
+    if (orientation.isEmpty()) {
+        return;
+    }
+    
+    QStringList orientationItems = orientation.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    
+    const int NUMBER_OF_ORIENTATION_ITEMS = 4;
+    const int W_ITEM = 0;
+    const int X_ITEM = 1;
+    const int Y_ITEM = 2;
+    const int Z_ITEM = 3;
+    
+    if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
+        
+        double w = replaceLastOccurrence('-', '.', orientationItems[W_ITEM].trimmed()).toDouble();
+        double x = replaceLastOccurrence('-', '.', orientationItems[X_ITEM].trimmed()).toDouble();
+        double y = replaceLastOccurrence('-', '.', orientationItems[Y_ITEM].trimmed()).toDouble();
+        double z = replaceLastOccurrence('-', '.', orientationItems[Z_ITEM].trimmed()).toDouble();
+        
+        glm::quat newAvatarOrientation(w, x, y, z);
+        
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        glm::quat avatarOrientation = myAvatar->getOrientation();
+        if (newAvatarOrientation != avatarOrientation) {
+            myAvatar->setOrientation(newAvatarOrientation);
+        }
+    }
 }
 
 bool Menu::goToDestination(QString destination) {

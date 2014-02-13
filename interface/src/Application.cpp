@@ -687,8 +687,25 @@ bool Application::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
-            QString destination = fileEvent->url().toLocalFile().remove(QRegExp(CUSTOM_URL_SCHEME + "|/"));
-            Menu::getInstance()->goToDestination(destination);
+            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
+            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                Menu::getInstance()->goToDomain(urlParts[0]);
+                
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[1]);
+                if (urlParts.count() > 2) {
+                    
+                    // location orientation
+                    Menu::getInstance()->goToOrientation(urlParts[2]);
+                }
+            } else if (urlParts.count() == 1) {
+
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[0]);
+            }
         }
         
         return false;

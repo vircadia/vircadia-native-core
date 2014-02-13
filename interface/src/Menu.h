@@ -85,6 +85,8 @@ public:
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     bool goToDestination(QString destination);
+    void goToOrientation(QString orientation);
+    void goToDomain(const QString newDomain);
 
 public slots:
     void bandwidthDetails();
