@@ -99,6 +99,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
     _culledOnce = false;
     _inhideOutOfView = false;
+
+    _lastKnownVoxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    _lastKnownBoundaryLevelAdjust = 0;
 }
 
 void VoxelSystem::elementDeleted(OctreeElement* element) {
@@ -249,6 +252,9 @@ VoxelSystem::~VoxelSystem() {
     delete _tree;
 }
 
+
+// This is called by the main application thread on both the initialization of the application and when
+// the preferences dialog box is called/saved
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
     if (maxVoxels == _maxVoxels) {
         return;
@@ -267,6 +273,8 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
     }
 }
 
+// This is called by the main application thread on both the initialization of the application and when
+// the use voxel shader menu item is chosen
 void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
     if (_useVoxelShader == useVoxelShader) {
         return;
@@ -330,7 +338,7 @@ void VoxelSystem::setVoxelsAsPoints(bool voxelsAsPoints) {
 
 void VoxelSystem::cleanupVoxelMemory() {
     if (_initialized) {
-        _bufferWriteLock.lock();
+        _readArraysLock.lockForWrite();
         _initialized = false; // no longer initialized
         if (_useVoxelShader) {
             // these are used when in VoxelShader mode.
@@ -368,7 +376,7 @@ void VoxelSystem::cleanupVoxelMemory() {
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
         _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
-        _bufferWriteLock.unlock();
+        _readArraysLock.unlock();
     }
 }
 
@@ -401,7 +409,7 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 }
 
 void VoxelSystem::initVoxelMemory() {
-    _bufferWriteLock.lock();
+    _readArraysLock.lockForWrite();
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
@@ -516,7 +524,7 @@ void VoxelSystem::initVoxelMemory() {
 
     _initialized = true;
 
-    _bufferWriteLock.unlock();
+    _readArraysLock.unlock();
 }
 
 void VoxelSystem::writeToSVOFile(const char* filename, VoxelTreeElement* element) const {
@@ -646,7 +654,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     _inSetupNewVoxelsForDrawing = true;
-
+    
     bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
@@ -673,7 +681,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
 
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    _bufferWriteLock.lock();
+    _readArraysLock.lockForWrite();
 
     if (_voxelsUpdated) {
         _voxelsDirty=true;
@@ -682,7 +690,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
     copyWrittenDataToReadArrays(didWriteFullVBO);
 
-    _bufferWriteLock.unlock();
+    _readArraysLock.unlock();
 
     quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
@@ -713,8 +721,8 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
     {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                "setupNewVoxelsForDrawingSingleNode()... _bufferWriteLock.lock();" );
-        _bufferWriteLock.lock();
+                                "setupNewVoxelsForDrawingSingleNode()... _readArraysLock.lockForWrite();" );
+        _readArraysLock.lockForWrite();
     }
 
     _voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
@@ -725,7 +733,7 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     // after...
     _voxelsUpdated = 0;
 
-    _bufferWriteLock.unlock();
+    _readArraysLock.unlock();
 
     quint64 end = usecTimestampNow();
     int elapsedmsec = (end - start) / 1000;
@@ -733,8 +741,12 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
 
-void VoxelSystem::checkForCulling() {
+void VoxelSystem::recreateVoxelGeometryInView() {
+    // this is a temporary solution... we need a full implementation that actually does a full redraw into clean VBOs
+    hideOutOfView(true);
+}
 
+void VoxelSystem::checkForCulling() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
     quint64 start = usecTimestampNow();
 
@@ -762,7 +774,20 @@ void VoxelSystem::checkForCulling() {
         _hasRecentlyChanged = false;
     }
 
-    hideOutOfView(forceFullFrustum);
+    // This would be a good place to do a special processing pass, for example, switching the LOD of the scene
+    bool fullRedraw = (_lastKnownVoxelSizeScale != Menu::getInstance()->getVoxelSizeScale() || 
+                        _lastKnownBoundaryLevelAdjust != Menu::getInstance()->getBoundaryLevelAdjust());
+
+    // track that these values
+    _lastKnownVoxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+    _lastKnownBoundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+
+    if (fullRedraw) {
+        // this will remove all old geometry and recreate the correct geometry for all in view voxels
+        recreateVoxelGeometryInView();
+    } else {
+        hideOutOfView(forceFullFrustum);
+    }
 
     if (forceFullFrustum) {
         quint64 endViewCulling = usecTimestampNow();
@@ -1197,7 +1222,8 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
     }
 }
 
-void VoxelSystem::render(bool texture) {
+void VoxelSystem::render() {
+    bool texture = Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures);
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "render()");
 
@@ -1404,11 +1430,7 @@ void VoxelSystem::killLocalVoxels() {
     setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::redrawInViewVoxels() {
-    hideOutOfView(true);
-}
-
-
+// only called on main thread
 bool VoxelSystem::clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData) {
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
@@ -1416,12 +1438,15 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(OctreeElement* element, void
     return true;
 }
 
+// only called on main thread, and also always followed by a call to cleanupVoxelMemory()
+// you shouldn't be calling this on any other thread or without also cleaning up voxel memory
 void VoxelSystem::clearAllNodesBufferIndex() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "VoxelSystem::clearAllNodesBufferIndex()");
     _nodeCount = 0;
     _tree->lockForRead(); // we won't change the tree so it's ok to treat this as a read
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
+    clearFreeBufferIndexes(); // this should be called too
     _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes", _nodeCount);

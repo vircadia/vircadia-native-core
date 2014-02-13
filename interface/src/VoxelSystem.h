@@ -53,7 +53,7 @@ public:
 
     virtual void init();
     void simulate(float deltaTime) { }
-    void render(bool texture);
+    void render();
 
     void changeTree(VoxelTree* newTree);
     VoxelTree* getTree() const { return _tree; }
@@ -79,7 +79,6 @@ public:
     unsigned long getVoxelMemoryUsageGPU();
 
     void killLocalVoxels();
-    void redrawInViewVoxels();
 
     virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
@@ -151,6 +150,7 @@ protected:
     static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
     void checkForCulling();
+    void recreateVoxelGeometryInView();
 
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
@@ -211,6 +211,10 @@ private:
 
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
+
+    QReadWriteLock _readArraysLock;
+
+
     GLfloat* _writeVerticesArray;
     GLubyte* _writeColorsArray;
     bool* _writeVoxelDirtyArray;
@@ -252,9 +256,6 @@ private:
     GLuint _vboIndicesRight;
     GLuint _vboIndicesFront;
     GLuint _vboIndicesBack;
-
-    QMutex _bufferWriteLock;
-    QMutex _treeLock;
 
     ViewFrustum _lastKnownViewFrustum;
     ViewFrustum _lastStableViewFrustum;
@@ -299,6 +300,9 @@ private:
     bool _useFastVoxelPipeline;
 
     bool _inhideOutOfView;
+
+    float _lastKnownVoxelSizeScale;
+    int _lastKnownBoundaryLevelAdjust;
 };
 
 #endif
