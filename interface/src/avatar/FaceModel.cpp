@@ -19,9 +19,6 @@ FaceModel::FaceModel(Head* owningHead) :
 }
 
 void FaceModel::simulate(float deltaTime) {
-    if (!isActive()) {
-        return;
-    }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     glm::vec3 neckPosition;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {

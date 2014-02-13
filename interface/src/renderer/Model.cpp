@@ -90,6 +90,16 @@ void Model::reset() {
 }
 
 void Model::simulate(float deltaTime) {
+    // update our LOD
+    if (_geometry) {
+        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
+            Application::getInstance()->getCamera()->getPosition()));
+        if (_geometry != geometry) {
+            deleteGeometry();
+            _dilatedTextures.clear();
+            _geometry = geometry;
+        }
+    }
     if (!isActive()) {
         return;
     }
@@ -410,7 +420,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     deleteGeometry();
     _dilatedTextures.clear();
     
-    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 
 glm::vec4 Model::computeAverageColor() const {

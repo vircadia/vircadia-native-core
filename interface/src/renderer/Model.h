@@ -176,6 +176,7 @@ public:
 
 protected:
 
+    QSharedPointer<NetworkGeometry> _baseGeometry;
     QSharedPointer<NetworkGeometry> _geometry;
     
     glm::vec3 _translation;

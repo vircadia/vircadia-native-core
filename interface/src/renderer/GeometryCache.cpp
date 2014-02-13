@@ -294,17 +294,21 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     if (geometry.isNull()) {
         geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url, fallback.isValid() ?
             getGeometry(fallback) : QSharedPointer<NetworkGeometry>()));
+        geometry->setLODParent(geometry);
         _networkGeometry.insert(url, geometry);
     }
     return geometry;
 }
 
-NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback) :
+NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
+        const QVariantHash& mapping, const QUrl& textureBase) :
     _request(url),
     _reply(NULL),
-    _textureBase(url),
+    _mapping(mapping),
+    _textureBase(textureBase.isValid() ? textureBase : url),
     _fallback(fallback),
-    _attempts(0) {
+    _attempts(0),
+    _failedToLoad(false) {
     
     if (!url.isValid()) {
         return;
@@ -317,6 +321,17 @@ NetworkGeometry::~NetworkGeometry() {
     if (_reply != NULL) {
         delete _reply;
     }
+}
+
+QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance) const {
+    if (_lodParent.data() != this) {
+        return _lodParent.data()->getLODOrFallback(distance);
+    }
+    if (_failedToLoad && _fallback) {
+        return _fallback;
+    }
+    QMap<float, QSharedPointer<NetworkGeometry> >::const_iterator it = _lods.upperBound(distance);
+    return (it == _lods.constBegin()) ? _lodParent.toStrongRef() : *(it - 1);
 }
 
 glm::vec4 NetworkGeometry::computeAverageColor() const {
@@ -367,7 +382,8 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qDebug() << "Mapping file " << url << " has no filename.";
-            maybeLoadFallback();
+            _failedToLoad = true;
+            
         } else {
             QString texdir = _mapping.value("texdir").toString();
             if (!texdir.isNull()) {
@@ -376,6 +392,13 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
                 }
                 _textureBase = url.resolved(texdir);
             }
+            QVariantHash lods = _mapping.value("lod").toHash();
+            for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
+                QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url.resolved(it.key()),
+                    QSharedPointer<NetworkGeometry>(), _mapping, _textureBase));    
+                geometry->setLODParent(_lodParent);
+                _lods.insert(it.value().toFloat(), geometry);
+            }     
             _request.setUrl(url.resolved(filename));
             makeRequest();
         }
@@ -387,7 +410,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << url << ": " << error;
-        maybeLoadFallback();
+        _failedToLoad = true;
         return;
     }
     
@@ -481,8 +504,6 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         
         _meshes.append(networkMesh);
     }
-    
-    emit loaded();
 }
 
 void NetworkGeometry::handleReplyError() {
@@ -515,26 +536,10 @@ void NetworkGeometry::handleReplyError() {
             // fall through to final failure
         }    
         default:
-            maybeLoadFallback();
+            _failedToLoad = true;
             break;
     }
     
-}
-
-void NetworkGeometry::loadFallback() {
-    _geometry = _fallback->_geometry;
-    _meshes = _fallback->_meshes;
-    emit loaded();
-}
-
-void NetworkGeometry::maybeLoadFallback() {
-    if (_fallback) {
-        if (_fallback->isLoaded()) {
-            loadFallback();
-        } else {
-            connect(_fallback.data(), SIGNAL(loaded()), SLOT(loadFallback()));
-        }
-    }
 }
 
 bool NetworkMeshPart::isTranslucent() const {

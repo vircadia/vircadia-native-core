@@ -13,6 +13,7 @@
 #include "InterfaceConfig.h"
 
 #include <QHash>
+#include <QMap>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QOpenGLBuffer>
@@ -61,10 +62,14 @@ class NetworkGeometry : public QObject {
 
 public:
     
-    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback);
+    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
+        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
     ~NetworkGeometry();
 
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
+
+    /// Returns a pointer to the geometry appropriate for the specified distance.
+    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance) const;
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
@@ -72,30 +77,31 @@ public:
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
-signals:
-
-    void loaded();
-
 private slots:
     
     void makeRequest();
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
-    void loadFallback();
     
 private:
     
-    void maybeLoadFallback();
+    friend class GeometryCache;
+    
+    void setLODParent(const QWeakPointer<NetworkGeometry>& lodParent) { _lodParent = lodParent; }
     
     QNetworkRequest _request;
     QNetworkReply* _reply;
     QVariantHash _mapping;
     QUrl _textureBase;
     QSharedPointer<NetworkGeometry> _fallback;
+    bool _failedToLoad;
     
     int _attempts;
+    QMap<float, QSharedPointer<NetworkGeometry> > _lods;
     FBXGeometry _geometry;
     QVector<NetworkMesh> _meshes;
+    
+    QWeakPointer<NetworkGeometry> _lodParent;
 };
 
 /// The state associated with a single mesh part.
