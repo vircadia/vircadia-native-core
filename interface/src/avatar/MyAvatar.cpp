@@ -310,21 +310,6 @@ void MyAvatar::simulate(float deltaTime) {
 
     updateChatCircle(deltaTime);
 
-    //  Get any position, velocity, or rotation update from Grab Drag controller
-    glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
-    if (glm::length(moveFromGrab) > EPSILON) {
-        _position += moveFromGrab;
-        _velocity = glm::vec3(0, 0, 0);
-    }
-    _velocity += _hand.getAndResetGrabDeltaVelocity();
-    glm::quat deltaRotation = _hand.getAndResetGrabRotation();
-    const float GRAB_CONTROLLER_TURN_SCALING = 0.5f;
-    glm::vec3 euler = safeEulerAngles(deltaRotation) * GRAB_CONTROLLER_TURN_SCALING;
-    //  Adjust body yaw by yaw from controller
-    setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
-    //  Adjust head pitch from controller
-    getHead().setPitch(getHead().getPitch() - euler.x);
-
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
@@ -789,38 +774,6 @@ void MyAvatar::updateThrust(float deltaTime) {
             TRANSMITTER_LIFT_SCALE *
             deltaTime *
             up;
-        }
-    }
-    //  Add thrust and rotation from hand controllers
-    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD;
-    const float JOYSTICK_YAW_MAG = YAW_MAG;
-    const float JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5f;
-    const int THRUST_CONTROLLER = 0;
-    const int VIEW_CONTROLLER = 1;
-    for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-        PalmData& palm = getHand().getPalms()[i];
-
-        // If the script hasn't captured this joystick, then let the default behavior work
-        if (!Application::getInstance()->getControllerScriptingInterface()->isJoystickCaptured(palm.getSixenseID())) {
-            if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
-                if (palm.getJoystickY() != 0.f) {
-                    FingerData& finger = palm.getFingers()[0];
-                    if (finger.isActive()) {
-                    }
-                    _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
-                }
-                if (palm.getJoystickX() != 0.f) {
-                    _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
-                }
-            } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
-                if (palm.getJoystickX() != 0.f) {
-                    _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
-                }
-                if (palm.getJoystickY() != 0.f) {
-                    getHand().setPitchUpdate(getHand().getPitchUpdate() +
-                                             (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
-                }
-            }
         }
     }
 

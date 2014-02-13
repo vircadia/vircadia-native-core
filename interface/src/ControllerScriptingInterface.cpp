@@ -172,6 +172,21 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlVelocity(int controlInd
     return glm::vec3(0); // bad index
 }
 
+glm::quat ControllerScriptingInterface::getSpatialControlRawRotation(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getRawRotation();
+            case TIP_SPATIALCONTROL:
+                return palmData->getRawRotation(); // currently the tip doesn't have a unique rotation, use the palm rotation
+        }
+    }
+    return glm::quat(); // bad index
+}
+
 glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex) const {
     int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
     int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
