@@ -45,7 +45,7 @@ public:
     
     void render(int screenWidth, int screenHeight);
     
-    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _averageInputLoudness, 0.f); }
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
     
@@ -109,7 +109,7 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
-    float _averageInputLoudness;
+    float _noiseGateMeasuredFloor;
     float* _noiseSampleFrames;
     int _noiseGateSampleCounter;
     bool _noiseGateOpen;

@@ -37,7 +37,7 @@ static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS * NUM_AUDI
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
-static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 100;
+static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 // Mute icon configration
 static const int ICON_SIZE = 24;
@@ -67,7 +67,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
-    _averageInputLoudness(0),
+    _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
     _noiseGateEnabled(true),
@@ -356,58 +356,66 @@ void Audio::handleAudioInput() {
                              NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
                              _inputFormat, _desiredInputFormat);
 
+            //
+            //  Impose Noise Gate
+            //
+            //  The Noise Gate is used to reject constant background noise by measuring the noise
+            //  floor observed at the microphone and then opening the 'gate' to allow microphone
+            //  signals to be transmitted when the microphone samples average level exceeds a multiple
+            //  of the noise floor.
+            //
+            //  NOISE_GATE_HEIGHT:  How loud you have to speak relative to noise background to open the gate.
+            //                      Make this value lower for more sensitivity and less rejection of noise.
+            //  NOISE_GATE_WIDTH:   The number of samples in an audio frame for which the height must be exceeded
+            //                      to open the gate.
+            //  NOISE_GATE_CLOSE_FRAME_DELAY:  Once the noise is below the gate height for the frame, how many frames
+            //                      will we wait before closing the gate.
+            //  NOISE_GATE_FRAMES_TO_AVERAGE:  How many audio frames should we average together to compute noise floor.
+            //                      More means better rejection but also can reject continuous things like singing.
+            // NUMBER_OF_NOISE_SAMPLE_FRAMES:  How often should we re-evaluate the noise floor?
+            
+
             float loudness = 0;
             float thisSample = 0;
             int samplesOverNoiseGate = 0;
             
-#define NOISE_MIN_SAMPLE
-#ifdef NOISE_MIN_SAMPLE
-            const float NOISE_GATE_HEIGHT = 12.f;
+            const float NOISE_GATE_HEIGHT = 7.f;
             const int NOISE_GATE_WIDTH = 5;
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
-#else
-            const float NOISE_GATE_HEIGHT = 6.f;
-            const int NOISE_GATE_WIDTH = 5;
-            const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
-#endif
-            
+            const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                 thisSample = fabsf(monoAudioSamples[i]);
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
-                if (thisSample > (_averageInputLoudness * NOISE_GATE_HEIGHT)) {
+                if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {
                     samplesOverNoiseGate++;
                 }
             }
             _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            //qDebug("%.1f", _lastInputLoudness);
             
-#ifdef NOISE_MIN_SAMPLE
+            float averageOfAllSampleFrames = 0.f;
             _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
             if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
                 float smallestSample = MAXFLOAT;
-                for (int i = 0; i < NUMBER_OF_NOISE_SAMPLE_FRAMES; i++) {
-                    if (_noiseSampleFrames[i] < smallestSample) {
-                        smallestSample = _noiseSampleFrames[i];
+                for (int i = 0; i <= NUMBER_OF_NOISE_SAMPLE_FRAMES - NOISE_GATE_FRAMES_TO_AVERAGE; i+= NOISE_GATE_FRAMES_TO_AVERAGE) {
+                    float thisAverage = 0.0f;
+                    for (int j = i; j < i + NOISE_GATE_FRAMES_TO_AVERAGE; j++) {
+                        thisAverage += _noiseSampleFrames[j];
+                        averageOfAllSampleFrames += _noiseSampleFrames[j];
+                    }
+                    thisAverage /= NOISE_GATE_FRAMES_TO_AVERAGE;
+                    
+                    if (thisAverage < smallestSample) {
+                        smallestSample = thisAverage;
                     }
                 }
-                _averageInputLoudness = smallestSample;
+                averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
+                _noiseGateMeasuredFloor = smallestSample;
                 _noiseGateSampleCounter = 0;
-                //qDebug("smallest sample = %.1f",  _averageInputLoudness);
+                qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
             }
-#else
-            _noiseGateSampleCounter++;
-            if (_noiseGateSampleCounter == NUMBER_OF_NOISE_SAMPLE_FRAMES) {
-                qDebug("average loudness = %.1f",  _averageInputLoudness);
-                _noiseGateSampleCounter = 0;
-            }
-            
-            const float LOUDNESS_AVERAGING_FRAMES = 1000.f;   //  This will be about 10 seconds
-            _averageInputLoudness = (1.f - 1.f / LOUDNESS_AVERAGING_FRAMES) * _averageInputLoudness + (1.f / LOUDNESS_AVERAGING_FRAMES) * _lastInputLoudness;
-#endif
-            
-            
+
             if (_noiseGateEnabled) {
                 if (samplesOverNoiseGate > NOISE_GATE_WIDTH) {
                     _noiseGateOpen = true;
