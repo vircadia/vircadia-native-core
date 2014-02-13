@@ -208,12 +208,12 @@ public:
     OctreeElement* getOctreeElementAt(float x, float y, float z, float s) const;
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
-    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
 
-    void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
 
     void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
-                                                const glm::vec3& point, void* extraData=NULL);
+                                                const glm::vec3& point, void* extraData = NULL);
 
     int encodeTreeBitstream(OctreeElement* node, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
@@ -257,8 +257,8 @@ public:
     void recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
-	/** Traverse child nodes of node applying operation in post-fix order
-	 */
+	/// Traverse child nodes of node applying operation in post-fix order
+	///
     void recurseNodeWithPostOperation(OctreeElement* node, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
