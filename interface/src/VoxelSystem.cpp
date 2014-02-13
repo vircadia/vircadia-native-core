@@ -1186,8 +1186,7 @@ void VoxelSystem::changeTree(VoxelTree* newTree) {
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
-    // TODO: hmmmmm?????
-    //setupNewVoxelsForDrawing();
+    setupNewVoxelsForDrawing();
 }
 
 void VoxelSystem::updateFullVBOs() {
