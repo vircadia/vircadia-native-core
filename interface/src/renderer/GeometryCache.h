@@ -66,6 +66,7 @@ public:
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
     ~NetworkGeometry();
 
+    /// Checks whether the geometry is fulled loaded.
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
 
     /// Returns a pointer to the geometry appropriate for the specified distance.
@@ -94,6 +95,7 @@ private:
     QVariantHash _mapping;
     QUrl _textureBase;
     QSharedPointer<NetworkGeometry> _fallback;
+    bool _startedLoading;
     bool _failedToLoad;
     
     int _attempts;

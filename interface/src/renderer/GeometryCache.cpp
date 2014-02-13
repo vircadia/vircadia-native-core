@@ -308,13 +308,18 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     _textureBase(textureBase.isValid() ? textureBase : url),
     _fallback(fallback),
     _attempts(0),
+    _startedLoading(false),
     _failedToLoad(false) {
     
     if (!url.isValid()) {
         return;
     }
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    makeRequest();
+    
+    // if we already have a mapping (because we're an LOD), hold off on loading until we're requested
+    if (mapping.isEmpty()) {    
+        makeRequest();
+    }
 }
 
 NetworkGeometry::~NetworkGeometry() {
@@ -331,7 +336,27 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
         return _fallback;
     }
     QMap<float, QSharedPointer<NetworkGeometry> >::const_iterator it = _lods.upperBound(distance);
-    return (it == _lods.constBegin()) ? _lodParent.toStrongRef() : *(it - 1);
+    QSharedPointer<NetworkGeometry> lod = (it == _lods.constBegin()) ? _lodParent.toStrongRef() : *(it - 1);
+    if (lod->isLoaded()) {
+        return lod;
+    }
+    // if the ideal LOD isn't loaded, we need to make sure it's started to load, and possibly return the closest loaded one
+    if (!lod->_startedLoading) {
+        lod->makeRequest();
+    }
+    float closestDistance = FLT_MAX;
+    if (isLoaded()) {
+        lod = _lodParent;
+        closestDistance = distance;
+    }
+    for (it = _lods.constBegin(); it != _lods.constEnd(); it++) {
+        float distanceToLOD = glm::abs(distance - it.key());
+        if (it.value()->isLoaded() && distanceToLOD < closestDistance) {
+            lod = it.value();
+            closestDistance = distanceToLOD;
+        }    
+    }
+    return lod;
 }
 
 glm::vec4 NetworkGeometry::computeAverageColor() const {
@@ -359,6 +384,7 @@ glm::vec4 NetworkGeometry::computeAverageColor() const {
 }
 
 void NetworkGeometry::makeRequest() {
+    _startedLoading = true;
     _reply = Application::getInstance()->getNetworkAccessManager()->get(_request);
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
@@ -400,7 +426,12 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
                 _lods.insert(it.value().toFloat(), geometry);
             }     
             _request.setUrl(url.resolved(filename));
-            makeRequest();
+            
+            // make the request immediately only if we have no LODs to switch between
+            _startedLoading = false;
+            if (_lods.isEmpty()) {
+                makeRequest();
+            }
         }
         return;
     }
