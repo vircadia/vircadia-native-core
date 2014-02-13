@@ -477,7 +477,10 @@ bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetra
         if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
                 startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            // TODO: Andrew to try to keep the joint furthest toward the root
+            // BUG: we currently overwrite the jointIndex with the last one found
+            // which can cause incorrect collisions when colliding against more than
+            // one joint.
+            // TODO: fix this.
             jointIndex = i;
         }
         outerContinue: ;
