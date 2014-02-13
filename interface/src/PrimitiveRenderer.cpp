@@ -384,8 +384,6 @@ void PrimitiveRenderer::initializeGL() {
     // Initialize the first vertex element in the buffer to all zeros, the
     // degenerate case
     deconstructVertexElement(0);
-
-    GLint err = glGetError();
 }
 
 void PrimitiveRenderer::initializeBookkeeping() {
