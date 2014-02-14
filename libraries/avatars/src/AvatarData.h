@@ -75,7 +75,9 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-    
+
+    Q_PROPERTY(float audioCardAverageLoudness READ getAudioCardAverageLoudness WRITE setAudioCardAverageLoudness)	// saki
+
     Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
     Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
@@ -105,6 +107,10 @@ public:
     // access to Head().set/getMousePitch
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
+
+    // access to Head().set/getAverageLoudness
+    float getAudioCardAverageLoudness() const { return _headData->getAudioCardAverageLoudness(); }	// saki
+    void setAudioCardAverageLoudness(float value) { _headData->setAudioCardAverageLoudness(value); };	// saki
 
     //  Scale
     float getTargetScale() const { return _targetScale; }

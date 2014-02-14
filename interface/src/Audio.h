@@ -47,6 +47,8 @@ public:
     
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _averageInputLoudness, 0.f); }
     
+    float getAudioCardAverageInputLoudness() const { return _averageInputLoudness; }	// saki
+
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
     
     void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }

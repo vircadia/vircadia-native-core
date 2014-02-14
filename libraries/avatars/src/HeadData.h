@@ -41,9 +41,13 @@ public:
     
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    
-    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
-    
+
+    float getAudioLoudness() const { return _audioLoudness; }
+	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+
+    float getAudioCardAverageLoudness() const { return _audioCardAverageLoudness; }	// saki
+	void setAudioCardAverageLoudness(float audioCardAverageLoudness) { _audioCardAverageLoudness = audioCardAverageLoudness; }	// saki
+
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
@@ -79,6 +83,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
+	float _audioCardAverageLoudness;	// saki
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;
