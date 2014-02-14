@@ -3984,6 +3984,30 @@ void Application::saveScripts() {
     settings->endArray();
 }
 
+void Application::stopAllScripts() {
+    // stops all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+}
+
+void Application::reloadAllScripts() {
+    // reloads all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    QStringList reloadList = _activeScripts;
+    _activeScripts.clear();
+    foreach (QString scriptName, reloadList){
+        qDebug() << "reloading script..." << scriptName;
+        loadScript(scriptName);
+    }
+}
+
 void Application::removeScriptName(const QString& fileNameString) {
   _activeScripts.removeOne(fileNameString);
 }

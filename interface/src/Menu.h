@@ -243,8 +243,10 @@ namespace MenuOption {
     const QString PasteVoxels = "Paste";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
+    const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
+    const QString ReloadAllScripts = "Reload All Scripts";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
@@ -253,11 +255,10 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";
-    const QString VoxelDrumming = "Voxel Drumming";
-    const QString PlaySlaps = "Play Slaps";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
+    const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
@@ -268,6 +269,7 @@ namespace MenuOption {
     const QString VoxelAddMode = "Add Voxel Mode";
     const QString VoxelColorMode = "Color Voxel Mode";
     const QString VoxelDeleteMode = "Delete Voxel Mode";
+    const QString VoxelDrumming = "Voxel Drumming";
     const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelPaintColor = "Voxel Paint Color";
