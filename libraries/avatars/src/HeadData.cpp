@@ -45,10 +45,3 @@ void HeadData::addLean(float sideways, float forwards) {
     _leanForward  += forwards;
 }
 
-bool HeadData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration) const {
-    // we would like to update this to determine collisions/penetrations with the Avatar's head sphere...
-    // but right now it does not appear as if the HeadData has a position and radius.
-    // this is a placeholder for now.
-    return false;
-}
-
