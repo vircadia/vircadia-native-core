@@ -806,6 +806,10 @@ void Model::renderMeshes(float alpha, bool translucent) {
 
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
+        if (vertexCount == 0) {
+            // sanity check
+            continue;
+        }
         
         const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
         
