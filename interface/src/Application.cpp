@@ -2174,15 +2174,6 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
-void Application::updateParticles(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateParticles()");
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
-        _cloud.simulate(deltaTime);
-    }
-}
-
 void Application::updateMetavoxels(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMetavoxels()");
@@ -2304,7 +2295,6 @@ void Application::update(float deltaTime) {
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
-    updateParticles(deltaTime); // Simulate particle cloud movements
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -2739,10 +2729,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
 
-        //  Draw Cloud Particles
-        if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
-            _cloud.render();
-        }
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -4024,6 +4010,32 @@ void Application::saveScripts() {
     }
     
     settings->endArray();
+}
+
+void Application::stopAllScripts() {
+    // stops all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+}
+
+void Application::reloadAllScripts() {
+    // remember all the current scripts so we can reload them
+    QStringList reloadList = _activeScripts;
+    // reloads all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+    foreach (QString scriptName, reloadList){
+        qDebug() << "reloading script..." << scriptName;
+        loadScript(scriptName);
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {

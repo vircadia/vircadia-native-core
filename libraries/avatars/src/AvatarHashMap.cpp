@@ -2,7 +2,7 @@
 //  AvatarHashMap.cpp
 //  hifi
 //
-//  Created by Stephen AndrewMeadows on 1/28/2014.
+//  Created by AndrewMeadows on 1/28/2014.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
