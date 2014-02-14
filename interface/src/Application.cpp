@@ -289,6 +289,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
     
     checkVersion();
+    
+    _overlays.init(_glWidget); // do this before scripts load
+
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -1870,14 +1873,13 @@ void Application::init() {
 
     _audio.init(_glWidget);
 
-    _testOverlayA.init(_glWidget, QString("./resources/images/hifi-interface-tools.svg"), QRect(100,100,62,40), QRect(0,0,62,40));
-    _testOverlayB.init(_glWidget, QString("./resources/images/hifi-interface-tools.svg"), QRect(170,100,62,40), QRect(0,80,62,40));
-
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    
 }
 
 void Application::closeMirrorView() {
@@ -2986,8 +2988,7 @@ void Application::displayOverlay() {
         _pieMenu.render();
     }
 
-    _testOverlayA.render(); //
-    _testOverlayB.render(); //
+    _overlays.render();
 
     glPopMatrix();
 }
@@ -4065,6 +4066,8 @@ void Application::loadScript(const QString& fileNameString) {
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QThread* workerThread = new QThread(this);
 

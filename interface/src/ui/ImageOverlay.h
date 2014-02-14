@@ -8,17 +8,21 @@
 #ifndef __interface__ImageOverlay__
 #define __interface__ImageOverlay__
 
-#include <QImage>
 #include <QGLWidget>
+#include <QImage>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QRect>
+#include <QScriptValue>
 #include <QString>
 #include <QUrl>
 
 #include <SharedUtil.h>
 
 #include "InterfaceConfig.h"
-//#include "Util.h"
 
+const xColor DEFAULT_BACKGROUND_COLOR = { 255, 255, 255 };
+const float DEFAULT_ALPHA = 0.7f;
 
 class ImageOverlay : QObject {
     Q_OBJECT
@@ -34,9 +38,10 @@ class ImageOverlay : QObject {
 public:
     ImageOverlay();
     ~ImageOverlay();
-    void init(QGLWidget* parent, const QString& filename, const QRect& drawAt, const QRect& fromImage);
+    void init(QGLWidget* parent);
     void render();
 
+public slots:
     // getters
     int getX() const { return _bounds.x(); }
     int getY() const { return _bounds.y(); }
@@ -47,19 +52,25 @@ public:
     const xColor& getBackgroundColor() const { return _backgroundColor; }
     float getAlpha() const { return _alpha; }
     const QUrl& getImageURL() const { return _imageURL; }
+    QScriptValue getProperties();
 
     // setters
-    void setX(int x) { }
-    void setY(int y) { }
-    void setWidth(int width) { }
-    void setHeight(int height) { }
-    void setBounds(const QRect& bounds) { }
-    void setClipFromSource(const QRect& bounds) { }
-    void setBackgroundColor(const xColor& color) { }
-    void setAlpha(float) { }
-    void setImageURL(const QUrl& ) { }
+    void setX(int x) { _bounds.setX(x); }
+    void setY(int y) { _bounds.setY(y);  }
+    void setWidth(int width) { _bounds.setWidth(width); }
+    void setHeight(int height) {  _bounds.setHeight(height); }
+    void setBounds(const QRect& bounds) { _bounds = bounds; }
+    void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+    void setBackgroundColor(const xColor& color) { _backgroundColor = color; }
+    void setAlpha(float alpha) { _alpha = alpha; }
+    void setImageURL(const QUrl& url);
+    void setProperties(const QScriptValue& properties);
+
+private slots:
+    void replyFinished(QNetworkReply* reply); // we actually want to hide this...
 
 private:
+
     QUrl _imageURL;
     QGLWidget* _parent;
     QImage _textureImage;
@@ -68,6 +79,9 @@ private:
     QRect _fromImage; // where from in the image to sample
     float _alpha;
     xColor _backgroundColor;
+    bool _renderImage;
+    bool _textureBound;
 };
 
+ 
 #endif /* defined(__interface__ImageOverlay__) */
