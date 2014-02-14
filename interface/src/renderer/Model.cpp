@@ -93,7 +93,7 @@ void Model::simulate(float deltaTime) {
     // update our LOD
     if (_geometry) {
         QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
-            glm::vec3() /* Application::getInstance()->getCamera()->getPosition() */), _lodHysteresis);
+            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
         if (_geometry != geometry) {
             deleteGeometry();
             _dilatedTextures.clear();
