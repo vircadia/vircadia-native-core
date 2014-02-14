@@ -139,18 +139,22 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
 
             // handle A particle
             particleA->setVelocity(particleA->getVelocity() - axialVelocity * (2.0f * massB / totalMass));
+            particleA->setPosition(particleA->getPosition() - 0.5f * penetration);
             ParticleProperties propertiesA;
             ParticleID particleAid(particleA->getID());
             propertiesA.copyFromParticle(*particleA);
             propertiesA.setVelocity(particleA->getVelocity() * (float)TREE_SCALE);
+            propertiesA.setPosition(particleA->getPosition() * (float)TREE_SCALE);
             _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleAid, propertiesA);
 
             // handle B particle
             particleB->setVelocity(particleB->getVelocity() + axialVelocity * (2.0f * massA / totalMass));
+            particleA->setPosition(particleB->getPosition() + 0.5f * penetration);
             ParticleProperties propertiesB;
             ParticleID particleBid(particleB->getID());
             propertiesB.copyFromParticle(*particleB);
             propertiesB.setVelocity(particleB->getVelocity() * (float)TREE_SCALE);
+            propertiesB.setPosition(particleB->getPosition() * (float)TREE_SCALE);
             _packetSender->queueParticleEditMessage(PacketTypeParticleAddOrEdit, particleBid, propertiesB);
 
             _packetSender->releaseQueuedMessages();
@@ -182,7 +186,9 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
         CollisionInfo collisionInfo;
         collisionInfo._damping = DAMPING;
         collisionInfo._elasticity = ELASTICITY;
-        if (avatar->findSphereCollision(center, radius, collisionInfo)) {
+        if (avatar->findSphereCollisionWithHands(center, radius, collisionInfo)) {
+            // TODO: Andrew to resurrect particles-vs-avatar body collisions
+            //avatar->findSphereCollisionWithSkeleton(center, radius, collisionInfo)) { 
             collisionInfo._addedVelocity /= (float)(TREE_SCALE);
             glm::vec3 relativeVelocity = collisionInfo._addedVelocity - particle->getVelocity();
             if (glm::dot(relativeVelocity, collisionInfo._penetration) < 0.f) {

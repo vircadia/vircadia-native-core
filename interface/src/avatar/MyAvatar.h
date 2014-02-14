@@ -34,7 +34,7 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
-    void updateFromGyros(bool turnWithHead);
+    void updateFromGyros(float deltaTime);
     void updateTransmitter(float deltaTime);
 
     void render(bool forceRenderHead);
@@ -45,7 +45,6 @@ public:
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
-    void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
@@ -78,9 +77,6 @@ public:
     
     static void sendKillAvatar();
 
-    //  Set/Get update the thrust that will move the avatar around
-    void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
-    glm::vec3 getThrust() { return _thrust; };
 
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
@@ -94,8 +90,12 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    
     void sendIdentityPacket();
+
+    //  Set/Get update the thrust that will move the avatar around
+    void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
+    glm::vec3 getThrust() { return _thrust; };
+    void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
 private:
     bool _mousePressed;
@@ -113,7 +113,6 @@ private:
     bool _isCollisionsOn;
     bool _isThrustOn;
     float _thrustMultiplier;
-    float _collisionRadius;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
@@ -126,9 +125,9 @@ private:
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
     void updateHandMovementAndTouching(float deltaTime);
-    void updateAvatarCollisions(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime);
-    void updateCollisionWithVoxels(float deltaTime);
+    void updateCollisionWithAvatars(float deltaTime);
+    void updateCollisionWithEnvironment(float deltaTime, float radius);
+    void updateCollisionWithVoxels(float deltaTime, float radius);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);

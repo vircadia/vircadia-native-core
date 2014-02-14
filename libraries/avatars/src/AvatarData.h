@@ -52,6 +52,9 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+
 enum KeyState {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
@@ -64,6 +67,7 @@ class AvatarData : public NodeData {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
@@ -131,16 +135,11 @@ public:
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    /// Checks for penetration between the described sphere and the avatar.
-    /// \param penetratorCenter the center of the penetration test sphere
-    /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param penetration[out] the vector in which to store the penetration
-    /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
-    /// \return whether or not the sphere penetrated
-    virtual bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius,
-        glm::vec3& penetration, int skeletonSkipIndex = -1) const { return false; }
+    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+        return false;
+    }
 
-    virtual bool findSphereCollision(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
         return false;
     }
     

@@ -11,12 +11,12 @@
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QItemEditorCreatorBase>
 #include <QItemEditorFactory>
 #include <QLineEdit>
 #include <QMetaType>
 #include <QPushButton>
 #include <QScriptEngine>
-#include <QStandardItemEditorCreator>
 #include <QVBoxLayout>
 #include <QtDebug>
 
@@ -76,27 +76,48 @@ static QItemEditorFactory* getItemEditorFactory() {
     return factory;
 }
 
+/// Because Windows doesn't necessarily have the staticMetaObject available when we want to create,
+/// this class simply delays the value property name lookup until actually requested.
+template<class T> class LazyItemEditorCreator : public QItemEditorCreatorBase {
+public:
+    
+    virtual QWidget* createWidget(QWidget* parent) const { return new T(parent); }
+    
+    virtual QByteArray valuePropertyName() const;
+
+protected:
+    
+    QByteArray _valuePropertyName;
+};
+
+template<class T> QByteArray LazyItemEditorCreator<T>::valuePropertyName() const {
+    if (_valuePropertyName.isNull()) {
+        const_cast<LazyItemEditorCreator<T>*>(this)->_valuePropertyName = T::staticMetaObject.userProperty().name();
+    }
+    return _valuePropertyName;    
+}
+
 static QItemEditorCreatorBase* createDoubleEditorCreator() {
-    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<DoubleEditor>();
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<DoubleEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<double>(), creator);
     getItemEditorFactory()->registerEditor(qMetaTypeId<float>(), creator);
     return creator;
 }
 
 static QItemEditorCreatorBase* createQColorEditorCreator() {
-    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<QColorEditor>();
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QColorEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<QColor>(), creator);
     return creator;
 }
 
 static QItemEditorCreatorBase* createVec3EditorCreator() {
-    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<Vec3Editor>();
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<Vec3Editor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<glm::vec3>(), creator);
     return creator;
 }
 
 static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
-    QItemEditorCreatorBase* creator = new QStandardItemEditorCreator<ParameterizedURLEditor>();
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<ParameterizedURLEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<ParameterizedURL>(), creator);
     return creator;
 }
@@ -118,6 +139,12 @@ QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode
         return QUuid();
     }
     return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
+}
+
+QByteArray signal(const char* signature) {
+    static QByteArray prototype = SIGNAL(dummyMethod());
+    QByteArray signal = prototype;
+    return signal.replace("dummyMethod()", signature);
 }
 
 bool Box::contains(const Box& other) const {
@@ -301,8 +328,7 @@ void ParameterizedURLEditor::continueUpdatingParameters() {
             QMetaProperty widgetProperty = widgetMetaObject->property(widgetMetaObject->indexOfProperty(valuePropertyName));
             widgetProperty.write(widget, _url.getParameters().value(parameter.name));
             if (widgetProperty.hasNotifySignal()) {
-                connect(widget, QByteArray(SIGNAL()).append(widgetProperty.notifySignal().methodSignature()),
-                    SLOT(updateURL()));
+                connect(widget, signal(widgetProperty.notifySignal().methodSignature()), SLOT(updateURL()));
             }
         }
     }

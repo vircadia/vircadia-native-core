@@ -521,6 +521,8 @@ bool VoxelTree::handlesEditPacketType(PacketType packetType) const {
     }
 }
 
+const unsigned int REPORT_OVERFLOW_WARNING_INTERVAL = 100;
+unsigned int overflowWarnings = 0;
 int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node) {
     
@@ -532,9 +534,17 @@ int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char*
             int octets = numberOfThreeBitSectionsInCode(editData, maxLength);
 
             if (octets == OVERFLOWED_OCTCODE_BUFFER) {
-                printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
-                printf("bailing processing of packet!\n");
-                return 0;
+                overflowWarnings++;
+                if (overflowWarnings % REPORT_OVERFLOW_WARNING_INTERVAL == 1) {
+                    qDebug() << "WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode()"
+                                " [NOTE: this is warning number" << overflowWarnings << ", the next" << 
+                                (REPORT_OVERFLOW_WARNING_INTERVAL-1) << "will be suppressed.]";
+                    
+                    QDebug debug = qDebug();
+                    debug << "edit data contents:";
+                    outputBufferBits(editData, maxLength, &debug);
+                }
+                return maxLength;
             }
 
             const int COLOR_SIZE_IN_BYTES = 3;
@@ -542,9 +552,17 @@ int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char*
             int voxelDataSize = voxelCodeSize + COLOR_SIZE_IN_BYTES;
 
             if (voxelDataSize > maxLength) {
-                printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
-                printf("bailing processing of packet!\n");
-                return 0;
+                overflowWarnings++;
+                if (overflowWarnings % REPORT_OVERFLOW_WARNING_INTERVAL == 1) {
+                    qDebug() << "WARNING! Got voxel edit record that would overflow buffer."
+                                " [NOTE: this is warning number" << overflowWarnings << ", the next" << 
+                                (REPORT_OVERFLOW_WARNING_INTERVAL-1) << "will be suppressed.]";
+                    
+                    QDebug debug = qDebug();
+                    debug << "edit data contents:";
+                    outputBufferBits(editData, maxLength, &debug);
+                }
+                return maxLength;
             }
 
             readCodeColorBufferToTree(editData, destructive);

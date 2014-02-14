@@ -113,23 +113,7 @@ void MyAvatar::updateTransmitter(float deltaTime) {
 void MyAvatar::update(float deltaTime) {
     updateTransmitter(deltaTime);
 
-    // TODO: resurrect touch interactions between avatars
-    //// rotate body yaw for yaw received from multitouch
-    //setOrientation(getOrientation() * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
-    //_yawFromTouch = 0.f;
-    //
-    //// apply pitch from touch
-    //_head.setPitch(_head.getPitch() + _pitchFromTouch);
-    //_pitchFromTouch = 0.0f;
-    //
-    //float TOUCH_YAW_SCALE = -0.25f;
-    //float TOUCH_PITCH_SCALE = -12.5f;
-    //float FIXED_TOUCH_TIMESTEP = 0.016f;
-    //_yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-    //_pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
-
-    // Update my avatar's state from gyros
-    updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+    updateFromGyros(deltaTime);
 
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -210,21 +194,24 @@ void MyAvatar::simulate(float deltaTime) {
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
 
-    // Only collide if we are not moving to a target
-    if (_isCollisionsOn && (glm::length(_moveTarget) < EPSILON)) {
-
+    if (_collisionFlags != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
+        float radius = getHeight() * COLLISION_RADIUS_SCALE;
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
-            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-            _collisionRadius *= COLLISION_RADIUS_SCALAR;
-        } else {
-            _collisionRadius = getHeight() * COLLISION_RADIUS_SCALE;
+            radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            radius *= COLLISION_RADIUS_SCALAR;
         }
 
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+        if (_collisionFlags & COLLISION_GROUP_ENVIRONMENT) {
+            updateCollisionWithEnvironment(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_VOXELS) {
+            updateCollisionWithVoxels(deltaTime, radius);
+        }
+        if (_collisionFlags & COLLISION_GROUP_AVATARS) {
+            updateCollisionWithAvatars(deltaTime);
+        }
     }
 
     // add thrust to velocity
@@ -324,24 +311,10 @@ void MyAvatar::simulate(float deltaTime) {
 
     updateChatCircle(deltaTime);
 
-    //  Get any position, velocity, or rotation update from Grab Drag controller
-    glm::vec3 moveFromGrab = _hand.getAndResetGrabDelta();
-    if (glm::length(moveFromGrab) > EPSILON) {
-        _position += moveFromGrab;
-        _velocity = glm::vec3(0, 0, 0);
-    }
-    _velocity += _hand.getAndResetGrabDeltaVelocity();
-    glm::quat deltaRotation = _hand.getAndResetGrabRotation();
-    const float GRAB_CONTROLLER_TURN_SCALING = 0.5f;
-    glm::vec3 euler = safeEulerAngles(deltaRotation) * GRAB_CONTROLLER_TURN_SCALING;
-    //  Adjust body yaw by yaw from controller
-    setOrientation(glm::angleAxis(-euler.y, glm::vec3(0, 1, 0)) * getOrientation());
-    //  Adjust head pitch from controller
-    getHead().setPitch(getHead().getPitch() - euler.x);
-
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
+    _hand.collideAgainstOurself(); 
     _hand.simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -361,7 +334,7 @@ void MyAvatar::simulate(float deltaTime) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(bool turnWithHead) {
+void MyAvatar::updateFromGyros(float deltaTime) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     glm::vec3 estimatedPosition, estimatedRotation;
 
@@ -369,7 +342,7 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned beyond the screen
-        if (turnWithHead) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
             const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.5f;
             const float FACESHIFT_MIN_YAW_TURN = 15.f;
             const float FACESHIFT_MAX_YAW_TURN = 50.f;
@@ -384,11 +357,12 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         }
     } else {
         // restore rotation, lean to neutral positions
-        const float RESTORE_RATE = 0.05f;
-        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
-        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, RESTORE_RATE));
-        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
-        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
+        const float RESTORE_PERIOD = 1.f;   // seconds
+        float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
+        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, restorePercentage));
+        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, restorePercentage));
+        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, restorePercentage));
+        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, restorePercentage));
         return;
     }
 
@@ -477,7 +451,12 @@ void MyAvatar::renderDebugBodyPoints() {
 void MyAvatar::render(bool forceRenderHead) {
 
     // render body
-    renderBody(forceRenderHead);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+        _skeletonModel.renderCollisionProxies(1.f);
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        renderBody(forceRenderHead);
+    }
 
     //renderDebugBodyPoints();
 
@@ -804,39 +783,6 @@ void MyAvatar::updateThrust(float deltaTime) {
             up;
         }
     }
-    //  Add thrust and rotation from hand controllers
-    const float THRUST_MAG_HAND_JETS = THRUST_MAG_FWD;
-    const float JOYSTICK_YAW_MAG = YAW_MAG;
-    const float JOYSTICK_PITCH_MAG = PITCH_MAG * 0.5f;
-    const int THRUST_CONTROLLER = 0;
-    const int VIEW_CONTROLLER = 1;
-    for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-        PalmData& palm = getHand().getPalms()[i];
-
-        // If the script hasn't captured this joystick, then let the default behavior work
-        if (!Application::getInstance()->getControllerScriptingInterface()->isJoystickCaptured(palm.getSixenseID())) {
-            if (palm.isActive() && (palm.getSixenseID() == THRUST_CONTROLLER)) {
-                if (palm.getJoystickY() != 0.f) {
-                    FingerData& finger = palm.getFingers()[0];
-                    if (finger.isActive()) {
-                    }
-                    _thrust += front * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickY() * _thrustMultiplier * deltaTime;
-                }
-                if (palm.getJoystickX() != 0.f) {
-                    _thrust += right * _scale * THRUST_MAG_HAND_JETS * palm.getJoystickX() * _thrustMultiplier * deltaTime;
-                }
-            } else if (palm.isActive() && (palm.getSixenseID() == VIEW_CONTROLLER)) {
-                if (palm.getJoystickX() != 0.f) {
-                    _bodyYawDelta -= palm.getJoystickX() * JOYSTICK_YAW_MAG * deltaTime;
-                }
-                if (palm.getJoystickY() != 0.f) {
-                    getHand().setPitchUpdate(getHand().getPitchUpdate() +
-                                             (palm.getJoystickY() * JOYSTICK_PITCH_MAG * deltaTime));
-                }
-            }
-        }
-
-    }
 
     //  Update speed brake status
     const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
@@ -885,10 +831,9 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime) {
     }
 }
 
-void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
+void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
-    float radius = _collisionRadius;
-    const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
+    const float ENVIRONMENT_SURFACE_ELASTICITY = 0.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01f;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
@@ -902,9 +847,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime) {
     }
 }
 
-
-void MyAvatar::updateCollisionWithVoxels(float deltaTime) {
-    float radius = _collisionRadius;
+void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_ELASTICITY = 0.4f;
     const float VOXEL_DAMPING = 0.0f;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
@@ -924,8 +867,8 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     //  Update the avatar in response to a hard collision.  Position will be reset exactly
     //  to outside the colliding surface.  Velocity will be modified according to elasticity.
     //
-    //  if elasticity = 1.0, collision is inelastic.
-    //  if elasticity > 1.0, collision is elastic.
+    //  if elasticity = 0.0, collision is 100% inelastic.
+    //  if elasticity = 1.0, collision is elastic.
     //
     _position -= penetration;
     static float HALTING_VELOCITY = 0.2f;
@@ -934,7 +877,7 @@ void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity
     if (penetrationLength > EPSILON) {
         _elapsedTimeSinceCollision = 0.0f;
         glm::vec3 direction = penetration / penetrationLength;
-        _velocity -= glm::dot(_velocity, direction) * direction * elasticity;
+        _velocity -= glm::dot(_velocity, direction) * direction * (1.f + elasticity);
         _velocity *= glm::clamp(1.f - damping, 0.0f, 1.0f);
         if ((glm::length(_velocity) < HALTING_VELOCITY) && (glm::length(_thrust) == 0.f)) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
@@ -973,11 +916,93 @@ void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTim
     }
 }
 
-void MyAvatar::updateAvatarCollisions(float deltaTime) {
+bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float heightA,
+        const glm::vec3 positionB, float radiusB, float heightB, glm::vec3& penetration) {
+    glm::vec3 positionBA = positionB - positionA;
+    float xzDistance = sqrt(positionBA.x * positionBA.x + positionBA.z * positionBA.z);
+    if (xzDistance < (radiusA + radiusB)) {
+        float yDistance = fabs(positionBA.y);
+        float halfHeights = 0.5 * (heightA + heightB);
+        if (yDistance < halfHeights) {
+            // cylinders collide
+            if (xzDistance > 0.f) {
+                positionBA.y = 0.f;
+                // note, penetration should point from A into B
+                penetration = positionBA * ((radiusA + radiusB - xzDistance) / xzDistance);
+                return true;
+            } else {
+                // exactly coaxial -- we'll return false for this case
+                return false;
+            }
+        } else if (yDistance < halfHeights + radiusA + radiusB) {
+            // caps collide
+            if (positionBA.y < 0.f) {
+                // A is above B
+                positionBA.y += halfHeights;
+                float BA = glm::length(positionBA);
+                penetration = positionBA * (radiusA + radiusB - BA) / BA;
+                return true;
+            } else {
+                // A is below B
+                positionBA.y -= halfHeights;
+                float BA = glm::length(positionBA);
+                penetration = positionBA * (radiusA + radiusB - BA) / BA;
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
+void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
     //  Reset detector for nearest avatar
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
-    // loop through all the other avatars for potential interactions
+    const AvatarHash& avatars = Application::getInstance()->getAvatarManager().getAvatarHash();
+    if (avatars.size() <= 1) {
+        // no need to compute a bunch of stuff if we have one or fewer avatars
+        return;
+    }
+    float myBoundingRadius = 0.5f * getHeight();
+
+    // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
+    // TODO: make the collision work without assuming avatar orientation
+    Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    float myCapsuleHeight = staticScale.y;
+
+    CollisionInfo collisionInfo;
+    foreach (const AvatarSharedPointer& avatarPointer, avatars) {
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        if (static_cast<Avatar*>(this) == avatar) {
+            // don't collide with ourselves
+            continue;
+        }
+        float distance = glm::length(_position - avatar->getPosition());        
+        if (_distanceToNearestAvatar > distance) {
+            _distanceToNearestAvatar = distance;
+        }
+        float theirBoundingRadius = 0.5f * avatar->getHeight();
+        if (distance < myBoundingRadius + theirBoundingRadius) {
+            Extents theirStaticExtents = _skeletonModel.getStaticExtents();
+            glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
+            float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+            float theirCapsuleHeight = staticScale.y;
+
+            glm::vec3 penetration(0.f);
+            if (findAvatarAvatarPenetration(_position, myCapsuleRadius, myCapsuleHeight,
+                avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
+                // move the avatar out by half the penetration
+                setPosition(_position - 0.5f * penetration);
+            }
+
+            // collide our hands against them
+            _hand.collideAgainstAvatar(avatar, true);
+
+            // collide their hands against us
+            avatar->getHand().collideAgainstAvatar(this, false);
+        }
+    }
 }
 
 class SortedAvatar {

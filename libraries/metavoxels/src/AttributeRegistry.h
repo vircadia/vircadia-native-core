@@ -105,6 +105,9 @@ public:
     bool operator==(const AttributeValue& other) const;
     bool operator==(void* other) const;
     
+    bool operator!=(const AttributeValue& other) const;
+    bool operator!=(void* other) const;
+    
 protected:
     
     AttributePointer _attribute;

@@ -834,6 +834,12 @@ QString getTopModelID(const QMultiHash<QString, QString>& parentMap,
     }
 }
 
+QString getString(const QVariant& value) {
+    // if it's a list, return the first entry
+    QVariantList list = value.toList();
+    return list.isEmpty() ? value.toString() : list.at(0).toString();
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -847,14 +853,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QString> bumpTextures;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = processID(joints.value("jointEyeLeft", "jointEyeLeft").toString());
-    QString jointEyeRightName = processID(joints.value("jointEyeRight", "jointEyeRight").toString());
-    QString jointNeckName = processID(joints.value("jointNeck", "jointNeck").toString());
-    QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
-    QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
-    QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
-    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
-    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QString jointEyeLeftName = processID(getString(joints.value("jointEyeLeft", "jointEyeLeft")));
+    QString jointEyeRightName = processID(getString(joints.value("jointEyeRight", "jointEyeRight")));
+    QString jointNeckName = processID(getString(joints.value("jointNeck", "jointNeck")));
+    QString jointRootName = processID(getString(joints.value("jointRoot", "jointRoot")));
+    QString jointLeanName = processID(getString(joints.value("jointLean", "jointLean")));
+    QString jointHeadName = processID(getString(joints.value("jointHead", "jointHead")));
+    QString jointLeftHandName = processID(getString(joints.value("jointLeftHand", "jointLeftHand")));
+    QString jointRightHandName = processID(getString(joints.value("jointRightHand", "jointRightHand")));
     QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
     QVariantList jointRightFingerNames = joints.values("jointRightFinger");
     QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
@@ -1265,9 +1271,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
         geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
-    
+
     geometry.bindExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    geometry.staticExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    geometry.staticExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -1424,6 +1432,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         boneDirection /= boneLength;
                     }
                 }
+                bool jointIsStatic = joint.freeLineage.isEmpty();
+                glm::vec3 jointTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 float radiusScale = extractUniformScale(joint.transform * fbxCluster.inverseBindMatrix);
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1440,6 +1450,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             if (proj < 0.0f && proj > -boneLength) {
                                 joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
                                     vertex, boneEnd + boneDirection * proj));
+                            }
+                            if (jointIsStatic) {
+                                // expand the extents of static (nonmovable) joints
+                                geometry.staticExtents.minimum = glm::min(geometry.staticExtents.minimum, vertex + jointTranslation);
+                                geometry.staticExtents.maximum = glm::max(geometry.staticExtents.maximum, vertex + jointTranslation);
                             }
                         }
 
