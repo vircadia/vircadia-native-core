@@ -915,11 +915,11 @@ void Model::renderMeshes(float alpha, bool translucent) {
         qint64 offset = 0;
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+            const FBXMeshPart& part = mesh.parts.at(j);
             if (networkPart.isTranslucent() != translucent) {
+                offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
-            const FBXMeshPart& part = mesh.parts.at(j);
-            
             // apply material properties
             glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
             glm::vec4 specular = glm::vec4(part.specularColor, alpha);
