@@ -31,6 +31,4 @@ public slots:
     glm::quat angleAxis(float angle, const glm::vec3& v);
 };
 
-
-
 #endif /* defined(__hifi__Quat__) */
