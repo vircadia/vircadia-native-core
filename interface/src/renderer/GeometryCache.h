@@ -62,6 +62,9 @@ class NetworkGeometry : public QObject {
 
 public:
     
+    /// A hysteresis value indicating that we have no state memory.
+    static const float NO_HYSTERESIS = -1.0f;
+    
     NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
     ~NetworkGeometry();
@@ -70,7 +73,8 @@ public:
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
 
     /// Returns a pointer to the geometry appropriate for the specified distance.
-    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance) const;
+    /// \param hysteresis a hysteresis parameter that prevents rapid model switching
+    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis) const;
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }

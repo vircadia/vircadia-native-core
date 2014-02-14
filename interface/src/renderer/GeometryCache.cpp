@@ -328,16 +328,30 @@ NetworkGeometry::~NetworkGeometry() {
     }
 }
 
-QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance) const {
+QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis) const {
     if (_lodParent.data() != this) {
-        return _lodParent.data()->getLODOrFallback(distance);
+        return _lodParent.data()->getLODOrFallback(distance, hysteresis);
     }
     if (_failedToLoad && _fallback) {
         return _fallback;
     }
+    QSharedPointer<NetworkGeometry> lod = _lodParent;
+    float lodDistance = 0.0f;
     QMap<float, QSharedPointer<NetworkGeometry> >::const_iterator it = _lods.upperBound(distance);
-    QSharedPointer<NetworkGeometry> lod = (it == _lods.constBegin()) ? _lodParent.toStrongRef() : *(it - 1);
+    if (it != _lods.constBegin()) {
+        it = it - 1;
+        lod = it.value();
+        lodDistance = it.key();
+    }
+    if (hysteresis != NO_HYSTERESIS && hysteresis != lodDistance) {
+        // if we previously selected a different distance, make sure we've moved far enough to justify switching
+        const float HYSTERESIS_PROPORTION = 0.1f;
+        if (glm::abs(distance - qMax(hysteresis, lodDistance)) / fabsf(hysteresis - lodDistance) < HYSTERESIS_PROPORTION) {
+            return getLODOrFallback(hysteresis, hysteresis);
+        }
+    }
     if (lod->isLoaded()) {
+        hysteresis = lodDistance;
         return lod;
     }
     // if the ideal LOD isn't loaded, we need to make sure it's started to load, and possibly return the closest loaded one
@@ -356,6 +370,7 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
             closestDistance = distanceToLOD;
         }    
     }
+    hysteresis = NO_HYSTERESIS;
     return lod;
 }
 

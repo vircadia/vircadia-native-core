@@ -93,7 +93,7 @@ void Model::simulate(float deltaTime) {
     // update our LOD
     if (_geometry) {
         QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
-            Application::getInstance()->getCamera()->getPosition()));
+            glm::vec3() /* Application::getInstance()->getCamera()->getPosition() */), _lodHysteresis);
         if (_geometry != geometry) {
             deleteGeometry();
             _dilatedTextures.clear();
@@ -419,6 +419,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     // delete our local geometry and custom textures
     deleteGeometry();
     _dilatedTextures.clear();
+    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
     _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
