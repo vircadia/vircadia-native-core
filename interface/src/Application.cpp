@@ -3991,16 +3991,18 @@ void Application::stopAllScripts() {
         scriptAction->activate(QAction::Trigger);
         qDebug() << "stopping script..." << scriptAction->text();
     }
+    _activeScripts.clear();
 }
 
 void Application::reloadAllScripts() {
+    // remember all the current scripts so we can reload them
+    QStringList reloadList = _activeScripts;
     // reloads all current running scripts
     QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
     foreach (QAction* scriptAction, scriptActions) {
         scriptAction->activate(QAction::Trigger);
         qDebug() << "stopping script..." << scriptAction->text();
     }
-    QStringList reloadList = _activeScripts;
     _activeScripts.clear();
     foreach (QString scriptName, reloadList){
         qDebug() << "reloading script..." << scriptName;
