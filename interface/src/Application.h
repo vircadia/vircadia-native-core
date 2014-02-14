@@ -231,6 +231,8 @@ public slots:
     void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
+    void stopAllScripts();
+    void reloadAllScripts();
 
 private slots:
     void timer();
