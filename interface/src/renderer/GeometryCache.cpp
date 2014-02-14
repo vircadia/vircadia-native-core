@@ -300,6 +300,8 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     return geometry;
 }
 
+const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
+
 NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
         const QVariantHash& mapping, const QUrl& textureBase) :
     _request(url),
@@ -307,9 +309,9 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     _mapping(mapping),
     _textureBase(textureBase.isValid() ? textureBase : url),
     _fallback(fallback),
-    _attempts(0),
     _startedLoading(false),
-    _failedToLoad(false) {
+    _failedToLoad(false),
+    _attempts(0) {
     
     if (!url.isValid()) {
         return;

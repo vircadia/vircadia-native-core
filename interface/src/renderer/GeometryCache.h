@@ -63,7 +63,7 @@ class NetworkGeometry : public QObject {
 public:
     
     /// A hysteresis value indicating that we have no state memory.
-    static const float NO_HYSTERESIS = -1.0f;
+    static const float NO_HYSTERESIS;
     
     NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());

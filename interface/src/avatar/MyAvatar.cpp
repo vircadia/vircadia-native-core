@@ -1002,7 +1002,6 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
-                glm::vec3 pushOut = 0.5f * penetration;
             }
         }
     }
