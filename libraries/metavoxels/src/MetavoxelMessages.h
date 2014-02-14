@@ -116,4 +116,37 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(GlobalSetEdit)
 
+/// An edit that inserts a spanner into the tree.
+class InsertSpannerEdit : public MetavoxelEdit {
+    STREAMABLE    
+
+public:
+    
+    STREAM AttributePointer attribute;
+    STREAM SharedObjectPointer spanner;
+    
+    InsertSpannerEdit(const AttributePointer& attribute = AttributePointer(),
+        const SharedObjectPointer& spanner = SharedObjectPointer());
+    
+    virtual void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(InsertSpannerEdit)
+
+/// An edit that removes a a spanner from the tree.
+class RemoveSpannerEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM AttributePointer attribute;
+    STREAM int id;
+    
+    RemoveSpannerEdit(const AttributePointer& attribute = AttributePointer(), int id = 0);
+    
+    virtual void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(RemoveSpannerEdit)
+
 #endif /* defined(__interface__MetavoxelMessages__) */

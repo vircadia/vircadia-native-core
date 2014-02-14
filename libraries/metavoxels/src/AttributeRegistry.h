@@ -57,8 +57,11 @@ public:
     /// Returns a reference to the attribute hash.
     const QHash<QString, AttributePointer>& getAttributes() const { return _attributes; }
     
-    /// Returns a reference to the standard PolymorphicDataPointer "guide" attribute.
+    /// Returns a reference to the standard SharedObjectPointer "guide" attribute.
     const AttributePointer& getGuideAttribute() const { return _guideAttribute; }
+    
+    /// Returns a reference to the standard SharedObjectSet "spanners" attribute.
+    const AttributePointer& getSpannersAttribute() const { return _spannersAttribute; }
     
     /// Returns a reference to the standard QRgb "color" attribute.
     const AttributePointer& getColorAttribute() const { return _colorAttribute; }
@@ -72,6 +75,7 @@ private:
 
     QHash<QString, AttributePointer> _attributes;
     AttributePointer _guideAttribute;
+    AttributePointer _spannersAttribute;
     AttributePointer _colorAttribute;
     AttributePointer _normalAttribute;
 };
@@ -275,6 +279,25 @@ public:
     virtual void* createFromVariant(const QVariant& value) const;
     
     virtual QWidget* createEditor(QWidget* parent = NULL) const;
+
+private:
+    
+    const QMetaObject* _metaObject;
+};
+
+/// An attribute that takes the form of a set of shared objects.
+class SharedObjectSetAttribute : public InlineAttribute<SharedObjectSet> {
+    Q_OBJECT
+    Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject)
+    
+public:
+    
+    Q_INVOKABLE SharedObjectSetAttribute(const QString& name = QString(),
+        const QMetaObject* metaObject = &SharedObject::staticMetaObject);
+    
+    const QMetaObject* getMetaObject() const { return _metaObject; }
+    
+    virtual bool merge(void*& parent, void* children[]) const;
 
 private:
     

@@ -242,4 +242,31 @@ public:
     AttributeValue getInheritedOutputValue(int index) const;
 };
 
+/// An object that spans multiple octree cells.
+class Spanner : public SharedObject {
+    Q_OBJECT
+    Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged)
+
+public:
+    
+    Spanner();
+    
+    void setBounds(const Box& bounds);
+    const Box& getBounds() const { return _bounds; }
+    
+    /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
+    /// If we haven't, sets the last visit identifier and returns true.
+    bool testAndSetVisited(int visit);
+
+signals:
+
+    void boundsWillChange();
+    void boundsChanged(const Box& bounds);
+
+private:
+    
+    Box _bounds;
+    int _lastVisit; ///< the identifier of the last visit
+};
+
 #endif /* defined(__interface__MetavoxelData__) */

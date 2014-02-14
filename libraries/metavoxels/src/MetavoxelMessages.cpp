@@ -100,3 +100,18 @@ void GlobalSetEdit::apply(MetavoxelData& data) const {
     data.guide(visitor);
 }
 
+InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) :
+    attribute(attribute),
+    spanner(spanner) {
+}
+
+void InsertSpannerEdit::apply(MetavoxelData& data) const {   
+}
+
+RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) :
+    attribute(attribute),
+    id(id) {
+}
+
+void RemoveSpannerEdit::apply(MetavoxelData& data) const {
+}

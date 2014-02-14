@@ -18,6 +18,7 @@ REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
+REGISTER_META_OBJECT(Spanner)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
@@ -671,5 +672,24 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
         }
     }
     return AttributeValue(visitor.getOutputs().at(index));
+}
+
+Spanner::Spanner() : _lastVisit(0) {
+}
+
+void Spanner::setBounds(const Box& bounds) {
+    if (_bounds == bounds) {
+        return;
+    }
+    emit boundsWillChange();
+    emit boundsChanged(_bounds = bounds);
+}
+
+bool Spanner::testAndSetVisited(int visit) {
+    if (_lastVisit == visit) {
+        return false;
+    }
+    _lastVisit = visit;
+    return true;
 }
 

@@ -266,6 +266,9 @@ public:
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);
     
+    template<class T> Bitstream& operator<<(const QSet<T>& set);
+    template<class T> Bitstream& operator>>(QSet<T>& set);
+    
     template<class K, class V> Bitstream& operator<<(const QHash<K, V>& hash);
     template<class K, class V> Bitstream& operator>>(QHash<K, V>& hash);
     
@@ -344,6 +347,27 @@ template<class T> inline Bitstream& Bitstream::operator>>(QList<T>& list) {
         T entry;
         *this >> entry;
         list.append(entry);
+    }
+    return *this;
+}
+
+template<class T> inline Bitstream& Bitstream::operator<<(const QSet<T>& set) {
+    *this << set.size();
+    foreach (const T& entry, set) {
+        *this << entry;
+    }
+    return *this;
+}
+
+template<class T> inline Bitstream& Bitstream::operator>>(QSet<T>& set) {
+    int size;
+    *this >> size;
+    set.clear();
+    set.reserve(size);
+    for (int i = 0; i < size; i++) {
+        T entry;
+        *this >> entry;
+        set.insert(entry);
     }
     return *this;
 }

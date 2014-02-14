@@ -11,6 +11,7 @@
 
 #include <QMetaType>
 #include <QObject>
+#include <QSet>
 #include <QWidget>
 
 class QComboBox;
@@ -143,6 +144,10 @@ template<class T> uint qHash(const SharedObjectPointerTemplate<T>& pointer, uint
 typedef SharedObjectPointerTemplate<SharedObject> SharedObjectPointer;
 
 Q_DECLARE_METATYPE(SharedObjectPointer)
+
+typedef QSet<SharedObjectPointer> SharedObjectSet;
+
+Q_DECLARE_METATYPE(SharedObjectSet)
 
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {
