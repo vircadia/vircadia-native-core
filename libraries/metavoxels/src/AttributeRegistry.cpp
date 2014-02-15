@@ -243,3 +243,7 @@ bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
     }
     return true;
 }
+
+QWidget* SharedObjectSetAttribute::createEditor(QWidget* parent) const {
+    return new SharedObjectEditor(_metaObject, parent);
+}

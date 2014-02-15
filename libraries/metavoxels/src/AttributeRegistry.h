@@ -299,6 +299,8 @@ public:
     
     virtual bool merge(void*& parent, void* children[]) const;
 
+    virtual QWidget* createEditor(QWidget* parent = NULL) const;
+
 private:
     
     const QMetaObject* _metaObject;

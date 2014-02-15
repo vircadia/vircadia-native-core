@@ -10,6 +10,7 @@
 #define __interface__MetavoxelEditor__
 
 #include <QDialog>
+#include <QList>
 
 #include "renderer/ProgramObject.h"
 
@@ -53,6 +54,7 @@ private slots:
     
 private:
     
+    void addTool(MetavoxelTool* tool);
     void updateAttributes(const QString& select = QString());    
     MetavoxelTool* getActiveTool() const;
     
@@ -63,6 +65,7 @@ private:
     QDoubleSpinBox* _gridSpacing;
     QDoubleSpinBox* _gridPosition;
     
+    QList<MetavoxelTool*> _tools;
     QComboBox* _toolBox;
     
     QGroupBox* _value;
@@ -77,7 +80,11 @@ class MetavoxelTool : public QWidget {
 
 public:
 
-    MetavoxelTool(MetavoxelEditor* editor);
+    MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue = true);
+    
+    bool getUsesValue() const { return _usesValue; }
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
     
     /// Renders the tool's interface, if any.
     virtual void render();
@@ -85,6 +92,7 @@ public:
 protected:
     
     MetavoxelEditor* _editor;
+    bool _usesValue;
 };
 
 /// Allows setting the value of a region by dragging out a box.
@@ -125,6 +133,32 @@ public:
 private slots:
     
     void apply();
+};
+
+/// Allows inserting a spanner into the scene.
+class InsertSpannerTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    InsertSpannerTool(MetavoxelEditor* editor);
+
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+private slots:
+    
+    void insert();
+};
+
+/// Allows removing a spanner from the scene.
+class RemoveSpannerTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    RemoveSpannerTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
 };
 
 #endif /* defined(__interface__MetavoxelEditor__) */

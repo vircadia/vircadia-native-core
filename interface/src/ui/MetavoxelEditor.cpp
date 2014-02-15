@@ -94,14 +94,11 @@ MetavoxelEditor::MetavoxelEditor() :
     valueLayout->addWidget(_valueArea = new QScrollArea());
     _valueArea->setWidgetResizable(true);
 
-    BoxSetTool* boxSetTool = new BoxSetTool(this);
-    topLayout->addWidget(boxSetTool);
-    _toolBox->addItem("Set Value (Box)", QVariant::fromValue(boxSetTool));
-
-    GlobalSetTool* globalSetTool = new GlobalSetTool(this);
-    topLayout->addWidget(globalSetTool);
-    _toolBox->addItem("Set Value (Global)", QVariant::fromValue(globalSetTool));
-
+    addTool(new BoxSetTool(this));
+    addTool(new GlobalSetTool(this));
+    addTool(new InsertSpannerTool(this));
+    addTool(new RemoveSpannerTool(this));
+    
     updateAttributes();
     
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
@@ -153,23 +150,35 @@ QVariant MetavoxelEditor::getValue() const {
 
 bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
     // pass along to the active tool
-    return getActiveTool()->eventFilter(watched, event);
+    MetavoxelTool* tool = getActiveTool();
+    return tool && tool->eventFilter(watched, event);
 }
 
 void MetavoxelEditor::selectedAttributeChanged() {
+    _toolBox->clear();
+    
     QString selected = getSelectedAttribute();
     if (selected.isNull()) {
         _deleteAttribute->setEnabled(false);
+        _toolBox->setEnabled(false); 
         _value->setVisible(false);
         return;
     }
     _deleteAttribute->setEnabled(true);
+    _toolBox->setEnabled(true);
+    
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(selected);
+    foreach (MetavoxelTool* tool, _tools) {
+        if (tool->appliesTo(attribute)) {
+            _toolBox->addItem(tool->objectName(), QVariant::fromValue(tool));
+        }
+    }
     _value->setVisible(true);
     
     if (_valueArea->widget()) {
         delete _valueArea->widget();
     }
-    QWidget* editor = AttributeRegistry::getInstance()->getAttribute(selected)->createEditor();
+    QWidget* editor = attribute->createEditor();
     if (editor) {
         _valueArea->setWidget(editor);
     }
@@ -231,9 +240,11 @@ void MetavoxelEditor::alignGridPosition() {
 }
 
 void MetavoxelEditor::updateTool() {
-    for (int i = 0; i < _toolBox->count(); i++) {
-        _toolBox->itemData(i).value<QWidget*>()->setVisible(i == _toolBox->currentIndex());
+    MetavoxelTool* active = getActiveTool();
+    foreach (MetavoxelTool* tool, _tools) {
+        tool->setVisible(tool == active);
     }
+    _value->setVisible(active && active->getUsesValue());
 }
 
 const float GRID_BRIGHTNESS = 0.5f;
@@ -248,7 +259,10 @@ void MetavoxelEditor::render() {
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
     
-    getActiveTool()->render();
+    MetavoxelTool* tool = getActiveTool();
+    if (tool) {
+        tool->render();
+    }
     
     glLineWidth(1.0f);
     
@@ -276,6 +290,11 @@ void MetavoxelEditor::render() {
     glDepthMask(GL_TRUE);
 }
 
+void MetavoxelEditor::addTool(MetavoxelTool* tool) {
+    _tools.append(tool);
+    layout()->addWidget(tool);
+}
+
 void MetavoxelEditor::updateAttributes(const QString& select) {
     // remember the selection in order to preserve it
     QString selected = select.isNull() ? getSelectedAttribute() : select;
@@ -296,18 +315,26 @@ void MetavoxelEditor::updateAttributes(const QString& select) {
 }
 
 MetavoxelTool* MetavoxelEditor::getActiveTool() const {
-    return static_cast<MetavoxelTool*>(_toolBox->itemData(_toolBox->currentIndex()).value<QObject*>());
+    int index = _toolBox->currentIndex();
+    return (index == -1) ? NULL : static_cast<MetavoxelTool*>(_toolBox->itemData(index).value<QObject*>());
 }
 
 ProgramObject MetavoxelEditor::_gridProgram;
 
-MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor) :
-    _editor(editor) {
+MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool usesValue) :
+    _editor(editor),
+    _usesValue(usesValue) {
     
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
     
+    setObjectName(name);
     setVisible(false);
+}
+
+bool MetavoxelTool::appliesTo(const AttributePointer& attribute) const {
+    // shared object sets are a special case
+    return !attribute->inherits("SharedObjectSetAttribute");
 }
 
 void MetavoxelTool::render() {
@@ -315,7 +342,7 @@ void MetavoxelTool::render() {
 }
 
 BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor) {
+    MetavoxelTool(editor, "Set Value (Box)") {
     
     resetState();
 }
@@ -449,7 +476,7 @@ void BoxSetTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) 
 }
 
 GlobalSetTool::GlobalSetTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor) {
+    MetavoxelTool(editor, "Set Value (Global)") {
     
     QPushButton* button = new QPushButton("Apply");
     layout()->addWidget(button);
@@ -464,4 +491,34 @@ void GlobalSetTool::apply() {
     OwnedAttributeValue value(attribute, attribute->createFromVariant(_editor->getValue()));
     MetavoxelEditMessage message = { QVariant::fromValue(GlobalSetEdit(value)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
+    MetavoxelTool(editor, "Insert Spanner") {
+    
+    QPushButton* button = new QPushButton("Insert");
+    layout()->addWidget(button);
+    connect(button, SIGNAL(clicked()), SLOT(insert()));
+}
+
+bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("SharedObjectSetAttribute");
+}
+
+void InsertSpannerTool::insert() {
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
+    if (!attribute) {
+        return;
+    }
+    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
+    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, spanner)) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
+    MetavoxelTool(editor, "Remove Spanner", false) {
+}
+
+bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("SharedObjectSetAttribute");
 }

@@ -88,6 +88,39 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     }
 }
 
+class InsertVisitor : public MetavoxelVisitor {
+public:
+    
+    InsertVisitor(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
+    
+    virtual bool visit(MetavoxelInfo& info);
+
+private:
+    
+    const AttributePointer& _attribute;
+    const Box& _bounds;
+    const SharedObjectPointer& _object;
+};
+
+InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
+    _attribute(attribute),
+    _bounds(bounds),
+    _object(object) {
+}
+
+bool InsertVisitor::visit(MetavoxelInfo& info) {
+    return false;
+}
+
+void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+    InsertVisitor visitor(attribute, bounds, object);
+    guide(visitor);
+}
+
+void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+}
+
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
 const int Z_MAXIMUM_FLAG = 4;

@@ -45,7 +45,11 @@ public:
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
+   
+    void insert(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
     
+    void remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
+
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
@@ -249,7 +253,7 @@ class Spanner : public SharedObject {
 
 public:
     
-    Spanner();
+    Q_INVOKABLE Spanner();
     
     void setBounds(const Box& bounds);
     const Box& getBounds() const { return _bounds; }

@@ -105,7 +105,8 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
     spanner(spanner) {
 }
 
-void InsertSpannerEdit::apply(MetavoxelData& data) const {   
+void InsertSpannerEdit::apply(MetavoxelData& data) const {
+    data.insert(attribute, static_cast<Spanner*>(spanner.data())->getBounds(), spanner);
 }
 
 RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) :
