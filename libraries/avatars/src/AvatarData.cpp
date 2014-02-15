@@ -300,7 +300,7 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    
+
     identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _displayName;
     
     return identityData;
@@ -319,8 +319,9 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
-    qDebug() << "Changing display name for avatar to" << displayName;
     _displayName = displayName;
+
+    qDebug() << "Changing display name for avatar to" << displayName;
 }
 
 

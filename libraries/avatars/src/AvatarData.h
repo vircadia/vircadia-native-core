@@ -148,7 +148,7 @@ public:
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
-    const QString& getDisplayNameStr() const { return _displayName; }
+    const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);

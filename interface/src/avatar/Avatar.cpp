@@ -270,7 +270,7 @@ void Avatar::renderDisplayName() {
 
     QString displayName;
     if (_displayName.isEmpty()) {
-        displayName = "test string";
+        displayName = "test string";  // just for debugging
     } else {
         displayName = _displayName;
     }
@@ -278,7 +278,12 @@ void Avatar::renderDisplayName() {
     glm::vec3 textPosition = getPosition() + getBodyUpDirection() * getHeight();  // Scale is already considered in getHeight
     glPushMatrix();
     glDepthMask(false);
+    glDisable(GL_LIGHTING);
 
+    // Set the correct modelview matrix: set the identity matrix in the rotation part
+    // [R|t1] = current modelview matrix (the camera rotation and translation)
+    // [I|t2] = the translation for the text
+    // We want this final model view matrix: [I | t1 + R*t2]
     glm::dmat4 modelViewMatrix2;
     glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
@@ -293,7 +298,7 @@ void Avatar::renderDisplayName() {
     modelViewMatrix[2][0] = modelViewMatrix[2][1] = 0.0;
 
     glLoadMatrixd((GLdouble*)&modelViewMatrix);  // Override current matrix with our own
-    glScalef(1.0, -1.0, 1.0);  // TextRenderer::draw paints the text upside down. This fixes that
+    
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project y = 0 and y = 1  and check the difference in projection coordinates
@@ -320,22 +325,36 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float textScale = 1.0;
-        float scaleFactor = 1.0;
-        if (textWindowHeight > EPSILON) {
-            scaleFactor = textScale / textWindowHeight;
-        }
+        float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
+        glScalef(scaleFactor, scaleFactor, 1.0);  
 
-        glScalef(scaleFactor, scaleFactor, 1.0);
+        // draw a gray background so that we can actually see what we're typing
+        QFontMetrics metrics = displayNameTextRenderer()->metrics();
+        int bottom = -metrics.descent(), top = bottom + metrics.height();
+        int left = -_displayNameWidth/2, right = _displayNameWidth/2;
+        int border = 5;
+        bottom -= border;
+        left -= border;
+        top += border;
+        right += border;
 
-        glColor3f((GLfloat)0.93, (GLfloat)0.93, (GLfloat)0.93);
+        glColor3f(0.2f, 0.2f, 0.2f);
+        glBegin(GL_QUADS);
+        glVertex2f(left, bottom);
+        glVertex2f(right, bottom);
+        glVertex2f(right, top);
+        glVertex2f(left, top);
+        glEnd();
         
-        // TextRenderer, based on QT opengl text rendering functions
 
+        glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+        glColor3f(0.93f, 0.93f, 0.93f);
+               
         QByteArray ba = displayName.toLocal8Bit();
         const char *text = ba.data();
         displayNameTextRenderer()->draw(-_displayNameWidth/2.0, 0, text); 
     }
+    glEnable(GL_LIGHTING);
     glDepthMask(true);
     glPopMatrix();
 }

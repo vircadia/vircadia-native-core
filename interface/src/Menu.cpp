@@ -782,7 +782,7 @@ void Menu::editPreferences() {
     skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
-    QString displayNameString = applicationInstance->getAvatar()->getDisplayNameStr();
+    QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
     QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
     displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Display name:", displayNameEdit);

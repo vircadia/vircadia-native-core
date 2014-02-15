@@ -187,8 +187,9 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
     while (!identityStream.atEnd()) {
         
         QUrl faceMeshURL, skeletonURL;
-        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL;
-        
+        QString displayName;
+        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL >> displayName;
+
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         if (matchingAvatar) {
@@ -200,6 +201,10 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
             
             if (avatar->getSkeletonModelURL() != skeletonURL) {
                 avatar->setSkeletonModelURL(skeletonURL);
+            }
+
+            if (avatar->getDisplayName() != displayName) {
+                avatar->setDisplayName(displayName);
             }
         }
     }
