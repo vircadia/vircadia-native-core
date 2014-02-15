@@ -45,8 +45,8 @@ public:
     float getAudioLoudness() const { return _audioLoudness; }
 	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
 
-    float getAudioCardAverageLoudness() const { return _audioCardAverageLoudness; }	// saki
-	void setAudioCardAverageLoudness(float audioCardAverageLoudness) { _audioCardAverageLoudness = audioCardAverageLoudness; }	// saki
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
 
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
@@ -76,7 +76,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
-	float _audioCardAverageLoudness;	// saki
+	float _audioAverageLoudness;
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;

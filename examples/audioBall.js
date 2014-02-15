@@ -23,7 +23,7 @@ function vsMult(s, v) {
 }
 
 var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");
-var FACTOR = 0.20;
+var FACTOR = 0.75;
 
 var countParticles = 0;    // the first time around we want to create the particle and thereafter to modify it.
 var particleID;
@@ -42,14 +42,15 @@ function updateParticle()
     options.volume = 0.75;
     Audio.playSound(sound, options);
 
-	var audioCardAverageLoudness = MyAvatar.audioCardAverageLoudness * FACTOR;
+	var audioAverageLoudness = MyAvatar.audioAverageLoudness * FACTOR;
+    //print ("Audio Loudness = " + MyAvatar.audioLoudness + " -- Audio Average Loudness = " + MyAvatar.audioAverageLoudness);
 
     if (countParticles < 1)
     {
         var particleProperies = {
             position: particlePosition // the particle should stay in front of the user's avatar as he moves
         ,   color: { red: 0, green: 255, blue: 0 }
-        ,   radius: audioCardAverageLoudness
+        ,   radius: audioAverageLoudness
         ,   velocity: { x: 0.0, y: 0.0, z: 0.0 }
         ,   gravity: { x: 0.0, y: 0.0, z: 0.0 }
         ,   damping: 0.0
@@ -63,8 +64,8 @@ function updateParticle()
         // animates the particles radius and color in response to the changing audio intensity
         var newProperties = {
             position: particlePosition // the particle should stay in front of the user's avatar as he moves
-        ,   color: { red: 0, green: 255 * audioCardAverageLoudness, blue: 0 }
-        ,   radius: audioCardAverageLoudness
+        ,   color: { red: 0, green: 255 * audioAverageLoudness, blue: 0 }
+        ,   radius: audioAverageLoudness
         };
 
         Particles.editParticle (particleID, newProperties);
