@@ -166,14 +166,19 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
-    QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
-
-    QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 0, false, avatar, SLOT(updateCollisionFlags()));
-    // TODO: make this option work
-    //addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 0, false, avatar, SLOT(updateCollisionFlags()));
+    {
+        // add collision options to the general edit menu
+        QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
+        QObject* avatar = appInstance->getAvatar();
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 
+                0, false, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 
+                0, true, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 
+                0, false, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 
+                0, true, avatar, SLOT(updateCollisionFlags()));
+    }
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -341,6 +346,20 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
+    {
+        // add collision options to the avatar menu
+        QMenu* collisionsOptionsMenu = avatarOptionsMenu->addMenu("Collision Options");
+        QObject* avatar = appInstance->getAvatar();
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 
+                0, false, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 
+                0, true, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 
+                0, false, avatar, SLOT(updateCollisionFlags()));
+        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 
+                0, true, avatar, SLOT(updateCollisionFlags()));
+    }
+    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -515,6 +534,11 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
+
+    // MyAvatar caches some menu options, so we have to update them whenever we load settings.
+    // TODO: cache more settings in MyAvatar that are checked with very high frequency.
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    myAvatar->updateCollisionFlags();
 }
 
 void Menu::saveSettings(QSettings* settings) {
