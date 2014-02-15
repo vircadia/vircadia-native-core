@@ -126,7 +126,9 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-
+    
+    bool event(QEvent* event);
+    
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,
@@ -231,6 +233,8 @@ public slots:
     void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
+    void stopAllScripts();
+    void reloadAllScripts();
 
 private slots:
     void timer();

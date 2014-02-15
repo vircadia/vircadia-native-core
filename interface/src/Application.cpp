@@ -101,6 +101,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
+const QString CUSTOM_URL_SCHEME = "hifi:";
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString messageWithNewLine = message + "\n";
@@ -677,6 +679,38 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
         _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
+}
+
+bool Application::event(QEvent* event) {
+    
+    // handle custom URL
+    if (event->type() == QEvent::FileOpen) {
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
+            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
+            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                Menu::getInstance()->goToDomain(urlParts[0]);
+                
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[1]);
+                if (urlParts.count() > 2) {
+                    
+                    // location orientation
+                    Menu::getInstance()->goToOrientation(urlParts[2]);
+                }
+            } else if (urlParts.count() == 1) {
+
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[0]);
+            }
+        }
+        
+        return false;
+    }
+    return QApplication::event(event);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -3982,6 +4016,32 @@ void Application::saveScripts() {
     }
     
     settings->endArray();
+}
+
+void Application::stopAllScripts() {
+    // stops all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+}
+
+void Application::reloadAllScripts() {
+    // remember all the current scripts so we can reload them
+    QStringList reloadList = _activeScripts;
+    // reloads all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+    foreach (QString scriptName, reloadList){
+        qDebug() << "reloading script..." << scriptName;
+        loadScript(scriptName);
+    }
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
