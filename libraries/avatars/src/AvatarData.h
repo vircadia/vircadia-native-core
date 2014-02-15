@@ -135,14 +135,10 @@ public:
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;
     }
 
-    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-        return false;
-    }
-    
     bool hasIdentityChangedAfterParsing(const QByteArray& packet);
     QByteArray identityByteArray();
     
@@ -150,6 +146,8 @@ public:
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    virtual float getBoundingRadius() const { return 1.f; }
     
 protected:
     glm::vec3 _position;

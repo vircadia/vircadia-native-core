@@ -57,8 +57,6 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
-typedef QVector<ModelCollisionInfo> ModelCollisionList;
-
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
 // this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
 // Grayson as he's building a street around here for demo dinner 2
@@ -97,26 +95,19 @@ public:
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param collisions[out] a list of collisions
+    /// \param collisions[out] a list to which collisions get appended
     /// \param skeletonSkipIndex if not -1, the index of a joint to skip (along with its descendents) in the skeleton model
     /// \return whether or not the sphere penetrated
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        ModelCollisionList& collisions, int skeletonSkipIndex = -1);
+        CollisionList& collisions, int skeletonSkipIndex = -1);
 
-    /// Checks for collision between the a sphere and the avatar's (paddle) hands.
-    /// \param collisionCenter the center of the penetration test sphere
-    /// \param collisionRadius the radius of the penetration test sphere
-    /// \param collision[out] the details of the collision point
-    /// \return whether or not the sphere collided
-    bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
+    /// Checks for collision between the a spherical particle and the avatar (including paddle hands)
+    /// \param collisionCenter the center of particle's bounding sphere
+    /// \param collisionRadius the radius of particle's bounding sphere
+    /// \param collisions[out] a list to which collisions get appended
+    /// \return whether or not the particle collided
+    bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions);
 
-    /// Checks for collision between the a sphere and the avatar's skeleton (including hand capsules).
-    /// \param collisionCenter the center of the penetration test sphere
-    /// \param collisionRadius the radius of the penetration test sphere
-    /// \param collision[out] the details of the collision point
-    /// \return whether or not the sphere collided
-    //bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision);
-    
     virtual bool isMyAvatar() { return false; }
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
@@ -126,13 +117,13 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-    float getHeight() const;
-
     /// \return true if we expect the avatar would move as a result of the collision
-    bool collisionWouldMoveAvatar(ModelCollisionInfo& collision) const;
+    bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
 
     /// \param collision a data structure for storing info about collisions against Models
-    void applyCollision(ModelCollisionInfo& collision);
+    void applyCollision(CollisionInfo& collision);
+
+    float getBoundingRadius() const { return 0.5f * getHeight(); }
 
 public slots:
     void updateCollisionFlags();
@@ -164,6 +155,7 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
 
+    float getHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
