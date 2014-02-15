@@ -305,6 +305,15 @@ Extents Model::getBindExtents() const {
     return scaledExtents;
 }
 
+Extents Model::getStaticExtents() const {
+    if (!isActive()) {
+        return Extents();
+    }
+    const Extents& staticExtents = _geometry->getFBXGeometry().staticExtents;
+    Extents scaledExtents = { staticExtents.minimum * _scale, staticExtents.maximum * _scale };
+    return scaledExtents;
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
@@ -468,7 +477,10 @@ bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetra
         if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
                 startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            // TODO: Andrew to try to keep the joint furthest toward the root
+            // BUG: we currently overwrite the jointIndex with the last one found
+            // which can cause incorrect collisions when colliding against more than
+            // one joint.
+            // TODO: fix this.
             jointIndex = i;
         }
         outerContinue: ;
@@ -713,7 +725,19 @@ void Model::renderCollisionProxies(float alpha) {
     glPopMatrix();
 }
 
-bool Model::poke(ModelCollisionInfo& collision) {
+bool Model::collisionHitsMoveableJoint(ModelCollisionInfo& collision) const {
+    // the joint is pokable by a collision if it exists and is free to move
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
+    if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    // an empty freeLineage means the joint can't move
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(collision._jointIndex).freeLineage;
+    return !freeLineage.isEmpty();
+}
+
+void Model::applyCollision(ModelCollisionInfo& collision) {
     // This needs work.  At the moment it can wiggle joints that are free to move (such as arms)
     // but unmovable joints (such as torso) cannot be influenced at all.
     glm::vec3 jointPosition(0.f);
@@ -737,11 +761,10 @@ bool Model::poke(ModelCollisionInfo& collision) {
                 getJointPosition(jointIndex, end);
                 glm::vec3 newEnd = start + glm::angleAxis(glm::degrees(angle), axis) * (end - start);
                 // try to move it
-                return setJointPosition(jointIndex, newEnd, -1, true);
+                setJointPosition(jointIndex, newEnd, -1, true);
             }
         }
     }
-    return false;
 }
 
 void Model::deleteGeometry() {

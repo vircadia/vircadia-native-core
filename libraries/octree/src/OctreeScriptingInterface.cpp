@@ -11,13 +11,19 @@
 #include "OctreeScriptingInterface.h"
 
 OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packetSender, 
-                JurisdictionListener* jurisdictionListener)
+                JurisdictionListener* jurisdictionListener) :
+    _packetSender(NULL),
+    _jurisdictionListener(NULL),
+    _managedPacketSender(false), 
+    _managedJurisdictionListener(false),
+    _initialized(false)
 {
     setPacketSender(packetSender);
     setJurisdictionListener(jurisdictionListener);
 }
 
 OctreeScriptingInterface::~OctreeScriptingInterface() {
+qDebug() << "OctreeScriptingInterface::~OctreeScriptingInterface() this=" << this;
     cleanupManagedObjects();
 }
 
@@ -45,6 +51,9 @@ void OctreeScriptingInterface::setJurisdictionListener(JurisdictionListener* jur
 }
 
 void OctreeScriptingInterface::init() {
+    if (_initialized) {
+        return;
+    }
     if (_jurisdictionListener) {
         _managedJurisdictionListener = false;
     } else {
@@ -64,5 +73,5 @@ void OctreeScriptingInterface::init() {
     if (QCoreApplication::instance()) {
         connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(cleanupManagedObjects()));
     }
-
+    _initialized = true;
 }
