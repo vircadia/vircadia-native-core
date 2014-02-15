@@ -75,9 +75,7 @@ Avatar::Avatar() :
     _moving(false),
     _owningAvatarMixer(),
     _collisionFlags(0),
-    _initialized(false), 
-    _displayNameWidth(0), 
-    _isShowDisplayName(false)
+    _initialized(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -148,14 +146,23 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayDirection = direction;
 }
 
-static TextRenderer* chatTextRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
-}
+enum TextRendererType {
+    CHAT, 
+    DISPLAYNAME
+};
 
-static TextRenderer* displayNameTextRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
+static TextRenderer* textRenderer(TextRendererType type) {
+    static TextRenderer* chatRenderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
+    static TextRenderer* displayNameRenderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::NO_EFFECT);
+
+    switch(type) {
+    case CHAT:
+        return chatRenderer;
+    case DISPLAYNAME:
+        return displayNameRenderer;
+    }
+
+    return displayNameRenderer;
 }
 
 void Avatar::render(bool forceRenderHead) {
@@ -177,7 +184,7 @@ void Avatar::render(bool forceRenderHead) {
 
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        float height = getHeight();
+        float height = getSkeletonHeight();
         glm::vec3 delta = height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
@@ -200,7 +207,7 @@ void Avatar::render(bool forceRenderHead) {
         int width = 0;
         int lastWidth = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = chatTextRenderer()->computeWidth(*it));
+            width += (lastWidth = textRenderer(CHAT)->computeWidth(*it));
         }
         glPushMatrix();
         
@@ -219,7 +226,7 @@ void Avatar::render(bool forceRenderHead) {
         glDisable(GL_LIGHTING);
         glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
-            chatTextRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             
         } else {
             // rather than using substr and allocating a new string, just replace the last
@@ -227,10 +234,10 @@ void Avatar::render(bool forceRenderHead) {
             int lastIndex = _chatMessage.size() - 1;
             char lastChar = _chatMessage[lastIndex];
             _chatMessage[lastIndex] = '\0';
-            chatTextRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
             glColor3f(0, 1, 0);
-            chatTextRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
+            textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
         glDepthMask(true);
@@ -267,38 +274,32 @@ void Avatar::renderBody(bool forceRenderHead) {
 }
 
 void Avatar::renderDisplayName() {
-
     QString displayName;
     if (_displayName.isEmpty()) {
         displayName = "test string";  // just for debugging
     } else {
         displayName = _displayName;
     }
-
-    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * getHeight();  // Scale is already considered in getHeight
+    
+    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * (getSkeletonHeight() + getHeadHeight());
     glPushMatrix();
+
+    // save opengl state
+    GLboolean isDepthMaskEnabled;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &isDepthMaskEnabled);
+    GLboolean isLightingEnabled = glIsEnabled(GL_LIGHTING);
+
     glDepthMask(false);
     glDisable(GL_LIGHTING);
-
-    // Set the correct modelview matrix: set the identity matrix in the rotation part
-    // [R|t1] = current modelview matrix (the camera rotation and translation)
-    // [I|t2] = the translation for the text
-    // We want this final model view matrix: [I | t1 + R*t2]
+       
     glm::dmat4 modelViewMatrix2;
     glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
-    // Extract rotation matrix from the modelview matrix
-    glm::dmat4 modelViewMatrix;
-    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
-  
-    // Delete rotation info
-    modelViewMatrix[0][0] = modelViewMatrix[1][1] = modelViewMatrix[2][2] = 1.0;
-    modelViewMatrix[0][1] = modelViewMatrix[0][2] = 0.0;
-    modelViewMatrix[1][0] = modelViewMatrix[1][2] = 0.0;
-    modelViewMatrix[2][0] = modelViewMatrix[2][1] = 0.0;
 
-    glLoadMatrixd((GLdouble*)&modelViewMatrix);  // Override current matrix with our own
-    
+    // we need "always facing camera": we must remove the camera rotation from the stack
+    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project y = 0 and y = 1  and check the difference in projection coordinates
@@ -328,8 +329,8 @@ void Avatar::renderDisplayName() {
         float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
         glScalef(scaleFactor, scaleFactor, 1.0);  
 
-        // draw a gray background so that we can actually see what we're typing
-        QFontMetrics metrics = displayNameTextRenderer()->metrics();
+        // draw a gray background
+        QFontMetrics metrics = textRenderer(DISPLAYNAME)->metrics();
         int bottom = -metrics.descent(), top = bottom + metrics.height();
         int left = -_displayNameWidth/2, right = _displayNameWidth/2;
         int border = 5;
@@ -338,7 +339,7 @@ void Avatar::renderDisplayName() {
         top += border;
         right += border;
 
-        glColor3f(0.2f, 0.2f, 0.2f);
+        glColor4f(0.2f, 0.2f, 0.2f, 0.95f);
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
         glVertex2f(right, bottom);
@@ -346,16 +347,21 @@ void Avatar::renderDisplayName() {
         glVertex2f(left, top);
         glEnd();
         
-
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
-        glColor3f(0.93f, 0.93f, 0.93f);
+        glColor4f(0.93f, 0.93f, 0.93f, 0.95f);
                
         QByteArray ba = displayName.toLocal8Bit();
         const char *text = ba.data();
-        displayNameTextRenderer()->draw(-_displayNameWidth/2.0, 0, text); 
+        textRenderer(DISPLAYNAME)->draw(-_displayNameWidth/2.0, 0, text); 
     }
-    glEnable(GL_LIGHTING);
-    glDepthMask(true);
+
+    // restore state
+    if (isLightingEnabled) {
+        glEnable(GL_LIGHTING);
+    }
+    if (isDepthMaskEnabled) {
+        glDepthMask(true);
+    }
     glPopMatrix();
 }
 
@@ -466,7 +472,7 @@ void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
     int width = 0;
     for (int i = 0; i < displayName.size(); i++) {
-        width += (displayNameTextRenderer()->computeWidth(displayName[i].toLatin1()));
+        width += (textRenderer(DISPLAYNAME)->computeWidth(displayName[i].toLatin1()));
     }
     _displayNameWidth = width;
 }
@@ -556,8 +562,13 @@ void Avatar::setScale(float scale) {
     }
 }
 
-float Avatar::getHeight() const {
+float Avatar::getSkeletonHeight() const {
     Extents extents = _skeletonModel.getBindExtents();
+    return extents.maximum.y - extents.minimum.y;
+}
+
+float Avatar::getHeadHeight() const {
+    Extents extents = _head.getFaceModel().getBindExtents();
     return extents.maximum.y - extents.minimum.y;
 }
 

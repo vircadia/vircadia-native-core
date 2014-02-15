@@ -130,7 +130,9 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-    float getHeight() const;
+    float getSkeletonHeight() const;
+
+    float getHeadHeight() const;
 
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(ModelCollisionInfo& collision) const;
@@ -177,11 +179,6 @@ protected:
 private:
 
     bool _initialized;
-
-    int _displayNameWidth;
-    bool _isShowDisplayName;
-
-
 
     void renderBody(bool forceRenderHead);
 

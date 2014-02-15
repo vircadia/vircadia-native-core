@@ -197,7 +197,7 @@ void MyAvatar::simulate(float deltaTime) {
     if (_collisionFlags != 0) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
-        float radius = getHeight() * COLLISION_RADIUS_SCALE;
+        float radius = getSkeletonHeight() * COLLISION_RADIUS_SCALE;
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
             radius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
             radius *= COLLISION_RADIUS_SCALAR;
@@ -840,7 +840,7 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
             _position - up * (pelvisFloatingHeight - radius),
-            _position + up * (getHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
+            _position + up * (getSkeletonHeight() - pelvisFloatingHeight + radius), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
@@ -855,7 +855,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     float pelvisFloatingHeight = getPelvisFloatingHeight();
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
             _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
-            _position + glm::vec3(0.0f, getHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
+            _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
@@ -962,7 +962,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    float myBoundingRadius = 0.5f * getHeight();
+    float myBoundingRadius = 0.5f * getSkeletonHeight();
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
@@ -982,7 +982,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
-        float theirBoundingRadius = 0.5f * avatar->getHeight();
+        float theirBoundingRadius = 0.5f * avatar->getSkeletonHeight();
         if (distance < myBoundingRadius + theirBoundingRadius) {
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;

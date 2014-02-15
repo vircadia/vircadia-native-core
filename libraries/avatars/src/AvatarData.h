@@ -182,6 +182,10 @@ protected:
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
     QString _displayName;
+
+    int _displayNameWidth;
+    bool _isShowDisplayName;
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

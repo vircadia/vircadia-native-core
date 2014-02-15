@@ -35,7 +35,9 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
     _headData(NULL),
-    _handData(NULL)
+    _handData(NULL), 
+    _displayNameWidth(0), 
+    _isShowDisplayName(false)
 {
     
 }
