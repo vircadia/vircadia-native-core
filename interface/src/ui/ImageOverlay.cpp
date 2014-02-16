@@ -202,7 +202,6 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
 
     if (properties.property("visible").isValid()) {
         setVisible(properties.property("visible").toVariant().toBool());
-        qDebug() << "setting visible to " << getVisible();
     }
 }
 

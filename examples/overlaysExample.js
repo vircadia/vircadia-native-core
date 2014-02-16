@@ -32,7 +32,7 @@ for (s = 0; s < numberOfSwatches; s++) {
         imageFromY = 55;
     }
 
-    swatches[s] = Overlays.addOverlay({
+    swatches[s] = Overlays.addOverlay("image", {
                     x: 100 + (30 * s),
                     y: 200,
                     width: 31,
@@ -44,7 +44,7 @@ for (s = 0; s < numberOfSwatches; s++) {
                 });
 }
 
-var toolA = Overlays.addOverlay({
+var toolA = Overlays.addOverlay("image", {
                     x: 100,
                     y: 100,
                     width: 62,
@@ -56,7 +56,7 @@ var toolA = Overlays.addOverlay({
                     visible: false
                 });
 
-var slider = Overlays.addOverlay({
+var slider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
                     bounds: { x: 100, y: 300, width: 158, height: 35},
                     imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
@@ -67,7 +67,7 @@ var slider = Overlays.addOverlay({
 var minThumbX = 130;
 var maxThumbX = minThumbX + 65;
 var thumbX = (minThumbX + maxThumbX) / 2;
-var thumb = Overlays.addOverlay({
+var thumb = Overlays.addOverlay("image", {
                     x: thumbX,
                     y: 309,
                     width: 18,

@@ -27,13 +27,17 @@ void Overlays::render() {
 }
 
 // TODO: make multi-threaded safe
-unsigned int Overlays::addOverlay(const QScriptValue& properties) {
-    unsigned int thisID = _nextOverlayID;
-    _nextOverlayID++;
-    ImageOverlay* thisOverlay = new ImageOverlay();
-    thisOverlay->init(_parent);
-    thisOverlay->setProperties(properties);
-    _imageOverlays[thisID] = thisOverlay;
+unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
+    unsigned int thisID = 0;
+    
+    if (type == "image") {
+        thisID = _nextOverlayID;
+        _nextOverlayID++;
+        ImageOverlay* thisOverlay = new ImageOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        _imageOverlays[thisID] = thisOverlay;
+    }
     return thisID; 
 }
 
