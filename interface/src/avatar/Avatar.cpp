@@ -57,6 +57,7 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 const float DISPLAYNAME_FADEOUT_TIME = 0.5f;
+const float DISPLAYNAME_FADEOUT_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADEOUT_TIME);
 const float DISPLAYNAME_ALPHA = 0.95f;
 
 Avatar::Avatar() :
@@ -145,8 +146,7 @@ void Avatar::simulate(float deltaTime) {
     if (!_isShowDisplayName && _displayNameAlpha > 0.0) {
         // the alpha function is alpha = coef ^ time(zero based)
         // We can make this function recursive: alpha(t) = alpha(t-dt) * coef^(dt)
-        float coef = pow(0.01f, 1.0f / DISPLAYNAME_FADEOUT_TIME);
-        _displayNameAlpha *= pow(coef, deltaTime);
+        _displayNameAlpha *= pow(DISPLAYNAME_FADEOUT_FACTOR, deltaTime);
         _displayNameAlpha = _displayNameAlpha > 0.01? _displayNameAlpha : 0.0f;  // The function is asymptotic to zero. 0.01 is 0 to us
     }
 }
