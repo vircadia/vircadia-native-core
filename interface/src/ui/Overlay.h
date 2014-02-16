@@ -32,21 +32,11 @@ public:
 
     // getters
     bool getVisible() const { return _visible; }
-    int getX() const { return _bounds.x(); }
-    int getY() const { return _bounds.y(); }
-    int getWidth() const { return _bounds.width(); }
-    int getHeight() const { return _bounds.height(); }
-    const QRect& getBounds() const { return _bounds; }
     const xColor& getColor() const { return _color; }
     float getAlpha() const { return _alpha; }
 
     // setters
     void setVisible(bool visible) { _visible = visible; }
-    void setX(int x) { _bounds.setX(x); }
-    void setY(int y) { _bounds.setY(y);  }
-    void setWidth(int width) { _bounds.setWidth(width); }
-    void setHeight(int height) {  _bounds.setHeight(height); }
-    void setBounds(const QRect& bounds) { _bounds = bounds; }
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
 
@@ -54,7 +44,6 @@ public:
 
 protected:
     QGLWidget* _parent;
-    QRect _bounds; // where on the screen to draw
     float _alpha;
     xColor _color;
     bool _visible; // should the overlay be drawn at all

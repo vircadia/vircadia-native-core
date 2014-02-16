@@ -118,7 +118,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     while (i.hasPrevious()) {
         i.previous();
         unsigned int thisID = i.key();
-        Overlay* thisOverlay = i.value();
+        Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
         if (thisOverlay->getVisible() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
             return thisID;
         }
