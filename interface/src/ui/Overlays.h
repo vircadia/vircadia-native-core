@@ -10,7 +10,7 @@
 
 #include <QScriptValue>
 
-#include "ImageOverlay.h"
+#include "Overlay.h"
 
 class Overlays : public QObject {
     Q_OBJECT
@@ -35,7 +35,7 @@ public slots:
     unsigned int getOverlayAtPoint(const glm::vec2& point);
 
 private:
-    QMap<unsigned int, ImageOverlay*> _imageOverlays;
+    QMap<unsigned int, Overlay*> _overlays;
     static unsigned int _nextOverlayID;
     QGLWidget* _parent;
 };

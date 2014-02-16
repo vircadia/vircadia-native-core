@@ -44,6 +44,19 @@ for (s = 0; s < numberOfSwatches; s++) {
                 });
 }
 
+var text = Overlays.addOverlay("text", {
+                    x: 200,
+                    y: 100,
+                    width: 150,
+                    height: 50,
+                    backgroundColor: { red: 0, green: 0, blue: 0},
+                    textColor: { red: 255, green: 0, blue: 0},
+                    topMargin: 4,
+                    leftMargin: 4,
+                    alpha: 0.7,
+                    text: "Here is some text.\nAnd a second line."
+                });
+
 var toolA = Overlays.addOverlay("image", {
                     x: 100,
                     y: 100,
@@ -97,6 +110,7 @@ function scriptEnding() {
     }
     Overlays.deleteOverlay(thumb);
     Overlays.deleteOverlay(slider);
+    Overlays.deleteOverlay(text);
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -132,10 +146,14 @@ function mouseMoveEvent(event) {
     }
 }
 function mousePressEvent(event) {
+    var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay == thumb) {
         movingSlider = true;
         thumbClickOffsetX = event.x - thumbX;
+    } else if (clickedOverlay == text) {
+        Overlays.editOverlay(text, { text: "you clicked here:\n   " + event.x + "," + event.y } );
+        clickedText = true;
     } else {
         for (s = 0; s < numberOfSwatches; s++) {
             if (clickedOverlay == swatches[s]) {
@@ -144,6 +162,9 @@ function mousePressEvent(event) {
                 selectedSwatch = s;
             }
         }
+    }
+    if (!clickedText) {
+        Overlays.editOverlay(text, { text: "you didn't click here" } );
     }
 }
 

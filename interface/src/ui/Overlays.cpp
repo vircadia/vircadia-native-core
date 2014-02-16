@@ -7,6 +7,9 @@
 
 
 #include "Overlays.h"
+#include "ImageOverlay.h"
+#include "TextOverlay.h"
+
 
 unsigned int Overlays::_nextOverlayID = 1;
 
@@ -21,7 +24,7 @@ void Overlays::init(QGLWidget* parent) {
 }
 
 void Overlays::render() {
-    foreach(ImageOverlay* thisOverlay, _imageOverlays) {
+    foreach(Overlay* thisOverlay, _overlays) {
         thisOverlay->render();
     }
 }
@@ -36,36 +39,44 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         ImageOverlay* thisOverlay = new ImageOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
-        _imageOverlays[thisID] = thisOverlay;
+        _overlays[thisID] = thisOverlay;
+    } else if (type == "text") {
+        thisID = _nextOverlayID;
+        _nextOverlayID++;
+        TextOverlay* thisOverlay = new TextOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        _overlays[thisID] = thisOverlay;
     }
+
     return thisID; 
 }
 
 // TODO: make multi-threaded safe
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
-    if (!_imageOverlays.contains(id)) {
+    if (!_overlays.contains(id)) {
         return false;
     }
-    ImageOverlay* thisOverlay = _imageOverlays[id];
+    Overlay* thisOverlay = _overlays[id];
     thisOverlay->setProperties(properties);
     return true;
 }
 
 // TODO: make multi-threaded safe
 void Overlays::deleteOverlay(unsigned int id) {
-    if (_imageOverlays.contains(id)) {
-        _imageOverlays.erase(_imageOverlays.find(id));
+    if (_overlays.contains(id)) {
+        _overlays.erase(_overlays.find(id));
     }
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    QMapIterator<unsigned int, ImageOverlay*> i(_imageOverlays);
+    QMapIterator<unsigned int, Overlay*> i(_overlays);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();
         unsigned int thisID = i.key();
-        ImageOverlay* thisOverlay = i.value();
-        if (thisOverlay->getBounds().contains(point.x, point.y, false)) {
+        Overlay* thisOverlay = i.value();
+        if (thisOverlay->getVisible() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
             return thisID;
         }
     }
