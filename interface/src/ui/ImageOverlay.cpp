@@ -18,21 +18,16 @@ ImageOverlay::ImageOverlay() :
     _textureID(0),
     _alpha(DEFAULT_ALPHA),
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
+    _visible(true),
     _renderImage(false),
-    _textureBound(false)
+    _textureBound(false),
+    _wantClipFromImage(false)
 {
 }
 
 void ImageOverlay::init(QGLWidget* parent) {
     qDebug() << "ImageOverlay::init() parent=" << parent;
     _parent = parent;
-    
-    /*
-    qDebug() << "ImageOverlay::init()... url=" << url;
-    _bounds = drawAt;
-    _fromImage = fromImage;
-    setImageURL(url);
-    */
 }
 
 
@@ -43,6 +38,7 @@ ImageOverlay::~ImageOverlay() {
     }
 }
 
+// TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
     // TODO: are we creating too many QNetworkAccessManager() when multiple calls to setImageURL are made?
     QNetworkAccessManager* manager = new QNetworkAccessManager(this);
@@ -51,24 +47,18 @@ void ImageOverlay::setImageURL(const QUrl& url) {
 }
 
 void ImageOverlay::replyFinished(QNetworkReply* reply) {
-    qDebug() << "ImageOverlay::replyFinished() reply=" << reply;
+
     // replace our byte array with the downloaded data
     QByteArray rawData = reply->readAll();
     _textureImage.loadFromData(rawData);
     _renderImage = true;
     
-    // TODO: handle setting image multiple times, how do we manage releasing the bound texture
-    qDebug() << "ImageOverlay::replyFinished() about to call _parent->bindTexture(_textureImage)... _parent" << _parent; 
-
-
-    qDebug() << "ImageOverlay::replyFinished _textureID=" << _textureID 
-        << "_textureImage.width()=" << _textureImage.width()
-        << "_textureImage.height()=" << _textureImage.height();
 }
 
 void ImageOverlay::render() {
-    //qDebug() << "ImageOverlay::render _textureID=" << _textureID << "_bounds=" << _bounds;
-    
+    if (!_visible) {
+        return; // do nothing if we're not visible
+    }
     if (_renderImage && !_textureBound) {
         _textureID = _parent->bindTexture(_textureImage);
         _textureBound = true;
@@ -79,17 +69,25 @@ void ImageOverlay::render() {
         glBindTexture(GL_TEXTURE_2D, _textureID);
     }
     const float MAX_COLOR = 255;
-    glColor4f((_backgroundColor.red / MAX_COLOR), (_backgroundColor.green / MAX_COLOR), (_backgroundColor.blue / MAX_COLOR), _alpha);
+    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
 
     float imageWidth = _textureImage.width();
     float imageHeight = _textureImage.height();
-    float x = _fromImage.x() / imageWidth;
-    float y = _fromImage.y() / imageHeight;
-    float w = _fromImage.width() / imageWidth; // ?? is this what we want? not sure
-    float h = _fromImage.height() / imageHeight;
-
-    //qDebug() << "ImageOverlay::render x=" << x << "y=" << y << "w="<<w << "h="<<h << "(1.0f - y)=" << (1.0f - y);
     
+    QRect fromImage;
+    if (_wantClipFromImage) {
+        fromImage = _fromImage;
+    } else {
+        fromImage.setX(0);
+        fromImage.setY(0);
+        fromImage.setWidth(imageWidth);
+        fromImage.setHeight(imageHeight);
+    }
+    float x = fromImage.x() / imageWidth;
+    float y = fromImage.y() / imageHeight;
+    float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
+    float h = fromImage.height() / imageHeight;
+
     glBegin(GL_QUADS);
         if (_renderImage) {
             glTexCoord2f(x, 1.0f - y);
@@ -123,6 +121,7 @@ QScriptValue ImageOverlay::getProperties() {
 
 // TODO: handle only setting the included values...
 void ImageOverlay::setProperties(const QScriptValue& properties) {
+    //qDebug() << "ImageOverlay::setProperties()... properties=" << &properties;
     QScriptValue bounds = properties.property("bounds");
     if (bounds.isValid()) {
         QRect boundsRect;
@@ -132,20 +131,48 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
         boundsRect.setHeight(bounds.property("height").toVariant().toInt());
         setBounds(boundsRect);
     } else {
-        setX(properties.property("x").toVariant().toInt());
-        setY(properties.property("y").toVariant().toInt());
-        setWidth(properties.property("width").toVariant().toInt());
-        setHeight(properties.property("height").toVariant().toInt());
+        QRect oldBounds = getBounds();
+        QRect newBounds = oldBounds;
+        
+        if (properties.property("x").isValid()) {
+            newBounds.setX(properties.property("x").toVariant().toInt());
+        } else {
+            newBounds.setX(oldBounds.x());
+        }
+        if (properties.property("y").isValid()) {
+            newBounds.setY(properties.property("y").toVariant().toInt());
+        } else {
+            newBounds.setY(oldBounds.y());
+        }
+        if (properties.property("width").isValid()) {
+            newBounds.setWidth(properties.property("width").toVariant().toInt());
+        } else {
+            newBounds.setWidth(oldBounds.width());
+        }
+        if (properties.property("height").isValid()) {
+            newBounds.setHeight(properties.property("height").toVariant().toInt());
+        } else {
+            newBounds.setHeight(oldBounds.height());
+        }
+        setBounds(newBounds);
+        //qDebug() << "set bounds to " << getBounds();
     }
     QScriptValue subImageBounds = properties.property("subImage");
     if (subImageBounds.isValid()) {
-        QRect subImageRect;
-        subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
-        subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
-        subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
-        subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
+        QRect subImageRect = _fromImage;
+        if (subImageBounds.property("x").isValid()) {
+            subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
+        }
+        if (subImageBounds.property("y").isValid()) {
+            subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
+        }
+        if (subImageBounds.property("width").isValid()) {
+            subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
+        }
+        if (subImageBounds.property("height").isValid()) {
+            subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
+        }
         setClipFromSource(subImageRect);
-        qDebug() << "set subImage to " << getClipFromSource();
     }    
 
     QScriptValue imageURL = properties.property("imageURL");
@@ -165,7 +192,14 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 
-    setAlpha(properties.property("alpha").toVariant().toFloat());
+    if (properties.property("alpha").isValid()) {
+        setAlpha(properties.property("alpha").toVariant().toFloat());
+    }
+
+    if (properties.property("visible").isValid()) {
+        setVisible(properties.property("visible").toVariant().toBool());
+        qDebug() << "setting visible to " << getVisible();
+    }
 }
 
 

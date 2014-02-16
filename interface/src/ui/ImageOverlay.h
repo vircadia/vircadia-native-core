@@ -26,23 +26,16 @@ const float DEFAULT_ALPHA = 0.7f;
 
 class ImageOverlay : QObject {
     Q_OBJECT
-    Q_PROPERTY(int x READ getX WRITE setX)
-    Q_PROPERTY(int y READ getY WRITE setY)
-    Q_PROPERTY(int width READ getWidth WRITE setWidth)
-    Q_PROPERTY(int height READ getHeight WRITE setHeight)
-    Q_PROPERTY(QRect bounds READ getBounds WRITE setBounds)
-    Q_PROPERTY(QRect subImage READ getClipFromSource WRITE setClipFromSource)
-    Q_PROPERTY(xColor backgroundColor READ getBackgroundColor WRITE setBackgroundColor)
-    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha)
-    Q_PROPERTY(QUrl imageURL READ getImageURL WRITE setImageURL)
+    
 public:
     ImageOverlay();
     ~ImageOverlay();
     void init(QGLWidget* parent);
     void render();
 
-public slots:
+//public slots:
     // getters
+    bool getVisible() const { return _visible; }
     int getX() const { return _bounds.x(); }
     int getY() const { return _bounds.y(); }
     int getWidth() const { return _bounds.width(); }
@@ -55,12 +48,13 @@ public slots:
     QScriptValue getProperties();
 
     // setters
+    void setVisible(bool visible) { _visible = visible; }
     void setX(int x) { _bounds.setX(x); }
     void setY(int y) { _bounds.setY(y);  }
     void setWidth(int width) { _bounds.setWidth(width); }
     void setHeight(int height) {  _bounds.setHeight(height); }
     void setBounds(const QRect& bounds) { _bounds = bounds; }
-    void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+    void setClipFromSource(const QRect& bounds) { _fromImage = bounds; _wantClipFromImage = true; }
     void setBackgroundColor(const xColor& color) { _backgroundColor = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
     void setImageURL(const QUrl& url);
@@ -79,8 +73,10 @@ private:
     QRect _fromImage; // where from in the image to sample
     float _alpha;
     xColor _backgroundColor;
-    bool _renderImage;
-    bool _textureBound;
+    bool _visible; // should the overlay be drawn at all
+    bool _renderImage; // is there an image associated with this overlay, or is it just a colored rectangle
+    bool _textureBound; // has the texture been bound
+    bool _wantClipFromImage;
 };
 
  
