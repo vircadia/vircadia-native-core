@@ -8,7 +8,7 @@
 
 #include "Overlays.h"
 
-unsigned int Overlays::_nextOverlayID = 0;
+unsigned int Overlays::_nextOverlayID = 1;
 
 Overlays::Overlays() {
 }
@@ -53,4 +53,19 @@ void Overlays::deleteOverlay(unsigned int id) {
         _imageOverlays.erase(_imageOverlays.find(id));
     }
 }
+
+unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    QMapIterator<unsigned int, ImageOverlay*> i(_imageOverlays);
+    i.toBack();
+    while (i.hasPrevious()) {
+        i.previous();
+        unsigned int thisID = i.key();
+        ImageOverlay* thisOverlay = i.value();
+        if (thisOverlay->getBounds().contains(point.x, point.y, false)) {
+            return thisID;
+        }
+    }
+    return 0; // not found
+}
+
 

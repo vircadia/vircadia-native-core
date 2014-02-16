@@ -9,69 +9,40 @@
 //
 //
 
-    /*
-    _testOverlayA.init(_glWidget, QString("https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg"), 
-            QRect(100,100,62,40), QRect(0,0,62,40));
-    xColor red = { 255, 0, 0 };
-    _testOverlayA.setBackgroundColor(red);
-    _testOverlayB.init(_glWidget, QString("https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg"), 
-            QRect(170,100,62,40), QRect(0,80,62,40));
-    */
+var swatchColors = new Array();
+swatchColors[0] = { red: 255, green: 0, blue: 0};
+swatchColors[1] = { red: 0, green: 255, blue: 0};
+swatchColors[2] = { red: 0, green: 0, blue: 255};
+swatchColors[3] = { red: 255, green: 255, blue: 0};
+swatchColors[4] = { red: 255, green: 0, blue: 255};
+swatchColors[5] = { red: 0, green: 255, blue: 255};
+swatchColors[6] = { red: 128, green: 128, blue: 128};
+swatchColors[7] = { red: 128, green: 0, blue: 0};
+swatchColors[8] = { red: 0, green: 240, blue: 240};
 
-var swatch1 = Overlays.addOverlay({
-                    x: 100,
+var swatches = new Array();
+var numberOfSwatches = 9;
+var swatchesX = 100;
+var swatchesY = 200;
+var selectedSwatch = 0;
+for (s = 0; s < numberOfSwatches; s++) {
+    var imageFromX = 12 + (s * 27);
+    var imageFromY = 0;
+    if (s == selectedSwatch) {
+        imageFromY = 55;
+    }
+
+    swatches[s] = Overlays.addOverlay({
+                    x: 100 + (30 * s),
                     y: 200,
                     width: 31,
                     height: 54,
-                    subImage: { x: 39, y: 0, width: 30, height: 54 },
+                    subImage: { x: imageFromX, y: imageFromY, width: 30, height: 54 },
                     imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
-                    backgroundColor: { red: 255, green: 0, blue: 0},
+                    backgroundColor: swatchColors[s],
                     alpha: 1
                 });
-
-var swatch2 = Overlays.addOverlay({
-                    x: 130,
-                    y: 200,
-                    width: 31,
-                    height: 54,
-                    subImage: { x: 39, y: 55, width: 30, height: 54 },
-                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
-                    backgroundColor: { red: 0, green: 255, blue: 0},
-                    alpha: 1.0
-                });
-
-var swatch3 = Overlays.addOverlay({
-                    x: 160,
-                    y: 200,
-                    width: 31,
-                    height: 54,
-                    subImage: { x: 39, y: 0, width: 30, height: 54 },
-                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
-                    backgroundColor: { red: 0, green: 0, blue: 255},
-                    alpha: 1.0
-                });
-
-var swatch4 = Overlays.addOverlay({
-                    x: 190,
-                    y: 200,
-                    width: 31,
-                    height: 54,
-                    subImage: { x: 39, y: 0, width: 30, height: 54 },
-                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
-                    backgroundColor: { red: 0, green: 255, blue: 255},
-                    alpha: 1.0
-                });
-
-var swatch5 = Overlays.addOverlay({
-                    x: 220,
-                    y: 200,
-                    width: 31,
-                    height: 54,
-                    subImage: { x: 39, y: 0, width: 30, height: 54 },
-                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
-                    backgroundColor: { red: 255, green: 255, blue: 0},
-                    alpha: 1.0
-                });
+}
 
 var toolA = Overlays.addOverlay({
                     x: 100,
@@ -93,8 +64,11 @@ var slider = Overlays.addOverlay({
                     alpha: 1
                 });
 
+var minThumbX = 130;
+var maxThumbX = minThumbX + 65;
+var thumbX = (minThumbX + maxThumbX) / 2;
 var thumb = Overlays.addOverlay({
-                    x: 130,
+                    x: thumbX,
                     y: 309,
                     width: 18,
                     height: 17,
@@ -118,13 +92,9 @@ var thumb = Overlays.addOverlay({
 
 function scriptEnding() {
     Overlays.deleteOverlay(toolA);
-    //Overlays.deleteOverlay(toolB);
-    //Overlays.deleteOverlay(toolC);
-    Overlays.deleteOverlay(swatch1);
-    Overlays.deleteOverlay(swatch2);
-    Overlays.deleteOverlay(swatch3);
-    Overlays.deleteOverlay(swatch4);
-    Overlays.deleteOverlay(swatch5);
+    for (s = 0; s < numberOfSwatches; s++) {
+        Overlays.deleteOverlay(swatches[s]);
+    }
     Overlays.deleteOverlay(thumb);
     Overlays.deleteOverlay(slider);
 }
@@ -132,17 +102,10 @@ Script.scriptEnding.connect(scriptEnding);
 
 
 var toolAVisible = false;
-var minX = 130;
-var maxX = minX + 65;
-var moveX = (minX + maxX)/2;
-var dX = 1;
+var count = 0;
 function update() {
-    moveX = moveX + dX;
-    if (moveX > maxX) {
-        dX = -1;
-    }
-    if (moveX < minX) {
-        dX = 1;
+    count++;
+    if (count % 60 == 0) {
         if (toolAVisible) {
             toolAVisible = false;
         } else {
@@ -150,7 +113,47 @@ function update() {
         }
         Overlays.editOverlay(toolA, { visible: toolAVisible } );
     }
-    Overlays.editOverlay(thumb, { x: moveX } );
-
 }
 Script.willSendVisualDataCallback.connect(update);
+
+
+var movingSlider = false;
+var thumbClickOffsetX = 0;
+function mouseMoveEvent(event) {
+    if (movingSlider) {
+        newThumbX = event.x - thumbClickOffsetX;
+        if (newThumbX < minThumbX) {
+            newThumbX = minThumbX;
+        }
+        if (newThumbX > maxThumbX) {
+            newThumbX = maxThumbX;
+        }
+        Overlays.editOverlay(thumb, { x: newThumbX } );
+    }
+}
+function mousePressEvent(event) {
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    if (clickedOverlay == thumb) {
+        movingSlider = true;
+        thumbClickOffsetX = event.x - thumbX;
+    } else {
+        for (s = 0; s < numberOfSwatches; s++) {
+            if (clickedOverlay == swatches[s]) {
+                Overlays.editOverlay(swatches[selectedSwatch], { subImage: { y: 0 } } );
+                Overlays.editOverlay(swatches[s], { subImage: { y: 55 } } );
+                selectedSwatch = s;
+            }
+        }
+    }
+}
+
+function mouseReleaseEvent(event) {
+    if (movingSlider) {
+        movingSlider = false;
+    }
+}
+
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+

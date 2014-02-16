@@ -154,18 +154,27 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
     QScriptValue subImageBounds = properties.property("subImage");
     if (subImageBounds.isValid()) {
+        QRect oldSubImageRect = _fromImage;
         QRect subImageRect = _fromImage;
         if (subImageBounds.property("x").isValid()) {
             subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
+        } else {
+            subImageRect.setX(oldSubImageRect.x());
         }
         if (subImageBounds.property("y").isValid()) {
             subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
+        } else {
+            subImageRect.setY(oldSubImageRect.y());
         }
         if (subImageBounds.property("width").isValid()) {
             subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
+        } else {
+            subImageRect.setWidth(oldSubImageRect.width());
         }
         if (subImageBounds.property("height").isValid()) {
             subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
+        } else {
+            subImageRect.setHeight(oldSubImageRect.height());
         }
         setClipFromSource(subImageRect);
     }    

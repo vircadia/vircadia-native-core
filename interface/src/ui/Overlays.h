@@ -45,6 +45,9 @@ public slots:
     /// deletes a particle
     void deleteOverlay(unsigned int id);
 
+    /// returns the top most overlay at the screen point, or 0 if not overlay at that point
+    unsigned int getOverlayAtPoint(const glm::vec2& point);
+
 private:
     QMap<unsigned int, ImageOverlay*> _imageOverlays;
     static unsigned int _nextOverlayID;
