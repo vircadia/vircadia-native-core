@@ -11,6 +11,8 @@
 //
 
 var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");
+var CHANCE_OF_PLAYING_SOUND = 0.01;
+
 var FACTOR = 0.75;
 
 function addParticle() {
@@ -20,11 +22,13 @@ function addParticle() {
     // move particle three units in front of the avatar
     var particlePosition = Vec3.sum(MyAvatar.position, Vec3.multiply (avatarFront, 3));
 
-    // play a sound at the location of the particle
-    var options = new AudioInjectionOptions();
-    options.position = particlePosition;
-    options.volume = 0.25;
-    Audio.playSound(sound, options);
+    if (Math.random() < CHANCE_OF_PLAYING_SOUND) {
+        // play a sound at the location of the particle
+        var options = new AudioInjectionOptions();
+        options.position = particlePosition;
+        options.volume = 0.25;
+        Audio.playSound(sound, options);
+    }
 
     var audioAverageLoudness = MyAvatar.audioAverageLoudness * FACTOR;
     //print ("Audio Loudness = " + MyAvatar.audioLoudness + " -- Audio Average Loudness = " + MyAvatar.audioAverageLoudness);
