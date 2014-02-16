@@ -148,6 +148,14 @@ var sphere = Overlays.addOverlay("sphere", {
                     solid: false
                 });
 
+var line3d = Overlays.addOverlay("line3d", {
+                    position: { x: 0, y: 0, z:0 },
+                    end: { x: 10, y: 10, z:10 },
+                    color: { red: 0, green: 255, blue: 255},
+                    alpha: 1,
+                    lineWidth: 5
+                });
+
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
@@ -161,6 +169,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(cube);
     Overlays.deleteOverlay(solidCube);
     Overlays.deleteOverlay(sphere);
+    Overlays.deleteOverlay(line3d);
 }
 Script.scriptEnding.connect(scriptEnding);
 
@@ -204,6 +213,10 @@ function update() {
         sphereSizeChange = sphereSizeChange * -1;
     }
     Overlays.editOverlay(sphere, { size: sphereSize, solid: (sphereSizeChange < 0) } );
+
+
+    // update our 3D line to go from origin to our avatar's position
+    Overlays.editOverlay(line3d, { end: MyAvatar.position } );
 }
 Script.willSendVisualDataCallback.connect(update);
 

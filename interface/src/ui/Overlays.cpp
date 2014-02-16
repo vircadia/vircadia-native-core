@@ -8,6 +8,7 @@
 
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
+#include "Line3DOverlay.h"
 #include "Overlays.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
@@ -62,6 +63,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "sphere") {
         thisOverlay = new Sphere3DOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "line3d") {
+        thisOverlay = new Line3DOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;

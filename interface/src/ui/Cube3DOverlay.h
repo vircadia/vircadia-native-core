@@ -8,23 +8,9 @@
 #ifndef __interface__Cube3DOverlay__
 #define __interface__Cube3DOverlay__
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include "Volume3DOverlay.h"
 
-#include <QGLWidget>
-#include <QImage>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QRect>
-#include <QScriptValue>
-#include <QString>
-#include <QUrl>
-
-#include <SharedUtil.h>
-
-#include "Base3DOverlay.h"
-
-class Cube3DOverlay : public Base3DOverlay {
+class Cube3DOverlay : public Volume3DOverlay {
     Q_OBJECT
     
 public:
