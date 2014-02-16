@@ -56,6 +56,8 @@ const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
+const float DISPLAYNAME_FADEOUT_TIME = 0.5f;
+const float DISPLAYNAME_ALPHA = 0.95f;
 
 Avatar::Avatar() :
     AvatarData(),
@@ -111,7 +113,7 @@ void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
-    
+
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
@@ -138,7 +140,15 @@ void Avatar::simulate(float deltaTime) {
     
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-    
+
+    // update animation for display name fadeout
+    if (!_isShowDisplayName && _displayNameAlpha > 0.0) {
+        // the alpha function is alpha = coef ^ time(zero based)
+        // We can make this function recursive: alpha(t) = alpha(t-dt) * coef^(dt)
+        float coef = pow(0.01f, 1.0f / DISPLAYNAME_FADEOUT_TIME);
+        _displayNameAlpha *= pow(coef, deltaTime);
+        _displayNameAlpha = _displayNameAlpha > 0.01? _displayNameAlpha : 0.0f;  // The function is asymptotic to zero. 0.01 is 0 to us
+    }
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
@@ -199,9 +209,8 @@ void Avatar::render(bool forceRenderHead) {
     }
 
     // render display name
-    if (_isShowDisplayName) {
-        renderDisplayName();
-    }
+    renderDisplayName();
+    
        
     if (!_chatMessage.empty()) {
         int width = 0;
@@ -274,16 +283,11 @@ void Avatar::renderBody(bool forceRenderHead) {
 }
 
 void Avatar::renderDisplayName() {
-    QString displayName;
-    if (_displayName.isEmpty()) {
-        displayName = "test string";  // just for debugging
-    } else {
-        displayName = _displayName;
-    }
-    
-    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * (getSkeletonHeight() + getHeadHeight());
-    glPushMatrix();
 
+    if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+        return;
+    }
+       
     // save opengl state
     GLboolean isDepthMaskEnabled;
     glGetBooleanv(GL_DEPTH_WRITEMASK, &isDepthMaskEnabled);
@@ -291,9 +295,17 @@ void Avatar::renderDisplayName() {
 
     glDepthMask(false);
     glDisable(GL_LIGHTING);
-       
-    glm::dmat4 modelViewMatrix2;
-    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
+    
+    // save the matrices for later scale correction factor 
+    glm::dmat4 modelViewMatrix;
+    GLdouble projectionMatrix[16];
+    GLint viewportMatrix[4];
+    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
+    glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
+
+    glPushMatrix();
+    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * (getSkeletonHeight() + getHeadHeight());
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
@@ -302,26 +314,22 @@ void Avatar::renderDisplayName() {
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
-    // We project y = 0 and y = 1  and check the difference in projection coordinates
-    GLdouble projectionMatrix[16];
-    GLint viewportMatrix[4];
-    GLdouble result0[3];
-    GLdouble result1[3];
+    // We project a unit vector and check the difference in screen coordinates, to check which is the 
+    // correction scale needed
+    GLdouble result0[3], result1[3];
 
-    glm::dvec3 upVector(modelViewMatrix2[1]);
-    glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
-    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
-
+    glm::dvec3 upVector(modelViewMatrix[1]);
+    
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
     glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
-        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        (GLdouble*)&modelViewMatrix, projectionMatrix, viewportMatrix, 
         &result0[0], &result0[1], &result0[2]);
     success = success && 
         gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
-        (GLdouble*)&modelViewMatrix2, projectionMatrix, viewportMatrix, 
+        (GLdouble*)&modelViewMatrix, projectionMatrix, viewportMatrix, 
         &result1[0], &result1[1], &result1[2]);
 
     if (success) {
@@ -339,7 +347,7 @@ void Avatar::renderDisplayName() {
         top += border;
         right += border;
 
-        glColor4f(0.2f, 0.2f, 0.2f, 0.95f);
+        glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha);
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
         glVertex2f(right, bottom);
@@ -348,21 +356,23 @@ void Avatar::renderDisplayName() {
         glEnd();
         
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
-        glColor4f(0.93f, 0.93f, 0.93f, 0.95f);
+        glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
                
-        QByteArray ba = displayName.toLocal8Bit();
+        QByteArray ba = _displayName.toLocal8Bit();
         const char *text = ba.data();
         textRenderer(DISPLAYNAME)->draw(-_displayNameWidth/2.0, 0, text); 
     }
 
-    // restore state
+    glPopMatrix();
+
+    // restore opengl state
     if (isLightingEnabled) {
         glEnable(GL_LIGHTING);
     }
     if (isDepthMaskEnabled) {
         glDepthMask(true);
     }
-    glPopMatrix();
+  
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
@@ -612,5 +622,8 @@ float Avatar::getPelvisToHeadLength() const {
 
 void Avatar::setShowDisplayName(bool showDisplayName) {
     _isShowDisplayName = showDisplayName;
+    if (showDisplayName) {
+        _displayNameAlpha = DISPLAYNAME_ALPHA;
+    }
 }
 

@@ -185,6 +185,7 @@ protected:
 
     int _displayNameWidth;
     bool _isShowDisplayName;
+    float _displayNameAlpha;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

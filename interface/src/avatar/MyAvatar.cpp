@@ -63,7 +63,6 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
-    setShowDisplayName(true);
 }
 
 MyAvatar::~MyAvatar() {
