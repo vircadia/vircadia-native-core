@@ -9,6 +9,11 @@
 //
 //
 
+
+// The "Swatches" example of this script will create 9 different image overlays, that use the color feature to
+// display different colors as color swatches. The overlays can be clicked on, to change the "selectedSwatch" variable
+// and update the image used for the overlay so that it appears to have a selected indicator.
+// These are our colors...
 var swatchColors = new Array();
 swatchColors[0] = { red: 255, green: 0, blue: 0};
 swatchColors[1] = { red: 0, green: 255, blue: 0};
@@ -20,11 +25,17 @@ swatchColors[6] = { red: 128, green: 128, blue: 128};
 swatchColors[7] = { red: 128, green: 0, blue: 0};
 swatchColors[8] = { red: 0, green: 240, blue: 240};
 
-var swatches = new Array();
-var numberOfSwatches = 9;
+// The location of the placement of these overlays
 var swatchesX = 100;
 var swatchesY = 200;
+
+// These will be our "overlay IDs"
+var swatches = new Array();
+var numberOfSwatches = 9;
 var selectedSwatch = 0;
+
+// create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
+// location so that it displays the "selected" marker
 for (s = 0; s < numberOfSwatches; s++) {
     var imageFromX = 12 + (s * 27);
     var imageFromY = 0;
@@ -44,6 +55,7 @@ for (s = 0; s < numberOfSwatches; s++) {
                 });
 }
 
+// This will create a text overlay that when you click on it, the text will change
 var text = Overlays.addOverlay("text", {
                     x: 200,
                     y: 100,
@@ -56,6 +68,7 @@ var text = Overlays.addOverlay("text", {
                     text: "Here is some text.\nAnd a second line."
                 });
 
+// This will create an image overlay, which starts out as invisible
 var toolA = Overlays.addOverlay("image", {
                     x: 100,
                     y: 100,
@@ -67,6 +80,8 @@ var toolA = Overlays.addOverlay("image", {
                     visible: false
                 });
 
+// This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
+// move the slider
 var slider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
                     bounds: { x: 100, y: 300, width: 158, height: 35},
@@ -75,6 +90,7 @@ var slider = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
+// This is the thumb of our slider
 var minThumbX = 130;
 var maxThumbX = minThumbX + 65;
 var thumbX = (minThumbX + maxThumbX) / 2;
@@ -89,17 +105,13 @@ var thumb = Overlays.addOverlay("image", {
                 });
 
 
+// We will also demonstrate some 3D overlays. We will create a couple of cubes, spheres, and lines
 // our 3D cube that moves around...
 var cubePosition = { x: 2, y: 0, z: 2 };
 var cubeSize = 5;
 var cubeMove = 0.1;
 var minCubeX = 1;
 var maxCubeX = 20;
-var solidCubePosition = { x: 0, y: 5, z: 0 };
-var solidCubeSize = 2;
-var minSolidCubeX = 0;
-var maxSolidCubeX = 10;
-var solidCubeMove = 0.05;
 
 var cube = Overlays.addOverlay("cube", {
                     position: cubePosition,
@@ -109,6 +121,11 @@ var cube = Overlays.addOverlay("cube", {
                     solid: false
                 });
 
+var solidCubePosition = { x: 0, y: 5, z: 0 };
+var solidCubeSize = 2;
+var minSolidCubeX = 0;
+var maxSolidCubeX = 10;
+var solidCubeMove = 0.05;
 var solidCube = Overlays.addOverlay("cube", {
                     position: solidCubePosition,
                     size: solidCubeSize,
@@ -132,6 +149,7 @@ var sphere = Overlays.addOverlay("sphere", {
                 });
 
 
+// When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
     Overlays.deleteOverlay(toolA);
     for (s = 0; s < numberOfSwatches; s++) {
@@ -140,14 +158,21 @@ function scriptEnding() {
     Overlays.deleteOverlay(thumb);
     Overlays.deleteOverlay(slider);
     Overlays.deleteOverlay(text);
+    Overlays.deleteOverlay(cube);
+    Overlays.deleteOverlay(solidCube);
+    Overlays.deleteOverlay(sphere);
 }
 Script.scriptEnding.connect(scriptEnding);
 
 
 var toolAVisible = false;
 var count = 0;
+
+// Our update() function is called at approximately 60fps, and we will use it to animate our various overlays
 function update() {
     count++;
+    
+    // every second or so, toggle the visibility our our blinking tool
     if (count % 60 == 0) {
         if (toolAVisible) {
             toolAVisible = false;
@@ -183,6 +208,7 @@ function update() {
 Script.willSendVisualDataCallback.connect(update);
 
 
+// The slider is handled in the mouse event callbacks.
 var movingSlider = false;
 var thumbClickOffsetX = 0;
 function mouseMoveEvent(event) {
@@ -197,16 +223,24 @@ function mouseMoveEvent(event) {
         Overlays.editOverlay(thumb, { x: newThumbX } );
     }
 }
+
+// we also handle click detection in our mousePressEvent()
 function mousePressEvent(event) {
     var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    
+    // If the user clicked on the thumb, handle the slider logic
     if (clickedOverlay == thumb) {
         movingSlider = true;
         thumbClickOffsetX = event.x - thumbX;
-    } else if (clickedOverlay == text) {
+        
+    } else if (clickedOverlay == text) { // if the user clicked on the text, update text with where you clicked
+    
         Overlays.editOverlay(text, { text: "you clicked here:\n   " + event.x + "," + event.y } );
         clickedText = true;
-    } else {
+        
+    } else { // if the user clicked on one of the color swatches, update the selectedSwatch
+    
         for (s = 0; s < numberOfSwatches; s++) {
             if (clickedOverlay == swatches[s]) {
                 Overlays.editOverlay(swatches[selectedSwatch], { subImage: { y: 0 } } );
@@ -215,7 +249,7 @@ function mousePressEvent(event) {
             }
         }
     }
-    if (!clickedText) {
+    if (!clickedText) { // if you didn't click on the text, then update the text accordningly
         Overlays.editOverlay(text, { text: "you didn't click here" } );
     }
 }
