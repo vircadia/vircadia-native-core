@@ -141,7 +141,7 @@ void MyAvatar::update(float deltaTime) {
     }
 
     //  Get audio loudness data from audio input device
-	Audio *audio = Application::getInstance()->getAudio();
+    Audio* audio = Application::getInstance()->getAudio();
     _head.setAudioLoudness(audio->getLastInputLoudness());
     _head.setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 

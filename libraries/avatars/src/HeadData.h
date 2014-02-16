@@ -76,7 +76,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
-	float _audioAverageLoudness;
+    float _audioAverageLoudness;
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;

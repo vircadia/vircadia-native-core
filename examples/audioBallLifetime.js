@@ -10,28 +10,15 @@
 //  in response to the audio intensity.
 //
 
-// add two vectors
-function vPlus(a, b) { 
-    var rval = { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-    return rval;
-}
-
-// multiply scalar with vector
-function vsMult(s, v) {
-    var rval = { x: s * v.x, y: s * v.y, z: s * v.z };
-    return rval;
-}
-
 var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");
 var FACTOR = 0.75;
 
-function addParticle()
-{
+function addParticle() {
     // the particle should be placed in front of the user's avatar
     var avatarFront = Quat.getFront(MyAvatar.orientation);
 
     // move particle three units in front of the avatar
-    var particlePosition = vPlus(MyAvatar.position, vsMult (3, avatarFront));
+    var particlePosition = Vec3.sum(MyAvatar.position, Vec3.multiply (avatarFront, 3));
 
     // play a sound at the location of the particle
     var options = new AudioInjectionOptions();
