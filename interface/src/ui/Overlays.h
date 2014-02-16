@@ -18,7 +18,8 @@ public:
     Overlays();
     ~Overlays();
     void init(QGLWidget* parent);
-    void render();
+    void render3D();
+    void render2D();
 
 public slots:
     /// adds an overlay with the specific properties
@@ -35,7 +36,8 @@ public slots:
     unsigned int getOverlayAtPoint(const glm::vec2& point);
 
 private:
-    QMap<unsigned int, Overlay*> _overlays;
+    QMap<unsigned int, Overlay*> _overlays2D;
+    QMap<unsigned int, Overlay*> _overlays3D;
     static unsigned int _nextOverlayID;
     QGLWidget* _parent;
 };

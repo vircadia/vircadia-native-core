@@ -6,8 +6,9 @@
 //
 
 
-#include "Overlays.h"
+#include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
+#include "Overlays.h"
 #include "TextOverlay.h"
 
 
@@ -23,8 +24,14 @@ void Overlays::init(QGLWidget* parent) {
     _parent = parent;
 }
 
-void Overlays::render() {
-    foreach(Overlay* thisOverlay, _overlays) {
+void Overlays::render2D() {
+    foreach(Overlay* thisOverlay, _overlays2D) {
+        thisOverlay->render();
+    }
+}
+
+void Overlays::render3D() {
+    foreach(Overlay* thisOverlay, _overlays3D) {
         thisOverlay->render();
     }
 }
@@ -32,21 +39,36 @@ void Overlays::render() {
 // TODO: make multi-threaded safe
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
+    bool created = false;
+    bool is3D = false;
+    Overlay* thisOverlay = NULL;
     
     if (type == "image") {
-        thisID = _nextOverlayID;
-        _nextOverlayID++;
-        ImageOverlay* thisOverlay = new ImageOverlay();
+        thisOverlay = new ImageOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
-        _overlays[thisID] = thisOverlay;
+        created = true;
     } else if (type == "text") {
-        thisID = _nextOverlayID;
-        _nextOverlayID++;
-        TextOverlay* thisOverlay = new TextOverlay();
+        thisOverlay = new TextOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
-        _overlays[thisID] = thisOverlay;
+        created = true;
+    } else if (type == "cube") {
+        thisOverlay = new Cube3DOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    }
+
+    if (created) {
+        thisID = _nextOverlayID;
+        _nextOverlayID++;
+        if (is3D) {
+            _overlays3D[thisID] = thisOverlay;
+        } else {
+            _overlays2D[thisID] = thisOverlay;
+        }
     }
 
     return thisID; 
@@ -54,23 +76,30 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
 
 // TODO: make multi-threaded safe
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
-    if (!_overlays.contains(id)) {
-        return false;
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
     }
-    Overlay* thisOverlay = _overlays[id];
-    thisOverlay->setProperties(properties);
-    return true;
+    if (thisOverlay) {
+        thisOverlay->setProperties(properties);
+        return true;
+    }
+    return false;
 }
 
 // TODO: make multi-threaded safe
 void Overlays::deleteOverlay(unsigned int id) {
-    if (_overlays.contains(id)) {
-        _overlays.erase(_overlays.find(id));
+    if (_overlays2D.contains(id)) {
+        _overlays2D.erase(_overlays2D.find(id));
+    } else if (_overlays3D.contains(id)) {
+        _overlays3D.erase(_overlays3D.find(id));
     }
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    QMapIterator<unsigned int, Overlay*> i(_overlays);
+    QMapIterator<unsigned int, Overlay*> i(_overlays2D);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();

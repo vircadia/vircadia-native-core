@@ -23,10 +23,11 @@
 #include <SharedUtil.h>
 
 #include "Overlay.h"
+#include "Overlay2D.h"
 
 const int DEFAULT_MARGIN = 10;
 
-class TextOverlay : public Overlay {
+class TextOverlay : public Overlay2D {
     Q_OBJECT
     
 public:

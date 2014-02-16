@@ -2842,6 +2842,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
+        
+        // render JS/scriptable overlays
+        _overlays.render3D();
     }
 }
 
@@ -2988,7 +2991,7 @@ void Application::displayOverlay() {
         _pieMenu.render();
     }
 
-    _overlays.render();
+    _overlays.render2D();
 
     glPopMatrix();
 }

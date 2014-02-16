@@ -23,8 +23,9 @@
 #include <SharedUtil.h>
 
 #include "Overlay.h"
+#include "Overlay2D.h"
 
-class ImageOverlay : public Overlay {
+class ImageOverlay : public Overlay2D {
     Q_OBJECT
     
 public:

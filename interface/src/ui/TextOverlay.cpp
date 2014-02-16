@@ -29,7 +29,7 @@ void TextOverlay::render() {
     }
 
     const float MAX_COLOR = 255;
-    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
+    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -63,7 +63,7 @@ void TextOverlay::render() {
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {
-    Overlay::setProperties(properties);
+    Overlay2D::setProperties(properties);
 
     QScriptValue text = properties.property("text");
     if (text.isValid()) {

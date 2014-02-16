@@ -61,7 +61,7 @@ void ImageOverlay::render() {
         glBindTexture(GL_TEXTURE_2D, _textureID);
     }
     const float MAX_COLOR = 255;
-    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
+    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
 
     float imageWidth = _textureImage.width();
     float imageHeight = _textureImage.height();
@@ -107,7 +107,7 @@ void ImageOverlay::render() {
 }
 
 void ImageOverlay::setProperties(const QScriptValue& properties) {
-    Overlay::setProperties(properties);
+    Overlay2D::setProperties(properties);
 
     QScriptValue subImageBounds = properties.property("subImage");
     if (subImageBounds.isValid()) {
