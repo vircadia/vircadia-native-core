@@ -115,11 +115,6 @@ void ImageOverlay::render() {
 }
 
 // TODO: handle only setting the included values...
-QScriptValue ImageOverlay::getProperties() {
-    return QScriptValue();
-}
-
-// TODO: handle only setting the included values...
 void ImageOverlay::setProperties(const QScriptValue& properties) {
     //qDebug() << "ImageOverlay::setProperties()... properties=" << &properties;
     QScriptValue bounds = properties.property("bounds");

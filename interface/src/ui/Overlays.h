@@ -38,9 +38,6 @@ public slots:
     /// adds an overlay with the specific properties
     unsigned int addOverlay(const QScriptValue& properties);
 
-    /// gets the current overlay properties for a specific overlay
-    QScriptValue getOverlayProperties(unsigned int id);
-
     /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
     /// successful edit, if the input id is for an unknown overlay this function will have no effect
     bool editOverlay(unsigned int id, const QScriptValue& properties);

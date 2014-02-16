@@ -17,7 +17,6 @@ Overlays::~Overlays() {
 }
 
 void Overlays::init(QGLWidget* parent) {
-    qDebug() << "Overlays::init() parent=" << parent;
     _parent = parent;
 }
 
@@ -38,14 +37,6 @@ unsigned int Overlays::addOverlay(const QScriptValue& properties) {
     return thisID; 
 }
 
-QScriptValue Overlays::getOverlayProperties(unsigned int id) {
-    if (!_imageOverlays.contains(id)) {
-        return QScriptValue();
-    }
-    ImageOverlay* thisOverlay = _imageOverlays[id];
-    return thisOverlay->getProperties();
-}
-
 // TODO: make multi-threaded safe
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     if (!_imageOverlays.contains(id)) {
@@ -60,7 +51,6 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 void Overlays::deleteOverlay(unsigned int id) {
     if (_imageOverlays.contains(id)) {
         _imageOverlays.erase(_imageOverlays.find(id));
-    
     }
 }
 

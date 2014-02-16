@@ -45,7 +45,6 @@ public:
     const xColor& getBackgroundColor() const { return _backgroundColor; }
     float getAlpha() const { return _alpha; }
     const QUrl& getImageURL() const { return _imageURL; }
-    QScriptValue getProperties();
 
     // setters
     void setVisible(bool visible) { _visible = visible; }
