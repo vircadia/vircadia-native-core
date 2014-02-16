@@ -1,5 +1,5 @@
 //
-//  Cube3DOverlay.cpp
+//  Sphere3DOverlay.cpp
 //  interface
 //
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
@@ -11,15 +11,15 @@
 #include <QGLWidget>
 #include <SharedUtil.h>
 
-#include "Cube3DOverlay.h"
+#include "Sphere3DOverlay.h"
 
-Cube3DOverlay::Cube3DOverlay() {
+Sphere3DOverlay::Sphere3DOverlay() {
 }
 
-Cube3DOverlay::~Cube3DOverlay() {
+Sphere3DOverlay::~Sphere3DOverlay() {
 }
 
-void Cube3DOverlay::render() {
+void Sphere3DOverlay::render() {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
@@ -34,10 +34,11 @@ void Cube3DOverlay::render() {
                  _position.y + _size * 0.5f,
                  _position.z + _size * 0.5f);
     glLineWidth(_lineWidth);
+    const int slices = 15;
     if (_isSolid) {
-        glutSolidCube(_size);
+        glutSolidSphere(_size, slices, slices);
     } else {
-        glutWireCube(_size);
+        glutWireSphere(_size, slices, slices);
     }
     glPopMatrix();
 

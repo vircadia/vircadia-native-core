@@ -117,6 +117,20 @@ var solidCube = Overlays.addOverlay("cube", {
                     solid: true
                 });
 
+var spherePosition = { x: 5, y: 5, z: 5 };
+var sphereSize = 1;
+var minSphereSize = 0.5;
+var maxSphereSize = 10;
+var sphereSizeChange = 0.05;
+
+var sphere = Overlays.addOverlay("sphere", {
+                    position: spherePosition,
+                    size: sphereSize,
+                    color: { red: 0, green: 0, blue: 255},
+                    alpha: 1,
+                    solid: false
+                });
+
 
 function scriptEnding() {
     Overlays.deleteOverlay(toolA);
@@ -151,12 +165,20 @@ function update() {
     }
     Overlays.editOverlay(cube, { position: cubePosition } );
 
+    // move our solid 3D cube
     solidCubePosition.x += solidCubeMove;
     solidCubePosition.z += solidCubeMove;
     if (solidCubePosition.x > maxSolidCubeX || solidCubePosition.x < minSolidCubeX) {
         solidCubeMove = solidCubeMove * -1;
     }
     Overlays.editOverlay(solidCube, { position: solidCubePosition } );
+
+    // adjust our 3D sphere
+    sphereSize += sphereSizeChange;
+    if (sphereSize > maxSphereSize || sphereSize < minSphereSize) {
+        sphereSizeChange = sphereSizeChange * -1;
+    }
+    Overlays.editOverlay(sphere, { size: sphereSize, solid: (sphereSizeChange < 0) } );
 }
 Script.willSendVisualDataCallback.connect(update);
 
