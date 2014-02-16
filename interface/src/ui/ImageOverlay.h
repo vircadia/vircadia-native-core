@@ -8,6 +8,9 @@
 #ifndef __interface__ImageOverlay__
 #define __interface__ImageOverlay__
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QGLWidget>
 #include <QImage>
 #include <QNetworkAccessManager>
@@ -18,8 +21,6 @@
 #include <QUrl>
 
 #include <SharedUtil.h>
-
-#include "InterfaceConfig.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 255, 255, 255 };
 const float DEFAULT_ALPHA = 0.7f;

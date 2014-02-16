@@ -8,20 +8,6 @@
 #ifndef __interface__Overlays__
 #define __interface__Overlays__
 
-/**
-#include <QGLWidget>
-#include <QImage>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QRect>
-#include <QString>
-#include <QUrl>
-
-#include <SharedUtil.h>
-
-#include "InterfaceConfig.h"
-**/
-
 #include <QScriptValue>
 
 #include "ImageOverlay.h"
