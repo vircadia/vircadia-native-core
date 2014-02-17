@@ -52,8 +52,8 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -135,14 +135,10 @@ public:
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;
     }
 
-    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-        return false;
-    }
-    
     bool hasIdentityChangedAfterParsing(const QByteArray& packet);
     QByteArray identityByteArray();
     
@@ -153,6 +149,8 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
     
+    virtual float getBoundingRadius() const { return 1.f; }
+
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;

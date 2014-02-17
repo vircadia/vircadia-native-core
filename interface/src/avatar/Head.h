@@ -80,7 +80,7 @@ public:
     float getTweakedYaw() const;
     float getTweakedRoll() const;
 
-    void  applyCollision(ModelCollisionInfo& collisionInfo);
+    void  applyCollision(CollisionInfo& collisionInfo);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
