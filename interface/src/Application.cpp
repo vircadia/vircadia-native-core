@@ -291,6 +291,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
     
     checkVersion();
+    
+    _overlays.init(_glWidget); // do this before scripts load
+
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -1909,6 +1912,8 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    
 }
 
 void Application::closeMirrorView() {
@@ -2740,7 +2745,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+                _voxels.render();
+                
+                // double check that our LOD doesn't need to be auto-adjusted
+                // only adjust if our option is set
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
+                    Menu::getInstance()->autoAdjustLOD(_fps);
+                }
             }
         }
 
@@ -2831,7 +2842,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                      _mouseVoxel.s,
                      _mouseVoxel.s);
 
-            _sharedVoxelSystem.render(true);
+            _sharedVoxelSystem.render();
             glPopMatrix();
         }
     }
@@ -2871,6 +2882,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
+        
+        // render JS/scriptable overlays
+        _overlays.render3D();
     }
 }
 
@@ -3016,6 +3030,8 @@ void Application::displayOverlay() {
     if (_pieMenu.isDisplayed()) {
         _pieMenu.render();
     }
+
+    _overlays.render2D();
 
     glPopMatrix();
 }
@@ -4093,6 +4109,8 @@ void Application::loadScript(const QString& fileNameString) {
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QThread* workerThread = new QThread(this);
 

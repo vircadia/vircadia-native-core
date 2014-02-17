@@ -90,6 +90,16 @@ void Model::reset() {
 }
 
 void Model::simulate(float deltaTime) {
+    // update our LOD
+    if (_geometry) {
+        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
+            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
+        if (_geometry != geometry) {
+            deleteGeometry();
+            _dilatedTextures.clear();
+            _geometry = geometry;
+        }
+    }
     if (!isActive()) {
         return;
     }
@@ -409,8 +419,9 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     // delete our local geometry and custom textures
     deleteGeometry();
     _dilatedTextures.clear();
+    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
-    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -797,13 +808,17 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
             continue;
         }
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
-        
+        const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
+
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
+        if (vertexCount == 0) {
+            // sanity check
+            continue;
+        }
         
-        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
-      
+        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
@@ -910,11 +925,11 @@ void Model::renderMeshes(float alpha, bool translucent) {
         qint64 offset = 0;
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+            const FBXMeshPart& part = mesh.parts.at(j);
             if (networkPart.isTranslucent() != translucent) {
+                offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
-            const FBXMeshPart& part = mesh.parts.at(j);
-            
             // apply material properties
             glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
             glm::vec4 specular = glm::vec4(part.specularColor, alpha);

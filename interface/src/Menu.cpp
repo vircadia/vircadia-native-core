@@ -70,7 +70,8 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
+    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _lastAdjust(usecTimestampNow())
 {
     Application *appInstance = Application::getInstance();
 
@@ -311,6 +312,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
@@ -1117,14 +1119,38 @@ void Menu::voxelStatsDetailsClosed() {
     }
 }
 
+void Menu::autoAdjustLOD(float currentFPS) {
+    bool changed = false;
+    quint64 now = usecTimestampNow();
+    quint64 elapsed = now - _lastAdjust;
+    
+    if (elapsed > ADJUST_LOD_DOWN_DELAY && currentFPS < ADJUST_LOD_DOWN_FPS && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD down... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+
+    if (elapsed > ADJUST_LOD_UP_DELAY && currentFPS > ADJUST_LOD_UP_FPS && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_UP_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD up... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+    
+    if (changed) {
+        if (_lodToolsDialog) {
+            _lodToolsDialog->reloadSliders();
+        }
+    }
+}
+
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::lodTools() {
