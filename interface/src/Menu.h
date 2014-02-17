@@ -139,6 +139,8 @@ private:
 
     void updateFrustumRenderModeAction();
 
+    void addAvatarCollisionSubMenu(QMenu* overMenu);
+
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;

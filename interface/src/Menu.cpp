@@ -168,19 +168,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
-    {
-        // add collision options to the general edit menu
-        QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
-        QObject* avatar = appInstance->getAvatar();
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 
-                0, false, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 
-                0, true, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 
-                0, false, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 
-                0, true, avatar, SLOT(updateCollisionFlags()));
-    }
+    addAvatarCollisionSubMenu(editMenu);
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -348,19 +336,7 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
-    {
-        // add collision options to the avatar menu
-        QMenu* collisionsOptionsMenu = avatarOptionsMenu->addMenu("Collision Options");
-        QObject* avatar = appInstance->getAvatar();
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 
-                0, false, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 
-                0, true, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 
-                0, false, avatar, SLOT(updateCollisionFlags()));
-        addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 
-                0, true, avatar, SLOT(updateCollisionFlags()));
-    }
+    addAvatarCollisionSubMenu(avatarOptionsMenu);
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
@@ -1230,6 +1206,22 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
+void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
+    // add avatar collisions subMenu to overMenu
+    QMenu* subMenu = overMenu->addMenu("Collision Options");
+
+    Application* appInstance = Application::getInstance();
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+}
+
 QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
     int lastIndex;
     lastIndex = string.lastIndexOf(search);
@@ -1240,4 +1232,3 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     
     return string;
 }
-
