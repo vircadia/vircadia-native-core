@@ -219,7 +219,7 @@ float Head::getTweakedRoll() const {
     return glm::clamp(_roll + _tweakedRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
-void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
+void Head::applyCollision(CollisionInfo& collision) {
     // HACK: the collision proxies for the FaceModel are bad.  As a temporary workaround
     // we collide against a hard coded collision proxy.
     // TODO: get a better collision proxy here.
@@ -229,7 +229,7 @@ void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
     // collide the contactPoint against the collision proxy to obtain a new penetration
     // NOTE: that penetration is in opposite direction (points the way out for the point, not the sphere)
     glm::vec3 penetration;
-    if (findPointSpherePenetration(collisionInfo._contactPoint, HEAD_CENTER, HEAD_RADIUS, penetration)) {
+    if (findPointSpherePenetration(collision._contactPoint, HEAD_CENTER, HEAD_RADIUS, penetration)) {
         // compute lean angles
         Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
         glm::quat bodyRotation = owningAvatar->getOrientation();
@@ -239,8 +239,8 @@ void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
             glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
             float neckLength = glm::length(_position - neckPosition);
             if (neckLength > 0.f) {
-                float forward = glm::dot(collisionInfo._penetration, zAxis) / neckLength;
-                float sideways = - glm::dot(collisionInfo._penetration, xAxis) / neckLength;
+                float forward = glm::dot(collision._penetration, zAxis) / neckLength;
+                float sideways = - glm::dot(collision._penetration, xAxis) / neckLength;
                 addLean(sideways, forward);
             }
         }
