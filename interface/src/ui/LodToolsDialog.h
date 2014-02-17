@@ -28,6 +28,7 @@ public slots:
     void sizeScaleValueChanged(int value);
     void boundaryLevelValueChanged(int value);
     void resetClicked(bool checked);
+    void reloadSliders();
 
 protected:
 

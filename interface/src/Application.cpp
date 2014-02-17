@@ -101,6 +101,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
+const QString CUSTOM_URL_SCHEME = "hifi:";
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString messageWithNewLine = message + "\n";
@@ -680,6 +682,38 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
         _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
+}
+
+bool Application::event(QEvent* event) {
+    
+    // handle custom URL
+    if (event->type() == QEvent::FileOpen) {
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
+            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
+            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                Menu::getInstance()->goToDomain(urlParts[0]);
+                
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[1]);
+                if (urlParts.count() > 2) {
+                    
+                    // location orientation
+                    Menu::getInstance()->goToOrientation(urlParts[2]);
+                }
+            } else if (urlParts.count() == 1) {
+
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[0]);
+            }
+        }
+        
+        return false;
+    }
+    return QApplication::event(event);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -2711,7 +2745,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+                _voxels.render();
+                
+                // double check that our LOD doesn't need to be auto-adjusted
+                // only adjust if our option is set
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
+                    Menu::getInstance()->autoAdjustLOD(_fps);
+                }
             }
         }
 
@@ -2802,7 +2842,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                      _mouseVoxel.s,
                      _mouseVoxel.s);
 
-            _sharedVoxelSystem.render(true);
+            _sharedVoxelSystem.render();
             glPopMatrix();
         }
     }

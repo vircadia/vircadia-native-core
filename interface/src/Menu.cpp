@@ -70,7 +70,8 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
+    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _lastAdjust(usecTimestampNow())
 {
     Application *appInstance = Application::getInstance();
 
@@ -318,6 +319,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
@@ -884,6 +886,17 @@ void Menu::editPreferences() {
     sendFakeEnterEvent();
 }
 
+void Menu::goToDomain(const QString newDomain) {
+    if (NodeList::getInstance()->getDomainHostname() != newDomain) {
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        Application::getInstance()->getAvatar()->sendKillAvatar();
+        
+        // give our nodeList the new domain-server hostname
+        NodeList::getInstance()->setDomainHostname(newDomain);
+    }
+}
+
 void Menu::goToDomain() {
 
     QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
@@ -908,15 +921,75 @@ void Menu::goToDomain() {
             // the user input a new hostname, use that
             newHostname = domainDialog.textValue();
         }
-
-        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        Application::getInstance()->getAvatar()->sendKillAvatar();
-
-        // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
+        
+        goToDomain(newHostname);
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::goToOrientation(QString orientation) {
+    
+    if (orientation.isEmpty()) {
+        return;
+    }
+    
+    QStringList orientationItems = orientation.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    
+    const int NUMBER_OF_ORIENTATION_ITEMS = 4;
+    const int W_ITEM = 0;
+    const int X_ITEM = 1;
+    const int Y_ITEM = 2;
+    const int Z_ITEM = 3;
+    
+    if (orientationItems.size() == NUMBER_OF_ORIENTATION_ITEMS) {
+        
+        double w = replaceLastOccurrence('-', '.', orientationItems[W_ITEM].trimmed()).toDouble();
+        double x = replaceLastOccurrence('-', '.', orientationItems[X_ITEM].trimmed()).toDouble();
+        double y = replaceLastOccurrence('-', '.', orientationItems[Y_ITEM].trimmed()).toDouble();
+        double z = replaceLastOccurrence('-', '.', orientationItems[Z_ITEM].trimmed()).toDouble();
+        
+        glm::quat newAvatarOrientation(w, x, y, z);
+        
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        glm::quat avatarOrientation = myAvatar->getOrientation();
+        if (newAvatarOrientation != avatarOrientation) {
+            myAvatar->setOrientation(newAvatarOrientation);
+        }
+    }
+}
+
+bool Menu::goToDestination(QString destination) {
+    
+    QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
+    
+    const int NUMBER_OF_COORDINATE_ITEMS = 3;
+    const int X_ITEM = 0;
+    const int Y_ITEM = 1;
+    const int Z_ITEM = 2;
+    if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
+        
+        double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
+        double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
+        double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
+        
+        glm::vec3 newAvatarPos(x, y, z);
+        
+        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+        glm::vec3 avatarPos = myAvatar->getPosition();
+        if (newAvatarPos != avatarPos) {
+            // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+            MyAvatar::sendKillAvatar();
+            
+            qDebug("Going To Location: %f, %f, %f...", x, y, z);
+            myAvatar->setPosition(newAvatarPos);
+        }
+        
+        return true;
+    }
+    
+    // no coordinates were parsed
+    return false;
 }
 
 void Menu::goTo() {
@@ -934,31 +1007,8 @@ void Menu::goTo() {
         
         destination = gotoDialog.textValue();
         
-        QStringList coordinateItems = destination.split(QRegExp("_|,"), QString::SkipEmptyParts);
-        
-        const int NUMBER_OF_COORDINATE_ITEMS = 3;
-        const int X_ITEM = 0;
-        const int Y_ITEM = 1;
-        const int Z_ITEM = 2;
-        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-            
-            double x = replaceLastOccurrence('-', '.', coordinateItems[X_ITEM].trimmed()).toDouble();
-            double y = replaceLastOccurrence('-', '.', coordinateItems[Y_ITEM].trimmed()).toDouble();
-            double z = replaceLastOccurrence('-', '.', coordinateItems[Z_ITEM].trimmed()).toDouble();
-            
-            glm::vec3 newAvatarPos(x, y, z);
-            
-            MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-            glm::vec3 avatarPos = myAvatar->getPosition();
-            if (newAvatarPos != avatarPos) {
-                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                MyAvatar::sendKillAvatar();
-                
-                qDebug("Going To Location: %f, %f, %f...", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
-            }
-            
-        } else {
+        // go to coordinate destination or to Username
+        if (!goToDestination(destination)) {
             // there's a username entered by the user, make a request to the data-server
             DataServerClient::getValuesForKeysAndUserString(
                                                             QStringList()
@@ -989,29 +1039,7 @@ void Menu::goToLocation() {
 
     int dialogReturn = coordinateDialog.exec();
     if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
-        QByteArray newCoordinates;
-
-        QString delimiterPattern(",");
-        QStringList coordinateItems = coordinateDialog.textValue().split(delimiterPattern);
-
-        const int NUMBER_OF_COORDINATE_ITEMS = 3;
-        const int X_ITEM = 0;
-        const int Y_ITEM = 1;
-        const int Z_ITEM = 2;
-        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
-            double x = coordinateItems[X_ITEM].toDouble();
-            double y = coordinateItems[Y_ITEM].toDouble();
-            double z = coordinateItems[Z_ITEM].toDouble();
-            glm::vec3 newAvatarPos(x, y, z);
-
-            if (newAvatarPos != avatarPos) {
-                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-                MyAvatar::sendKillAvatar();
-
-                qDebug("Going To Location: %f, %f, %f...", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
-            }
-        }
+        goToDestination(coordinateDialog.textValue());
     }
 
     sendFakeEnterEvent();
@@ -1091,14 +1119,38 @@ void Menu::voxelStatsDetailsClosed() {
     }
 }
 
+void Menu::autoAdjustLOD(float currentFPS) {
+    bool changed = false;
+    quint64 now = usecTimestampNow();
+    quint64 elapsed = now - _lastAdjust;
+    
+    if (elapsed > ADJUST_LOD_DOWN_DELAY && currentFPS < ADJUST_LOD_DOWN_FPS && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD down... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+
+    if (elapsed > ADJUST_LOD_UP_DELAY && currentFPS > ADJUST_LOD_UP_FPS && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_UP_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD up... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+    
+    if (changed) {
+        if (_lodToolsDialog) {
+            _lodToolsDialog->reloadSliders();
+        }
+    }
+}
+
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::lodTools() {
