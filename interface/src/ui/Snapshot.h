@@ -9,6 +9,8 @@
 #ifndef __hifi__Snapshot__
 #define __hifi__Snapshot__
 
+#include "InterfaceConfig.h"
+
 #include <QString>
 #include <QImage>
 #include <QGLWidget>
