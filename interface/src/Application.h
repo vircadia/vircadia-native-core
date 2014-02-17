@@ -70,6 +70,7 @@
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ControllerScriptingInterface.h"
+#include "ui/Overlays.h"
 
 
 class QAction;
@@ -129,6 +130,8 @@ public:
 
     void wheelEvent(QWheelEvent* event);
     void dropEvent(QDropEvent *event);
+    
+    bool event(QEvent* event);
     
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -491,6 +494,8 @@ private:
     void takeSnapshot();
     
     TouchEvent _lastTouchEvent;
+    
+    Overlays _overlays;
 };
 
 #endif /* defined(__interface__Application__) */

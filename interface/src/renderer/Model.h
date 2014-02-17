@@ -236,6 +236,9 @@ private:
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
     
+    QSharedPointer<NetworkGeometry> _baseGeometry;
+    float _lodHysteresis;
+    
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;
     
