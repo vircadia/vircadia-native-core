@@ -104,19 +104,6 @@ ImportDialog::ImportDialog(QWidget* parent) :
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
 
-#ifdef Q_OS_MAC
-    QString cmdString = ("Command");
-#else
-    QString cmdString = ("Control");
-#endif
-    QLabel* infoLabel = new QLabel(QString(INFO_LABEL_TEXT).arg(cmdString));
-    infoLabel->setObjectName("infoLabel");
-
-    QGridLayout* gridLayout = (QGridLayout*) layout();
-    gridLayout->addWidget(infoLabel, 2, 0, 2, 1);
-    gridLayout->addWidget(&_cancelButton, 2, 1, 2, 1);
-    gridLayout->addWidget(&_importButton, 2, 2, 2, 1);
-
     setImportTypes();
     setLayout();
 
@@ -175,6 +162,19 @@ void ImportDialog::saveCurrentFile(QString filename) {
 }
 
 void ImportDialog::setLayout() {
+    
+#ifdef Q_OS_MAC
+    QString cmdString = ("Command");
+#else
+    QString cmdString = ("Control");
+#endif
+    QLabel* infoLabel = new QLabel(QString(INFO_LABEL_TEXT).arg(cmdString));
+    infoLabel->setObjectName("infoLabel");
+    
+    QGridLayout* gridLayout = (QGridLayout*) layout();
+    gridLayout->addWidget(infoLabel, 2, 0, 2, 1);
+    gridLayout->addWidget(&_cancelButton, 2, 1, 2, 1);
+    gridLayout->addWidget(&_importButton, 2, 2, 2, 1);
 
     // set ObjectName used in qss for styling
     _importButton.setObjectName("importButton");
