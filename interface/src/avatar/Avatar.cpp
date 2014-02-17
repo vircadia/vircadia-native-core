@@ -56,8 +56,8 @@ const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
-const float DISPLAYNAME_FADEOUT_TIME = 0.5f;
-const float DISPLAYNAME_FADEOUT_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADEOUT_TIME);
+const float DISPLAYNAME_FADE_TIME = 0.5f;
+const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 0.95f;
 
 Avatar::Avatar() :
@@ -142,12 +142,21 @@ void Avatar::simulate(float deltaTime) {
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
 
-    // update animation for display name fadeout
-    if (!_isShowDisplayName && _displayNameAlpha > 0.0) {
-        // the alpha function is alpha = coef ^ time(zero based)
-        // We can make this function recursive: alpha(t) = alpha(t-dt) * coef^(dt)
-        _displayNameAlpha *= pow(DISPLAYNAME_FADEOUT_FACTOR, deltaTime);
-        _displayNameAlpha = _displayNameAlpha > 0.01? _displayNameAlpha : 0.0f;  // The function is asymptotic to zero. 0.01 is 0 to us
+    // update animation for display name fade in/out
+    if ( _displayNameTargetAlpha != _displayNameAlpha) {
+        // the alpha function is 
+        // Fade out => alpha(t) = factor ^ t => alpha(t+dt) = alpha(t) * factor^(dt)
+        // Fade in  => alpha(t) = 1 - factor^t => alpha(t+dt) = 1-(1-alpha(t))*coef^(dt)
+        // factor^(dt) = coef
+        float coef = pow(DISPLAYNAME_FADE_FACTOR, deltaTime);
+        if (_displayNameTargetAlpha < _displayNameAlpha) {
+            // Fading out
+            _displayNameAlpha *= coef;
+        } else {
+            // Fading in
+            _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
+        }
+        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01? _displayNameTargetAlpha : _displayNameAlpha;
     }
 }
 
@@ -628,9 +637,10 @@ float Avatar::getPelvisToHeadLength() const {
 }
 
 void Avatar::setShowDisplayName(bool showDisplayName) {
-    _isShowDisplayName = showDisplayName;
     if (showDisplayName) {
-        _displayNameAlpha = DISPLAYNAME_ALPHA;
+        _displayNameTargetAlpha = DISPLAYNAME_ALPHA;
+    } else {
+        _displayNameTargetAlpha = 0.0f;
     }
 }
 

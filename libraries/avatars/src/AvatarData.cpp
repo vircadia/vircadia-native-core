@@ -37,7 +37,7 @@ AvatarData::AvatarData() :
     _headData(NULL),
     _handData(NULL), 
     _displayNameWidth(0), 
-    _isShowDisplayName(false), 
+    _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f)
 {
     

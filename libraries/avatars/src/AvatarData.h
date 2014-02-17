@@ -182,7 +182,7 @@ protected:
     QString _displayName;
 
     int _displayNameWidth;
-    bool _isShowDisplayName;
+    float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
 private:

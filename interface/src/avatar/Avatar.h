@@ -128,7 +128,7 @@ public:
     /// \param collision a data structure for storing info about collisions against Models
     void applyCollision(CollisionInfo& collision);
 
-    float getBoundingRadius() const { return 0.5f * getHeight(); }
+    float getBoundingRadius() const { return 0.5f * getSkeletonHeight(); }
 
 public slots:
     void updateCollisionFlags();
