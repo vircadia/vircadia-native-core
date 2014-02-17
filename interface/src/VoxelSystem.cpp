@@ -60,6 +60,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
       _treeScale(treeScale),
       _maxVoxels(maxVoxels),
       _initialized(false),
+      _inOcclusions(false),
       _showCulledSharedFaces(false),
       _usePrimitiveRenderer(false),
       _renderer(0) {
@@ -1506,8 +1507,8 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
-    // Nothing to do at the leaf level or below the should render level
-    if (voxel->isLeaf() || voxel->getShouldRender()) {
+    // Nothing to do at the leaf level
+    if (voxel->isLeaf()) {
         return false;
     }
 
@@ -1571,8 +1572,8 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
-    // Nothing to do at the leaf level or below the should render level
-    if (voxel->isLeaf() || voxel->getShouldRender()) {
+    // Nothing to do at the leaf level
+    if (voxel->isLeaf()) {
         return false;
     }
 
@@ -1645,7 +1646,7 @@ bool VoxelSystem::clearAllOcclusionsOperation(OctreeElement* element, void* extr
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
     bool rc;
-    if (voxel->isLeaf() || voxel->getShouldRender()) {
+    if (voxel->isLeaf()) {
 
         // By definition the the exterior faces of a leaf voxel are
         // always occluders.
@@ -1700,6 +1701,10 @@ void VoxelSystem::showCulledSharedFaces() {
 
 void VoxelSystem::clearAllOcclusions() {
 
+    if (_inOcclusions) {
+        return;
+    }
+    _inOcclusions = true;
     _nodeCount = 0;
 
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1715,10 +1720,16 @@ void VoxelSystem::clearAllOcclusions() {
     _writeRenderFullVBO = true;
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
+
+    _inOcclusions = false;
 }
 
 void VoxelSystem::inspectForOcclusions() {
 
+    if (_inOcclusions) {
+        return;
+    }
+    _inOcclusions = true;
     _nodeCount = 0;
 
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1736,6 +1747,7 @@ void VoxelSystem::inspectForOcclusions() {
    _writeRenderFullVBO = true;
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
+    _inOcclusions = false;
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {

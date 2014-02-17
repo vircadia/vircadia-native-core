@@ -309,6 +309,7 @@ private:
 
     bool _inhideOutOfView;
 
+    bool _inOcclusions;
     bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
     bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
     PrimitiveRenderer* _renderer;               ///< Voxel renderer
