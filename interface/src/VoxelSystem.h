@@ -138,6 +138,7 @@ public slots:
     void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
+    void clearAllOcclusions();
     void cullSharedFaces();
     void showCulledSharedFaces();
 
@@ -196,7 +197,7 @@ private:
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
     static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
-    static bool clearOcclusionsOperation(OctreeElement* element, void* extraData);
+    static bool clearAllOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
@@ -309,11 +310,11 @@ private:
     bool _inhideOutOfView;
 
     bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
-    bool _inInspectForOcclusions;               ///< Flag occupancy of inspectForOcclusions method
     bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
     PrimitiveRenderer* _renderer;               ///< Voxel renderer
 
     static const int _sNumOctantsPerHemiVoxel = 4;
+    static int _sCorrectedChildIndex[8];
     static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
     static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
 

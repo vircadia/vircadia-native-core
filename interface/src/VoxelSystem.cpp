@@ -61,7 +61,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
       _maxVoxels(maxVoxels),
       _initialized(false),
       _showCulledSharedFaces(false),
-      _inInspectForOcclusions(false),
       _usePrimitiveRenderer(false),
       _renderer(0) {
 
@@ -1507,8 +1506,8 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
-    // Nothing to do at the leaf level
-    if (voxel->isLeaf()) {
+    // Nothing to do at the leaf level or below the should render level
+    if (voxel->isLeaf() || voxel->getShouldRender()) {
         return false;
     }
 
@@ -1526,11 +1525,6 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
             // all faces which are completely covered by four child octants.
             unsigned char exteriorOcclusionsA = childA->getExteriorOcclusions();
 
-            if (exteriorOcclusionsA == OctreeElement::HalfSpace::None) {
-                // There is nothing to be done with this child, next...
-                continue;
-            }
-
             for (int j = i; --j >= 0; ) {
 
                 VoxelTreeElement* childB = voxel->getChildAtIndex(j);
@@ -1539,15 +1533,12 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
                     // Get child B's occluding faces
                     unsigned char exteriorOcclusionsB = childB->getExteriorOcclusions();
 
-                    if (exteriorOcclusionsB == OctreeElement::HalfSpace::None) {
-                        // There is nothing to be done with this child, next...
-                        continue;
-                    }
-
                     // Determine the shared halfspace partition between siblings A and B,
                     // i.e., near/far, left/right, or top/bottom
-                    unsigned char partition = _sOctantIndexToSharedBitMask[i][j] &
-                                                exteriorOcclusionsA & exteriorOcclusionsB;
+                    unsigned char partitionA = _sOctantIndexToSharedBitMask[i][j] &
+                                                exteriorOcclusionsA;
+                    unsigned char partitionB = _sOctantIndexToSharedBitMask[i][j] &
+                                                exteriorOcclusionsB;
 
                     // Determine which face of each sibling is occluded.
                     // Note the intentionally crossed indicies. It is necessary because
@@ -1555,8 +1546,8 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
                     // example, if the near-left-top (NLT) and near-left-bottom (NLB) child voxels
                     // exist, the shared partition is top-bottom (TB), and thus the occluded
                     // shared face of the NLT voxel is its bottom face.
-                    occludedSharedFace[i] |= (partition & _sOctantIndexToBitMask[j]);
-                    occludedSharedFace[j] |= (partition & _sOctantIndexToBitMask[i]);
+                    occludedSharedFace[i] |= (partitionB & _sOctantIndexToBitMask[j]);
+                    occludedSharedFace[j] |= (partitionA & _sOctantIndexToBitMask[i]);
                 }
             }
             // Combine this voxel's interior excluded shared face only to those children which are coincident
@@ -1580,8 +1571,8 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
-    // Nothing to do at the leaf level
-    if (voxel->isLeaf()) {
+    // Nothing to do at the leaf level or below the should render level
+    if (voxel->isLeaf() || voxel->getShouldRender()) {
         return false;
     }
 
@@ -1594,7 +1585,8 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 
         VoxelTreeElement* child = voxel->getChildAtIndex(i);
         if (child) {
-                // Get the child's occluding faces, for a leaf, that will be
+
+               // Get the child's occluding faces, for a leaf, that will be
                 // all six voxel faces, and for a non leaf, that will be
                 // all faces which are completely covered by four child octants.
                 unsigned char exteriorOcclusionsOfChild = child->getExteriorOcclusions();
@@ -1648,12 +1640,12 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
     return true;
 }
 
-bool VoxelSystem::clearOcclusionsOperation(OctreeElement* element, void* extraData) {
+bool VoxelSystem::clearAllOcclusionsOperation(OctreeElement* element, void* extraData) {
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
     bool rc;
-    if (voxel->isLeaf()) {
+    if (voxel->isLeaf() || voxel->getShouldRender()) {
 
         // By definition the the exterior faces of a leaf voxel are
         // always occluders.
@@ -1670,45 +1662,35 @@ bool VoxelSystem::clearOcclusionsOperation(OctreeElement* element, void* extraDa
 
     return rc;
 }
-
 void VoxelSystem::cullSharedFaces() {
-    _nodeCount = 0;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
         _useVoxelShader = false;
         _usePrimitiveRenderer = true;
+        clearAllNodesBufferIndex();
         if (_renderer) {
             _renderer->release();
         }
-        clearAllNodesBufferIndex();
         inspectForOcclusions();
-        qDebug("culling shared faces in %d nodes", _nodeCount);
     } else {
         _usePrimitiveRenderer = false;
+        clearAllNodesBufferIndex();
         if (_renderer) {
             _renderer->release();
         }
-        clearAllNodesBufferIndex();
-        _tree->lockForRead();
-        _tree->recurseTreeWithOperation(clearOcclusionsOperation);
-        _tree->unlock();
-
-
-        qDebug("unculling shared faces in %d nodes", _nodeCount);
+        clearAllOcclusions();
     }
-    _writeRenderFullVBO = true;
-    _tree->setDirtyBit();
-    setupNewVoxelsForDrawing();
-
 }
 
 void VoxelSystem::showCulledSharedFaces() {
 
+    _tree->lockForRead();
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowCulledSharedFaces)) {
         _showCulledSharedFaces = true;
     } else {
         _showCulledSharedFaces = false;
     }
+    _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
         _writeRenderFullVBO = true;
         _tree->setDirtyBit();
@@ -1716,24 +1698,44 @@ void VoxelSystem::showCulledSharedFaces() {
     }
 }
 
+void VoxelSystem::clearAllOcclusions() {
+
+    _nodeCount = 0;
+
+    bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showDebugDetails, "clearAllOcclusions()");
+
+    _tree->lockForRead();
+    _tree->recurseTreeWithOperation(clearAllOcclusionsOperation);
+    _tree->unlock();
+
+    if (showDebugDetails) {
+        qDebug("clearing all occlusions of %d nodes", _nodeCount);
+    }
+    _writeRenderFullVBO = true;
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
+
 void VoxelSystem::inspectForOcclusions() {
 
-    // don't re-enter...
-    if (_inInspectForOcclusions) {
-        return;
-    }
-
-    _inInspectForOcclusions = true;
+    _nodeCount = 0;
 
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "inspectForOcclusions()");
 
     _tree->lockForRead();
     _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
+    _nodeCount = 0;
     _tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
     _tree->unlock();
 
-    _inInspectForOcclusions = false;
+     if (showDebugDetails) {
+        qDebug("inspecting all occlusions of %d nodes", _nodeCount);
+    }
+   _writeRenderFullVBO = true;
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData) {
