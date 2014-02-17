@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QGLWidget>
 
+#include <glm/glm.hpp>
 #include "avatar/MyAvatar.h"
 #include "avatar/Profile.h"
 
