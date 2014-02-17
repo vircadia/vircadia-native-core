@@ -1799,7 +1799,7 @@ void Application::init() {
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-    _myCamera.setModeShiftRate(1.0f);
+    _myCamera.setModeShiftPeriod(1.0f);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
@@ -2168,17 +2168,17 @@ void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
-            _myCamera.setModeShiftRate(100.0f);
+            _myCamera.setModeShiftPeriod(0.00f);
         }
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
+            _myCamera.setModeShiftPeriod(1.0f);
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
+            _myCamera.setModeShiftPeriod(1.0f);
         }
     }
 }
