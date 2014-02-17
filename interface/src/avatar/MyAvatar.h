@@ -90,7 +90,6 @@ public:
 
 public slots:
     void goHome();
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void increaseSize();
     void decreaseSize();
     void resetSize();
@@ -110,7 +109,6 @@ private:
     float _elapsedTimeSinceCollision;
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
-    bool _isCollisionsOn;
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;

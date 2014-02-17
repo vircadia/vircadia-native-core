@@ -53,7 +53,6 @@ MyAvatar::MyAvatar() :
     _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
-    _isCollisionsOn(true),
     _isThrustOn(false),
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
