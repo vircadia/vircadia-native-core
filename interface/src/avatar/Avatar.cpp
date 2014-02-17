@@ -278,11 +278,14 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     bool didPenetrate = false;
     glm::vec3 skeletonPenetration;
     ModelCollisionInfo collisionInfo;
+    /* Temporarily disabling collisions against the skeleton because the collision proxies up
+     * near the neck are bad and prevent the hand from hitting the face.
     if (_skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo, 1.0f, skeletonSkipIndex)) {
         collisionInfo._model = &_skeletonModel;
         collisions.push_back(collisionInfo);
         didPenetrate = true; 
     }
+    */
     if (_head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo)) {
         collisionInfo._model = &(_head.getFaceModel());
         collisions.push_back(collisionInfo);
@@ -347,13 +350,13 @@ bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, floa
 
 void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fbx");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
     _head.getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fbx");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
 }
 
@@ -447,13 +450,34 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
-bool Avatar::poke(ModelCollisionInfo& collision) {
-    // ATM poke() can only affect the Skeleton (not the head)
+bool Avatar::collisionWouldMoveAvatar(ModelCollisionInfo& collision) const {
+    // ATM only the Skeleton is pokeable
     // TODO: make poke affect head
+    if (!collision._model) {
+        return false;
+    }
     if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
-        return _skeletonModel.poke(collision);
+        // collision response of skeleton is temporarily disabled
+        return false;
+        //return _skeletonModel.collisionHitsMoveableJoint(collision);
+    }
+    if (collision._model == &(_head.getFaceModel())) {
+        return true;
     }
     return false;
+}
+
+void Avatar::applyCollision(ModelCollisionInfo& collision) {
+    if (!collision._model) {
+        return;
+    }
+    if (collision._model == &(_head.getFaceModel())) {
+        _head.applyCollision(collision);
+    }
+    // TODO: make skeleton respond to collisions
+    //if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+    //    _skeletonModel.applyCollision(collision);
+    //}
 }
 
 float Avatar::getPelvisFloatingHeight() const {

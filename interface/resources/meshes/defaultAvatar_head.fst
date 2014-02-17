@@ -1,7 +1,7 @@
 # faceshift target mapping file
 name= defaultAvatar_head
-filename=../../../Avatars/Jelly/jellyrob_blue.fbx
-texdir=../../../Avatars/Jelly
+filename=defaultAvatar/head.fbx
+texdir=defaultAvatar
 scale=80
 rx=0
 ry=0

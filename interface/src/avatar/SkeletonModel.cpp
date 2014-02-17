@@ -21,9 +21,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
 
 void SkeletonModel::simulate(float deltaTime) {
     if (!isActive()) {
+        Model::simulate(deltaTime);
         return;
     }
-
     setTranslation(_owningAvatar->getPosition());
     setRotation(_owningAvatar->getOrientation() * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f));
     const float MODEL_SCALE = 0.0006f;
@@ -36,23 +36,24 @@ void SkeletonModel::simulate(float deltaTime) {
     HandData& hand = _owningAvatar->getHand();
     hand.getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;
+    const float HAND_RESTORATION_PERIOD = 1.f;  // seconds
+    float handRestorePercent = glm::clamp(deltaTime / HAND_RESTORATION_PERIOD, 0.f, 1.f);
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (leftPalmIndex == -1) {
         // no Leap data; set hands from mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
-            restoreRightHandPosition(HAND_RESTORATION_RATE);
+            restoreRightHandPosition(handRestorePercent);
         } else {
             applyHandPosition(geometry.rightHandJointIndex, _owningAvatar->getHandPosition());
         }
-        restoreLeftHandPosition(HAND_RESTORATION_RATE);
+        restoreLeftHandPosition(handRestorePercent);
 
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
         applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
             hand.getPalms()[leftPalmIndex]);
-        restoreLeftHandPosition(HAND_RESTORATION_RATE);
+        restoreLeftHandPosition(handRestorePercent);
 
     } else {
         applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,

@@ -32,7 +32,6 @@
 
 #include "BandwidthMeter.h"
 #include "Camera.h"
-#include "Cloud.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
@@ -71,6 +70,7 @@
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ControllerScriptingInterface.h"
+#include "ui/Overlays.h"
 
 
 class QAction;
@@ -127,7 +127,9 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-
+    
+    bool event(QEvent* event);
+    
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,
@@ -232,6 +234,8 @@ public slots:
     void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
+    void stopAllScripts();
+    void reloadAllScripts();
 
 private slots:
     void timer();
@@ -284,7 +288,6 @@ private:
     void updateSixense(float deltaTime);
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
-    void updateParticles(float deltaTime);
     void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
@@ -350,8 +353,6 @@ private:
     bool _justStarted;
 
     Stars _stars;
-
-    Cloud _cloud;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
@@ -490,6 +491,8 @@ private:
     void takeSnapshot();
     
     TouchEvent _lastTouchEvent;
+    
+    Overlays _overlays;
 };
 
 #endif /* defined(__interface__Application__) */

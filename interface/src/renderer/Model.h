@@ -66,6 +66,9 @@ public:
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
+
+    /// Returns the extents of the unmovable joints of the model.
+    Extents getStaticExtents() const;
     
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -164,9 +167,12 @@ public:
     
     void renderCollisionProxies(float alpha);
 
+    /// \return true if the collision is against a moveable joint
+    bool collisionHitsMoveableJoint(ModelCollisionInfo& collision) const;
+
     /// \param collisionInfo info about the collision
-    /// \return true if collision affects the Model
-    bool poke(ModelCollisionInfo& collisionInfo);
+    /// Use the collisionInfo to affect the model
+    void  applyCollision(ModelCollisionInfo& collisionInfo);
 
 protected:
 
@@ -229,6 +235,9 @@ private:
     
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
+    
+    QSharedPointer<NetworkGeometry> _baseGeometry;
+    float _lodHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;

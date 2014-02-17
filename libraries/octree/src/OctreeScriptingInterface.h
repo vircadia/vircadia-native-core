@@ -93,6 +93,7 @@ protected:
     JurisdictionListener* _jurisdictionListener;
     bool _managedPacketSender;
     bool _managedJurisdictionListener;
+    bool _initialized;
 };
 
 #endif /* defined(__hifi__OctreeScriptingInterface__) */

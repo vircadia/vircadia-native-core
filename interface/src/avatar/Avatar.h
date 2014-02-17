@@ -128,9 +128,11 @@ public:
 
     float getHeight() const;
 
+    /// \return true if we expect the avatar would move as a result of the collision
+    bool collisionWouldMoveAvatar(ModelCollisionInfo& collision) const;
+
     /// \param collision a data structure for storing info about collisions against Models
-    /// \return true if the collision affects the Avatar models
-    bool poke(ModelCollisionInfo& collision);
+    void applyCollision(ModelCollisionInfo& collision);
 
 public slots:
     void updateCollisionFlags();

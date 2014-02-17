@@ -101,6 +101,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const int STATS_PELS_PER_LINE = 20;
 
+const QString CUSTOM_URL_SCHEME = "hifi:";
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
         QString messageWithNewLine = message + "\n";
@@ -289,6 +291,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
     
     checkVersion();
+    
+    _overlays.init(_glWidget); // do this before scripts load
+
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -677,6 +682,38 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
         _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
+}
+
+bool Application::event(QEvent* event) {
+    
+    // handle custom URL
+    if (event->type() == QEvent::FileOpen) {
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
+            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
+            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                Menu::getInstance()->goToDomain(urlParts[0]);
+                
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[1]);
+                if (urlParts.count() > 2) {
+                    
+                    // location orientation
+                    Menu::getInstance()->goToOrientation(urlParts[2]);
+                }
+            } else if (urlParts.count() == 1) {
+
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[0]);
+            }
+        }
+        
+        return false;
+    }
+    return QApplication::event(event);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -1875,6 +1912,8 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    
 }
 
 void Application::closeMirrorView() {
@@ -2146,15 +2185,6 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
-void Application::updateParticles(float deltaTime) {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateParticles()");
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
-        _cloud.simulate(deltaTime);
-    }
-}
-
 void Application::updateMetavoxels(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMetavoxels()");
@@ -2276,7 +2306,6 @@ void Application::update(float deltaTime) {
     updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     _avatarManager.updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
-    updateParticles(deltaTime); // Simulate particle cloud movements
     updateMetavoxels(deltaTime); // update metavoxels
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -2711,16 +2740,18 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
 
-        //  Draw Cloud Particles
-        if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
-            _cloud.render();
-        }
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+                _voxels.render();
+                
+                // double check that our LOD doesn't need to be auto-adjusted
+                // only adjust if our option is set
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
+                    Menu::getInstance()->autoAdjustLOD(_fps);
+                }
             }
         }
 
@@ -2811,7 +2842,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                      _mouseVoxel.s,
                      _mouseVoxel.s);
 
-            _sharedVoxelSystem.render(true);
+            _sharedVoxelSystem.render();
             glPopMatrix();
         }
     }
@@ -2851,6 +2882,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
+        
+        // render JS/scriptable overlays
+        _overlays.render3D();
     }
 }
 
@@ -2996,6 +3030,8 @@ void Application::displayOverlay() {
     if (_pieMenu.isDisplayed()) {
         _pieMenu.render();
     }
+
+    _overlays.render2D();
 
     glPopMatrix();
 }
@@ -3998,6 +4034,32 @@ void Application::saveScripts() {
     settings->endArray();
 }
 
+void Application::stopAllScripts() {
+    // stops all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+}
+
+void Application::reloadAllScripts() {
+    // remember all the current scripts so we can reload them
+    QStringList reloadList = _activeScripts;
+    // reloads all current running scripts
+    QList<QAction*> scriptActions = Menu::getInstance()->getActiveScriptsMenu()->actions();
+    foreach (QAction* scriptAction, scriptActions) {
+        scriptAction->activate(QAction::Trigger);
+        qDebug() << "stopping script..." << scriptAction->text();
+    }
+    _activeScripts.clear();
+    foreach (QString scriptName, reloadList){
+        qDebug() << "reloading script..." << scriptName;
+        loadScript(scriptName);
+    }
+}
+
 void Application::removeScriptName(const QString& fileNameString) {
   _activeScripts.removeOne(fileNameString);
 }
@@ -4042,11 +4104,13 @@ void Application::loadScript(const QString& fileNameString) {
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
     
     // hook our avatar object into this script engine
-    scriptEngine->setAvatarData( static_cast<Avatar*>(_myAvatar), "MyAvatar");
+    scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
 
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QThread* workerThread = new QThread(this);
 

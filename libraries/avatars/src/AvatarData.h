@@ -52,8 +52,8 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -67,6 +67,7 @@ class AvatarData : public NodeData {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
