@@ -14,8 +14,6 @@
 #include <QFileInfo>
 #include <QDebug>
 
-#include <glm/glm.hpp>
-
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
 const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2@%3.jpg";
