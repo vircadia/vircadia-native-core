@@ -2740,7 +2740,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+                _voxels.render();
+                
+                // double check that our LOD doesn't need to be auto-adjusted
+                // only adjust if our option is set
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
+                    Menu::getInstance()->autoAdjustLOD(_fps);
+                }
             }
         }
 
@@ -2831,7 +2837,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                      _mouseVoxel.s,
                      _mouseVoxel.s);
 
-            _sharedVoxelSystem.render(true);
+            _sharedVoxelSystem.render();
             glPopMatrix();
         }
     }
