@@ -328,7 +328,8 @@ void Hand::render(bool isMine) {
         _buckyBalls.render();
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+        // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
             if (!palm.isActive()) {

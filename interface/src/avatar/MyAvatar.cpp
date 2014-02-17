@@ -480,7 +480,10 @@ void MyAvatar::renderDebugBodyPoints() {
 void MyAvatar::render(bool forceRenderHead) {
 
     // render body
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+        _skeletonModel.renderCollisionProxies(1.f);
+    }
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
         _skeletonModel.renderCollisionProxies(1.f);
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {

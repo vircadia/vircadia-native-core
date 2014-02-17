@@ -160,10 +160,12 @@ void Avatar::render(bool forceRenderHead) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-            _skeletonModel.renderCollisionProxies(1.f);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+            _skeletonModel.renderCollisionProxies(0.7f);
         }
-
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
+            _head.getFaceModel().renderCollisionProxies(0.7f);
+        }
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(forceRenderHead);
         }
