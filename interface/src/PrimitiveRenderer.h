@@ -283,6 +283,7 @@ private:
     /// Add primitive to renderer database.
     ///    Service implementer to provide private override for this method
     ///    in derived class
+    ///    @return primitive id
     ///
     virtual int vAdd(
         Primitive* primitive                    ///< Pointer to primitive

@@ -509,8 +509,10 @@ void PrimitiveRenderer::deconstructElements(
         for (TriElementList::const_iterator it = tris.begin(); it != tris.end(); ++it) {
             const TriElement* tri = *it;
 
-            // Put the tri element index into decon queue
-            _deconstructTriElementIndex.push(tri->id);
+            if (tri->id) {
+                // Put the tri element index into decon queue
+                _deconstructTriElementIndex.push(tri->id);
+            }
         }
     }
 
@@ -522,8 +524,10 @@ void PrimitiveRenderer::deconstructElements(
         for (VertexElementIndexList::const_iterator it = vertexIndexList.begin(); it != vertexIndexList.end(); ++it) {
             int index = *it;
 
-            // Put the vertex element index into the available queue
-            _availableVertexElementIndex.push(index);
+            if (index) {
+                // Put the vertex element index into the available queue
+                _availableVertexElementIndex.push(index);
+            }
         }
     }
 
@@ -633,42 +637,34 @@ int PrimitiveRenderer::vAdd(
     ) {
 
     QMutexLocker lock(&_guard);
-    int index = getAvailablePrimitiveIndex();
-    if (index != 0) {
-        try {
-            // Take ownership of primitive, including responsibility
-            // for destruction
-            _primitives[index] = primitive;
-            _constructPrimitiveIndex.push(index);
-            _cpuMemoryUsage += primitive->getMemoryUsage();
-        } catch(...) {
-            // Qt failed, recycle the index
-            _availablePrimitiveIndex.push(index);
-            index = 0;
-        }
+    int id = getAvailablePrimitiveIndex();
+    if (id != 0) {
+        // Take ownership of primitive, including responsibility
+        // for destruction
+        _primitives[id] = primitive;
+        _constructPrimitiveIndex.push(id);
+        _cpuMemoryUsage += primitive->getMemoryUsage();
     }
-    return index;
+    return id;
 }
 
 void PrimitiveRenderer::vRemove(
-    int index
+    int id
     ) {
 
-    try {
+    if (id != 0) {
         QMutexLocker lock(&_guard);
 
         // Locate and remove the primitive by id in the vector map
-        Primitive* primitive = _primitives[index];
+        Primitive* primitive = _primitives[id];
         if (primitive) {
-            _primitives[index] = 0;
+            _primitives[id] = 0;
             _cpuMemoryUsage -= primitive->getMemoryUsage();
             deconstructElements(primitive);
 
             // Queue the index onto the available primitive stack.
-            _availablePrimitiveIndex.push(index);
+            _availablePrimitiveIndex.push(id);
         }
-    } catch(...) {
-        // Qt failed
     }
 }
 
@@ -681,8 +677,8 @@ void PrimitiveRenderer::vRelease() {
 }
 
 void PrimitiveRenderer::vRender() {
-    int id;
 
+    int id;
     QMutexLocker lock(&_guard);
 
     // Iterate over the set of triangle element array buffer ids scheduled for
