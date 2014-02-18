@@ -62,6 +62,9 @@ public:
     void collideAgainstOurself();
 
 private:
+    void playSlaps(PalmData& palm, Avatar* avatar);
+
+private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
     Hand& operator= (const Hand&);
