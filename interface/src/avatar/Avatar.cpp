@@ -185,12 +185,14 @@ static TextRenderer* textRenderer(TextRendererType type) {
 }
 
 void Avatar::render(bool forceRenderHead) {
-
+    glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+    float lengthToTarget = glm::length(toTarget);
+   
     {
         // glow when moving in the distance
-        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        
         const float GLOW_DISTANCE = 5.0f;
-        Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
+        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE ? 1.0f : 0.0f);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
@@ -217,11 +219,10 @@ void Avatar::render(bool forceRenderHead) {
             glPopMatrix();
         }
     }
-
-    // render display name
+    const float DISPLAYNAME_DISTANCE = 4.0f;
+    setShowDisplayName(lengthToTarget < DISPLAYNAME_DISTANCE);
     renderDisplayName();
     
-
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
@@ -298,22 +299,8 @@ void Avatar::renderDisplayName() {
         return;
     }
        
-    // save opengl state
-    GLboolean isDepthMaskEnabled;
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &isDepthMaskEnabled);
-    GLboolean isLightingEnabled = glIsEnabled(GL_LIGHTING);
-
-    glDepthMask(false);
     glDisable(GL_LIGHTING);
     
-    // save the matrices for later scale correction factor 
-    glm::dmat4 modelViewMatrix;
-    GLdouble projectionMatrix[16];
-    GLint viewportMatrix[4];
-    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix);
-    glGetDoublev(GL_PROJECTION_MATRIX, (GLdouble*)&projectionMatrix);
-    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
-
     glPushMatrix();
     glm::vec3 textPosition = getPosition() + getBodyUpDirection() * (getSkeletonHeight() + getHeadHeight());
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
@@ -326,6 +313,13 @@ void Avatar::renderDisplayName() {
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
     // correction scale needed
+    // save the matrices for later scale correction factor 
+    glm::dmat4 modelViewMatrix;
+    glm::dmat4 projectionMatrix;
+    GLint viewportMatrix[4];
+    Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
+    Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     GLdouble result0[3], result1[3];
 
     glm::dvec3 upVector(modelViewMatrix[1]);
@@ -335,11 +329,11 @@ void Avatar::renderDisplayName() {
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
-        (GLdouble*)&modelViewMatrix, projectionMatrix, viewportMatrix, 
+        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
         &result0[0], &result0[1], &result0[2]);
     success = success && 
         gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
-        (GLdouble*)&modelViewMatrix, projectionMatrix, viewportMatrix, 
+        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
         &result1[0], &result1[1], &result1[2]);
 
     if (success) {
@@ -357,6 +351,10 @@ void Avatar::renderDisplayName() {
         top += border;
         right += border;
 
+        // We are drawing coplanar textures with depth: need the polygon offset
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
+
         glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha);
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
@@ -370,19 +368,16 @@ void Avatar::renderDisplayName() {
                
         QByteArray ba = _displayName.toLocal8Bit();
         const char *text = ba.data();
+        
+        glDisable(GL_POLYGON_OFFSET_FILL);
         textRenderer(DISPLAYNAME)->draw(-_displayNameWidth/2.0, 0, text); 
+     
+
     }
 
     glPopMatrix();
 
-    // restore opengl state
-    if (isLightingEnabled) {
-        glEnable(GL_LIGHTING);
-    }
-    if (isDepthMaskEnabled) {
-        glDepthMask(true);
-    }
-  
+    glEnable(GL_LIGHTING);
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {

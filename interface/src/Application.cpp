@@ -647,6 +647,9 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     }
     glFrustum(left, right, bottom, top, nearVal, farVal);
 
+    // save matrix
+    glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&_projectionMatrix);
+
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -2892,6 +2895,15 @@ void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
     glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
     glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
         translation.z + _viewMatrixTranslation.z);
+}
+
+void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
+    (*modelViewMatrix) =_untranslatedViewMatrix;
+    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
+}
+
+void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
+    *projectionMatrix = _projectionMatrix;
 }
 
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

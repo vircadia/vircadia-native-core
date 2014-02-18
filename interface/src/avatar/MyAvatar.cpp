@@ -670,10 +670,8 @@ void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
                 eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
                     (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
                 _lookAtTargetAvatar = avatarPointer;
-                avatar->setShowDisplayName(true);
                 return;
             } else {
-                avatar->setShowDisplayName(false);
             }
 
         }
