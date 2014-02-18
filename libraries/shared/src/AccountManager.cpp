@@ -31,7 +31,6 @@ AccountManager::AccountManager() :
     _clientIDs(),
     _networkAccessManager(NULL)
 {
-    
     _clientIDs.insert(DEFAULT_NODE_AUTH_URL, DEFAULT_NODE_AUTH_OAUTH_CLIENT_ID);
 }
 
