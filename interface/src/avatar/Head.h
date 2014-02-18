@@ -79,6 +79,8 @@ public:
     float getTweakedPitch() const;
     float getTweakedYaw() const;
     float getTweakedRoll() const;
+
+    void  applyCollision(CollisionInfo& collisionInfo);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
