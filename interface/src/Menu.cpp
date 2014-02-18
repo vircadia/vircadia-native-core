@@ -24,6 +24,7 @@
 #include <QUuid>
 #include <QWindow>
 
+#include <AccountManager.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -742,18 +743,34 @@ void Menu::loginForCurrentDomain() {
 }
 
 void Menu::showLoginForRootURL(const QUrl& rootURL) {
-    QInputDialog loginDialog(Application::getInstance()->getWindow());
+    QDialog loginDialog(Application::getInstance()->getWindow());
     loginDialog.setWindowTitle("Login");
-    loginDialog.setLabelText("Username:");
-    QString username = QString();
-    loginDialog.setTextValue(username);
-    loginDialog.setWindowFlags(Qt::Sheet);
-    loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
+    
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    loginDialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* usernameLineEdit = new QLineEdit();
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Username:", usernameLineEdit);
+    
+    QLineEdit* passwordLineEdit = new QLineEdit();
+    passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    passwordLineEdit->setEchoMode(QLineEdit::Password);
+    form->addRow("Password:", passwordLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
 
     int dialogReturn = loginDialog.exec();
 
-    if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
-        // there has been a username change
+    if (dialogReturn == QDialog::Accepted && !usernameLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
+        // attempt to get an access token given this username and password
+        AccountManager::getInstance().requestAccessToken(rootURL, usernameLineEdit->text(), passwordLineEdit->text());
     }
 
     sendFakeEnterEvent();
@@ -764,9 +781,10 @@ void Menu::editPreferences() {
 
     QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
+    
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
-
+    
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 

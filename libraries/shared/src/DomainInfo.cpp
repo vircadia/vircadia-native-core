@@ -52,7 +52,7 @@ void DomainInfo::setHostname(const QString& hostname) {
         
         // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
         qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
-        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup));
+        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
         
         emit hostnameChanged(_hostname);
     }

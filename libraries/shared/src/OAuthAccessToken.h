@@ -11,11 +11,13 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QDateTime>
+#include <QtCore/QJsonObject>
 
 class OAuthAccessToken : public QObject {
     Q_OBJECT
 public:
     OAuthAccessToken();
+    OAuthAccessToken(const QJsonObject& jsonObject);
     OAuthAccessToken(const OAuthAccessToken& otherToken);
     OAuthAccessToken& operator=(const OAuthAccessToken& otherToken);
     

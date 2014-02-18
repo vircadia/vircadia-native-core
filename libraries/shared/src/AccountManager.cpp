@@ -7,7 +7,11 @@
 //
 
 #include <QtCore/QDataStream>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtCore/QMap>
+#include <QtCore/QUrlQuery>
+#include <QtNetwork/QNetworkRequest>
 
 #include "PacketHeaders.h"
 
@@ -37,4 +41,58 @@ bool AccountManager::hasValidAccessTokenForRootURL(const QUrl &rootURL) {
     } else {
         return true;
     }
+}
+
+const QString OAUTH_CLIENT_ID_FOR_DEFAULT_ROOT_URL = "12b7b18e7b8c118707b84ff0735e57a4473b5b0577c2af44734f02e08d02829c";
+
+void AccountManager::requestAccessToken(const QUrl& rootURL, const QString& username, const QString& password) {
+    if (_networkAccessManager) {
+        QNetworkRequest request;
+        
+        QUrl grantURL = rootURL;
+        grantURL.setPath("/oauth/token");
+        
+        QByteArray postData;
+        postData.append("client_id=12b7b18e7b8c118707b84ff0735e57a4473b5b0577c2af44734f02e08d02829c &");
+        postData.append("grant_type=password&");
+        postData.append("username=" + username + "&");
+        postData.append("password=" + password);
+        
+        request.setUrl(grantURL);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        
+        QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
+        connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
+        connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
+    }
+}
+
+void AccountManager::requestFinished() {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    const QJsonObject& rootObject = jsonResponse.object();
+    
+    if (!rootObject.contains("error")) {
+        // construct an OAuthAccessToken from the json object
+        
+        if (!rootObject.contains("access_token") || !rootObject.contains("expires_in")
+            || !rootObject.contains("token_type")) {
+            // TODO: error handling - malformed token response
+            qDebug() << "Received a response for password grant that is missing one or more expected values.";
+        } else {
+            // clear the path from the response URL so we have the right root URL for this access token
+            QUrl rootURL = requestReply->url();
+            rootURL.setPath("");
+            
+            _accessTokens.insert(requestReply->url(), OAuthAccessToken(rootObject));
+        }
+    } else {
+        // TODO: error handling
+        qDebug() <<  "Error in response for password grant -" << rootObject["error_description"].toString();
+    }
+}
+
+void AccountManager::requestError(QNetworkReply::NetworkError error) {
+    
 }

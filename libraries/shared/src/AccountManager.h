@@ -13,6 +13,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
 
 #include "OAuthAccessToken.h"
 
@@ -23,10 +24,15 @@ public:
     
     bool hasValidAccessTokenForRootURL(const QUrl& rootURL);
     
+    void requestAccessToken(const QUrl& rootURL, const QString& username, const QString& password);
+    
     const QString& getUsername() const { return _username; }
     void setUsername(const QString& username) { _username = username; }
     
     void setNetworkAccessManager(QNetworkAccessManager* networkAccessManager) { _networkAccessManager = networkAccessManager; }
+public slots:
+    void requestFinished();
+    void requestError(QNetworkReply::NetworkError error);
 signals:
     void authenticationRequiredForRootURL(const QUrl& rootURL);
 private:
