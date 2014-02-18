@@ -45,5 +45,6 @@ private:
     TouchState _touchState;
     timeval* _lastReceivedPacket;
 
-#endif /* defined(__hifi__Transmitter__) */
 };
+
+#endif /* defined(__hifi__Transmitter__) */

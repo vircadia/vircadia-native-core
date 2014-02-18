@@ -112,7 +112,7 @@ Menu::Menu() :
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
                                    this,
-                                   SLOT(goToDomain()));
+                                   SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
@@ -169,14 +169,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
-    QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
-
-    QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 0, false, avatar, SLOT(updateCollisionFlags()));
-    // TODO: make this option work
-    //addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 0, false, avatar, SLOT(updateCollisionFlags()));
+    addAvatarCollisionSubMenu(editMenu);
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -346,6 +339,8 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
+    addAvatarCollisionSubMenu(avatarOptionsMenu);
+    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -520,6 +515,11 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
+
+    // MyAvatar caches some menu options, so we have to update them whenever we load settings.
+    // TODO: cache more settings in MyAvatar that are checked with very high frequency.
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    myAvatar->updateCollisionFlags();
 }
 
 void Menu::saveSettings(QSettings* settings) {
@@ -898,7 +898,7 @@ void Menu::goToDomain(const QString newDomain) {
     }
 }
 
-void Menu::goToDomain() {
+void Menu::goToDomainDialog() {
 
     QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
 
@@ -1233,6 +1233,22 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
+void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
+    // add avatar collisions subMenu to overMenu
+    QMenu* subMenu = overMenu->addMenu("Collision Options");
+
+    Application* appInstance = Application::getInstance();
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+}
+
 QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
     int lastIndex;
     lastIndex = string.lastIndexOf(search);
@@ -1243,4 +1259,3 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     
     return string;
 }
-
