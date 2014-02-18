@@ -22,9 +22,10 @@ OAuthAccessToken::OAuthAccessToken() :
 OAuthAccessToken::OAuthAccessToken(const QJsonObject& jsonObject) :
     token(jsonObject["access_token"].toString()),
     refreshToken(jsonObject["refresh_token"].toString()),
+    expiryTimestamp(QDateTime::currentMSecsSinceEpoch() + jsonObject["expires_in"].toInt()),
     tokenType(jsonObject["token_type"].toString())
 {
-    qDebug() << "the refresh token is" << refreshToken;
+    
 }
 
 OAuthAccessToken::OAuthAccessToken(const OAuthAccessToken& otherToken) {
