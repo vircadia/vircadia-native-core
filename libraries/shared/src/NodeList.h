@@ -88,11 +88,10 @@ public:
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainInfo& getDomainInfo() { return _domainInfo; }
     
-    void reset();
-    
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
     void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
+    void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
     int processDomainServerList(const QByteArray& packet);
 
@@ -121,6 +120,8 @@ public:
     void loadData(QSettings* settings);
     void saveData(QSettings* settings);
 public slots:
+    void reset();
+    
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
     void removeSilentNodes();
@@ -130,20 +131,22 @@ signals:
     void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
+
 private:
     static NodeList* _sharedInstance;
 
     NodeList(char ownerType, unsigned short int socketListenPort);
-    ~NodeList();
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void sendSTUNRequest();
     void processSTUNResponse(const QByteArray& packet);
     
-    qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                                   const QUuid& connectionSecret);
+    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+                         const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
+    
+    void clear();
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
@@ -159,10 +162,7 @@ private:
     unsigned int _stunRequestsSinceSuccess;
 
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void resetDomainData(char domainField[], const char* domainData);
-    void domainLookup();
-    void clear();
+    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);    
 };
 
 #endif /* defined(__hifi__NodeList__) */

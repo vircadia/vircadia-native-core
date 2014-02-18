@@ -68,11 +68,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
-}
-
-
-NodeList::~NodeList() {
-    clear();
+    
+    // clear our NodeList when the domain changes
+    connect(&_domainInfo, &DomainInfo::hostnameChanged, this, &NodeList::reset);
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
@@ -87,7 +85,8 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
-        << PacketTypeDomainListRequest << PacketTypeStunResponse << PacketTypeDataServerConfirm
+        << PacketTypeDomainListRequest << PacketTypeDomainServerAuthRequest
+        << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
     
@@ -196,6 +195,18 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
 
             break;
         }
+        case PacketTypeDomainServerAuthRequest: {
+            // the domain-server has asked us to auth via a data-server
+            QDataStream authPacketStream(packet);
+            authPacketStream.skipRawData(numBytesForPacketHeader(packet));
+            
+            QString authenticationHostname;
+            authPacketStream >> authenticationHostname;
+            
+            qDebug() << "Domain server wants us to auth with" << authenticationHostname;
+            
+            break;
+        }
         case PacketTypePing: {
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
@@ -288,10 +299,8 @@ void NodeList::reset() {
     clear();
     _numNoReplyDomainCheckIns = 0;
 
-    _nodeTypesOfInterest.clear();
-
-    // refresh the owner UUID
-    _sessionUUID = QUuid::createUuid();
+    // refresh the owner UUID to the NULL UUID
+    _sessionUUID = QUuid();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
