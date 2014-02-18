@@ -148,6 +148,8 @@ private:
     
     void clear();
 
+    void processDomainServerAuthRequest(const QByteArray& packet);
+
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;

@@ -10,15 +10,33 @@
 #define __hifi__AccountManager__
 
 #include <QtCore/QByteArray>
+#include <QtCore/QObject>
+#include <QtCore/QUrl>
+#include <QtNetwork/QNetworkAccessManager>
 
-class AccountManager {
+#include "OAuthAccessToken.h"
+
+class AccountManager : public QObject {
+    Q_OBJECT
 public:
-    static void processDomainServerAuthRequest(const QByteArray& packet);
+    static AccountManager& getInstance();
     
-    static const QString& getUsername() { return _username; }
-    static void setUsername(const QString& username) { _username = username; }
+    bool hasValidAccessTokenForRootURL(const QUrl& rootURL);
+    
+    const QString& getUsername() const { return _username; }
+    void setUsername(const QString& username) { _username = username; }
+    
+    void setNetworkAccessManager(QNetworkAccessManager* networkAccessManager) { _networkAccessManager = networkAccessManager; }
+signals:
+    void authenticationRequiredForRootURL(const QUrl& rootURL);
 private:
-    static QString _username;
+    AccountManager();
+    AccountManager(AccountManager const& other); // not implemented
+    void operator=(AccountManager const& other); // not implemented
+    
+    QString _username;
+    QMap<QUrl, OAuthAccessToken> _accessTokens;
+    QNetworkAccessManager* _networkAccessManager;
 };
 
 #endif /* defined(__hifi__AccountManager__) */

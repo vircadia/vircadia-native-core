@@ -59,7 +59,7 @@ private:
     
     bool _hasCompletedRestartHold;
     
-    QUrl _nodeAuthenticationHostname;
+    QUrl _nodeAuthenticationURL;
 private slots:
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();

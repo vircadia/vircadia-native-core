@@ -10,9 +10,9 @@
 
 DomainInfo::DomainInfo() :
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _requiresAuthentication(false),
     _connectionSecret(),
-    _registrationToken()
+    _registrationToken(),
+    _rootAuthenticationURL()
 {
     
 }

@@ -7,21 +7,34 @@
 //
 
 #include <QtCore/QDataStream>
+#include <QtCore/QMap>
 
 #include "PacketHeaders.h"
 
 #include "AccountManager.h"
 
-QString AccountManager::_username = "";
+AccountManager& AccountManager::getInstance() {
+    static AccountManager sharedInstance;
+    return sharedInstance;
+}
 
-void AccountManager::processDomainServerAuthRequest(const QByteArray& packet) {
-    QDataStream authPacketStream(packet);
-    authPacketStream.skipRawData(numBytesForPacketHeader(packet));
+AccountManager::AccountManager() :
+    _username(),
+    _accessTokens(),
+    _networkAccessManager(NULL)
+{
     
-    // grab the hostname this domain-server wants us to authenticate with
-    QString authenticationHostname;
-    authPacketStream >> authenticationHostname;
+}
+
+bool AccountManager::hasValidAccessTokenForRootURL(const QUrl &rootURL) {
+    OAuthAccessToken accessToken = _accessTokens.value(rootURL);
     
-    // check if we already have an access token associated with that hostname
-    
+    if (accessToken.token.isEmpty() || accessToken.isExpired()) {
+        // emit a signal so somebody can call back to us and request an access token given a username and password
+        qDebug() << "An access token is required for requests to" << qPrintable(rootURL.toString());
+        emit authenticationRequiredForRootURL(rootURL);
+        return false;
+    } else {
+        return true;
+    }
 }

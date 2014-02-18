@@ -12,8 +12,10 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
+#include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "Logging.h"
@@ -197,7 +199,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypeDomainServerAuthRequest: {
             // the domain-server has asked us to auth via a data-server
-            
+            processDomainServerAuthRequest(packet);
             
             break;
         }
@@ -471,7 +473,7 @@ void NodeList::sendDomainServerCheckIn() {
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else if (!_domainInfo.getIP().isNull()
-               && (!_domainInfo.requiresAuthentication()
+               && (_domainInfo.getRootAuthenticationURL().isEmpty()
                    || !_sessionUUID.isNull()
                    || !_domainInfo.getRegistrationToken().isEmpty()) ) {
         // construct the DS check in packet
@@ -560,6 +562,21 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     pingInactiveNodes();
 
     return readNodes;
+}
+
+void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
+    QDataStream authPacketStream(packet);
+    authPacketStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    // grab the hostname this domain-server wants us to authenticate with
+    QUrl authenticationRootURL;
+    authPacketStream >> authenticationRootURL;
+    
+    _domainInfo.setRootAuthenticationURL(authenticationRootURL);
+    
+    if (AccountManager::getInstance().hasValidAccessTokenForRootURL(authenticationRootURL)) {
+        // request a domain-server registration
+    }
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

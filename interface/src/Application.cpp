@@ -207,6 +207,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     
+    connect(&AccountManager::getInstance(), SIGNAL(authenticationRequiredForRootURL(const QUrl&)),
+            Menu::getInstance(), SLOT(showLoginForRootURL(const QUrl&)));
+    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -4216,6 +4219,5 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, AccountManager::getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, AccountManager::getInstance().getUsername(), _myAvatar->getPosition());
 }
-

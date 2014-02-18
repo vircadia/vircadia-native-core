@@ -76,7 +76,6 @@ public:
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
-
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
@@ -102,6 +101,8 @@ public:
     void goToDomain(const QString newDomain);
 
 public slots:
+    void loginForCurrentDomain();
+    void showLoginForRootURL(const QUrl& rootURL);
     void bandwidthDetails();
     void voxelStatsDetails();
     void lodTools();
@@ -114,7 +115,6 @@ public slots:
 
 private slots:
     void aboutApp();
-    void login();
     void editPreferences();
     void goToDomain();
     void goToLocation();

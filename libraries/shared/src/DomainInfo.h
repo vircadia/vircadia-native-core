@@ -11,6 +11,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUuid>
+#include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
 #include "HifiSockAddr.h"
@@ -34,14 +35,15 @@ public:
     
     unsigned short getPort() const { return _sockAddr.getPort(); }
     
-    bool requiresAuthentication() const { return _requiresAuthentication; }
-    void setRequiresAuthentication(bool requiresAuthentication) { _requiresAuthentication = requiresAuthentication; }
-    
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
     
     const QString& getRegistrationToken() const { return _registrationToken; }
     void setRegistrationToken(const QString& registrationToken);
+    
+    const QUrl& getRootAuthenticationURL() const { return _rootAuthenticationURL; }
+    void setRootAuthenticationURL(const QUrl& rootAuthenticationURL) { _rootAuthenticationURL = rootAuthenticationURL; }
+    
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
 signals:
@@ -49,9 +51,9 @@ signals:
 private:
     QString _hostname;
     HifiSockAddr _sockAddr;
-    bool _requiresAuthentication;
     QUuid _connectionSecret;
     QString _registrationToken;
+    QUrl _rootAuthenticationURL;
 };
 
 #endif /* defined(__hifi__DomainInfo__) */

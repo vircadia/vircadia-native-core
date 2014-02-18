@@ -89,7 +89,7 @@ Menu::Menu() :
                                    MenuOption::Login,
                                    0,
                                    this,
-                                   SLOT(login())));
+                                   SLOT(loginForCurrentDomain())));
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -737,7 +737,11 @@ void sendFakeEnterEvent() {
 const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
-void Menu::login() {
+void Menu::loginForCurrentDomain() {
+    showLoginForRootURL(NodeList::getInstance()->getDomainInfo().getRootAuthenticationURL());
+}
+
+void Menu::showLoginForRootURL(const QUrl& rootURL) {
     QInputDialog loginDialog(Application::getInstance()->getWindow());
     loginDialog.setWindowTitle("Login");
     loginDialog.setLabelText("Username:");
