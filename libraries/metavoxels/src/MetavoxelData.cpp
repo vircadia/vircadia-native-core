@@ -19,6 +19,7 @@ REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(Spanner)
+REGISTER_META_OBJECT(StaticModel)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
@@ -707,7 +708,9 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
     return AttributeValue(visitor.getOutputs().at(index));
 }
 
-Spanner::Spanner() : _lastVisit(0) {
+Spanner::Spanner() :
+    _lastVisit(0),
+    _renderer(NULL) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
@@ -726,3 +729,70 @@ bool Spanner::testAndSetVisited(int visit) {
     return true;
 }
 
+SpannerRenderer* Spanner::getRenderer() {
+    if (!_renderer) {
+        QByteArray className = getRendererClassName();
+        const QMetaObject* metaObject = Bitstream::getMetaObject(className);
+        if (!metaObject) {
+            qDebug() << "Unknown class name:" << className;
+            metaObject = &SpannerRenderer::staticMetaObject;
+        }
+        _renderer = static_cast<SpannerRenderer*>(metaObject->newInstance());
+        _renderer->setParent(this);
+        _renderer->init(this);
+    }
+    return _renderer;
+}
+
+QByteArray Spanner::getRendererClassName() const {
+    return "SpannerRendererer";
+}
+
+SpannerRenderer::SpannerRenderer() {
+}
+
+void SpannerRenderer::init(Spanner* spanner) {
+    // nothing by default
+}
+
+void SpannerRenderer::simulate(float deltaTime) {
+    // nothing by default
+}
+
+void SpannerRenderer::render(float alpha) {
+    // nothing by default
+}
+
+Transformable::Transformable() : _scale(1.0f) {
+}
+
+void Transformable::setTranslation(const glm::vec3& translation) {
+    if (_translation != translation) {
+        emit translationChanged(_translation = translation);
+    }
+}
+
+void Transformable::setRotation(const glm::vec3& rotation) {
+    if (_rotation != rotation) {
+        emit rotationChanged(_rotation = rotation);
+    }
+}
+
+void Transformable::setScale(float scale) {
+    if (_scale != scale) {
+        emit scaleChanged(_scale = scale);
+    }
+}
+
+StaticModel::StaticModel() {
+}
+
+void StaticModel::setURL(const QUrl& url) {
+    if (_url != url) {
+        emit urlChanged(_url = url);
+    }
+}
+
+QByteArray StaticModel::getRendererClassName() const {
+    return "StaticModelRenderer";
+}

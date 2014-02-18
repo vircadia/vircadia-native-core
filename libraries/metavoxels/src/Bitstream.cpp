@@ -81,6 +81,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     return 0;
 }
 
+const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
+    return getMetaObjects().value(className);
+}
+
 QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
     return getMetaObjectSubClasses().values(metaObject);
 }

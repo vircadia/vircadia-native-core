@@ -93,6 +93,7 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nulla
         }
     }
     connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
+    updateType();
 }
 
 void SharedObjectEditor::setObject(const SharedObjectPointer& object) {
@@ -142,6 +143,9 @@ void SharedObjectEditor::updateType() {
     static_cast<QVBoxLayout*>(layout())->addLayout(form);
     for (int i = QObject::staticMetaObject.propertyCount(); i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
+        if (!property.isDesignable()) {
+            continue;
+        }
         if (oldMetaObject && i < oldMetaObject->propertyCount() &&
                 getOwningAncestor(metaObject, i) == getOwningAncestor(oldMetaObject, i)) {
             // copy the state of the shared ancestry

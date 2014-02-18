@@ -2309,6 +2309,9 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
+    
+    // let external parties know we're updating
+    emit simulating(deltaTime);
 }
 
 void Application::updateMyAvatar(float deltaTime) {

@@ -28,6 +28,7 @@ class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 class NetworkValue;
+class SpannerRenderer;
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
@@ -249,11 +250,11 @@ public:
 /// An object that spans multiple octree cells.
 class Spanner : public SharedObject {
     Q_OBJECT
-    Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged)
+    Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
 
 public:
     
-    Q_INVOKABLE Spanner();
+    Spanner();
     
     void setBounds(const Box& bounds);
     const Box& getBounds() const { return _bounds; }
@@ -262,15 +263,95 @@ public:
     /// If we haven't, sets the last visit identifier and returns true.
     bool testAndSetVisited(int visit);
 
+    /// Returns a pointer to the renderer, creating it if necessary.
+    SpannerRenderer* getRenderer();
+
 signals:
 
     void boundsWillChange();
     void boundsChanged(const Box& bounds);
 
+protected:
+    
+    /// Returns the name of the class to instantiate in order to render this spanner.
+    virtual QByteArray getRendererClassName() const;
+
 private:
     
     Box _bounds;
     int _lastVisit; ///< the identifier of the last visit
+    SpannerRenderer* _renderer;
+};
+
+/// Base class for objects that can render spanners.
+class SpannerRenderer : public QObject {
+    Q_OBJECT
+    
+public:
+    
+    Q_INVOKABLE SpannerRenderer();
+    
+    virtual void init(Spanner* spanner);
+    virtual void simulate(float deltaTime);
+    virtual void render(float alpha);
+};
+
+/// An object with a 3D transform.
+class Transformable : public Spanner {
+    Q_OBJECT
+    Q_PROPERTY(glm::vec3 translation MEMBER _translation WRITE setTranslation NOTIFY translationChanged)
+    Q_PROPERTY(glm::vec3 rotation MEMBER _rotation WRITE setRotation NOTIFY rotationChanged)
+    Q_PROPERTY(float scale MEMBER _scale WRITE setScale NOTIFY scaleChanged)
+
+public:
+
+    Transformable();
+
+    void setTranslation(const glm::vec3& translation);
+    const glm::vec3& getTranslation() const { return _translation; }
+    
+    void setRotation(const glm::vec3& rotation);
+    const glm::vec3& getRotation() const { return _rotation; }
+    
+    void setScale(float scale);
+    float getScale() const { return _scale; }
+
+signals:
+
+    void translationChanged(const glm::vec3& translation);
+    void rotationChanged(const glm::vec3& rotation);
+    void scaleChanged(float scale);
+
+private:
+    
+    glm::vec3 _translation;
+    glm::vec3 _rotation;
+    float _scale;
+};
+
+/// A static 3D model loaded from the network.
+class StaticModel : public Transformable {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url MEMBER _url WRITE setURL NOTIFY urlChanged)
+
+public:
+    
+    Q_INVOKABLE StaticModel();
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() const { return _url; }
+
+signals:
+
+    void urlChanged(const QUrl& url);
+
+protected:
+    
+    virtual QByteArray getRendererClassName() const;
+    
+private:
+    
+    QUrl _url;
 };
 
 #endif /* defined(__interface__MetavoxelData__) */

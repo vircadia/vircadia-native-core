@@ -101,6 +101,7 @@ MetavoxelEditor::MetavoxelEditor() :
     
     updateAttributes();
     
+    connect(Application::getInstance(), SIGNAL(simulating(float)), SLOT(simulate(float)));
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
     
     Application::getInstance()->getGLWidget()->installEventFilter(this);
@@ -247,6 +248,13 @@ void MetavoxelEditor::updateTool() {
     _value->setVisible(active && active->getUsesValue());
 }
 
+void MetavoxelEditor::simulate(float deltaTime) {
+    MetavoxelTool* tool = getActiveTool();
+    if (tool) {
+        tool->simulate(deltaTime);
+    }
+}
+
 const float GRID_BRIGHTNESS = 0.5f;
 
 void MetavoxelEditor::render() {
@@ -335,6 +343,10 @@ MetavoxelTool::MetavoxelTool(MetavoxelEditor* editor, const QString& name, bool 
 bool MetavoxelTool::appliesTo(const AttributePointer& attribute) const {
     // shared object sets are a special case
     return !attribute->inherits("SharedObjectSetAttribute");
+}
+
+void MetavoxelTool::simulate(float deltaTime) {
+    // nothing by default
 }
 
 void MetavoxelTool::render() {
@@ -499,6 +511,17 @@ InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
     QPushButton* button = new QPushButton("Insert");
     layout()->addWidget(button);
     connect(button, SIGNAL(clicked()), SLOT(insert()));
+}
+
+void InsertSpannerTool::simulate(float deltaTime) {
+    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
+    static_cast<Spanner*>(spanner.data())->getRenderer()->simulate(deltaTime);
+}
+
+void InsertSpannerTool::render() {
+    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
+    const float SPANNER_ALPHA = 1.0f;
+    static_cast<Spanner*>(spanner.data())->getRenderer()->render(SPANNER_ALPHA);
 }
 
 bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {

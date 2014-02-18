@@ -16,6 +16,9 @@
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
+#include "renderer/Model.h"
+
+REGISTER_META_OBJECT(StaticModelRenderer)
 
 ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
@@ -225,4 +228,48 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             handleMessage(element, in);
         }
     }
+}
+
+StaticModelRenderer::StaticModelRenderer() :
+    _model(new Model(this)) {
+}
+
+void StaticModelRenderer::init(Spanner* spanner) {
+    _model->init();
+    
+    StaticModel* staticModel = static_cast<StaticModel*>(spanner);
+    applyTranslation(staticModel->getTranslation());
+    applyRotation(staticModel->getRotation());
+    applyScale(staticModel->getScale());
+    applyURL(staticModel->getURL());
+    
+    connect(spanner, SIGNAL(translationChanged(const glm::vec3&)), SLOT(applyTranslation(const glm::vec3&)));
+    connect(spanner, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(applyRotation(const glm::vec3&)));
+    connect(spanner, SIGNAL(scaleChanged(float)), SLOT(applyScale(float)));
+    connect(spanner, SIGNAL(urlChanged(const QUrl&)), SLOT(applyURL(const QUrl&)));
+}
+
+void StaticModelRenderer::simulate(float deltaTime) {
+    _model->simulate(deltaTime);
+}
+
+void StaticModelRenderer::render(float alpha) {
+    _model->render(alpha);
+}
+
+void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
+    _model->setTranslation(translation);
+}
+
+void StaticModelRenderer::applyRotation(const glm::vec3& rotation) {
+    _model->setRotation(glm::quat(glm::radians(rotation)));
+}
+
+void StaticModelRenderer::applyScale(float scale) {
+    const float SCALE_MULTIPLIER = 0.0006f;
+    _model->setScale(glm::vec3(scale, scale, scale) * SCALE_MULTIPLIER);
+}
+
+void StaticModelRenderer::applyURL(const QUrl& url) {
+    _model->setURL(url);
 }

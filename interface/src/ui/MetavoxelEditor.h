@@ -50,6 +50,7 @@ private slots:
     void alignGridPosition();
     void updateTool();
     
+    void simulate(float deltaTime);
     void render();
     
 private:
@@ -85,6 +86,8 @@ public:
     bool getUsesValue() const { return _usesValue; }
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+    virtual void simulate(float deltaTime);
     
     /// Renders the tool's interface, if any.
     virtual void render();
@@ -142,6 +145,10 @@ class InsertSpannerTool : public MetavoxelTool {
 public:
     
     InsertSpannerTool(MetavoxelEditor* editor);
+
+    virtual void simulate(float deltaTime);
+
+    virtual void render();
 
     virtual bool appliesTo(const AttributePointer& attribute) const;
 

@@ -196,6 +196,9 @@ public:
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
+    /// Returns the meta-object registered under the supplied class name, if any.
+    static const QMetaObject* getMetaObject(const QByteArray& className);
+
     /// Returns the list of registered subclasses for the supplied meta-object.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 

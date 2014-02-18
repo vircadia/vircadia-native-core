@@ -23,6 +23,8 @@
 
 #include "renderer/ProgramObject.h"
 
+class Model;
+
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public QObject {
     Q_OBJECT
@@ -108,6 +110,30 @@ private:
     MetavoxelData _data;
     
     QList<ReceiveRecord> _receiveRecords;
+};
+
+/// Renders static models.
+class StaticModelRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE StaticModelRenderer();
+    
+    virtual void init(Spanner* spanner);
+    virtual void simulate(float deltaTime);
+    virtual void render(float alpha);
+
+private slots:
+
+    void applyTranslation(const glm::vec3& translation);
+    void applyRotation(const glm::vec3& rotation);
+    void applyScale(float scale);
+    void applyURL(const QUrl& url);
+
+private:
+    
+    Model* _model;
 };
 
 #endif /* defined(__interface__MetavoxelSystem__) */
