@@ -739,10 +739,6 @@ const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
 void Menu::loginForCurrentDomain() {
-    showLoginForRootURL(NodeList::getInstance()->getDomainInfo().getRootAuthenticationURL());
-}
-
-void Menu::showLoginForRootURL(const QUrl& rootURL) {
     QDialog loginDialog(Application::getInstance()->getWindow());
     loginDialog.setWindowTitle("Login");
     
@@ -765,14 +761,14 @@ void Menu::showLoginForRootURL(const QUrl& rootURL) {
     loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     layout->addWidget(buttons);
-
+    
     int dialogReturn = loginDialog.exec();
-
+    
     if (dialogReturn == QDialog::Accepted && !usernameLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
         // attempt to get an access token given this username and password
-        AccountManager::getInstance().requestAccessToken(rootURL, usernameLineEdit->text(), passwordLineEdit->text());
+        AccountManager::getInstance().requestAccessToken(usernameLineEdit->text(), passwordLineEdit->text());
     }
-
+    
     sendFakeEnterEvent();
 }
 

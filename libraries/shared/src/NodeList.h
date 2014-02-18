@@ -130,7 +130,8 @@ signals:
     void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
-
+private slots:
+    void domainServerAuthReply();
 private:
     static NodeList* _sharedInstance;
 

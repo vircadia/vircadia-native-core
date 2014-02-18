@@ -70,6 +70,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
     
+    // create a random UUID for this session for the domain-server
+    nodeList->setSessionUUID(QUuid::createUuid());
+    
     connect(nodeList, &NodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &DomainServer::nodeKilled);
 

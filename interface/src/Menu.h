@@ -102,7 +102,6 @@ public:
 
 public slots:
     void loginForCurrentDomain();
-    void showLoginForRootURL(const QUrl& rootURL);
     void bandwidthDetails();
     void voxelStatsDetails();
     void lodTools();

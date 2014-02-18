@@ -22,10 +22,16 @@ class AccountManager : public QObject {
 public:
     static AccountManager& getInstance();
     
-    bool hasValidAccessTokenForRootURL(const QUrl& rootURL);
-    bool checkAndSignalForAccessTokenForRootURL(const QUrl& rootURL);
+    void authenticatedGetRequest(const QString& path,
+                                 const QObject* successReceiver, const char* successMethod,
+                                 const QObject* errorReceiver = 0, const char* errorMethod = NULL);
     
-    void requestAccessToken(const QUrl& rootURL, const QString& username, const QString& password);
+    void setRootURL(const QUrl& rootURL) { _rootURL = rootURL; }
+    
+    bool hasValidAccessToken();
+    bool checkAndSignalForAccessToken();
+    
+    void requestAccessToken(const QString& username, const QString& password);
     
     const QString& getUsername() const { return _username; }
     void setUsername(const QString& username) { _username = username; }
@@ -35,16 +41,18 @@ public slots:
     void requestFinished();
     void requestError(QNetworkReply::NetworkError error);
 signals:
-    void authenticationRequiredForRootURL(const QUrl& rootURL);
+    void authenticationRequired();
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
     void operator=(AccountManager const& other); // not implemented
     
+    QUrl _rootURL;
     QString _username;
-    QMap<QUrl, OAuthAccessToken> _accessTokens;
-    QMap<QUrl, QString> _clientIDs;
     QNetworkAccessManager* _networkAccessManager;
+    
+    static QMap<QUrl, OAuthAccessToken> _accessTokens;
+    static QMap<QUrl, QString> _clientIDs;
 };
 
 #endif /* defined(__hifi__AccountManager__) */

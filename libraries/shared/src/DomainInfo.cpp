@@ -6,23 +6,35 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QJsonObject>
+
 #include "DomainInfo.h"
 
 DomainInfo::DomainInfo() :
+    _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _connectionSecret(),
     _registrationToken(),
-    _rootAuthenticationURL()
+    _rootAuthenticationURL(),
+    _publicKey()
 {
     
 }
 
 void DomainInfo::reset() {
+    _uuid = QUuid();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
     _connectionSecret = QString();
     _registrationToken =  QString();
     _rootAuthenticationURL = QUrl();
+    _publicKey = QString();
+}
+
+void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
+    _connectionSecret = QUuid(jsonObject["connection_uuid"].toString());
+    _registrationToken = jsonObject["registration_token"].toString();
+    _publicKey = jsonObject["public_key"].toString();
 }
 
 void DomainInfo::setHostname(const QString& hostname) {

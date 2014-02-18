@@ -24,6 +24,11 @@ class DomainInfo : public QObject {
 public:
     DomainInfo();
     
+    void parseAuthInformationFromJsonObject(const QJsonObject& jsonObject);
+    
+    const QUuid& getUUID() const { return _uuid; }
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
+
     const QString& getHostname() const { return _hostname; }
     void setHostname(const QString& hostname);
     
@@ -51,11 +56,13 @@ signals:
 private:
     void reset();
     
+    QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _connectionSecret;
     QString _registrationToken;
     QUrl _rootAuthenticationURL;
+    QString _publicKey;
 };
 
 #endif /* defined(__hifi__DomainInfo__) */

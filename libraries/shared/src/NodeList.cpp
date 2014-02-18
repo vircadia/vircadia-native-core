@@ -12,6 +12,7 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
@@ -508,7 +509,7 @@ void NodeList::sendDomainServerCheckIn() {
             // increment the count of un-replied check-ins
             _numNoReplyDomainCheckIns++;
         } else if (!_domainInfo.getRootAuthenticationURL().isEmpty() && _sessionUUID.isNull()
-                   && AccountManager::getInstance().hasValidAccessTokenForRootURL(_domainInfo.getRootAuthenticationURL())) {
+                   && AccountManager::getInstance().hasValidAccessToken()) {
             // we have an access token we can use for the authentication server the domain-server requested
             // so ask that server to provide us with information to connect to the domain-server
             requestAuthForDomainServer();
@@ -571,21 +572,34 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     return readNodes;
 }
 
-void NodeList::requestAuthForDomainServer() {
+void NodeList::domainServerAuthReply() {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
     
+    _domainInfo.parseAuthInformationFromJsonObject(jsonResponse.object());
+}
+
+void NodeList::requestAuthForDomainServer() {
+    AccountManager::getInstance().authenticatedGetRequest("/api/v1/domains/"
+                                                          + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
+                                                          this, SLOT(domainServerAuthReply()));
 }
 
 void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
     QDataStream authPacketStream(packet);
     authPacketStream.skipRawData(numBytesForPacketHeader(packet));
     
+    _domainInfo.setUUID(uuidFromPacketHeader(packet));
+    AccountManager& accountManager = AccountManager::getInstance();
+
     // grab the hostname this domain-server wants us to authenticate with
     QUrl authenticationRootURL;
     authPacketStream >> authenticationRootURL;
     
+    accountManager.setRootURL(authenticationRootURL);
     _domainInfo.setRootAuthenticationURL(authenticationRootURL);
     
-    if (AccountManager::getInstance().checkAndSignalForAccessTokenForRootURL(authenticationRootURL)) {
+    if (AccountManager::getInstance().checkAndSignalForAccessToken()) {
         // request a domain-server auth
         requestAuthForDomainServer();
     }

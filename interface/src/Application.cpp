@@ -207,8 +207,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
     
-    connect(&AccountManager::getInstance(), SIGNAL(authenticationRequiredForRootURL(const QUrl&)),
-            Menu::getInstance(), SLOT(showLoginForRootURL(const QUrl&)));
+    connect(&AccountManager::getInstance(), SIGNAL(authenticationRequired()),
+            Menu::getInstance(), SLOT(loginForCurrentDomain()));
     
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);

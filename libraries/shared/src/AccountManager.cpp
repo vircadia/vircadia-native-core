@@ -18,6 +18,9 @@
 
 #include "AccountManager.h"
 
+QMap<QUrl, OAuthAccessToken> AccountManager::_accessTokens = QMap<QUrl, OAuthAccessToken>();
+QMap<QUrl, QString> AccountManager::_clientIDs = QMap<QUrl, QString>();
+
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
     return sharedInstance;
@@ -26,42 +29,67 @@ AccountManager& AccountManager::getInstance() {
 const QString DEFAULT_NODE_AUTH_OAUTH_CLIENT_ID = "12b7b18e7b8c118707b84ff0735e57a4473b5b0577c2af44734f02e08d02829c";
 
 AccountManager::AccountManager() :
+    _rootURL(),
     _username(),
-    _accessTokens(),
-    _clientIDs(),
     _networkAccessManager(NULL)
 {
     _clientIDs.insert(DEFAULT_NODE_AUTH_URL, DEFAULT_NODE_AUTH_OAUTH_CLIENT_ID);
 }
 
-bool AccountManager::hasValidAccessTokenForRootURL(const QUrl &rootURL) {
-    OAuthAccessToken accessToken = _accessTokens.value(rootURL);
+void AccountManager::authenticatedGetRequest(const QString& path, const QObject *successReceiver, const char *successMethod,
+                                             const QObject* errorReceiver, const char* errorMethod) {
+    if (_networkAccessManager && hasValidAccessToken()) {
+        QNetworkRequest authenticatedRequest;
+        
+        QUrl requestURL = _rootURL;
+        requestURL.setPath(path);
+        requestURL.setQuery("access_token=" + _accessTokens.value(_rootURL).token);
+        
+        authenticatedRequest.setUrl(requestURL);
+        
+        qDebug() << "Making an authenticated GET request to" << requestURL;
+        
+        QNetworkReply* networkReply = _networkAccessManager->get(authenticatedRequest);
+        connect(networkReply, SIGNAL(finished()), successReceiver, successMethod);
+        
+        if (errorReceiver && errorMethod) {
+            connect(networkReply, SIGNAL(error()), errorReceiver, errorMethod);
+        }
+    }
+}
+
+bool AccountManager::hasValidAccessToken() {
+    OAuthAccessToken accessToken = _accessTokens.value(_rootURL);
     
     if (accessToken.token.isEmpty() || accessToken.isExpired()) {
-        qDebug() << "An access token is required for requests to" << qPrintable(rootURL.toString());
+        qDebug() << "An access token is required for requests to" << qPrintable(_rootURL.toString());
         return false;
     } else {
         return true;
     }
 }
 
-bool AccountManager::checkAndSignalForAccessTokenForRootURL(const QUrl& rootURL) {
-    if (!hasValidAccessTokenForRootURL(rootURL)) {
+bool AccountManager::checkAndSignalForAccessToken() {
+    bool hasToken = hasValidAccessToken();
+    
+    if (!hasToken) {
         // emit a signal so somebody can call back to us and request an access token given a username and password
-        emit authenticationRequiredForRootURL(rootURL);
+        emit authenticationRequired();
     }
+    
+    return hasToken;
 }
 
-void AccountManager::requestAccessToken(const QUrl& rootURL, const QString& username, const QString& password) {
+void AccountManager::requestAccessToken(const QString& username, const QString& password) {
     if (_networkAccessManager) {
-        if (_clientIDs.contains(rootURL)) {
+        if (_clientIDs.contains(_rootURL)) {
             QNetworkRequest request;
             
-            QUrl grantURL = rootURL;
+            QUrl grantURL = _rootURL;
             grantURL.setPath("/oauth/token");
             
             QByteArray postData;
-            postData.append("client_id=" + _clientIDs.value(rootURL) + "&");
+            postData.append("client_id=" + _clientIDs.value(_rootURL) + "&");
             postData.append("grant_type=password&");
             postData.append("username=" + username + "&");
             postData.append("password=" + password);
@@ -73,7 +101,7 @@ void AccountManager::requestAccessToken(const QUrl& rootURL, const QString& user
             connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
             connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
         } else {
-            qDebug() << "Client ID for OAuth authorization at" << rootURL.toString() << "is unknown. Cannot authenticate.";
+            qDebug() << "Client ID for OAuth authorization at" << _rootURL.toString() << "is unknown. Cannot authenticate.";
         }
     }
 }
@@ -96,7 +124,9 @@ void AccountManager::requestFinished() {
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             
-            _accessTokens.insert(requestReply->url(), OAuthAccessToken(rootObject));
+            qDebug() << "Storing an access token for" << rootURL;
+            
+            _accessTokens.insert(rootURL, OAuthAccessToken(rootObject));
         }
     } else {
         // TODO: error handling
@@ -105,5 +135,6 @@ void AccountManager::requestFinished() {
 }
 
 void AccountManager::requestError(QNetworkReply::NetworkError error) {
-    
+    // TODO: error handling
+    qDebug() << "AccountManager requestError - " << error;
 }
