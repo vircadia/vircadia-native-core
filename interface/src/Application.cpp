@@ -200,7 +200,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     audioThread->start();
 
-    connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
@@ -3829,7 +3829,7 @@ void Application::updateWindowTitle(){
     NodeList* nodeList = NodeList::getInstance();
     
     QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainHostname() + buildVersion;
+        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);

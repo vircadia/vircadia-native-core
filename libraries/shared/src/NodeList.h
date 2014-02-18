@@ -28,6 +28,7 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
+#include "DomainInfo.h"
 #include "Node.h"
 
 const quint64 NODE_SILENCE_THRESHOLD_USECS = 2 * 1000 * 1000;
@@ -67,16 +68,6 @@ public:
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    const QString& getDomainHostname() const { return _domainHostname; }
-    void setDomainHostname(const QString& domainHostname);
-
-    const QHostAddress& getDomainIP() const { return _domainSockAddr.getAddress(); }
-    void setDomainIPToLocalhost() { _domainSockAddr.setAddress(QHostAddress(INADDR_LOOPBACK)); }
-
-    void setDomainSockAddr(const HifiSockAddr& domainSockAddr) { _domainSockAddr = domainSockAddr; }
-
-    unsigned short getDomainPort() const { return _domainSockAddr.getPort(); }
-
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
@@ -95,7 +86,8 @@ public:
     int size() const { return _nodeHash.size(); }
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
-
+    DomainInfo& getDomainInfo() { return _domainInfo; }
+    
     void reset();
     
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
@@ -135,7 +127,6 @@ public slots:
     
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
-    void domainChanged(const QString& domainHostname);
     void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
@@ -153,11 +144,10 @@ private:
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;
-    QString _domainHostname;
-    HifiSockAddr _domainSockAddr;
     QUdpSocket _nodeSocket;
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
+    DomainInfo _domainInfo;
     QUuid _sessionUUID;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;

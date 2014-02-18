@@ -29,7 +29,7 @@ Profile::Profile(const QString &username) :
         DataServerClient::getValueForKeyAndUserString(DataServerKey::UUID, getUserString(), this);
         
         // send our current domain server to the data-server
-        updateDomain(NodeList::getInstance()->getDomainHostname());
+        updateDomain(NodeList::getInstance()->getDomainInfo().getHostname());
     }
 }
 
@@ -138,7 +138,7 @@ void Profile::processDataServerResponse(const QString& userString, const QString
                         ", and orientation to" << valueList[i + 2].toLocal8Bit().constData() <<
                         "to go to" << userString;
                     
-                    NodeList::getInstance()->setDomainHostname(valueList[i]);
+                    NodeList::getInstance()->getDomainInfo().setHostname(valueList[i]);
                     // orient the user to face the target
                     glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                                 orientationItems[1].toFloat(),

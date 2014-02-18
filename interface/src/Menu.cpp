@@ -887,23 +887,23 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain(const QString newDomain) {
-    if (NodeList::getInstance()->getDomainHostname() != newDomain) {
+    if (NodeList::getInstance()->getDomainInfo().getHostname() != newDomain) {
         
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
         Application::getInstance()->getAvatar()->sendKillAvatar();
         
         // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->setDomainHostname(newDomain);
+        NodeList::getInstance()->getDomainInfo().setHostname(newDomain);
     }
 }
 
 void Menu::goToDomain() {
 
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
+    QString currentDomainHostname = NodeList::getInstance()->getDomainInfo().getHostname();
 
-    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+    if (NodeList::getInstance()->getDomainInfo().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
         // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainInfo().getPort()));
     }
 
     QInputDialog domainDialog(Application::getInstance()->getWindow());

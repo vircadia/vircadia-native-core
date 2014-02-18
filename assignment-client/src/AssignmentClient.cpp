@@ -120,10 +120,10 @@ void AssignmentClient::readPendingDatagrams() {
                     
                     // switch our nodelist domain IP and port to whoever sent us the assignment
                     
-                    nodeList->setDomainSockAddr(senderSockAddr);
+                    nodeList->getDomainInfo().setSockAddr(senderSockAddr);
                     nodeList->setSessionUUID(_currentAssignment->getUUID());
                     
-                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainIP().toString();
+                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainInfo().getIP().toString();
                     
                     // start the deployed assignment
                     QThread* workerThread = new QThread(this);
