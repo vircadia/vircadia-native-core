@@ -23,7 +23,6 @@ OctreeScriptingInterface::OctreeScriptingInterface(OctreeEditPacketSender* packe
 }
 
 OctreeScriptingInterface::~OctreeScriptingInterface() {
-qDebug() << "OctreeScriptingInterface::~OctreeScriptingInterface() this=" << this;
     cleanupManagedObjects();
 }
 

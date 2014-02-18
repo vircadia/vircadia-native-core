@@ -70,7 +70,8 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
-    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
+    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
+    _lastAdjust(usecTimestampNow())
 {
     Application *appInstance = Application::getInstance();
 
@@ -168,14 +169,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
-    QMenu* collisionsOptionsMenu = editMenu->addMenu("Collision Options");
-
-    QObject* avatar = appInstance->getAvatar();
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithEnvironment, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithAvatars, 0, false, avatar, SLOT(updateCollisionFlags()));
-    addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithVoxels, 0, false, avatar, SLOT(updateCollisionFlags()));
-    // TODO: make this option work
-    //addCheckableActionToQMenuAndActionHash(collisionsOptionsMenu, MenuOption::CollideWithParticles, 0, false, avatar, SLOT(updateCollisionFlags()));
+    addAvatarCollisionSubMenu(editMenu);
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -318,6 +312,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
@@ -343,6 +338,8 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
+    addAvatarCollisionSubMenu(avatarOptionsMenu);
+    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -517,6 +514,11 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
+
+    // MyAvatar caches some menu options, so we have to update them whenever we load settings.
+    // TODO: cache more settings in MyAvatar that are checked with very high frequency.
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    myAvatar->updateCollisionFlags();
 }
 
 void Menu::saveSettings(QSettings* settings) {
@@ -1117,14 +1119,38 @@ void Menu::voxelStatsDetailsClosed() {
     }
 }
 
+void Menu::autoAdjustLOD(float currentFPS) {
+    bool changed = false;
+    quint64 now = usecTimestampNow();
+    quint64 elapsed = now - _lastAdjust;
+    
+    if (elapsed > ADJUST_LOD_DOWN_DELAY && currentFPS < ADJUST_LOD_DOWN_FPS && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD down... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+
+    if (elapsed > ADJUST_LOD_UP_DELAY && currentFPS > ADJUST_LOD_UP_FPS && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+        _voxelSizeScale *= ADJUST_LOD_UP_BY;
+        changed = true;
+        _lastAdjust = now;
+        qDebug() << "adjusting LOD up... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+    }
+    
+    if (changed) {
+        if (_lodToolsDialog) {
+            _lodToolsDialog->reloadSliders();
+        }
+    }
+}
+
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::lodTools() {
@@ -1206,6 +1232,22 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
+void Menu::addAvatarCollisionSubMenu(QMenu* overMenu) {
+    // add avatar collisions subMenu to overMenu
+    QMenu* subMenu = overMenu->addMenu("Collision Options");
+
+    Application* appInstance = Application::getInstance();
+    QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithEnvironment, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithAvatars, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithVoxels, 
+            0, false, avatar, SLOT(updateCollisionFlags()));
+    addCheckableActionToQMenuAndActionHash(subMenu, MenuOption::CollideWithParticles, 
+            0, true, avatar, SLOT(updateCollisionFlags()));
+}
+
 QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string) {
     int lastIndex;
     lastIndex = string.lastIndexOf(search);
@@ -1216,4 +1258,3 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     
     return string;
 }
-
