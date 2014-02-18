@@ -12,7 +12,6 @@
 
 #include <QDateTime>
 #include <QFileInfo>
-#include <QDebug>
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
