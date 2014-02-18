@@ -1542,15 +1542,17 @@ bool VoxelSystem::inspectForInteriorOcclusionsOperation(OctreeElement* element, 
                                                 exteriorOcclusionsB;
 
                     // Determine which face of each sibling is occluded.
-                    // Note the intentionally crossed indicies. It is necessary because
-                    // the _sOctantIndexToBitMask is a partition occupancy mask. For
+  
+                    // The _sOctantIndexToBitMask is a partition occupancy mask. For
                     // example, if the near-left-top (NLT) and near-left-bottom (NLB) child voxels
                     // exist, the shared partition is top-bottom (TB), and thus the occluded
                     // shared face of the NLT voxel is its bottom face.
-                    occludedSharedFace[i] |= (partitionB & _sOctantIndexToBitMask[j]);
-                    occludedSharedFace[j] |= (partitionA & _sOctantIndexToBitMask[i]);
+                    occludedSharedFace[i] |= (partitionB & _sOctantIndexToBitMask[i]);
+                    occludedSharedFace[j] |= (partitionA & _sOctantIndexToBitMask[j]);
                 }
             }
+            // Exchange bit pairs, left to right, vice versa, etc.
+            occludedSharedFace[i] = _sSwizzledOcclusionBits[occludedSharedFace[i]];
             // Combine this voxel's interior excluded shared face only to those children which are coincident
             // with the excluded face.
             occludedSharedFace[i] |= (voxel->getInteriorOcclusions() & _sOctantIndexToBitMask[i]);
@@ -1669,16 +1671,10 @@ void VoxelSystem::cullSharedFaces() {
         _useVoxelShader = false;
         _usePrimitiveRenderer = true;
         clearAllNodesBufferIndex();
-        if (_renderer) {
-            _renderer->release();
-        }
         inspectForOcclusions();
     } else {
         _usePrimitiveRenderer = false;
         clearAllNodesBufferIndex();
-        if (_renderer) {
-            _renderer->release();
-        }
         clearAllOcclusions();
     }
 }
@@ -1693,6 +1689,9 @@ void VoxelSystem::showCulledSharedFaces() {
     }
     _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
+        if (_renderer) {
+            _renderer->release();
+        }
         _writeRenderFullVBO = true;
         _tree->setDirtyBit();
         setupNewVoxelsForDrawing();
@@ -1711,6 +1710,10 @@ void VoxelSystem::clearAllOcclusions() {
     PerformanceWarning warn(showDebugDetails, "clearAllOcclusions()");
 
     _tree->lockForRead();
+    if (_renderer) {
+        _renderer->release();
+    }
+        
     _tree->recurseTreeWithOperation(clearAllOcclusionsOperation);
     _tree->unlock();
 
@@ -1736,15 +1739,19 @@ void VoxelSystem::inspectForOcclusions() {
     PerformanceWarning warn(showDebugDetails, "inspectForOcclusions()");
 
     _tree->lockForRead();
+    if (_renderer) {
+        _renderer->release();
+    }
+        
     _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
     _tree->unlock();
 
-     if (showDebugDetails) {
+    if (showDebugDetails) {
         qDebug("inspecting all occlusions of %d nodes", _nodeCount);
     }
-   _writeRenderFullVBO = true;
+    _writeRenderFullVBO = true;
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
     _inOcclusions = false;
@@ -3126,6 +3133,74 @@ unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
     unsigned long currentFreeMemory = getFreeMemoryGPU();
     return (_initialMemoryUsageGPU - currentFreeMemory);
 }
+
+// Swizzle value of bit pairs of the value of index
+unsigned short VoxelSystem::_sSwizzledOcclusionBits[64] = {
+    0x0000, // 00000000
+    0x0002, // 00000001
+    0x0001, // 00000010
+    0x0003, // 00000011
+    0x0008, // 00000100
+    0x000a, // 00000101
+    0x0009, // 00000110
+    0x000b, // 00000111
+    0x0004, // 00001000
+    0x0006, // 00001001
+    0x0005, // 00001010
+    0x0007, // 00001011
+    0x000c, // 00001100
+    0x000e, // 00001101
+    0x000d, // 00001110
+    0x000f, // 00001111
+    0x0020, // 00010000
+    0x0022, // 00010001
+    0x0021, // 00010010
+    0x0023, // 00010011
+    0x0028, // 00010100
+    0x002a, // 00010101
+    0x0029, // 00010110
+    0x002b, // 00010111
+    0x0024, // 00011000
+    0x0026, // 00011001
+    0x0025, // 00011010
+    0x0027, // 00011011
+    0x002c, // 00011100
+    0x002e, // 00011101
+    0x002d, // 00011110
+    0x002f, // 00011111
+    0x0010, // 00100000
+    0x0012, // 00100001
+    0x0011, // 00100010
+    0x0013, // 00100011
+    0x0018, // 00100100
+    0x001a, // 00100101
+    0x0019, // 00100110
+    0x001b, // 00100111
+    0x0014, // 00101000
+    0x0016, // 00101001
+    0x0015, // 00101010
+    0x0017, // 00101011
+    0x001c, // 00101100
+    0x001e, // 00101101
+    0x001d, // 00101110
+    0x001f, // 00101111
+    0x0030, // 00110000
+    0x0032, // 00110001
+    0x0031, // 00110010
+    0x0033, // 00110011
+    0x0038, // 00110100
+    0x003a, // 00110101
+    0x0039, // 00110110
+    0x003b, // 00110111
+    0x0034, // 00111000
+    0x0036, // 00111001
+    0x0035, // 00111010
+    0x0037, // 00111011
+    0x003c, // 00111100
+    0x003e, // 00111101
+    0x003d, // 00111110
+    0x003f, // 00111111
+};
 
 // Octant bitmask array indexed by octant. The mask value indicates the octant's halfspace partitioning. The index
 // value corresponds to the voxel's octal code derived in "pointToVoxel" in SharedUtil.cpp, which, BTW, does *not*

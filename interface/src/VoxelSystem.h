@@ -316,6 +316,7 @@ private:
 
     static const int _sNumOctantsPerHemiVoxel = 4;
     static int _sCorrectedChildIndex[8];
+    static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
     static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
     static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
 
