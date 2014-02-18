@@ -17,7 +17,6 @@
 
 #include "Application.h"
 #include "Audio.h"
-#include "DataServerClient.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "MyAvatar.h"

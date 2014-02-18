@@ -13,6 +13,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QQueue>
 #include <QtCore/QSharedPointer>
+#include <QtCore/QUrl>
 
 #include <Assignment.h>
 #include <HTTPManager.h>
@@ -58,7 +59,7 @@ private:
     
     bool _hasCompletedRestartHold;
     
-    QString _nodeAuthenticationHostname;
+    QUrl _nodeAuthenticationHostname;
 private slots:
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();

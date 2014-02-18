@@ -14,7 +14,6 @@
 #include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
-#include <DataServerClient.h>
 
 #include "Avatar.h"
 

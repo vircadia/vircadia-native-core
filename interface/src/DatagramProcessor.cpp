@@ -114,12 +114,6 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDataServerGet:
-                case PacketTypeDataServerPut:
-                case PacketTypeDataServerSend:
-                case PacketTypeDataServerConfirm:
-                    DataServerClient::processMessageFromDataServer(incomingPacket);
-                    break;
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;

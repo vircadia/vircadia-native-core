@@ -197,13 +197,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypeDomainServerAuthRequest: {
             // the domain-server has asked us to auth via a data-server
-            QDataStream authPacketStream(packet);
-            authPacketStream.skipRawData(numBytesForPacketHeader(packet));
             
-            QString authenticationHostname;
-            authPacketStream >> authenticationHostname;
-            
-            qDebug() << "Domain server wants us to auth with" << authenticationHostname;
             
             break;
         }

@@ -49,6 +49,7 @@
 #include <QXmlStreamAttributes>
 #include <QMediaPlayer>
 
+#include <AccountManager.h>
 #include <AudioInjector.h>
 #include <Logging.h>
 #include <OctalCode.h>
@@ -60,7 +61,6 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
-#include "DataServerClient.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -125,7 +125,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _myAvatar(),
-        _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -648,13 +647,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     glFrustum(left, right, bottom, top, nearVal, farVal);
 
     glMatrixMode(GL_MODELVIEW);
-}
-
-void Application::resetProfile(const QString& username) {
-    // call the destructor on the old profile and construct a new one
-    (&_profile)->~Profile();
-    new (&_profile) Profile(username);
-    updateWindowTitle();
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
@@ -1443,13 +1435,6 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
-    
-    // send unmatched DataServerClient packets
-    DataServerClient::resendUnmatchedPackets();
-
-    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
-    _profile.updatePosition(_myAvatar->getPosition());
-    _profile.updateOrientation(_myAvatar->getOrientation());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -3828,7 +3813,7 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
     
-    QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
+    QString title = QString() + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
 
     qDebug("Application title set to: %s", title.toStdString().c_str());
@@ -3836,9 +3821,6 @@ void Application::updateWindowTitle(){
 }
 
 void Application::domainChanged(const QString& domainHostname) {
-    // update the user's last domain in their Profile (which will propagate to data-server)
-    _profile.updateDomain(domainHostname);
-
     updateWindowTitle();
 
     // reset the environment so that we don't erroneously end up with multiple
@@ -4234,6 +4216,6 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, AccountManager::getUsername(), _myAvatar->getPosition());
 }
 

@@ -33,7 +33,7 @@ const char* METAVOXEL_SERVER_CONFIG = "metavoxelServerConfig";
 
 const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
-const QString DEFAULT_NODE_AUTH_HOSTNAME = "https://data.highfidelity.io";
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -41,7 +41,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _staticAssignmentHash(),
     _assignmentQueue(),
     _hasCompletedRestartHold(false),
-    _nodeAuthenticationHostname(DEFAULT_NODE_AUTH_HOSTNAME)
+    _nodeAuthenticationHostname(DEFAULT_NODE_AUTH_URL)
 {
     const char CUSTOM_PORT_OPTION[] = "-p";
     const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
@@ -65,9 +65,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     const QString NO_AUTH_OPTION = "--noAuth";
     const QString CUSTOM_AUTH_OPTION = "--customAuth";
     if ((argumentIndex = argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
-        _nodeAuthenticationHostname = QString();
+        _nodeAuthenticationHostname = QUrl();
     } else if ((argumentIndex = argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
-        _nodeAuthenticationHostname = argumentList.value(argumentIndex + 1);
+        _nodeAuthenticationHostname = QUrl(argumentList.value(argumentIndex + 1));
     }
 
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);

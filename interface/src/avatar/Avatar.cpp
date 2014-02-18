@@ -19,7 +19,6 @@
 
 #include "Application.h"
 #include "Avatar.h"
-#include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"

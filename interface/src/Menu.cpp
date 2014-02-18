@@ -27,7 +27,6 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "DataServerClient.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -511,7 +510,6 @@ void Menu::loadSettings(QSettings* settings) {
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
-    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
 
@@ -544,7 +542,6 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
-    Application::getInstance()->getProfile()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 }
 
@@ -744,7 +741,7 @@ void Menu::login() {
     QInputDialog loginDialog(Application::getInstance()->getWindow());
     loginDialog.setWindowTitle("Login");
     loginDialog.setLabelText("Username:");
-    QString username = Application::getInstance()->getProfile()->getUsername();
+    QString username = QString();
     loginDialog.setTextValue(username);
     loginDialog.setWindowFlags(Qt::Sheet);
     loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
@@ -753,9 +750,6 @@ void Menu::login() {
 
     if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
         // there has been a username change
-        // ask for a profile reset with the new username
-        Application::getInstance()->resetProfile(loginDialog.textValue());
-
     }
 
     sendFakeEnterEvent();
@@ -997,7 +991,7 @@ void Menu::goTo() {
     QInputDialog gotoDialog(Application::getInstance()->getWindow());
     gotoDialog.setWindowTitle("Go to");
     gotoDialog.setLabelText("Destination:");
-    QString destination = Application::getInstance()->getProfile()->getUsername();
+    QString destination = QString();
     gotoDialog.setTextValue(destination);
     gotoDialog.setWindowFlags(Qt::Sheet);
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
@@ -1010,12 +1004,6 @@ void Menu::goTo() {
         // go to coordinate destination or to Username
         if (!goToDestination(destination)) {
             // there's a username entered by the user, make a request to the data-server
-            DataServerClient::getValuesForKeysAndUserString(
-                                                            QStringList()
-                                                            << DataServerKey::Domain
-                                                            << DataServerKey::Position
-                                                            << DataServerKey::Orientation,
-                                                            destination, Application::getInstance()->getProfile());
     
         }
     }
