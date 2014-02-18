@@ -148,6 +148,7 @@ private:
     void clear();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
+    void requestAuthForDomainServer();
 
     NodeHash _nodeHash;
     QMutex _nodeHashMutex;

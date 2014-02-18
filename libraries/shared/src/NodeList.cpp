@@ -474,40 +474,45 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_domainInfo.getIP().isNull()
-               && (_domainInfo.getRootAuthenticationURL().isEmpty()
-                   || !_sessionUUID.isNull()
-                   || !_domainInfo.getRegistrationToken().isEmpty()) ) {
-        // construct the DS check in packet
-        
-        PacketType domainPacketType = _domainInfo.getRegistrationToken().isEmpty()
+    } else if (!_domainInfo.getIP().isNull()) {
+        if (_domainInfo.getRootAuthenticationURL().isEmpty() || !_sessionUUID.isNull()
+            || !_domainInfo.getRegistrationToken().isEmpty()) {
+            // construct the DS check in packet
+            
+            PacketType domainPacketType = _domainInfo.getRegistrationToken().isEmpty()
             ? PacketTypeDomainListRequest
             : PacketTypeDomainConnectRequest;
-        
-        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(domainPacketType);
-        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-        
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr
+            
+            QByteArray domainServerPacket = byteArrayWithPopluatedHeader(domainPacketType);
+            QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+            
+            // pack our data to send to the domain-server
+            packetStream << _ownerType << _publicSockAddr
             << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
             << (quint8) _nodeTypesOfInterest.size();
-        
-        // copy over the bytes for node types of interest, if required
-        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-            packetStream << nodeTypeOfInterest;
+            
+            // copy over the bytes for node types of interest, if required
+            foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
+                packetStream << nodeTypeOfInterest;
+            }
+            
+            writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+            const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
+            static unsigned int numDomainCheckins = 0;
+            
+            // send a STUN request every Nth domain server check in so we update our public socket, if required
+            if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
+                sendSTUNRequest();
+            }
+            
+            // increment the count of un-replied check-ins
+            _numNoReplyDomainCheckIns++;
+        } else if (!_domainInfo.getRootAuthenticationURL().isEmpty() && _sessionUUID.isNull()
+                   && AccountManager::getInstance().hasValidAccessTokenForRootURL(_domainInfo.getRootAuthenticationURL())) {
+            // we have an access token we can use for the authentication server the domain-server requested
+            // so ask that server to provide us with information to connect to the domain-server
+            requestAuthForDomainServer();
         }
-        
-        writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
-        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-        static unsigned int numDomainCheckins = 0;
-
-        // send a STUN request every Nth domain server check in so we update our public socket, if required
-        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-            sendSTUNRequest();
-        }
-
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
     }
 }
 
@@ -566,6 +571,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     return readNodes;
 }
 
+void NodeList::requestAuthForDomainServer() {
+    
+}
+
 void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
     QDataStream authPacketStream(packet);
     authPacketStream.skipRawData(numBytesForPacketHeader(packet));
@@ -576,8 +585,9 @@ void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
     
     _domainInfo.setRootAuthenticationURL(authenticationRootURL);
     
-    if (AccountManager::getInstance().hasValidAccessTokenForRootURL(authenticationRootURL)) {
-        // request a domain-server registration
+    if (AccountManager::getInstance().checkAndSignalForAccessTokenForRootURL(authenticationRootURL)) {
+        // request a domain-server auth
+        requestAuthForDomainServer();
     }
 }
 

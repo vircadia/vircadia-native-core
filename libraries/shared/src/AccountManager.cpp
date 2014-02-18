@@ -38,12 +38,17 @@ bool AccountManager::hasValidAccessTokenForRootURL(const QUrl &rootURL) {
     OAuthAccessToken accessToken = _accessTokens.value(rootURL);
     
     if (accessToken.token.isEmpty() || accessToken.isExpired()) {
-        // emit a signal so somebody can call back to us and request an access token given a username and password
         qDebug() << "An access token is required for requests to" << qPrintable(rootURL.toString());
-        emit authenticationRequiredForRootURL(rootURL);
         return false;
     } else {
         return true;
+    }
+}
+
+bool AccountManager::checkAndSignalForAccessTokenForRootURL(const QUrl& rootURL) {
+    if (!hasValidAccessTokenForRootURL(rootURL)) {
+        // emit a signal so somebody can call back to us and request an access token given a username and password
+        emit authenticationRequiredForRootURL(rootURL);
     }
 }
 

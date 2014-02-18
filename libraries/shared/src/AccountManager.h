@@ -23,6 +23,7 @@ public:
     static AccountManager& getInstance();
     
     bool hasValidAccessTokenForRootURL(const QUrl& rootURL);
+    bool checkAndSignalForAccessTokenForRootURL(const QUrl& rootURL);
     
     void requestAccessToken(const QUrl& rootURL, const QString& username, const QString& password);
     
