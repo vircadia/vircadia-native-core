@@ -42,6 +42,7 @@ private:
     
     QString _username;
     QMap<QUrl, OAuthAccessToken> _accessTokens;
+    QMap<QUrl, QString> _clientIDs;
     QNetworkAccessManager* _networkAccessManager;
 };
 

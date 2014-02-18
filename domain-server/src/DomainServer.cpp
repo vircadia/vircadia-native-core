@@ -33,8 +33,6 @@ const char* METAVOXEL_SERVER_CONFIG = "metavoxelServerConfig";
 
 const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
-
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),

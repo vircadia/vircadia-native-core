@@ -29,6 +29,8 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
+
 NodeList* NodeList::_sharedInstance = NULL;
 
 NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {

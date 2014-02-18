@@ -37,8 +37,7 @@ const quint64 PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
-extern const QString DEFAULT_DOMAIN_HOSTNAME;
-extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
+extern const QUrl DEFAULT_NODE_AUTH_URL;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
