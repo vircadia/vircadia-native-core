@@ -9,8 +9,8 @@
 #ifndef __interface__MetavoxelEditor__
 #define __interface__MetavoxelEditor__
 
-#include <QDialog>
 #include <QList>
+#include <QWidget>
 
 #include "renderer/ProgramObject.h"
 
@@ -24,7 +24,7 @@ class QScrollArea;
 class MetavoxelTool;
 
 /// Allows editing metavoxels.
-class MetavoxelEditor : public QDialog {
+class MetavoxelEditor : public QWidget {
     Q_OBJECT
 
 public:

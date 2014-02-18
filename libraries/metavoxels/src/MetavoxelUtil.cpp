@@ -8,7 +8,6 @@
 
 #include <QByteArray>
 #include <QColorDialog>
-#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
@@ -18,6 +17,7 @@
 #include <QMetaType>
 #include <QPushButton>
 #include <QScriptEngine>
+#include <QSettings>
 #include <QVBoxLayout>
 #include <QtDebug>
 
@@ -54,6 +54,7 @@ public:
 
 DoubleEditor::DoubleEditor(QWidget* parent) : QDoubleSpinBox(parent) {
     setMinimum(-FLT_MAX);
+    setMaximum(FLT_MAX);
 }
 
 DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
@@ -117,6 +118,12 @@ static QItemEditorCreatorBase* createQColorEditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* createQUrlEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QUrlEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<QUrl>(), creator);
+    return creator;
+}
+
 static QItemEditorCreatorBase* createVec3EditorCreator() {
     QItemEditorCreatorBase* creator = new LazyItemEditorCreator<Vec3Editor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<glm::vec3>(), creator);
@@ -132,6 +139,7 @@ static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
 static QItemEditorCreatorBase* doubleEditorCreator = createDoubleEditorCreator();
 static QItemEditorCreatorBase* qMetaObjectEditorCreator = createQMetaObjectEditorCreator();
 static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator();
+static QItemEditorCreatorBase* qUrlEditorCreator = createQUrlEditorCreator();
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
@@ -211,6 +219,36 @@ void QColorEditor::selectColor() {
     }
 }
 
+QUrlEditor::QUrlEditor(QWidget* parent) :
+    QComboBox(parent) {
+    
+    setEditable(true);
+    setInsertPolicy(InsertAtTop);
+    
+    // populate initial URL list from settings
+    addItems(QSettings().value("editorURLs").toStringList());
+    
+    connect(this, SIGNAL(activated(const QString&)), SLOT(updateURL(const QString&)));
+    connect(model(), SIGNAL(rowsInserted(const QModelIndex&,int,int)), SLOT(updateSettings()));
+}
+
+void QUrlEditor::setURL(const QUrl& url) {
+    setCurrentText((_url = url).toString());
+}
+
+void QUrlEditor::updateURL(const QString& text) {
+    emit urlChanged(_url = text);
+}
+
+void QUrlEditor::updateSettings() {
+    QStringList urls;
+    const int MAX_STORED_URLS = 10;
+    for (int i = 0, size = qMin(MAX_STORED_URLS, count()); i < size; i++) {
+        urls.append(itemText(i));
+    }
+    QSettings().setValue("editorURLs", urls);
+}
+
 Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
     QHBoxLayout* layout = new QHBoxLayout();
     layout->setContentsMargins(QMargins());
@@ -235,6 +273,7 @@ void Vec3Editor::updateVector() {
 QDoubleSpinBox* Vec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);
+    box->setMaximum(FLT_MAX);
     box->setMaximumWidth(100);
     connect(box, SIGNAL(valueChanged(double)), SLOT(updateVector()));
     return box;
@@ -287,8 +326,9 @@ ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
     lineContainer->setLayout(lineLayout);
     lineLayout->setContentsMargins(QMargins());
     
-    lineLayout->addWidget(_line = new QLineEdit(), 1);
-    connect(_line, SIGNAL(textChanged(const QString&)), SLOT(updateURL()));
+    lineLayout->addWidget(&_urlEditor, 1);
+    connect(&_urlEditor, SIGNAL(urlChanged(const QUrl&)), SLOT(updateURL()));
+    connect(&_urlEditor, SIGNAL(urlChanged(const QUrl&)), SLOT(updateParameters()));
     
     QPushButton* refresh = new QPushButton("...");
     connect(refresh, SIGNAL(clicked(bool)), SLOT(updateParameters()));
@@ -296,8 +336,7 @@ ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
 }
 
 void ParameterizedURLEditor::setURL(const ParameterizedURL& url) {
-    _url = url;
-    _line->setText(url.getURL().toString());
+    _urlEditor.setURL((_url = url).getURL());
     updateParameters();
 }
 
@@ -314,7 +353,7 @@ void ParameterizedURLEditor::updateURL() {
                 widget->property("parameterName").toString()), widgetProperty.read(widget));
         }
     }
-    emit urlChanged(_url = ParameterizedURL(_line->text(), parameters));
+    emit urlChanged(_url = ParameterizedURL(_urlEditor.getURL(), parameters));
     if (_program) {
         _program->disconnect(this);
     }

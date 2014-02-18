@@ -10,6 +10,7 @@
 #define __interface__MetavoxelUtil__
 
 #include <QColor>
+#include <QComboBox>
 #include <QSharedPointer>
 #include <QUrl>
 #include <QUuid>
@@ -21,9 +22,7 @@
 #include "Bitstream.h"
 
 class QByteArray;
-class QComboBox;
 class QDoubleSpinBox;
-class QLineEdit;
 class QPushButton;
 
 class HifiSockAddr;
@@ -105,6 +104,32 @@ private:
     
     QPushButton* _button;
     QColor _color;
+};
+
+/// Editor for URL values.
+class QUrlEditor : public QComboBox {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url READ getURL WRITE setURL NOTIFY urlChanged USER true)
+
+public:
+    
+    QUrlEditor(QWidget* parent = NULL);
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() { return _url; }
+    
+signals:
+
+    void urlChanged(const QUrl& url);
+
+private slots:
+
+    void updateURL(const QString& text);
+    void updateSettings();
+
+private:
+    
+    QUrl _url;
 };
 
 /// Editor for vector values.
@@ -200,7 +225,7 @@ private:
     ParameterizedURL _url;
     QSharedPointer<NetworkProgram> _program;
     
-    QLineEdit* _line;
+    QUrlEditor _urlEditor;
 };
 
 #endif /* defined(__interface__MetavoxelUtil__) */

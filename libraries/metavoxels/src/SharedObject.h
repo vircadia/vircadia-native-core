@@ -168,6 +168,7 @@ private slots:
 
     void updateType();
     void propertyChanged();
+    void updateProperty();
 
 private:
     

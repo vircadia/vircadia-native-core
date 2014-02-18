@@ -1088,6 +1088,7 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+    _MetavoxelEditor->activateWindow();
 }
 
 void Menu::audioMuteToggled() {

@@ -29,7 +29,7 @@ enum GridPlane {
 const glm::vec2 INVALID_VECTOR(FLT_MAX, FLT_MAX);
 
 MetavoxelEditor::MetavoxelEditor() :
-    QDialog(Application::getInstance()->getGLWidget()) {
+    QWidget(Application::getInstance()->getGLWidget(), Qt::Tool | Qt::WindowStaysOnTopHint) {
     
     setWindowTitle("Metavoxel Editor");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -519,9 +519,20 @@ void InsertSpannerTool::simulate(float deltaTime) {
 }
 
 void InsertSpannerTool::render() {
-    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    const float SPANNER_ALPHA = 1.0f;
-    static_cast<Spanner*>(spanner.data())->getRenderer()->render(SPANNER_ALPHA);
+    Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
+    Transformable* transformable = qobject_cast<Transformable*>(spanner);
+    if (transformable) {
+        // find the intersection of the mouse ray with the grid and place the transformable there
+        glm::quat rotation = _editor->getGridRotation();
+        glm::quat inverseRotation = glm::inverse(rotation);
+        glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
+        glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
+        float position = _editor->getGridPosition();
+        float distance = (position - rayOrigin.z) / rayDirection.z;
+        transformable->setTranslation(rotation * glm::vec3(glm::vec2(rayOrigin + rayDirection * distance), position));
+    }
+    const float SPANNER_ALPHA = 0.25f;
+    spanner->getRenderer()->render(SPANNER_ALPHA);
 }
 
 bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {

@@ -276,7 +276,7 @@ bool Model::render(float alpha) {
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
+    glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
     renderMeshes(alpha, false);
     
@@ -916,7 +916,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor3f(1.0f, 1.0f, 1.0f);
+            glColor4f(1.0f, 1.0f, 1.0f, alpha);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);

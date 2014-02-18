@@ -130,13 +130,17 @@ void SharedObjectEditor::updateType() {
         }
         delete form;
     }
+    QObject* oldObject = static_cast<SharedObject*>(_object.data());
+    const QMetaObject* oldMetaObject = NULL;
+    if (oldObject) {
+        oldMetaObject = oldObject->metaObject();
+        oldObject->disconnect(this);
+    }
     const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
     if (metaObject == NULL) {
         _object.reset();
         return;
     }
-    QObject* oldObject = static_cast<SharedObject*>(_object.data());
-    const QMetaObject* oldMetaObject = oldObject ? oldObject->metaObject() : NULL;
     QObject* newObject = metaObject->newInstance();
     
     QFormLayout* form = new QFormLayout();
@@ -162,6 +166,10 @@ void SharedObjectEditor::updateType() {
             if (widgetProperty.hasNotifySignal()) {
                 connect(widget, signal(widgetProperty.notifySignal().methodSignature()), SLOT(propertyChanged()));
             }
+            if (property.hasNotifySignal()) {
+                widget->setProperty("notifySignalIndex", property.notifySignalIndex());
+                connect(newObject, signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+            }
         }
     }
     _object = static_cast<SharedObject*>(newObject);
@@ -179,5 +187,18 @@ void SharedObjectEditor::propertyChanged() {
         QMetaProperty property = object->metaObject()->property(widget->property("propertyIndex").toInt());
         QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
         property.write(object, widget->property(valuePropertyName));
+    }
+}
+
+void SharedObjectEditor::updateProperty() {
+    QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+    for (int i = 0; i < form->rowCount(); i++) {
+        QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+        if (widget->property("notifySignalIndex").toInt() != senderSignalIndex()) {
+            continue;
+        }
+        QMetaProperty property = _object->metaObject()->property(widget->property("propertyIndex").toInt());
+        QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
+        widget->setProperty(valuePropertyName, property.read(_object.data()));
     }
 }
