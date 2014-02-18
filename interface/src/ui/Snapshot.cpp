@@ -60,7 +60,7 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-void Snapshot::saveSnapshot(QGLWidget* widget, Profile* profile, MyAvatar* avatar) {
+void Snapshot::saveSnapshot(QGLWidget* widget, Profile* profile, Avatar* avatar) {
     QImage shot = widget->grabFrameBuffer();
     
     glm::vec3 location = avatar->getPosition();
