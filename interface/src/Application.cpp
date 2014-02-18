@@ -48,6 +48,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMediaPlayer>
+#include <QMimeData> 
+#include <QMessageBox>
 
 #include <AudioInjector.h>
 #include <Logging.h>
@@ -199,7 +201,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-
+    
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -1415,6 +1417,32 @@ void Application::wheelEvent(QWheelEvent* event) {
         } else {
             decreaseVoxelSize();
         }
+    }
+}
+
+void Application::dropEvent(QDropEvent *event) {
+    QString snapshotPath;
+    const QMimeData *mimeData = event->mimeData();
+    foreach (QUrl url, mimeData->urls()) {
+        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+            snapshotPath = url.url().remove("file://");
+            break;
+        }
+    }
+    
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+    if (snapshotData != NULL) {
+        if (!snapshotData->getDomain().isEmpty()) {
+            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+        }
+        
+        _myAvatar->setPosition(snapshotData->getLocation());
+        _myAvatar->setOrientation(snapshotData->getOrientation());
+    } else {
+        QMessageBox msgBox;
+        msgBox.setText("No location details were found in this JPG, try dragging in an authentic Hifi snapshot.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
     }
 }
 
@@ -3842,7 +3870,7 @@ void Application::updateWindowTitle(){
     
     QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainHostname() + buildVersion;
-
+    
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
@@ -4246,6 +4274,6 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, &_profile, _myAvatar);
 }
 
