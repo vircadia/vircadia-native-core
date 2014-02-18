@@ -273,27 +273,19 @@ bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
 }
 
 bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        ModelCollisionList& collisions, int skeletonSkipIndex) {
-    bool didPenetrate = false;
-    glm::vec3 skeletonPenetration;
-    ModelCollisionInfo collisionInfo;
-    /* Temporarily disabling collisions against the skeleton because the collision proxies up
-     * near the neck are bad and prevent the hand from hitting the face.
-    if (_skeletonModel.findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo, 1.0f, skeletonSkipIndex)) {
-        collisionInfo._model = &_skeletonModel;
-        collisions.push_back(collisionInfo);
-        didPenetrate = true; 
-    }
-    */
-    if (_head.getFaceModel().findSphereCollision(penetratorCenter, penetratorRadius, collisionInfo)) {
-        collisionInfo._model = &(_head.getFaceModel());
-        collisions.push_back(collisionInfo);
-        didPenetrate = true; 
-    }
-    return didPenetrate;
+        CollisionList& collisions, int skeletonSkipIndex) {
+    // Temporarily disabling collisions against the skeleton because the collision proxies up
+    // near the neck are bad and prevent the hand from hitting the face.
+    //return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions, 1.0f, skeletonSkipIndex);
+    return _head.getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
-bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
+    if (_collisionFlags & COLLISION_GROUP_PARTICLES) {
+        return false;
+    }
+    bool collided = false;
+    // first do the hand collisions
     const HandData* handData = getHandData();
     if (handData) {
         for (int i = 0; i < NUM_HANDS; i++) {
@@ -311,51 +303,65 @@ bool Avatar::findSphereCollisionWithHands(const glm::vec3& sphereCenter, float s
                         break;
                     }
                 }
+
+                int jointIndex = -1;
                 glm::vec3 handPosition;
                 if (i == 0) {
                     _skeletonModel.getLeftHandPosition(handPosition);
+                    jointIndex = _skeletonModel.getLeftHandJointIndex();
                 }
                 else {
                     _skeletonModel.getRightHandPosition(handPosition);
+                    jointIndex = _skeletonModel.getRightHandJointIndex();
                 }
                 glm::vec3 diskCenter = handPosition + HAND_PADDLE_OFFSET * fingerAxis;
                 glm::vec3 diskNormal = palm->getNormal();
-                float diskThickness = 0.08f;
+                const float DISK_THICKNESS = 0.08f;
 
                 // collide against the disk
-                if (findSphereDiskPenetration(sphereCenter, sphereRadius, 
-                            diskCenter, HAND_PADDLE_RADIUS, diskThickness, diskNormal,
-                            collision._penetration)) {
-                    collision._addedVelocity = palm->getVelocity();
-                    return true;
+                glm::vec3 penetration;
+                if (findSphereDiskPenetration(particleCenter, particleRadius, 
+                            diskCenter, HAND_PADDLE_RADIUS, DISK_THICKNESS, diskNormal,
+                            penetration)) {
+                    CollisionInfo* collision = collisions.getNewCollision();
+                    if (collision) {
+                        collision->_type = PADDLE_HAND_COLLISION;
+                        collision->_flags = jointIndex;
+                        collision->_penetration = penetration;
+                        collision->_addedVelocity = palm->getVelocity();
+                        collided = true;
+                    } else {
+                        // collisions are full, so we might as well bail now
+                        return collided;
+                    }
                 }
             }
         }
     }
-    return false;
-}
-
-/* adebug TODO: make this work again
-bool Avatar::findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-    int jointIndex = _skeletonModel.findSphereCollision(sphereCenter, sphereRadius, collision._penetration);
-    if (jointIndex != -1) {
-        collision._penetration /= (float)(TREE_SCALE);
-        collision._addedVelocity = getVelocity();
-        return true;
+    // then collide against the models
+    int preNumCollisions = collisions.size();
+    if (_skeletonModel.findSphereCollisions(particleCenter, particleRadius, collisions)) {
+        // the Model doesn't have velocity info, so we have to set it for each new collision
+        int postNumCollisions = collisions.size();
+        for (int i = preNumCollisions; i < postNumCollisions; ++i) {
+            CollisionInfo* collision = collisions.getCollision(i);
+            collision->_penetration /= (float)(TREE_SCALE);
+            collision->_addedVelocity = getVelocity();
+        }
+        collided = true;
     }
-    return false;
+    return collided;
 }
-*/
 
 void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fbx");
+    const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
     _head.getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fbx");
+    const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
 }
 
@@ -430,9 +436,9 @@ void Avatar::updateCollisionFlags() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithVoxels)) {
         _collisionFlags |= COLLISION_GROUP_VOXELS;
     }
-    //if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
-    //    _collisionFlags |= COLLISION_GROUP_PARTICLES;
-    //}
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithParticles)) {
+        _collisionFlags |= COLLISION_GROUP_PARTICLES;
+    }
 }
 
 void Avatar::setScale(float scale) {
@@ -449,34 +455,34 @@ float Avatar::getHeight() const {
     return extents.maximum.y - extents.minimum.y;
 }
 
-bool Avatar::collisionWouldMoveAvatar(ModelCollisionInfo& collision) const {
-    // ATM only the Skeleton is pokeable
-    // TODO: make poke affect head
-    if (!collision._model) {
+bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
+    if (!collision._data || collision._type != MODEL_COLLISION) {
         return false;
     }
-    if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
+    Model* model = static_cast<Model*>(collision._data);
+    int jointIndex = collision._flags;
+
+    if (model == &(_skeletonModel) && jointIndex != -1) {
         // collision response of skeleton is temporarily disabled
         return false;
         //return _skeletonModel.collisionHitsMoveableJoint(collision);
     }
-    if (collision._model == &(_head.getFaceModel())) {
+    if (model == &(_head.getFaceModel())) {
+        // ATM we always handle MODEL_COLLISIONS against the face.
         return true;
     }
     return false;
 }
 
-void Avatar::applyCollision(ModelCollisionInfo& collision) {
-    if (!collision._model) {
+void Avatar::applyCollision(CollisionInfo& collision) {
+    if (!collision._data || collision._type != MODEL_COLLISION) {
         return;
     }
-    if (collision._model == &(_head.getFaceModel())) {
+    // TODO: make skeleton also respond to collisions
+    Model* model = static_cast<Model*>(collision._data);
+    if (model == &(_head.getFaceModel())) {
         _head.applyCollision(collision);
     }
-    // TODO: make skeleton respond to collisions
-    //if (collision._model == &_skeletonModel && collision._jointIndex != -1) {
-    //    _skeletonModel.applyCollision(collision);
-    //}
 }
 
 float Avatar::getPelvisFloatingHeight() const {

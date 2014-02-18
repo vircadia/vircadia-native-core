@@ -45,6 +45,8 @@ public:
         _alwaysDisplay(alwaysDisplay),
         _runningTotal(runningTotal),
         _totalCalls(totalCalls) { }
+        
+    quint64 elapsed() const { return (usecTimestampNow() - _start); };
 
     ~PerformanceWarning();
 

@@ -141,7 +141,9 @@ void MyAvatar::update(float deltaTime) {
     }
 
     //  Get audio loudness data from audio input device
-    _head.setAudioLoudness(Application::getInstance()->getAudio()->getLastInputLoudness());
+    Audio* audio = Application::getInstance()->getAudio();
+    _head.setAudioLoudness(audio->getLastInputLoudness());
+    _head.setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
@@ -608,7 +610,7 @@ void MyAvatar::loadData(QSettings* settings) {
     _position.y = loadSetting(settings, "position_y", 0.0f);
     _position.z = loadSetting(settings, "position_z", 0.0f);
 
-    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
+    _head.setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
@@ -955,7 +957,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    float myBoundingRadius = 0.5f * getHeight();
+    float myBoundingRadius = getBoundingRadius();
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
@@ -975,7 +977,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
-        float theirBoundingRadius = 0.5f * avatar->getHeight();
+        float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;

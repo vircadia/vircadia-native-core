@@ -17,6 +17,18 @@
 #include <AbstractMenuInterface.h>
 #include "location/LocationManager.h"
 
+const float ADJUST_LOD_DOWN_FPS = 40.0;
+const float ADJUST_LOD_UP_FPS = 55.0;
+
+const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
+const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
+
+const float ADJUST_LOD_DOWN_BY = 0.9f;
+const float ADJUST_LOD_UP_BY = 1.1f;
+
+const float ADJUST_LOD_MIN_SIZE_SCALE = TREE_SCALE * 1.0f;
+const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
     FRUSTUM_DRAW_MODE_VECTORS,
@@ -69,6 +81,7 @@ public:
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
+    void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
@@ -85,6 +98,9 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
+    bool goToDestination(QString destination);
+    void goToOrientation(QString orientation);
+    void goToDomain(const QString newDomain);
 
 public slots:
     void bandwidthDetails();
@@ -101,7 +117,7 @@ private slots:
     void aboutApp();
     void login();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void nameLocation();
     void bandwidthDetailsClosed();
@@ -139,6 +155,8 @@ private:
 
     void updateFrustumRenderModeAction();
 
+    void addAvatarCollisionSubMenu(QMenu* overMenu);
+
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
@@ -157,6 +175,7 @@ private:
     int _maxVoxelPacketsPerSecond;
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
+    quint64 _lastAdjust;
 };
 
 namespace MenuOption {
@@ -164,6 +183,7 @@ namespace MenuOption {
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
+    const QString AutoAdjustLOD = "Automatically Adjust LOD";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
