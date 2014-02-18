@@ -113,6 +113,17 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     return false;
 }
 
+qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+                               const QUuid& connectionSecret) {
+    QByteArray datagramCopy = datagram;
+    
+    // setup the MD5 hash for source verification in the header
+    replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
+
+    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    
+}
+
 qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
@@ -128,11 +139,7 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
             }
         }
         
-        QByteArray datagramCopy = datagram;
-        // setup the MD5 hash for source verification in the header
-        replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
-        
-        return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+        writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -460,13 +467,19 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_domainInfo.getIP().isNull()) {
-        // construct the DS check in packet if we can
-
-        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
+    } else if (!_domainInfo.getIP().isNull()
+               && (!_domainInfo.requiresAuthentication()
+                   || !_sessionUUID.isNull()
+                   || !_domainInfo.getRegistrationToken().isEmpty()) ) {
+        // construct the DS check in packet
+        
+        PacketType domainPacketType = _domainInfo.getRegistrationToken().isEmpty()
+            ? PacketTypeDomainListRequest
+            : PacketTypeDomainConnectRequest;
+        
+        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(domainPacketType);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-
+        
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr
             << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
@@ -477,7 +490,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << nodeTypeOfInterest;
         }
         
-        _nodeSocket.writeDatagram(domainServerPacket, _domainInfo.getIP(), _domainInfo.getPort());
+        writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
 

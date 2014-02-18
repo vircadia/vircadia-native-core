@@ -9,7 +9,10 @@
 #include "DomainInfo.h"
 
 DomainInfo::DomainInfo() :
-    _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT))
+    _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
+    _requiresAuthentication(false),
+    _connectionSecret(),
+    _registrationToken()
 {
     
 }
@@ -52,9 +55,7 @@ void DomainInfo::completedHostnameLookup(const QHostInfo& hostInfo) {
             qDebug("DS at %s is at %s", _hostname.toLocal8Bit().constData(),
                    _sockAddr.getAddress().toString().toLocal8Bit().constData());
             return;
-        }
-        
-        
+        }        
     }
     
     // if we got here then we failed to lookup the address

@@ -139,6 +139,9 @@ private:
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void sendSTUNRequest();
     void processSTUNResponse(const QByteArray& packet);
+    
+    qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+                                   const QUuid& connectionSecret);
 
     NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
 
