@@ -373,6 +373,14 @@ void DomainServer::readAvailableDatagrams() {
                                                                 senderSockAddr.getAddress(), senderSockAddr.getPort());
                     }
                 }                
+            } else if (requestType == PacketTypeDomainConnectRequest) {
+                QDataStream packetStream(receivedPacket);
+                packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
+                
+                QByteArray registrationToken;
+                packetStream >> registrationToken;
+                
+                qDebug() << "The token received is" << registrationToken.toHex();
             } else if (requestType == PacketTypeRequestAssignment) {
                 
                 // construct the requested assignment from the packet data

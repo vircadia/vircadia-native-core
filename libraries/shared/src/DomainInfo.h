@@ -43,8 +43,7 @@ public:
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
     
-    const QString& getRegistrationToken() const { return _registrationToken; }
-    void setRegistrationToken(const QString& registrationToken);
+    const QByteArray& getRegistrationToken() const { return _registrationToken; }
     
     const QUrl& getRootAuthenticationURL() const { return _rootAuthenticationURL; }
     void setRootAuthenticationURL(const QUrl& rootAuthenticationURL) { _rootAuthenticationURL = rootAuthenticationURL; }
@@ -60,7 +59,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _connectionSecret;
-    QString _registrationToken;
+    QByteArray _registrationToken;
     QUrl _rootAuthenticationURL;
     QString _publicKey;
 };

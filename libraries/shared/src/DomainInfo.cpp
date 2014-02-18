@@ -26,14 +26,15 @@ void DomainInfo::reset() {
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
     _connectionSecret = QString();
-    _registrationToken =  QString();
+    _registrationToken = QByteArray();
     _rootAuthenticationURL = QUrl();
     _publicKey = QString();
 }
 
 void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
     _connectionSecret = QUuid(jsonObject["connection_uuid"].toString());
-    _registrationToken = jsonObject["registration_token"].toString();
+    qDebug() << jsonObject["registration_token"];
+    _registrationToken = QByteArray::fromHex(jsonObject["registration_token"].toString().toUtf8());
     _publicKey = jsonObject["public_key"].toString();
 }
 
