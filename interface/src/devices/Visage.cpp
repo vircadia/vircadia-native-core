@@ -27,7 +27,7 @@ using namespace VisageSDK;
 Visage::Visage() {
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
-    initializeLicenseManager("resources/visage");
+    initializeLicenseManager("resources/visage/license.vlc");
     _tracker = new VisageTracker2("resources/visage/Facial Features Tracker - Asymmetric.cfg");
     _tracker->trackFromCam();
 #endif
@@ -35,6 +35,7 @@ Visage::Visage() {
 
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
+    _tracker->stop();
     delete _tracker;
 #endif
 }
