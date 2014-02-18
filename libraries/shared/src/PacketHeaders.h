@@ -53,7 +53,8 @@ enum PacketType {
     PacketTypeParticleErase,
     PacketTypeParticleAddResponse,
     PacketTypeMetavoxelData,
-    PacketTypeAvatarIdentity
+    PacketTypeAvatarIdentity,
+    PacketTypeDomainServerAuthRequest
 };
 
 typedef char PacketVersion;

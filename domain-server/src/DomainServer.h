@@ -57,6 +57,8 @@ private:
     QQueue<SharedAssignmentPointer> _assignmentQueue;
     
     bool _hasCompletedRestartHold;
+    
+    QString _nodeAuthenticationHostname;
 private slots:
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();
