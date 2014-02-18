@@ -116,7 +116,7 @@ private slots:
     void aboutApp();
     void login();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
@@ -151,6 +151,8 @@ private:
                                                     const char* member = NULL);
 
     void updateFrustumRenderModeAction();
+
+    void addAvatarCollisionSubMenu(QMenu* overMenu);
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback

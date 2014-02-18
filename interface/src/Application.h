@@ -93,6 +93,8 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
+static const QString SNAPSHOT_EXTENSION  = ".jpg";
+
 class Application : public QApplication {
     Q_OBJECT
 
@@ -127,6 +129,7 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+    void dropEvent(QDropEvent *event);
     
     bool event(QEvent* event);
     

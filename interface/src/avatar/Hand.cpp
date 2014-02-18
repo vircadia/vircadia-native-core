@@ -125,6 +125,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
+// We create a static CollisionList that is recycled for each collision test.
+const float MAX_COLLISIONS_PER_AVATAR = 32;
+static CollisionList handCollisions(MAX_COLLISIONS_PER_AVATAR);
+
 void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
     if (!avatar || avatar == _owningAvatar) {
         // don't collide with our own hands (that is done elsewhere)
@@ -137,7 +141,6 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
             continue;
         }        
         glm::vec3 totalPenetration;
-        ModelCollisionList collisions;
         if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
             //  Check for palm collisions
             glm::vec3 myPalmPosition = palm.getPosition();
@@ -171,20 +174,22 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
                 }
             }
         }
-        if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions)) {
-            for (int j = 0; j < collisions.size(); ++j) {
+        handCollisions.clear();
+        if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions)) {
+            for (int j = 0; j < handCollisions.size(); ++j) {
+                CollisionInfo* collision = handCollisions.getCollision(j);
                 if (isMyHand) {
-                    if (!avatar->collisionWouldMoveAvatar(collisions[j])) {
+                    if (!avatar->collisionWouldMoveAvatar(*collision)) {
                         // we resolve the hand from collision when it belongs to MyAvatar AND the other Avatar is 
                         // not expected to respond to the collision (hand hit unmovable part of their Avatar)
-                        totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+                        totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
                     }
                 } else {
                     // when !isMyHand then avatar is MyAvatar and we apply the collision
                     // which might not do anything (hand hit unmovable part of MyAvatar) however
                     // we don't resolve the hand's penetration because we expect the remote 
                     // simulation to do the right thing.
-                    avatar->applyCollision(collisions[j]);
+                    avatar->applyCollision(*collision);
                 }
             }
         }
@@ -200,7 +205,6 @@ void Hand::collideAgainstOurself() {
         return;
     }
 
-    ModelCollisionList collisions;
     int leftPalmIndex, rightPalmIndex;   
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
@@ -210,16 +214,18 @@ void Hand::collideAgainstOurself() {
         if (!palm.isActive()) {
             continue;
         }        
-        glm::vec3 totalPenetration;
-        // and the current avatar (ignoring everything below the parent of the parent of the last free joint)
-        collisions.clear();
         const Model& skeletonModel = _owningAvatar->getSkeletonModel();
+        // ignoring everything below the parent of the parent of the last free joint
         int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
             skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
-        if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, collisions, skipIndex)) {
-            for (int j = 0; j < collisions.size(); ++j) {
-                totalPenetration = addPenetrations(totalPenetration, collisions[j]._penetration);
+
+        handCollisions.clear();
+        glm::vec3 totalPenetration;
+        if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions, skipIndex)) {
+            for (int j = 0; j < handCollisions.size(); ++j) {
+                CollisionInfo* collision = handCollisions.getCollision(j);
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
         }
         // resolve penetration
