@@ -49,6 +49,8 @@ private slots:
 signals:
     void hostnameChanged(const QString& hostname);
 private:
+    void reset();
+    
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _connectionSecret;

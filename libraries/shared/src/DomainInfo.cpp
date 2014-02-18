@@ -17,9 +17,20 @@ DomainInfo::DomainInfo() :
     
 }
 
+void DomainInfo::reset() {
+    _hostname = QString();
+    _sockAddr.setAddress(QHostAddress::Null);
+    _connectionSecret = QString();
+    _registrationToken =  QString();
+    _rootAuthenticationURL = QUrl();
+}
+
 void DomainInfo::setHostname(const QString& hostname) {
     
     if (hostname != _hostname) {
+        // re-set the domain info so that auth information is reloaded
+        reset();
+        
         int colonIndex = hostname.indexOf(':');
         
         if (colonIndex > 0) {
@@ -40,9 +51,8 @@ void DomainInfo::setHostname(const QString& hostname) {
         }
         
         // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-        _sockAddr.setAddress(QHostAddress::Null);
         qDebug("Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
-        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+        QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup));
         
         emit hostnameChanged(_hostname);
     }
