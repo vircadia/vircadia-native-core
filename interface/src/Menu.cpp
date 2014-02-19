@@ -773,7 +773,7 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
-    QString faceURLString = applicationInstance->getAvatar()->getHead().getFaceModel().getURL().toString();
+    QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
@@ -786,7 +786,7 @@ void Menu::editPreferences() {
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
-    pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
+    pupilDilation->setValue(applicationInstance->getAvatar()->getHead()->getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
 
     QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
@@ -862,7 +862,7 @@ void Menu::editPreferences() {
             applicationInstance->getAvatar()->sendIdentityPacket();
         }
 
-        applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
+        applicationInstance->getAvatar()->getHead()->setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
 
         _maxVoxels = maxVoxels->value();
         applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);

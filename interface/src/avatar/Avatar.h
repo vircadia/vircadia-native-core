@@ -74,7 +74,7 @@ public:
     void render(bool forceRenderHead);
 
     //setters
-    void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
+    void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
 
     //getters
@@ -83,7 +83,8 @@ public:
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
-    Head& getHead() { return _head; }
+    const Head* getHead() const { return static_cast<const Head*>(_headData); }
+    Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
     
@@ -129,8 +130,6 @@ public slots:
     void updateCollisionFlags();
 
 protected:
-    Head _head;
-    //Hand _hand;
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
     AvatarMode _mode;
