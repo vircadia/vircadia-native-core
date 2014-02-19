@@ -21,7 +21,6 @@ const QString PLACE_BUTTON_NAME = QObject::tr("Place voxels");
 const QString IMPORT_INFO = QObject::tr("<b>Import</b> %1 as voxels");
 const QString CANCEL_BUTTON_NAME = QObject::tr("Cancel");
 
-
 const QString DOWNLOAD_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 const int SHORT_FILE_EXTENSION = 4;
 const int SECOND_INDEX_LETTER = 1;
@@ -167,7 +166,7 @@ void ImportDialog::accept() {
 void ImportDialog::saveCurrentFile(QString filename) {
     _currentFile = QFileInfo(filename).isFile() ? filename : "";
 }
-#include <iostream>
+
 void ImportDialog::setLayout() {
     QGridLayout* gridLayout = (QGridLayout*) layout();
     gridLayout->addWidget(&_progressBar, 2, 0, 2, 1);
@@ -225,15 +224,12 @@ void ImportDialog::setLayout() {
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
     switchToResourcesParentIfRequired();
-
     QIcon icon = QIcon("resources/icons/backButton.svg");
     QPushButton* button = (QPushButton*) findChild<QWidget*>("backButton");
     //button->setIcon(icon);
     
     button = (QPushButton*) findChild<QWidget*>("forwardButton");
     button = (QPushButton*) findChild<QWidget*>("toParentButton");
-    
-    
     
     QFile styleSheet("resources/styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {

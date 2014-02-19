@@ -2128,7 +2128,7 @@ void Application::updateMouseVoxels(float deltaTime, float& distance, BoxFace& f
     PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
 
     _mouseVoxel.s = 0.0f;
-    bool wasInitialized = _mouseVoxelScaleInitialized ;
+    bool wasInitialized = _mouseVoxelScaleInitialized;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar->getVelocity().x) +
          fabs(_myAvatar->getVelocity().y) +
