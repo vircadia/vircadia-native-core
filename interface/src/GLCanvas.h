@@ -31,6 +31,9 @@ protected:
     virtual bool event(QEvent* event);
     
     virtual void wheelEvent(QWheelEvent* event);
+
+    virtual void dragEnterEvent(QDragEnterEvent *event);
+    virtual void dropEvent(QDropEvent* event);
 };
 
 #endif /* defined(__hifi__GLCanvas__) */

@@ -20,6 +20,7 @@ FaceModel::FaceModel(Head* owningHead) :
 
 void FaceModel::simulate(float deltaTime) {
     if (!isActive()) {
+        Model::simulate(deltaTime);
         return;
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);

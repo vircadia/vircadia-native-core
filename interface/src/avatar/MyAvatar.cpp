@@ -112,23 +112,7 @@ void MyAvatar::updateTransmitter(float deltaTime) {
 void MyAvatar::update(float deltaTime) {
     updateTransmitter(deltaTime);
 
-    // TODO: resurrect touch interactions between avatars
-    //// rotate body yaw for yaw received from multitouch
-    //setOrientation(getOrientation() * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
-    //_yawFromTouch = 0.f;
-    //
-    //// apply pitch from touch
-    //_head.setPitch(_head.getPitch() + _pitchFromTouch);
-    //_pitchFromTouch = 0.0f;
-    //
-    //float TOUCH_YAW_SCALE = -0.25f;
-    //float TOUCH_PITCH_SCALE = -12.5f;
-    //float FIXED_TOUCH_TIMESTEP = 0.016f;
-    //_yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-    //_pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
-
-    // Update my avatar's state from gyros
-    updateFromGyros(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+    updateFromGyros(deltaTime);
 
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -157,7 +141,9 @@ void MyAvatar::update(float deltaTime) {
     }
 
     //  Get audio loudness data from audio input device
-    _head.setAudioLoudness(Application::getInstance()->getAudio()->getLastInputLoudness());
+    Audio* audio = Application::getInstance()->getAudio();
+    _head.setAudioLoudness(audio->getLastInputLoudness());
+    _head.setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
         setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
@@ -329,6 +315,7 @@ void MyAvatar::simulate(float deltaTime) {
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
+    _hand.collideAgainstOurself(); 
     _hand.simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -348,7 +335,7 @@ void MyAvatar::simulate(float deltaTime) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyros(bool turnWithHead) {
+void MyAvatar::updateFromGyros(float deltaTime) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     glm::vec3 estimatedPosition, estimatedRotation;
 
@@ -356,7 +343,7 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned beyond the screen
-        if (turnWithHead) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
             const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.5f;
             const float FACESHIFT_MIN_YAW_TURN = 15.f;
             const float FACESHIFT_MAX_YAW_TURN = 50.f;
@@ -371,11 +358,12 @@ void MyAvatar::updateFromGyros(bool turnWithHead) {
         }
     } else {
         // restore rotation, lean to neutral positions
-        const float RESTORE_RATE = 0.05f;
-        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
-        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, RESTORE_RATE));
-        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
-        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
+        const float RESTORE_PERIOD = 1.f;   // seconds
+        float restorePercentage = glm::clamp(deltaTime/RESTORE_PERIOD, 0.f, 1.f);
+        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, restorePercentage));
+        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, restorePercentage));
+        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, restorePercentage));
+        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, restorePercentage));
         return;
     }
 
@@ -622,7 +610,7 @@ void MyAvatar::loadData(QSettings* settings) {
     _position.y = loadSetting(settings, "position_y", 0.0f);
     _position.z = loadSetting(settings, "position_z", 0.0f);
 
-    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
+    _head.setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
@@ -854,7 +842,6 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     }
 }
 
-
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_ELASTICITY = 0.4f;
     const float VOXEL_DAMPING = 0.0f;
@@ -970,7 +957,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         // no need to compute a bunch of stuff if we have one or fewer avatars
         return;
     }
-    float myBoundingRadius = 0.5f * getHeight();
+    float myBoundingRadius = getBoundingRadius();
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
@@ -990,7 +977,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         if (_distanceToNearestAvatar > distance) {
             _distanceToNearestAvatar = distance;
         }
-        float theirBoundingRadius = 0.5f * avatar->getHeight();
+        float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
@@ -1002,8 +989,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 avatar->getPosition(), theirCapsuleRadius, theirCapsuleHeight, penetration)) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
-                glm::vec3 pushOut = 0.5f * penetration;
             }
+
+            // collide our hands against them
+            _hand.collideAgainstAvatar(avatar, true);
+
+            // collide their hands against us
+            avatar->getHand().collideAgainstAvatar(this, false);
         }
     }
 }

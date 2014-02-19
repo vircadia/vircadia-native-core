@@ -41,9 +41,13 @@ public:
     
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    
-    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
-    
+
+    float getAudioLoudness() const { return _audioLoudness; }
+	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
+
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
@@ -58,13 +62,6 @@ public:
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
     friend class AvatarData;
-
-    /// Checks for penetration between the described sphere and the hand.
-    /// \param penetratorCenter the center of the penetration test sphere
-    /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param penetration[out] the vector in which to store the penetration
-    /// \return whether or not the sphere penetrated
-    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration) const;
     
 protected:
     float _yaw;
@@ -79,6 +76,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
+    float _audioAverageLoudness;
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;

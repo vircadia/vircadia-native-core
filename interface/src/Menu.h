@@ -16,6 +16,18 @@
 
 #include <AbstractMenuInterface.h>
 
+const float ADJUST_LOD_DOWN_FPS = 40.0;
+const float ADJUST_LOD_UP_FPS = 55.0;
+
+const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 5;
+const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
+
+const float ADJUST_LOD_DOWN_BY = 0.9f;
+const float ADJUST_LOD_UP_BY = 1.1f;
+
+const float ADJUST_LOD_MIN_SIZE_SCALE = TREE_SCALE * 1.0f;
+const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+
 enum FrustumDrawMode {
     FRUSTUM_DRAW_MODE_ALL,
     FRUSTUM_DRAW_MODE_VECTORS,
@@ -68,6 +80,7 @@ public:
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
+    void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
@@ -84,6 +97,9 @@ public:
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole);
     virtual void removeAction(QMenu* menu, const QString& actionName);
+    bool goToDestination(QString destination);
+    void goToOrientation(QString orientation);
+    void goToDomain(const QString newDomain);
 
 public slots:
     void bandwidthDetails();
@@ -100,7 +116,7 @@ private slots:
     void aboutApp();
     void login();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
@@ -136,6 +152,8 @@ private:
 
     void updateFrustumRenderModeAction();
 
+    void addAvatarCollisionSubMenu(QMenu* overMenu);
+
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
@@ -154,6 +172,7 @@ private:
     int _maxVoxelPacketsPerSecond;
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
+    quint64 _lastAdjust;
 };
 
 namespace MenuOption {
@@ -161,6 +180,7 @@ namespace MenuOption {
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
+    const QString AutoAdjustLOD = "Automatically Adjust LOD";
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
@@ -184,7 +204,7 @@ namespace MenuOption {
     const QString DisableDeltaSending = "Disable Delta Sending";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
-    const QString DisplayLeapHands = "Display Leap Hands";
+    const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
@@ -224,7 +244,6 @@ namespace MenuOption {
     const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
-    const QString ParticleCloud = "Particle Cloud";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
@@ -245,8 +264,10 @@ namespace MenuOption {
     const QString PasteVoxels = "Paste";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
+    const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
+    const QString ReloadAllScripts = "Reload All Scripts";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
@@ -256,11 +277,10 @@ namespace MenuOption {
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString ShowTrueColors = "Show TRUE Colors";
-    const QString VoxelDrumming = "Voxel Drumming";
-    const QString PlaySlaps = "Play Slaps";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
+    const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
@@ -271,6 +291,7 @@ namespace MenuOption {
     const QString VoxelAddMode = "Add Voxel Mode";
     const QString VoxelColorMode = "Color Voxel Mode";
     const QString VoxelDeleteMode = "Delete Voxel Mode";
+    const QString VoxelDrumming = "Voxel Drumming";
     const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelPaintColor = "Voxel Paint Color";
