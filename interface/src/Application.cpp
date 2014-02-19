@@ -266,9 +266,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     _networkAccessManager->setCache(cache);
-    
-    // give our AccountManager access to the single QNetworkAccessManager
-    AccountManager::getInstance().setNetworkAccessManager(_networkAccessManager);
 
     _window->setCentralWidget(_glWidget);
 

@@ -32,7 +32,7 @@ const QString ACCOUNT_TOKEN_GROUP = "tokens";
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
-    _networkAccessManager(NULL)
+    _networkAccessManager(new QNetworkAccessManager)
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");

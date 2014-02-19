@@ -36,7 +36,6 @@ public:
     const QString& getUsername() const { return _username; }
     void setUsername(const QString& username) { _username = username; }
     
-    void setNetworkAccessManager(QNetworkAccessManager* networkAccessManager) { _networkAccessManager = networkAccessManager; }
 public slots:
     void requestFinished();
     void requestError(QNetworkReply::NetworkError error);
