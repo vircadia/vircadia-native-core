@@ -21,6 +21,9 @@ class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
 
+/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
+extern const char* FACESHIFT_BLENDSHAPES[];
+
 /// A node within an FBX document.
 class FBXNode {
 public:

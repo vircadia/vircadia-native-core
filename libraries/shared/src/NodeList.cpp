@@ -807,7 +807,7 @@ void NodeList::loadData(QSettings *settings) {
     } else {
         _domainInfo.setHostname(DEFAULT_DOMAIN_HOSTNAME);
     }
-
+    
     settings->endGroup();
 }
 

@@ -115,7 +115,7 @@ public slots:
 private slots:
     void aboutApp();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
@@ -184,7 +184,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString ChatCircling = "Chat Circling";
-    const QString CollisionProxies = "Collision Proxies";
     const QString Collisions = "Collisions";
     const QString CollideWithAvatars = "Collide With Avatars";
     const QString CollideWithParticles = "Collide With Particles";
@@ -266,6 +265,8 @@ namespace MenuOption {
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
     const QString ReloadAllScripts = "Reload All Scripts";
+    const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
+    const QString RenderHeadCollisionProxies = "Head Collision Proxies";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";

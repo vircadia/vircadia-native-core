@@ -41,9 +41,13 @@ public:
     
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    
-    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
-    
+
+    float getAudioLoudness() const { return _audioLoudness; }
+	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
+
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
@@ -72,6 +76,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
+    float _audioAverageLoudness;
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;

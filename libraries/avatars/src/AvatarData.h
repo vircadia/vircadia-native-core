@@ -76,7 +76,10 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-    
+
+    Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
+    Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
+
     Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
     Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
@@ -107,6 +110,12 @@ public:
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
 
+    // access to Head().set/getAverageLoudness
+    float getAudioLoudness() const { return _headData->getAudioLoudness(); }
+    void setAudioLoudness(float value) { _headData->setAudioLoudness(value); }
+    float getAudioAverageLoudness() const { return _headData->getAudioAverageLoudness(); }
+    void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
+
     //  Scale
     float getTargetScale() const { return _targetScale; }
     void setTargetScale(float targetScale) { _targetScale = targetScale; }
@@ -129,9 +138,6 @@ public:
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
-
-    void setHeadData(HeadData* headData) { _headData = headData; }
-    void setHandData(HandData* handData) { _handData = handData; }
 
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 

@@ -63,10 +63,6 @@ QByteArray AvatarData::toByteArray() {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-    // lazily allocate memory for HandData in case we're not an Avatar instance
-    if (!_handData) {
-        _handData = new HandData(this);
-    }
     
     QByteArray avatarDataByteArray;
     avatarDataByteArray.resize(MAX_PACKET_SIZE);
@@ -152,8 +148,8 @@ QByteArray AvatarData::toByteArray() {
     // pupil dilation
     destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
     
-    // leap hand data
-    destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
+    // hand data
+    destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
@@ -259,7 +255,7 @@ int AvatarData::parseData(const QByteArray& packet) {
     // pupil dilation
     sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     
-    // leap hand data
+    // hand data
     if (sourceBuffer - startPosition < packet.size()) {
         // check passed, bytes match
         sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));

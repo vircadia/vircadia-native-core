@@ -53,6 +53,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -92,6 +93,8 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
+static const QString SNAPSHOT_EXTENSION  = ".jpg";
+
 class Application : public QApplication {
     Q_OBJECT
 
@@ -126,6 +129,7 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+    void dropEvent(QDropEvent *event);
     
     bool event(QEvent* event);
     
@@ -156,6 +160,7 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
@@ -278,6 +283,7 @@ private:
     // Various helper functions called during update()
     void updateMouseRay();
     void updateFaceshift();
+    void updateVisage();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
@@ -376,6 +382,7 @@ private:
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
