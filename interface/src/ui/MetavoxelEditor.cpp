@@ -99,6 +99,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new GlobalSetTool(this));
     addTool(new InsertSpannerTool(this));
     addTool(new RemoveSpannerTool(this));
+    addTool(new ClearSpannersTool(this));
     
     updateAttributes();
     
@@ -565,4 +566,33 @@ RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
 
 bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute->inherits("SharedObjectSetAttribute");
+}
+
+bool RemoveSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        
+        return true;
+    }
+    return false;
+}
+
+ClearSpannersTool::ClearSpannersTool(MetavoxelEditor* editor) :
+    MetavoxelTool(editor, "Clear Spanners", false) {
+    
+    QPushButton* button = new QPushButton("Clear");
+    layout()->addWidget(button);
+    connect(button, SIGNAL(clicked()), SLOT(clear()));
+}
+
+bool ClearSpannersTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("SharedObjectSetAttribute");
+}
+
+void ClearSpannersTool::clear() {
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
+    if (!attribute) {
+        return;
+    }
+    MetavoxelEditMessage message = { QVariant::fromValue(ClearSpannersEdit(attribute)) };
+    Application::getInstance()->getMetavoxels()->applyEdit(message);
 }

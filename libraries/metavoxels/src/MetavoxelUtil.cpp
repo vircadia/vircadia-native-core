@@ -21,9 +21,6 @@
 #include <QVBoxLayout>
 #include <QtDebug>
 
-#include <HifiSockAddr.h>
-#include <PacketHeaders.h>
-
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
 
@@ -143,20 +140,6 @@ static QItemEditorCreatorBase* qUrlEditorCreator = createQUrlEditorCreator();
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
 
-QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize) {
-    // get the header size
-    int headerSize = numBytesForPacketHeader(data);
-    
-    // read the session id
-    const int UUID_BYTES = 16;
-    headerPlusIDSize = headerSize + UUID_BYTES;
-    if (data.size() < headerPlusIDSize) {
-        qWarning() << "Metavoxel data too short [size=" << data.size() << ", sendingNode=" << sendingNode << "]\n";
-        return QUuid();
-    }
-    return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
-}
-
 QByteArray signal(const char* signature) {
     static QByteArray prototype = SIGNAL(dummyMethod());
     QByteArray signal = prototype;
@@ -171,6 +154,12 @@ bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
         other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
+}
+
+bool Box::intersects(const Box& other) const {
+    return other.maximum.x >= minimum.x && other.minimum.x <= maximum.x &&
+        other.maximum.y >= minimum.y && other.minimum.y <= maximum.y &&
+        other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
 }
 
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {

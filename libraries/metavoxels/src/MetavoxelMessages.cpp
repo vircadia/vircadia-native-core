@@ -116,3 +116,11 @@ RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) 
 
 void RemoveSpannerEdit::apply(MetavoxelData& data) const {
 }
+
+ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :
+    attribute(attribute) {
+}
+
+void ClearSpannersEdit::apply(MetavoxelData& data) const {
+    data.clear(attribute);
+}

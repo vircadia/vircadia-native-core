@@ -168,6 +168,23 @@ public:
     RemoveSpannerTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
+    
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+};
+
+/// Allows removing all spanners from the scene.
+class ClearSpannersTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    ClearSpannersTool(MetavoxelEditor* editor);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+
+private slots:
+    
+    void clear();
 };
 
 #endif /* defined(__interface__MetavoxelEditor__) */

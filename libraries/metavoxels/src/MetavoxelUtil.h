@@ -13,10 +13,8 @@
 #include <QComboBox>
 #include <QSharedPointer>
 #include <QUrl>
-#include <QUuid>
 #include <QWidget>
 
-#include <NodeList.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Bitstream.h"
@@ -25,13 +23,7 @@ class QByteArray;
 class QDoubleSpinBox;
 class QPushButton;
 
-class HifiSockAddr;
 class NetworkProgram;
-
-/// Reads and returns the session ID from a datagram.
-/// \param[out] headerPlusIDSize the size of the header (including the session ID) within the data
-/// \return the session ID, or a null ID if invalid (in which case a warning will be logged)
-QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize);
 
 /// Performs the runtime equivalent of Qt's SIGNAL macro, which is to attach a prefix to the signature.
 QByteArray signal(const char* signature);
@@ -48,6 +40,10 @@ public:
     Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
     
     bool contains(const Box& other) const;
+    
+    bool intersects(const Box& other) const;
+    
+    float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)

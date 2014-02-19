@@ -133,7 +133,7 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(InsertSpannerEdit)
 
-/// An edit that removes a a spanner from the tree.
+/// An edit that removes a spanner from the tree.
 class RemoveSpannerEdit : public MetavoxelEdit {
     STREAMABLE
 
@@ -148,5 +148,20 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(RemoveSpannerEdit)
+
+/// An edit that clears all spanners from the tree.
+class ClearSpannersEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM AttributePointer attribute;
+    
+    ClearSpannersEdit(const AttributePointer& attribute = AttributePointer());
+    
+    virtual void apply(MetavoxelData& data) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(ClearSpannersEdit)
 
 #endif /* defined(__interface__MetavoxelMessages__) */

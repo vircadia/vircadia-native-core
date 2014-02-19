@@ -100,6 +100,7 @@ private:
     
     const AttributePointer& _attribute;
     const Box& _bounds;
+    float _longestSide;
     const SharedObjectPointer& _object;
 };
 
@@ -107,19 +108,35 @@ InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bound
     MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
     _attribute(attribute),
     _bounds(bounds),
+    _longestSide(bounds.getLongestSide()),
     _object(object) {
 }
 
 bool InsertVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_bounds)) {
+        return false;
+    }
+    if (info.size > _longestSide) {
+        return true;
+    }
+    info.outputValues[0] = AttributeValue(_attribute);
     return false;
 }
 
 void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+    // expand to fit the entire bounds
+    while (!getBounds().contains(bounds)) {
+        expand();
+    }
     InsertVisitor visitor(attribute, bounds, object);
     guide(visitor);
 }
 
 void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+}
+
+void MetavoxelData::clear(const AttributePointer& attribute) {
 }
 
 const int X_MAXIMUM_FLAG = 1;

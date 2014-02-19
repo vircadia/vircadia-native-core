@@ -51,6 +51,8 @@ public:
     
     void remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
 
+    void clear(const AttributePointer& attribute);
+
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
@@ -128,6 +130,8 @@ public:
     QVector<AttributeValue> inputValues;
     QVector<AttributeValue> outputValues;
     bool isLeaf;
+    
+    Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
 };
 
 /// Interface for visitors to metavoxels.
