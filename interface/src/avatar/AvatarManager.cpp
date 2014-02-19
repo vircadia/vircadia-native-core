@@ -7,10 +7,10 @@
 //
 #include <string>
 
+#include <glm/gtx/string_cast.hpp>
+
 #include <PerfStat.h>
 #include <UUID.h>
-
-#include <glm/gtx/string_cast.hpp>
 
 #include "Application.h"
 #include "Avatar.h"
