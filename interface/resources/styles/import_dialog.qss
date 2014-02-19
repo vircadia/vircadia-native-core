@@ -20,12 +20,23 @@ QLabel#infoLabel {
     color: #666666;
 }
 
+QProgressBar  {
+    border: 0px;
+    border-radius: 0px;
+    background-color: #BFE4E4;
+    margin-right: 60px;
+}
+
+QProgressBar::chunk  {
+    background-color: #000000;
+}
+
 QPushButton {
     border-width: 0;
     border-radius: 9px;
     font-size: 18px;
     padding: 17px 0px 15px;
-    width: 107px;
+    width: 120px;
     margin-top: 20px;
     margin-bottom: 18px;
 }
