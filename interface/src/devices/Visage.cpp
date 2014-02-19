@@ -77,14 +77,12 @@ static QHash<QByteArray, int> createBlendshapeIndices() {
     blendshapeMap.insert("JawOpen", "au_jaw_drop");
     blendshapeMap.insert("LipsLowerDown", "au_lower_lip_drop");
     blendshapeMap.insert("LipsUpperUp", "au_upper_lip_raiser");
-    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_left");
-    blendshapeMap.insert("BrowsU_L", "au_left_outer_brow_raiser");
-    blendshapeMap.insert("BrowsU_C", "au_left_inner_brow_raiser");
-    blendshapeMap.insert("BrowsD_L", "au_left_brow_lowerer");
-    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_right");
-    blendshapeMap.insert("BrowsU_R", "au_right_outer_brow_raiser");
-    blendshapeMap.insert("BrowsU_C", "au_right_inner_brow_raiser");
-    blendshapeMap.insert("BrowsD_R", "au_right_brow_lowerer");
+    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_left");
+    blendshapeMap.insert("BrowsU_R", "au_left_outer_brow_raiser");
+    blendshapeMap.insert("BrowsD_R", "au_left_brow_lowerer");
+    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_right");
+    blendshapeMap.insert("BrowsU_L", "au_right_outer_brow_raiser");
+    blendshapeMap.insert("BrowsD_L", "au_right_brow_lowerer");
     
     QHash<QByteArray, int> blendshapeIndices;
     for (int i = 0;; i++) {
