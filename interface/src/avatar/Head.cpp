@@ -62,24 +62,20 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    Visage* visage = Application::getInstance()->getVisage();
     if (isMine) {
-        _isFaceshiftConnected = faceshift->isActive();
+        _isFaceshiftConnected = false;
+        if (faceshift->isActive()) {
+            _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+            
+        } else if (visage->isActive()) {
+            _blendshapeCoefficients = visage->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+        }
     }
     
-    if (isMine && faceshift->isActive()) {
-        const float EYE_OPEN_SCALE = 0.5f;
-        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
-        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
-        
-        // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
-        // mapping between their blendshape coefficients and our avatar features
-        const float MOUTH_SIZE_SCALE = 2500.0f;
-        _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
-        const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
-        _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
-        
-    } else if (!_isFaceshiftConnected) {
+    if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -219,7 +215,7 @@ float Head::getTweakedRoll() const {
     return glm::clamp(_roll + _tweakedRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
-void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
+void Head::applyCollision(CollisionInfo& collision) {
     // HACK: the collision proxies for the FaceModel are bad.  As a temporary workaround
     // we collide against a hard coded collision proxy.
     // TODO: get a better collision proxy here.
@@ -229,7 +225,7 @@ void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
     // collide the contactPoint against the collision proxy to obtain a new penetration
     // NOTE: that penetration is in opposite direction (points the way out for the point, not the sphere)
     glm::vec3 penetration;
-    if (findPointSpherePenetration(collisionInfo._contactPoint, HEAD_CENTER, HEAD_RADIUS, penetration)) {
+    if (findPointSpherePenetration(collision._contactPoint, HEAD_CENTER, HEAD_RADIUS, penetration)) {
         // compute lean angles
         Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
         glm::quat bodyRotation = owningAvatar->getOrientation();
@@ -239,8 +235,8 @@ void Head::applyCollision(ModelCollisionInfo& collisionInfo) {
             glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
             float neckLength = glm::length(_position - neckPosition);
             if (neckLength > 0.f) {
-                float forward = glm::dot(collisionInfo._penetration, zAxis) / neckLength;
-                float sideways = - glm::dot(collisionInfo._penetration, xAxis) / neckLength;
+                float forward = glm::dot(collision._penetration, zAxis) / neckLength;
+                float sideways = - glm::dot(collision._penetration, xAxis) / neckLength;
                 addLean(sideways, forward);
             }
         }

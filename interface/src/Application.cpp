@@ -48,6 +48,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMediaPlayer>
+#include <QMimeData> 
+#include <QMessageBox>
 
 #include <AudioInjector.h>
 #include <Logging.h>
@@ -100,6 +102,8 @@ const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const int STATS_PELS_PER_LINE = 20;
+
+const QString CUSTOM_URL_SCHEME = "hifi:";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
@@ -197,7 +201,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-
+    
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -289,6 +293,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
     
     checkVersion();
+    
+    _overlays.init(_glWidget); // do this before scripts load
+
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -443,22 +450,22 @@ void Application::paintGL() {
         _myCamera.setUpShift(0.0f);
         _myCamera.setDistance(0.0f);
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead().getOrientation());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
+        _myCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
         _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead().getCameraOrientation());
+        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        float headHeight = _myAvatar->getHead().calculateAverageEyePosition().y - _myAvatar->getPosition().y;
+        float headHeight = _myAvatar->getHead()->calculateAverageEyePosition().y - _myAvatar->getPosition().y;
         _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _myAvatar->getScale());
         _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight, 0));
         _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
@@ -522,14 +529,14 @@ void Application::paintGL() {
                 _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
             } else { // HEAD zoom level
                 _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-                if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead().getFaceModel().isActive()) {
+                if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
                     // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
                     // face/body so that the average eye position lies at the origin
                     eyeRelativeCamera = true;
                     _mirrorCamera.setTargetPosition(glm::vec3());
 
                 } else {
-                    _mirrorCamera.setTargetPosition(_myAvatar->getHead().calculateAverageEyePosition());
+                    _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
                 }
             }
 
@@ -551,26 +558,26 @@ void Application::paintGL() {
             if (eyeRelativeCamera) {
                 // save absolute translations
                 glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-                glm::vec3 absoluteFaceTranslation = _myAvatar->getHead().getFaceModel().getTranslation();
+                glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
 
                 // get the eye positions relative to the neck and use them to set the face translation
                 glm::vec3 leftEyePosition, rightEyePosition;
-                _myAvatar->getHead().getFaceModel().setTranslation(glm::vec3());
-                _myAvatar->getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
-                _myAvatar->getHead().getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
+                _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
+                _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
+                _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
 
                 // get the neck position relative to the body and use it to set the skeleton translation
                 glm::vec3 neckPosition;
                 _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
                 _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-                _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead().getFaceModel().getTranslation() -
+                _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
                     neckPosition);
 
                 displaySide(_mirrorCamera, true);
 
                 // restore absolute translations
                 _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-                _myAvatar->getHead().getFaceModel().setTranslation(absoluteFaceTranslation);
+                _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
             } else {
                 displaySide(_mirrorCamera, true);
             }
@@ -677,6 +684,38 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
         }
         _bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * packet.size());
     }
+}
+
+bool Application::event(QEvent* event) {
+    
+    // handle custom URL
+    if (event->type() == QEvent::FileOpen) {
+        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
+        if (!fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME)) {
+            QString destination = fileEvent->url().toLocalFile().remove(CUSTOM_URL_SCHEME);
+            QStringList urlParts = destination.split('/', QString::SkipEmptyParts);
+
+            if (urlParts.count() > 1) {
+                // if url has 2 or more parts, the first one is domain name
+                Menu::getInstance()->goToDomain(urlParts[0]);
+                
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[1]);
+                if (urlParts.count() > 2) {
+                    
+                    // location orientation
+                    Menu::getInstance()->goToOrientation(urlParts[2]);
+                }
+            } else if (urlParts.count() == 1) {
+
+                // location coordinates
+                Menu::getInstance()->goToDestination(urlParts[0]);
+            }
+        }
+        
+        return false;
+    }
+    return QApplication::event(event);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -1378,6 +1417,32 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void Application::dropEvent(QDropEvent *event) {
+    QString snapshotPath;
+    const QMimeData *mimeData = event->mimeData();
+    foreach (QUrl url, mimeData->urls()) {
+        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+            snapshotPath = url.url().remove("file://");
+            break;
+        }
+    }
+    
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+    if (snapshotData != NULL) {
+        if (!snapshotData->getDomain().isEmpty()) {
+            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+        }
+        
+        _myAvatar->setPosition(snapshotData->getLocation());
+        _myAvatar->setOrientation(snapshotData->getOrientation());
+    } else {
+        QMessageBox msgBox;
+        msgBox.setText("No location details were found in this JPG, try dragging in an authentic Hifi snapshot.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
+    }
+}
+
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
@@ -1799,7 +1864,7 @@ void Application::init() {
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-    _myCamera.setModeShiftRate(1.0f);
+    _myCamera.setModeShiftPeriod(1.0f);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
@@ -1875,6 +1940,8 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
+    
+    
 }
 
 void Application::closeMirrorView() {
@@ -1908,8 +1975,8 @@ const float MAX_VOXEL_EDIT_DISTANCE = 50.0f;
 const float HEAD_SPHERE_RADIUS = 0.07f;
 
 bool Application::isLookingAtMyAvatar(Avatar* avatar) {
-    glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
-    glm::vec3 myHeadPosition = _myAvatar->getHead().getPosition();
+    glm::vec3 theirLookat = avatar->getHead()->getLookAtPosition();
+    glm::vec3 myHeadPosition = _myAvatar->getHead()->getPosition();
 
     if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
@@ -1970,8 +2037,17 @@ void Application::updateFaceshift() {
 
     //  Copy angular velocity if measured by faceshift, to the head
     if (_faceshift.isActive()) {
-        _myAvatar->getHead().setAngularVelocity(_faceshift.getHeadAngularVelocity());
+        _myAvatar->getHead()->setAngularVelocity(_faceshift.getHeadAngularVelocity());
     }
+}
+
+void Application::updateVisage() {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateVisage()");
+
+    //  Update Visage
+    _visage.update();
 }
 
 void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
@@ -1987,23 +2063,35 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
         float distance = TREE_SCALE;
         if (_myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
-                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead().calculateAverageEyePosition()); 
+                static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
             
         } else if (_isHoverVoxel) {
             distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
         }
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
     }
+    bool trackerActive = false;
+    float eyePitch, eyeYaw;
     if (_faceshift.isActive()) {
+        eyePitch = _faceshift.getEstimatedEyePitch();
+        eyeYaw = _faceshift.getEstimatedEyeYaw();
+        trackerActive = true;
+        
+    } else if (_visage.isActive()) {
+        eyePitch = _visage.getEstimatedEyePitch();
+        eyeYaw = _visage.getEstimatedEyeYaw();
+        trackerActive = true;
+    }
+    if (trackerActive) {
         // deflect using Faceshift gaze data
-        glm::vec3 origin = _myAvatar->getHead().calculateAverageEyePosition();
+        glm::vec3 origin = _myAvatar->getHead()->calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch() * pitchSign * deflection, _faceshift.getEstimatedEyeYaw() * deflection, 0.0f))) *
+            eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
-    _myAvatar->getHead().setLookAtPosition(lookAtSpot);
+    _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
 }
 
 void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& face) {
@@ -2159,17 +2247,17 @@ void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
-            _myCamera.setModeShiftRate(100.0f);
+            _myCamera.setModeShiftPeriod(0.00f);
         }
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
+            _myCamera.setModeShiftPeriod(1.0f);
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftRate(1.0f);
+            _myCamera.setModeShiftPeriod(1.0f);
         }
     }
 }
@@ -2251,6 +2339,7 @@ void Application::update(float deltaTime) {
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
+    updateVisage();
     _myAvatar->updateLookAtTargetAvatar(lookAtSpot);
     updateMyAvatarLookAtPosition(lookAtSpot);
 
@@ -2706,7 +2795,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+                _voxels.render();
+                
+                // double check that our LOD doesn't need to be auto-adjusted
+                // only adjust if our option is set
+                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
+                    Menu::getInstance()->autoAdjustLOD(_fps);
+                }
             }
         }
 
@@ -2797,7 +2892,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                      _mouseVoxel.s,
                      _mouseVoxel.s);
 
-            _sharedVoxelSystem.render(true);
+            _sharedVoxelSystem.render();
             glPopMatrix();
         }
     }
@@ -2837,6 +2932,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
+        
+        // render JS/scriptable overlays
+        _overlays.render3D();
     }
 }
 
@@ -2982,6 +3080,8 @@ void Application::displayOverlay() {
     if (_pieMenu.isDisplayed()) {
         _pieMenu.render();
     }
+
+    _overlays.render2D();
 
     glPopMatrix();
 }
@@ -3743,6 +3843,7 @@ void Application::resetSensors() {
     _mouseY = _glWidget->height() / 2;
 
     _faceshift.reset();
+    _visage.reset();
 
     if (OculusManager::isConnected()) {
         OculusManager::reset();
@@ -3780,7 +3881,7 @@ void Application::updateWindowTitle(){
     
     QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainHostname() + buildVersion;
-
+    
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
@@ -4060,6 +4161,8 @@ void Application::loadScript(const QString& fileNameString) {
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
+
     QThread* workerThread = new QThread(this);
 
     // when the worker thread is started, call our engine's run..
@@ -4182,6 +4285,6 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, &_profile, _myAvatar);
 }
 

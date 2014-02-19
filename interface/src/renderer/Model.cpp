@@ -90,6 +90,16 @@ void Model::reset() {
 }
 
 void Model::simulate(float deltaTime) {
+    // update our LOD
+    if (_geometry) {
+        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
+            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
+        if (_geometry != geometry) {
+            deleteGeometry();
+            _dilatedTextures.clear();
+            _geometry = geometry;
+        }
+    }
     if (!isActive()) {
         return;
     }
@@ -409,8 +419,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     // delete our local geometry and custom textures
     deleteGeometry();
     _dilatedTextures.clear();
+    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
-    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
+    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -446,9 +458,9 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
-bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
-    ModelCollisionInfo& collisionInfo, float boneScale, int skipIndex) const {
-    int jointIndex = -1;
+bool Model::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+    CollisionList& collisions, float boneScale, int skipIndex) const {
+    bool collided = false;
     const glm::vec3 relativeCenter = penetratorCenter - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::vec3 totalPenetration;
@@ -477,22 +489,22 @@ bool Model::findSphereCollision(const glm::vec3& penetratorCenter, float penetra
         if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
                 startRadius, endRadius, bonePenetration)) {
             totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            // BUG: we currently overwrite the jointIndex with the last one found
-            // which can cause incorrect collisions when colliding against more than
-            // one joint.
-            // TODO: fix this.
-            jointIndex = i;
+            CollisionInfo* collision = collisions.getNewCollision();
+            if (collision) {
+                collision->_type = MODEL_COLLISION;
+                collision->_data = (void*)(this);
+                collision->_flags = i;
+                collision->_contactPoint = penetratorCenter + penetratorRadius * glm::normalize(totalPenetration);
+                collision->_penetration = totalPenetration;
+                collided = true;
+            } else {
+                // collisions are full, so we might as well break
+                break;
+            }
         }
         outerContinue: ;
     }
-    if (jointIndex != -1) {
-        // don't store collisionInfo._model at this stage, let the outer context do that
-        collisionInfo._penetration = totalPenetration;
-        collisionInfo._jointIndex = jointIndex;
-        collisionInfo._contactPoint = penetratorCenter + penetratorRadius * glm::normalize(totalPenetration);
-        return true;
-    }
-    return false;
+    return collided;
 }
 
 void Model::updateJointState(int index) {
@@ -725,24 +737,30 @@ void Model::renderCollisionProxies(float alpha) {
     glPopMatrix();
 }
 
-bool Model::collisionHitsMoveableJoint(ModelCollisionInfo& collision) const {
-    // the joint is pokable by a collision if it exists and is free to move
-    const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._jointIndex];
-    if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
-        return false;
+bool Model::collisionHitsMoveableJoint(CollisionInfo& collision) const {
+    if (collision._type == MODEL_COLLISION) {
+        // the joint is pokable by a collision if it exists and is free to move
+        const FBXJoint& joint = _geometry->getFBXGeometry().joints[collision._flags];
+        if (joint.parentIndex == -1 || _jointStates.isEmpty()) {
+            return false;
+        }
+        // an empty freeLineage means the joint can't move
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        int jointIndex = collision._flags;
+        const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+        return !freeLineage.isEmpty();
     }
-    // an empty freeLineage means the joint can't move
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(collision._jointIndex).freeLineage;
-    return !freeLineage.isEmpty();
+    return false;
 }
 
-void Model::applyCollision(ModelCollisionInfo& collision) {
-    // This needs work.  At the moment it can wiggle joints that are free to move (such as arms)
-    // but unmovable joints (such as torso) cannot be influenced at all.
+void Model::applyCollision(CollisionInfo& collision) {
+    if (collision._type != MODEL_COLLISION) {
+        return;
+    }
+
     glm::vec3 jointPosition(0.f);
-    if (getJointPosition(collision._jointIndex, jointPosition)) {
-        int jointIndex = collision._jointIndex;
+    int jointIndex = collision._flags;
+    if (getJointPosition(jointIndex, jointPosition)) {
         const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
         if (joint.parentIndex != -1) {
             // compute the approximate distance (travel) that the joint needs to move
@@ -791,13 +809,17 @@ void Model::renderMeshes(float alpha, bool translucent) {
                 (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
             continue;
         }
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
-        
+        const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
+
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
+        if (vertexCount == 0) {
+            // sanity check
+            continue;
+        }
         
-        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
-      
+        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        
         ProgramObject* program = &_program;
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
@@ -904,11 +926,11 @@ void Model::renderMeshes(float alpha, bool translucent) {
         qint64 offset = 0;
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+            const FBXMeshPart& part = mesh.parts.at(j);
             if (networkPart.isTranslucent() != translucent) {
+                offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
-            const FBXMeshPart& part = mesh.parts.at(j);
-            
             // apply material properties
             glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
             glm::vec4 specular = glm::vec4(part.specularColor, alpha);

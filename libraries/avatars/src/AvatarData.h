@@ -52,8 +52,8 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -76,7 +76,10 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-    
+
+    Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
+    Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
+
     Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
     Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
 public:
@@ -107,6 +110,12 @@ public:
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
 
+    // access to Head().set/getAverageLoudness
+    float getAudioLoudness() const { return _headData->getAudioLoudness(); }
+    void setAudioLoudness(float value) { _headData->setAudioLoudness(value); }
+    float getAudioAverageLoudness() const { return _headData->getAudioAverageLoudness(); }
+    void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
+
     //  Scale
     float getTargetScale() const { return _targetScale; }
     void setTargetScale(float targetScale) { _targetScale = targetScale; }
@@ -130,19 +139,12 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    void setHeadData(HeadData* headData) { _headData = headData; }
-    void setHandData(HandData* handData) { _handData = handData; }
-
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;
     }
 
-    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-        return false;
-    }
-    
     bool hasIdentityChangedAfterParsing(const QByteArray& packet);
     QByteArray identityByteArray();
     
@@ -150,6 +152,8 @@ public:
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    virtual float getBoundingRadius() const { return 1.f; }
     
 protected:
     glm::vec3 _position;

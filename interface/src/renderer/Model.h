@@ -17,16 +17,6 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
-class Model;
-
-// TODO: Andrew to move this into its own file
-class ModelCollisionInfo : public CollisionInfo {
-public:
-    ModelCollisionInfo() : CollisionInfo(), _model(NULL), _jointIndex(-1) {}
-    Model* _model;
-    int _jointIndex;
-};
-
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -162,17 +152,18 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    bool findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
-        ModelCollisionInfo& collision, float boneScale = 1.0f, int skipIndex = -1) const;
+    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+        CollisionList& collisions, float boneScale = 1.0f, int skipIndex = -1) const;
     
     void renderCollisionProxies(float alpha);
 
+    /// \param collision details about the collisions
     /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(ModelCollisionInfo& collision) const;
+    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
 
-    /// \param collisionInfo info about the collision
-    /// Use the collisionInfo to affect the model
-    void  applyCollision(ModelCollisionInfo& collisionInfo);
+    /// \param collision details about the collision
+    /// Use the collision to affect the model
+    void applyCollision(CollisionInfo& collision);
 
 protected:
 
@@ -235,6 +226,9 @@ private:
     
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
+    
+    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
+    float _lodHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;

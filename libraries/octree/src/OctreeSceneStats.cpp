@@ -791,7 +791,6 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             break;
         }
         default:
-            sprintf(_itemValueBuffer, "");
             break;
     }
     return _itemValueBuffer;

@@ -54,6 +54,7 @@
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -70,6 +71,7 @@
 #include "FileLogger.h"
 #include "ParticleTreeRenderer.h"
 #include "ControllerScriptingInterface.h"
+#include "ui/Overlays.h"
 
 
 class QAction;
@@ -91,6 +93,8 @@ static const float NODE_ADDED_BLUE  = 0.0f;
 static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
+
+static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
 class Application : public QApplication {
     Q_OBJECT
@@ -126,7 +130,10 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-
+    void dropEvent(QDropEvent *event);
+    
+    bool event(QEvent* event);
+    
     void makeVoxel(glm::vec3 position,
                    float scale,
                    unsigned char red,
@@ -154,6 +161,7 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
@@ -277,6 +285,7 @@ private:
     // Various helper functions called during update()
     void updateMouseRay();
     void updateFaceshift();
+    void updateVisage();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
@@ -376,6 +385,7 @@ private:
     Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
@@ -488,6 +498,8 @@ private:
     void takeSnapshot();
     
     TouchEvent _lastTouchEvent;
+    
+    Overlays _overlays;
 };
 
 #endif /* defined(__interface__Application__) */

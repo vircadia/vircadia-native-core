@@ -16,14 +16,7 @@
 //  Click and drag to create more new voxels in the same direction
 //
 
-function vLength(v) {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-
-function vMinus(a, b) { 
-    var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-    return rval;
-}
+var windowDimensions = Controller.getViewportDimensions();
 
 var NEW_VOXEL_SIZE = 1.0;
 var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
@@ -76,6 +69,52 @@ var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-publ
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
 
+var editToolsOn = false; // starts out off
+
+
+var voxelPreview = Overlays.addOverlay("cube", {
+                    position: { x: 0, y: 0, z: 0},
+                    size: 1,
+                    color: { red: 255, green: 0, blue: 0},
+                    alpha: 1,
+                    solid: false,
+                    visible: false,
+                    lineWidth: 4
+                });
+
+
+// These will be our "overlay IDs"
+var swatches = new Array();
+var swatchHeight = 54;
+var swatchWidth = 31;
+var swatchesWidth = swatchWidth * numColors;
+var swatchesX = (windowDimensions.x - swatchesWidth) / 2;
+var swatchesY = windowDimensions.y - swatchHeight;
+
+// create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
+// location so that it displays the "selected" marker
+for (s = 0; s < numColors; s++) {
+    var imageFromX = 12 + (s * 27);
+    var imageFromY = 0;
+    if (s == whichColor) {
+        imageFromY = 55;
+    }
+    var swatchX = swatchesX + (30 * s);
+
+    swatches[s] = Overlays.addOverlay("image", {
+                    x: swatchX,
+                    y: swatchesY,
+                    width: swatchWidth,
+                    height: swatchHeight,
+                    subImage: { x: imageFromX, y: imageFromY, width: (swatchWidth - 1), height: swatchHeight },
+                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
+                    color: colors[s],
+                    alpha: 1,
+                    visible: editToolsOn
+                });
+}
+
+
 function setAudioPosition() {
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(MyAvatar.orientation);
@@ -101,7 +140,141 @@ function fixEulerAngles(eulers) {
     return rVal;
 }
 
+var trackLastMouseX = 0;
+var trackLastMouseY = 0;
+var trackAsDelete = false;
+var trackAsRecolor = false;
+
+function showPreviewVoxel() {
+    if (editToolsOn) {
+        var voxelColor;
+
+        var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+        var intersection = Voxels.findRayIntersection(pickRay);
+
+        if (whichColor == -1) {
+            //  Copy mode - use clicked voxel color
+            voxelColor = { red: intersection.voxel.red,
+                      green: intersection.voxel.green,
+                      blue: intersection.voxel.blue };
+        } else {
+            voxelColor = { red: colors[whichColor].red,
+                      green: colors[whichColor].green,
+                      blue: colors[whichColor].blue };
+        }
+
+        var guidePosition;
+        
+        if (trackAsDelete) {
+            guidePosition = { x: intersection.voxel.x,
+                              y: intersection.voxel.y,
+                              z: intersection.voxel.z };
+            Overlays.editOverlay(voxelPreview, { 
+                    position: guidePosition,
+                    size: intersection.voxel.s,
+                    visible: true,
+                    color: { red: 255, green: 0, blue: 0 },
+                    solid: false,
+                    alpha: 1
+                });
+        } else if (trackAsRecolor) {
+            guidePosition = { x: intersection.voxel.x - 0.001,
+                              y: intersection.voxel.y - 0.001,
+                              z: intersection.voxel.z - 0.001 };
+
+            Overlays.editOverlay(voxelPreview, { 
+                    position: guidePosition,
+                    size: intersection.voxel.s + 0.002,
+                    visible: true,
+                    color: voxelColor,
+                    solid: true,
+                    alpha: 0.8
+                });
+
+        } else if (!isExtruding) {
+            guidePosition = { x: intersection.voxel.x,
+                              y: intersection.voxel.y,
+                              z: intersection.voxel.z };
+                
+            if (intersection.face == "MIN_X_FACE") {
+                guidePosition.x -= intersection.voxel.s;
+            } else if (intersection.face == "MAX_X_FACE") {
+                guidePosition.x += intersection.voxel.s;
+            } else if (intersection.face == "MIN_Y_FACE") {
+                guidePosition.y -= intersection.voxel.s;
+            } else if (intersection.face == "MAX_Y_FACE") {
+                guidePosition.y += intersection.voxel.s;
+            } else if (intersection.face == "MIN_Z_FACE") {
+                guidePosition.z -= intersection.voxel.s;
+            } else if (intersection.face == "MAX_Z_FACE") {
+                guidePosition.z += intersection.voxel.s;
+            }
+
+            Overlays.editOverlay(voxelPreview, { 
+                    position: guidePosition,
+                    size: intersection.voxel.s,
+                    visible: true,
+                    color: voxelColor,
+                    solid: true,
+                    alpha: 0.7
+                });
+        } else if (isExtruding) {
+            Overlays.editOverlay(voxelPreview, { visible: false });
+        }
+    } else {
+        Overlays.editOverlay(voxelPreview, { visible: false });
+    }
+}
+
+function trackMouseEvent(event) {
+    trackLastMouseX = event.x;
+    trackLastMouseY = event.y;
+    trackAsDelete = event.isControl;
+    trackAsRecolor = event.isShifted;
+    showPreviewVoxel();
+}
+
+function trackKeyPressEvent(event) {
+    if (event.text == "CONTROL") {
+        trackAsDelete = true;
+        showPreviewVoxel();
+    }
+    if (event.text == "SHIFT") {
+        trackAsRecolor = true;
+    }
+    showPreviewVoxel();
+}
+
+function trackKeyReleaseEvent(event) {
+    if (event.text == "CONTROL") {
+        trackAsDelete = false;
+        showPreviewVoxel();
+    }
+    if (event.text == "SHIFT") {
+        trackAsRecolor = false;
+    }
+    
+    // on TAB release, toggle our tool state
+    if (event.text == "TAB") {
+        editToolsOn = !editToolsOn;
+        moveTools();
+        Audio.playSound(clickSound, audioOptions);
+    }
+    showPreviewVoxel();
+}
+
 function mousePressEvent(event) {
+
+    // if our tools are off, then don't do anything
+    if (!editToolsOn) {
+        return; 
+    }
+
+    if (event.isRightButton) {
+        // debugging of right button click on mac...
+        print(">>>> RIGHT BUTTON <<<<<");
+    }
+    trackMouseEvent(event); // used by preview support
     mouseX = event.x;
     mouseY = event.y;
     var pickRay = Camera.computePickRay(event.x, event.y);
@@ -118,16 +291,17 @@ function mousePressEvent(event) {
             // get position for initial azimuth, elevation
             orbitCenter = intersection.intersection; 
             var orbitVector = Vec3.subtract(cameraPosition, orbitCenter);
-            orbitRadius = vLength(orbitVector); 
+            orbitRadius = Vec3.length(orbitVector); 
             orbitAzimuth = Math.atan2(orbitVector.z, orbitVector.x);
             orbitAltitude = Math.asin(orbitVector.y / Vec3.length(orbitVector));
 
-        } else if (event.isRightButton || event.isControl) {
+        } else if (trackAsDelete || event.isRightButton) {
             //  Delete voxel
             Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
             Audio.playSound(deleteSound, audioOptions);
+            Overlays.editOverlay(voxelPreview, { visible: false });
 
-        } else if (event.isShifted) {
+        } else if (trackAsRecolor) {
             //  Recolor Voxel
             Voxels.setVoxel(intersection.voxel.x, 
                             intersection.voxel.y, 
@@ -135,6 +309,7 @@ function mousePressEvent(event) {
                             intersection.voxel.s, 
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
             Audio.playSound(changeColorSound, audioOptions);
+            Overlays.editOverlay(voxelPreview, { visible: false });
         } else {
             //  Add voxel on face
             if (whichColor == -1) {
@@ -178,6 +353,7 @@ function mousePressEvent(event) {
             lastVoxelScale = newVoxel.s;
 
             Audio.playSound(addSound, audioOptions);
+            Overlays.editOverlay(voxelPreview, { visible: false });
             dragStart = { x: event.x, y: event.y };
             isAdding = true;
         }       
@@ -185,42 +361,52 @@ function mousePressEvent(event) {
 }
 
 function keyPressEvent(event) {
-    key_alt = event.isAlt;
-    key_shift = event.isShifted;
-    var nVal = parseInt(event.text);
-    if (event.text == "0") {
-        print("Color = Copy");
-        whichColor = -1;
-        Audio.playSound(clickSound, audioOptions);
-    } else if ((nVal > 0) && (nVal <= numColors)) {
-        whichColor = nVal - 1;
-        print("Color = " + (whichColor + 1));
-        Audio.playSound(clickSound, audioOptions);
-    } else if (event.text == "9") {
-        // Create a brand new 1 meter voxel in front of your avatar 
-        var color = whichColor; 
-        if (color == -1) color = 0;
-        var newPosition = getNewVoxelPosition();
-        var newVoxel = {    
-                    x: newPosition.x,
-                    y: newPosition.y ,
-                    z: newPosition.z,    
-                    s: NEW_VOXEL_SIZE,
-                    red: colors[color].red,
-                    green: colors[color].green,
-                    blue: colors[color].blue };
-        Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
-        setAudioPosition();
-        Audio.playSound(addSound, audioOptions);
-    } else if (event.text == " ") {
+    // if our tools are off, then don't do anything
+    if (editToolsOn) {
+        key_alt = event.isAlt;
+        key_shift = event.isShifted;
+        var nVal = parseInt(event.text);
+        if (event.text == "0") {
+            print("Color = Copy");
+            whichColor = -1;
+            Audio.playSound(clickSound, audioOptions);
+            moveTools();
+        } else if ((nVal > 0) && (nVal <= numColors)) {
+            whichColor = nVal - 1;
+            print("Color = " + (whichColor + 1));
+            Audio.playSound(clickSound, audioOptions);
+            moveTools();
+        } else if (event.text == "9") {
+            // Create a brand new 1 meter voxel in front of your avatar 
+            var color = whichColor; 
+            if (color == -1) color = 0;
+            var newPosition = getNewVoxelPosition();
+            var newVoxel = {    
+                        x: newPosition.x,
+                        y: newPosition.y ,
+                        z: newPosition.z,    
+                        s: NEW_VOXEL_SIZE,
+                        red: colors[color].red,
+                        green: colors[color].green,
+                        blue: colors[color].blue };
+            Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
+            setAudioPosition();
+            Audio.playSound(addSound, audioOptions);
+        }
+    }
+    
+    // do this even if not in edit tools
+    if (event.text == " ") {
         //  Reset my orientation!
         var orientation = { x:0, y:0, z:0, w:1 };
         Camera.setOrientation(orientation);
         MyAvatar.orientation = orientation;
     }
+    trackKeyPressEvent(event); // used by preview support
 }
 
 function keyReleaseEvent(event) {
+    trackKeyReleaseEvent(event); // used by preview support
     key_alt = false;
     key_shift = false; 
 }
@@ -248,7 +434,7 @@ function mouseMoveEvent(event) {
             var lastVoxelDistance = { x: pickRay.origin.x - lastVoxelPosition.x, 
                                     y: pickRay.origin.y - lastVoxelPosition.y, 
                                     z: pickRay.origin.z - lastVoxelPosition.z };
-            var distance = vLength(lastVoxelDistance);
+            var distance = Vec3.length(lastVoxelDistance);
             var mouseSpot = { x: pickRay.direction.x * distance, y: pickRay.direction.y * distance, z: pickRay.direction.z * distance };
             mouseSpot.x += pickRay.origin.x;
             mouseSpot.y += pickRay.origin.y;
@@ -279,9 +465,17 @@ function mouseMoveEvent(event) {
             }
         }
     }
+    
+    // update the add voxel/delete voxel overlay preview
+    trackMouseEvent(event);
 }
 
 function mouseReleaseEvent(event) {
+    // if our tools are off, then don't do anything
+    if (!editToolsOn) {
+        return; 
+    }
+
     if (isOrbiting) {
         var cameraOrientation = Camera.getOrientation();
         var eulers = Quat.safeEulerAngles(cameraOrientation);
@@ -296,6 +490,41 @@ function mouseReleaseEvent(event) {
     isExtruding = false; 
 }
 
+function moveTools() {
+    swatchesX = (windowDimensions.x - swatchesWidth) / 2;
+    swatchesY = windowDimensions.y - swatchHeight;
+
+    // create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
+    // location so that it displays the "selected" marker
+    for (s = 0; s < numColors; s++) {
+        var imageFromX = 12 + (s * 27);
+        var imageFromY = 0;
+        if (s == whichColor) {
+            imageFromY = 55;
+        }
+        var swatchX = swatchesX + ((swatchWidth - 1) * s);
+
+        Overlays.editOverlay(swatches[s], {
+                        x: swatchX,
+                        y: swatchesY,
+                        subImage: { x: imageFromX, y: imageFromY, width: (swatchWidth - 1), height: swatchHeight },
+                        color: colors[s],
+                        alpha: 1,
+                        visible: editToolsOn
+                    });
+    }
+}
+
+
+function update() {
+    var newWindowDimensions = Controller.getViewportDimensions();
+    if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
+        windowDimensions = newWindowDimensions;
+        print("window resized...");
+        moveTools();
+    }
+}
+
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
@@ -303,5 +532,15 @@ Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
 function scriptEnding() {
+    Overlays.deleteOverlay(voxelPreview);
+    for (s = 0; s < numColors; s++) {
+        Overlays.deleteOverlay(swatches[s]);
+    }
 }
 Script.scriptEnding.connect(scriptEnding);
+
+
+Script.willSendVisualDataCallback.connect(update);
+
+
+
