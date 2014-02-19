@@ -62,24 +62,20 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    Visage* visage = Application::getInstance()->getVisage();
     if (isMine) {
-        _isFaceshiftConnected = faceshift->isActive();
+        _isFaceshiftConnected = false;
+        if (faceshift->isActive()) {
+            _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+            
+        } else if (visage->isActive()) {
+            _blendshapeCoefficients = visage->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+        }
     }
     
-    if (isMine && faceshift->isActive()) {
-        const float EYE_OPEN_SCALE = 0.5f;
-        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
-        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
-        
-        // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
-        // mapping between their blendshape coefficients and our avatar features
-        const float MOUTH_SIZE_SCALE = 2500.0f;
-        _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
-        const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
-        _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
-        
-    } else if (!_isFaceshiftConnected) {
+    if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;

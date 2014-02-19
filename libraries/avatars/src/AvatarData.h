@@ -139,9 +139,6 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    void setHeadData(HeadData* headData) { _headData = headData; }
-    void setHandData(HandData* handData) { _handData = handData; }
-
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
     virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
