@@ -4274,5 +4274,5 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, AccountManager::getInstance().getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, _myAvatar);
 }

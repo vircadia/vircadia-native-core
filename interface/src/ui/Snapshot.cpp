@@ -32,7 +32,6 @@ const QString ORIENTATION_W = "orientation-w";
 
 const QString DOMAIN_KEY = "domain";
 
-
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     
     if (!QFile(snapshotPath).exists()) {
