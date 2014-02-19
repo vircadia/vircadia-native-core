@@ -299,7 +299,7 @@ void NodeList::reset() {
     _numNoReplyDomainCheckIns = 0;
 
     // refresh the owner UUID to the NULL UUID
-    _sessionUUID = QUuid();
+    setSessionUUID(QUuid());
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
