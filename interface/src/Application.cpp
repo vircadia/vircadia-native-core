@@ -3831,6 +3831,7 @@ void Application::resetSensors() {
     _mouseY = _glWidget->height() / 2;
 
     _faceshift.reset();
+    _visage.reset();
 
     if (OculusManager::isConnected()) {
         OculusManager::reset();

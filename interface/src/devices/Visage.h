@@ -13,8 +13,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace VisageSDK {
-    class FaceData;
     class VisageTracker2;
+    struct FaceData;
 }
 
 /// Handles input from the Visage webcam feature tracking software.
@@ -30,6 +30,7 @@ public:
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
     
     void update();
+    void reset();
     
 private:
     
@@ -39,6 +40,8 @@ private:
     bool _active;
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
+    
+    glm::vec3 _headOrigin;
 };
 
 #endif /* defined(__interface__Visage__) */

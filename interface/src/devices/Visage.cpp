@@ -24,11 +24,15 @@ namespace VisageSDK {
 
 using namespace VisageSDK;
 
+const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.3f);
+
 Visage::Visage() :
-    _active(false) {
+    _active(false),
+    _headOrigin(DEFAULT_HEAD_ORIGIN) {
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
-    initializeLicenseManager("resources/visage/license.vlc");
+    QByteArray licensePath = "resources/visage/license.vlc";
+    initializeLicenseManager(licensePath);
     _tracker = new VisageTracker2("resources/visage/Facial Features Tracker - Asymmetric.cfg");
     if (_tracker->trackFromCam()) {
         _data = new FaceData();   
@@ -52,10 +56,15 @@ Visage::~Visage() {
 
 void Visage::update() {
 #ifdef HAVE_VISAGE
-    _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
+    _active = (_tracker && _tracker->getTrackingData(_data) == TRACK_STAT_OK);
     if (!_active) {
         return;
     }
-    _headRotation = glm::quat(glm::vec3(_data->faceRotation[0], _data->faceRotation[1], _data->faceRotation[2]));
+    _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));
+    _headTranslation = glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) - _headOrigin;
 #endif
+}
+
+void Visage::reset() {
+    _headOrigin += _headTranslation;
 }
