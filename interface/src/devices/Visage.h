@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <QVector>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -54,6 +56,8 @@ private:
     float _estimatedEyeYaw;
     
     std::vector<float> _blendshapeCoefficients;
+    
+    QVector<int> _blendshapeIndices;
 };
 
 #endif /* defined(__interface__Visage__) */

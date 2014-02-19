@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QHash>
+
 #include <SharedUtil.h>
 
 #ifdef HAVE_VISAGE
@@ -13,6 +15,7 @@
 #endif
 
 #include "Visage.h"
+#include "renderer/FBXReader.h"
 
 namespace VisageSDK {
 #ifdef WIN32
@@ -56,6 +59,43 @@ Visage::~Visage() {
 #endif
 }
 
+static QHash<QByteArray, int> createBlendshapeIndices() {
+    QHash<QByteArray, QByteArray> blendshapeMap;
+    blendshapeMap.insert("Sneer", "au_nose_wrinkler");
+    blendshapeMap.insert("JawFwd", "au_jaw_z_push");
+    blendshapeMap.insert("JawLeft", "au_jaw_x_push");
+    blendshapeMap.insert("JawOpen", "au_jaw_drop");
+    blendshapeMap.insert("LipsLowerDown", "au_lower_lip_drop");
+    blendshapeMap.insert("LipsUpperUp", "au_upper_lip_raiser");
+    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_left");
+    blendshapeMap.insert("BrowsU_L", "au_left_outer_brow_raiser");
+    blendshapeMap.insert("BrowsU_C", "au_left_inner_brow_raiser");
+    blendshapeMap.insert("BrowsD_L", "au_left_brow_lowerer");
+    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_right");
+    blendshapeMap.insert("BrowsU_R", "au_right_outer_brow_raiser");
+    blendshapeMap.insert("BrowsU_C", "au_right_inner_brow_raiser");
+    blendshapeMap.insert("BrowsD_R", "au_right_brow_lowerer");
+    
+    QHash<QByteArray, int> blendshapeIndices;
+    for (int i = 0;; i++) {
+        QByteArray blendshape = FACESHIFT_BLENDSHAPES[i];
+        if (blendshape.isEmpty()) {
+            break;
+        }
+        QByteArray mapping = blendshapeMap.value(blendshape);
+        if (!mapping.isEmpty()) {
+            blendshapeIndices.insert(mapping, i + 1);
+        }
+    }
+    
+    return blendshapeIndices;
+}
+
+static const QHash<QByteArray, int>& getBlendshapeIndices() {
+    static QHash<QByteArray, int> blendshapeIndices = createBlendshapeIndices();
+    return blendshapeIndices;
+}
+
 const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::update() {
@@ -70,11 +110,25 @@ void Visage::update() {
     _estimatedEyePitch = glm::degrees(-_data->gazeDirection[1]);
     _estimatedEyeYaw = glm::degrees(-_data->gazeDirection[0]);
     
+    if (_blendshapeIndices.isEmpty()) {
+        _blendshapeIndices.resize(_data->actionUnitCount);
+        int maxIndex = -1;
+        for (int i = 0; i < _data->actionUnitCount; i++) {
+            int index = getBlendshapeIndices().value(_data->actionUnitsNames[i]) - 1;
+            maxIndex = qMax(maxIndex, _blendshapeIndices[i] = index);
+        }
+        _blendshapeCoefficients.resize(maxIndex + 1);
+    }
+    
+    qFill(_blendshapeCoefficients.begin(), _blendshapeCoefficients.end(), 0.0f);
     for (int i = 0; i < _data->actionUnitCount; i++) {
         if (!_data->actionUnitsUsed[i]) {
             continue;
         }
-        qDebug() << _data->actionUnitsNames[i] << _data->actionUnits[i];
+        int index = _blendshapeIndices.at(i);
+        if (index != -1) {
+            _blendshapeCoefficients[index] = _data->actionUnits[i];
+        }
     }
 #endif
 }
