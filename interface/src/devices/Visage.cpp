@@ -30,12 +30,14 @@ using namespace VisageSDK;
 const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
+#ifdef HAVE_VISAGE
+    _leftInnerBrowIndex(0),
+    _rightInnerBrowIndex(0),
+#endif
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f),
-    _leftInnerBrowIndex(0),
-    _rightInnerBrowIndex(0) {
+    _estimatedEyeYaw(0.0f) {
     
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
@@ -62,6 +64,7 @@ Visage::~Visage() {
 #endif
 }
 
+#ifdef HAVE_VISAGE
 static int leftEyeBlinkIndex = 0;
 static int rightEyeBlinkIndex = 1;
 static int centerBrowIndex = 16;
@@ -111,6 +114,7 @@ static const QHash<QByteArray, int>& getBlendshapeIndices() {
     static QHash<QByteArray, int> blendshapeIndices = createBlendshapeIndices();
     return blendshapeIndices;
 }
+#endif
 
 const float TRANSLATION_SCALE = 20.0f;
 
