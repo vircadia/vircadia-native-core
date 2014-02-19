@@ -62,9 +62,6 @@ public:
     void collideAgainstOurself();
 
 private:
-    void playSlaps(PalmData& palm, Avatar* avatar);
-
-private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
     Hand& operator= (const Hand&);
@@ -96,6 +93,8 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
+
+    void playSlaps(PalmData& palm, Avatar* avatar);
 };
 
 #endif
