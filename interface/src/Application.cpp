@@ -2070,13 +2070,25 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
         }
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
     }
+    bool trackerActive = false;
+    float eyePitch, eyeYaw;
     if (_faceshift.isActive()) {
+        eyePitch = _faceshift.getEstimatedEyePitch();
+        eyeYaw = _faceshift.getEstimatedEyeYaw();
+        trackerActive = true;
+        
+    } else if (_visage.isActive()) {
+        eyePitch = _visage.getEstimatedEyePitch();
+        eyeYaw = _visage.getEstimatedEyeYaw();
+        trackerActive = true;
+    }
+    if (trackerActive) {
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead().calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch() * pitchSign * deflection, _faceshift.getEstimatedEyeYaw() * deflection, 0.0f))) *
+            eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar->getHead().setLookAtPosition(lookAtSpot);

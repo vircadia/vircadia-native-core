@@ -29,6 +29,9 @@ public:
     const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
     
+    float getEstimatedEyePitch() const { return _estimatedEyePitch; }
+    float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
+    
     void update();
     void reset();
     
@@ -42,6 +45,9 @@ private:
     glm::vec3 _headTranslation;
     
     glm::vec3 _headOrigin;
+    
+    float _estimatedEyePitch;
+    float _estimatedEyeYaw;
 };
 
 #endif /* defined(__interface__Visage__) */

@@ -24,11 +24,13 @@ namespace VisageSDK {
 
 using namespace VisageSDK;
 
-const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.3f);
+const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
     _active(false),
-    _headOrigin(DEFAULT_HEAD_ORIGIN) {
+    _headOrigin(DEFAULT_HEAD_ORIGIN),
+    _estimatedEyePitch(0.0f),
+    _estimatedEyeYaw(0.0f) {
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
     QByteArray licensePath = "resources/visage/license.vlc";
@@ -54,7 +56,7 @@ Visage::~Visage() {
 #endif
 }
 
-const float TRANSLATION_SCALE = 50.0f;
+const float TRANSLATION_SCALE = 20.0f;
 
 void Visage::update() {
 #ifdef HAVE_VISAGE
@@ -65,6 +67,8 @@ void Visage::update() {
     _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
     _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
         _headOrigin) * TRANSLATION_SCALE;
+    _estimatedEyePitch = glm::degrees(_data->gazeDirection[1]);
+    _estimatedEyeYaw = glm::degrees(_data->gazeDirection[0]);
 #endif
 }
 
