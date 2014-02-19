@@ -9,6 +9,8 @@
 #ifndef __interface__Visage__
 #define __interface__Visage__
 
+#include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -32,6 +34,8 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
     
+    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    
     void update();
     void reset();
     
@@ -48,6 +52,8 @@ private:
     
     float _estimatedEyePitch;
     float _estimatedEyeYaw;
+    
+    std::vector<float> _blendshapeCoefficients;
 };
 
 #endif /* defined(__interface__Visage__) */

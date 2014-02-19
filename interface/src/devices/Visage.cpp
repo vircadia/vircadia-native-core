@@ -67,8 +67,15 @@ void Visage::update() {
     _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
     _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
         _headOrigin) * TRANSLATION_SCALE;
-    _estimatedEyePitch = glm::degrees(_data->gazeDirection[1]);
-    _estimatedEyeYaw = glm::degrees(_data->gazeDirection[0]);
+    _estimatedEyePitch = glm::degrees(-_data->gazeDirection[1]);
+    _estimatedEyeYaw = glm::degrees(-_data->gazeDirection[0]);
+    
+    for (int i = 0; i < _data->actionUnitCount; i++) {
+        if (!_data->actionUnitsUsed[i]) {
+            continue;
+        }
+        qDebug() << _data->actionUnitsNames[i] << _data->actionUnits[i];
+    }
 #endif
 }
 
