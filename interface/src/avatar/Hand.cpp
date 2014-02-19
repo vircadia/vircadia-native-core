@@ -133,8 +133,8 @@ void Hand::playSlaps(PalmData& palm, Avatar* avatar)
     bool wasColliding = palm.getIsCollidingWithPalm();
     palm.setIsCollidingWithPalm(false);
     //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
-    for (size_t j = 0; j < avatar->getHand().getNumPalms(); j++) {
-        PalmData& otherPalm = avatar->getHand().getPalms()[j];
+    for (size_t j = 0; j < avatar->getHand()->getNumPalms(); j++) {
+        PalmData& otherPalm = avatar->getHand()->getPalms()[j];
         if (!otherPalm.isActive()) {
             continue;
         }

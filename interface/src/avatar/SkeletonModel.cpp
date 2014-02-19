@@ -8,10 +8,9 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <HandData.h>
-
 #include "Application.h"
 #include "Avatar.h"
+#include "Hand.h"
 #include "Menu.h"
 #include "SkeletonModel.h"
 
@@ -33,8 +32,8 @@ void SkeletonModel::simulate(float deltaTime) {
 
     // find the left and rightmost active Leap palms
     int leftPalmIndex, rightPalmIndex;
-    HandData& hand = _owningAvatar->getHand();
-    hand.getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
+    Hand* hand = _owningAvatar->getHand();
+    hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
     const float HAND_RESTORATION_PERIOD = 1.f;  // seconds
     float handRestorePercent = glm::clamp(deltaTime / HAND_RESTORATION_PERIOD, 0.f, 1.f);
@@ -52,14 +51,14 @@ void SkeletonModel::simulate(float deltaTime) {
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
         applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand.getPalms()[leftPalmIndex]);
+            hand->getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(handRestorePercent);
 
     } else {
         applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
-            hand.getPalms()[leftPalmIndex]);
+            hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand.getPalms()[rightPalmIndex]);
+            hand->getPalms()[rightPalmIndex]);
     }
 }
 

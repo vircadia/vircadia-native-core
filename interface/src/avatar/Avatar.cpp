@@ -60,7 +60,6 @@ const float CHAT_MESSAGE_HEIGHT = 0.1f;
 Avatar::Avatar() :
     AvatarData(),
     _head(this),
-    _hand(this),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
     _mode(AVATAR_MODE_STANDING),
@@ -82,17 +81,16 @@ Avatar::Avatar() :
     
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
-    _handData = &_hand;
+    _handData = static_cast<HandData*>(new Hand(this));
 }
 
 Avatar::~Avatar() {
     _headData = NULL;
-    _handData = NULL;
 }
 
 void Avatar::init() {
     _head.init();
-    _hand.init();
+    getHand()->init();
     _skeletonModel.init();
     _initialized = true;
 }
@@ -115,7 +113,7 @@ void Avatar::simulate(float deltaTime) {
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
-    _hand.simulate(deltaTime, false);
+    getHand()->simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
@@ -254,7 +252,7 @@ void Avatar::renderBody(bool forceRenderHead) {
     if (forceRenderHead) {
         _head.render(1.0f);
     }
-    _hand.render(false);
+    getHand()->render(false);
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {

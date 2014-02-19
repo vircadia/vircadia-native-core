@@ -73,7 +73,7 @@ void MyAvatar::reset() {
     //_headMouseX = _glWidget->width() / 2;
     //_headMouseY = _glWidget->height() / 2;
     _head.reset();
-    _hand.reset();
+    getHand()->reset();
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
@@ -314,8 +314,8 @@ void MyAvatar::simulate(float deltaTime) {
     _position += _velocity * deltaTime;
 
     // update avatar skeleton and simulate hand and head
-    _hand.collideAgainstOurself(); 
-    _hand.simulate(deltaTime, true);
+    getHand()->collideAgainstOurself(); 
+    getHand()->simulate(deltaTime, true);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
@@ -701,7 +701,7 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     if (forceRenderHead || (glm::length(myCamera->getPosition() - _head.calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
         _head.render(1.0f);
     }
-    _hand.render(true);
+    getHand()->render(true);
 }
 
 void MyAvatar::updateThrust(float deltaTime) {
@@ -994,10 +994,10 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
             }
 
             // collide our hands against them
-            _hand.collideAgainstAvatar(avatar, true);
+            getHand()->collideAgainstAvatar(avatar, true);
 
             // collide their hands against us
-            avatar->getHand().collideAgainstAvatar(this, false);
+            avatar->getHand()->collideAgainstAvatar(this, false);
         }
     }
 }

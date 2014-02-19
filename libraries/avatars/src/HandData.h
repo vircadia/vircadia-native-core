@@ -71,6 +71,10 @@ public:
     void setFingerTrailLength(unsigned int length);
     void updateFingerTrails();
 
+    // use these static methods for safety
+    static int encodeData(HandData* hand, unsigned char* destinationBuffer);
+    static int decodeData(HandData* hand, const QByteArray& dataByteArray);
+
     // Use these for sending and receiving hand data
     int encodeRemoteData(unsigned char* destinationBuffer);
     int decodeRemoteData(const QByteArray& dataByteArray);

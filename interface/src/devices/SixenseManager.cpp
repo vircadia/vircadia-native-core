@@ -45,7 +45,7 @@ void SixenseManager::update(float deltaTime) {
         return;
     }
     MyAvatar* avatar = Application::getInstance()->getAvatar();
-    Hand& hand = avatar->getHand();
+    Hand* hand = avatar->getHand();
     
     int maxControllers = sixenseGetMaxControllers();
     for (int i = 0; i < maxControllers; i++) {
@@ -60,16 +60,16 @@ void SixenseManager::update(float deltaTime) {
         // Either find a palm matching the sixense controller, or make a new one
         PalmData* palm;
         bool foundHand = false;
-        for (int j = 0; j < hand.getNumPalms(); j++) {
-            if (hand.getPalms()[j].getSixenseID() == data.controller_index) {
-                palm = &hand.getPalms()[j];
+        for (int j = 0; j < hand->getNumPalms(); j++) {
+            if (hand->getPalms()[j].getSixenseID() == data.controller_index) {
+                palm = &(hand->getPalms()[j]);
                 foundHand = true;
             }
         }
         if (!foundHand) {
-            PalmData newPalm(&hand);
-            hand.getPalms().push_back(newPalm);
-            palm = &hand.getPalms()[hand.getNumPalms() - 1];
+            PalmData newPalm(hand);
+            hand->getPalms().push_back(newPalm);
+            palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
             palm->setSixenseID(data.controller_index);
             printf("Found new Sixense controller, ID %i\n", data.controller_index);
         }
@@ -107,7 +107,7 @@ void SixenseManager::update(float deltaTime) {
         }
         
         // initialize the "finger" based on the direction
-        FingerData finger(palm, &hand);
+        FingerData finger(palm, hand);
         finger.setActive(true);
         finger.setRawRootPosition(position);
         const float FINGER_LENGTH = 300.0f;   //  Millimeters
@@ -130,7 +130,7 @@ void SixenseManager::update(float deltaTime) {
     // if the controllers haven't been moved in a while, disable
     const int MOVEMENT_DISABLE_DURATION = 30 * 1000 * 1000;
     if (usecTimestampNow() - _lastMovement > MOVEMENT_DISABLE_DURATION) {
-        for (vector<PalmData>::iterator it = hand.getPalms().begin(); it != hand.getPalms().end(); it++) {
+        for (vector<PalmData>::iterator it = hand->getPalms().begin(); it != hand->getPalms().end(); it++) {
             it->setActive(false);
         }
     }

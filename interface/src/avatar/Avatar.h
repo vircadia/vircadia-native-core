@@ -84,7 +84,7 @@ public:
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
-    Hand& getHand() { return _hand; }
+    Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
     
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
@@ -130,7 +130,7 @@ public slots:
 
 protected:
     Head _head;
-    Hand _hand;
+    //Hand _hand;
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
     AvatarMode _mode;
