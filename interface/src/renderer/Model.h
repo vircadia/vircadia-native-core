@@ -227,7 +227,7 @@ private:
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
     
-    QSharedPointer<NetworkGeometry> _baseGeometry;
+    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
     float _lodHysteresis;
     
     float _pupilDilation;

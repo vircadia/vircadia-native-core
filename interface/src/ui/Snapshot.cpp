@@ -64,7 +64,7 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Profile* profile, Avatar* avatar)
     QImage shot = widget->grabFrameBuffer();
     
     glm::vec3 location = avatar->getPosition();
-    glm::quat orientation = avatar->getHead().getOrientation();
+    glm::quat orientation = avatar->getHead()->getOrientation();
     
     // add metadata
     shot.setText(LOCATION_X, QString::number(location.x));

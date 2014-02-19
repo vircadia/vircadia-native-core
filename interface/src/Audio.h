@@ -46,7 +46,8 @@ public:
     void render(int screenWidth, int screenHeight);
     
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
-    
+    float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
+
     void setNoiseGateEnabled(bool noiseGateEnabled) { _noiseGateEnabled = noiseGateEnabled; }
     
     void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }

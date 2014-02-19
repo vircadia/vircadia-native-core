@@ -43,7 +43,7 @@ public:
     void setTargetRotation(const glm::quat& rotation);
     
     void setMode(CameraMode m);
-    void setModeShiftRate(float r);
+    void setModeShiftPeriod(float r);
     void setFieldOfView(float f);
     void setAspectRatio(float a);
     void setNearClip(float n);
@@ -109,7 +109,7 @@ private:
     float _newTightness;
     float _modeShift;
     float _linearModeShift;
-    float _modeShiftRate;
+    float _modeShiftPeriod;
     float _scale;
 
     glm::vec3 _lookingAt;
