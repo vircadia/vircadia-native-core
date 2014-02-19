@@ -58,6 +58,8 @@ private:
     std::vector<float> _blendshapeCoefficients;
     
     QVector<int> _blendshapeIndices;
+    int _leftInnerBrowIndex;
+    int _rightInnerBrowIndex;
 };
 
 #endif /* defined(__interface__Visage__) */

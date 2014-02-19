@@ -33,7 +33,10 @@ Visage::Visage() :
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f) {
+    _estimatedEyeYaw(0.0f),
+    _leftInnerBrowIndex(0),
+    _rightInnerBrowIndex(0) {
+    
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
     QByteArray licensePath = "resources/visage/license.vlc";
@@ -59,6 +62,10 @@ Visage::~Visage() {
 #endif
 }
 
+static int leftEyeBlinkIndex = 0;
+static int rightEyeBlinkIndex = 1;
+static int centerBrowIndex = 16;
+
 static QHash<QByteArray, int> createBlendshapeIndices() {
     QHash<QByteArray, QByteArray> blendshapeMap;
     blendshapeMap.insert("Sneer", "au_nose_wrinkler");
@@ -81,6 +88,15 @@ static QHash<QByteArray, int> createBlendshapeIndices() {
         QByteArray blendshape = FACESHIFT_BLENDSHAPES[i];
         if (blendshape.isEmpty()) {
             break;
+        }
+        if (blendshape == "EyeBlink_L") {
+            leftEyeBlinkIndex = i;
+        
+        } else if (blendshape == "EyeBlink_R") {
+            rightEyeBlinkIndex = i;
+            
+        } else if (blendshape == "BrowsU_C") {
+            centerBrowIndex = i;
         }
         QByteArray mapping = blendshapeMap.value(blendshape);
         if (!mapping.isEmpty()) {
@@ -114,6 +130,12 @@ void Visage::update() {
         _blendshapeIndices.resize(_data->actionUnitCount);
         int maxIndex = -1;
         for (int i = 0; i < _data->actionUnitCount; i++) {
+            QByteArray name = _data->actionUnitsNames[i];
+            if (name == "au_left_inner_brow_raiser") {
+                _leftInnerBrowIndex = i;
+            } else if (name == "au_right_inner_brow_raiser") {
+                _rightInnerBrowIndex = i;
+            }
             int index = getBlendshapeIndices().value(_data->actionUnitsNames[i]) - 1;
             maxIndex = qMax(maxIndex, _blendshapeIndices[i] = index);
         }
@@ -130,6 +152,10 @@ void Visage::update() {
             _blendshapeCoefficients[index] = _data->actionUnits[i];
         }
     }
+    _blendshapeCoefficients[leftEyeBlinkIndex] = 1.0f - _data->eyeClosure[0];
+    _blendshapeCoefficients[rightEyeBlinkIndex] = 1.0f - _data->eyeClosure[1];
+    _blendshapeCoefficients[centerBrowIndex] = (_data->actionUnits[_leftInnerBrowIndex] +
+        _data->actionUnits[_rightInnerBrowIndex]) * 0.5f;
 #endif
 }
 
