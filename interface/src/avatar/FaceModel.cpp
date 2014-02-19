@@ -48,9 +48,6 @@ bool FaceModel::render(float alpha) {
     if (!Model::render(alpha)) {
         return false;
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
-        renderCollisionProxies(alpha);
-    }
     return true;
 }
 
