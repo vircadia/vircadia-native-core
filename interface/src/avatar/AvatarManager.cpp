@@ -6,8 +6,10 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 #include <string>
+
 #include <PerfStat.h>
 #include <UUID.h>
+
 #include <glm/gtx/string_cast.hpp>
 
 #include "Application.h"
