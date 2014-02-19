@@ -21,7 +21,7 @@ namespace VisageSDK {
 #ifdef WIN32
     void __declspec(dllimport) initializeLicenseManager(char* licenseKeyFileName);
 #else
-	void initializeLicenseManager(char* licenseKeyFileName);
+    void initializeLicenseManager(char* licenseKeyFileName);
 #endif
 }
 
@@ -136,7 +136,7 @@ void Visage::update() {
             } else if (name == "au_right_inner_brow_raiser") {
                 _rightInnerBrowIndex = i;
             }
-            int index = getBlendshapeIndices().value(_data->actionUnitsNames[i]) - 1;
+            int index = getBlendshapeIndices().value(name) - 1;
             maxIndex = qMax(maxIndex, _blendshapeIndices[i] = index);
         }
         _blendshapeCoefficients.resize(maxIndex + 1);
