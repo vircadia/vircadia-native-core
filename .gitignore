@@ -39,5 +39,11 @@ interface/external/Leap/util/
 interface/external/Sixense/include/
 interface/external/Sixense/lib/
 
+# Ignore Visage
+interface/external/visage/dependencies/
+interface/external/visage/include/
+interface/external/visage/lib/
+interface/resources/visage/
+
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
