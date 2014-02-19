@@ -31,7 +31,7 @@ public:
     bool hasValidAccessToken();
     bool checkAndSignalForAccessToken();
     
-    void requestAccessToken(const QString& username, const QString& password);
+    void requestAccessToken(const QString& login, const QString& password);
     
     const QString& getUsername() const { return _username; }
     void setUsername(const QString& username) { _username = username; }

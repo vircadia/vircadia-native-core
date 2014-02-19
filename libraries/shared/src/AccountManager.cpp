@@ -96,7 +96,7 @@ bool AccountManager::checkAndSignalForAccessToken() {
     return hasToken;
 }
 
-void AccountManager::requestAccessToken(const QString& username, const QString& password) {
+void AccountManager::requestAccessToken(const QString& login, const QString& password) {
     if (_networkAccessManager) {
         QNetworkRequest request;
         
@@ -105,7 +105,7 @@ void AccountManager::requestAccessToken(const QString& username, const QString& 
         
         QByteArray postData;
         postData.append("grant_type=password&");
-        postData.append("username=" + username + "&");
+        postData.append("username=" + login + "&");
         postData.append("password=" + password);
         
         request.setUrl(grantURL);

@@ -750,9 +750,9 @@ void Menu::loginForCurrentDomain() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QLineEdit* usernameLineEdit = new QLineEdit();
-    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Username:", usernameLineEdit);
+    QLineEdit* loginLineEdit = new QLineEdit();
+    loginLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Login:", loginLineEdit);
     
     QLineEdit* passwordLineEdit = new QLineEdit();
     passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
@@ -766,9 +766,9 @@ void Menu::loginForCurrentDomain() {
     
     int dialogReturn = loginDialog.exec();
     
-    if (dialogReturn == QDialog::Accepted && !usernameLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
+    if (dialogReturn == QDialog::Accepted && !loginLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
         // attempt to get an access token given this username and password
-        AccountManager::getInstance().requestAccessToken(usernameLineEdit->text(), passwordLineEdit->text());
+        AccountManager::getInstance().requestAccessToken(loginLineEdit->text(), passwordLineEdit->text());
     }
     
     sendFakeEnterEvent();
