@@ -226,6 +226,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
+    QSettings::setDefaultFormat(QSettings::IniFormat);
     _settings = new QSettings(this);
 
     // Check to see if the user passed in a command line option for loading a local

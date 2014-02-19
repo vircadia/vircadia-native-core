@@ -11,9 +11,9 @@
 
 #include "InterfaceConfig.h"
 
-#include <QString>
 #include <QImage>
 #include <QGLWidget>
+#include <QString>
 
 #include "avatar/Avatar.h"
 
