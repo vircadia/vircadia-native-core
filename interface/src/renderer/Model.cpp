@@ -421,6 +421,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     _dilatedTextures.clear();
     _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
+    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
     _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
 }
 

@@ -42,9 +42,14 @@ public:
     void reset();
     
 private:
-    
+
+#ifdef HAVE_VISAGE
     VisageSDK::VisageTracker2* _tracker;
     VisageSDK::FaceData* _data;
+    int _leftInnerBrowIndex;
+    int _rightInnerBrowIndex;
+    QVector<int> _blendshapeIndices;
+#endif
     
     bool _active;
     glm::quat _headRotation;
@@ -56,10 +61,6 @@ private:
     float _estimatedEyeYaw;
     
     std::vector<float> _blendshapeCoefficients;
-    
-    QVector<int> _blendshapeIndices;
-    int _leftInnerBrowIndex;
-    int _rightInnerBrowIndex;
 };
 
 #endif /* defined(__interface__Visage__) */

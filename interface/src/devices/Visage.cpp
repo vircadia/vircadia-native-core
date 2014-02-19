@@ -30,12 +30,14 @@ using namespace VisageSDK;
 const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
+#ifdef HAVE_VISAGE
+    _leftInnerBrowIndex(0),
+    _rightInnerBrowIndex(0),
+#endif
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
-    _estimatedEyeYaw(0.0f),
-    _leftInnerBrowIndex(0),
-    _rightInnerBrowIndex(0) {
+    _estimatedEyeYaw(0.0f) {
     
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
@@ -62,6 +64,7 @@ Visage::~Visage() {
 #endif
 }
 
+#ifdef HAVE_VISAGE
 static int leftEyeBlinkIndex = 0;
 static int rightEyeBlinkIndex = 1;
 static int centerBrowIndex = 16;
@@ -74,14 +77,12 @@ static QHash<QByteArray, int> createBlendshapeIndices() {
     blendshapeMap.insert("JawOpen", "au_jaw_drop");
     blendshapeMap.insert("LipsLowerDown", "au_lower_lip_drop");
     blendshapeMap.insert("LipsUpperUp", "au_upper_lip_raiser");
-    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_left");
-    blendshapeMap.insert("BrowsU_L", "au_left_outer_brow_raiser");
-    blendshapeMap.insert("BrowsU_C", "au_left_inner_brow_raiser");
-    blendshapeMap.insert("BrowsD_L", "au_left_brow_lowerer");
-    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_right");
-    blendshapeMap.insert("BrowsU_R", "au_right_outer_brow_raiser");
-    blendshapeMap.insert("BrowsU_C", "au_right_inner_brow_raiser");
-    blendshapeMap.insert("BrowsD_R", "au_right_brow_lowerer");
+    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_left");
+    blendshapeMap.insert("BrowsU_R", "au_left_outer_brow_raiser");
+    blendshapeMap.insert("BrowsD_R", "au_left_brow_lowerer");
+    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_right");
+    blendshapeMap.insert("BrowsU_L", "au_right_outer_brow_raiser");
+    blendshapeMap.insert("BrowsD_L", "au_right_brow_lowerer");
     
     QHash<QByteArray, int> blendshapeIndices;
     for (int i = 0;; i++) {
@@ -111,6 +112,7 @@ static const QHash<QByteArray, int>& getBlendshapeIndices() {
     static QHash<QByteArray, int> blendshapeIndices = createBlendshapeIndices();
     return blendshapeIndices;
 }
+#endif
 
 const float TRANSLATION_SCALE = 20.0f;
 
