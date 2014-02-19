@@ -345,7 +345,7 @@ void Avatar::renderDisplayName() {
         QFontMetrics metrics = textRenderer(DISPLAYNAME)->metrics();
         int bottom = -metrics.descent(), top = bottom + metrics.height();
         int left = -_displayNameWidth/2, right = _displayNameWidth/2;
-        int border = 5;
+        const int border = 5;
         bottom -= border;
         left -= border;
         top += border;
@@ -367,10 +367,10 @@ void Avatar::renderDisplayName() {
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
                
         QByteArray ba = _displayName.toLocal8Bit();
-        const char *text = ba.data();
+        const char* text = ba.data();
         
         glDisable(GL_POLYGON_OFFSET_FILL);
-        textRenderer(DISPLAYNAME)->draw(-_displayNameWidth/2.0, 0, text); 
+        textRenderer(DISPLAYNAME)->draw(-_displayNameWidth / 2, 0, text); 
      
 
     }
