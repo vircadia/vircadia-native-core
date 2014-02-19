@@ -262,10 +262,17 @@ MouseEvent::MouseEvent() :
 }; 
 
 
-MouseEvent::MouseEvent(const QMouseEvent& event) {
-    x = event.x();
-    y = event.y();
-    
+MouseEvent::MouseEvent(const QMouseEvent& event) :
+    x(event.x()), 
+    y(event.y()),
+    isLeftButton(event.buttons().testFlag(Qt::LeftButton)), 
+    isRightButton(event.buttons().testFlag(Qt::RightButton)), 
+    isMiddleButton(event.buttons().testFlag(Qt::MiddleButton)),
+    isShifted(event.modifiers().testFlag(Qt::ShiftModifier)),
+    isControl(event.modifiers().testFlag(Qt::ControlModifier)),
+    isMeta(event.modifiers().testFlag(Qt::MetaModifier)),
+    isAlt(event.modifiers().testFlag(Qt::AltModifier))
+{
     // single button that caused the event
     switch (event.button()) {
         case Qt::LeftButton:
@@ -284,16 +291,6 @@ MouseEvent::MouseEvent(const QMouseEvent& event) {
             button = "NONE";
             break;
     }
-    // button pressed state
-    isLeftButton = isLeftButton || (event.buttons().testFlag(Qt::LeftButton));
-    isRightButton = isRightButton || (event.buttons().testFlag(Qt::RightButton));
-    isMiddleButton = isMiddleButton || (event.buttons().testFlag(Qt::MiddleButton));
-
-    // keyboard modifiers
-    isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
-    isMeta = event.modifiers().testFlag(Qt::MetaModifier);
-    isControl = event.modifiers().testFlag(Qt::ControlModifier);
-    isAlt = event.modifiers().testFlag(Qt::AltModifier);
 }
 
 QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event) {
