@@ -27,6 +27,8 @@ AccountManager& AccountManager::getInstance() {
 
 Q_DECLARE_METATYPE(OAuthAccessToken)
 
+const QString ACCOUNT_TOKEN_GROUP = "tokens";
+
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
@@ -34,6 +36,20 @@ AccountManager::AccountManager() :
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
+    
+    // check if there are existing access tokens to load from settings
+    QSettings settings;
+    settings.beginGroup(ACCOUNT_TOKEN_GROUP);
+    
+    foreach(const QString& key, settings.allKeys()) {
+        // take a key copy to perform the double slash replacement
+        QString keyCopy(key);
+        QUrl keyURL(keyCopy.replace("slashslash", "//"));
+        
+        // pull out the stored access token and put it in our in memory array
+        _accessTokens.insert(keyURL, settings.value(key).value<OAuthAccessToken>());
+        qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
+    }
 }
 
 void AccountManager::authenticatedGetRequest(const QString& path, const QObject *successReceiver, const char *successMethod,
@@ -127,10 +143,8 @@ void AccountManager::requestFinished() {
             
             // store this access token into the local settings
             QSettings localSettings;
-            const QString ACCOUNT_TOKEN_GROUP = "tokens";
             localSettings.beginGroup(ACCOUNT_TOKEN_GROUP);
-            
-            localSettings.setValue(rootURL.toString(), qVariantFromValue(freshAccessToken));
+            localSettings.setValue(rootURL.toString().replace("//", "slashslash"), QVariant::fromValue(freshAccessToken));
         }
     } else {
         // TODO: error handling
