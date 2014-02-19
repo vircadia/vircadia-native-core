@@ -681,6 +681,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         if (_writeRenderFullVBO) {
             if (_usePrimitiveRenderer) {
                 _renderer->release();
+                clearAllNodesPrimitiveIndex();
             }
             clearFreeBufferIndexes();
         }
@@ -1081,8 +1082,7 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelTreeElement* node) {
             node->setPrimitiveIndex(0);
             return 1;
         }
-    }
-    else {
+    } else {
         // if the node is not in the VBOs then we have nothing to do!
         if (node->isKnownBufferIndex()) {
             // If this node has not yet been written to the array, then add it to the end of the array.
@@ -1585,8 +1585,11 @@ void VoxelSystem::killLocalVoxels() {
     _tree->eraseAllOctreeElements();
     _tree->unlock();
     clearFreeBufferIndexes();
-    if (_renderer) {
-        _renderer->release();
+    if (_usePrimitiveRenderer) {
+        if (_renderer) {
+            _renderer->release();
+        }
+        clearAllNodesPrimitiveIndex();
     }
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
@@ -1597,7 +1600,6 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(OctreeElement* element, void
     _nodeCount++;
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     voxel->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
-    voxel->setPrimitiveIndex(0);
     return true;
 }
 
@@ -1613,6 +1615,28 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes", _nodeCount);
+    }
+}
+
+// only called on main thread
+bool VoxelSystem::clearAllNodesPrimitiveIndexOperation(OctreeElement* element, void* extraData) {
+    _nodeCount++;
+    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+    voxel->setPrimitiveIndex(0);
+    return true;
+}
+
+// only called on main thread, and also always followed by a call to cleanupVoxelMemory()
+// you shouldn't be calling this on any other thread or without also cleaning up voxel memory
+void VoxelSystem::clearAllNodesPrimitiveIndex() {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "VoxelSystem::clearAllNodesPrimitiveIndex()");
+    _nodeCount = 0;
+    _tree->lockForRead(); // we won't change the tree so it's ok to treat this as a read
+    _tree->recurseTreeWithOperation(clearAllNodesPrimitiveIndexOperation);
+    _tree->unlock();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+        qDebug("clearing primitive index of %d nodes", _nodeCount);
     }
 }
 
@@ -1689,7 +1713,15 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 
     // Nothing to do at the leaf level
     if (voxel->isLeaf()) {
+        // By definition the the exterior faces of a leaf voxel are
+        // always occluders.
+        voxel->setExteriorOcclusions(OctreeElement::HalfSpace::All);
+        // And the sibling occluders
+        voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
         return false;
+    } else {
+        voxel->setExteriorOcclusions(OctreeElement::HalfSpace::None);
+        voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
     }
 
     // Count of exterior occluding faces of this voxel element indexed 
@@ -1756,40 +1788,20 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
     return true;
 }
 
-bool VoxelSystem::clearAllOcclusionsOperation(OctreeElement* element, void* extraData) {
-    _nodeCount++;
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
 
-    bool rc;
-    if (voxel->isLeaf()) {
-
-        // By definition the the exterior faces of a leaf voxel are
-        // always occluders.
-        voxel->setExteriorOcclusions(OctreeElement::HalfSpace::All);
-
-        // And the sibling occluders
-        voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
-        rc = false;
-    } else {
-        voxel->setExteriorOcclusions(OctreeElement::HalfSpace::None);
-        voxel->setInteriorOcclusions(OctreeElement::HalfSpace::None);
-        rc = true;
-    }
-
-    return rc;
-}
 void VoxelSystem::cullSharedFaces() {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
         _useVoxelShader = false;
         _usePrimitiveRenderer = true;
-        clearAllNodesBufferIndex();
         inspectForOcclusions();
     } else {
         _usePrimitiveRenderer = false;
         clearAllNodesBufferIndex();
-        clearAllOcclusions();
     }
+    _writeRenderFullVBO = true;
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
 }
 
 void VoxelSystem::showCulledSharedFaces() {
@@ -1802,42 +1814,10 @@ void VoxelSystem::showCulledSharedFaces() {
     }
     _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::CullSharedFaces)) {
-        if (_renderer) {
-            _renderer->release();
-        }
         _writeRenderFullVBO = true;
         _tree->setDirtyBit();
         setupNewVoxelsForDrawing();
     }
-}
-
-void VoxelSystem::clearAllOcclusions() {
-
-    if (_inOcclusions) {
-        return;
-    }
-    _inOcclusions = true;
-    _nodeCount = 0;
-
-    bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showDebugDetails, "clearAllOcclusions()");
-
-    _tree->lockForRead();
-    if (_renderer) {
-        _renderer->release();
-    }
-        
-    _tree->recurseTreeWithOperation(clearAllOcclusionsOperation);
-    _tree->unlock();
-
-    if (showDebugDetails) {
-        qDebug("clearing all occlusions of %d nodes", _nodeCount);
-    }
-    _writeRenderFullVBO = true;
-    _tree->setDirtyBit();
-    setupNewVoxelsForDrawing();
-
-    _inOcclusions = false;
 }
 
 void VoxelSystem::inspectForOcclusions() {
@@ -1852,10 +1832,6 @@ void VoxelSystem::inspectForOcclusions() {
     PerformanceWarning warn(showDebugDetails, "inspectForOcclusions()");
 
     _tree->lockForRead();
-    if (_renderer) {
-        _renderer->release();
-    }
-        
     _tree->recurseTreeWithPostOperation(inspectForExteriorOcclusionsOperation);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(inspectForInteriorOcclusionsOperation);
@@ -1864,9 +1840,6 @@ void VoxelSystem::inspectForOcclusions() {
     if (showDebugDetails) {
         qDebug("inspecting all occlusions of %d nodes", _nodeCount);
     }
-    _writeRenderFullVBO = true;
-    _tree->setDirtyBit();
-    setupNewVoxelsForDrawing();
     _inOcclusions = false;
 }
 
