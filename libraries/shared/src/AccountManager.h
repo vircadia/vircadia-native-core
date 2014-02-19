@@ -52,7 +52,6 @@ private:
     QNetworkAccessManager* _networkAccessManager;
     
     static QMap<QUrl, OAuthAccessToken> _accessTokens;
-    static QMap<QUrl, QString> _clientIDs;
 };
 
 #endif /* defined(__hifi__AccountManager__) */

@@ -19,21 +19,17 @@
 #include "AccountManager.h"
 
 QMap<QUrl, OAuthAccessToken> AccountManager::_accessTokens = QMap<QUrl, OAuthAccessToken>();
-QMap<QUrl, QString> AccountManager::_clientIDs = QMap<QUrl, QString>();
 
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
     return sharedInstance;
 }
 
-const QString DEFAULT_NODE_AUTH_OAUTH_CLIENT_ID = "12b7b18e7b8c118707b84ff0735e57a4473b5b0577c2af44734f02e08d02829c";
-
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
     _networkAccessManager(NULL)
 {
-    _clientIDs.insert(DEFAULT_NODE_AUTH_URL, DEFAULT_NODE_AUTH_OAUTH_CLIENT_ID);
 }
 
 void AccountManager::authenticatedGetRequest(const QString& path, const QObject *successReceiver, const char *successMethod,
@@ -82,27 +78,22 @@ bool AccountManager::checkAndSignalForAccessToken() {
 
 void AccountManager::requestAccessToken(const QString& username, const QString& password) {
     if (_networkAccessManager) {
-        if (_clientIDs.contains(_rootURL)) {
-            QNetworkRequest request;
-            
-            QUrl grantURL = _rootURL;
-            grantURL.setPath("/oauth/token");
-            
-            QByteArray postData;
-            postData.append("client_id=" + _clientIDs.value(_rootURL) + "&");
-            postData.append("grant_type=password&");
-            postData.append("username=" + username + "&");
-            postData.append("password=" + password);
-            
-            request.setUrl(grantURL);
-            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-            
-            QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
-            connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
-            connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
-        } else {
-            qDebug() << "Client ID for OAuth authorization at" << _rootURL.toString() << "is unknown. Cannot authenticate.";
-        }
+        QNetworkRequest request;
+        
+        QUrl grantURL = _rootURL;
+        grantURL.setPath("/oauth/token");
+        
+        QByteArray postData;
+        postData.append("grant_type=password&");
+        postData.append("username=" + username + "&");
+        postData.append("password=" + password);
+        
+        request.setUrl(grantURL);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        
+        QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
+        connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
+        connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
     }
 }
 
