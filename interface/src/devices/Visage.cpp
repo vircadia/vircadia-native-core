@@ -152,8 +152,8 @@ void Visage::update() {
             _blendshapeCoefficients[index] = _data->actionUnits[i];
         }
     }
-    _blendshapeCoefficients[leftEyeBlinkIndex] = 1.0f - _data->eyeClosure[0];
-    _blendshapeCoefficients[rightEyeBlinkIndex] = 1.0f - _data->eyeClosure[1];
+    _blendshapeCoefficients[leftEyeBlinkIndex] = 1.0f - _data->eyeClosure[1];
+    _blendshapeCoefficients[rightEyeBlinkIndex] = 1.0f - _data->eyeClosure[0];
     _blendshapeCoefficients[centerBrowIndex] = (_data->actionUnits[_leftInnerBrowIndex] +
         _data->actionUnits[_rightInnerBrowIndex]) * 0.5f;
 #endif
