@@ -48,6 +48,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 #include <QMediaPlayer>
+#include <QMimeData> 
+#include <QMessageBox>
 
 #include <AudioInjector.h>
 #include <Logging.h>
@@ -199,7 +201,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-
+    
     connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -1415,6 +1417,32 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void Application::dropEvent(QDropEvent *event) {
+    QString snapshotPath;
+    const QMimeData *mimeData = event->mimeData();
+    foreach (QUrl url, mimeData->urls()) {
+        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+            snapshotPath = url.url().remove("file://");
+            break;
+        }
+    }
+    
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+    if (snapshotData != NULL) {
+        if (!snapshotData->getDomain().isEmpty()) {
+            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+        }
+        
+        _myAvatar->setPosition(snapshotData->getLocation());
+        _myAvatar->setOrientation(snapshotData->getOrientation());
+    } else {
+        QMessageBox msgBox;
+        msgBox.setText("No location details were found in this JPG, try dragging in an authentic Hifi snapshot.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
+    }
+}
+
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet() << NodeType::VoxelServer
@@ -2013,6 +2041,15 @@ void Application::updateFaceshift() {
     }
 }
 
+void Application::updateVisage() {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateVisage()");
+
+    //  Update Visage
+    _visage.update();
+}
+
 void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2033,13 +2070,25 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
         }
         lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
     }
+    bool trackerActive = false;
+    float eyePitch, eyeYaw;
     if (_faceshift.isActive()) {
+        eyePitch = _faceshift.getEstimatedEyePitch();
+        eyeYaw = _faceshift.getEstimatedEyeYaw();
+        trackerActive = true;
+        
+    } else if (_visage.isActive()) {
+        eyePitch = _visage.getEstimatedEyePitch();
+        eyeYaw = _visage.getEstimatedEyeYaw();
+        trackerActive = true;
+    }
+    if (trackerActive) {
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead().calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch() * pitchSign * deflection, _faceshift.getEstimatedEyeYaw() * deflection, 0.0f))) *
+            eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar->getHead().setLookAtPosition(lookAtSpot);
@@ -2290,6 +2339,7 @@ void Application::update(float deltaTime) {
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
+    updateVisage();
     _myAvatar->updateLookAtTargetAvatar(lookAtSpot);
     updateMyAvatarLookAtPosition(lookAtSpot);
 
@@ -3796,6 +3846,7 @@ void Application::resetSensors() {
     _mouseY = _glWidget->height() / 2;
 
     _faceshift.reset();
+    _visage.reset();
 
     if (OculusManager::isConnected()) {
         OculusManager::reset();
@@ -3833,7 +3884,7 @@ void Application::updateWindowTitle(){
     
     QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainHostname() + buildVersion;
-
+    
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
@@ -4237,6 +4288,6 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, _profile.getUsername(), _myAvatar->getPosition());
+    Snapshot::saveSnapshot(_glWidget, &_profile, _myAvatar);
 }
 

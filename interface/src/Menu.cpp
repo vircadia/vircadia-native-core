@@ -112,7 +112,7 @@ Menu::Menu() :
                                   MenuOption::GoToDomain,
                                   Qt::CTRL | Qt::Key_D,
                                    this,
-                                   SLOT(goToDomain()));
+                                   SLOT(goToDomainDialog()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToLocation,
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
@@ -897,7 +897,7 @@ void Menu::goToDomain(const QString newDomain) {
     }
 }
 
-void Menu::goToDomain() {
+void Menu::goToDomainDialog() {
 
     QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
 

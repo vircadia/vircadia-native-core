@@ -102,6 +102,8 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
         text = "END";
     } else if (key == Qt::Key_Help) {
         text = "HELP";
+    } else if (key == Qt::Key_CapsLock) {
+        text = "CAPS LOCK";
     }
 }
 
@@ -208,6 +210,8 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
                 event.key = Qt::Key_End;
             } else if (event.text.toUpper() == "HELP") {
                 event.key = Qt::Key_Help;
+            } else if (event.text.toUpper() == "CAPS LOCK") {
+                event.key = Qt::Key_CapsLock;
             } else {
                 event.key = event.text.at(0).unicode();
             }

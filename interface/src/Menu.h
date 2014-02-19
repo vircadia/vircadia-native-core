@@ -116,7 +116,7 @@ private slots:
     void aboutApp();
     void login();
     void editPreferences();
-    void goToDomain();
+    void goToDomainDialog();
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
