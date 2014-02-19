@@ -2041,6 +2041,15 @@ void Application::updateFaceshift() {
     }
 }
 
+void Application::updateVisage() {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateVisage()");
+
+    //  Update Visage
+    _visage.update();
+}
+
 void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2318,6 +2327,7 @@ void Application::update(float deltaTime) {
     glm::vec3 lookAtSpot;
 
     updateFaceshift();
+    updateVisage();
     _myAvatar->updateLookAtTargetAvatar(lookAtSpot);
     updateMyAvatarLookAtPosition(lookAtSpot);
 

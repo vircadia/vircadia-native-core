@@ -24,18 +24,38 @@ namespace VisageSDK {
 
 using namespace VisageSDK;
 
-Visage::Visage() {
+Visage::Visage() :
+    _active(false) {
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
     initializeLicenseManager("resources/visage/license.vlc");
     _tracker = new VisageTracker2("resources/visage/Facial Features Tracker - Asymmetric.cfg");
-    _tracker->trackFromCam();
+    if (_tracker->trackFromCam()) {
+        _data = new FaceData();   
+         
+    } else {
+        delete _tracker;
+        _tracker = NULL;
+    }
 #endif
 }
 
 Visage::~Visage() {
 #ifdef HAVE_VISAGE
-    _tracker->stop();
-    delete _tracker;
+    if (_tracker) {
+        _tracker->stop();
+        delete _tracker;
+        delete _data;
+    }
+#endif
+}
+
+void Visage::update() {
+#ifdef HAVE_VISAGE
+    _active = (_tracker->getTrackingData(_data) == TRACK_STAT_OK);
+    if (!_active) {
+        return;
+    }
+    _headRotation = glm::quat(glm::vec3(_data->faceRotation[0], _data->faceRotation[1], _data->faceRotation[2]));
 #endif
 }

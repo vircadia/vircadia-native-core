@@ -9,7 +9,11 @@
 #ifndef __interface__Visage__
 #define __interface__Visage__
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 namespace VisageSDK {
+    class FaceData;
     class VisageTracker2;
 }
 
@@ -20,9 +24,21 @@ public:
     Visage();
     ~Visage();
     
+    bool isActive() const { return _active; }
+    
+    const glm::quat& getHeadRotation() const { return _headRotation; }
+    const glm::vec3& getHeadTranslation() const { return _headTranslation; }
+    
+    void update();
+    
 private:
     
     VisageSDK::VisageTracker2* _tracker;
+    VisageSDK::FaceData* _data;
+    
+    bool _active;
+    glm::quat _headRotation;
+    glm::vec3 _headTranslation;
 };
 
 #endif /* defined(__interface__Visage__) */

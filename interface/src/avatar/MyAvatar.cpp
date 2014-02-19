@@ -337,22 +337,32 @@ const float MAX_PITCH = 90.0f;
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyros(float deltaTime) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    Visage* visage = Application::getInstance()->getVisage();
     glm::vec3 estimatedPosition, estimatedRotation;
 
+    bool trackerActive = false;
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
+        trackerActive = true;
+    
+    } else if (visage->isActive()) {
+        estimatedPosition = visage->getHeadTranslation();
+        estimatedRotation = safeEulerAngles(visage->getHeadRotation());
+        trackerActive = true;
+    }
+    if (trackerActive) {
         //  Rotate the body if the head is turned beyond the screen
         if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
-            const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.5f;
-            const float FACESHIFT_MIN_YAW_TURN = 15.f;
-            const float FACESHIFT_MAX_YAW_TURN = 50.f;
-            if ( (fabs(estimatedRotation.y) > FACESHIFT_MIN_YAW_TURN) &&
-                 (fabs(estimatedRotation.y) < FACESHIFT_MAX_YAW_TURN) ) {
+            const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
+            const float TRACKER_MIN_YAW_TURN = 15.f;
+            const float TRACKER_MAX_YAW_TURN = 50.f;
+            if ( (fabs(estimatedRotation.y) > TRACKER_MIN_YAW_TURN) &&
+                 (fabs(estimatedRotation.y) < TRACKER_MAX_YAW_TURN) ) {
                 if (estimatedRotation.y > 0.f) {
-                    _bodyYawDelta += (estimatedRotation.y - FACESHIFT_MIN_YAW_TURN) * FACESHIFT_YAW_TURN_SENSITIVITY;
+                    _bodyYawDelta += (estimatedRotation.y - TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
                 } else {
-                    _bodyYawDelta += (estimatedRotation.y + FACESHIFT_MIN_YAW_TURN) * FACESHIFT_YAW_TURN_SENSITIVITY;
+                    _bodyYawDelta += (estimatedRotation.y + TRACKER_MIN_YAW_TURN) * TRACKER_YAW_TURN_SENSITIVITY;
                 }
             }
         }
