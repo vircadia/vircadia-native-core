@@ -1405,6 +1405,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
+            // BUG: joints that fall into this context do not get their bindTransform and
+            // inverseBindRotation data members properly set.  This causes bad boneRadius 
+            // and boneLength calculations for collision proxies.  Affected joints are usually:
+            // hair, teeth, tongue.  I tried to figure out how to fix this but was going
+            // crosseyed trying to understand FBX so I gave up for the time being -- Andrew.
         }
 
         // whether we're skinned depends on how many clusters are attached

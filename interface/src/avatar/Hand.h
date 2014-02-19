@@ -93,6 +93,8 @@ private:
     void calculateGeometry();
     
     void handleVoxelCollision(PalmData* palm, const glm::vec3& fingerTipPosition, VoxelTreeElement* voxel, float deltaTime);
+
+    void playSlaps(PalmData& palm, Avatar* avatar);
 };
 
 #endif

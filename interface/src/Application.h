@@ -54,6 +54,7 @@
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -160,6 +161,7 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
@@ -286,6 +288,7 @@ private:
     // Various helper functions called during update()
     void updateMouseRay();
     void updateFaceshift();
+    void updateVisage();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
@@ -385,6 +388,7 @@ private:
     Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
