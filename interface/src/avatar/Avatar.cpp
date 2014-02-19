@@ -302,7 +302,7 @@ void Avatar::renderDisplayName() {
     glDisable(GL_LIGHTING);
     
     glPushMatrix();
-    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * (getSkeletonHeight() + getHeadHeight());
+    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * ((getSkeletonHeight() + getHeadHeight()) / 1.5f);
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
