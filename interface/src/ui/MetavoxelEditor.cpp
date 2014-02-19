@@ -92,6 +92,7 @@ MetavoxelEditor::MetavoxelEditor() :
     _value->setLayout(valueLayout);
 
     valueLayout->addWidget(_valueArea = new QScrollArea());
+    _valueArea->setMinimumHeight(200);
     _valueArea->setWidgetResizable(true);
 
     addTool(new BoxSetTool(this));
@@ -181,6 +182,7 @@ void MetavoxelEditor::selectedAttributeChanged() {
     }
     QWidget* editor = attribute->createEditor();
     if (editor) {
+        editor->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
         _valueArea->setWidget(editor);
     }
 }
@@ -537,6 +539,14 @@ void InsertSpannerTool::render() {
 
 bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute->inherits("SharedObjectSetAttribute");
+}
+
+bool InsertSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        insert();
+        return true;
+    }
+    return false;
 }
 
 void InsertSpannerTool::insert() {

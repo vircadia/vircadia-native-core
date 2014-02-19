@@ -152,6 +152,8 @@ public:
 
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
 private slots:
     
     void insert();

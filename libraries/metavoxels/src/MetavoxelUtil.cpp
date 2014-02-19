@@ -274,7 +274,7 @@ QDoubleSpinBox* Vec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);
     box->setMaximum(FLT_MAX);
-    box->setMaximumWidth(100);
+    box->setMinimumWidth(50);
     connect(box, SIGNAL(valueChanged(double)), SLOT(updateVector()));
     return box;
 }
