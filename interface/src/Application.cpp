@@ -158,11 +158,27 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _pasteMode(false),
         _logger(new FileLogger(this))
 {
+    switchToResourcesParentIfRequired();
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+   
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(BUILD_VERSION);
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    
     _myAvatar = _avatarManager.getMyAvatar();
 
     _applicationStartupTime = startup_time;
-
-    switchToResourcesParentIfRequired();
+    
     QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
@@ -212,21 +228,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     connect(&AccountManager::getInstance(), SIGNAL(authenticationRequired()),
             Menu::getInstance(), SLOT(loginForCurrentDomain()));
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
 
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(BUILD_VERSION);
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
-    
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
-
-    QSettings::setDefaultFormat(QSettings::IniFormat);
     _settings = new QSettings(this);
 
     // Check to see if the user passed in a command line option for loading a local

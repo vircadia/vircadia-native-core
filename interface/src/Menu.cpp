@@ -745,6 +745,7 @@ void Menu::loginForCurrentDomain() {
     
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     loginDialog.setLayout(layout);
+    loginDialog.setWindowFlags(Qt::Sheet);
     
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);

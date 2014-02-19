@@ -20,12 +20,12 @@ public:
     OAuthAccessToken(const QJsonObject& jsonObject);
     OAuthAccessToken(const OAuthAccessToken& otherToken);
     OAuthAccessToken& operator=(const OAuthAccessToken& otherToken);
-    
+     
     bool isExpired() { return expiryTimestamp <= QDateTime::currentMSecsSinceEpoch(); }
     
     QString token;
     QString refreshToken;
-    quint64 expiryTimestamp;
+    qlonglong expiryTimestamp;
     QString tokenType;
     
     friend QDataStream& operator<<(QDataStream &out, const OAuthAccessToken& token);
