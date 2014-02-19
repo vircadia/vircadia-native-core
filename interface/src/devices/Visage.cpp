@@ -32,7 +32,7 @@ Visage::Visage() :
 #ifdef HAVE_VISAGE
     switchToResourcesParentIfRequired();
     QByteArray licensePath = "resources/visage/license.vlc";
-    initializeLicenseManager(licensePath);
+    initializeLicenseManager(licensePath.data());
     _tracker = new VisageTracker2("resources/visage/Facial Features Tracker - Asymmetric.cfg");
     if (_tracker->trackFromCam()) {
         _data = new FaceData();   
@@ -54,17 +54,20 @@ Visage::~Visage() {
 #endif
 }
 
+const float TRANSLATION_SCALE = 50.0f;
+
 void Visage::update() {
 #ifdef HAVE_VISAGE
     _active = (_tracker && _tracker->getTrackingData(_data) == TRACK_STAT_OK);
     if (!_active) {
         return;
     }
-    _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));
-    _headTranslation = glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) - _headOrigin;
+    _headRotation = glm::quat(glm::vec3(-_data->faceRotation[0], -_data->faceRotation[1], _data->faceRotation[2]));    
+    _headTranslation = (glm::vec3(_data->faceTranslation[0], _data->faceTranslation[1], _data->faceTranslation[2]) -
+        _headOrigin) * TRANSLATION_SCALE;
 #endif
 }
 
 void Visage::reset() {
-    _headOrigin += _headTranslation;
+    _headOrigin += _headTranslation / TRANSLATION_SCALE;
 }
