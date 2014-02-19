@@ -309,8 +309,13 @@ Application::~Application() {
     delete idleTimer;
     
     Menu::getInstance()->saveSettings();
-    
     _rearMirrorTools->saveSettings(_settings);
+    
+    _sharedVoxelSystem.changeTree(new VoxelTree);
+    if (_voxelImporter) {
+        _voxelImporter->saveSettings(_settings);
+        delete _voxelImporter;
+    }
     _settings->sync();
     
     // let the avatar mixer know we're out
@@ -331,7 +336,6 @@ Application::~Application() {
 
     storeSizeAndPosition();
     saveScripts();
-    _sharedVoxelSystem.changeTree(new VoxelTree);
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -1296,8 +1300,14 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 pasteVoxels();
             }
 
-        } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
-            deleteVoxelUnderCursor();
+        } else if (event->button() == Qt::RightButton) {
+            if (Menu::getInstance()->isVoxelModeActionChecked()) {
+                deleteVoxelUnderCursor();
+            }
+            if (_pasteMode) {
+                _pasteMode = false;
+            }
+            
         }
     }
 }
@@ -1707,13 +1717,19 @@ void Application::exportVoxels() {
 void Application::importVoxels() {
     if (!_voxelImporter) {
         _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->init(_settings);
+        _voxelImporter->loadSettings(_settings);
     }
     
-    if (_voxelImporter->exec()) {
-        qDebug("[DEBUG] Import succeeded.");
+    if (!_voxelImporter->exec()) {
+        qDebug() << "[DEBUG] Import succeeded." << endl;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::VoxelSelectMode, true);
+        _pasteMode = true;
     } else {
-        qDebug("[DEBUG] Import failed.");
+        qDebug() << "[DEBUG] Import failed." << endl;
+        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+            _sharedVoxelSystem.killLocalVoxels();
+            _sharedVoxelSystem.changeTree(&_clipboard);
+        }
     }
 
     // restore the main window's active state
@@ -1770,10 +1786,11 @@ void Application::pasteVoxels() {
     }
 
     pasteVoxelsToOctalCode(octalCodeDestination);
-
+    
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
     }
+    _pasteMode = false;
 }
 
 void Application::findAxisAlignment() {
@@ -1845,6 +1862,7 @@ void Application::init() {
 
     VoxelTreeElement::removeUpdateHook(&_sharedVoxelSystem);
 
+    // Cleanup of the original shared tree
     _sharedVoxelSystem.init();
     VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
     _sharedVoxelSystem.changeTree(&_clipboard);
@@ -1936,12 +1954,11 @@ void Application::init() {
     _audio.init(_glWidget);
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
+    
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-    
-    
 }
 
 void Application::closeMirrorView() {
@@ -2090,7 +2107,7 @@ void Application::updateMouseVoxels(float deltaTime, float& distance, BoxFace& f
     PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
 
     _mouseVoxel.s = 0.0f;
-    bool wasInitialized = _mouseVoxelScaleInitialized;
+    bool wasInitialized = _mouseVoxelScaleInitialized ;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar->getVelocity().x) +
          fabs(_myAvatar->getVelocity().y) +
