@@ -125,8 +125,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-void Hand::playSlaps(PalmData& palm, Avatar* avatar)
-{
+void Hand::playSlaps(PalmData& palm, Avatar* avatar) {
     //  Check for palm collisions
     glm::vec3 myPalmPosition = palm.getPosition();
     float palmCollisionDistance = 0.1f;
