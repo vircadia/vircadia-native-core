@@ -25,11 +25,15 @@ AccountManager& AccountManager::getInstance() {
     return sharedInstance;
 }
 
+Q_DECLARE_METATYPE(OAuthAccessToken)
+
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
     _networkAccessManager(NULL)
 {
+    qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
+    qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
 }
 
 void AccountManager::authenticatedGetRequest(const QString& path, const QObject *successReceiver, const char *successMethod,
@@ -97,6 +101,7 @@ void AccountManager::requestAccessToken(const QString& username, const QString& 
     }
 }
 
+
 void AccountManager::requestFinished() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
     
@@ -117,7 +122,15 @@ void AccountManager::requestFinished() {
             
             qDebug() << "Storing an access token for" << rootURL;
             
-            _accessTokens.insert(rootURL, OAuthAccessToken(rootObject));
+            OAuthAccessToken freshAccessToken(rootObject);
+            _accessTokens.insert(rootURL, freshAccessToken);
+            
+            // store this access token into the local settings
+            QSettings localSettings;
+            const QString ACCOUNT_TOKEN_GROUP = "tokens";
+            localSettings.beginGroup(ACCOUNT_TOKEN_GROUP);
+            
+            localSettings.setValue(rootURL.toString(), qVariantFromValue(freshAccessToken));
         }
     } else {
         // TODO: error handling

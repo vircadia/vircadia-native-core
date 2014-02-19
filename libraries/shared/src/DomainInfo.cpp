@@ -33,7 +33,6 @@ void DomainInfo::reset() {
 
 void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
     _connectionSecret = QUuid(jsonObject["connection_uuid"].toString());
-    qDebug() << jsonObject["registration_token"];
     _registrationToken = QByteArray::fromHex(jsonObject["registration_token"].toString().toUtf8());
     _publicKey = jsonObject["public_key"].toString();
 }

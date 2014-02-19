@@ -49,3 +49,13 @@ void OAuthAccessToken::swap(OAuthAccessToken& otherToken) {
     swap(expiryTimestamp, otherToken.expiryTimestamp);
     swap(tokenType, otherToken.tokenType);
 }
+
+QDataStream& operator<<(QDataStream &out, const OAuthAccessToken& token) {
+    out << token.token << token.expiryTimestamp << token.tokenType << token.refreshToken;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream &in, OAuthAccessToken& token) {
+    in >> token.token >> token.expiryTimestamp >> token.tokenType >> token.refreshToken;
+    return in;
+}

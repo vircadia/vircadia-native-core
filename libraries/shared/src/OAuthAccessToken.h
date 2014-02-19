@@ -27,6 +27,9 @@ public:
     QString refreshToken;
     quint64 expiryTimestamp;
     QString tokenType;
+    
+    friend QDataStream& operator<<(QDataStream &out, const OAuthAccessToken& token);
+    friend QDataStream& operator>>(QDataStream &in, OAuthAccessToken& token);
 private:
     void swap(OAuthAccessToken& otherToken);
 };
