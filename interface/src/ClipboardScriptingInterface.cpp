@@ -50,10 +50,12 @@ void ClipboardScriptingInterface::exportVoxels(float x, float y, float z, float 
                                  z / (float)TREE_SCALE, 
                                  s / (float)TREE_SCALE };
 
+    // TODO: should we be calling invokeMethod() in all these cases?
     Application::getInstance()->exportVoxels(sourceVoxel);
 }
 
 void ClipboardScriptingInterface::importVoxels() {
-    Application::getInstance()->importVoxels();
+    QMetaObject::invokeMethod(Application::getInstance(), "importVoxels");
 }
+
 

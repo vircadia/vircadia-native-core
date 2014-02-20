@@ -25,14 +25,14 @@ function printKeyEvent(eventName, event) {
 
 
 function keyPressEvent(event) {
-    var debug = true;
+    var debug = false;
     if (debug) {
         printKeyEvent("keyPressEvent", event);
     }
 }
 
 function keyReleaseEvent(event) {
-    var debug = true;
+    var debug = false;
     if (debug) {
         printKeyEvent("keyReleaseEvent", event);
     }
