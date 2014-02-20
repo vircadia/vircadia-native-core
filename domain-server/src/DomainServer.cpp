@@ -92,7 +92,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 void DomainServer::requestUUIDFromDataServer() {
     // this slot is fired when we get a valid access token from the data-server
     // now let's ask it to set us up with a UUID
-    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create", AuthenticatedRequestMethod::POST,
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create", QNetworkAccessManager::PostOperation,
                                                        this, SLOT(parseUUIDFromDataServer()));
 }
 

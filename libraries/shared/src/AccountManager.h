@@ -17,15 +17,6 @@
 
 #include "OAuthAccessToken.h"
 
-namespace AuthenticatedRequestMethod {
-    enum Method {
-        GET,
-        POST,
-        PUT,
-        DELETE
-    };
-}
-
 class AccountManager : public QObject {
     Q_OBJECT
 public:
@@ -33,7 +24,7 @@ public:
     static AccountManager& getInstance();
     
     void authenticatedRequest(const QString& path,
-                              AuthenticatedRequestMethod::Method method,
+                              QNetworkAccessManager::Operation operation,
                               const QObject* successReceiver, const char* successMethod,
                               const QByteArray& dataByteArray = QByteArray(),
                               const QObject* errorReceiver = 0, const char* errorMethod = NULL);

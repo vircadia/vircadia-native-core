@@ -52,7 +52,7 @@ AccountManager::AccountManager() :
     }
 }
 
-void AccountManager::authenticatedRequest(const QString& path, AuthenticatedRequestMethod::Method method,
+void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                           const QObject *successReceiver, const char *successMethod,
                                           const QByteArray& dataByteArray,
                                           const QObject* errorReceiver, const char* errorMethod) {
@@ -69,11 +69,11 @@ void AccountManager::authenticatedRequest(const QString& path, AuthenticatedRequ
         
         QNetworkReply* networkReply = NULL;
         
-        switch (method) {
-            case AuthenticatedRequestMethod::GET:
+        switch (operation) {
+            case QNetworkAccessManager::GetOperation:
                 networkReply = _networkAccessManager->get(authenticatedRequest);
                 break;
-            case AuthenticatedRequestMethod::POST:
+            case QNetworkAccessManager::PostOperation:
                 authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
                 networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
             default:

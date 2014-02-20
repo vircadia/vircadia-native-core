@@ -588,7 +588,7 @@ void NodeList::domainServerAuthReply() {
 void NodeList::requestAuthForDomainServer() {
     AccountManager::getInstance().authenticatedRequest("/api/v1/domains/"
                                                        + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
-                                                       AuthenticatedRequestMethod::GET,
+                                                       QNetworkAccessManager::GetOperation,
                                                        this, SLOT(domainServerAuthReply()));
 }
 
