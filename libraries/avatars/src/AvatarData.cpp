@@ -323,7 +323,6 @@ void AvatarData::setDisplayName(const QString& displayName) {
     qDebug() << "Changing display name for avatar to" << displayName;
 }
 
-
 void AvatarData::setClampedTargetScale(float targetScale) {
     
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
