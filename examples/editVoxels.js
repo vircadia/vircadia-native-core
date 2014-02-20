@@ -247,6 +247,7 @@ var trackLastMouseY = 0;
 var trackAsDelete = false;
 var trackAsRecolor = false;
 var trackAsEyedropper = false;
+var trackAsOrbit = false;
 
 function showPreviewVoxel() {
     var voxelColor;
@@ -293,6 +294,8 @@ function showPreviewVoxel() {
                 solid: true,
                 alpha: 0.8
             });
+    } else if (trackAsOrbit) {
+        Overlays.editOverlay(voxelPreview, { visible: false });
     } else if (!isExtruding) {
         guidePosition = { x: intersection.voxel.x,
                           y: intersection.voxel.y,
@@ -440,6 +443,7 @@ function trackMouseEvent(event) {
     trackAsDelete = event.isControl;
     trackAsRecolor = event.isShifted;
     trackAsEyedropper = event.isMeta;
+    trackAsOrbit = event.isAlt;
     showPreviewGuides();
 }
 
@@ -456,6 +460,10 @@ function trackKeyPressEvent(event) {
         trackAsEyedropper = true;
         moveTools();
     }
+    if (event.text == "ALT") {
+        trackAsOrbit = true;
+        moveTools();
+    }
     showPreviewGuides();
 }
 
@@ -470,6 +478,10 @@ function trackKeyReleaseEvent(event) {
     }
     if (event.text == "META") {
         trackAsEyedropper = false;
+        moveTools();
+    }
+    if (event.text == "ALT") {
+        trackAsOrbit = false;
         moveTools();
     }
     
@@ -763,6 +775,8 @@ function moveTools() {
         recolorToolColor = toolSelectedColor;
     } else if (trackAsEyedropper) {
         eyedropperToolColor = toolSelectedColor;
+    } else if (trackAsOrbit) {
+        // nothing gets selected in this case...
     } else {
         addToolColor = toolSelectedColor;
     }
