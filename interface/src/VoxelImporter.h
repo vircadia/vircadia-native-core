@@ -23,28 +23,25 @@ public:
     VoxelImporter(QWidget* parent = NULL);
     ~VoxelImporter();
 
-    void init(QSettings* settings);
     void reset();
+    void loadSettings(QSettings* settings);
     void saveSettings(QSettings* settings);
 
     VoxelTree* getVoxelTree() { return &_voxelTree; }
 
 public slots:
     int exec();
-    int preImport();
-    int import();
-
-private slots:
-    void launchTask();
+    void import();
+    void cancel();
 
 private:
     VoxelTree _voxelTree;
     ImportDialog _importDialog;
 
-    QString _filename;
-
-    ImportTask* _currentTask;
-    ImportTask* _nextTask;
+    ImportTask* _task;
+    bool _didImport;
+    
+    void cleanupTask();
 };
 
 #endif /* defined(__hifi__VoxelImporter__) */

@@ -113,10 +113,15 @@ public:
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setDisplayName(const QString& displayName);
+
+    void setShowDisplayName(bool showDisplayName);
     
     int parseData(const QByteArray& packet);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
+
+
 
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
@@ -124,7 +129,7 @@ public:
     /// \param collision a data structure for storing info about collisions against Models
     void applyCollision(CollisionInfo& collision);
 
-    float getBoundingRadius() const { return 0.5f * getHeight(); }
+    float getBoundingRadius() const { return 0.5f * getSkeletonHeight(); }
 
 public slots:
     void updateCollisionFlags();
@@ -154,7 +159,8 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
 
-    float getHeight() const;
+    float getSkeletonHeight() const;
+    float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
@@ -163,6 +169,8 @@ private:
     bool _initialized;
 
     void renderBody(bool forceRenderHead);
+
+    void renderDisplayName();
 };
 
 #endif
