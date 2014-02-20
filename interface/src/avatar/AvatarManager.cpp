@@ -5,6 +5,9 @@
 //  Created by Stephen Birarda on 1/23/2014.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
+#include <string>
+
+#include <glm/gtx/string_cast.hpp>
 
 #include <PerfStat.h>
 #include <UUID.h>
@@ -71,6 +74,8 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
     
+  
+
     if (!selfAvatarOnly) {
         foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
             Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
@@ -184,8 +189,9 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
     while (!identityStream.atEnd()) {
         
         QUrl faceMeshURL, skeletonURL;
-        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL;
-        
+        QString displayName;
+        identityStream >> nodeUUID >> faceMeshURL >> skeletonURL >> displayName;
+
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
         if (matchingAvatar) {
@@ -197,6 +203,10 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
             
             if (avatar->getSkeletonModelURL() != skeletonURL) {
                 avatar->setSkeletonModelURL(skeletonURL);
+            }
+
+            if (avatar->getDisplayName() != displayName) {
+                avatar->setDisplayName(displayName);
             }
         }
     }

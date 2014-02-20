@@ -441,7 +441,8 @@ void DomainServer::readAvailableDatagrams() {
                 QByteArray registrationToken;
                 packetStream >> registrationToken;
                 
-                qDebug() << "The token received is" << registrationToken.toHex();
+                // make a request against the data-server to get information required to connect to this node
+                
             } else if (requestType == PacketTypeRequestAssignment) {
                 
                 // construct the requested assignment from the packet data

@@ -798,6 +798,11 @@ void Menu::editPreferences() {
     skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
     form->addRow("Skeleton URL:", skeletonURLEdit);
 
+    QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
+    QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
+    displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Display name:", displayNameEdit);
+
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead()->getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
@@ -870,7 +875,14 @@ void Menu::editPreferences() {
             applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
             shouldDispatchIdentityPacket = true;
         }
+
+        QString displayNameStr(displayNameEdit->text());
         
+        if (displayNameStr != displayNameString) {
+            applicationInstance->getAvatar()->setDisplayName(displayNameStr);
+            shouldDispatchIdentityPacket = true;
+        }
+                
         if (shouldDispatchIdentityPacket) {
             applicationInstance->getAvatar()->sendIdentityPacket();
         }
