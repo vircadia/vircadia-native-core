@@ -193,6 +193,9 @@ public:
 
     const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
+    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
+    void getProjectionMatrix(glm::dmat4* projectionMatrix);
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
@@ -398,6 +401,7 @@ private:
 
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
+    glm::mat4 _projectionMatrix;
 
     glm::mat4 _shadowMatrix;
 
