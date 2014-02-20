@@ -349,12 +349,10 @@ void Avatar::renderDisplayName() {
         int text_y = -_displayNameBoundingRect.height() / 2;
 
         // draw a gray background
-        QRect rect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(_displayName);
-
-        int left = text_x + rect.x();
-        int right = left + rect.width();
-        int bottom = text_y + rect.y();
-        int top = bottom + rect.height();
+        int left = text_x + _displayNameBoundingRect.x();
+        int right = left + _displayNameBoundingRect.width();
+        int bottom = text_y + _displayNameBoundingRect.y();
+        int top = bottom + _displayNameBoundingRect.height();
         const int border = 8;
         bottom -= border;
         left -= border;
