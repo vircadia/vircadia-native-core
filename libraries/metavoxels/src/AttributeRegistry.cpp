@@ -235,6 +235,14 @@ SharedObjectSetAttribute::SharedObjectSetAttribute(const QString& name, const QM
     _metaObject(metaObject) {
 }
 
+void SharedObjectSetAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    in >> *((SharedObjectSet*)&value);
+}
+
+void SharedObjectSetAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    out << decodeInline<SharedObjectSet>(value);
+}
+
 bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
     for (int i = 0; i < MERGE_COUNT; i++) {
         if (!decodeInline<SharedObjectSet>(children[i]).isEmpty()) {

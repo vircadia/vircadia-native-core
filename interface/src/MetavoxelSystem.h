@@ -83,6 +83,8 @@ public:
 
     void simulate(float deltaTime, MetavoxelVisitor& visitor);
 
+    void render();
+
     virtual int parseData(const QByteArray& packet);
 
 private slots:

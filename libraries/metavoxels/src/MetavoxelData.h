@@ -47,9 +47,9 @@ public:
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
    
-    void insert(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
+    void insert(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
     
-    void remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
+    void remove(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
     void clear(const AttributePointer& attribute);
 
@@ -128,7 +128,7 @@ public:
     glm::vec3 minimum; ///< the minimum extent of the area covered by the voxel
     float size; ///< the size of the voxel in all dimensions
     QVector<AttributeValue> inputValues;
-    QVector<AttributeValue> outputValues;
+    QVector<OwnedAttributeValue> outputValues;
     bool isLeaf;
     
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
@@ -255,6 +255,7 @@ public:
 class Spanner : public SharedObject {
     Q_OBJECT
     Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
+    Q_PROPERTY(float granularity MEMBER _granularity DESIGNABLE false)
 
 public:
     
@@ -262,6 +263,9 @@ public:
     
     void setBounds(const Box& bounds);
     const Box& getBounds() const { return _bounds; }
+    
+    void setGranularity(float granularity) { _granularity = granularity; }
+    float getGranularity() const { return _granularity; }
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
@@ -283,6 +287,7 @@ protected:
 private:
     
     Box _bounds;
+    float _granularity;
     int _lastVisit; ///< the identifier of the last visit
     SpannerRenderer* _renderer;
 };

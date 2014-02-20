@@ -297,6 +297,9 @@ public:
     
     const QMetaObject* getMetaObject() const { return _metaObject; }
     
+    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
+    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
+    
     virtual bool merge(void*& parent, void* children[]) const;
 
     virtual QWidget* createEditor(QWidget* parent = NULL) const;

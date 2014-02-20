@@ -54,7 +54,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
     MetavoxelVisitation firstVisitation = { NULL, visitor, QVector<MetavoxelNode*>(inputs.size() + 1),
         QVector<MetavoxelNode*>(outputs.size()), { glm::vec3(_size, _size, _size) * -0.5f, _size,
-            QVector<AttributeValue>(inputs.size() + 1), QVector<AttributeValue>(outputs.size()) } };
+            QVector<AttributeValue>(inputs.size() + 1), QVector<OwnedAttributeValue>(outputs.size()) } };
     for (int i = 0; i < inputs.size(); i++) {
         MetavoxelNode* node = _roots.value(inputs.at(i));
         firstVisitation.inputNodes[i] = node;
@@ -71,7 +71,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
     static_cast<MetavoxelGuide*>(firstVisitation.info.inputValues.last().getInlineValue<
         SharedObjectPointer>().data())->guide(firstVisitation);
     for (int i = 0; i < outputs.size(); i++) {
-        AttributeValue& value = firstVisitation.info.outputValues[i];
+        OwnedAttributeValue& value = firstVisitation.info.outputValues[i];
         if (!value.getAttribute()) {
             continue;
         }
@@ -92,7 +92,7 @@ void MetavoxelData::guide(MetavoxelVisitor& visitor) {
 class InsertVisitor : public MetavoxelVisitor {
 public:
     
-    InsertVisitor(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object);
+    InsertVisitor(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
     
     virtual bool visit(MetavoxelInfo& info);
 
@@ -104,39 +104,86 @@ private:
     const SharedObjectPointer& _object;
 };
 
-InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) :
+InsertVisitor::InsertVisitor(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
     _attribute(attribute),
     _bounds(bounds),
-    _longestSide(bounds.getLongestSide()),
+    _longestSide(qMax(bounds.getLongestSide(), granularity)),
     _object(object) {
 }
 
 bool InsertVisitor::visit(MetavoxelInfo& info) {
-    Box bounds = info.getBounds();
-    if (!bounds.intersects(_bounds)) {
+    if (!info.getBounds().intersects(_bounds)) {
         return false;
     }
     if (info.size > _longestSide) {
         return true;
     }
-    info.outputValues[0] = AttributeValue(_attribute);
+    SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
+    set.insert(_object);
+    info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
     return false;
 }
 
-void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+void MetavoxelData::insert(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object) {
     // expand to fit the entire bounds
     while (!getBounds().contains(bounds)) {
         expand();
     }
-    InsertVisitor visitor(attribute, bounds, object);
+    InsertVisitor visitor(attribute, bounds, granularity, object);
     guide(visitor);
 }
 
-void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds, const SharedObjectPointer& object) {
+class RemoveVisitor : public MetavoxelVisitor {
+public:
+    
+    RemoveVisitor(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
+    
+    virtual bool visit(MetavoxelInfo& info);
+
+private:
+    
+    const AttributePointer& _attribute;
+    const Box& _bounds;
+    float _longestSide;
+    const SharedObjectPointer& _object;
+};
+
+RemoveVisitor::RemoveVisitor(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute, QVector<AttributePointer>() << attribute),
+    _attribute(attribute),
+    _bounds(bounds),
+    _longestSide(qMax(bounds.getLongestSide(), granularity)),
+    _object(object) {
+}
+
+bool RemoveVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return false;
+    }
+    if (info.size > _longestSide) {
+        return true;
+    }
+    SharedObjectSet set = info.inputValues.at(0).getInlineValue<SharedObjectSet>();
+    set.remove(_object);
+    info.outputValues[0] = AttributeValue(_attribute, encodeInline(set));
+    return false;
+}
+
+void MetavoxelData::remove(const AttributePointer& attribute, const Box& bounds,
+        float granularity, const SharedObjectPointer& object) {
+    RemoveVisitor visitor(attribute, bounds, granularity, object);
+    guide(visitor);
 }
 
 void MetavoxelData::clear(const AttributePointer& attribute) {
+    MetavoxelNode* node = _roots.take(attribute);
+    if (node) {
+        node->decrementReferenceCount(attribute);
+    }
 }
 
 const int X_MAXIMUM_FLAG = 1;
@@ -490,7 +537,7 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     visitation.info.isLeaf = visitation.allInputNodesLeaves();
     bool keepGoing = visitation.visitor.visit(visitation.info);
     for (int i = 0; i < visitation.outputNodes.size(); i++) {
-        AttributeValue& value = visitation.info.outputValues[i];
+        OwnedAttributeValue& value = visitation.info.outputValues[i];
         if (!value.getAttribute()) {
             continue;
         }
@@ -508,7 +555,7 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     MetavoxelVisitation nextVisitation = { &visitation, visitation.visitor,
         QVector<MetavoxelNode*>(visitation.inputNodes.size()), QVector<MetavoxelNode*>(visitation.outputNodes.size()),
         { glm::vec3(), visitation.info.size * 0.5f, QVector<AttributeValue>(visitation.inputNodes.size()),
-            QVector<AttributeValue>(visitation.outputNodes.size()) } };
+            QVector<OwnedAttributeValue>(visitation.outputNodes.size()) } };
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
@@ -529,12 +576,12 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
         static_cast<MetavoxelGuide*>(nextVisitation.info.inputValues.last().getInlineValue<
             SharedObjectPointer>().data())->guide(nextVisitation);
         for (int j = 0; j < nextVisitation.outputNodes.size(); j++) {
-            AttributeValue& value = nextVisitation.info.outputValues[j];
+            OwnedAttributeValue& value = nextVisitation.info.outputValues[j];
             if (!value.getAttribute()) {
                 continue;
             }
             // replace the child
-            AttributeValue& parentValue = visitation.info.outputValues[j];
+            OwnedAttributeValue& parentValue = visitation.info.outputValues[j];
             if (!parentValue.getAttribute()) {
                 // shallow-copy the parent node on first change
                 parentValue = value;
@@ -562,7 +609,7 @@ void DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
         }
     }
     for (int i = 0; i < visitation.outputNodes.size(); i++) {
-        AttributeValue& value = visitation.info.outputValues[i];
+        OwnedAttributeValue& value = visitation.info.outputValues[i];
         if (value.getAttribute()) {
             MetavoxelNode* node = visitation.outputNodes.at(i);
             node->mergeChildren(value.getAttribute());
@@ -725,7 +772,10 @@ AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
     return AttributeValue(visitor.getOutputs().at(index));
 }
 
+const float DEFAULT_GRANULARITY = 0.01f;
+
 Spanner::Spanner() :
+    _granularity(DEFAULT_GRANULARITY),
     _lastVisit(0),
     _renderer(NULL) {
 }
