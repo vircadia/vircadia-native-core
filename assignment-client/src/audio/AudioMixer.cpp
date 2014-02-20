@@ -52,7 +52,7 @@
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const char AUDIO_MIXER_LOGGING_TARGET_NAME[] = "audio-mixer";
+const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 
 void attachNewBufferToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
