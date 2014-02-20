@@ -32,7 +32,7 @@ function keyPressEvent(event) {
 }
 
 function keyReleaseEvent(event) {
-    var debug = false;
+    var debug = true;
     if (debug) {
         printKeyEvent("keyReleaseEvent", event);
     }
@@ -54,9 +54,14 @@ function keyReleaseEvent(event) {
         print("the DELETE/BACKSPACE key was pressed");
         Clipboard.deleteVoxels(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    if ((event.key == 199 || event.key == 67 || event.text == "C" || event.text == "c") && event.isAlt) {
-        print("the Alt+C key was pressed");
-        Clipboard.copyVoxels(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+    
+    if ((event.text == "E" || event.text == "e") && event.isMeta) {
+        print("the Ctl+E key was pressed");
+        Clipboard.exportVoxels(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+    }
+    if ((event.text == "I" || event.text == "i") && event.isMeta) {
+        print("the Ctl+I key was pressed");
+        Clipboard.importVoxels();
     }
 }
 
