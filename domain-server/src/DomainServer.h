@@ -37,6 +37,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
 private:
+    void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    
     void parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes);
     void readConfigFile(const QString& path, QSet<Assignment::Type>& excludedTypes);
     QString readServerAssignmentConfig(const QJsonObject& jsonObject, const QString& nodeName);
@@ -60,7 +62,12 @@ private:
     bool _hasCompletedRestartHold;
     
     QUrl _nodeAuthenticationURL;
+    
+    QStringList _argumentList;
 private slots:
+    void requestUUIDFromDataServer();
+    void parseUUIDFromDataServer();
+    
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();
 };

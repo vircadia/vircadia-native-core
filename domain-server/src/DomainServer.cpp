@@ -43,20 +43,16 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _hasCompletedRestartHold(false),
     _nodeAuthenticationURL(DEFAULT_NODE_AUTH_URL)
 {
-    const char CUSTOM_PORT_OPTION[] = "-p";
-    const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
-    unsigned short domainServerPort = customPortString ? atoi(customPortString) : DEFAULT_DOMAIN_SERVER_PORT;
-    
-    QStringList argumentList = arguments();
+    _argumentList = arguments();
     int argumentIndex = 0;
     
     // check if this domain server should use no authentication or a custom hostname for authentication
-    const QString NO_AUTH_OPTION = "--hifiAuth";
+    const QString NO_AUTH_OPTION = "--noAuth";
     const QString CUSTOM_AUTH_OPTION = "--customAuth";
-    if ((argumentIndex = argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
+    if ((argumentIndex = _argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
         _nodeAuthenticationURL = QUrl();
-    } else if ((argumentIndex = argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
-        _nodeAuthenticationURL = QUrl(argumentList.value(argumentIndex + 1));
+    } else if ((argumentIndex = _argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
+        _nodeAuthenticationURL = QUrl(_argumentList.value(argumentIndex + 1));
     }
     
     if (!_nodeAuthenticationURL.isEmpty()) {
@@ -72,7 +68,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             AccountManager& accountManager = AccountManager::getInstance();
             accountManager.setRootURL(_nodeAuthenticationURL);
             
+            // TODO: failure case for not receiving a token
             accountManager.requestAccessToken(username, password);
+            
+            connect(&accountManager, &AccountManager::receivedAccessToken, this, &DomainServer::requestUUIDFromDataServer);
+            
         } else {
             qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
             << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
@@ -83,33 +83,66 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
             return;
         }
+    } else {
+        // auth is not requested for domain-server, setup NodeList and assignments now
+        setupNodeListAndAssignments();
+    }
+}
+
+void DomainServer::requestUUIDFromDataServer() {
+    // this slot is fired when we get a valid access token from the data-server
+    // now let's ask it to set us up with a UUID
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create", AuthenticatedRequestMethod::POST,
+                                                       this, SLOT(parseUUIDFromDataServer()));
+}
+
+void DomainServer::parseUUIDFromDataServer() {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    
+    if (jsonResponse.object()["status"].toString() == "success") {
+        // pull out the UUID the data-server is telling us to use, and complete our setup with it
+        QUuid newSessionUUID = QUuid(jsonResponse.object()["data"].toObject()["uuid"].toString());
+        setupNodeListAndAssignments(newSessionUUID);
+    }
+}
+
+void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
+    
+    int argumentIndex = 0;
+    
+    const QString CUSTOM_PORT_OPTION = "-p";
+    unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    
+    if ((argumentIndex = _argumentList.indexOf(CUSTOM_PORT_OPTION)) != -1) {
+        domainServerPort = _argumentList.value(argumentIndex + 1).toUShort();
     }
     
     QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
-    parseCommandLineTypeConfigs(argumentList, parsedTypes);
+    parseCommandLineTypeConfigs(_argumentList, parsedTypes);
     
     const QString CONFIG_FILE_OPTION = "--configFile";
-    if ((argumentIndex = argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
-        QString configFilePath = argumentList.value(argumentIndex + 1);
+    if ((argumentIndex = _argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
+        QString configFilePath = _argumentList.value(argumentIndex + 1);
         readConfigFile(configFilePath, parsedTypes);
     }
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
-
+    
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
     
     // create a random UUID for this session for the domain-server
-    nodeList->setSessionUUID(QUuid::createUuid());
+    nodeList->setSessionUUID(sessionUUID);
     
     connect(nodeList, &NodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &DomainServer::nodeKilled);
-
+    
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-
+    
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readAvailableDatagrams()));
-
+    
     // fire a single shot timer to add static assignments back into the queue after a restart
     QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
 }

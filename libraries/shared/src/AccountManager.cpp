@@ -52,8 +52,10 @@ AccountManager::AccountManager() :
     }
 }
 
-void AccountManager::authenticatedGetRequest(const QString& path, const QObject *successReceiver, const char *successMethod,
-                                             const QObject* errorReceiver, const char* errorMethod) {
+void AccountManager::authenticatedRequest(const QString& path, AuthenticatedRequestMethod::Method method,
+                                          const QObject *successReceiver, const char *successMethod,
+                                          const QByteArray& dataByteArray,
+                                          const QObject* errorReceiver, const char* errorMethod) {
     if (_networkAccessManager && hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
@@ -63,13 +65,29 @@ void AccountManager::authenticatedGetRequest(const QString& path, const QObject 
         
         authenticatedRequest.setUrl(requestURL);
         
-        qDebug() << "Making an authenticated GET request to" << requestURL;
+        qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
         
-        QNetworkReply* networkReply = _networkAccessManager->get(authenticatedRequest);
-        connect(networkReply, SIGNAL(finished()), successReceiver, successMethod);
+        QNetworkReply* networkReply = NULL;
         
-        if (errorReceiver && errorMethod) {
-            connect(networkReply, SIGNAL(error()), errorReceiver, errorMethod);
+        switch (method) {
+            case AuthenticatedRequestMethod::GET:
+                networkReply = _networkAccessManager->get(authenticatedRequest);
+                break;
+            case AuthenticatedRequestMethod::POST:
+                authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+                networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
+            default:
+                // other methods not yet handled
+                break;
+        }
+        
+        if (networkReply) {
+            // if we ended up firing of a request, hook up to it now
+            connect(networkReply, SIGNAL(finished()), successReceiver, successMethod);
+            
+            if (errorReceiver && errorMethod) {
+                connect(networkReply, SIGNAL(error()), errorReceiver, errorMethod);
+            }
         }
     }
 }
@@ -140,6 +158,8 @@ void AccountManager::requestFinished() {
             
             OAuthAccessToken freshAccessToken(rootObject);
             _accessTokens.insert(rootURL, freshAccessToken);
+            
+            emit receivedAccessToken(rootURL);
             
             // store this access token into the local settings
             QSettings localSettings;

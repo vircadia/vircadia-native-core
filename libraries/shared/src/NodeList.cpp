@@ -586,9 +586,10 @@ void NodeList::domainServerAuthReply() {
 }
 
 void NodeList::requestAuthForDomainServer() {
-    AccountManager::getInstance().authenticatedGetRequest("/api/v1/domains/"
-                                                          + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
-                                                          this, SLOT(domainServerAuthReply()));
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/"
+                                                       + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
+                                                       AuthenticatedRequestMethod::GET,
+                                                       this, SLOT(domainServerAuthReply()));
 }
 
 void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {

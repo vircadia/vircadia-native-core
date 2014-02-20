@@ -17,14 +17,26 @@
 
 #include "OAuthAccessToken.h"
 
+namespace AuthenticatedRequestMethod {
+    enum Method {
+        GET,
+        POST,
+        PUT,
+        DELETE
+    };
+}
+
 class AccountManager : public QObject {
     Q_OBJECT
 public:
+    
     static AccountManager& getInstance();
     
-    void authenticatedGetRequest(const QString& path,
-                                 const QObject* successReceiver, const char* successMethod,
-                                 const QObject* errorReceiver = 0, const char* errorMethod = NULL);
+    void authenticatedRequest(const QString& path,
+                              AuthenticatedRequestMethod::Method method,
+                              const QObject* successReceiver, const char* successMethod,
+                              const QByteArray& dataByteArray = QByteArray(),
+                              const QObject* errorReceiver = 0, const char* errorMethod = NULL);
     
     void setRootURL(const QUrl& rootURL) { _rootURL = rootURL; }
     
@@ -41,6 +53,7 @@ public slots:
     void requestError(QNetworkReply::NetworkError error);
 signals:
     void authenticationRequired();
+    void receivedAccessToken(const QUrl& rootURL);
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
