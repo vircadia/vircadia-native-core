@@ -19,13 +19,25 @@ public:
     ClipboardScriptingInterface();
 
 public slots:
-    void cutVoxels(float x, float y, float z, float s);
-    void copyVoxels(float x, float y, float z, float s);
-    void pasteVoxels(float x, float y, float z, float s);
-    void deleteVoxels(float x, float y, float z, float s);
+    void cutVoxel(const VoxelDetail& sourceVoxel);
+    void cutVoxel(float x, float y, float z, float s);
 
-    void exportVoxels(float x, float y, float z, float s);
+    void copyVoxel(const VoxelDetail& sourceVoxel);
+    void copyVoxel(float x, float y, float z, float s);
+
+    void pasteVoxel(const VoxelDetail& destinationVoxel);
+    void pasteVoxel(float x, float y, float z, float s);
+
+    void deleteVoxel(const VoxelDetail& sourceVoxel);
+    void deleteVoxel(float x, float y, float z, float s);
+
+    void exportVoxel(const VoxelDetail& sourceVoxel);
+    void exportVoxel(float x, float y, float z, float s);
+
     void importVoxels();
+
+    void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
+    void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
 };
 
 #endif // __interface__Clipboard__

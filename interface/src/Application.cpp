@@ -1847,12 +1847,14 @@ void Application::nudgeVoxels() {
         // calculate nudgeVec
         glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
 
-        VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+        nudgeVoxelsByVector(_nudgeVoxel, nudgeVec);
+    }
+}
 
-        if (nodeToNudge) {
-            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-            _nudgeStarted = false;
-        }
+void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
+    VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    if (nodeToNudge) {
+        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
     }
 }
 

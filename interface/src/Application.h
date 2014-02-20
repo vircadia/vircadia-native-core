@@ -240,6 +240,7 @@ public slots:
     void pasteVoxels(const VoxelDetail& sourceVoxel);
     void deleteVoxels(const VoxelDetail& sourceVoxel);
     void exportVoxels(const VoxelDetail& sourceVoxel);
+    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
