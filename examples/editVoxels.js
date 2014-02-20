@@ -72,6 +72,10 @@ audioOptions.volume = 0.5;
 var editToolsOn = false; // starts out off
 
 
+// previewAsVoxel - by default, we will preview adds/deletes/recolors as just 4 lines on the intersecting face. But if you
+//                  the preview to show a full voxel then set this to true and the voxel will be displayed for voxel editing
+var previewAsVoxel = false; 
+
 var voxelPreview = Overlays.addOverlay("cube", {
                     position: { x: 0, y: 0, z: 0},
                     size: 1,
@@ -80,6 +84,42 @@ var voxelPreview = Overlays.addOverlay("cube", {
                     solid: false,
                     visible: false,
                     lineWidth: 4
+                });
+                
+var linePreviewTop = Overlays.addOverlay("line3d", {
+                    position: { x: 0, y: 0, z: 0},
+                    end: { x: 0, y: 0, z: 0},
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false,
+                    lineWidth: 1
+                });
+
+var linePreviewBottom = Overlays.addOverlay("line3d", {
+                    position: { x: 0, y: 0, z: 0},
+                    end: { x: 0, y: 0, z: 0},
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false,
+                    lineWidth: 1
+                });
+
+var linePreviewLeft = Overlays.addOverlay("line3d", {
+                    position: { x: 0, y: 0, z: 0},
+                    end: { x: 0, y: 0, z: 0},
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false,
+                    lineWidth: 1
+                });
+
+var linePreviewRight = Overlays.addOverlay("line3d", {
+                    position: { x: 0, y: 0, z: 0},
+                    end: { x: 0, y: 0, z: 0},
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false,
+                    lineWidth: 1
                 });
 
 
@@ -146,83 +186,186 @@ var trackAsDelete = false;
 var trackAsRecolor = false;
 
 function showPreviewVoxel() {
-    if (editToolsOn) {
-        var voxelColor;
+    var voxelColor;
 
-        var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
-        var intersection = Voxels.findRayIntersection(pickRay);
+    var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+    var intersection = Voxels.findRayIntersection(pickRay);
 
-        if (whichColor == -1) {
-            //  Copy mode - use clicked voxel color
-            voxelColor = { red: intersection.voxel.red,
-                      green: intersection.voxel.green,
-                      blue: intersection.voxel.blue };
-        } else {
-            voxelColor = { red: colors[whichColor].red,
-                      green: colors[whichColor].green,
-                      blue: colors[whichColor].blue };
+    if (whichColor == -1) {
+        //  Copy mode - use clicked voxel color
+        voxelColor = { red: intersection.voxel.red,
+                  green: intersection.voxel.green,
+                  blue: intersection.voxel.blue };
+    } else {
+        voxelColor = { red: colors[whichColor].red,
+                  green: colors[whichColor].green,
+                  blue: colors[whichColor].blue };
+    }
+
+    var guidePosition;
+    
+    if (trackAsDelete) {
+        guidePosition = { x: intersection.voxel.x,
+                          y: intersection.voxel.y,
+                          z: intersection.voxel.z };
+                          
+        Overlays.editOverlay(voxelPreview, { 
+                position: guidePosition,
+                size: intersection.voxel.s,
+                visible: true,
+                color: { red: 255, green: 0, blue: 0 },
+                solid: false,
+                alpha: 1
+            });
+    } else if (trackAsRecolor) {
+        guidePosition = { x: intersection.voxel.x - 0.001,
+                          y: intersection.voxel.y - 0.001,
+                          z: intersection.voxel.z - 0.001 };
+
+        Overlays.editOverlay(voxelPreview, { 
+                position: guidePosition,
+                size: intersection.voxel.s + 0.002,
+                visible: true,
+                color: voxelColor,
+                solid: true,
+                alpha: 0.8
+            });
+    } else if (!isExtruding) {
+        guidePosition = { x: intersection.voxel.x,
+                          y: intersection.voxel.y,
+                          z: intersection.voxel.z };
+        
+        if (intersection.face == "MIN_X_FACE") {
+            guidePosition.x -= intersection.voxel.s;
+        } else if (intersection.face == "MAX_X_FACE") {
+            guidePosition.x += intersection.voxel.s;
+        } else if (intersection.face == "MIN_Y_FACE") {
+            guidePosition.y -= intersection.voxel.s;
+        } else if (intersection.face == "MAX_Y_FACE") {
+            guidePosition.y += intersection.voxel.s;
+        } else if (intersection.face == "MIN_Z_FACE") {
+            guidePosition.z -= intersection.voxel.s;
+        } else if (intersection.face == "MAX_Z_FACE") {
+            guidePosition.z += intersection.voxel.s;
         }
 
-        var guidePosition;
-        
-        if (trackAsDelete) {
-            guidePosition = { x: intersection.voxel.x,
-                              y: intersection.voxel.y,
-                              z: intersection.voxel.z };
-            Overlays.editOverlay(voxelPreview, { 
-                    position: guidePosition,
-                    size: intersection.voxel.s,
-                    visible: true,
-                    color: { red: 255, green: 0, blue: 0 },
-                    solid: false,
-                    alpha: 1
-                });
-        } else if (trackAsRecolor) {
-            guidePosition = { x: intersection.voxel.x - 0.001,
-                              y: intersection.voxel.y - 0.001,
-                              z: intersection.voxel.z - 0.001 };
+        Overlays.editOverlay(voxelPreview, { 
+                position: guidePosition,
+                size: intersection.voxel.s,
+                visible: true,
+                color: voxelColor,
+                solid: true,
+                alpha: 0.7
+            });
+    } else if (isExtruding) {
+        Overlays.editOverlay(voxelPreview, { visible: false });
+    }
+}
 
-            Overlays.editOverlay(voxelPreview, { 
-                    position: guidePosition,
-                    size: intersection.voxel.s + 0.002,
-                    visible: true,
-                    color: voxelColor,
-                    solid: true,
-                    alpha: 0.8
-                });
 
-        } else if (!isExtruding) {
-            guidePosition = { x: intersection.voxel.x,
-                              y: intersection.voxel.y,
-                              z: intersection.voxel.z };
-                
-            if (intersection.face == "MIN_X_FACE") {
-                guidePosition.x -= intersection.voxel.s;
-            } else if (intersection.face == "MAX_X_FACE") {
-                guidePosition.x += intersection.voxel.s;
-            } else if (intersection.face == "MIN_Y_FACE") {
-                guidePosition.y -= intersection.voxel.s;
-            } else if (intersection.face == "MAX_Y_FACE") {
-                guidePosition.y += intersection.voxel.s;
-            } else if (intersection.face == "MIN_Z_FACE") {
-                guidePosition.z -= intersection.voxel.s;
-            } else if (intersection.face == "MAX_Z_FACE") {
-                guidePosition.z += intersection.voxel.s;
-            }
+function showPreviewLines() {
+    var voxelColor;
 
-            Overlays.editOverlay(voxelPreview, { 
-                    position: guidePosition,
-                    size: intersection.voxel.s,
-                    visible: true,
-                    color: voxelColor,
-                    solid: true,
-                    alpha: 0.7
-                });
-        } else if (isExtruding) {
+    var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+    var intersection = Voxels.findRayIntersection(pickRay);
+    
+    if (intersection.intersects) {
+    
+        // TODO: add support for changing size here
+        var previewVoxelSize = intersection.voxel.s;
+
+        var x = Math.floor(intersection.intersection.x / previewVoxelSize) * previewVoxelSize;
+        var y = Math.floor(intersection.intersection.y / previewVoxelSize) * previewVoxelSize;
+        var z = Math.floor(intersection.intersection.z / previewVoxelSize) * previewVoxelSize;
+        previewVoxel = { x: x, y: y, z: z, s: previewVoxelSize };
+    
+        var bottomLeft;
+        var bottomRight;
+        var topLeft;
+        var topRight;
+
+        if (intersection.face == "MIN_X_FACE") {
+
+            bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
+            topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
+            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z + previewVoxel.s };
+
+        } else if (intersection.face == "MAX_X_FACE") {
+
+            // because we intersected with the MAX_X face, our previewVoxel will be the voxel to the +X side of the
+            // voxel we intersect, so we don't need to adjust the x coordinates
+            bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
+            topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
+            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z + previewVoxel.s };
+
+        } else if (intersection.face == "MIN_Y_FACE") {
+
+            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
+            topRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z  + previewVoxel.s};
+
+        } else if (intersection.face == "MAX_Y_FACE") {
+
+            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
+            topRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z  + previewVoxel.s};
+
+        } else if (intersection.face == "MIN_Z_FACE") {
+
+            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
+            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
+
+        } else if (intersection.face == "MAX_Z_FACE") {
+
+            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
+            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
+            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
+            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
+
+        }
+
+        Overlays.editOverlay(linePreviewTop, { position: topLeft, end: topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom, { position: bottomLeft, end: bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft, { position: topLeft, end: bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight, { position: topRight, end: bottomRight, visible: true });
+
+    } else {
+        Overlays.editOverlay(linePreviewTop, { visible: false });
+        Overlays.editOverlay(linePreviewBottom, { visible: false });
+        Overlays.editOverlay(linePreviewLeft, { visible: false });
+        Overlays.editOverlay(linePreviewRight, { visible: false });
+    }
+}
+
+function showPreviewGuides() {
+    if (editToolsOn) {
+        if (previewAsVoxel) {
+            showPreviewVoxel();
+
+            // make sure alternative is hidden
+            Overlays.editOverlay(linePreviewTop, { visible: false });
+            Overlays.editOverlay(linePreviewBottom, { visible: false });
+            Overlays.editOverlay(linePreviewLeft, { visible: false });
+            Overlays.editOverlay(linePreviewRight, { visible: false });
+        } else {
+            showPreviewLines();
+
+            // make sure alternative is hidden
             Overlays.editOverlay(voxelPreview, { visible: false });
         }
     } else {
+        // make sure all previews are off
         Overlays.editOverlay(voxelPreview, { visible: false });
+        Overlays.editOverlay(linePreviewTop, { visible: false });
+        Overlays.editOverlay(linePreviewBottom, { visible: false });
+        Overlays.editOverlay(linePreviewLeft, { visible: false });
+        Overlays.editOverlay(linePreviewRight, { visible: false });
     }
 }
 
@@ -231,24 +374,24 @@ function trackMouseEvent(event) {
     trackLastMouseY = event.y;
     trackAsDelete = event.isControl;
     trackAsRecolor = event.isShifted;
-    showPreviewVoxel();
+    showPreviewGuides();
 }
 
 function trackKeyPressEvent(event) {
     if (event.text == "CONTROL") {
         trackAsDelete = true;
-        showPreviewVoxel();
+        showPreviewGuides();
     }
     if (event.text == "SHIFT") {
         trackAsRecolor = true;
     }
-    showPreviewVoxel();
+    showPreviewGuides();
 }
 
 function trackKeyReleaseEvent(event) {
     if (event.text == "CONTROL") {
         trackAsDelete = false;
-        showPreviewVoxel();
+        showPreviewGuides();
     }
     if (event.text == "SHIFT") {
         trackAsRecolor = false;
@@ -260,7 +403,13 @@ function trackKeyReleaseEvent(event) {
         moveTools();
         Audio.playSound(clickSound, audioOptions);
     }
-    showPreviewVoxel();
+
+    // on F1 toggle the preview mode between cubes and lines
+    if (event.text == "F1") {
+        previewAsVoxel = !previewAsVoxel;
+    }
+
+    showPreviewGuides();
 }
 
 function mousePressEvent(event) {
@@ -533,6 +682,10 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
 function scriptEnding() {
     Overlays.deleteOverlay(voxelPreview);
+    Overlays.deleteOverlay(linePreviewTop);
+    Overlays.deleteOverlay(linePreviewBottom);
+    Overlays.deleteOverlay(linePreviewLeft);
+    Overlays.deleteOverlay(linePreviewRight);
     for (s = 0; s < numColors; s++) {
         Overlays.deleteOverlay(swatches[s]);
     }
