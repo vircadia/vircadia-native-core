@@ -123,12 +123,16 @@ var linePreviewRight = Overlays.addOverlay("line3d", {
                 });
 
 
+// these will be used below
+var sliderWidth = 158;
+var sliderHeight = 35;
+
 // These will be our "overlay IDs"
 var swatches = new Array();
 var swatchHeight = 54;
 var swatchWidth = 31;
 var swatchesWidth = swatchWidth * numColors;
-var swatchesX = (windowDimensions.x - swatchesWidth) / 2;
+var swatchesX = (windowDimensions.x - (swatchesWidth + sliderWidth)) / 2;
 var swatchesY = windowDimensions.y - swatchHeight;
 
 // create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
@@ -215,6 +219,69 @@ var selectTool = Overlays.addOverlay("image", {
                     visible: false,
                     alpha: 0.9
                 });
+                
+                
+// This will create a couple of image overlays that make a "slider", we will demonstrate how to trap mouse messages to
+// move the slider
+
+// see above...
+//var sliderWidth = 158;
+//var sliderHeight = 35;
+
+var sliderX = swatchesX + swatchesWidth;
+var sliderY = windowDimensions.y - sliderHeight;
+var slider = Overlays.addOverlay("image", {
+                    // alternate form of expressing bounds
+                    bounds: { x: sliderX, y: sliderY, width: sliderWidth, height: sliderHeight},
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/slider.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false
+                });
+
+
+// The slider is handled in the mouse event callbacks.
+var isMovingSlider = false;
+var thumbClickOffsetX = 0;
+
+// This is the thumb of our slider
+var minThumbX = 30; // relative to the x of the slider
+var maxThumbX = minThumbX + 65;
+var thumbX = (minThumbX + maxThumbX) / 2;
+var thumbY = sliderY + 9;
+var thumb = Overlays.addOverlay("image", {
+                    x: sliderX + thumbX,
+                    y: thumbY,
+                    width: 18,
+                    height: 17,
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/thumb.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1,
+                    visible: false
+                });
+
+var pointerVoxelScale = 0; // this is the voxel scale used for click to add or delete
+var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
+
+var pointerVoxelScaleSteps = 10; // the number of slider position steps
+var pointerVoxelScaleOriginStep = 4; // the position of slider for the 1 meter size voxel
+var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
+var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
+
+function calcThumbFromScale(scale) {
+    var scaleLog = Math.log(scale)/Math.log(2);
+    var thumbStep = scaleLog + pointerVoxelScaleOriginStep;
+    if (thumbStep < 1) {
+        thumbStep = 1;
+    }
+    if (thumbStep > pointerVoxelScaleSteps) {
+        thumbStep = pointerVoxelScaleSteps;
+    }
+    thumbX = (((maxThumbX - minThumbX) / pointerVoxelScaleSteps) * (thumbStep - 1)) + minThumbX;
+    Overlays.editOverlay(thumb, { x: thumbX + sliderX } );
+}
+
+                
 
 
 function setAudioPosition() {
@@ -254,6 +321,11 @@ function showPreviewVoxel() {
 
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
     var intersection = Voxels.findRayIntersection(pickRay);
+
+    // if the user hasn't updated the 
+    if (!pointerVoxelScaleSet) {
+        calcThumbFromScale(intersection.voxel.s);
+    }
 
     if (whichColor == -1) {
         //  Copy mode - use clicked voxel color
@@ -335,6 +407,11 @@ function showPreviewLines() {
     var intersection = Voxels.findRayIntersection(pickRay);
     
     if (intersection.intersects) {
+
+        // if the user hasn't updated the 
+        if (!pointerVoxelScaleSet) {
+            calcThumbFromScale(intersection.voxel.s);
+        }
     
         // TODO: add support for changing size here, if you set this size to any arbitrary size, 
         // the preview should correctly handle it
@@ -509,17 +586,24 @@ function mousePressEvent(event) {
     
     var clickedOnSwatch = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    
-    // if the user clicked on one of the color swatches, update the selectedSwatch
-    for (s = 0; s < numColors; s++) {
-        if (clickedOverlay == swatches[s]) {
-            whichColor = s;
-            moveTools();
-            clickedOnSwatch = true;
-        }
-    }
-    if (clickedOnSwatch) {
+
+    // If the user clicked on the thumb, handle the slider logic
+    if (clickedOverlay == thumb) {
+        isMovingSlider = true;
+        thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
         return; // no further processing
+    } else {
+        // if the user clicked on one of the color swatches, update the selectedSwatch
+        for (s = 0; s < numColors; s++) {
+            if (clickedOverlay == swatches[s]) {
+                whichColor = s;
+                moveTools();
+                clickedOnSwatch = true;
+            }
+        }
+        if (clickedOnSwatch) {
+            return; // no further processing
+        }
     }
     
 
@@ -530,6 +614,11 @@ function mousePressEvent(event) {
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
     if (intersection.intersects) {
+        // if the user hasn't updated the 
+        if (!pointerVoxelScaleSet) {
+            calcThumbFromScale(intersection.voxel.s);
+        }
+    
         if (event.isAlt) {
             // start orbit camera! 
             var cameraPosition = Camera.getPosition();
@@ -668,8 +757,21 @@ function keyReleaseEvent(event) {
     key_alt = false;
     key_shift = false; 
 }
+
+
 function mouseMoveEvent(event) {
-    if (isOrbiting) {
+    if (isMovingSlider) {
+        thumbX = (event.x - thumbClickOffsetX) - sliderX;
+        if (thumbX < minThumbX) {
+            thumbX = minThumbX;
+        }
+        if (thumbX > maxThumbX) {
+            thumbX = maxThumbX;
+        }
+        // TODO: hook this up to the voxel size in some meaningful way
+        Overlays.editOverlay(thumb, { x: thumbX + sliderX } );
+        
+    } else if (isOrbiting) {
         var cameraOrientation = Camera.getOrientation();
         var origEulers = Quat.safeEulerAngles(cameraOrientation);
         var newEulers = fixEulerAngles(Quat.safeEulerAngles(cameraOrientation));
@@ -684,8 +786,7 @@ function mouseMoveEvent(event) {
         Camera.setPosition(orbitPosition);
         mouseX = event.x; 
         mouseY = event.y;
-    }
-    if (isAdding) {
+    } else if (isAdding) {
         //  Watch the drag direction to tell which way to 'extrude' this voxel
         if (!isExtruding) {
             var pickRay = Camera.computePickRay(event.x, event.y);
@@ -734,6 +835,10 @@ function mouseReleaseEvent(event) {
         return; 
     }
 
+    if (isMovingSlider) {
+        isMovingSlider = false;
+    }
+
     if (isOrbiting) {
         var cameraOrientation = Camera.getOrientation();
         var eulers = Quat.safeEulerAngles(cameraOrientation);
@@ -750,7 +855,7 @@ function mouseReleaseEvent(event) {
 
 function moveTools() {
     // move the swatches
-    swatchesX = (windowDimensions.x - swatchesWidth) / 2;
+    swatchesX = (windowDimensions.x - (swatchesWidth + sliderWidth)) / 2;
     swatchesY = windowDimensions.y - swatchHeight;
 
     // create the overlays, position them in a row, set their colors, and for the selected one, use a different source image
@@ -823,6 +928,15 @@ function moveTools() {
                     visible: editToolsOn
                 });
 
+
+    sliderX = swatchesX + swatchesWidth;
+    sliderY = windowDimensions.y - sliderHeight;
+    Overlays.editOverlay(slider, { x: sliderX, y: sliderY, visible: editToolsOn });
+
+    // This is the thumb of our slider
+    thumbY = sliderY + 9;
+    Overlays.editOverlay(thumb, { x: sliderX + thumbX, y: thumbY, visible: editToolsOn });
+
 }
 
 
@@ -830,7 +944,6 @@ function update() {
     var newWindowDimensions = Controller.getViewportDimensions();
     if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
         windowDimensions = newWindowDimensions;
-        print("window resized...");
         moveTools();
     }
 }
