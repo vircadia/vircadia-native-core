@@ -506,11 +506,23 @@ function mousePressEvent(event) {
     if (!editToolsOn) {
         return; 
     }
-
-    if (event.isRightButton) {
-        // debugging of right button click on mac...
-        print(">>>> RIGHT BUTTON <<<<<");
+    
+    var clickedOnSwatch = false;
+    var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+    
+    // if the user clicked on one of the color swatches, update the selectedSwatch
+    for (s = 0; s < numColors; s++) {
+        if (clickedOverlay == swatches[s]) {
+            whichColor = s;
+            moveTools();
+            clickedOnSwatch = true;
+        }
     }
+    if (clickedOnSwatch) {
+        return; // no further processing
+    }
+    
+
     trackMouseEvent(event); // used by preview support
     mouseX = event.x;
     mouseY = event.y;
