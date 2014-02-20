@@ -62,6 +62,21 @@ QPushButton#cancelButton {
     margin-right: 11px;
 }
 
+#backButton {
+    background-image: url(resources/icons/backButton.svg);
+    border-radius: 0px;
+}
+
+#forwardButton {
+    background-image: url(resources/icons/forwardButton.svg);
+    border-radius: 0px;
+}
+
+#toParentButton {
+    background-image: url(resources/icons/toParentButton.svg);
+    border-radius: 0px;
+}
+
 QSidebar, QTreeView {
     border: 1px solid #C5C5C5;
     font-size: 14px;

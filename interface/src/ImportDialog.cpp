@@ -181,9 +181,21 @@ void ImportDialog::setLayout() {
     // set fixed size
     _importButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     _cancelButton.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    
-    _progressBar.setFixedHeight(7);
+    _cancelButton.setFlat(true);
+    int progressBarHeight = 7;
+    _progressBar.setFixedHeight(progressBarHeight);
     _progressBar.setTextVisible(false);
+    
+    QSize BUTTON_SIZE = QSize(43, 33);
+    QPushButton* button = (QPushButton*) findChild<QWidget*>("backButton");
+    button->setIcon(QIcon());
+    button->setFixedSize(BUTTON_SIZE);
+    button = (QPushButton*) findChild<QWidget*>("forwardButton");
+    button->setIcon(QIcon());
+    button->setFixedSize(BUTTON_SIZE);
+    button = (QPushButton*) findChild<QWidget*>("toParentButton");
+    button->setIcon(QIcon());
+    button->setFixedSize(BUTTON_SIZE);
 
     // hide unused embedded widgets in QFileDialog
     QWidget* widget = findChild<QWidget*>("lookInCombo");
@@ -224,13 +236,6 @@ void ImportDialog::setLayout() {
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
     switchToResourcesParentIfRequired();
-    QIcon icon = QIcon("resources/icons/backButton.svg");
-    QPushButton* button = (QPushButton*) findChild<QWidget*>("backButton");
-    //button->setIcon(icon);
-    
-    button = (QPushButton*) findChild<QWidget*>("forwardButton");
-    button = (QPushButton*) findChild<QWidget*>("toParentButton");
-    
     QFile styleSheet("resources/styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
         setStyleSheet(styleSheet.readAll());
