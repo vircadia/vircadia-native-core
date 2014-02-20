@@ -109,6 +109,10 @@ void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonOb
     }
 }
 
+void DomainServer::processTokenRedeemResponse(const QJsonObject& jsonObject) {
+    qDebug() << "Redeem response is" << jsonObject;
+}
+
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     int argumentIndex = 0;
@@ -294,6 +298,7 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
 
 void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
+    AccountManager& accountManager = AccountManager::getInstance();
 
     HifiSockAddr senderSockAddr, nodePublicAddress, nodeLocalAddress;
     
@@ -443,6 +448,12 @@ void DomainServer::readAvailableDatagrams() {
                 packetStream >> registrationToken;
                 
                 // make a request against the data-server to get information required to connect to this node
+                JSONCallbackParameters tokenCallbackParams;
+                tokenCallbackParams.jsonCallbackReceiver = this;
+                tokenCallbackParams.jsonCallbackMethod = "processTokenRedeemResponse";
+                
+                QString redeemURLString = QString("/api/v1/nodes/redeem/%1.json").arg(QString(registrationToken.toHex()));
+                accountManager.authenticatedRequest(redeemURLString, QNetworkAccessManager::GetOperation);
                 
             } else if (requestType == PacketTypeRequestAssignment) {
                 

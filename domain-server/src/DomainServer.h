@@ -36,8 +36,6 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
-    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
-    
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     
@@ -68,6 +66,8 @@ private:
     QStringList _argumentList;
 private slots:
     void requestCreationFromDataServer();
+    void processCreateResponseFromDataServer(const QJsonObject& jsonObject);
+    void processTokenRedeemResponse(const QJsonObject& jsonObject);
     
     void readAvailableDatagrams();
     void addStaticAssignmentsBackToQueueAfterRestart();
