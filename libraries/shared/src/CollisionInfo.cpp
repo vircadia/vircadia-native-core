@@ -16,7 +16,7 @@ CollisionList::CollisionList(int maxSize) :
 
 CollisionInfo* CollisionList::getNewCollision() {
     // return pointer to existing CollisionInfo, or NULL of list is full
-    return (_size < _maxSize) ? &(_collisions[++_size]) : NULL;
+    return (_size < _maxSize) ? &(_collisions[_size++]) : NULL;
 }
 
 CollisionInfo* CollisionList::getCollision(int index) {
