@@ -681,7 +681,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         if (_writeRenderFullVBO) {
             if (_usePrimitiveRenderer) {
                 _renderer->release();
-                clearAllNodesPrimitiveIndex();
+                clearAllNodesBufferIndex();
             }
             clearFreeBufferIndexes();
         }
@@ -1076,10 +1076,10 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelTreeElement* node) {
     }
 
     if (_usePrimitiveRenderer) {
-        int primitiveIndex = node->getPrimitiveIndex();
-        if (primitiveIndex) {
+        if (node->isKnownBufferIndex()) {
+            int primitiveIndex = node->getBufferIndex();
             _renderer->remove(primitiveIndex);
-            node->setPrimitiveIndex(0);
+            node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
             return 1;
         }
     } else {
@@ -1123,10 +1123,10 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
             nodeColor const & color = node->getColor();
 
             if (_usePrimitiveRenderer) {
-                int primitiveIndex = node->getPrimitiveIndex();
-                if (primitiveIndex) {
+                if (node->isKnownBufferIndex()) {
+                    int primitiveIndex = node->getBufferIndex();
                     _renderer->remove(primitiveIndex);
-                    node->setPrimitiveIndex(0);
+                    node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
                 } else {
                     node->setVoxelSystem(this);
                 }
@@ -1142,8 +1142,8 @@ int VoxelSystem::updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, boo
                         color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX],
                         occlusions);
                     if (cube) {
-                        primitiveIndex = _renderer->add(cube);
-                        node->setPrimitiveIndex(primitiveIndex);
+                        int primitiveIndex = _renderer->add(cube);
+                        node->setBufferIndex(primitiveIndex);
                     }
                 }
             } else {
@@ -1589,7 +1589,7 @@ void VoxelSystem::killLocalVoxels() {
         if (_renderer) {
             _renderer->release();
         }
-        clearAllNodesPrimitiveIndex();
+        clearAllNodesBufferIndex();
     }
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
@@ -1615,28 +1615,6 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     _tree->unlock();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes", _nodeCount);
-    }
-}
-
-// only called on main thread
-bool VoxelSystem::clearAllNodesPrimitiveIndexOperation(OctreeElement* element, void* extraData) {
-    _nodeCount++;
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    voxel->setPrimitiveIndex(0);
-    return true;
-}
-
-// only called on main thread, and also always followed by a call to cleanupVoxelMemory()
-// you shouldn't be calling this on any other thread or without also cleaning up voxel memory
-void VoxelSystem::clearAllNodesPrimitiveIndex() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::clearAllNodesPrimitiveIndex()");
-    _nodeCount = 0;
-    _tree->lockForRead(); // we won't change the tree so it's ok to treat this as a read
-    _tree->recurseTreeWithOperation(clearAllNodesPrimitiveIndexOperation);
-    _tree->unlock();
-    if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
-        qDebug("clearing primitive index of %d nodes", _nodeCount);
     }
 }
 
@@ -2421,7 +2399,7 @@ bool VoxelSystem::hideAllSubTreeOperation(OctreeElement* element, void* extraDat
     }
 
     args->nodesOutside++;
-    if (voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex()) {
+    if (voxel->isKnownBufferIndex()) {
         args->nodesRemoved++;
         bool falseColorize = false;
         if (falseColorize) {
@@ -2463,7 +2441,7 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
     bool shouldRender = voxel->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     voxel->setShouldRender(shouldRender);
 
-    if (shouldRender && !(voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex())) {
+    if (shouldRender && !voxel->isKnownBufferIndex()) {
         bool falseColorize = false;
         if (falseColorize) {
             voxel->setFalseColor(0,0,255); // false colorize
@@ -2558,7 +2536,7 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // if the child node INTERSECTs the view, then we want to check to see if it thinks it should render
             // if it should render but is missing it's VBO index, then we want to flip it on, and we can stop recursing from
             // here because we know will block any children anyway
-            if (voxel->getShouldRender() && !(voxel->isKnownBufferIndex() || voxel->getPrimitiveIndex())) {
+            if (voxel->getShouldRender() && !voxel->isKnownBufferIndex()) {
                 voxel->setDirtyBit(); // will this make it draw?
                 args->nodesShown++;
                 return false;
@@ -2722,9 +2700,9 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(OctreeElement* element, v
     }
 
     unsigned long nodeIndex = 0;
-    if (voxel->getPrimitiveIndex()) {
+    if (voxel->getBufferIndex()) {
         args->nodesInPrimitiveRenderer++;
-        nodeIndex = voxel->getPrimitiveIndex();
+        nodeIndex = voxel->getBufferIndex();
 
         const bool extraDebugging = false; // enable for extra debugging
         if (extraDebugging) {

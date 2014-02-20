@@ -137,7 +137,6 @@ public slots:
     void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
-    void clearAllNodesPrimitiveIndex();
     void cullSharedFaces();
     void showCulledSharedFaces();
 
@@ -195,7 +194,6 @@ private:
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
-    static bool clearAllNodesPrimitiveIndexOperation(OctreeElement* element, void* extraData);
     static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);

@@ -49,8 +49,6 @@ public:
 
 
 
-    int getPrimitiveIndex() const { return _primitiveIndex; }
-    void setPrimitiveIndex(int index) { _primitiveIndex = index; }
     glBufferIndex getBufferIndex() const { return _glBufferIndex; }
     bool isKnownBufferIndex() const { return !_unknownBufferIndex; }
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
@@ -98,7 +96,6 @@ protected:
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
 
 private:
-    int _primitiveIndex;                        ///< Unique identifier given by PrimitiveRenderer
     unsigned char _exteriorOcclusions;          ///< Exterior shared partition boundaries that are completely occupied
     unsigned char _interiorOcclusions;          ///< Interior shared partition boundaries with siblings
 };
