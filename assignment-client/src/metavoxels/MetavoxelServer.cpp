@@ -37,6 +37,9 @@ const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);
     
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
 }
