@@ -338,3 +338,10 @@ void AvatarData::setOrientation(const glm::quat& orientation) {
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
 }
+
+void AvatarData::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+}

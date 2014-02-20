@@ -52,6 +52,8 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
+const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
 
@@ -156,6 +158,9 @@ public:
     virtual void setDisplayName(const QString& displayName);
     
     virtual float getBoundingRadius() const { return 1.f; }
+
+public slots:
+    void sendIdentityPacket();
 
 protected:
     glm::vec3 _position;
