@@ -49,6 +49,9 @@ Box MetavoxelData::getBounds() const {
 }
 
 void MetavoxelData::guide(MetavoxelVisitor& visitor) {
+    // let the visitor know we're about to begin a tour
+    visitor.prepare();
+
     // start with the root values/defaults (plus the guide attribute)
     const QVector<AttributePointer>& inputs = visitor.getInputs();
     const QVector<AttributePointer>& outputs = visitor.getOutputs();
@@ -530,6 +533,32 @@ MetavoxelVisitor::MetavoxelVisitor(const QVector<AttributePointer>& inputs, cons
 MetavoxelVisitor::~MetavoxelVisitor() {
 }
 
+void MetavoxelVisitor::prepare() {
+    // nothing by default
+}
+
+SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs) :
+    MetavoxelVisitor(inputs + spannerInputs, outputs),
+    _spannerInputCount(spannerInputs.size()) {
+}
+
+void SpannerVisitor::prepare() {
+    Spanner::incrementVisit();
+}
+
+bool SpannerVisitor::visit(MetavoxelInfo& info) {
+    for (int i = info.inputValues.size() - _spannerInputCount; i < info.inputValues.size(); i++) {
+        foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
+            Spanner* spanner = static_cast<Spanner*>(object.data());
+            if (spanner->testAndSetVisited()) {
+                visit(spanner);
+            }
+        }
+    }
+    return !info.isLeaf;
+}
+
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
@@ -788,11 +817,11 @@ void Spanner::setBounds(const Box& bounds) {
     emit boundsChanged(_bounds = bounds);
 }
 
-bool Spanner::testAndSetVisited(int visit) {
-    if (_lastVisit == visit) {
+bool Spanner::testAndSetVisited() {
+    if (_lastVisit == _visit) {
         return false;
     }
-    _lastVisit = visit;
+    _lastVisit = _visit;
     return true;
 }
 
@@ -815,6 +844,8 @@ QByteArray Spanner::getRendererClassName() const {
     return "SpannerRendererer";
 }
 
+int Spanner::_visit = 0;
+
 SpannerRenderer::SpannerRenderer() {
 }
 
@@ -831,6 +862,9 @@ void SpannerRenderer::render(float alpha) {
 }
 
 Transformable::Transformable() : _scale(1.0f) {
+    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
+    connect(this, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(updateBounds()));
+    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
 }
 
 void Transformable::setTranslation(const glm::vec3& translation) {
@@ -849,6 +883,12 @@ void Transformable::setScale(float scale) {
     if (_scale != scale) {
         emit scaleChanged(_scale = scale);
     }
+}
+
+void Transformable::updateBounds() {
+    // temporary fake bounds
+    glm::vec3 scaleVector(_scale, _scale, _scale);
+    setBounds(Box(_translation - scaleVector, _translation + scaleVector));
 }
 
 StaticModel::StaticModel() {

@@ -28,6 +28,7 @@ class MetavoxelNode;
 class MetavoxelVisitation;
 class MetavoxelVisitor;
 class NetworkValue;
+class Spanner;
 class SpannerRenderer;
 
 /// The base metavoxel representation shared between server and client.
@@ -138,7 +139,8 @@ public:
 class MetavoxelVisitor {
 public:
     
-    MetavoxelVisitor(const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs);
+    MetavoxelVisitor(const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
     virtual ~MetavoxelVisitor();
     
     /// Returns a reference to the list of input attributes desired.
@@ -146,6 +148,9 @@ public:
     
     /// Returns a reference to the list of output attributes provided.
     const QVector<AttributePointer>& getOutputs() const { return _outputs; }
+    
+    /// Prepares for a new tour of the metavoxel data.
+    virtual void prepare();
     
     /// Visits a metavoxel.
     /// \param info the metavoxel data
@@ -159,6 +164,25 @@ protected:
 };
 
 typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
+
+/// Interface for visitors to spanners.
+class SpannerVisitor : public MetavoxelVisitor {
+public:
+    
+    SpannerVisitor(const QVector<AttributePointer>& spannerInputs,
+        const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
+    
+    /// Visits a spanner.
+    virtual void visit(Spanner* spanner) = 0;
+    
+    virtual void prepare();
+    virtual bool visit(MetavoxelInfo& info);
+
+protected:
+    
+    int _spannerInputCount;
+};
 
 /// Interface for objects that guide metavoxel visitors.
 class MetavoxelGuide : public SharedObject {
@@ -259,6 +283,9 @@ class Spanner : public SharedObject {
 
 public:
     
+    /// Increments the value of the global visit counter.
+    static void incrementVisit() { _visit++; }
+    
     Spanner();
     
     void setBounds(const Box& bounds);
@@ -269,7 +296,7 @@ public:
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
-    bool testAndSetVisited(int visit);
+    bool testAndSetVisited();
 
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
@@ -290,6 +317,8 @@ private:
     float _granularity;
     int _lastVisit; ///< the identifier of the last visit
     SpannerRenderer* _renderer;
+    
+    static int _visit; ///< the global visit counter
 };
 
 /// Base class for objects that can render spanners.
@@ -330,6 +359,10 @@ signals:
     void translationChanged(const glm::vec3& translation);
     void rotationChanged(const glm::vec3& rotation);
     void scaleChanged(float scale);
+
+protected slots:
+
+    virtual void updateBounds();
 
 private:
     

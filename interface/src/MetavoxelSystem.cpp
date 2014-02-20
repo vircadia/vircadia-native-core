@@ -24,7 +24,7 @@ ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
 
 MetavoxelSystem::MetavoxelSystem() :
-    _pointVisitor(_points),
+    _simulateVisitor(_points),
     _buffer(QOpenGLBuffer::VertexBuffer) {
 }
 
@@ -48,6 +48,7 @@ void MetavoxelSystem::init() {
 void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
                 client->applyEdit(edit);
@@ -59,11 +60,14 @@ void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
 void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
     _points.clear();
+    _simulateVisitor.setDeltaTime(deltaTime);
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->simulate(deltaTime, _pointVisitor);
+                client->simulate(deltaTime);
+                client->getData().guide(_simulateVisitor);
             }
         }
     }
@@ -117,6 +121,16 @@ void MetavoxelSystem::render() {
     _buffer.release();
     
     _program.release();
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                client->getData().guide(_renderVisitor);
+            }
+        }
+    }
 }
 
 void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
@@ -126,15 +140,20 @@ void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
     }
 }
 
-MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
-    MetavoxelVisitor(QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute(),
-        QVector<AttributePointer>()),
+MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+            AttributeRegistry::getInstance()->getNormalAttribute()),
     _points(points) {
 }
 
-bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
+void MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->simulate(_deltaTime);
+}
+
+bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
+    SpannerVisitor::visit(info);
+
     if (!info.isLeaf) {
         return true;
     }
@@ -147,6 +166,14 @@ bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
         _points.append(point);
     }
     return false;
+}
+
+MetavoxelSystem::RenderVisitor::RenderVisitor() :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
+}
+
+void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->render(1.0f);
 }
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
@@ -177,13 +204,11 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
 }
 
-void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
+void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
     ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
-    
-    _data.guide(visitor);
 }
 
 int MetavoxelClient::parseData(const QByteArray& packet) {

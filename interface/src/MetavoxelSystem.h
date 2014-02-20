@@ -53,20 +53,30 @@ private:
         quint8 normal[3];
     };
     
-    class PointVisitor : public MetavoxelVisitor {
+    class SimulateVisitor : public SpannerVisitor {
     public:
-        PointVisitor(QVector<Point>& points);
+        SimulateVisitor(QVector<Point>& points);
+        void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
+        virtual void visit(Spanner* spanner);
         virtual bool visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;
+        float _deltaTime;
+    };
+    
+    class RenderVisitor : public SpannerVisitor {
+    public:
+        RenderVisitor();
+        virtual void visit(Spanner* spanner);
     };
     
     static ProgramObject _program;
     static int _pointScaleLocation;
     
     QVector<Point> _points;
-    PointVisitor _pointVisitor;
+    SimulateVisitor _simulateVisitor;
+    RenderVisitor _renderVisitor;
     QOpenGLBuffer _buffer;
 };
 
@@ -79,11 +89,11 @@ public:
     MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
 
+    MetavoxelData& getData() { return _data; }
+
     void applyEdit(const MetavoxelEditMessage& edit);
 
-    void simulate(float deltaTime, MetavoxelVisitor& visitor);
-
-    void render();
+    void simulate(float deltaTime);
 
     virtual int parseData(const QByteArray& packet);
 
