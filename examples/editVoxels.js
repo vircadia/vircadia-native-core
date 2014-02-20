@@ -155,6 +155,68 @@ for (s = 0; s < numColors; s++) {
 }
 
 
+// These will be our tool palette overlays
+var numberOfTools = 5;
+var toolHeight = 40;
+var toolWidth = 62;
+var toolsHeight = toolHeight * numberOfTools;
+var toolsX = 0;
+var toolsY = (windowDimensions.y - toolsHeight) / 2;
+
+var addToolAt = 0;
+var deleteToolAt = 1;
+var recolorToolAt = 2;
+var eyedropperToolAt = 3;
+var selectToolAt = 4;
+var toolSelectedColor = { red: 255, green: 255, blue: 255 };
+var notSelectedColor = { red: 128, green: 128, blue: 128 };
+
+var addTool = Overlays.addOverlay("image", {
+                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                    subImage: { x: 0, y: toolHeight * addToolAt, width: toolWidth, height: toolHeight },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg",
+                    color: toolSelectedColor,
+                    visible: false,
+                    alpha: 0.9
+                });
+
+var deleteTool = Overlays.addOverlay("image", {
+                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                    subImage: { x: 0, y: toolHeight * deleteToolAt, width: toolWidth, height: toolHeight },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg",
+                    color: toolSelectedColor,
+                    visible: false,
+                    alpha: 0.9
+                });
+
+var recolorTool = Overlays.addOverlay("image", {
+                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                    subImage: { x: 0, y: toolHeight * recolorToolAt, width: toolWidth, height: toolHeight },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg",
+                    color: toolSelectedColor,
+                    visible: false,
+                    alpha: 0.9
+                });
+
+var eyedropperTool = Overlays.addOverlay("image", {
+                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                    subImage: { x: 0, y: toolHeight * eyedropperToolAt, width: toolWidth, height: toolHeight },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg",
+                    color: toolSelectedColor,
+                    visible: false,
+                    alpha: 0.9
+                });
+
+var selectTool = Overlays.addOverlay("image", {
+                    x: 0, y: 0, width: toolWidth, height: toolHeight,
+                    subImage: { x: 0, y: toolHeight * selectToolAt, width: toolWidth, height: toolHeight },
+                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/hifi-interface-tools.svg",
+                    color: toolSelectedColor,
+                    visible: false,
+                    alpha: 0.9
+                });
+
+
 function setAudioPosition() {
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(MyAvatar.orientation);
@@ -184,6 +246,7 @@ var trackLastMouseX = 0;
 var trackLastMouseY = 0;
 var trackAsDelete = false;
 var trackAsRecolor = false;
+var trackAsEyedropper = false;
 
 function showPreviewVoxel() {
     var voxelColor;
@@ -217,7 +280,7 @@ function showPreviewVoxel() {
                 solid: false,
                 alpha: 1
             });
-    } else if (trackAsRecolor) {
+    } else if (trackAsRecolor || trackAsEyedropper) {
         guidePosition = { x: intersection.voxel.x - 0.001,
                           y: intersection.voxel.y - 0.001,
                           z: intersection.voxel.z - 0.001 };
@@ -264,7 +327,6 @@ function showPreviewVoxel() {
 
 
 function showPreviewLines() {
-    var voxelColor;
 
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
     var intersection = Voxels.findRayIntersection(pickRay);
@@ -377,16 +439,22 @@ function trackMouseEvent(event) {
     trackLastMouseY = event.y;
     trackAsDelete = event.isControl;
     trackAsRecolor = event.isShifted;
+    trackAsEyedropper = event.isMeta;
     showPreviewGuides();
 }
 
 function trackKeyPressEvent(event) {
     if (event.text == "CONTROL") {
         trackAsDelete = true;
-        showPreviewGuides();
+        moveTools();
     }
     if (event.text == "SHIFT") {
         trackAsRecolor = true;
+        moveTools();
+    }
+    if (event.text == "META") {
+        trackAsEyedropper = true;
+        moveTools();
     }
     showPreviewGuides();
 }
@@ -394,10 +462,15 @@ function trackKeyPressEvent(event) {
 function trackKeyReleaseEvent(event) {
     if (event.text == "CONTROL") {
         trackAsDelete = false;
-        showPreviewGuides();
+        moveTools();
     }
     if (event.text == "SHIFT") {
         trackAsRecolor = false;
+        moveTools();
+    }
+    if (event.text == "META") {
+        trackAsEyedropper = false;
+        moveTools();
     }
     
     // on TAB release, toggle our tool state
@@ -447,12 +520,21 @@ function mousePressEvent(event) {
             orbitAzimuth = Math.atan2(orbitVector.z, orbitVector.x);
             orbitAltitude = Math.asin(orbitVector.y / Vec3.length(orbitVector));
 
-        } else if (trackAsDelete || event.isRightButton) {
+        } else if (trackAsDelete || (event.isRightButton && !trackAsEyedropper)) {
             //  Delete voxel
             Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
             Audio.playSound(deleteSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
-
+        } else if (trackAsEyedropper) {
+        
+            print("Grab color!!!");
+            if (whichColor != -1) {
+                colors[whichColor].red = intersection.voxel.red;
+                colors[whichColor].green = intersection.voxel.green;
+                colors[whichColor].blue = intersection.voxel.blue;
+                moveTools();
+            }
+            
         } else if (trackAsRecolor) {
             //  Recolor Voxel
             Voxels.setVoxel(intersection.voxel.x, 
@@ -643,6 +725,7 @@ function mouseReleaseEvent(event) {
 }
 
 function moveTools() {
+    // move the swatches
     swatchesX = (windowDimensions.x - swatchesWidth) / 2;
     swatchesY = windowDimensions.y - swatchHeight;
 
@@ -665,6 +748,55 @@ function moveTools() {
                         visible: editToolsOn
                     });
     }
+
+    // move the tools
+    toolsY = (windowDimensions.y - toolsHeight) / 2;
+    addToolColor = notSelectedColor;
+    deleteToolColor = notSelectedColor;
+    recolorToolColor = notSelectedColor;
+    eyedropperToolColor = notSelectedColor;
+    selectToolColor = notSelectedColor;
+
+    if (trackAsDelete) {
+        deleteToolColor = toolSelectedColor;
+    } else if (trackAsRecolor) {
+        recolorToolColor = toolSelectedColor;
+    } else if (trackAsEyedropper) {
+        eyedropperToolColor = toolSelectedColor;
+    } else {
+        addToolColor = toolSelectedColor;
+    }
+
+    Overlays.editOverlay(addTool, {
+                    x: 0, y: toolsY + (toolHeight * addToolAt), width: toolWidth, height: toolHeight,
+                    color: addToolColor,
+                    visible: editToolsOn
+                });
+
+    Overlays.editOverlay(deleteTool, {
+                    x: 0, y: toolsY + (toolHeight * deleteToolAt), width: toolWidth, height: toolHeight,
+                    color: deleteToolColor,
+                    visible: editToolsOn
+                });
+
+    Overlays.editOverlay(recolorTool, {
+                    x: 0, y: toolsY + (toolHeight * recolorToolAt), width: toolWidth, height: toolHeight,
+                    color: recolorToolColor,
+                    visible: editToolsOn
+                });
+
+    Overlays.editOverlay(eyedropperTool, {
+                    x: 0, y: toolsY + (toolHeight * eyedropperToolAt), width: toolWidth, height: toolHeight,
+                    color: eyedropperToolColor,
+                    visible: editToolsOn
+                });
+
+    Overlays.editOverlay(selectTool, {
+                    x: 0, y: toolsY + (toolHeight * selectToolAt), width: toolWidth, height: toolHeight,
+                    color: selectToolColor,
+                    visible: editToolsOn
+                });
+
 }
 
 
@@ -692,6 +824,11 @@ function scriptEnding() {
     for (s = 0; s < numColors; s++) {
         Overlays.deleteOverlay(swatches[s]);
     }
+    Overlays.deleteOverlay(addTool);
+    Overlays.deleteOverlay(deleteTool);
+    Overlays.deleteOverlay(recolorTool);
+    Overlays.deleteOverlay(eyedropperTool);
+    Overlays.deleteOverlay(selectTool);
 }
 Script.scriptEnding.connect(scriptEnding);
 
