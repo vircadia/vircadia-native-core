@@ -63,6 +63,7 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
+#include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -1691,6 +1692,10 @@ bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
 }
 
 void Application::exportVoxels() {
+    exportVoxels(_mouseVoxel);
+}
+
+void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
@@ -1698,7 +1703,7 @@ void Application::exportVoxels() {
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
         _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
@@ -1732,11 +1737,19 @@ void Application::importVoxels() {
 }
 
 void Application::cutVoxels() {
-    copyVoxels();
-    deleteVoxelUnderCursor();
+    cutVoxels(_mouseVoxel);
+}
+
+void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
+    copyVoxels(sourceVoxel);
+    deleteVoxelAt(sourceVoxel);
 }
 
 void Application::copyVoxels() {
+    copyVoxels(_mouseVoxel);
+}
+
+void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
     // switch to and clear the clipboard first...
     _sharedVoxelSystem.killLocalVoxels();
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
@@ -1745,7 +1758,7 @@ void Application::copyVoxels() {
     }
 
     // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
     }
@@ -1767,8 +1780,12 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
 }
 
 void Application::pasteVoxels() {
+    pasteVoxels(_mouseVoxel);
+}
+
+void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
@@ -1777,7 +1794,7 @@ void Application::pasteVoxels() {
     if (selectedNode) {
         octalCodeDestination = selectedNode->getOctalCode();
     } else {
-        octalCodeDestination = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        octalCodeDestination = calculatedOctCode = pointToVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     }
 
     pasteVoxelsToOctalCode(octalCodeDestination);
@@ -1822,12 +1839,14 @@ void Application::nudgeVoxels() {
         // calculate nudgeVec
         glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
 
-        VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+        nudgeVoxelsByVector(_nudgeVoxel, nudgeVec);
+    }
+}
 
-        if (nodeToNudge) {
-            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-            _nudgeStarted = false;
-        }
+void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
+    VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    if (nodeToNudge) {
+        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
     }
 }
 
@@ -3832,17 +3851,26 @@ bool Application::maybeEditVoxelUnderCursor() {
 }
 
 void Application::deleteVoxelUnderCursor() {
-    if (_mouseVoxel.s != 0) {
+    deleteVoxelAt(_mouseVoxel);
+}
+
+void Application::deleteVoxels(const VoxelDetail& voxel) {
+    deleteVoxelAt(voxel);
+}
+
+void Application::deleteVoxelAt(const VoxelDetail& voxel) {
+    if (voxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
-        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
 
     }
     // remember the position for drag detection
     _justEditedVoxel = true;
 }
+
 
 void Application::eyedropperVoxelUnderCursor() {
     VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -4178,6 +4206,10 @@ void Application::loadScript(const QString& fileNameString) {
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+    ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
+    scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
+    connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
