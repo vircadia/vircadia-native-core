@@ -131,7 +131,7 @@ signals:
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
 private slots:
-    void domainServerAuthReply();
+    void domainServerAuthReply(const QJsonObject& jsonObject);
 private:
     static NodeList* _sharedInstance;
 

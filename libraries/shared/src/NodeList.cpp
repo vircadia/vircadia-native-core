@@ -581,18 +581,19 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     return readNodes;
 }
 
-void NodeList::domainServerAuthReply() {
-    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-    
-    _domainInfo.parseAuthInformationFromJsonObject(jsonResponse.object());
+void NodeList::domainServerAuthReply(const QJsonObject& jsonObject) {
+    _domainInfo.parseAuthInformationFromJsonObject(jsonObject);
 }
 
 void NodeList::requestAuthForDomainServer() {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "domainServerAuthReply";
+    
     AccountManager::getInstance().authenticatedRequest("/api/v1/domains/"
                                                        + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
                                                        QNetworkAccessManager::GetOperation,
-                                                       this, SLOT(domainServerAuthReply()));
+                                                       callbackParams);
 }
 
 void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {

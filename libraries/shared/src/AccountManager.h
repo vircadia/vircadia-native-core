@@ -17,6 +17,20 @@
 
 #include "OAuthAccessToken.h"
 
+class JSONCallbackParameters {
+public:
+    JSONCallbackParameters() :
+        jsonCallbackReceiver(NULL), jsonCallbackMethod(),
+        errorCallbackReceiver(NULL), errorCallbackMethod() {};
+    
+    bool isEmpty() const { return jsonCallbackReceiver == NULL && errorCallbackReceiver == NULL; }
+    
+    QObject* jsonCallbackReceiver;
+    QString jsonCallbackMethod;
+    QObject* errorCallbackReceiver;
+    QString errorCallbackMethod;
+};
+
 class AccountManager : public QObject {
     Q_OBJECT
 public:
@@ -25,9 +39,8 @@ public:
     
     void authenticatedRequest(const QString& path,
                               QNetworkAccessManager::Operation operation,
-                              const QObject* successReceiver, const char* successMethod,
-                              const QByteArray& dataByteArray = QByteArray(),
-                              const QObject* errorReceiver = 0, const char* errorMethod = NULL);
+                              const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
+                              const QByteArray& dataByteArray = QByteArray());
     
     void setRootURL(const QUrl& rootURL) { _rootURL = rootURL; }
     
@@ -45,6 +58,9 @@ public slots:
 signals:
     void authenticationRequired();
     void receivedAccessToken(const QUrl& rootURL);
+private slots:
+    void passSuccessToCallback();
+    void passErrorToCallback(QNetworkReply::NetworkError errorCode);
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
@@ -53,6 +69,7 @@ private:
     QUrl _rootURL;
     QString _username;
     QNetworkAccessManager* _networkAccessManager;
+    QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
     static QMap<QUrl, OAuthAccessToken> _accessTokens;
 };

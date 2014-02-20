@@ -71,7 +71,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             // TODO: failure case for not receiving a token
             accountManager.requestAccessToken(username, password);
             
-            connect(&accountManager, &AccountManager::receivedAccessToken, this, &DomainServer::requestUUIDFromDataServer);
+            connect(&accountManager, &AccountManager::receivedAccessToken, this, &DomainServer::requestCreationFromDataServer);
             
         } else {
             qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
@@ -89,20 +89,22 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
-void DomainServer::requestUUIDFromDataServer() {
+void DomainServer::requestCreationFromDataServer() {
     // this slot is fired when we get a valid access token from the data-server
     // now let's ask it to set us up with a UUID
-    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create", QNetworkAccessManager::PostOperation,
-                                                       this, SLOT(parseUUIDFromDataServer()));
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "processCreateResponseFromDataServer";
+    
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create",
+                                                       QNetworkAccessManager::PostOperation,
+                                                       callbackParams);
 }
 
-void DomainServer::parseUUIDFromDataServer() {
-    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-    
-    if (jsonResponse.object()["status"].toString() == "success") {
+void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonObject) {
+    if (jsonObject["status"].toString() == "success") {
         // pull out the UUID the data-server is telling us to use, and complete our setup with it
-        QUuid newSessionUUID = QUuid(jsonResponse.object()["data"].toObject()["uuid"].toString());
+        QUuid newSessionUUID = QUuid(jsonObject["data"].toObject()["uuid"].toString());
         setupNodeListAndAssignments(newSessionUUID);
     }
 }
@@ -303,7 +305,6 @@ void DomainServer::readAvailableDatagrams() {
     
     QByteArray receivedPacket;
     NodeType_t nodeType;
-   
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());

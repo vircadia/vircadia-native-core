@@ -32,7 +32,8 @@ const QString ACCOUNT_TOKEN_GROUP = "tokens";
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
-    _networkAccessManager(new QNetworkAccessManager)
+    _networkAccessManager(new QNetworkAccessManager),
+    _pendingCallbackMap()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -53,9 +54,7 @@ AccountManager::AccountManager() :
 }
 
 void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                          const QObject *successReceiver, const char *successMethod,
-                                          const QByteArray& dataByteArray,
-                                          const QObject* errorReceiver, const char* errorMethod) {
+                                          const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
     if (_networkAccessManager && hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
@@ -82,13 +81,54 @@ void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessMan
         }
         
         if (networkReply) {
-            // if we ended up firing of a request, hook up to it now
-            connect(networkReply, SIGNAL(finished()), successReceiver, successMethod);
-            
-            if (errorReceiver && errorMethod) {
-                connect(networkReply, SIGNAL(error()), errorReceiver, errorMethod);
+            if (!callbackParams.isEmpty()) {
+                // if we have information for a callback, insert the callbackParams into our local map
+                _pendingCallbackMap.insert(networkReply, callbackParams);
             }
+            
+            // if we ended up firing of a request, hook up to it now
+            connect(networkReply, SIGNAL(finished()), this, SLOT(passSuccessToCallback()));
+            connect(networkReply, SIGNAL(error(QNetworkReply::NetworkError)),
+                    this, SLOT(passErrorToCallback(QNetworkReply::NetworkError)));
         }
+    }
+}
+
+void AccountManager::passSuccessToCallback() {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    
+    JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
+    
+    if (callbackParams.jsonCallbackReceiver) {
+        // invoke the right method on the callback receiver
+        QMetaObject::invokeMethod(callbackParams.jsonCallbackReceiver, qPrintable(callbackParams.jsonCallbackMethod),
+                                  Q_ARG(const QJsonObject&, jsonResponse.object()));
+        
+        // remove the related reply-callback group from the map
+        _pendingCallbackMap.remove(requestReply);
+        
+    } else {
+        qDebug() << "Received JSON response from data-server that has no matching callback.";
+        qDebug() << jsonResponse;
+    }
+}
+
+void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+    JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
+    
+    if (callbackParams.errorCallbackReceiver) {
+        // invoke the right method on the callback receiver
+        QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver, qPrintable(callbackParams.errorCallbackMethod),
+                                  Q_ARG(QNetworkReply::NetworkError, errorCode),
+                                  Q_ARG(const QString&, requestReply->errorString()));
+        
+        // remove the related reply-callback group from the map
+        _pendingCallbackMap.remove(requestReply);
+    } else {
+        qDebug() << "Received error response from data-server that has no matching callback.";
+        qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
     }
 }
 
