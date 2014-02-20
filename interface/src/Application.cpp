@@ -2376,7 +2376,7 @@ void Application::updateMyAvatar(float deltaTime) {
     _myAvatar->update(deltaTime);
 
     // send head/hand data to the avatar mixer and voxel server
-    QByteArray packet = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
     packet.append(_myAvatar->toByteArray());
 
     controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);

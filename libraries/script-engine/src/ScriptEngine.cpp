@@ -252,7 +252,7 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
-            QByteArray avatarPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+            QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);

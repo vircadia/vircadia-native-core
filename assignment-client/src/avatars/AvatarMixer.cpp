@@ -93,7 +93,7 @@ void broadcastIdentityPacket() {
    
     NodeList* nodeList = NodeList::getInstance();
     
-    QByteArray avatarIdentityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    QByteArray avatarIdentityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     int numPacketHeaderBytes = avatarIdentityPacket.size();
     
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
@@ -128,7 +128,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         && killedNode->getLinkedData()) {
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
+        QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
         NodeList::getInstance()->broadcastToNodes(killPacket,
@@ -159,7 +159,7 @@ void AvatarMixer::readPendingDatagrams() {
                         if (nodeData->hasIdentityChangedAfterParsing(receivedPacket)
                             && !nodeData->hasSentIdentityBetweenKeyFrames()) {
                             // this avatar changed their identity in some way and we haven't sent a packet in this keyframe
-                            QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+                            QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                             QByteArray individualByteArray = nodeData->identityByteArray();
                             individualByteArray.replace(0, NUM_BYTES_RFC4122_UUID, avatarNode->getUUID().toRfc4122());

@@ -340,7 +340,7 @@ void AvatarData::setOrientation(const glm::quat& orientation) {
 }
 
 void AvatarData::sendIdentityPacket() {
-    QByteArray identityPacket = byteArrayWithPopluatedHeader(PacketTypeAvatarIdentity);
+    QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     identityPacket.append(identityByteArray());
     
     NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);

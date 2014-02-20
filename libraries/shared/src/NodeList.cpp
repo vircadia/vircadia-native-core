@@ -528,7 +528,7 @@ void NodeList::sendDomainServerCheckIn() {
         // construct the DS check in packet if we can
 
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
+        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(PacketTypeDomainListRequest);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
 
         // pack our data to send to the domain-server
@@ -616,7 +616,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? PacketTypeCreateAssignment
         : PacketTypeRequestAssignment;
     
-    QByteArray packet = byteArrayWithPopluatedHeader(assignmentPacketType);
+    QByteArray packet = byteArrayWithPopulatedHeader(assignmentPacketType);
     QDataStream packetStream(&packet, QIODevice::Append);
     
     packetStream << assignment;
@@ -631,7 +631,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 QByteArray NodeList::constructPingPacket(PingType_t pingType) {
-    QByteArray pingPacket = byteArrayWithPopluatedHeader(PacketTypePing);
+    QByteArray pingPacket = byteArrayWithPopulatedHeader(PacketTypePing);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -651,7 +651,7 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
     
-    QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
+    QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();

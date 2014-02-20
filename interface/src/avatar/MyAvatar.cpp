@@ -644,7 +644,7 @@ void MyAvatar::loadData(QSettings* settings) {
 }
 
 void MyAvatar::sendKillAvatar() {
-    QByteArray killPacket = byteArrayWithPopluatedHeader(PacketTypeKillAvatar);
+    QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
     NodeList::getInstance()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
