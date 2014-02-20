@@ -271,8 +271,9 @@ function showPreviewLines() {
     
     if (intersection.intersects) {
     
-        // TODO: add support for changing size here
-        var previewVoxelSize = intersection.voxel.s;
+        // TODO: add support for changing size here, if you set this size to any arbitrary size, 
+        // the preview should correctly handle it
+        var previewVoxelSize = intersection.voxel.s; 
 
         var x = Math.floor(intersection.intersection.x / previewVoxelSize) * previewVoxelSize;
         var y = Math.floor(intersection.intersection.y / previewVoxelSize) * previewVoxelSize;
@@ -285,16 +286,14 @@ function showPreviewLines() {
         var topRight;
 
         if (intersection.face == "MIN_X_FACE") {
-
+            previewVoxel.x = Math.floor(intersection.voxel.x / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
             topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
             topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z + previewVoxel.s };
 
         } else if (intersection.face == "MAX_X_FACE") {
-
-            // because we intersected with the MAX_X face, our previewVoxel will be the voxel to the +X side of the
-            // voxel we intersect, so we don't need to adjust the x coordinates
+            previewVoxel.x = Math.floor((intersection.voxel.x + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
             topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
@@ -302,6 +301,7 @@ function showPreviewLines() {
 
         } else if (intersection.face == "MIN_Y_FACE") {
 
+            previewVoxel.y = Math.floor(intersection.voxel.y / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
@@ -309,6 +309,7 @@ function showPreviewLines() {
 
         } else if (intersection.face == "MAX_Y_FACE") {
 
+            previewVoxel.y = Math.floor((intersection.voxel.y + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
@@ -316,6 +317,7 @@ function showPreviewLines() {
 
         } else if (intersection.face == "MIN_Z_FACE") {
 
+            previewVoxel.z = Math.floor(intersection.voxel.z / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
@@ -323,6 +325,7 @@ function showPreviewLines() {
 
         } else if (intersection.face == "MAX_Z_FACE") {
 
+            previewVoxel.z = Math.floor((intersection.voxel.z + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
             bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
             bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
             topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
