@@ -247,6 +247,7 @@ var thumbClickOffsetX = 0;
 // This is the thumb of our slider
 var minThumbX = 30; // relative to the x of the slider
 var maxThumbX = minThumbX + 65;
+var thumbExtents = maxThumbX - minThumbX;
 var thumbX = (minThumbX + maxThumbX) / 2;
 var thumbY = sliderY + 9;
 var thumb = Overlays.addOverlay("image", {
@@ -263,10 +264,11 @@ var thumb = Overlays.addOverlay("image", {
 var pointerVoxelScale = 0; // this is the voxel scale used for click to add or delete
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
 
-var pointerVoxelScaleSteps = 10; // the number of slider position steps
-var pointerVoxelScaleOriginStep = 4; // the position of slider for the 1 meter size voxel
+var pointerVoxelScaleSteps = 8; // the number of slider position steps
+var pointerVoxelScaleOriginStep = 3; // the position of slider for the 1 meter size voxel
 var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
 var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
+var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
 
 function calcThumbFromScale(scale) {
     var scaleLog = Math.log(scale)/Math.log(2);
@@ -277,12 +279,22 @@ function calcThumbFromScale(scale) {
     if (thumbStep > pointerVoxelScaleSteps) {
         thumbStep = pointerVoxelScaleSteps;
     }
-    thumbX = (((maxThumbX - minThumbX) / pointerVoxelScaleSteps) * (thumbStep - 1)) + minThumbX;
+    thumbX = (thumbDeltaPerStep * (thumbStep - 1)) + minThumbX;
     Overlays.editOverlay(thumb, { x: thumbX + sliderX } );
 }
 
-                
-
+function calcScaleFromThumb(newThumbX) {
+    // newThumbX is the pixel location relative to start of slider,
+    // we need to figure out the actual offset in the allowed slider area
+    thumbAt = newThumbX - minThumbX;
+    thumbStep = Math.floor((thumbAt/ thumbExtents) * (pointerVoxelScaleSteps-1)) + 1;
+    pointerVoxelScale = Math.pow(2, (thumbStep-pointerVoxelScaleOriginStep));
+    // now reset the display accordingly...
+    calcThumbFromScale(pointerVoxelScale);
+    
+    // if the user moved the thumb, then they are fixing the voxel scale
+    pointerVoxelScaleSet = true;
+}
 
 function setAudioPosition() {
     var camera = Camera.getPosition();
@@ -326,6 +338,14 @@ function showPreviewVoxel() {
     if (!pointerVoxelScaleSet) {
         calcThumbFromScale(intersection.voxel.s);
     }
+    
+    var previewVoxelSize;
+    if (pointerVoxelScaleSet) {
+        previewVoxelSize = pointerVoxelScale; 
+    } else {
+        previewVoxelSize = intersection.voxel.s; 
+    }
+    
 
     if (whichColor == -1) {
         //  Copy mode - use clicked voxel color
@@ -347,7 +367,7 @@ function showPreviewVoxel() {
                           
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: intersection.voxel.s,
+                size: previewVoxelSize,
                 visible: true,
                 color: { red: 255, green: 0, blue: 0 },
                 solid: false,
@@ -360,7 +380,7 @@ function showPreviewVoxel() {
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: intersection.voxel.s + 0.002,
+                size: previewVoxelSize + 0.002,
                 visible: true,
                 color: voxelColor,
                 solid: true,
@@ -374,22 +394,22 @@ function showPreviewVoxel() {
                           z: intersection.voxel.z };
         
         if (intersection.face == "MIN_X_FACE") {
-            guidePosition.x -= intersection.voxel.s;
+            guidePosition.x -= previewVoxelSize;
         } else if (intersection.face == "MAX_X_FACE") {
             guidePosition.x += intersection.voxel.s;
         } else if (intersection.face == "MIN_Y_FACE") {
-            guidePosition.y -= intersection.voxel.s;
+            guidePosition.y -= previewVoxelSize;
         } else if (intersection.face == "MAX_Y_FACE") {
             guidePosition.y += intersection.voxel.s;
         } else if (intersection.face == "MIN_Z_FACE") {
-            guidePosition.z -= intersection.voxel.s;
+            guidePosition.z -= previewVoxelSize;
         } else if (intersection.face == "MAX_Z_FACE") {
             guidePosition.z += intersection.voxel.s;
         }
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: intersection.voxel.s,
+                size: previewVoxelSize,
                 visible: true,
                 color: voxelColor,
                 solid: true,
@@ -415,7 +435,12 @@ function showPreviewLines() {
     
         // TODO: add support for changing size here, if you set this size to any arbitrary size, 
         // the preview should correctly handle it
-        var previewVoxelSize = intersection.voxel.s; 
+        var previewVoxelSize;
+        if (pointerVoxelScaleSet) {
+            previewVoxelSize = pointerVoxelScale; 
+        } else {
+            previewVoxelSize = intersection.voxel.s; 
+        }
 
         var x = Math.floor(intersection.intersection.x / previewVoxelSize) * previewVoxelSize;
         var y = Math.floor(intersection.intersection.y / previewVoxelSize) * previewVoxelSize;
@@ -545,6 +570,17 @@ function trackKeyPressEvent(event) {
 }
 
 function trackKeyReleaseEvent(event) {
+    if (event.text == "ESC") {
+        pointerVoxelScaleSet = false;
+    }
+    if (event.text == "-") {
+        thumbX -= thumbDeltaPerStep;
+        calcScaleFromThumb(thumbX);
+    }
+    if (event.text == "+") {
+        thumbX += thumbDeltaPerStep;
+        calcScaleFromThumb(thumbX);
+    }
     if (event.text == "CONTROL") {
         trackAsDelete = false;
         moveTools();
@@ -618,6 +654,14 @@ function mousePressEvent(event) {
         if (!pointerVoxelScaleSet) {
             calcThumbFromScale(intersection.voxel.s);
         }
+        
+        // TODO: This would be a good place to use the "set" voxel size... but the add/delete/color logic below assumes that
+        // the "edit" size is the same as the intersect.voxel.s. So we need to fix that to really wire up the voxel size
+        // slider
+        var editVoxelSize = intersection.voxel.s; 
+        if (pointerVoxelScaleSet) {
+            //editVoxelSize = pointerVoxelScale; 
+        }
     
         if (event.isAlt) {
             // start orbit camera! 
@@ -635,7 +679,7 @@ function mousePressEvent(event) {
 
         } else if (trackAsDelete || (event.isRightButton && !trackAsEyedropper)) {
             //  Delete voxel
-            Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
+            Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, editVoxelSize);
             Audio.playSound(deleteSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
         } else if (trackAsEyedropper) {
@@ -653,7 +697,7 @@ function mousePressEvent(event) {
             Voxels.setVoxel(intersection.voxel.x, 
                             intersection.voxel.y, 
                             intersection.voxel.z, 
-                            intersection.voxel.s, 
+                            editVoxelSize, 
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
             Audio.playSound(changeColorSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
@@ -665,7 +709,7 @@ function mousePressEvent(event) {
                     x: intersection.voxel.x,
                     y: intersection.voxel.y,
                     z: intersection.voxel.z,
-                    s: intersection.voxel.s,
+                    s: editVoxelSize,
                     red: intersection.voxel.red,
                     green: intersection.voxel.green,
                     blue: intersection.voxel.blue };
@@ -674,7 +718,7 @@ function mousePressEvent(event) {
                     x: intersection.voxel.x,
                     y: intersection.voxel.y,
                     z: intersection.voxel.z,    
-                    s: intersection.voxel.s,
+                    s: editVoxelSize,
                     red: colors[whichColor].red,
                     green: colors[whichColor].green,
                     blue: colors[whichColor].blue };
@@ -768,8 +812,7 @@ function mouseMoveEvent(event) {
         if (thumbX > maxThumbX) {
             thumbX = maxThumbX;
         }
-        // TODO: hook this up to the voxel size in some meaningful way
-        Overlays.editOverlay(thumb, { x: thumbX + sliderX } );
+        calcScaleFromThumb(thumbX);
         
     } else if (isOrbiting) {
         var cameraOrientation = Camera.getOrientation();
