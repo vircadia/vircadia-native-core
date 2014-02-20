@@ -59,6 +59,7 @@ const float CHAT_MESSAGE_HEIGHT = 0.1f;
 const float DISPLAYNAME_FADE_TIME = 0.5f;
 const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 0.95f;
+const float DISPLAYNAME_BACKGROUND_ALPHA = 0.2f;
 
 Avatar::Avatar() :
     AvatarData(),
@@ -353,7 +354,7 @@ void Avatar::renderDisplayName() {
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.0f, 1.0f);
 
-        glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha);
+        glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
         glBegin(GL_QUADS);
         glVertex2f(left, bottom);
         glVertex2f(right, bottom);
