@@ -104,6 +104,16 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
         text = "HELP";
     } else if (key == Qt::Key_CapsLock) {
         text = "CAPS LOCK";
+    } else if (key >= Qt::Key_A && key <= Qt::Key_Z && (isMeta || isControl || isAlt))  {
+        // this little bit of hacker will fix the text character keys like a-z in cases of control/alt/meta where
+        // qt doesn't always give you the key characters and will sometimes give you crazy non-printable characters
+        const int lowerCaseAdjust = 0x20;
+        QString unicode;
+        if (isShifted) {
+            text = QString(QChar(key));
+        } else {
+            text = QString(QChar(key + lowerCaseAdjust));
+        }
     }
 }
 
