@@ -59,7 +59,7 @@ const float CHAT_MESSAGE_HEIGHT = 0.1f;
 const float DISPLAYNAME_FADE_TIME = 0.5f;
 const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 0.95f;
-const float DISPLAYNAME_BACKGROUND_ALPHA = 0.2f;
+const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 
 Avatar::Avatar() :
     AvatarData(),
@@ -218,7 +218,7 @@ void Avatar::render(bool forceRenderHead) {
             glPopMatrix();
         }
     }
-    const float DISPLAYNAME_DISTANCE = 4.0f;
+    const float DISPLAYNAME_DISTANCE = 10.0f;
     setShowDisplayName(lengthToTarget < DISPLAYNAME_DISTANCE);
     renderDisplayName();
     
@@ -301,7 +301,10 @@ void Avatar::renderDisplayName() {
     glDisable(GL_LIGHTING);
     
     glPushMatrix();
-    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * ((getSkeletonHeight() + getHeadHeight()) / 1.5f);
+    glm::vec3 textPosition;
+    getSkeletonModel().getNeckPosition(textPosition);
+    textPosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
+
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
@@ -340,11 +343,19 @@ void Avatar::renderDisplayName() {
         float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
         glScalef(scaleFactor, scaleFactor, 1.0);  
 
+        glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+
+        int text_x = -_displayNameBoundingRect.width() / 2;
+        int text_y = -_displayNameBoundingRect.height() / 2;
+
         // draw a gray background
-        QFontMetrics metrics = textRenderer(DISPLAYNAME)->metrics();
-        int bottom = -metrics.descent(), top = bottom + metrics.height();
-        int left = -_displayNameWidth/2, right = _displayNameWidth/2;
-        const int border = 5;
+        QRect rect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(_displayName);
+
+        int left = text_x + rect.x();
+        int right = left + rect.width();
+        int bottom = text_y + rect.y();
+        int top = bottom + rect.height();
+        const int border = 8;
         bottom -= border;
         left -= border;
         top += border;
@@ -362,14 +373,14 @@ void Avatar::renderDisplayName() {
         glVertex2f(left, top);
         glEnd();
         
-        glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+      
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
                
         QByteArray ba = _displayName.toLocal8Bit();
         const char* text = ba.data();
         
         glDisable(GL_POLYGON_OFFSET_FILL);
-        textRenderer(DISPLAYNAME)->draw(-_displayNameWidth / 2, 0, text); 
+        textRenderer(DISPLAYNAME)->draw(text_x, text_y, text); 
      
 
     }
@@ -490,11 +501,7 @@ void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
-    int width = 0;
-    for (int i = 0; i < displayName.size(); i++) {
-        width += (textRenderer(DISPLAYNAME)->computeWidth(displayName[i].toLatin1()));
-    }
-    _displayNameWidth = width;
+    _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
 }
 
 int Avatar::parseData(const QByteArray& packet) {
