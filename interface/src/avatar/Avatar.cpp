@@ -56,6 +56,9 @@ const float HEAD_RATE_MAX = 50.f;
 const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
+const float DISPLAYNAME_FADE_TIME = 0.5f;
+const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
+const float DISPLAYNAME_ALPHA = 0.95f;
 
 Avatar::Avatar() :
     AvatarData(),
@@ -107,7 +110,7 @@ void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
     }
-    
+
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
@@ -135,7 +138,23 @@ void Avatar::simulate(float deltaTime) {
     
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-    
+
+    // update animation for display name fade in/out
+    if ( _displayNameTargetAlpha != _displayNameAlpha) {
+        // the alpha function is 
+        // Fade out => alpha(t) = factor ^ t => alpha(t+dt) = alpha(t) * factor^(dt)
+        // Fade in  => alpha(t) = 1 - factor^t => alpha(t+dt) = 1-(1-alpha(t))*coef^(dt)
+        // factor^(dt) = coef
+        float coef = pow(DISPLAYNAME_FADE_FACTOR, deltaTime);
+        if (_displayNameTargetAlpha < _displayNameAlpha) {
+            // Fading out
+            _displayNameAlpha *= coef;
+        } else {
+            // Fading in
+            _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
+        }
+        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01? _displayNameTargetAlpha : _displayNameAlpha;
+    }
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
@@ -143,19 +162,35 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayDirection = direction;
 }
 
-static TextRenderer* textRenderer() {
-    static TextRenderer* renderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    return renderer;
+enum TextRendererType {
+    CHAT, 
+    DISPLAYNAME
+};
+
+static TextRenderer* textRenderer(TextRendererType type) {
+    static TextRenderer* chatRenderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
+    static TextRenderer* displayNameRenderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::NO_EFFECT);
+
+    switch(type) {
+    case CHAT:
+        return chatRenderer;
+    case DISPLAYNAME:
+        return displayNameRenderer;
+    }
+
+    return displayNameRenderer;
 }
 
 void Avatar::render(bool forceRenderHead) {
-    
+    glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+    float lengthToTarget = glm::length(toTarget);
+   
     {
         // glow when moving in the distance
-        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
-        const float GLOW_DISTANCE = 5.0f;
-        Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
+        const float GLOW_DISTANCE = 5.0f;
+        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE ? 1.0f : 0.0f);
+
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
             _skeletonModel.renderCollisionProxies(0.7f);
@@ -166,10 +201,10 @@ void Avatar::render(bool forceRenderHead) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(forceRenderHead);
         }
-    
+
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        float height = getHeight();
+        float height = getSkeletonHeight();
         glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
@@ -182,13 +217,15 @@ void Avatar::render(bool forceRenderHead) {
             glPopMatrix();
         }
     }
+    const float DISPLAYNAME_DISTANCE = 4.0f;
+    setShowDisplayName(lengthToTarget < DISPLAYNAME_DISTANCE);
+    renderDisplayName();
     
-   
     if (!_chatMessage.empty()) {
         int width = 0;
         int lastWidth = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
-            width += (lastWidth = textRenderer()->computeWidth(*it));
+            width += (lastWidth = textRenderer(CHAT)->computeWidth(*it));
         }
         glPushMatrix();
         
@@ -207,7 +244,7 @@ void Avatar::render(bool forceRenderHead) {
         glDisable(GL_LIGHTING);
         glDepthMask(false);
         if (_keyState == NO_KEY_DOWN) {
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             
         } else {
             // rather than using substr and allocating a new string, just replace the last
@@ -215,10 +252,10 @@ void Avatar::render(bool forceRenderHead) {
             int lastIndex = _chatMessage.size() - 1;
             char lastChar = _chatMessage[lastIndex];
             _chatMessage[lastIndex] = '\0';
-            textRenderer()->draw(-width / 2.0f, 0, _chatMessage.c_str());
+            textRenderer(CHAT)->draw(-width / 2.0f, 0, _chatMessage.c_str());
             _chatMessage[lastIndex] = lastChar;
             glColor3f(0, 1, 0);
-            textRenderer()->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
+            textRenderer(CHAT)->draw(width / 2.0f - lastWidth, 0, _chatMessage.c_str() + lastIndex);
         }
         glEnable(GL_LIGHTING);
         glDepthMask(true);
@@ -252,6 +289,93 @@ void Avatar::renderBody(bool forceRenderHead) {
         getHead()->render(1.0f);
     }
     getHand()->render(false);
+}
+
+void Avatar::renderDisplayName() {
+
+    if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+        return;
+    }
+       
+    glDisable(GL_LIGHTING);
+    
+    glPushMatrix();
+    glm::vec3 textPosition = getPosition() + getBodyUpDirection() * ((getSkeletonHeight() + getHeadHeight()) / 1.5f);
+    glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
+
+    // we need "always facing camera": we must remove the camera rotation from the stack
+    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+
+    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
+    // We project a unit vector and check the difference in screen coordinates, to check which is the 
+    // correction scale needed
+    // save the matrices for later scale correction factor 
+    glm::dmat4 modelViewMatrix;
+    glm::dmat4 projectionMatrix;
+    GLint viewportMatrix[4];
+    Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
+    Application::getInstance()->getProjectionMatrix(&projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
+    GLdouble result0[3], result1[3];
+
+    glm::dvec3 upVector(modelViewMatrix[1]);
+    
+    glm::dvec3 testPoint0 = glm::dvec3(textPosition);
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
+    
+    bool success;
+    success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
+        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
+        &result0[0], &result0[1], &result0[2]);
+    success = success && 
+        gluProject(testPoint1.x, testPoint1.y, testPoint1.z,
+        (GLdouble*)&modelViewMatrix, (GLdouble*)&projectionMatrix, viewportMatrix, 
+        &result1[0], &result1[1], &result1[2]);
+
+    if (success) {
+        double textWindowHeight = abs(result1[1] - result0[1]);
+        float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
+        glScalef(scaleFactor, scaleFactor, 1.0);  
+
+        // draw a gray background
+        QFontMetrics metrics = textRenderer(DISPLAYNAME)->metrics();
+        int bottom = -metrics.descent(), top = bottom + metrics.height();
+        int left = -_displayNameWidth/2, right = _displayNameWidth/2;
+        const int border = 5;
+        bottom -= border;
+        left -= border;
+        top += border;
+        right += border;
+
+        // We are drawing coplanar textures with depth: need the polygon offset
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
+
+        glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha);
+        glBegin(GL_QUADS);
+        glVertex2f(left, bottom);
+        glVertex2f(right, bottom);
+        glVertex2f(right, top);
+        glVertex2f(left, top);
+        glEnd();
+        
+        glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
+        glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+               
+        QByteArray ba = _displayName.toLocal8Bit();
+        const char* text = ba.data();
+        
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        textRenderer(DISPLAYNAME)->draw(-_displayNameWidth / 2, 0, text); 
+     
+
+    }
+
+    glPopMatrix();
+
+    glEnable(GL_LIGHTING);
 }
 
 bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
@@ -363,6 +487,15 @@ void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
     _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
 }
 
+void Avatar::setDisplayName(const QString& displayName) {
+    AvatarData::setDisplayName(displayName);
+    int width = 0;
+    for (int i = 0; i < displayName.size(); i++) {
+        width += (textRenderer(DISPLAYNAME)->computeWidth(displayName[i].toLatin1()));
+    }
+    _displayNameWidth = width;
+}
+
 int Avatar::parseData(const QByteArray& packet) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
@@ -448,8 +581,13 @@ void Avatar::setScale(float scale) {
     }
 }
 
-float Avatar::getHeight() const {
+float Avatar::getSkeletonHeight() const {
     Extents extents = _skeletonModel.getBindExtents();
+    return extents.maximum.y - extents.minimum.y;
+}
+
+float Avatar::getHeadHeight() const {
+    Extents extents = getHead()->getFaceModel().getBindExtents();
     return extents.maximum.y - extents.minimum.y;
 }
 
@@ -489,5 +627,23 @@ float Avatar::getPelvisFloatingHeight() const {
 
 float Avatar::getPelvisToHeadLength() const {
     return glm::distance(_position, getHead()->getPosition());
+}
+
+void Avatar::setShowDisplayName(bool showDisplayName) {
+    // For myAvatar, the alpha update is not done (called in simulate for other avatars)
+    if (Application::getInstance()->getAvatar() == this) {
+        if (showDisplayName) {
+            _displayNameAlpha = DISPLAYNAME_ALPHA;
+        } else {
+            _displayNameAlpha = 0.0f;
+        }
+    } 
+
+    if (showDisplayName) {
+        _displayNameTargetAlpha = DISPLAYNAME_ALPHA;
+    } else {
+        _displayNameTargetAlpha = 0.0f;
+    }
+
 }
 
