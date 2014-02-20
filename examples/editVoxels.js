@@ -328,6 +328,110 @@ var trackAsRecolor = false;
 var trackAsEyedropper = false;
 var trackAsOrbit = false;
 
+function calculateVoxelFromIntersection(intersection, operation) {
+    //print("calculateVoxelFromIntersection() operation="+operation);
+    var resultVoxel;
+    
+    var voxelSize;
+    if (pointerVoxelScaleSet) {
+        voxelSize = pointerVoxelScale; 
+    } else {
+        voxelSize = intersection.voxel.s; 
+    }
+
+    // first, calculate the enclosed voxel of size voxelSize that the intersection point falls inside of.
+    // if you have a voxelSize that's smaller than the voxel you're intersecting, this calculation will result
+    // in the subvoxel that the intersection point falls in
+    var x = Math.floor(intersection.intersection.x / voxelSize) * voxelSize;
+    var y = Math.floor(intersection.intersection.y / voxelSize) * voxelSize;
+    var z = Math.floor(intersection.intersection.z / voxelSize) * voxelSize;
+    resultVoxel = { x: x, y: y, z: z, s: voxelSize };
+    highlightAt = { x: x, y: y, z: z, s: voxelSize };
+
+    // now we also want to calculate the "edge square" for the face for this voxel
+    if (intersection.face == "MIN_X_FACE") {
+        highlightAt.x = intersection.voxel.x;
+        resultVoxel.x = intersection.voxel.x;
+        if (operation == "add") {
+            resultVoxel.x -= voxelSize;
+        }
+        
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
+
+    } else if (intersection.face == "MAX_X_FACE") {
+        highlightAt.x = intersection.voxel.x + intersection.voxel.s;
+        resultVoxel.x = intersection.voxel.x + intersection.voxel.s;
+        if (operation != "add") {
+            resultVoxel.x -= voxelSize;
+        }
+
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
+
+    } else if (intersection.face == "MIN_Y_FACE") {
+
+        highlightAt.y = intersection.voxel.y;
+        resultVoxel.y = intersection.voxel.y;
+        
+        if (operation == "add") {
+            resultVoxel.y -= voxelSize;
+        }
+        
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize};
+
+    } else if (intersection.face == "MAX_Y_FACE") {
+
+        highlightAt.y = intersection.voxel.y + intersection.voxel.s;
+        resultVoxel.y = intersection.voxel.y + intersection.voxel.s;
+        if (operation != "add") {
+            resultVoxel.y -= voxelSize;
+        }
+        
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize};
+
+    } else if (intersection.face == "MIN_Z_FACE") {
+
+        highlightAt.z = intersection.voxel.z;
+        resultVoxel.z = intersection.voxel.z;
+        
+        if (operation == "add") {
+            resultVoxel.z -= voxelSize;
+        }
+        
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y + voxelSize, z: highlightAt.z};
+
+    } else if (intersection.face == "MAX_Z_FACE") {
+
+        highlightAt.z = intersection.voxel.z + intersection.voxel.s;
+        resultVoxel.z = intersection.voxel.z + intersection.voxel.s;
+        if (operation != "add") {
+            resultVoxel.z -= voxelSize;
+        }
+
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y + voxelSize, z: highlightAt.z};
+
+    }
+    
+    return resultVoxel;
+}
+
 function showPreviewVoxel() {
     var voxelColor;
 
@@ -338,14 +442,6 @@ function showPreviewVoxel() {
     if (!pointerVoxelScaleSet) {
         calcThumbFromScale(intersection.voxel.s);
     }
-    
-    var previewVoxelSize;
-    if (pointerVoxelScaleSet) {
-        previewVoxelSize = pointerVoxelScale; 
-    } else {
-        previewVoxelSize = intersection.voxel.s; 
-    }
-    
 
     if (whichColor == -1) {
         //  Copy mode - use clicked voxel color
@@ -361,26 +457,21 @@ function showPreviewVoxel() {
     var guidePosition;
     
     if (trackAsDelete) {
-        guidePosition = { x: intersection.voxel.x,
-                          y: intersection.voxel.y,
-                          z: intersection.voxel.z };
-                          
+        guidePosition = calculateVoxelFromIntersection(intersection,"delete");
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: previewVoxelSize,
+                size: guidePosition.s,
                 visible: true,
                 color: { red: 255, green: 0, blue: 0 },
                 solid: false,
                 alpha: 1
             });
     } else if (trackAsRecolor || trackAsEyedropper) {
-        guidePosition = { x: intersection.voxel.x - 0.001,
-                          y: intersection.voxel.y - 0.001,
-                          z: intersection.voxel.z - 0.001 };
+        guidePosition = calculateVoxelFromIntersection(intersection,"recolor");
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: previewVoxelSize + 0.002,
+                size: guidePosition.s + 0.002,
                 visible: true,
                 color: voxelColor,
                 solid: true,
@@ -389,27 +480,11 @@ function showPreviewVoxel() {
     } else if (trackAsOrbit) {
         Overlays.editOverlay(voxelPreview, { visible: false });
     } else if (!isExtruding) {
-        guidePosition = { x: intersection.voxel.x,
-                          y: intersection.voxel.y,
-                          z: intersection.voxel.z };
-        
-        if (intersection.face == "MIN_X_FACE") {
-            guidePosition.x -= previewVoxelSize;
-        } else if (intersection.face == "MAX_X_FACE") {
-            guidePosition.x += intersection.voxel.s;
-        } else if (intersection.face == "MIN_Y_FACE") {
-            guidePosition.y -= previewVoxelSize;
-        } else if (intersection.face == "MAX_Y_FACE") {
-            guidePosition.y += intersection.voxel.s;
-        } else if (intersection.face == "MIN_Z_FACE") {
-            guidePosition.z -= previewVoxelSize;
-        } else if (intersection.face == "MAX_Z_FACE") {
-            guidePosition.z += intersection.voxel.s;
-        }
+        guidePosition = calculateVoxelFromIntersection(intersection,"add");
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: previewVoxelSize,
+                size: guidePosition.s,
                 visible: true,
                 color: voxelColor,
                 solid: true,
@@ -419,7 +494,6 @@ function showPreviewVoxel() {
         Overlays.editOverlay(voxelPreview, { visible: false });
     }
 }
-
 
 function showPreviewLines() {
 
@@ -432,78 +506,12 @@ function showPreviewLines() {
         if (!pointerVoxelScaleSet) {
             calcThumbFromScale(intersection.voxel.s);
         }
-    
-        // TODO: add support for changing size here, if you set this size to any arbitrary size, 
-        // the preview should correctly handle it
-        var previewVoxelSize;
-        if (pointerVoxelScaleSet) {
-            previewVoxelSize = pointerVoxelScale; 
-        } else {
-            previewVoxelSize = intersection.voxel.s; 
-        }
 
-        var x = Math.floor(intersection.intersection.x / previewVoxelSize) * previewVoxelSize;
-        var y = Math.floor(intersection.intersection.y / previewVoxelSize) * previewVoxelSize;
-        var z = Math.floor(intersection.intersection.z / previewVoxelSize) * previewVoxelSize;
-        previewVoxel = { x: x, y: y, z: z, s: previewVoxelSize };
-    
-        var bottomLeft;
-        var bottomRight;
-        var topLeft;
-        var topRight;
-
-        if (intersection.face == "MIN_X_FACE") {
-            previewVoxel.x = Math.floor(intersection.voxel.x / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
-            topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
-            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z + previewVoxel.s };
-
-        } else if (intersection.face == "MAX_X_FACE") {
-            previewVoxel.x = Math.floor((intersection.voxel.x + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s };
-            topLeft = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z };
-            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z + previewVoxel.s };
-
-        } else if (intersection.face == "MIN_Y_FACE") {
-
-            previewVoxel.y = Math.floor(intersection.voxel.y / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
-            topRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z  + previewVoxel.s};
-
-        } else if (intersection.face == "MAX_Y_FACE") {
-
-            previewVoxel.y = Math.floor((intersection.voxel.y + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z + previewVoxel.s};
-            topRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z  + previewVoxel.s};
-
-        } else if (intersection.face == "MIN_Z_FACE") {
-
-            previewVoxel.z = Math.floor(intersection.voxel.z / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
-            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
-
-        } else if (intersection.face == "MAX_Z_FACE") {
-
-            previewVoxel.z = Math.floor((intersection.voxel.z + intersection.voxel.s) / previewVoxelSize) * previewVoxelSize;
-            bottomLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y, z: previewVoxel.z };
-            bottomRight = {x: previewVoxel.x, y: previewVoxel.y, z: previewVoxel.z };
-            topLeft = {x: previewVoxel.x + previewVoxel.s, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
-            topRight = {x: previewVoxel.x, y: previewVoxel.y + previewVoxel.s, z: previewVoxel.z};
-
-        }
-
-        Overlays.editOverlay(linePreviewTop, { position: topLeft, end: topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: bottomLeft, end: bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: topLeft, end: bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: topRight, end: bottomRight, visible: true });
+        resultVoxel = calculateVoxelFromIntersection(intersection,"");
+        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
 
     } else {
         Overlays.editOverlay(linePreviewTop, { visible: false });
@@ -655,14 +663,6 @@ function mousePressEvent(event) {
             calcThumbFromScale(intersection.voxel.s);
         }
         
-        // TODO: This would be a good place to use the "set" voxel size... but the add/delete/color logic below assumes that
-        // the "edit" size is the same as the intersect.voxel.s. So we need to fix that to really wire up the voxel size
-        // slider
-        var editVoxelSize = intersection.voxel.s; 
-        if (pointerVoxelScaleSet) {
-            //editVoxelSize = pointerVoxelScale; 
-        }
-    
         if (event.isAlt) {
             // start orbit camera! 
             var cameraPosition = Camera.getPosition();
@@ -679,12 +679,11 @@ function mousePressEvent(event) {
 
         } else if (trackAsDelete || (event.isRightButton && !trackAsEyedropper)) {
             //  Delete voxel
-            Voxels.eraseVoxel(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, editVoxelSize);
+            voxelDetails = calculateVoxelFromIntersection(intersection,"delete");
+            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Audio.playSound(deleteSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
         } else if (trackAsEyedropper) {
-        
-            print("Grab color!!!");
             if (whichColor != -1) {
                 colors[whichColor].red = intersection.voxel.red;
                 colors[whichColor].green = intersection.voxel.green;
@@ -694,10 +693,11 @@ function mousePressEvent(event) {
             
         } else if (trackAsRecolor) {
             //  Recolor Voxel
-            Voxels.setVoxel(intersection.voxel.x, 
-                            intersection.voxel.y, 
-                            intersection.voxel.z, 
-                            editVoxelSize, 
+            voxelDetails = calculateVoxelFromIntersection(intersection,"recolor");
+
+            // doing this erase then set will make sure we only recolor just the target voxel
+            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
+            Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s, 
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
             Audio.playSound(changeColorSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
@@ -705,43 +705,23 @@ function mousePressEvent(event) {
             //  Add voxel on face
             if (whichColor == -1) {
                 //  Copy mode - use clicked voxel color
-                var newVoxel = {    
-                    x: intersection.voxel.x,
-                    y: intersection.voxel.y,
-                    z: intersection.voxel.z,
-                    s: editVoxelSize,
+                newColor = {    
                     red: intersection.voxel.red,
                     green: intersection.voxel.green,
                     blue: intersection.voxel.blue };
             } else {
-                var newVoxel = {    
-                    x: intersection.voxel.x,
-                    y: intersection.voxel.y,
-                    z: intersection.voxel.z,    
-                    s: editVoxelSize,
+                newColor = {    
                     red: colors[whichColor].red,
                     green: colors[whichColor].green,
                     blue: colors[whichColor].blue };
             }
                     
-            if (intersection.face == "MIN_X_FACE") {
-                newVoxel.x -= newVoxel.s;
-            } else if (intersection.face == "MAX_X_FACE") {
-                newVoxel.x += newVoxel.s;
-            } else if (intersection.face == "MIN_Y_FACE") {
-                newVoxel.y -= newVoxel.s;
-            } else if (intersection.face == "MAX_Y_FACE") {
-                newVoxel.y += newVoxel.s;
-            } else if (intersection.face == "MIN_Z_FACE") {
-                newVoxel.z -= newVoxel.s;
-            } else if (intersection.face == "MAX_Z_FACE") {
-                newVoxel.z += newVoxel.s;
-            }
-                    
-            Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
-            lastVoxelPosition = { x: newVoxel.x, y: newVoxel.y, z: newVoxel.z };
-            lastVoxelColor = { red: newVoxel.red, green: newVoxel.green, blue: newVoxel.blue };
-            lastVoxelScale = newVoxel.s;
+            voxelDetails = calculateVoxelFromIntersection(intersection,"add");
+            Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
+                newColor.red, newColor.green, newColor.blue);
+            lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
+            lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
+            lastVoxelScale = voxelDetails.s;
 
             Audio.playSound(addSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
