@@ -136,7 +136,7 @@ void AccountManager::requestFinished() {
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             
-            qDebug() << "Storing an access token for" << rootURL;
+            qDebug() << "Storing an access token for" << qPrintable(rootURL.toString());
             
             OAuthAccessToken freshAccessToken(rootObject);
             _accessTokens.insert(rootURL, freshAccessToken);

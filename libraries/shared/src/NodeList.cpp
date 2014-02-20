@@ -527,7 +527,8 @@ void NodeList::setSessionUUID(const QUuid& sessionUUID) {
     _sessionUUID = sessionUUID;
     
     if (sessionUUID != oldUUID) {
-        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _sessionUUID;
+        qDebug() << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
+            << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
         emit uuidChanged(sessionUUID);
     }
 }

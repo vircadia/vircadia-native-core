@@ -12,10 +12,12 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QtCore/QProcess>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
+#include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -48,6 +50,41 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QStringList argumentList = arguments();
     int argumentIndex = 0;
     
+    // check if this domain server should use no authentication or a custom hostname for authentication
+    const QString NO_AUTH_OPTION = "--hifiAuth";
+    const QString CUSTOM_AUTH_OPTION = "--customAuth";
+    if ((argumentIndex = argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
+        _nodeAuthenticationURL = QUrl();
+    } else if ((argumentIndex = argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
+        _nodeAuthenticationURL = QUrl(argumentList.value(argumentIndex + 1));
+    }
+    
+    if (!_nodeAuthenticationURL.isEmpty()) {
+        // this domain-server will be using an authentication server, let's make sure we have a username/password
+        QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
+        
+        const QString DATA_SERVER_USERNAME_ENV = "DATA_SERVER_USERNAME";
+        const QString DATA_SERVER_PASSWORD_ENV = "DATA_SERVER_PASSWORD";
+        QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
+        QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
+        
+        if (!username.isEmpty() && !password.isEmpty()) {
+            AccountManager& accountManager = AccountManager::getInstance();
+            accountManager.setRootURL(_nodeAuthenticationURL);
+            
+            accountManager.requestAccessToken(username, password);
+        } else {
+            qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
+            << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
+            << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Qutting!";
+            
+            // bail out
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            
+            return;
+        }
+    }
+    
     QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
     parseCommandLineTypeConfigs(argumentList, parsedTypes);
     
@@ -58,15 +95,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
-    
-    // check if this domain server should use no authentication or a custom hostname for authentication
-    const QString NO_AUTH_OPTION = "--noAuth";
-    const QString CUSTOM_AUTH_OPTION = "--customAuth";
-    if ((argumentIndex = argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
-        _nodeAuthenticationURL = QUrl();
-    } else if ((argumentIndex = argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
-        _nodeAuthenticationURL = QUrl(argumentList.value(argumentIndex + 1));
-    }
 
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
     
