@@ -24,6 +24,9 @@ var ORBIT_RATE_ALTITUDE = 200.0;
 var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 
+var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
+var previewLineWidth = 1.5;
+
 var oldMode = Camera.getMode();
 
 var key_alt = false;
@@ -98,7 +101,7 @@ var linePreviewTop = Overlays.addOverlay("line3d", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     visible: false,
-                    lineWidth: 1
+                    lineWidth: previewLineWidth
                 });
 
 var linePreviewBottom = Overlays.addOverlay("line3d", {
@@ -107,7 +110,7 @@ var linePreviewBottom = Overlays.addOverlay("line3d", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     visible: false,
-                    lineWidth: 1
+                    lineWidth: previewLineWidth
                 });
 
 var linePreviewLeft = Overlays.addOverlay("line3d", {
@@ -116,7 +119,7 @@ var linePreviewLeft = Overlays.addOverlay("line3d", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     visible: false,
-                    lineWidth: 1
+                    lineWidth: previewLineWidth
                 });
 
 var linePreviewRight = Overlays.addOverlay("line3d", {
@@ -125,7 +128,7 @@ var linePreviewRight = Overlays.addOverlay("line3d", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     visible: false,
-                    lineWidth: 1
+                    lineWidth: previewLineWidth
                 });
 
 
@@ -356,82 +359,82 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-        highlightAt.x = intersection.voxel.x;
+        highlightAt.x = intersection.voxel.x - zFightingSizeAdjust;
         resultVoxel.x = intersection.voxel.x;
         if (operation == "add") {
             resultVoxel.x -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
 
     } else if (intersection.face == "MAX_X_FACE") {
-        highlightAt.x = intersection.voxel.x + intersection.voxel.s;
+        highlightAt.x = intersection.voxel.x + intersection.voxel.s + zFightingSizeAdjust;
         resultVoxel.x = intersection.voxel.x + intersection.voxel.s;
         if (operation != "add") {
             resultVoxel.x -= voxelSize;
         }
 
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z + voxelSize };
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z + voxelSize };
+        resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
+        resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
 
     } else if (intersection.face == "MIN_Y_FACE") {
 
-        highlightAt.y = intersection.voxel.y;
+        highlightAt.y = intersection.voxel.y - zFightingSizeAdjust;
         resultVoxel.y = intersection.voxel.y;
         
         if (operation == "add") {
             resultVoxel.y -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize};
+        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust  };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust , y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
 
     } else if (intersection.face == "MAX_Y_FACE") {
 
-        highlightAt.y = intersection.voxel.y + intersection.voxel.s;
+        highlightAt.y = intersection.voxel.y + intersection.voxel.s + zFightingSizeAdjust;
         resultVoxel.y = intersection.voxel.y + intersection.voxel.s;
         if (operation != "add") {
             resultVoxel.y -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z  + voxelSize };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z + voxelSize};
+        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust};
+        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z  + voxelSize - zFightingSizeAdjust};
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + voxelSize - zFightingSizeAdjust};
 
     } else if (intersection.face == "MIN_Z_FACE") {
 
-        highlightAt.z = intersection.voxel.z;
+        highlightAt.z = intersection.voxel.z - zFightingSizeAdjust;
         resultVoxel.z = intersection.voxel.z;
         
         if (operation == "add") {
             resultVoxel.z -= voxelSize;
         }
         
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y + voxelSize, z: highlightAt.z};
+        resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
+        resultVoxel.bottomLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.topRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
+        resultVoxel.topLeft = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
 
     } else if (intersection.face == "MAX_Z_FACE") {
 
-        highlightAt.z = intersection.voxel.z + intersection.voxel.s;
+        highlightAt.z = intersection.voxel.z + intersection.voxel.s + zFightingSizeAdjust;
         resultVoxel.z = intersection.voxel.z + intersection.voxel.s;
         if (operation != "add") {
             resultVoxel.z -= voxelSize;
         }
 
-        resultVoxel.bottomLeft = {x: highlightAt.x, y: highlightAt.y, z: highlightAt.z };
-        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize , y: highlightAt.y, z: highlightAt.z};
-        resultVoxel.topLeft = {x: highlightAt.x, y: highlightAt.y + voxelSize, z: highlightAt.z };
-        resultVoxel.topRight = {x: highlightAt.x + voxelSize , y: highlightAt.y + voxelSize, z: highlightAt.z};
+        resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
+        resultVoxel.bottomRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z};
+        resultVoxel.topLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z };
+        resultVoxel.topRight = {x: highlightAt.x + voxelSize - zFightingSizeAdjust, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z};
 
     }
     
@@ -466,7 +469,7 @@ function showPreviewVoxel() {
         guidePosition = calculateVoxelFromIntersection(intersection,"delete");
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: guidePosition.s,
+                size: guidePosition.s + zFightingSizeAdjust,
                 visible: true,
                 color: { red: 255, green: 0, blue: 0 },
                 solid: false,
@@ -477,7 +480,7 @@ function showPreviewVoxel() {
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: guidePosition.s + 0.002,
+                size: guidePosition.s + zFightingSizeAdjust,
                 visible: true,
                 color: voxelColor,
                 solid: true,
@@ -490,7 +493,7 @@ function showPreviewVoxel() {
 
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
-                size: guidePosition.s,
+                size: (guidePosition.s - zFightingSizeAdjust),
                 visible: true,
                 color: voxelColor,
                 solid: true,
