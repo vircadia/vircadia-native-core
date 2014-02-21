@@ -24,7 +24,7 @@
 
 #include "AvatarMixer.h"
 
-const char AVATAR_MIXER_LOGGING_NAME[] = "avatar-mixer";
+const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
 const unsigned int AVATAR_DATA_SEND_INTERVAL_USECS = (1 / 60.0) * 1000 * 1000;
 
