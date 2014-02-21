@@ -15,7 +15,6 @@
 
 VoxelTreeElement::VoxelTreeElement(unsigned char* octalCode) : 
     OctreeElement(),
-    _primitiveIndex(0),
     _exteriorOcclusions(OctreeElement::HalfSpace::All),
     _interiorOcclusions(OctreeElement::HalfSpace::None)
 {
