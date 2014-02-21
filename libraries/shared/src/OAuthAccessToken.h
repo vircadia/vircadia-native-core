@@ -21,7 +21,7 @@ public:
     OAuthAccessToken(const OAuthAccessToken& otherToken);
     OAuthAccessToken& operator=(const OAuthAccessToken& otherToken);
      
-    bool isExpired() { return expiryTimestamp <= QDateTime::currentMSecsSinceEpoch(); }
+    bool isExpired() const { return expiryTimestamp <= QDateTime::currentMSecsSinceEpoch(); }
     
     QString token;
     QString refreshToken;

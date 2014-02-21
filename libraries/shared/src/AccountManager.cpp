@@ -18,7 +18,6 @@
 
 #include "AccountManager.h"
 
-QMap<QUrl, OAuthAccessToken> AccountManager::_accessTokens = QMap<QUrl, OAuthAccessToken>();
 
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
@@ -26,25 +25,31 @@ AccountManager& AccountManager::getInstance() {
 }
 
 Q_DECLARE_METATYPE(OAuthAccessToken)
+Q_DECLARE_METATYPE(DataServerAccountInfo)
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
 
-const QString ACCOUNT_TOKEN_GROUP = "tokens";
+const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
     _networkAccessManager(),
-    _pendingCallbackMap()
+    _pendingCallbackMap(),
+    _accounts()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
+    
+    qRegisterMetaType<DataServerAccountInfo>("DataServerAccountInfo");
+    qRegisterMetaTypeStreamOperators<DataServerAccountInfo>("DataServerAccountInfo");
+    
     qRegisterMetaType<QNetworkAccessManager::Operation>("QNetworkAccessManager::Operation");
     qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
     
     // check if there are existing access tokens to load from settings
     QSettings settings;
-    settings.beginGroup(ACCOUNT_TOKEN_GROUP);
+    settings.beginGroup(ACCOUNTS_GROUP);
     
     foreach(const QString& key, settings.allKeys()) {
         // take a key copy to perform the double slash replacement
@@ -52,7 +57,7 @@ AccountManager::AccountManager() :
         QUrl keyURL(keyCopy.replace("slashslash", "//"));
         
         // pull out the stored access token and put it in our in memory array
-        _accessTokens.insert(keyURL, settings.value(key).value<OAuthAccessToken>());
+        _accounts.insert(keyURL, settings.value(key).value<DataServerAccountInfo>());
         qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
     }
 }
@@ -67,16 +72,6 @@ void AccountManager::setRootURL(const QUrl& rootURL) {
         
         qDebug() << "URL for node authentication has been changed to" << qPrintable(_rootURL.toString());
         qDebug() << "Re-setting authentication flow.";
-    }
-}
-
-void AccountManager::setUsername(const QString& username) {
-    if (_username != username) {
-        _username = username;
-        
-        qDebug() << "Changing username to" << username;
-        
-        emit usernameChanged(username);
     }
 }
 
@@ -96,7 +91,7 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         
         QUrl requestURL = _rootURL;
         requestURL.setPath(path);
-        requestURL.setQuery("access_token=" + _accessTokens.value(_rootURL).token);
+        requestURL.setQuery("access_token=" + _accounts.value(_rootURL).getAccessToken().token);
         
         authenticatedRequest.setUrl(requestURL);
         
@@ -169,9 +164,9 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
 }
 
 bool AccountManager::hasValidAccessToken() {
-    OAuthAccessToken accessToken = _accessTokens.value(_rootURL);
+    DataServerAccountInfo accountInfo = _accounts.value(_rootURL);
     
-    if (accessToken.token.isEmpty() || accessToken.isExpired()) {
+    if (accountInfo.getAccessToken().token.isEmpty() || accountInfo.getAccessToken().isExpired()) {
         qDebug() << "An access token is required for requests to" << qPrintable(_rootURL.toString());
         return false;
     } else {
@@ -228,20 +223,17 @@ void AccountManager::requestFinished() {
             QUrl rootURL = requestReply->url();
             rootURL.setPath("");
             
-            qDebug() << "Storing an access token for" << qPrintable(rootURL.toString());
+            qDebug() << "Storing an account with access-token for" << qPrintable(rootURL.toString());
             
-            OAuthAccessToken freshAccessToken(rootObject);
-            _accessTokens.insert(rootURL, freshAccessToken);
-            
-            // pull username from the response
-            setUsername(rootObject["user"].toObject()["username"].toString());
+            DataServerAccountInfo freshAccountInfo(rootObject);
+            _accounts.insert(rootURL, freshAccountInfo);
             
             emit receivedAccessToken(rootURL);
             
             // store this access token into the local settings
             QSettings localSettings;
-            localSettings.beginGroup(ACCOUNT_TOKEN_GROUP);
-            localSettings.setValue(rootURL.toString().replace("//", "slashslash"), QVariant::fromValue(freshAccessToken));
+            localSettings.beginGroup(ACCOUNTS_GROUP);
+            localSettings.setValue(rootURL.toString().replace("//", "slashslash"), QVariant::fromValue(freshAccountInfo));
         }
     } else {
         // TODO: error handling

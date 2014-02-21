@@ -3929,7 +3929,7 @@ void Application::updateWindowTitle(){
     NodeList* nodeList = NodeList::getInstance();
     
     QString username = AccountManager::getInstance().getUsername();
-    QString title = QString() + (!username.isEmpty() ? username : "") + nodeList->getSessionUUID().toString()
+    QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
         + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
     
     qDebug("Application title set to: %s", title.toStdString().c_str());

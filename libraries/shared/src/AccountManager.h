@@ -15,7 +15,7 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 
-#include "OAuthAccessToken.h"
+#include "DataServerAccountInfo.h"
 
 class JSONCallbackParameters {
 public:
@@ -49,8 +49,7 @@ public:
     
     void requestAccessToken(const QString& login, const QString& password);
     
-    const QString& getUsername() const { return _username; }
-    void setUsername(const QString& username);
+    QString getUsername() const { return _accounts[_rootURL].getUsername(); }
     
 public slots:
     void requestFinished();
@@ -75,7 +74,7 @@ private:
     QNetworkAccessManager _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
-    static QMap<QUrl, OAuthAccessToken> _accessTokens;
+    QMap<QUrl, DataServerAccountInfo> _accounts;
 };
 
 #endif /* defined(__hifi__AccountManager__) */

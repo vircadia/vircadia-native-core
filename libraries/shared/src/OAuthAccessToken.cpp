@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#include <QtCore/qdebug.h>
+#include <QtCore/QDataStream>
 
 #include "OAuthAccessToken.h"
 
