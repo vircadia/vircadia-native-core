@@ -255,6 +255,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
     identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
+    // send the billboard packet for our avatar every few seconds
+    QTimer* billboardPacketTimer = new QTimer();
+    connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
+    billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
+
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
     _networkAccessManager = new QNetworkAccessManager(this);

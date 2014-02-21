@@ -133,6 +133,7 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
+    void maybeUpdateBillboard();
 };
 
 #endif

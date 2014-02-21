@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <QBuffer>
+
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
@@ -335,11 +337,7 @@ void MyAvatar::simulate(float deltaTime) {
     _thrust = glm::vec3(0, 0, 0);
     
     // consider updating our billboard
-    if (!_billboardValid && _skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures()) {
-        QImage image = Application::getInstance()->renderAvatarBillboard();
-        image.save("test.png");
-        _billboardValid = true;
-    }
+    maybeUpdateBillboard();
 }
 
 const float MAX_PITCH = 90.0f;
@@ -1139,6 +1137,20 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // approach the target position
     const float APPROACH_RATE = 0.05f;
     _position = glm::mix(_position, targetPosition, APPROACH_RATE);
+}
+
+void MyAvatar::maybeUpdateBillboard() {
+    if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
+        return;
+    }
+    QImage image = Application::getInstance()->renderAvatarBillboard();
+    _billboard.clear();
+    QBuffer buffer(&_billboard);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "JPG");
+    _billboardValid = true;
+    
+    sendBillboardPacket();
 }
 
 void MyAvatar::setGravity(glm::vec3 gravity) {

@@ -123,6 +123,23 @@ void broadcastIdentityPacket() {
     }
 }
 
+void broadcastBillboardPacket(const SharedNodePointer& node) {
+    
+}
+
+void broadcastBillboardPackets() {
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        if (node->getLinkedData() && node->getType() == NodeType::Agent) {       
+            AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
+            broadcastBillboardPacket(node);
+            nodeData->setHasSentBillboardBetweenKeyFrames(false);
+        }
+    }
+}
+
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
@@ -170,6 +187,23 @@ void AvatarMixer::readPendingDatagrams() {
                             nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::Agent);
                         }
                     }
+                    break;
+                }
+                case PacketTypeAvatarBillboard: {
+                    
+                    // check if we have a matching node in our list
+                    SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
+                    
+                    if (avatarNode && avatarNode->getLinkedData()) {
+                        AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
+                        if (nodeData->hasBillboardChangedAfterParsing(receivedPacket)
+                                && !nodeData->hasSentBillboardBetweenKeyFrames()) {
+                            // this avatar changed their billboard and we haven't sent a packet in this keyframe
+                            broadcastBillboardPacket(avatarNode);
+                            nodeData->setHasSentBillboardBetweenKeyFrames(true);
+                        }
+                    }
+                    break;
                 }
                 case PacketTypeKillAvatar: {
                     nodeList->processKillNode(receivedPacket);
@@ -185,6 +219,7 @@ void AvatarMixer::readPendingDatagrams() {
 }
 
 const qint64 AVATAR_IDENTITY_KEYFRAME_MSECS = 5000;
+const qint64 AVATAR_BILLBOARD_KEYFRAME_MSECS = 5000;
 
 void AvatarMixer::run() {
     commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
@@ -202,6 +237,9 @@ void AvatarMixer::run() {
     QElapsedTimer identityTimer;
     identityTimer.start();
     
+    QElapsedTimer billboardTimer;
+    billboardTimer.start();
+    
     while (!_isFinished) {
         
         QCoreApplication::processEvents();
@@ -218,6 +256,11 @@ void AvatarMixer::run() {
             
             // restart the timer so we do it again in AVATAR_IDENTITY_KEYFRAME_MSECS
             identityTimer.restart();
+        }
+ 
+        if (billboardTimer.elapsed() >= AVATAR_BILLBOARD_KEYFRAME_MSECS) {
+            broadcastBillboardPackets();
+            billboardTimer.restart();
         }
         
         int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * AVATAR_DATA_SEND_INTERVAL_USECS) - usecTimestampNow();
