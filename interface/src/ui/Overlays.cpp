@@ -78,6 +78,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;
+        is3D = true;
     }
 
     if (created) {
