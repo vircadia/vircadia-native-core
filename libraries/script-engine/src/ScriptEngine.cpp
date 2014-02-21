@@ -44,6 +44,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
                            AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
+    _avatarIdentityTimer(NULL),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -74,6 +75,21 @@ ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
 }
 
+void ScriptEngine::setIsAvatar(bool isAvatar) {
+    _isAvatar = isAvatar;
+    
+    if (_isAvatar && !_avatarIdentityTimer) {
+        // set up the avatar identity timer
+        _avatarIdentityTimer = new QTimer(this);
+        
+        // connect our slot
+        connect(_avatarIdentityTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarIdentityPacket);
+        
+        // start the timer
+        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+    }
+}
+
 void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     
@@ -83,6 +99,7 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     // give the script engine the new Avatar script property
     registerGlobalObject(objectName, _avatarData);
 }
+
 
 void ScriptEngine::setupMenuItems() {
     if (_menu && _wantMenuItems) {
@@ -173,6 +190,12 @@ void ScriptEngine::evaluate() {
     }
 }
 
+void ScriptEngine::sendAvatarIdentityPacket() {
+    if (_isAvatar && _avatarData) {
+        _avatarData->sendIdentityPacket();
+    }
+}
+
 void ScriptEngine::run() {
     if (!_isInitialized) {
         init();
@@ -229,16 +252,7 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
-            static QByteArray avatarPacket;
-            int numAvatarHeaderBytes = 0;
-            
-            if (avatarPacket.size() == 0) {
-                // pack the avatar header bytes the first time
-                // unlike the _avatar.getBroadcastData these won't change
-                numAvatarHeaderBytes = populatePacketHeader(avatarPacket, PacketTypeAvatarData);
-            }
-            
-            avatarPacket.resize(numAvatarHeaderBytes);
+            QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
@@ -252,6 +266,9 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
+    
+    // kill the avatar identity timer
+    delete _avatarIdentityTimer;
     
     if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
         // release the queue of edit voxel messages.

@@ -33,6 +33,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
+#include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -51,6 +52,8 @@ static const float MAX_AVATAR_SCALE = 1000.f;
 static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
+
+const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
@@ -80,8 +83,8 @@ class AvatarData : public NodeData {
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
-    Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
-    Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
+    Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
+    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
 public:
     AvatarData();
     ~AvatarData();
@@ -149,13 +152,23 @@ public:
     QByteArray identityByteArray();
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
+    QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
     
+    QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
+    void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
+    
+    QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
+    void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
+    
     virtual float getBoundingRadius() const { return 1.f; }
+
+public slots:
+    void sendIdentityPacket();
 
 protected:
     glm::vec3 _position;
@@ -187,7 +200,7 @@ protected:
     QUrl _skeletonModelURL;
     QString _displayName;
 
-    int _displayNameWidth;
+    QRect _displayNameBoundingRect;
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
