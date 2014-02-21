@@ -98,6 +98,7 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
@@ -2688,7 +2689,7 @@ QImage Application::renderAvatarBillboard() {
     
     glDisable(GL_BLEND);
 
-    const int BILLBOARD_SIZE = 128;
+    const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
     
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
@@ -3621,13 +3622,17 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     bool eyeRelativeCamera = false;
     if (billboard) {
-        const float BILLBOARD_DISTANCE = 5.0f;
+        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);
         _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
+        
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
         _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
+    
     } else { // HEAD zoom level
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
         _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
@@ -3639,7 +3644,8 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
         }
     }
-
+    _mirrorCamera.setAspectRatio((float)region.width() / region.height());
+    
     _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     _mirrorCamera.update(1.0f/_fps);
 

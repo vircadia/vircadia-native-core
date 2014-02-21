@@ -123,15 +123,22 @@ void broadcastIdentityPacket() {
     }
 }
 
-void broadcastBillboardPacket(const SharedNodePointer& node) {
+void broadcastBillboardPacket(const SharedNodePointer& sendingNode) {
+    AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(sendingNode->getLinkedData());
+    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+    packet.append(sendingNode->getUUID().toRfc4122());
+    packet.append(nodeData->getBillboard());
     
+    NodeList* nodeList = NodeList::getInstance();
+    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        if (node->getType() == NodeType::Agent && node != sendingNode) {       
+            nodeList->writeDatagram(packet, node);
+        }
+    }
 }
 
 void broadcastBillboardPackets() {
-    
-    NodeList* nodeList = NodeList::getInstance();
-    
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getLinkedData() && node->getType() == NodeType::Agent) {       
             AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
             broadcastBillboardPacket(node);

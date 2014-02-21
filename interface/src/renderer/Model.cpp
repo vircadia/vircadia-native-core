@@ -17,8 +17,8 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
-    _pupilDilation(0.0f)
-{
+    _lodDistance(0.0f),
+    _pupilDilation(0.0f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -107,8 +107,7 @@ void Model::reset() {
 void Model::simulate(float deltaTime) {
     // update our LOD
     if (_geometry) {
-        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
-            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
+        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
         if (_geometry != geometry) {
             deleteGeometry();
             _dilatedTextures.clear();

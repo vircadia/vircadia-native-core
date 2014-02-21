@@ -26,6 +26,7 @@
 #include "Physics.h"
 #include "world.h"
 #include "devices/OculusManager.h"
+#include "renderer/TextureCache.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -107,6 +108,10 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
+float Avatar::getLODDistance() const {
+    return glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+}
+
 void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
@@ -116,6 +121,7 @@ void Avatar::simulate(float deltaTime) {
     glm::vec3 oldVelocity = getVelocity();
     
     getHand()->simulate(deltaTime, false);
+    _skeletonModel.setLODDistance(getLODDistance());
     _skeletonModel.simulate(deltaTime);
     Head* head = getHead();
     head->setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -282,14 +288,72 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody(bool forceRenderHead) {
-    //  Render the body's voxels and head
-    glm::vec3 pos = getPosition();
-    //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
+    const float BILLBOARD_DISTANCE = 40.0f;
+    if (!_billboard.isEmpty() && getLODDistance() >= BILLBOARD_DISTANCE) {
+        renderBillboard();
+        return;
+    }
     _skeletonModel.render(1.0f);
     if (forceRenderHead) {
         getHead()->render(1.0f);
     }
     getHand()->render(false);
+}
+
+void Avatar::renderBillboard() {
+    if (!_billboardTexture) {
+        QImage image = QImage::fromData(_billboard).convertToFormat(QImage::Format_ARGB32);
+        
+        _billboardTexture.reset(new Texture());
+        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+    }
+    
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.5f);
+    
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+    
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    
+    // rotate about vertical to face the camera
+    glm::quat rotation = getOrientation();
+    glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
+    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), 0.0f, 1.0f, 0.0f);
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
+    // compute the size from the billboard camera parameters and scale
+    float size = _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    glScalef(size, size, size);
+    
+    glColor3f(1.0f, 1.0f, 1.0f);
+    
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex2f(-1.0f, -1.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex2f(1.0f, -1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex2f(1.0f, 1.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex2f(-1.0f, 1.0f);
+    glEnd();
+    
+    glPopMatrix();
+    
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Avatar::renderDisplayName() {
@@ -500,6 +564,13 @@ void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
     _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+}
+
+void Avatar::setBillboard(const QByteArray& billboard) {
+    AvatarData::setBillboard(billboard);
+    
+    // clear out any existing billboard texture
+    _billboardTexture.reset();
 }
 
 int Avatar::parseData(const QByteArray& packet) {

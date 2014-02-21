@@ -158,6 +158,9 @@ void Head::simulate(float deltaTime, bool isMine) {
             glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
+    if (!isMine) {
+        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
+    }
     _faceModel.simulate(deltaTime);
     
     // the blend face may have custom eye meshes

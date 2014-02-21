@@ -98,7 +98,8 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 case PacketTypeBulkAvatarData:
                 case PacketTypeKillAvatar:
-                case PacketTypeAvatarIdentity: {
+                case PacketTypeAvatarIdentity:
+                case PacketTypeAvatarBillboard: {
                     // update having heard from the avatar-mixer and record the bytes received
                     SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
                     

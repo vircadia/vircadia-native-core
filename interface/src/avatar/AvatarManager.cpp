@@ -133,6 +133,9 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
         case PacketTypeAvatarIdentity:
             processAvatarIdentityPacket(datagram);
             break;
+        case PacketTypeAvatarBillboard:
+            processAvatarBillboardPacket(datagram);
+            break;
         case PacketTypeKillAvatar:
             processKillAvatar(datagram);
             break;
@@ -208,6 +211,20 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
             if (avatar->getDisplayName() != displayName) {
                 avatar->setDisplayName(displayName);
             }
+        }
+    }
+}
+
+void AvatarManager::processAvatarBillboardPacket(const QByteArray& packet) {
+    int headerSize = numBytesForPacketHeader(packet);
+    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.constData() + headerSize, NUM_BYTES_RFC4122_UUID));
+    
+    AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+    if (matchingAvatar) {
+        Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
+        QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
+        if (avatar->getBillboard() != billboard) {
+            avatar->setBillboard(billboard);
         }
     }
 }

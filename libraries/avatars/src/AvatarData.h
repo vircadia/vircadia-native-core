@@ -163,7 +163,7 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
     
-    void setBillboard(const QByteArray& billboard) { _billboard = billboard; }
+    virtual void setBillboard(const QByteArray& billboard);
     const QByteArray& getBillboard() const { return _billboard; }
     
     QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
