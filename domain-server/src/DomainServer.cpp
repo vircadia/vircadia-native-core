@@ -339,11 +339,24 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
 }
 
+const int NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN = 16;
+
 int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
                                               HifiSockAddr& localSockAddr, const QByteArray& packet,
                                               const HifiSockAddr& senderSockAddr) {
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    if (packetTypeForPacket(packet) == PacketTypeDomainConnectRequest) {
+        // we need to skip a quint8 that indicates if there is a registration token
+        // and potentially the registration token itself
+        quint8 hasRegistrationToken;
+        packetStream >> hasRegistrationToken;
+        
+        if (hasRegistrationToken) {
+            packetStream.skipRawData(NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN);
+        }
+    }
     
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
@@ -423,7 +436,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         }
     }
     
-    
+    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {

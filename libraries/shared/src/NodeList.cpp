@@ -90,7 +90,7 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
-        << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
+        << PacketTypeDomainListRequest << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
         << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
