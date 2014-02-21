@@ -227,13 +227,20 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     
-    void exportVoxels();
-    void importVoxels();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
-    void nudgeVoxels();
     void deleteVoxels();
+    void exportVoxels();
+    void importVoxels();
+    void nudgeVoxels();
+
+    void cutVoxels(const VoxelDetail& sourceVoxel);
+    void copyVoxels(const VoxelDetail& sourceVoxel);
+    void pasteVoxels(const VoxelDetail& sourceVoxel);
+    void deleteVoxels(const VoxelDetail& sourceVoxel);
+    void exportVoxels(const VoxelDetail& sourceVoxel);
+    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -328,6 +335,7 @@ private:
 
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
+    void deleteVoxelAt(const VoxelDetail& voxel);
     void eyedropperVoxelUnderCursor();
 
     void setMenuShortcutsEnabled(bool enabled);
