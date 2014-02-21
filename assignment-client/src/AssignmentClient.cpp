@@ -121,7 +121,7 @@ void AssignmentClient::readPendingDatagrams() {
                     // switch our nodelist domain IP and port to whoever sent us the assignment
                     
                     nodeList->getDomainInfo().setSockAddr(senderSockAddr);
-                    nodeList->setSessionUUID(_currentAssignment->getUUID());
+                    nodeList->getDomainInfo().setAssignmentUUID(_currentAssignment->getUUID());
                     
                     qDebug() << "Destination IP for assignment is" << nodeList->getDomainInfo().getIP().toString();
                     

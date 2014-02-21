@@ -13,6 +13,7 @@
 DomainInfo::DomainInfo() :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
+    _assignmentUUID(),
     _connectionSecret(),
     _registrationToken(),
     _rootAuthenticationURL(),
@@ -25,6 +26,7 @@ void DomainInfo::reset() {
     _uuid = QUuid();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
+    _assignmentUUID = QUuid();
     _connectionSecret = QString();
     _registrationToken = QByteArray();
     _rootAuthenticationURL = QUrl();

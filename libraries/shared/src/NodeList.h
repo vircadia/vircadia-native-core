@@ -106,6 +106,8 @@ public:
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, char nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    SharedNodePointer updateSocketsForNode(const QUuid& uuid,
+                                           const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);

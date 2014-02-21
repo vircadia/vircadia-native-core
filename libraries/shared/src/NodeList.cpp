@@ -90,7 +90,7 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     }
     
     const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
-        << PacketTypeDomainListRequest << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
+        << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
         << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
@@ -484,16 +484,22 @@ void NodeList::sendDomainServerCheckIn() {
             || !_domainInfo.getRegistrationToken().isEmpty() ) {
             // construct the DS check in packet
             
-            PacketType domainPacketType = _domainInfo.getRegistrationToken().isEmpty()
-                ? PacketTypeDomainListRequest : PacketTypeDomainConnectRequest;
+            PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
             
-            QByteArray domainServerPacket = byteArrayWithPopluatedHeader(domainPacketType);
+            QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest)
+                ? _sessionUUID : _domainInfo.getAssignmentUUID();
+            
+            QByteArray domainServerPacket = byteArrayWithPopluatedHeader(domainPacketType, packetUUID);
             QDataStream packetStream(&domainServerPacket, QIODevice::Append);
             
             if (domainPacketType == PacketTypeDomainConnectRequest) {
-                // we have a registration token to present to the domain-server
-                // send that along in each packet until we get a list back from the domain-server
-                packetStream << _domainInfo.getRegistrationToken();
+                // we may need a registration token to present to the domain-server
+                packetStream << (quint8) !_domainInfo.getRegistrationToken().isEmpty();
+                
+                if (!_domainInfo.getRegistrationToken().isEmpty()) {
+                    // if we have a registration token send that along in the request
+                    packetStream << _domainInfo.getRegistrationToken();
+                }
             }
             
             // pack our data to send to the domain-server
@@ -679,9 +685,8 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                             const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     
-    SharedNodePointer matchingNode = _nodeHash.value(uuid);
-    
-    if (!matchingNode) {
+    if (!_nodeHash.contains(uuid)) {
+        
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
@@ -698,29 +703,32 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     } else {
         _nodeHashMutex.unlock();
         
+        return updateSocketsForNode(uuid, publicSocket, localSocket);
+    }
+}
+
+SharedNodePointer NodeList::updateSocketsForNode(const QUuid& uuid,
+                                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+
+    SharedNodePointer matchingNode = nodeWithUUID(uuid);
+    
+    if (matchingNode) {
+        // perform appropriate updates to this node
         QMutexLocker locker(&matchingNode->getMutex());
-
-        if (matchingNode->getType() == NodeType::AudioMixer ||
-            matchingNode->getType() == NodeType::VoxelServer ||
-            matchingNode->getType() == NodeType::MetavoxelServer) {
-            // until the Audio class also uses our nodeList, we need to update
-            // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-        }
-
+        
         // check if we need to change this node's public or local sockets
         if (publicSocket != matchingNode->getPublicSocket()) {
             matchingNode->setPublicSocket(publicSocket);
             qDebug() << "Public socket change for node" << *matchingNode;
         }
-
+        
         if (localSocket != matchingNode->getLocalSocket()) {
             matchingNode->setLocalSocket(localSocket);
             qDebug() << "Local socket change for node" << *matchingNode;
         }
-        // we had this node already, do nothing for now
-        return matchingNode;
     }
+    
+    return matchingNode;
 }
 
 unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {

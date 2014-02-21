@@ -40,6 +40,9 @@ public:
     
     unsigned short getPort() const { return _sockAddr.getPort(); }
     
+    const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
+    void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
+    
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
     
@@ -58,6 +61,7 @@ private:
     QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;
+    QUuid _assignmentUUID;
     QUuid _connectionSecret;
     QByteArray _registrationToken;
     QUrl _rootAuthenticationURL;
