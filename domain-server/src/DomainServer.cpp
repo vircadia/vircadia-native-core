@@ -360,7 +360,8 @@ int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr&
         packetStream >> hasRegistrationToken;
         
         if (hasRegistrationToken) {
-            packetStream.skipRawData(NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN);
+            QByteArray registrationToken;
+            packetStream >> registrationToken;
         }
     }
     
