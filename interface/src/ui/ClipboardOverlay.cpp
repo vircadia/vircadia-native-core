@@ -38,10 +38,7 @@ void ClipboardOverlay::render() {
     glTranslatef(_position.x, _position.y, _position.z);
     glScalef(_size, _size, _size);
     
-    qDebug() << "[DEBUG] " << voxelSystem->getVoxelsRendered() << " "
-                           << clipboard->getOctreeElementsCount();
-    
-    // TODO : replace that hack to get the preview working corectly
+    // We only force the redraw when the clipboard content has changed
     if (lastVoxelCount != clipboard->getOctreeElementsCount()) {
         voxelSystem->forceRedrawEntireTree();
         lastVoxelCount = clipboard->getOctreeElementsCount();
