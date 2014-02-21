@@ -104,7 +104,13 @@ void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonOb
 }
 
 void DomainServer::processTokenRedeemResponse(const QJsonObject& jsonObject) {
-    qDebug() << "Redeem response is" << jsonObject;
+    // pull out the registration token this is associated with
+    QString registrationToken = jsonObject["data"].toObject()["registration_token"].toString();
+    
+    // if we have a registration token add it to our hash of redeemed token responses
+    if (!registrationToken.isEmpty()) {
+        _redeemedTokenResponses.insert(registrationToken, jsonObject);
+    }
 }
 
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
@@ -483,12 +489,20 @@ void DomainServer::readAvailableDatagrams() {
                         tokenCallbackParams.jsonCallbackMethod = "processTokenRedeemResponse";
                         
                         QString redeemURLString = QString("/api/v1/nodes/redeem/%1.json").arg(registrationTokenString);
-                        accountManager.authenticatedRequest(redeemURLString, QNetworkAccessManager::GetOperation);
+                        accountManager.authenticatedRequest(redeemURLString, QNetworkAccessManager::GetOperation,
+                                                            tokenCallbackParams);
+                    } else if (jsonForRedeemedToken["status"].toString() != "success") {
+                        // we redeemed the token, but it was invalid - get the node to get another
+                        requestAuthenticationFromPotentialNode(senderSockAddr);
                     } else {
                         // we've redeemed the token for this node and are ready to start communicating with it
                         // add the node to our NodeList
                         addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr, jsonForRedeemedToken);
                     }
+                    
+                    // if it exists, remove this response from the in-memory hash
+                    _redeemedTokenResponses.remove(registrationTokenString);
+                    
                 } else {
                     // we don't require authentication - add this node to our NodeList
                     // and send back session UUID right away
