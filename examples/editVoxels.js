@@ -29,8 +29,6 @@ var previewLineWidth = 1.5;
 
 var oldMode = Camera.getMode();
 
-var key_alt = false;
-var key_shift = false;
 var isAdding = false; 
 var isExtruding = false; 
 var isOrbiting = false;
@@ -53,8 +51,6 @@ var dragStart = { x: 0, y: 0 };
 
 var mouseX = 0;
 var mouseY = 0; 
-
-
 
 //  Create a table of the different colors you can choose
 var colors = new Array();
@@ -337,6 +333,12 @@ var trackAsRecolor = false;
 var trackAsEyedropper = false;
 var trackAsOrbitOrPan = false;
 
+var addToolSelected = true;
+var deleteToolSelected = false;
+var recolorToolSelected = false;
+var eyedropperToolSelected = false;
+var selectToolSelected = false;
+
 function calculateVoxelFromIntersection(intersection, operation) {
     //print("calculateVoxelFromIntersection() operation="+operation);
     var resultVoxel;
@@ -465,7 +467,7 @@ function showPreviewVoxel() {
 
     var guidePosition;
     
-    if (trackAsDelete) {
+    if (trackAsDelete || deleteToolSelected) {
         guidePosition = calculateVoxelFromIntersection(intersection,"delete");
         Overlays.editOverlay(voxelPreview, { 
                 position: guidePosition,
@@ -475,7 +477,17 @@ function showPreviewVoxel() {
                 solid: false,
                 alpha: 1
             });
-    } else if (trackAsRecolor || trackAsEyedropper) {
+    } else if (selectToolSelected) {
+        guidePosition = calculateVoxelFromIntersection(intersection,"select");
+        Overlays.editOverlay(voxelPreview, { 
+                position: guidePosition,
+                size: guidePosition.s + zFightingSizeAdjust,
+                visible: true,
+                color: { red: 255, green: 255, blue: 0 },
+                solid: false,
+                alpha: 1
+            });
+    } else if (trackAsRecolor || recolorToolSelected || trackAsEyedropper|| eyedropperToolSelected) {
         guidePosition = calculateVoxelFromIntersection(intersection,"recolor");
 
         Overlays.editOverlay(voxelPreview, { 
@@ -488,7 +500,7 @@ function showPreviewVoxel() {
             });
     } else if (trackAsOrbitOrPan) {
         Overlays.editOverlay(voxelPreview, { visible: false });
-    } else if (!isExtruding) {
+    } else if (addToolSelected && !isExtruding) {
         guidePosition = calculateVoxelFromIntersection(intersection,"add");
 
         Overlays.editOverlay(voxelPreview, { 
@@ -517,12 +529,25 @@ function showPreviewLines() {
         }
 
         resultVoxel = calculateVoxelFromIntersection(intersection,"");
-        Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
-        Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
-        Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
-        Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
-
+        if (selectToolSelected) {
+            Overlays.editOverlay(voxelPreview, { 
+                    position: resultVoxel,
+                    size: resultVoxel.s + zFightingSizeAdjust,
+                    visible: true,
+                    color: { red: 255, green: 255, blue: 255 },
+                    lineWidth: previewLineWidth,
+                    solid: false,
+                    alpha: 1
+                });
+        } else {
+            Overlays.editOverlay(voxelPreview, { visible: false });
+            Overlays.editOverlay(linePreviewTop, { position: resultVoxel.topLeft, end: resultVoxel.topRight, visible: true });
+            Overlays.editOverlay(linePreviewBottom, { position: resultVoxel.bottomLeft, end: resultVoxel.bottomRight, visible: true });
+            Overlays.editOverlay(linePreviewLeft, { position: resultVoxel.topLeft, end: resultVoxel.bottomLeft, visible: true });
+            Overlays.editOverlay(linePreviewRight, { position: resultVoxel.topRight, end: resultVoxel.bottomRight, visible: true });
+        }
     } else {
+        Overlays.editOverlay(voxelPreview, { visible: false });
         Overlays.editOverlay(linePreviewTop, { visible: false });
         Overlays.editOverlay(linePreviewBottom, { visible: false });
         Overlays.editOverlay(linePreviewLeft, { visible: false });
@@ -542,9 +567,6 @@ function showPreviewGuides() {
             Overlays.editOverlay(linePreviewRight, { visible: false });
         } else {
             showPreviewLines();
-
-            // make sure alternative is hidden
-            Overlays.editOverlay(voxelPreview, { visible: false });
         }
     } else {
         // make sure all previews are off
@@ -656,7 +678,7 @@ function startOrbitMode(event) {
     orbitAzimuth = Math.atan2(orbitVector.z, orbitVector.x);
     orbitAltitude = Math.asin(orbitVector.y / Vec3.length(orbitVector));
     
-    print("startOrbitMode...");
+    //print("startOrbitMode...");
 }
 
 function handleOrbitingMove(event) {
@@ -674,7 +696,7 @@ function handleOrbitingMove(event) {
     Camera.setPosition(orbitPosition);
     mouseX = event.x; 
     mouseY = event.y;
-    print("handleOrbitingMove...");
+    //print("handleOrbitingMove...");
 }
 
 function endOrbitMode(event) {
@@ -685,7 +707,7 @@ function endOrbitMode(event) {
     Camera.stopLooking();
     Camera.setMode(oldMode);
     Camera.setOrientation(cameraOrientation);
-    print("endOrbitMode...");
+    //print("endOrbitMode...");
 }
 
 function startPanMode(event, intersection) {
@@ -694,7 +716,8 @@ function startPanMode(event, intersection) {
 }
 
 function handlePanMove(event) {
-    print("PANNING mode!!! isPanning="+isPanning + " inPanningFromTouch="+isPanningFromTouch + " trackAsOrbitOrPan="+trackAsOrbitOrPan);
+    print("PANNING mode!!! ");
+    //print("isPanning="+isPanning + " inPanningFromTouch="+isPanningFromTouch + " trackAsOrbitOrPan="+trackAsOrbitOrPan);
 }
 
 function endPanMode(event) {
@@ -736,30 +759,72 @@ function mousePressEvent(event) {
     
     // no clicking on overlays while in panning mode
     if (!trackAsOrbitOrPan) {
-        var clickedOnSwatch = false;
+        var clickedOnSomething = false;
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+        
+print("clickedOverlay="+clickedOverlay);        
 
         // If the user clicked on the thumb, handle the slider logic
         if (clickedOverlay == thumb) {
             isMovingSlider = true;
             thumbClickOffsetX = event.x - (sliderX + thumbX); // this should be the position of the mouse relative to the thumb
-            return; // no further processing
+            clickedOnSomething = true;
+        } else if (clickedOverlay == addTool) {
+            addToolSelected = true;
+            deleteToolSelected = false;
+            recolorToolSelected = false;
+            eyedropperToolSelected = false;
+            selectToolSelected = false;
+            moveTools();
+            clickedOnSomething = true;
+        } else if (clickedOverlay == deleteTool) {
+            addToolSelected = false;
+            deleteToolSelected = true;
+            recolorToolSelected = false;
+            eyedropperToolSelected = false;
+            selectToolSelected = false;
+            moveTools();
+            clickedOnSomething = true;
+        } else if (clickedOverlay == recolorTool) {
+            addToolSelected = false;
+            deleteToolSelected = false;
+            recolorToolSelected = true;
+            eyedropperToolSelected = false;
+            selectToolSelected = false;
+            moveTools();
+            clickedOnSomething = true;
+        } else if (clickedOverlay == eyedropperTool) {
+            addToolSelected = false;
+            deleteToolSelected = false;
+            recolorToolSelected = false;
+            eyedropperToolSelected = true;
+            selectToolSelected = false;
+            moveTools();
+            clickedOnSomething = true;
+        } else if (clickedOverlay == selectTool) {
+            addToolSelected = false;
+            deleteToolSelected = false;
+            recolorToolSelected = false;
+            eyedropperToolSelected = false;
+            selectToolSelected = true;
+            moveTools();
+            clickedOnSomething = true;
         } else {
             // if the user clicked on one of the color swatches, update the selectedSwatch
             for (s = 0; s < numColors; s++) {
                 if (clickedOverlay == swatches[s]) {
                     whichColor = s;
                     moveTools();
-                    clickedOnSwatch = true;
+                    clickedOnSomething = true;
+                    break;
                 }
             }
-            if (clickedOnSwatch) {
-                return; // no further processing
-            }
+        }
+        if (clickedOnSomething) {
+            return; // no further processing
         }
     }
     
-
     // TODO: does any of this stuff need to execute if we're panning or orbiting?
     trackMouseEvent(event); // used by preview support
     mouseX = event.x;
@@ -783,13 +848,13 @@ function mousePressEvent(event) {
                 startPanMode(event);
                 isPanning = true;
             }
-        } else if (trackAsDelete || (event.isRightButton && !trackAsEyedropper)) {
+        } else if (deleteToolSelected || trackAsDelete || (event.isRightButton && !trackAsEyedropper)) {
             //  Delete voxel
             voxelDetails = calculateVoxelFromIntersection(intersection,"delete");
             Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Audio.playSound(deleteSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
-        } else if (trackAsEyedropper) {
+        } else if (eyedropperToolSelected || trackAsEyedropper) {
             if (whichColor != -1) {
                 colors[whichColor].red = intersection.voxel.red;
                 colors[whichColor].green = intersection.voxel.green;
@@ -797,7 +862,7 @@ function mousePressEvent(event) {
                 moveTools();
             }
             
-        } else if (trackAsRecolor) {
+        } else if (recolorToolSelected || trackAsRecolor) {
             //  Recolor Voxel
             voxelDetails = calculateVoxelFromIntersection(intersection,"recolor");
 
@@ -807,7 +872,7 @@ function mousePressEvent(event) {
                             colors[whichColor].red, colors[whichColor].green, colors[whichColor].blue);
             Audio.playSound(changeColorSound, audioOptions);
             Overlays.editOverlay(voxelPreview, { visible: false });
-        } else {
+        } else if (addToolSelected) {
             //  Add voxel on face
             if (whichColor == -1) {
                 //  Copy mode - use clicked voxel color
@@ -833,15 +898,13 @@ function mousePressEvent(event) {
             Overlays.editOverlay(voxelPreview, { visible: false });
             dragStart = { x: event.x, y: event.y };
             isAdding = true;
-        }       
+        } 
     }
 }
 
 function keyPressEvent(event) {
     // if our tools are off, then don't do anything
     if (editToolsOn) {
-        key_alt = event.isAlt;
-        key_shift = event.isShifted;
         var nVal = parseInt(event.text);
         if (event.text == "0") {
             print("Color = Copy");
@@ -884,8 +947,6 @@ function keyPressEvent(event) {
 
 function keyReleaseEvent(event) {
     trackKeyReleaseEvent(event); // used by preview support
-    key_alt = false;
-    key_shift = false; 
 }
 
 
@@ -1024,12 +1085,14 @@ function moveTools() {
     eyedropperToolColor = notSelectedColor;
     selectToolColor = notSelectedColor;
 
-    if (trackAsDelete) {
+    if (trackAsDelete || deleteToolSelected) {
         deleteToolColor = toolSelectedColor;
-    } else if (trackAsRecolor) {
+    } else if (trackAsRecolor || recolorToolSelected) {
         recolorToolColor = toolSelectedColor;
-    } else if (trackAsEyedropper) {
+    } else if (trackAsEyedropper || eyedropperToolSelected) {
         eyedropperToolColor = toolSelectedColor;
+    } else if (selectToolSelected) {
+        selectToolColor = toolSelectedColor;
     } else if (trackAsOrbitOrPan) {
         // nothing gets selected in this case...
     } else {
@@ -1065,7 +1128,6 @@ function moveTools() {
                     color: selectToolColor,
                     visible: editToolsOn
                 });
-
 
     sliderX = swatchesX + swatchesWidth;
     sliderY = windowDimensions.y - sliderHeight;
