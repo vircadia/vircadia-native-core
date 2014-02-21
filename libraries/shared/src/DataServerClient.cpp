@@ -31,7 +31,7 @@ const HifiSockAddr& DataServerClient::dataServerSockAddr() {
 
 void DataServerClient::putValueForKeyAndUserString(const QString& key, const QString& value, const QString& userString) {
     // setup the header for this packet and push packetStream to desired spot
-    QByteArray putPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerPut);
+    QByteArray putPacket = byteArrayWithPopulatedHeader(PacketTypeDataServerPut);
     QDataStream packetStream(&putPacket, QIODevice::Append);
     
     // pack our data for the put packet
@@ -66,7 +66,7 @@ void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QU
 void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString,
                                                    DataServerCallbackObject* callbackObject) {
     if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
-        QByteArray getPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerGet);
+        QByteArray getPacket = byteArrayWithPopulatedHeader(PacketTypeDataServerGet);
         QDataStream packetStream(&getPacket, QIODevice::Append);
         
         // pack our data for the getPacket

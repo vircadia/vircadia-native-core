@@ -144,7 +144,7 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
 void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
     int bytesRead = numBytesForPacketHeader(datagram);
     
-    QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    QByteArray dummyAvatarByteArray = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
     int numDummyHeaderBytes = dummyAvatarByteArray.size();
     int numDummyHeaderBytesWithoutUUID = numDummyHeaderBytes - NUM_BYTES_RFC4122_UUID;
     
