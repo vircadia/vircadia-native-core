@@ -13,7 +13,11 @@
 #include "VoxelTreeElement.h"
 #include "VoxelTree.h"
 
-VoxelTreeElement::VoxelTreeElement(unsigned char* octalCode) : OctreeElement() {
+VoxelTreeElement::VoxelTreeElement(unsigned char* octalCode) : 
+    OctreeElement(),
+    _exteriorOcclusions(OctreeElement::HalfSpace::All),
+    _interiorOcclusions(OctreeElement::HalfSpace::None)
+{
     init(octalCode);
 };
 

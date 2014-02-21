@@ -193,6 +193,7 @@ namespace MenuOption {
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
+    const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString CutVoxels = "Cut";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
@@ -275,6 +276,7 @@ namespace MenuOption {
     const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
+    const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
