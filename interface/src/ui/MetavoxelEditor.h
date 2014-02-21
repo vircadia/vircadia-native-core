@@ -38,6 +38,7 @@ public:
     glm::quat getGridRotation() const;
     
     QVariant getValue() const;
+    void detachValue();
     
     virtual bool eventFilter(QObject* watched, QEvent* event);
 

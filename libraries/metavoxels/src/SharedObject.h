@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QSet>
 #include <QWidget>
+#include <QtDebug>
 
 class QComboBox;
 
@@ -24,6 +25,8 @@ public:
 
     Q_INVOKABLE SharedObject();
 
+    int getID() { return _id; }
+
     int getReferenceCount() const { return _referenceCount; }
     void incrementReferenceCount();
     void decrementReferenceCount();
@@ -34,6 +37,9 @@ public:
     /// Tests this object for equality with another.    
     virtual bool equals(const SharedObject* other) const;
 
+    // Dumps the contents of this object to the debug output.
+    virtual void dump(QDebug debug = qDebug()) const;
+
 signals:
     
     /// Emitted when the reference count drops to one.
@@ -41,7 +47,10 @@ signals:
 
 private:
     
+    int _id;
     int _referenceCount;
+    
+    static int _lastID;
 };
 
 /// A pointer to a shared object.
@@ -54,7 +63,8 @@ public:
 
     T* data() const { return _data; }
     
-    void detach();
+    /// "Detaches" this object, making a new copy if its reference count is greater than one.
+    bool detach();
 
     void swap(SharedObjectPointerTemplate<T>& other) { qSwap(_data, other._data); }
 
@@ -98,11 +108,13 @@ template<class T> inline SharedObjectPointerTemplate<T>::~SharedObjectPointerTem
     }
 }
 
-template<class T> inline void SharedObjectPointerTemplate<T>::detach() {
+template<class T> inline bool SharedObjectPointerTemplate<T>::detach() {
     if (_data && _data->getReferenceCount() > 1) {
         _data->decrementReferenceCount();
         (_data = _data->clone())->incrementReferenceCount();
+        return true;
     }
+    return false;
 }
 
 template<class T> inline void SharedObjectPointerTemplate<T>::reset() {
@@ -159,6 +171,9 @@ public:
     SharedObjectEditor(const QMetaObject* metaObject, bool nullable = true, QWidget* parent = NULL);
 
     const SharedObjectPointer& getObject() const { return _object; }
+
+    /// "Detaches" the object pointer, copying it if anyone else is holding a reference.
+    void detachObject();
 
 public slots:
 

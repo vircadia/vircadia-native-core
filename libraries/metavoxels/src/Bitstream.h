@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QMetaType>
+#include <QPointer>
 #include <QScriptString>
 #include <QSharedPointer>
 #include <QVariant>
@@ -317,6 +318,8 @@ private slots:
     void clearSharedObject();
 
 private:
+    
+    void readProperties(QObject* object);
    
     QDataStream& _underlying;
     quint8 _byte;
@@ -327,6 +330,8 @@ private:
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer> _sharedObjectStreamer;
+
+    QHash<int, QPointer<SharedObject> > _transientSharedObjects;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();

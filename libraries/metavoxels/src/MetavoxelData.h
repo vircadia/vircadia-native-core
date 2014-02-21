@@ -360,10 +360,6 @@ signals:
     void rotationChanged(const glm::vec3& rotation);
     void scaleChanged(float scale);
 
-protected slots:
-
-    virtual void updateBounds();
-
 private:
     
     glm::vec3 _translation;

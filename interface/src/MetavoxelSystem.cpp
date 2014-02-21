@@ -218,7 +218,6 @@ int MetavoxelClient::parseData(const QByteArray& packet) {
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
-    QMutexLocker locker(&_node->getMutex());
     NodeList::getInstance()->writeDatagram(data, _node);
 }
 

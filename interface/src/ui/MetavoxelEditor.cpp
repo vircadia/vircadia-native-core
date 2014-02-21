@@ -151,6 +151,13 @@ QVariant MetavoxelEditor::getValue() const {
     return editor ? editor->metaObject()->userProperty().read(editor) : QVariant();
 }
 
+void MetavoxelEditor::detachValue() {
+    SharedObjectEditor* editor = qobject_cast<SharedObjectEditor*>(_valueArea->widget());
+    if (editor) {
+        editor->detachObject();
+    }
+}
+
 bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
     // pass along to the active tool
     MetavoxelTool* tool = getActiveTool();
@@ -522,6 +529,7 @@ void InsertSpannerTool::simulate(float deltaTime) {
 }
 
 void InsertSpannerTool::render() {
+    _editor->detachValue();
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
     if (transformable) {
@@ -532,6 +540,7 @@ void InsertSpannerTool::render() {
         glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
         float position = _editor->getGridPosition();
         float distance = (position - rayOrigin.z) / rayDirection.z;
+        
         transformable->setTranslation(rotation * glm::vec3(glm::vec2(rayOrigin + rayDirection * distance), position));
     }
     const float SPANNER_ALPHA = 0.25f;

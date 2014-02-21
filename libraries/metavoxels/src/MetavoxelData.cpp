@@ -548,7 +548,7 @@ void SpannerVisitor::prepare() {
 }
 
 bool SpannerVisitor::visit(MetavoxelInfo& info) {
-    for (int i = info.inputValues.size() - _spannerInputCount; i < info.inputValues.size(); i++) {
+    for (int i = _inputs.size() - _spannerInputCount; i < _inputs.size(); i++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
             if (spanner->testAndSetVisited()) {
@@ -862,9 +862,6 @@ void SpannerRenderer::render(float alpha) {
 }
 
 Transformable::Transformable() : _scale(1.0f) {
-    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
-    connect(this, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(updateBounds()));
-    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
 }
 
 void Transformable::setTranslation(const glm::vec3& translation) {
@@ -883,12 +880,6 @@ void Transformable::setScale(float scale) {
     if (_scale != scale) {
         emit scaleChanged(_scale = scale);
     }
-}
-
-void Transformable::updateBounds() {
-    // temporary fake bounds
-    glm::vec3 scaleVector(_scale, _scale, _scale);
-    setBounds(Box(_translation - scaleVector, _translation + scaleVector));
 }
 
 StaticModel::StaticModel() {

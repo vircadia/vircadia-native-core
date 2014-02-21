@@ -18,7 +18,7 @@
 
 REGISTER_META_OBJECT(SharedObject)
 
-SharedObject::SharedObject() : _referenceCount(0) {
+SharedObject::SharedObject() : _id(++_lastID), _referenceCount(0) {
 }
 
 void SharedObject::incrementReferenceCount() {
@@ -74,6 +74,16 @@ bool SharedObject::equals(const SharedObject* other) const {
     return true;
 }
 
+void SharedObject::dump(QDebug debug) const {
+    debug << this;
+    const QMetaObject* metaObject = this->metaObject();
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        debug << metaObject->property(i).name() << metaObject->property(i).read(this);
+    }
+}
+
+int SharedObject::_lastID = 0;
+
 SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nullable, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setAlignment(Qt::AlignTop);
@@ -107,6 +117,22 @@ void SharedObjectEditor::setObject(const SharedObjectPointer& object) {
         } else {
             _type->setCurrentIndex(index);
         }
+    }
+}
+
+void SharedObjectEditor::detachObject() {
+    SharedObject* oldObject = _object.data();
+    if (!_object.detach()) {
+        return;
+    }
+    oldObject->disconnect(this);
+    const QMetaObject* metaObject = _object->metaObject();
+    
+    QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+    for (int i = 0; i < form->rowCount(); i++) {
+        QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+        QMetaProperty property = metaObject->property(widget->property("propertyIndex").toInt());
+        connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
     }
 }
 
@@ -182,7 +208,7 @@ void SharedObjectEditor::propertyChanged() {
         if (widget != sender()) {
             continue;
         }
-        _object.detach();
+        detachObject();
         QObject* object = _object.data();
         QMetaProperty property = object->metaObject()->property(widget->property("propertyIndex").toInt());
         QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
