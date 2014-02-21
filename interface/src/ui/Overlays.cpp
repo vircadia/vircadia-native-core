@@ -12,7 +12,7 @@
 #include "Overlays.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
-
+#include "ClipboardOverlay.h"
 
 unsigned int Overlays::_nextOverlayID = 1;
 
@@ -73,6 +73,11 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay->setProperties(properties);
         created = true;
         is3D = true;
+    } else if (type == "clipboard") {
+        thisOverlay = new ClipboardOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
     }
 
     if (created) {
