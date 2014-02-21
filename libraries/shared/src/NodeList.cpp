@@ -108,16 +108,23 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     << uuidFromPacketHeader(packet);
             }
         } else {
-            if (checkType == PacketTypeDomainList
-                && _domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
-                if (hashForPacketAndConnectionUUID(packet, _domainInfo.getConnectionSecret()) == hashFromPacketHeader(packet)) {
-                    // this is a packet from the domain-server (PacketTypeDomainServerListRequest)
-                    // and the sender UUID matches the UUID we expect for the domain
-                    return true;
-                } else {
-                    // this is a packet from the domain-server but there is a hash mismatch
-                    qDebug() << "Packet hash mismatch on" << checkType << "from domain-server at" << _domainInfo.getHostname();
-                    return false;
+            if (checkType == PacketTypeDomainList) {
+                
+                if (_domainInfo.getRootAuthenticationURL().isEmpty() && _domainInfo.getUUID().isNull()) {
+                    // pull the UUID from this packet and set it as our domain-server UUID
+                    _domainInfo.setUUID(uuidFromPacketHeader(packet));
+                }
+                
+                if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
+                    if (hashForPacketAndConnectionUUID(packet, _domainInfo.getConnectionSecret()) == hashFromPacketHeader(packet)) {
+                        // this is a packet from the domain-server (PacketTypeDomainServerListRequest)
+                        // and the sender UUID matches the UUID we expect for the domain
+                        return true;
+                    } else {
+                        // this is a packet from the domain-server but there is a hash mismatch
+                        qDebug() << "Packet hash mismatch on" << checkType << "from domain-server at" << _domainInfo.getHostname();
+                        return false;
+                    }
                 }
             }
             
@@ -207,11 +214,7 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
-            // only process the DS if this is our current domain server
-            if (_domainInfo.getSockAddr() == senderSockAddr) {
-                processDomainServerList(packet);
-            }
-
+            processDomainServerList(packet);
             break;
         }
         case PacketTypeDomainServerAuthRequest: {

@@ -34,7 +34,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _staticAssignmentHash(),
     _assignmentQueue(),
-    _nodeAuthenticationURL(DEFAULT_NODE_AUTH_URL),
+    _nodeAuthenticationURL(),
     _redeemedTokenResponses()
 {
     setOrganizationName("High Fidelity");
@@ -46,10 +46,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     int argumentIndex = 0;
     
     // check if this domain server should use no authentication or a custom hostname for authentication
-    const QString NO_AUTH_OPTION = "--noAuth";
+    const QString DEFAULT_AUTH_OPTION = "--defaultAuth";
     const QString CUSTOM_AUTH_OPTION = "--customAuth";
-    if ((argumentIndex = _argumentList.indexOf(NO_AUTH_OPTION) != -1)) {
-        _nodeAuthenticationURL = QUrl();
+    if ((argumentIndex = _argumentList.indexOf(DEFAULT_AUTH_OPTION) != -1)) {
+        _nodeAuthenticationURL = QUrl(DEFAULT_NODE_AUTH_URL);
     } else if ((argumentIndex = _argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
         _nodeAuthenticationURL = QUrl(_argumentList.value(argumentIndex + 1));
     }
@@ -74,8 +74,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
         } else {
             qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
-            << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
-            << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Qutting!";
+                << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
+                << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Qutting!";
             
             // bail out
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
