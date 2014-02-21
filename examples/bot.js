@@ -25,10 +25,31 @@ positionZ = getRandomFloat(0, 50);
 Avatar.position = {x: positionX, y: 0, z: positionZ};
 
 // pick an integer between 1 and 20 for the face model for this bot
-botNumber = getRandomInt(1, 20);
+botNumber = getRandomInt(1, 100);
+
+newBodyFilePrefix = "defaultAvatar";
+
+if (botNumber <= 20) {
+  newFaceFilePrefix = "bot" + botNumber;
+} else {
+  
+  if (botNumber <= 40) {
+    newFaceFilePrefix = "superhero";
+  } else if (botNumber <= 60) {
+    newFaceFilePrefix = "amber";
+  } else if (botNumber <= 80) {
+    newFaceFilePrefix = "ron";
+  } else {
+    newFaceFilePrefix = "angie";
+  }
+  
+  newBodyFilePrefix = "bot" + botNumber;
+} 
+
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/bot" + botNumber + ".fst";
+Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix ".fst";
+Avatar.bodyModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix ".fst";
 
 Agent.isAvatar = true;
