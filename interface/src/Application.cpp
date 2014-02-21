@@ -527,73 +527,8 @@ void Application::paintGL() {
         _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-
-            bool eyeRelativeCamera = false;
-            if (_rearMirrorTools->getZoomLevel() == BODY) {
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
-                _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
-            } else { // HEAD zoom level
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-                if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
-                    // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
-                    // face/body so that the average eye position lies at the origin
-                    eyeRelativeCamera = true;
-                    _mirrorCamera.setTargetPosition(glm::vec3());
-
-                } else {
-                    _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-                }
-            }
-
-            _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
-            _mirrorCamera.update(1.0f/_fps);
-
-            // set the bounds of rear mirror view
-            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            bool updateViewFrustum = false;
-            updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-            glEnable(GL_SCISSOR_TEST);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            // render rear mirror view
-            glPushMatrix();
-            if (eyeRelativeCamera) {
-                // save absolute translations
-                glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-                glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
-                // get the eye positions relative to the neck and use them to set the face translation
-                glm::vec3 leftEyePosition, rightEyePosition;
-                _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
-                _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
-                _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
-
-                // get the neck position relative to the body and use it to set the skeleton translation
-                glm::vec3 neckPosition;
-                _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
-                _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-                _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
-                    neckPosition);
-
-                displaySide(_mirrorCamera, true);
-
-                // restore absolute translations
-                _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-                _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
-            } else {
-                displaySide(_mirrorCamera, true);
-            }
-            glPopMatrix();
-
-            _rearMirrorTools->render(false);
-
-            // reset Viewport and projection matrix
-            glViewport(0, 0, _glWidget->width(), _glWidget->height());
-            glDisable(GL_SCISSOR_TEST);
-            updateProjectionMatrix(_myCamera, updateViewFrustum);
+            renderRearViewMirror();
+            
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
@@ -2743,6 +2678,14 @@ void Application::setupWorldLight() {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+QImage Application::renderAvatarBillboard() {
+    renderRearViewMirror(true);
+    
+    QImage image(_glWidget->width(), _glWidget->height(), QImage::Format_ARGB32);
+    glReadPixels(0, 0, _glWidget->width(), _glWidget->height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    return image;
+}
+
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
@@ -3658,6 +3601,77 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
             renderCoverageMapsRecursively(childMap);
         }
     }
+}
+
+void Application::renderRearViewMirror(bool billboard) {
+    bool eyeRelativeCamera = false;
+    if (_rearMirrorTools->getZoomLevel() == BODY && !billboard) {
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
+    } else { // HEAD zoom level
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+        if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
+            // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
+            // face/body so that the average eye position lies at the origin
+            eyeRelativeCamera = true;
+            _mirrorCamera.setTargetPosition(glm::vec3());
+
+        } else {
+            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        }
+    }
+
+    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+    _mirrorCamera.update(1.0f/_fps);
+
+    // set the bounds of rear mirror view
+    glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
+        _mirrorViewRect.width(), _mirrorViewRect.height());
+    glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
+        _mirrorViewRect.width(), _mirrorViewRect.height());
+    bool updateViewFrustum = false;
+    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render rear mirror view
+    glPushMatrix();
+    if (eyeRelativeCamera) {
+        // save absolute translations
+        glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
+        glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
+
+        // get the eye positions relative to the neck and use them to set the face translation
+        glm::vec3 leftEyePosition, rightEyePosition;
+        _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
+        _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
+        _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
+
+        // get the neck position relative to the body and use it to set the skeleton translation
+        glm::vec3 neckPosition;
+        _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
+        _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
+        _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
+            neckPosition);
+
+        displaySide(_mirrorCamera, true);
+
+        // restore absolute translations
+        _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
+        _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
+    } else {
+        displaySide(_mirrorCamera, true);
+    }
+    glPopMatrix();
+
+    if (!billboard) {
+        _rearMirrorTools->render(false);
+    }
+    
+    // reset Viewport and projection matrix
+    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glDisable(GL_SCISSOR_TEST);
+    updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 
 // renderViewFrustum()

@@ -84,6 +84,9 @@ public:
     void updateLookAtTargetAvatar(glm::vec3& eyePosition);
     void clearLookAtTargetAvatar();
 
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
 public slots:
     void goHome();
     void increaseSize();
@@ -118,6 +121,8 @@ private:
     Transmitter _transmitter;     // Gets UDP data from transmitter app used to animate the avatar
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
+
+    bool _billboardValid;
 
 	// private methods
     void renderBody(bool forceRenderHead);

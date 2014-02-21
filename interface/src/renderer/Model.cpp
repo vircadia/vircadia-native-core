@@ -46,6 +46,21 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
     program.release();
 }
 
+bool Model::isLoadedWithTextures() const {
+    if (!isActive()) {
+        return false;
+    }
+    foreach (const NetworkMesh& mesh, _geometry->getMeshes()) {
+        foreach (const NetworkMeshPart& part, mesh.parts) {
+            if (part.diffuseTexture && !part.diffuseTexture->isLoaded() ||
+                    part.normalTexture && !part.normalTexture->isLoaded()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void Model::init() {
     if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();

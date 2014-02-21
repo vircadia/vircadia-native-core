@@ -57,7 +57,8 @@ MyAvatar::MyAvatar() :
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
     _moveTargetStepCounter(0),
-    _lookAtTargetAvatar()
+    _lookAtTargetAvatar(),
+    _billboardValid(false)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -332,7 +333,13 @@ void MyAvatar::simulate(float deltaTime) {
 
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-
+    
+    // consider updating our billboard
+    if (!_billboardValid && _skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures()) {
+        QImage image = Application::getInstance()->renderAvatarBillboard();
+        image.save("test.png");
+        _billboardValid = true;
+    }
 }
 
 const float MAX_PITCH = 90.0f;
@@ -710,6 +717,16 @@ float MyAvatar::getAbsoluteHeadYaw() const {
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
+}
+
+void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
+    Avatar::setFaceModelURL(faceModelURL);
+    _billboardValid = false;
+}
+
+void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    Avatar::setSkeletonModelURL(skeletonModelURL);
+    _billboardValid = false;
 }
 
 void MyAvatar::renderBody(bool forceRenderHead) {

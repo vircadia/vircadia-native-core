@@ -46,6 +46,8 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
+    bool isLoadedWithTextures() const;
+    
     void init();
     void reset();
     void simulate(float deltaTime);
