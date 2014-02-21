@@ -109,6 +109,7 @@ void DomainServer::processTokenRedeemResponse(const QJsonObject& jsonObject) {
     
     // if we have a registration token add it to our hash of redeemed token responses
     if (!registrationToken.isEmpty()) {
+        qDebug() << "Redeemed registration token" << registrationToken;
         _redeemedTokenResponses.insert(registrationToken, jsonObject);
     }
 }
@@ -340,6 +341,12 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     nodeUUID = QUuid::createUuid();
     
     SharedNodePointer newNode = NodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    
+    if (!authJsonObject.isEmpty()) {
+        // pull the connection secret from the authJsonObject and set it as the connection secret for this node
+        QUuid connectionSecret(authJsonObject["data"].toObject()["connection_secret"].toString());
+        newNode->setConnectionSecret(connectionSecret);
+    }
     
     // reply back to the user with a PacketTypeDomainList
     sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));

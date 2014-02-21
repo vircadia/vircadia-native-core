@@ -34,9 +34,10 @@ void DomainInfo::reset() {
 }
 
 void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
-    _connectionSecret = QUuid(jsonObject["connection_uuid"].toString());
-    _registrationToken = QByteArray::fromHex(jsonObject["registration_token"].toString().toUtf8());
-    _publicKey = jsonObject["public_key"].toString();
+    QJsonObject dataObject = jsonObject["data"].toObject();
+    _connectionSecret = QUuid(dataObject["connection_secret"].toString());
+    _registrationToken = QByteArray::fromHex(dataObject["registration_token"].toString().toUtf8());
+    _publicKey = dataObject["public_key"].toString();
 }
 
 void DomainInfo::setHostname(const QString& hostname) {

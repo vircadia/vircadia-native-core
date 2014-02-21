@@ -79,8 +79,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-    if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
-        && packetTypeForPacket(packet) != PacketTypeStunResponse) {
+    PacketType checkType = packetTypeForPacket(packet);
+    if (packet[1] != versionForPacketType(checkType)
+        && checkType != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
@@ -89,13 +90,13 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
     }
     
-    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
-        << PacketTypeDomainListRequest << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
+    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
+        << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
         << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
     
-    if (!NON_VERIFIED_PACKETS.contains(packetTypeForPacket(packet))) {
+    if (!NON_VERIFIED_PACKETS.contains(checkType)) {
         // figure out which node this is from
         SharedNodePointer sendingNode = sendingNodeForPacket(packet);
         if (sendingNode) {
@@ -103,11 +104,24 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
                 return true;
             } else {
-                qDebug() << "Packet hash mismatch on" << packetTypeForPacket(packet) << "- Sender"
+                qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
                     << uuidFromPacketHeader(packet);
             }
         } else {
-            qDebug() << "Packet of type" << packetTypeForPacket(packet) << "received from unknown node with UUID"
+            if (checkType == PacketTypeDomainList
+                && _domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
+                if (hashForPacketAndConnectionUUID(packet, _domainInfo.getConnectionSecret()) == hashFromPacketHeader(packet)) {
+                    // this is a packet from the domain-server (PacketTypeDomainServerListRequest)
+                    // and the sender UUID matches the UUID we expect for the domain
+                    return true;
+                } else {
+                    // this is a packet from the domain-server but there is a hash mismatch
+                    qDebug() << "Packet hash mismatch on" << checkType << "from domain-server at" << _domainInfo.getHostname();
+                    return false;
+                }
+            }
+            
+            qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
                 << uuidFromPacketHeader(packet);
         }
     } else {
