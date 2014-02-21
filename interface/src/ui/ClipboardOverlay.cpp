@@ -15,6 +15,8 @@
 #include "ClipboardOverlay.h"
 #include "../Application.h"
 
+static int lastVoxelCount = 0;
+
 ClipboardOverlay::ClipboardOverlay() {
 }
 
@@ -35,6 +37,15 @@ void ClipboardOverlay::render() {
     glPushMatrix();
     glTranslatef(_position.x, _position.y, _position.z);
     glScalef(_size, _size, _size);
+    
+    qDebug() << "[DEBUG] " << voxelSystem->getVoxelsRendered() << " "
+                           << clipboard->getOctreeElementsCount();
+    
+    // TODO : replace that hack to get the preview working corectly
+    if (lastVoxelCount != clipboard->getOctreeElementsCount()) {
+        voxelSystem->forceRedrawEntireTree();
+        lastVoxelCount = clipboard->getOctreeElementsCount();
+    }
     
     voxelSystem->render();
     
