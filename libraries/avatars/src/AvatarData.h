@@ -33,6 +33,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
+#include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -187,7 +188,7 @@ protected:
     QUrl _skeletonModelURL;
     QString _displayName;
 
-    int _displayNameWidth;
+    QRect _displayNameBoundingRect;
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
