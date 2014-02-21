@@ -37,6 +37,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _nodeAuthenticationURL(DEFAULT_NODE_AUTH_URL),
     _redeemedTokenResponses()
 {
+    setOrganizationName("High Fidelity");
+    setOrganizationDomain("highfidelity.io");
+    setApplicationName("domain-server");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    
     _argumentList = arguments();
     int argumentIndex = 0;
     
