@@ -27,7 +27,7 @@ public:
     QString getUserString() const;
     
     const QString& getUsername() const { return _username; }
-    
+
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() { return _uuid; }
     
@@ -45,6 +45,8 @@ public:
 private:
     
     void setUsername(const QString& username);
+
+    void setDisplayName(const QString& displaName);
     
     QString _username;
     QUuid _uuid;

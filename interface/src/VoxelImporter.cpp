@@ -12,6 +12,9 @@
 #include <QFileInfo>
 #include <QThreadPool>
 
+const QString SETTINGS_GROUP_NAME = "VoxelImport";
+const QString IMPORT_DIALOG_SETTINGS_KEY = "ImportDialogSettings";
+
 class ImportTask : public QObject, public QRunnable {
 public:
     ImportTask(const QString &filename);
@@ -21,18 +24,16 @@ private:
     QString _filename;
 };
 
-const QString SETTINGS_GROUP_NAME = "VoxelImport";
-const QString IMPORT_DIALOG_SETTINGS_KEY = "ImportDialogSettings";
-
 VoxelImporter::VoxelImporter(QWidget* parent) :
     QObject(parent),
     _voxelTree(true),
     _importDialog(parent),
-    _currentTask(NULL),
-    _nextTask(NULL)
+    _task(NULL),
+    _didImport(false)
 {
-    connect(&_importDialog, &QFileDialog::currentChanged, this, &VoxelImporter::preImport);
-    connect(&_importDialog, &QFileDialog::accepted, this, &VoxelImporter::import);
+    connect(&_voxelTree, SIGNAL(importProgress(int)), &_importDialog, SLOT(setProgressBarValue(int)));
+    connect(&_importDialog, SIGNAL(canceled()), this, SLOT(cancel()));
+    connect(&_importDialog, SIGNAL(accepted()), this, SLOT(import()));
 }
 
 void VoxelImporter::saveSettings(QSettings* settings) {
@@ -41,145 +42,106 @@ void VoxelImporter::saveSettings(QSettings* settings) {
     settings->endGroup();
 }
 
-void VoxelImporter::init(QSettings* settings) {
+void VoxelImporter::loadSettings(QSettings* settings) {
     settings->beginGroup(SETTINGS_GROUP_NAME);
     _importDialog.restoreState(settings->value(IMPORT_DIALOG_SETTINGS_KEY).toByteArray());
     settings->endGroup();
 }
 
 VoxelImporter::~VoxelImporter() {
-    if (_nextTask) {
-        delete _nextTask;
-        _nextTask = NULL;
-    }
-
-    if (_currentTask) {
-        disconnect(_currentTask, 0, 0, 0);
-        _voxelTree.cancelImport();
-        _currentTask = NULL;
-    }
+    cleanupTask();
 }
 
 void VoxelImporter::reset() {
     _voxelTree.eraseAllOctreeElements();
     _importDialog.reset();
-    _filename = "";
 
-    if (_nextTask) {
-        delete _nextTask;
-        _nextTask = NULL;
-    }
-
-    if (_currentTask) {
-        _voxelTree.cancelImport();
-    }
+    cleanupTask();
 }
 
 int VoxelImporter::exec() {
     reset();
-
-    int ret = _importDialog.exec();
-
-    if (!ret) {
-        reset();
-    } else {
-        _importDialog.reset();
-        
-        VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
-        
-        voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->getRoot(),
-                                            Application::getInstance()->getClipboard(),
-                                            true);
-        voxelSystem->changeTree(Application::getInstance()->getClipboard());
-    }
-
-    return ret;
-}
-
-int VoxelImporter::preImport() {
-    QString filename = _importDialog.getCurrentFile();
-
-    if (!QFileInfo(filename).isFile()) {
-        return 0;
-    }
+    _importDialog.exec();
     
-    _filename = filename;
-    
-    if (_nextTask) {
-        delete _nextTask;
-    }
-    
-    _nextTask = new ImportTask(_filename);
-    connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
-    
-    if (_currentTask != NULL) {
-        _voxelTree.cancelImport();
-    } else {
-        launchTask();
-    }
-    
-    return 1;
-}
-
-int VoxelImporter::import() {
-    QString filename = _importDialog.getCurrentFile();
-
-    if (!QFileInfo(filename).isFile()) {
-        _importDialog.reject();
-        return 0;
-    }
-
-    if (_filename == filename) {
-        if (_currentTask) {
-            connect(_currentTask, SIGNAL(destroyed()), &_importDialog, SLOT(accept()));
-        } else {
-            _importDialog.accept();
-        }
+    if (!_didImport) {
+        // if the import is rejected, we make sure to cleanup before leaving
+        cleanupTask();
         return 1;
-    }
-
-    _filename = filename;
-
-    if (_nextTask) {
-        delete _nextTask;
-    }
-
-    _nextTask = new ImportTask(_filename);
-    connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
-    connect(_nextTask, SIGNAL(destroyed()), &_importDialog, SLOT(accept()));
-
-    if (_currentTask != NULL) {
-        _voxelTree.cancelImport();
     } else {
-        launchTask();
+        _didImport = false;
+        return 0;
     }
-
-    return 1;
 }
 
-void VoxelImporter::launchTask() {
-    if (_nextTask != NULL) {
-        _currentTask = _nextTask;
-        _nextTask = NULL;
+void VoxelImporter::import() {
+    switch (_importDialog.getMode()) {
+        case loadingMode:
+            _importDialog.setMode(placeMode);
+            return;
+        case placeMode:
+            // Means the user chose to import
+            _didImport = true;
+            _importDialog.close();
+            return;
+        case importMode:
+        default:
+            QString filename = _importDialog.getCurrentFile();
+            // if it's not a file, we ignore the call
+            if (!QFileInfo(filename).isFile()) {
+                return;
+            }
+            
+            // Let's prepare the dialog window for import
+            _importDialog.setMode(loadingMode);
+            
+            // If not already done, we switch to the local tree
+            if (Application::getInstance()->getSharedVoxelSystem()->getTree() != &_voxelTree) {
+                Application::getInstance()->getSharedVoxelSystem()->changeTree(&_voxelTree);
+            }
+            
+            // Creation and launch of the import task on the thread pool
+            _task = new ImportTask(filename);
+            connect(_task, SIGNAL(destroyed()), SLOT(import()));
+            QThreadPool::globalInstance()->start(_task);
+            break;
+    }
+}
 
-        if (Application::getInstance()->getSharedVoxelSystem()->getTree() != &_voxelTree) {
-            Application::getInstance()->getSharedVoxelSystem()->changeTree(&_voxelTree);
-        }
+void VoxelImporter::cancel() {
+    switch (_importDialog.getMode()) {
+        case loadingMode:
+            disconnect(_task, 0, 0, 0);
+            cleanupTask();
+        case placeMode:
+            _importDialog.setMode(importMode);
+            break;
+        case importMode:
+        default:
+            _importDialog.close();
+            break;
+    }
+}
 
-        QThreadPool::globalInstance()->start(_currentTask);
-    } else {
-        _currentTask = NULL;
+void VoxelImporter::cleanupTask() {
+    // If a task is running, we cancel it and put the pointer to null
+    if (_task) {
+        _task = NULL;
+        _voxelTree.cancelImport();
     }
 }
 
 ImportTask::ImportTask(const QString &filename)
-    : _filename(filename) {
+    : _filename(filename)
+{
+    setAutoDelete(true);
 }
 
 void ImportTask::run() {
     VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+    // We start by cleaning up the shared voxel system just in case
     voxelSystem->killLocalVoxels();
 
+    // Then we call the righ method for the job
     if (_filename.endsWith(".png", Qt::CaseInsensitive)) {
         voxelSystem->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
     } else if (_filename.endsWith(".svo", Qt::CaseInsensitive)) {
@@ -187,8 +149,10 @@ void ImportTask::run() {
     } else if (_filename.endsWith(".schematic", Qt::CaseInsensitive)) {
         voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data());
     } else {
-        qDebug("[ERROR] Invalid file extension.");
+        // We should never get here.
+        qDebug() << "[ERROR] Invalid file extension." << endl;
     }
-
+    
+    // Here we reaverage the tree so that he is ready for preview
     voxelSystem->getTree()->reaverageOctreeElements();
 }

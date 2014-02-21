@@ -33,6 +33,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
+#include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -139,9 +140,6 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    void setHeadData(HeadData* headData) { _headData = headData; }
-    void setHandData(HandData* handData) { _handData = handData; }
-
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
     virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
@@ -153,11 +151,13 @@ public:
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-
-    virtual float getBoundingRadius() const { return 1.f; }
+    virtual void setDisplayName(const QString& displayName);
     
+    virtual float getBoundingRadius() const { return 1.f; }
+
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -186,6 +186,12 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QString _displayName;
+
+    QRect _displayNameBoundingRect;
+    float _displayNameTargetAlpha;
+    float _displayNameAlpha;
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

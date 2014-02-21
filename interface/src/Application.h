@@ -54,6 +54,7 @@
 #include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -160,6 +161,7 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
@@ -190,6 +192,9 @@ public:
     void loadTranslatedViewMatrix(const glm::vec3& translation);
 
     const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
+
+    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
+    void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
@@ -222,13 +227,20 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     
-    void exportVoxels();
-    void importVoxels();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
-    void nudgeVoxels();
     void deleteVoxels();
+    void exportVoxels();
+    void importVoxels();
+    void nudgeVoxels();
+
+    void cutVoxels(const VoxelDetail& sourceVoxel);
+    void copyVoxels(const VoxelDetail& sourceVoxel);
+    void pasteVoxels(const VoxelDetail& sourceVoxel);
+    void deleteVoxels(const VoxelDetail& sourceVoxel);
+    void exportVoxels(const VoxelDetail& sourceVoxel);
+    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -283,6 +295,7 @@ private:
     // Various helper functions called during update()
     void updateMouseRay();
     void updateFaceshift();
+    void updateVisage();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
@@ -322,6 +335,7 @@ private:
 
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
+    void deleteVoxelAt(const VoxelDetail& voxel);
     void eyedropperVoxelUnderCursor();
 
     void setMenuShortcutsEnabled(bool enabled);
@@ -382,6 +396,7 @@ private:
     Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
@@ -394,6 +409,7 @@ private:
 
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
+    glm::mat4 _projectionMatrix;
 
     glm::mat4 _shadowMatrix;
 

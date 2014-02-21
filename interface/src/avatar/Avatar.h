@@ -74,7 +74,7 @@ public:
     void render(bool forceRenderHead);
 
     //setters
-    void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
+    void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
 
     //getters
@@ -83,8 +83,9 @@ public:
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
-    Head& getHead() { return _head; }
-    Hand& getHand() { return _hand; }
+    const Head* getHead() const { return static_cast<const Head*>(_headData); }
+    Head* getHead() { return static_cast<Head*>(_headData); }
+    Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
     
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
@@ -112,10 +113,15 @@ public:
     
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setDisplayName(const QString& displayName);
+
+    void setShowDisplayName(bool showDisplayName);
     
     int parseData(const QByteArray& packet);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
+
+
 
     /// \return true if we expect the avatar would move as a result of the collision
     bool collisionWouldMoveAvatar(CollisionInfo& collision) const;
@@ -123,14 +129,12 @@ public:
     /// \param collision a data structure for storing info about collisions against Models
     void applyCollision(CollisionInfo& collision);
 
-    float getBoundingRadius() const { return 0.5f * getHeight(); }
+    float getBoundingRadius() const { return 0.5f * getSkeletonHeight(); }
 
 public slots:
     void updateCollisionFlags();
 
 protected:
-    Head _head;
-    Hand _hand;
     SkeletonModel _skeletonModel;
     float _bodyYawDelta;
     AvatarMode _mode;
@@ -155,7 +159,8 @@ protected:
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
 
-    float getHeight() const;
+    float getSkeletonHeight() const;
+    float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
@@ -164,6 +169,8 @@ private:
     bool _initialized;
 
     void renderBody(bool forceRenderHead);
+
+    void renderDisplayName();
 };
 
 #endif

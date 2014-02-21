@@ -2382,7 +2382,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
 bool VoxelSystem::hideAllSubTreeOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
-
+    
     // If we've culled at least once, then we will use the status of this voxel in the last culled frustum to determine
     // how to proceed. If we've never culled, then we just consider all these voxels to be UNKNOWN so that we will not
     // consider that case.
@@ -2418,7 +2418,7 @@ bool VoxelSystem::hideAllSubTreeOperation(OctreeElement* element, void* extraDat
 bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
-
+    
     // If we've culled at least once, then we will use the status of this voxel in the last culled frustum to determine
     // how to proceed. If we've never culled, then we just consider all these voxels to be UNKNOWN so that we will not
     // consider that case.
@@ -2468,7 +2468,7 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
 bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData) {
     VoxelTreeElement* voxel = (VoxelTreeElement*)element;
     hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
-
+    
     // If we're still recursing the tree using this operator, then we don't know if we're inside or outside...
     // so before we move forward we need to determine our frustum location
     ViewFrustum::location inFrustum = voxel->inFrustum(args->thisViewFrustum);
@@ -2485,7 +2485,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
     // ok, now do some processing for this node...
     switch (inFrustum) {
         case ViewFrustum::OUTSIDE: {
-
             // If this node is outside the current view, then we might want to hide it... unless it was previously OUTSIDE,
             // if it was previously outside, then we can safely assume it's already hidden, and we can also safely assume
             // that all of it's children are outside both of our views, in which case we can just stop recursing...
@@ -2503,7 +2502,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
 
         } break;
         case ViewFrustum::INSIDE: {
-
             // If this node is INSIDE the current view, then we might want to show it... unless it was previously INSIDE,
             // if it was previously INSIDE, then we can safely assume it's already shown, and we can also safely assume
             // that all of it's children are INSIDE both of our views, in which case we can just stop recursing...
@@ -2517,12 +2515,10 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // we need to show it. Additionally we know that ALL of it's children are also fully INSIDE so we can recurse
             // the children and simply mark them as visible (as appropriate based on LOD)
             args->tree->recurseNodeWithOperation(voxel, showAllSubTreeOperation, args);
-
             return false;
         } break;
         case ViewFrustum::INTERSECT: {
             args->nodesScanned++;
-
             // If this node INTERSECTS the current view, then we might want to show it... unless it was previously INSIDE
             // the last known view, in which case it will already be visible, and we know that all it's children are also
             // previously INSIDE and visible. So in this case stop recursing
@@ -2536,8 +2532,15 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
             // if the child node INTERSECTs the view, then we want to check to see if it thinks it should render
             // if it should render but is missing it's VBO index, then we want to flip it on, and we can stop recursing from
             // here because we know will block any children anyway
+            
+            float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+            int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+            bool shouldRender = voxel->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
+            voxel->setShouldRender(shouldRender);
+            
             if (voxel->getShouldRender() && !voxel->isKnownBufferIndex()) {
                 voxel->setDirtyBit(); // will this make it draw?
+                voxel->markWithChangedTime(); // both are needed to force redraw
                 args->nodesShown++;
                 return false;
             }
@@ -2549,7 +2552,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
 
         } break;
     } // switch
-
 
     return true; // keep going!
 }
