@@ -29,7 +29,7 @@ class Agent : public ThreadedAssignment {
 public:
     Agent(const QByteArray& packet);
     
-    void setIsAvatar(bool isAvatar) { _scriptEngine.setIsAvatar(isAvatar); }
+    void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
 public slots:

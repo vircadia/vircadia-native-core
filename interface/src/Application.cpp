@@ -253,7 +253,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // send the identity packet for our avatar each second to our avatar mixer
     QTimer* identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
-    identityPacketTimer->start(1000);
+    identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
@@ -2347,7 +2347,7 @@ void Application::updateMyAvatar(float deltaTime) {
     _myAvatar->update(deltaTime);
 
     // send head/hand data to the avatar mixer and voxel server
-    QByteArray packet = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
     packet.append(_myAvatar->toByteArray());
 
     controlledBroadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
