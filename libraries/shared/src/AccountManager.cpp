@@ -58,7 +58,6 @@ AccountManager::AccountManager() :
 }
 
 void AccountManager::setRootURL(const QUrl& rootURL) {
-    
     if (_rootURL != rootURL) {
         _rootURL = rootURL;
         
@@ -68,6 +67,16 @@ void AccountManager::setRootURL(const QUrl& rootURL) {
         
         qDebug() << "URL for node authentication has been changed to" << qPrintable(_rootURL.toString());
         qDebug() << "Re-setting authentication flow.";
+    }
+}
+
+void AccountManager::setUsername(const QString& username) {
+    if (_username != username) {
+        _username = username;
+        
+        qDebug() << "Changing username to" << username;
+        
+        emit usernameChanged(username);
     }
 }
 
@@ -223,6 +232,9 @@ void AccountManager::requestFinished() {
             
             OAuthAccessToken freshAccessToken(rootObject);
             _accessTokens.insert(rootURL, freshAccessToken);
+            
+            // pull username from the response
+            setUsername(rootObject["user"].toObject()["username"].toString());
             
             emit receivedAccessToken(rootURL);
             

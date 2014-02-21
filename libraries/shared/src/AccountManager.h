@@ -50,7 +50,7 @@ public:
     void requestAccessToken(const QString& login, const QString& password);
     
     const QString& getUsername() const { return _username; }
-    void setUsername(const QString& username) { _username = username; }
+    void setUsername(const QString& username);
     
 public slots:
     void requestFinished();
@@ -58,6 +58,7 @@ public slots:
 signals:
     void authenticationRequired();
     void receivedAccessToken(const QUrl& rootURL);
+    void usernameChanged(const QString& username);
 private slots:
     void passSuccessToCallback();
     void passErrorToCallback(QNetworkReply::NetworkError errorCode);
