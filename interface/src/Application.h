@@ -333,7 +333,7 @@ private:
     void displayStats();
     void checkStatsClick();
     void toggleStatsExpanded();
-    void renderRearViewMirror(bool billboard = false);
+    void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();

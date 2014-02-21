@@ -527,7 +527,7 @@ void Application::paintGL() {
         _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror();
+            renderRearViewMirror(_mirrorViewRect);
             
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
@@ -2679,10 +2679,20 @@ void Application::setupWorldLight() {
 }
 
 QImage Application::renderAvatarBillboard() {
-    renderRearViewMirror(true);
+    _textureCache.getPrimaryFramebufferObject()->bind();
     
-    QImage image(_glWidget->width(), _glWidget->height(), QImage::Format_ARGB32);
-    glReadPixels(0, 0, _glWidget->width(), _glWidget->height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    glDisable(GL_BLEND);
+
+    const int BILLBOARD_SIZE = 128;
+    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    
+    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
+    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    
+    glEnable(GL_BLEND);
+    
+    _textureCache.getPrimaryFramebufferObject()->release();
+    
     return image;
 }
 
@@ -3603,9 +3613,13 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     }
 }
 
-void Application::renderRearViewMirror(bool billboard) {
+void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     bool eyeRelativeCamera = false;
-    if (_rearMirrorTools->getZoomLevel() == BODY && !billboard) {
+    if (billboard) {
+        const float BILLBOARD_DISTANCE = 5.0f;
+        _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
+    } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
         _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
     } else { // HEAD zoom level
@@ -3625,10 +3639,8 @@ void Application::renderRearViewMirror(bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-        _mirrorViewRect.width(), _mirrorViewRect.height());
-    glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-        _mirrorViewRect.width(), _mirrorViewRect.height());
+    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
