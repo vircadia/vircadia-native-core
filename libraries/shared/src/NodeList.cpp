@@ -111,8 +111,13 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (checkType == PacketTypeDomainList) {
                 
                 if (_domainInfo.getRootAuthenticationURL().isEmpty() && _domainInfo.getUUID().isNull()) {
+                    // if this is a domain-server that doesn't require auth,
                     // pull the UUID from this packet and set it as our domain-server UUID
                     _domainInfo.setUUID(uuidFromPacketHeader(packet));
+                    
+                    // we also know this domain-server requires no authentication
+                    // so set the account manager root URL empty
+                    AccountManager::getInstance().setRootURL(QUrl());
                 }
                 
                 if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {

@@ -42,7 +42,7 @@ public:
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray());
     
-    void setRootURL(const QUrl& rootURL) { _rootURL = rootURL; }
+    void setRootURL(const QUrl& rootURL);
     
     bool hasValidAccessToken();
     bool checkAndSignalForAccessToken();
@@ -66,9 +66,12 @@ private:
     AccountManager(AccountManager const& other); // not implemented
     void operator=(AccountManager const& other); // not implemented
     
+    Q_INVOKABLE void invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
+                                    const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray);
+    
     QUrl _rootURL;
     QString _username;
-    QNetworkAccessManager* _networkAccessManager;
+    QNetworkAccessManager _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
     static QMap<QUrl, OAuthAccessToken> _accessTokens;

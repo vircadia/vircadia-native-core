@@ -26,17 +26,21 @@ AccountManager& AccountManager::getInstance() {
 }
 
 Q_DECLARE_METATYPE(OAuthAccessToken)
+Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
+Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNT_TOKEN_GROUP = "tokens";
 
 AccountManager::AccountManager() :
     _rootURL(),
     _username(),
-    _networkAccessManager(new QNetworkAccessManager),
+    _networkAccessManager(),
     _pendingCallbackMap()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
+    qRegisterMetaType<QNetworkAccessManager::Operation>("QNetworkAccessManager::Operation");
+    qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
     
     // check if there are existing access tokens to load from settings
     QSettings settings;
@@ -53,9 +57,32 @@ AccountManager::AccountManager() :
     }
 }
 
+void AccountManager::setRootURL(const QUrl& rootURL) {
+    
+    if (_rootURL != rootURL) {
+        _rootURL = rootURL;
+        
+        // we have an auth URL change, set the username empty
+        // we will need to ask for profile information again
+        _username.clear();
+        
+        qDebug() << "URL for node authentication has been changed to" << qPrintable(_rootURL.toString());
+        qDebug() << "Re-setting authentication flow.";
+    }
+}
+
 void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                           const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
-    if (_networkAccessManager && hasValidAccessToken()) {
+    QMetaObject::invokeMethod(this, "invokedRequest",
+                              Q_ARG(const QString&, path),
+                              Q_ARG(QNetworkAccessManager::Operation, operation),
+                              Q_ARG(const JSONCallbackParameters&, callbackParams),
+                              Q_ARG(const QByteArray&, dataByteArray));
+}
+
+void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
+                                    const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray) {
+    if (hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
         QUrl requestURL = _rootURL;
@@ -70,11 +97,11 @@ void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessMan
         
         switch (operation) {
             case QNetworkAccessManager::GetOperation:
-                networkReply = _networkAccessManager->get(authenticatedRequest);
+                networkReply = _networkAccessManager.get(authenticatedRequest);
                 break;
             case QNetworkAccessManager::PostOperation:
                 authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-                networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
+                networkReply = _networkAccessManager.post(authenticatedRequest, dataByteArray);
             default:
                 // other methods not yet handled
                 break;
@@ -155,24 +182,22 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
-    if (_networkAccessManager) {
-        QNetworkRequest request;
-        
-        QUrl grantURL = _rootURL;
-        grantURL.setPath("/oauth/token");
-        
-        QByteArray postData;
-        postData.append("grant_type=password&");
-        postData.append("username=" + login + "&");
-        postData.append("password=" + password);
-        
-        request.setUrl(grantURL);
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-        
-        QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
-        connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
-        connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
-    }
+    QNetworkRequest request;
+    
+    QUrl grantURL = _rootURL;
+    grantURL.setPath("/oauth/token");
+    
+    QByteArray postData;
+    postData.append("grant_type=password&");
+    postData.append("username=" + login + "&");
+    postData.append("password=" + password);
+    
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    
+    QNetworkReply* requestReply = _networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
 }
 
 
