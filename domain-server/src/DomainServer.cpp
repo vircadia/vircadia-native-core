@@ -464,7 +464,7 @@ void DomainServer::readAvailableDatagrams() {
 
     HifiSockAddr senderSockAddr;
     
-    static QByteArray assignmentPacket = byteArrayWithPopluatedHeader(PacketTypeCreateAssignment);
+    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
     
     QByteArray receivedPacket;

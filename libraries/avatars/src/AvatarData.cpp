@@ -36,7 +36,7 @@ AvatarData::AvatarData() :
     _isChatCirclingEnabled(false),
     _headData(NULL),
     _handData(NULL), 
-    _displayNameWidth(0), 
+    _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f)
 {
@@ -323,7 +323,6 @@ void AvatarData::setDisplayName(const QString& displayName) {
     qDebug() << "Changing display name for avatar to" << displayName;
 }
 
-
 void AvatarData::setClampedTargetScale(float targetScale) {
     
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
@@ -337,4 +336,11 @@ void AvatarData::setOrientation(const glm::quat& orientation) {
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
+}
+
+void AvatarData::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }

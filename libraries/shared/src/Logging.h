@@ -44,14 +44,14 @@ public:
 
     /// sets the target name to output via the verboseMessageHandler, called once before logging begins
     /// \param targetName the desired target name to output in logs
-    static void setTargetName(const char* targetName);
+    static void setTargetName(const QString& targetName) { _targetName = targetName; }
 
     /// a qtMessageHandler that can be hooked up to a target that links to Qt
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 private:
-    static HifiSockAddr logstashSocket;
-    static char* targetName;
+    static HifiSockAddr _logstashSocket;
+    static QString _targetName;
 };
 
 #endif /* defined(__hifi__Logstash__) */

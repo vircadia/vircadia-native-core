@@ -58,6 +58,11 @@ void Octree::recurseTreeWithOperation(RecurseOctreeOperation operation, void* ex
     recurseNodeWithOperation(_rootNode, operation, extraData);
 }
 
+// Recurses voxel tree calling the RecurseOctreePostFixOperation function for each node in post-fix order.
+void Octree::recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData) {
+    recurseNodeWithPostOperation(_rootNode, operation, extraData);
+}
+
 // Recurses voxel node with an operation function
 void Octree::recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
@@ -74,6 +79,23 @@ void Octree::recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperatio
             }
         }
     }
+}
+
+// Recurses voxel node with an operation function
+void Octree::recurseNodeWithPostOperation(OctreeElement* node, RecurseOctreeOperation operation, void* extraData,
+                        int recursionCount) {
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "Octree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
+
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        OctreeElement* child = node->getChildAtIndex(i);
+        if (child) {
+            recurseNodeWithPostOperation(child, operation, extraData, recursionCount+1);
+        }
+    }
+	operation(node, extraData);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each node.
