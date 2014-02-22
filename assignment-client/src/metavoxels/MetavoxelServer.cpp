@@ -88,7 +88,7 @@ void MetavoxelServer::sendDeltas() {
 
 MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node) :
     _server(server),
-    _sequencer(byteArrayWithPopluatedHeader(PacketTypeMetavoxelData)),
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)),
     _node(node) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
