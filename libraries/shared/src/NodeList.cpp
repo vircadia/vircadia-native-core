@@ -567,6 +567,9 @@ void NodeList::setSessionUUID(const QUuid& sessionUUID) {
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
+    
+    // if this was the first domain-server list from this domain, we've now connected
+    _domainInfo.setIsConnected(true);
 
     int readNodes = 0;
     

@@ -44,6 +44,7 @@ public:
     
     void setRootURL(const QUrl& rootURL);
     
+    bool isLoggedIn() { return !_rootURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
     bool checkAndSignalForAccessToken();
     

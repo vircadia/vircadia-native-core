@@ -17,7 +17,8 @@ DomainInfo::DomainInfo() :
     _connectionSecret(),
     _registrationToken(),
     _rootAuthenticationURL(),
-    _publicKey()
+    _publicKey(),
+    _isConnected(false)
 {
     
 }
@@ -31,6 +32,7 @@ void DomainInfo::reset() {
     _registrationToken = QByteArray();
     _rootAuthenticationURL = QUrl();
     _publicKey = QString();
+    _isConnected = false;
 }
 
 void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
@@ -85,4 +87,14 @@ void DomainInfo::completedHostnameLookup(const QHostInfo& hostInfo) {
     
     // if we got here then we failed to lookup the address
     qDebug("Failed domain server lookup");
+}
+
+void DomainInfo::setIsConnected(bool isConnected) {
+    if (_isConnected != isConnected) {
+        _isConnected = isConnected;
+        
+        if (_isConnected) {
+            emit connectedToDomain(_hostname);
+        }
+    }
 }

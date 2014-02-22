@@ -104,8 +104,16 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
                 networkReply = _networkAccessManager.get(authenticatedRequest);
                 break;
             case QNetworkAccessManager::PostOperation:
-                authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-                networkReply = _networkAccessManager.post(authenticatedRequest, dataByteArray);
+            case QNetworkAccessManager::PutOperation:
+                authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                
+                if (operation == QNetworkAccessManager::PostOperation) {
+                    networkReply = _networkAccessManager.post(authenticatedRequest, dataByteArray);
+                } else {
+                    networkReply = _networkAccessManager.put(authenticatedRequest, dataByteArray);
+                }
+                
+                break;
             default:
                 // other methods not yet handled
                 break;

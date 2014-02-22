@@ -253,6 +253,8 @@ public slots:
 private slots:
     void timer();
     void idle();
+    
+    void connectedToDomain(const QString& hostname);
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);

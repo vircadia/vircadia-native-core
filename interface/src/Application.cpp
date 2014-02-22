@@ -219,6 +219,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     audioThread->start();
 
     connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
 
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -1484,6 +1485,8 @@ void Application::timer() {
 
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -3949,6 +3952,19 @@ void Application::domainChanged(const QString& domainHostname) {
     
     // reset the particle renderer
     _particles.clear();
+}
+
+void Application::connectedToDomain(const QString& hostname) {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        // update our domain-server with the data-server we're logged in with
+        
+        QString domainPutJsonString = "{\"location\":{\"domain\":\"" + hostname + "\"}}";
+        
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
+    }
 }
 
 void Application::nodeAdded(SharedNodePointer node) {

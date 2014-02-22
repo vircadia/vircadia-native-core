@@ -51,10 +51,14 @@ public:
     const QUrl& getRootAuthenticationURL() const { return _rootAuthenticationURL; }
     void setRootAuthenticationURL(const QUrl& rootAuthenticationURL) { _rootAuthenticationURL = rootAuthenticationURL; }
     
+    bool isConnected() const { return _isConnected; }
+    void setIsConnected(bool isConnected);
+    
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
 signals:
     void hostnameChanged(const QString& hostname);
+    void connectedToDomain(const QString& hostname);
 private:
     void reset();
     
@@ -66,6 +70,7 @@ private:
     QByteArray _registrationToken;
     QUrl _rootAuthenticationURL;
     QString _publicKey;
+    bool _isConnected;
 };
 
 #endif /* defined(__hifi__DomainInfo__) */
