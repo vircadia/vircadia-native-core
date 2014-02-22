@@ -19,8 +19,13 @@ public:
     Sound(const QUrl& sampleURL, QObject* parent = 0);
     
     const QByteArray& getByteArray() { return _byteArray; }
+
 private:
     QByteArray _byteArray;
+
+    void downSample(const QByteArray& rawAudioByteArray);
+    void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+
 private slots:
     void replyFinished(QNetworkReply* reply);
 };
