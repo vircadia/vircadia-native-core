@@ -3,11 +3,14 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 1/2/2014.
+//  Modified by Athanasios Gaitatzes to add WAVE file support.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
 #include <stdint.h>
 
+#include <QDataStream>
+#include <QtCore/QDebug>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
