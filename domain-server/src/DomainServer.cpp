@@ -221,10 +221,10 @@ void DomainServer::readAvailableDatagrams() {
 
     HifiSockAddr senderSockAddr, nodePublicAddress, nodeLocalAddress;
     
-    static QByteArray broadcastPacket = byteArrayWithPopluatedHeader(PacketTypeDomainList);
+    static QByteArray broadcastPacket = byteArrayWithPopulatedHeader(PacketTypeDomainList);
     static int numBroadcastPacketHeaderBytes = broadcastPacket.size();
     
-    static QByteArray assignmentPacket = byteArrayWithPopluatedHeader(PacketTypeCreateAssignment);
+    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
     
     QByteArray receivedPacket;

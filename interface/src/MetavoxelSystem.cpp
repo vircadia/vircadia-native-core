@@ -168,12 +168,19 @@ bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     return false;
 }
 
+<<<<<<< HEAD
 MetavoxelSystem::RenderVisitor::RenderVisitor() :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
 }
 
 void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->render(1.0f);
+=======
+static QByteArray createDatagramHeader(const QUuid& sessionID) {
+    QByteArray header = byteArrayWithPopulatedHeader(PacketTypeMetavoxelData);
+    header += sessionID.toRfc4122();
+    return header;
+>>>>>>> 224f42c366bedfe91546888a9039c917ff6d416c
 }
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :

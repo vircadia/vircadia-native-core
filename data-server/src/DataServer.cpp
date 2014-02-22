@@ -121,7 +121,7 @@ void DataServer::readPendingDatagrams() {
                     if (reply->type == REDIS_REPLY_STATUS && strcmp("OK", reply->str) == 0) {
                         // if redis stored the value successfully reply back with a confirm
                         // which is a reply packet with the sequence number
-                        QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerConfirm, _uuid);
+                        QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypeDataServerConfirm, _uuid);
                         
                         replyPacket.append(sequenceNumber);
                         
@@ -132,7 +132,7 @@ void DataServer::readPendingDatagrams() {
                 } else {
                     // setup a send packet with the returned data
                     // leverage the packetData sent by overwriting and appending
-                    QByteArray sendPacket = byteArrayWithPopluatedHeader(PacketTypeDataServerSend, _uuid);
+                    QByteArray sendPacket = byteArrayWithPopulatedHeader(PacketTypeDataServerSend, _uuid);
                     QDataStream sendPacketStream(&sendPacket, QIODevice::Append);
                     
                     sendPacketStream << sequenceNumber;

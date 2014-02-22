@@ -65,7 +65,7 @@ PacketVersion versionForPacketType(PacketType type) {
     }
 }
 
-QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connectionUUID) {
+QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID) {
     QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
     freshByteArray.resize(populatePacketHeader(freshByteArray, type, connectionUUID));
     return freshByteArray;

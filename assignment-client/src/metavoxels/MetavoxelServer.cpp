@@ -28,7 +28,7 @@ void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
     edit.apply(_data);
 }
 
-const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
+const QString METAVOXEL_SERVER_LOGGING_NAME = "metavoxel-server";
 
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);
