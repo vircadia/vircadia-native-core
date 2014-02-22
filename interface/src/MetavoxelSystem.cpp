@@ -178,7 +178,7 @@ void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
     _node(node),
-    _sequencer(byteArrayWithPopluatedHeader(PacketTypeMetavoxelData)) {
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
