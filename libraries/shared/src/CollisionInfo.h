@@ -10,6 +10,7 @@
 #define __hifi__CollisionInfo__
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <QVector>
 
@@ -54,6 +55,12 @@ public:
     }
 
     ~CollisionInfo() {}
+
+    /// Rotate and translate the details.
+    void rotateThenTranslate(const glm::quat& rotation, const glm::vec3& translation);
+
+    /// Translate then rotate the details
+    void translateThenRotate(const glm::vec3& translation, const glm::quat& rotation);
 
     qint32 _type;             // type of Collision (will determine what is supposed to be in _data and _flags)
     void* _data;              // pointer to user supplied data
