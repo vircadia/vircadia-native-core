@@ -118,7 +118,6 @@ void Avatar::simulate(float deltaTime) {
     getHand()->simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     Head* head = getHead();
-    head->setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _position;

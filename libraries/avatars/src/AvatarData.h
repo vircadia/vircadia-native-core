@@ -78,6 +78,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
@@ -108,6 +109,9 @@ public:
 
     glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
     void setOrientation(const glm::quat& orientation);
+
+    glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
+    void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
     // access to Head().set/getMousePitch
     float getHeadPitch() const { return _headData->getPitch(); }
