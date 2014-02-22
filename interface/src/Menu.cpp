@@ -91,6 +91,8 @@ Menu::Menu() :
                                    0,
                                    this,
                                    SLOT(loginForCurrentDomain())));
+    
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::Logout, 0, &AccountManager::getInstance(), SLOT(logout()));
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));

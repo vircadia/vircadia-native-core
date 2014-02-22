@@ -34,7 +34,6 @@ public:
 class AccountManager : public QObject {
     Q_OBJECT
 public:
-    
     static AccountManager& getInstance();
     
     void authenticatedRequest(const QString& path,
@@ -55,6 +54,7 @@ public:
 public slots:
     void requestFinished();
     void requestError(QNetworkReply::NetworkError error);
+    void logout();
 signals:
     void authenticationRequired();
     void receivedAccessToken(const QUrl& rootURL);

@@ -63,6 +63,21 @@ AccountManager::AccountManager() :
     }
 }
 
+const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
+
+void AccountManager::logout() {
+    // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
+    _accounts.remove(_rootURL);
+    
+    QSettings settings;
+    settings.beginGroup(ACCOUNTS_GROUP);
+    
+    QString keyURLString(_rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
+    settings.remove(keyURLString);
+    
+    qDebug() << "Removed account info for" << _rootURL << "from in-memory accounts and .ini file";
+}
+
 void AccountManager::setRootURL(const QUrl& rootURL) {
     if (_rootURL != rootURL) {
         _rootURL = rootURL;
@@ -255,7 +270,8 @@ void AccountManager::requestFinished() {
             // store this access token into the local settings
             QSettings localSettings;
             localSettings.beginGroup(ACCOUNTS_GROUP);
-            localSettings.setValue(rootURL.toString().replace("//", "slashslash"), QVariant::fromValue(freshAccountInfo));
+            localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
+                                   QVariant::fromValue(freshAccountInfo));
         }
     } else {
         // TODO: error handling
