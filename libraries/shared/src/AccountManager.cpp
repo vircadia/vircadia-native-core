@@ -18,6 +18,7 @@
 
 #include "AccountManager.h"
 
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
@@ -95,7 +96,13 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         
         authenticatedRequest.setUrl(requestURL);
         
-        qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
+        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+            qDebug() << "Making an authenticated request to" << qPrintable(requestURL.toString());
+            
+            if (!dataByteArray.isEmpty()) {
+                qDebug() << "The POST/PUT body -" << QString(dataByteArray);
+            }
+        }
         
         QNetworkReply* networkReply = NULL;
         
@@ -148,8 +155,10 @@ void AccountManager::passSuccessToCallback() {
         _pendingCallbackMap.remove(requestReply);
         
     } else {
-        qDebug() << "Received JSON response from data-server that has no matching callback.";
-        qDebug() << jsonResponse;
+        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+            qDebug() << "Received JSON response from data-server that has no matching callback.";
+            qDebug() << jsonResponse;
+        }
     }
 }
 
@@ -166,8 +175,10 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
     } else {
-        qDebug() << "Received error response from data-server that has no matching callback.";
-        qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
+        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+            qDebug() << "Received error response from data-server that has no matching callback.";
+            qDebug() << "Error" << errorCode << "-" << requestReply->errorString();
+        }
     }
 }
 
@@ -175,7 +186,10 @@ bool AccountManager::hasValidAccessToken() {
     DataServerAccountInfo accountInfo = _accounts.value(_rootURL);
     
     if (accountInfo.getAccessToken().token.isEmpty() || accountInfo.getAccessToken().isExpired()) {
-        qDebug() << "An access token is required for requests to" << qPrintable(_rootURL.toString());
+        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+            qDebug() << "An access token is required for requests to" << qPrintable(_rootURL.toString());
+        }
+        
         return false;
     } else {
         return true;
