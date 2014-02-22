@@ -11,35 +11,35 @@
 namespace ShapeCollider {
 
 bool shapeShape(const Shape* shapeA, const Shape* shapeB, 
-        const glm::quat& rotationAB, const glm::vec3& offsetB, CollisionInfo& collision) {
+        const glm::quat& rotationAB, const glm::vec3& offsetA, CollisionInfo& collision) {
     // ATM we only have two shape types so we just check every case.
     // TODO: make a fast lookup for correct method
     if (shapeA->getType() == Shape::SPHERE_SHAPE) {
         const SphereShape* sphereA = static_cast<const SphereShape*>(shapeA);
         if (shapeB->getType() == Shape::SPHERE_SHAPE) {
             return sphereSphere(sphereA, static_cast<const SphereShape*>(shapeB), 
-                    rotationAB, offsetB, collision);
+                    rotationAB, offsetA, collision);
         } else if (shapeB->getType() == Shape::CAPSULE_SHAPE) {
             return sphereCapsule(sphereA, static_cast<const CapsuleShape*>(shapeB), 
-                    rotationAB, offsetB, collision);
+                    rotationAB, offsetA, collision);
         }
     } else if (shapeA->getType() == Shape::CAPSULE_SHAPE) {
         const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
         if (shapeB->getType() == Shape::SPHERE_SHAPE) {
             return capsuleSphere(capsuleA, static_cast<const SphereShape*>(shapeB), 
-                    rotationAB, offsetB, collision);
+                    rotationAB, offsetA, collision);
         } else if (shapeB->getType() == Shape::CAPSULE_SHAPE) {
             return capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(shapeB), 
-                    rotationAB, offsetB, collision);
+                    rotationAB, offsetA, collision);
         }
     }
     return false;
 }
 
 bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, 
-        const glm::quat& rotationAB, const glm::vec3& offsetB, CollisionInfo& collision) {
+        const glm::quat& rotationAB, const glm::vec3& offsetA, CollisionInfo& collision) {
     // A in B's frame
-    glm::vec3 A = offsetB + rotationAB * sphereA->getPosition();
+    glm::vec3 A = rotationAB * sphereA->getPosition() + offsetA;
     // BA = B - A = from A to B, in B's frame
     glm::vec3 BA = sphereB->getPosition() - A;
     float distanceSquared = glm::dot(BA, BA);
@@ -119,10 +119,10 @@ bool sphereCapsuleHelper(float sphereRadius, const glm::vec3 sphereCenter,
 }
 
 bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB,
-        const glm::quat& rotationAB, const glm::vec3& offsetB, CollisionInfo& collision) {
+        const glm::quat& rotationAB, const glm::vec3& offsetA, CollisionInfo& collision) {
     // transform sphereA all the way to capsuleB's natural frame
     glm::quat rotationB = capsuleB->getRotation();
-    glm::vec3 sphereCenter = rotationB * (offsetB + rotationAB * sphereA->getPosition() - capsuleB->getPosition());
+    glm::vec3 sphereCenter = rotationB * (offsetA + rotationAB * sphereA->getPosition() - capsuleB->getPosition());
     if (sphereCapsuleHelper(sphereA->getRadius(), sphereCenter, capsuleB, collision)) {
         // need to transform collision details back into B's offset frame
         collision.rotateThenTranslate(glm::inverse(rotationB), capsuleB->getPosition());
@@ -132,24 +132,24 @@ bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB,
 }
 
 bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB,
-        const glm::quat& rotationAB, const glm::vec3& offsetB, CollisionInfo& collision) {
+        const glm::quat& rotationAB, const glm::vec3& offsetA, CollisionInfo& collision) {
     // transform sphereB all the way to capsuleA's natural frame
     glm::quat rotationBA = glm::inverse(rotationAB);
     glm::quat rotationA = capsuleA->getRotation();
-    glm::vec3 offsetA = rotationBA * (-offsetB);
-    glm::vec3 sphereCenter = rotationA * (offsetA + rotationBA * sphereB->getPosition() - capsuleA->getPosition());
+    glm::vec3 offsetB = rotationBA * (-offsetA);
+    glm::vec3 sphereCenter = rotationA * (offsetB + rotationBA * sphereB->getPosition() - capsuleA->getPosition());
     if (sphereCapsuleHelper(sphereB->getRadius(), sphereCenter, capsuleA, collision)) {
         // need to transform collision details back into B's offset frame
         // BUG: these back translations are probably not right
         collision.rotateThenTranslate(glm::inverse(rotationA), capsuleA->getPosition());
-        collision.rotateThenTranslate(glm::inverse(rotationAB), -offsetB);
+        collision.rotateThenTranslate(glm::inverse(rotationAB), -offsetA);
         return true;
     }
     return false;
 }
 
 bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB,
-        const glm::quat& rotationAB, const glm::vec3& offsetB, CollisionInfo& collision) {
+        const glm::quat& rotationAB, const glm::vec3& offsetA, CollisionInfo& collision) {
     return false;
 }
 

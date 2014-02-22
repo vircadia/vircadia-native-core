@@ -34,6 +34,7 @@ public:
 
 protected:
     Shape(Type type) : _type(type), _boundingRadius(0.f), _position(0.f), _rotation() {}
+
     Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
         : _type(type), _boundingRadius(0.f), _position(position), _rotation(rotation) {}
 

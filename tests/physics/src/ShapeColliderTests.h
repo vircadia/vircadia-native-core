@@ -11,8 +11,8 @@
 
 namespace ShapeColliderTests {
 
-    //void rotateThenTranslate();
-    //void translateThenRotate();
+    void sphereSphere();
+    //void test2();
 
     void runAllTests(); 
 }
