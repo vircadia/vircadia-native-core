@@ -38,7 +38,7 @@ public:
     static AccountManager& getInstance();
     
     void authenticatedRequest(const QString& path,
-                              QNetworkAccessManager::Operation operation,
+                              QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray());
     

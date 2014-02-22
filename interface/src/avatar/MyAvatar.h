@@ -90,6 +90,7 @@ public slots:
     void resetSize();
     
     void updateLocationInDataServer();
+    void goToLocationFromResponse(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };

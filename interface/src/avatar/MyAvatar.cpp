@@ -1200,3 +1200,6 @@ void MyAvatar::updateLocationInDataServer() {
     }
 }
 
+void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
+    qDebug() << jsonObject;
+}

@@ -1049,8 +1049,14 @@ void Menu::goTo() {
         
         // go to coordinate destination or to Username
         if (!goToDestination(destination)) {
-            // there's a username entered by the user, make a request to the data-server
-    
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
+            callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
+            
+            // there's a username entered by the user, make a request to the data-server for the associated location
+            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/location",
+                                                               QNetworkAccessManager::GetOperation,
+                                                               callbackParams);
         }
     }
     
