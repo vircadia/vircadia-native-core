@@ -1201,5 +1201,38 @@ void MyAvatar::updateLocationInDataServer() {
 }
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    qDebug() << jsonObject;
+    
+    if (jsonObject["status"].toString() == "success") {
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        sendKillAvatar();
+        
+        QJsonObject locationObject = jsonObject["data"].toObject()["location"].toObject();
+        QString positionString = locationObject["position"].toString();
+        QString orientationString = locationObject["orientation"].toString();
+        QString domainHostnameString = locationObject["domain"].toString();
+        
+        qDebug() << "Changing domain to" << domainHostnameString <<
+            ", position to" << positionString <<
+            ", and orientation to" << orientationString;
+        
+        QStringList coordinateItems = positionString.split(',');
+        QStringList orientationItems = orientationString.split(',');
+        
+        NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
+        
+        // orient the user to face the target
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
+            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+        setOrientation(newOrientation);
+        
+        // move the user a couple units away
+        const float DISTANCE_TO_USER = 2.0f;
+        glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
+                                          coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+        setPosition(newPosition);
+    }
+    
 }
