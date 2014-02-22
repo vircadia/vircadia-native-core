@@ -11,6 +11,9 @@
 
 #include <glm/gtx/vector_angle.hpp>
 
+#include <QtCore/QTimer>
+
+#include <AccountManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -39,6 +42,8 @@ const bool USING_HEAD_LEAN = false;
 const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
 const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
 
+const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
+
 MyAvatar::MyAvatar() :
 	Avatar(),
     _mousePressed(false),
@@ -61,6 +66,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    
+    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
+    QTimer* locationUpdateTimer = new QTimer(this);
+    connect(locationUpdateTimer, &QTimer::timeout, this, &MyAvatar::updateLocationInDataServer);
+    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 }
 
 MyAvatar::~MyAvatar() {
@@ -1165,5 +1175,28 @@ void MyAvatar::decreaseSize() {
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
     qDebug("Reseted scale to %f", _targetScale);
+}
+
+static QByteArray createByteArray(const glm::vec3& vector) {
+    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
+}
+
+void MyAvatar::updateLocationInDataServer() {
+    // TODO: don't re-send this when it hasn't change or doesn't change by some threshold
+    // This will required storing the last sent values and clearing them when the AccountManager rootURL changes
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        QString positionString(createByteArray(_position));
+        QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
+        
+        // construct the json to put the user's location
+        QString locationPutJson = QString() + "{\"location\":{\"position\":\""
+            + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
+        
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), locationPutJson.toUtf8());
+    }
 }
 

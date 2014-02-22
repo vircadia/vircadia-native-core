@@ -77,18 +77,19 @@ public:
     
     static void sendKillAvatar();
 
-
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar(glm::vec3& eyePosition);
     void clearLookAtTargetAvatar();
-
+    
 public slots:
     void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    
+    void updateLocationInDataServer();
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
