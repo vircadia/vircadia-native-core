@@ -28,7 +28,7 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     connect(manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(replyFinished(QNetworkReply*)));
 
-    qDebug() << "Requesting file" << sampleURL.fileName();
+    qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
     manager->get(QNetworkRequest(sampleURL));
 }
 
