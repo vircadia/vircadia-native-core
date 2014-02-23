@@ -12,6 +12,30 @@ void VoxelsScriptingInterface::queueVoxelAdd(PacketType addPacketType, VoxelDeta
     getVoxelPacketSender()->queueVoxelEditMessages(addPacketType, 1, &addVoxelDetails);
 }
 
+VoxelDetail VoxelsScriptingInterface::getVoxelAt(float x, float y, float z, float scale) {
+    // setup a VoxelDetail struct with the data
+    VoxelDetail result = {0,0,0,0,0,0,0};
+
+    if (_tree) {
+        _tree->lockForRead();
+
+        VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(_tree->getOctreeElementAt(x / (float)TREE_SCALE, y / (float)TREE_SCALE, 
+                                                    z / (float)TREE_SCALE, scale / (float)TREE_SCALE));
+        _tree->unlock();
+        if (voxel) {
+             // Note: these need to be in voxel space because the VoxelDetail -> js converter will upscale
+            result.x = voxel->getCorner().x;
+            result.y = voxel->getCorner().y;
+            result.z = voxel->getCorner().z;
+            result.s = voxel->getScale();
+            result.red = voxel->getColor()[RED_INDEX];
+            result.green = voxel->getColor()[GREEN_INDEX];
+            result.blue = voxel->getColor()[BLUE_INDEX];
+        }
+    }
+    return result;
+}
+
 void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z, float scale, 
                                                         uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data

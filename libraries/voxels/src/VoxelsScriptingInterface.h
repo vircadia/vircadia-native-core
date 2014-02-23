@@ -30,6 +30,14 @@ public:
     void setVoxelTree(VoxelTree* tree) { _tree = tree; }
 
 public slots:
+
+    /// checks the local voxel tree for a voxel at the specified location and scale
+    /// \param x the x-coordinate of the voxel (in meter units)
+    /// \param y the y-coordinate of the voxel (in meter units)
+    /// \param z the z-coordinate of the voxel (in meter units)
+    /// \param scale the scale of the voxel (in meter units)
+    VoxelDetail getVoxelAt(float x, float y, float z, float scale);
+
     /// queues the creation of a voxel which will be sent by calling process on the PacketSender
     /// \param x the x-coordinate of the voxel (in meter units)
     /// \param y the y-coordinate of the voxel (in meter units)
