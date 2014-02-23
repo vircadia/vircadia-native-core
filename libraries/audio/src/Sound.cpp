@@ -33,6 +33,7 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
 }
 
 void Sound::replyFinished(QNetworkReply* reply) {
+
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = reply->readAll();
 
@@ -66,6 +67,7 @@ void Sound::replyFinished(QNetworkReply* reply) {
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
+
     // assume that this was a RAW file and is now an array of samples that are
     // signed, 16-bit, 48Khz, mono
 
