@@ -25,7 +25,7 @@ var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
-var previewLineWidth = 1.5;
+var previewLineWidth = 3; // 1.5;
 
 var oldMode = Camera.getMode();
 
@@ -339,9 +339,22 @@ var recolorToolSelected = false;
 var eyedropperToolSelected = false;
 var selectToolSelected = false;
 
+
 function calculateVoxelFromIntersection(intersection, operation) {
     //print("calculateVoxelFromIntersection() operation="+operation);
     var resultVoxel;
+
+    var wantDebug = false;
+    if (wantDebug) {
+        print(">>>>> calculateVoxelFromIntersection().... intersection voxel.red/green/blue=" + intersection.voxel.red + ", " 
+                                + intersection.voxel.green + ", " + intersection.voxel.blue);
+        print("   intersection voxel.x/y/z/s=" + intersection.voxel.x + ", " 
+                                + intersection.voxel.y + ", " + intersection.voxel.z+ ": " + intersection.voxel.s);
+        print("   intersection face=" + intersection.face);
+        print("   intersection distance=" + intersection.distance);
+        print("   intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
+                                + intersection.intersection.y + ", " + intersection.intersection.z);
+    }
     
     var voxelSize;
     if (pointerVoxelScaleSet) {
@@ -350,20 +363,48 @@ function calculateVoxelFromIntersection(intersection, operation) {
         voxelSize = intersection.voxel.s; 
     }
 
-    // first, calculate the enclosed voxel of size voxelSize that the intersection point falls inside of.
-    // if you have a voxelSize that's smaller than the voxel you're intersecting, this calculation will result
-    // in the subvoxel that the intersection point falls in
-    var x = Math.floor(intersection.intersection.x / voxelSize) * voxelSize;
-    var y = Math.floor(intersection.intersection.y / voxelSize) * voxelSize;
-    var z = Math.floor(intersection.intersection.z / voxelSize) * voxelSize;
+    var x;
+    var y;
+    var z;
+    
+    // if our "target voxel size" is larger than the voxel we intersected with, then we need to find the closest
+    // ancestor voxel of our target size that contains our intersected voxel.
+    if (voxelSize > intersection.voxel.s) {
+        if (wantDebug) {
+            print("voxelSize > intersection.voxel.s.... choose the larger voxel that encompasses the one selected");
+        }
+        x = Math.floor(intersection.voxel.x / voxelSize) * voxelSize;
+        y = Math.floor(intersection.voxel.y / voxelSize) * voxelSize;
+        z = Math.floor(intersection.voxel.z / voxelSize) * voxelSize;
+    } else {
+        // otherwise, calculate the enclosed voxel of size voxelSize that the intersection point falls inside of.
+        // if you have a voxelSize that's smaller than the voxel you're intersecting, this calculation will result
+        // in the subvoxel that the intersection point falls in, if the target voxelSize matches the intersecting
+        // voxel this still works and results in returning the intersecting voxel which is what we want
+        var adjustToCenter = Vec3.multiply(Voxels.getFaceVector(intersection.face), (voxelSize * -0.5));
+        if (wantDebug) {
+            print("adjustToCenter=" + adjustToCenter.x + "," + adjustToCenter.y + "," + adjustToCenter.z);
+        }
+        var centerOfIntersectingVoxel = Vec3.sum(intersection.intersection, adjustToCenter);
+        x = Math.floor(centerOfIntersectingVoxel.x / voxelSize) * voxelSize;
+        y = Math.floor(centerOfIntersectingVoxel.y / voxelSize) * voxelSize;
+        z = Math.floor(centerOfIntersectingVoxel.z / voxelSize) * voxelSize;
+    }
     resultVoxel = { x: x, y: y, z: z, s: voxelSize };
     highlightAt = { x: x, y: y, z: z, s: voxelSize };
 
+    // we only do the "add to the face we're pointing at" adjustment, if the operation is an add
+    // operation, and the target voxel size is equal to or smaller than the intersecting voxel.
+    var wantAddAdjust = (operation == "add" && (voxelSize <= intersection.voxel.s));
+    if (wantDebug) {
+        print("wantAddAdjust="+wantAddAdjust);
+    }
+
     // now we also want to calculate the "edge square" for the face for this voxel
     if (intersection.face == "MIN_X_FACE") {
-        highlightAt.x = intersection.voxel.x - zFightingSizeAdjust;
-        resultVoxel.x = intersection.voxel.x;
-        if (operation == "add") {
+
+        highlightAt.x = x - zFightingSizeAdjust;
+        if (wantAddAdjust) {
             resultVoxel.x -= voxelSize;
         }
         
@@ -373,10 +414,10 @@ function calculateVoxelFromIntersection(intersection, operation) {
         resultVoxel.topRight = {x: highlightAt.x, y: highlightAt.y + voxelSize - zFightingSizeAdjust, z: highlightAt.z + voxelSize - zFightingSizeAdjust };
 
     } else if (intersection.face == "MAX_X_FACE") {
-        highlightAt.x = intersection.voxel.x + intersection.voxel.s + zFightingSizeAdjust;
-        resultVoxel.x = intersection.voxel.x + intersection.voxel.s;
-        if (operation != "add") {
-            resultVoxel.x -= voxelSize;
+
+        highlightAt.x = x + voxelSize + zFightingSizeAdjust;
+        if (wantAddAdjust) {
+            resultVoxel.x += resultVoxel.s;
         }
 
         resultVoxel.bottomRight = {x: highlightAt.x, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z + zFightingSizeAdjust };
@@ -386,10 +427,8 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
     } else if (intersection.face == "MIN_Y_FACE") {
 
-        highlightAt.y = intersection.voxel.y - zFightingSizeAdjust;
-        resultVoxel.y = intersection.voxel.y;
-        
-        if (operation == "add") {
+        highlightAt.y = y - zFightingSizeAdjust;
+        if (wantAddAdjust) {
             resultVoxel.y -= voxelSize;
         }
         
@@ -400,10 +439,9 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
     } else if (intersection.face == "MAX_Y_FACE") {
 
-        highlightAt.y = intersection.voxel.y + intersection.voxel.s + zFightingSizeAdjust;
-        resultVoxel.y = intersection.voxel.y + intersection.voxel.s;
-        if (operation != "add") {
-            resultVoxel.y -= voxelSize;
+        highlightAt.y = y + voxelSize + zFightingSizeAdjust;
+        if (wantAddAdjust) {
+            resultVoxel.y += voxelSize;
         }
         
         resultVoxel.bottomRight = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y, z: highlightAt.z + zFightingSizeAdjust };
@@ -413,10 +451,8 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
     } else if (intersection.face == "MIN_Z_FACE") {
 
-        highlightAt.z = intersection.voxel.z - zFightingSizeAdjust;
-        resultVoxel.z = intersection.voxel.z;
-        
-        if (operation == "add") {
+        highlightAt.z = z - zFightingSizeAdjust;
+        if (wantAddAdjust) {
             resultVoxel.z -= voxelSize;
         }
         
@@ -427,10 +463,9 @@ function calculateVoxelFromIntersection(intersection, operation) {
 
     } else if (intersection.face == "MAX_Z_FACE") {
 
-        highlightAt.z = intersection.voxel.z + intersection.voxel.s + zFightingSizeAdjust;
-        resultVoxel.z = intersection.voxel.z + intersection.voxel.s;
-        if (operation != "add") {
-            resultVoxel.z -= voxelSize;
+        highlightAt.z = z + voxelSize + zFightingSizeAdjust;
+        if (wantAddAdjust) {
+            resultVoxel.z += voxelSize;
         }
 
         resultVoxel.bottomLeft = {x: highlightAt.x + zFightingSizeAdjust, y: highlightAt.y + zFightingSizeAdjust, z: highlightAt.z };
@@ -534,7 +569,7 @@ function showPreviewLines() {
                     position: resultVoxel,
                     size: resultVoxel.s + zFightingSizeAdjust,
                     visible: true,
-                    color: { red: 255, green: 255, blue: 255 },
+                    color: { red: 0, green: 255, blue: 0 },
                     lineWidth: previewLineWidth,
                     solid: false,
                     alpha: 1
@@ -888,6 +923,7 @@ print("clickedOverlay="+clickedOverlay);
             }
                     
             voxelDetails = calculateVoxelFromIntersection(intersection,"add");
+            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
                 newColor.red, newColor.green, newColor.blue);
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
@@ -929,6 +965,7 @@ function keyPressEvent(event) {
                         red: colors[color].red,
                         green: colors[color].green,
                         blue: colors[color].blue };
+            Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
             Audio.playSound(addSound, audioOptions);
@@ -1017,6 +1054,7 @@ function mouseMoveEvent(event) {
             var dy = event.y - mouseY;
             if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
                 lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
+                Voxels.eraseVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z,extrudeScale);
                 Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
                             extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
                 mouseX = event.x;
