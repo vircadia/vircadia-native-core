@@ -20,6 +20,13 @@ void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z,
 
     // queue the packet
     queueVoxelAdd(PacketTypeVoxelSet, addVoxelDetail);
+    
+    // handle the local tree also...
+    if (_tree) {
+        _tree->lockForWrite();
+        _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, false);
+        _tree->unlock();
+    }
 }
 
 void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
@@ -30,6 +37,13 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
 
     // queue the destructive add
     queueVoxelAdd(PacketTypeVoxelSetDestructive, addVoxelDetail);
+
+    // handle the local tree also...
+    if (_tree) {
+        _tree->lockForWrite();
+        _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, true);
+        _tree->unlock();
+    }
 }
 
 void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale) {
@@ -39,6 +53,13 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
                                         scale / (float)TREE_SCALE, 0, 0, 0};
 
     getVoxelPacketSender()->queueVoxelEditMessages(PacketTypeVoxelErase, 1, &deleteVoxelDetail);
+
+    // handle the local tree also...
+    if (_tree) {
+        _tree->lockForWrite();
+        _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
+        _tree->unlock();
+    }
 }
 
 

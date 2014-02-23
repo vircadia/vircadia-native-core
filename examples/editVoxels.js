@@ -923,7 +923,6 @@ print("clickedOverlay="+clickedOverlay);
             }
                     
             voxelDetails = calculateVoxelFromIntersection(intersection,"add");
-            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Voxels.setVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s,
                 newColor.red, newColor.green, newColor.blue);
             lastVoxelPosition = { x: voxelDetails.x, y: voxelDetails.y, z: voxelDetails.z };
@@ -965,7 +964,6 @@ function keyPressEvent(event) {
                         red: colors[color].red,
                         green: colors[color].green,
                         blue: colors[color].blue };
-            Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
             Audio.playSound(addSound, audioOptions);
@@ -1054,7 +1052,6 @@ function mouseMoveEvent(event) {
             var dy = event.y - mouseY;
             if (Math.sqrt(dx*dx + dy*dy) > PIXELS_PER_EXTRUDE_VOXEL)  {
                 lastVoxelPosition = Vec3.sum(lastVoxelPosition, extrudeDirection);
-                Voxels.eraseVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z,extrudeScale);
                 Voxels.setVoxel(lastVoxelPosition.x, lastVoxelPosition.y, lastVoxelPosition.z, 
                             extrudeScale, lastVoxelColor.red, lastVoxelColor.green, lastVoxelColor.blue);
                 mouseX = event.x;
