@@ -1,0 +1,35 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+FramelessDialog {
+    background-color: rgb(255, 255, 255);
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 16px;
+}
+
+QLineEdit {
+    background-color: rgba(255, 255, 255, 1);
+    border-style: solid;
+    border-width: 1px;
+    border-color: #ccc;
+    padding: 7px;
+    opacity: 1;
+}
+
+QLabel p {
+    color: #0e7077;
+    font-size: 23px;
+}
+
+QPushButton {
+    border-width: 0;
+    border-radius: 9px;
+    border-radius: 9px;
+    font-family: Arial;
+    font-size: 18px;
+    font-weight: 100;
+    color: #ffffff;
+    padding: 10px 15px;
+}

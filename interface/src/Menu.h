@@ -15,6 +15,7 @@
 #include <QPointer>
 
 #include <AbstractMenuInterface.h>
+#include "ui/PreferencesDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -173,6 +174,7 @@ private:
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    QPointer<PreferencesDialog> _preferencesDialog;
 };
 
 namespace MenuOption {
