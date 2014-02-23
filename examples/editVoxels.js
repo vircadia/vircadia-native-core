@@ -25,7 +25,7 @@ var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
-var previewLineWidth = 3; // 1.5;
+var previewLineWidth = 1.5;
 
 var oldMode = Camera.getMode();
 
@@ -569,7 +569,7 @@ function showPreviewLines() {
                     position: resultVoxel,
                     size: resultVoxel.s + zFightingSizeAdjust,
                     visible: true,
-                    color: { red: 0, green: 255, blue: 0 },
+                    color: { red: 255, green: 255, blue: 0 },
                     lineWidth: previewLineWidth,
                     solid: false,
                     alpha: 1
