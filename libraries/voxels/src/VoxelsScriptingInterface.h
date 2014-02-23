@@ -60,6 +60,9 @@ public slots:
     /// If the scripting context has visible voxels, this will determine a ray intersection
     RayToVoxelIntersectionResult findRayIntersection(const PickRay& ray);
 
+    /// returns a voxel space axis aligned vector for the face, useful in doing voxel math
+    glm::vec3 getFaceVector(const QString& face);
+
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);
     VoxelTree* _tree;

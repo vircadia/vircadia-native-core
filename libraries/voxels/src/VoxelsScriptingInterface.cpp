@@ -64,3 +64,21 @@ RayToVoxelIntersectionResult VoxelsScriptingInterface::findRayIntersection(const
     }
     return result;
 }
+
+glm::vec3 VoxelsScriptingInterface::getFaceVector(const QString& face) {
+    if (face == "MIN_X_FACE") {
+        return glm::vec3(-1, 0, 0);
+    } else if (face == "MAX_X_FACE") {
+        return glm::vec3(1, 0, 0);
+    } else if (face == "MIN_Y_FACE") {
+        return glm::vec3(0, -1, 0);
+    } else if (face == "MAX_Y_FACE") {
+        return glm::vec3(0, 1, 0);
+    } else if (face == "MIN_Z_FACE") {
+        return glm::vec3(0, 0, -1);
+    } else if (face == "MAX_Z_FACE") {
+        return glm::vec3(0, 0, 1);
+    }
+    return glm::vec3(0, 0, 0); //error case
+}
+
