@@ -982,6 +982,44 @@ function keyPressEvent(event) {
 
 function keyReleaseEvent(event) {
     trackKeyReleaseEvent(event); // used by preview support
+
+    // handle clipboard items
+    if (selectToolSelected) {
+        var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+        var intersection = Voxels.findRayIntersection(pickRay);
+        selectedVoxel = calculateVoxelFromIntersection(intersection,"select");
+    
+        // Note: this sample uses Alt+ as the key codes for these clipboard items
+        if ((event.key == 199 || event.key == 67 || event.text == "C" || event.text == "c") && event.isAlt) {
+            print("the Alt+C key was pressed... copy");
+            Clipboard.copyVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+        }
+        if ((event.key == 8776 || event.key == 88 || event.text == "X" || event.text == "x") && event.isAlt) {
+            print("the Alt+X key was pressed... cut");
+            Clipboard.cutVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+        }
+        if ((event.key == 8730 || event.key == 86 || event.text == "V" || event.text == "v") && event.isAlt) {
+            print("the Alt+V key was pressed... paste");
+            Clipboard.pasteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+        }
+        if (event.text == "DELETE" || event.text == "BACKSPACE") {
+            print("the DELETE/BACKSPACE key was pressed... delete");
+            Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+        }
+    
+        if ((event.text == "E" || event.text == "e") && event.isMeta) {
+            print("the Ctl+E key was pressed... export");
+            Clipboard.exportVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+        }
+        if ((event.text == "I" || event.text == "i") && event.isMeta) {
+            print("the Ctl+I key was pressed... import");
+            Clipboard.importVoxels();
+        }
+        if ((event.key == 78 || event.text == "N" || event.text == "n") && event.isMeta) {
+            print("the Ctl+N key was pressed, nudging to left 1 meter... nudge");
+            Clipboard.nudgeVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s, { x: -1, y: 0, z: 0 });
+        }
+    }
 }
 
 
@@ -1286,6 +1324,8 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.touchBeginEvent.connect(touchBeginEvent);
 Controller.touchUpdateEvent.connect(touchUpdateEvent);
 Controller.touchEndEvent.connect(touchEndEvent);
+Controller.captureKeyEvents({ text: "+" });
+Controller.captureKeyEvents({ text: "-" });
 
 
 function scriptEnding() {
@@ -1302,6 +1342,8 @@ function scriptEnding() {
     Overlays.deleteOverlay(recolorTool);
     Overlays.deleteOverlay(eyedropperTool);
     Overlays.deleteOverlay(selectTool);
+    Controller.releaseKeyEvents({ text: "+" });
+    Controller.releaseKeyEvents({ text: "-" });
 }
 Script.scriptEnding.connect(scriptEnding);
 
