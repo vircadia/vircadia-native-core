@@ -89,7 +89,6 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    void sendIdentityPacket();
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
