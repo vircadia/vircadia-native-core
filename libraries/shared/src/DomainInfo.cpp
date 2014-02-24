@@ -8,6 +8,8 @@
 
 #include <QtCore/QJsonObject>
 
+#include "AccountManager.h"
+
 #include "DomainInfo.h"
 
 DomainInfo::DomainInfo() :
@@ -20,7 +22,8 @@ DomainInfo::DomainInfo() :
     _publicKey(),
     _isConnected(false)
 {
-    
+    // clear appropriate variables after a domain-server logout
+    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete, this, &DomainInfo::logout);
 }
 
 void DomainInfo::reset() {
@@ -96,5 +99,16 @@ void DomainInfo::setIsConnected(bool isConnected) {
         if (_isConnected) {
             emit connectedToDomain(_hostname);
         }
+    }
+}
+
+void DomainInfo::logout() {
+    // clear any information related to auth for this domain, assuming it had requested auth
+    if (!_rootAuthenticationURL.isEmpty()) {
+        _rootAuthenticationURL = QUrl();
+        _connectionSecret = QUuid();
+        _registrationToken = QByteArray();
+        _publicKey = QString();
+        _isConnected = false;
     }
 }

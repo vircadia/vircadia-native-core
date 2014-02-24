@@ -227,9 +227,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
-    
-    connect(&AccountManager::getInstance(), SIGNAL(authenticationRequired()),
-            Menu::getInstance(), SLOT(loginForCurrentDomain()));
+   
+    // connect to appropriate slots on AccountManager
+    AccountManager& accountManager = AccountManager::getInstance();
+    connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
+    connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     _settings = new QSettings(this);
 

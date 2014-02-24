@@ -76,6 +76,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     
     // clear our NodeList when the domain changes
     connect(&_domainInfo, &DomainInfo::hostnameChanged, this, &NodeList::reset);
+    
+    // clear our NodeList when logout is requested
+    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {

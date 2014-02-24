@@ -71,7 +71,8 @@ Menu::Menu() :
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
-    _lastAdjust(usecTimestampNow())
+    _lastAdjust(usecTimestampNow()),
+    _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
 
@@ -86,13 +87,17 @@ Menu::Menu() :
                                   QAction::AboutRole);
 #endif
 
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Login,
-                                   0,
-                                   this,
-                                   SLOT(loginForCurrentDomain())));
+    AccountManager& accountManager = AccountManager::getInstance();
     
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::Logout, 0, &AccountManager::getInstance(), SLOT(logout()));
+    _loginAction = addActionToQMenuAndActionHash(fileMenu, MenuOption::Logout);
+    
+    // call our toggle login function now so the menu option is setup properly
+    toggleLoginMenuItem();
+    
+    // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
+    connect(&accountManager, &AccountManager::loginComplete, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::authEndpointChanged, this, &Menu::toggleLoginMenuItem);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -1112,6 +1117,32 @@ void Menu::pasteToVoxel() {
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::toggleLoginMenuItem() {
+    AccountManager& accountManager = AccountManager::getInstance();
+
+    disconnect(_loginAction, 0, 0, 0);
+    
+    if (accountManager.isLoggedIn()) {
+        // change the menu item to logout
+        _loginAction->setText("Logout " + accountManager.getUsername());
+        connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+        
+        _loginAction->setEnabled(true);
+    } else {
+        // change the menu item to login
+        _loginAction->setText("Login");
+        
+        // if we don't have a rootURL in the AccountManager we're in a domain that doesn't use auth
+        // so setup the menu item according to the presence of that root URL
+        if (accountManager.hasAuthEndpoint()) {
+            connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+            _loginAction->setEnabled(true);
+        } else {
+            _loginAction->setEnabled(false);
+        }
+    }
 }
 
 void Menu::bandwidthDetails() {

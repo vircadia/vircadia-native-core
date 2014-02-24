@@ -56,6 +56,8 @@ public:
     
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
+    
+    void logout();
 signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);

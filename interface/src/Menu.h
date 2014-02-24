@@ -111,6 +111,8 @@ public slots:
     void exportSettings();
     void goTo();
     void pasteToVoxel();
+    
+    void toggleLoginMenuItem();
 
 private slots:
     void aboutApp();
@@ -172,6 +174,7 @@ private:
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    QAction* _loginAction;
 };
 
 namespace MenuOption {

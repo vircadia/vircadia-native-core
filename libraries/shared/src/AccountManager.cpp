@@ -34,7 +34,6 @@ const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
     _rootURL(),
-    _username(),
     _networkAccessManager(),
     _pendingCallbackMap(),
     _accounts()
@@ -76,18 +75,22 @@ void AccountManager::logout() {
     settings.remove(keyURLString);
     
     qDebug() << "Removed account info for" << _rootURL << "from in-memory accounts and .ini file";
+    
+    emit logoutComplete();
+    // the username has changed to blank
+    emit usernameChanged(QString());
+    
 }
 
 void AccountManager::setRootURL(const QUrl& rootURL) {
     if (_rootURL != rootURL) {
         _rootURL = rootURL;
         
-        // we have an auth URL change, set the username empty
-        // we will need to ask for profile information again
-        _username.clear();
-        
         qDebug() << "URL for node authentication has been changed to" << qPrintable(_rootURL.toString());
         qDebug() << "Re-setting authentication flow.";
+        
+        // tell listeners that the auth endpoint has changed
+        emit authEndpointChanged();
     }
 }
 
@@ -216,7 +219,7 @@ bool AccountManager::checkAndSignalForAccessToken() {
     
     if (!hasToken) {
         // emit a signal so somebody can call back to us and request an access token given a username and password
-        emit authenticationRequired();
+        emit authRequired();
     }
     
     return hasToken;
@@ -265,7 +268,9 @@ void AccountManager::requestFinished() {
             DataServerAccountInfo freshAccountInfo(rootObject);
             _accounts.insert(rootURL, freshAccountInfo);
             
-            emit receivedAccessToken(rootURL);
+            emit loginComplete(rootURL);
+            // the username has changed to whatever came back
+            emit usernameChanged(freshAccountInfo.getUsername());
             
             // store this access token into the local settings
             QSettings localSettings;

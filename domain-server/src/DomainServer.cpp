@@ -70,7 +70,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             // TODO: failure case for not receiving a token
             accountManager.requestAccessToken(username, password);
             
-            connect(&accountManager, &AccountManager::receivedAccessToken, this, &DomainServer::requestCreationFromDataServer);
+            connect(&accountManager, &AccountManager::loginComplete, this, &DomainServer::requestCreationFromDataServer);
             
         } else {
             qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
@@ -301,7 +301,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 void DomainServer::requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr) {
     // this is a node we do not recognize and we need authentication - ask them to do so
     // by providing them the hostname they should authenticate with
-    QByteArray authenticationRequestPacket = byteArrayWithPopluatedHeader(PacketTypeDomainServerAuthRequest);
+    QByteArray authenticationRequestPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerAuthRequest);
     
     QDataStream authPacketStream(&authenticationRequestPacket, QIODevice::Append);
     authPacketStream << _nodeAuthenticationURL;
@@ -417,7 +417,7 @@ NodeSet DomainServer::nodeInterestListFromPacket(const QByteArray& packet, int n
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
                                         const NodeSet& nodeInterestList) {
     
-    QByteArray broadcastPacket = byteArrayWithPopluatedHeader(PacketTypeDomainList);
+    QByteArray broadcastPacket = byteArrayWithPopulatedHeader(PacketTypeDomainList);
     
     // always send the node their own UUID back
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);

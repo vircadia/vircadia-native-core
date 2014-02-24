@@ -42,6 +42,7 @@ public:
                               const QByteArray& dataByteArray = QByteArray());
     
     void setRootURL(const QUrl& rootURL);
+    bool hasAuthEndpoint() { return !_rootURL.isEmpty(); }
     
     bool isLoggedIn() { return !_rootURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
@@ -56,9 +57,11 @@ public slots:
     void requestError(QNetworkReply::NetworkError error);
     void logout();
 signals:
-    void authenticationRequired();
-    void receivedAccessToken(const QUrl& rootURL);
+    void authRequired();
+    void authEndpointChanged();
     void usernameChanged(const QString& username);
+    void loginComplete(const QUrl& rootURL);
+    void logoutComplete();
 private slots:
     void passSuccessToCallback();
     void passErrorToCallback(QNetworkReply::NetworkError errorCode);
@@ -71,7 +74,6 @@ private:
                                     const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray);
     
     QUrl _rootURL;
-    QString _username;
     QNetworkAccessManager _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
