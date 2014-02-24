@@ -11,11 +11,11 @@ set(TARGET_NAME metavoxels)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
-include(${MACRO_DIR}/SetupHifiLibrary.cmake)
-setup_hifi_library(${TARGET_NAME})
-
 include(${MACRO_DIR}/AutoMTC.cmake)
 auto_mtc(${TARGET_NAME} ${ROOT_DIR})
+
+include(${MACRO_DIR}/SetupHifiLibrary.cmake)
+setup_hifi_library(${TARGET_NAME} ${AUTOMTC_SRC})
 
 qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 
