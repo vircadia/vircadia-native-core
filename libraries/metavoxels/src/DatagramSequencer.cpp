@@ -736,7 +736,7 @@ void ReliableChannel::readData(QDataStream& in) {
         // if we're expecting a message, peek into the buffer to see if we have the whole thing.
         // if so, read it in, handle it, and loop back around in case there are more
         if (_messagesEnabled) {
-            int available = _buffer.bytesAvailable();
+            quint32 available = _buffer.bytesAvailable();
             if (available >= sizeof(quint32)) {
                 quint32 length;
                 _buffer.readBytes(_buffer.pos(), sizeof(quint32), (char*)&length);
