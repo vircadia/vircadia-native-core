@@ -26,11 +26,8 @@ DomainInfo::DomainInfo() :
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete, this, &DomainInfo::logout);
 }
 
-void DomainInfo::reset() {
+void DomainInfo::clearConnectionInfo() {
     _uuid = QUuid();
-    _hostname = QString();
-    _sockAddr.setAddress(QHostAddress::Null);
-    _assignmentUUID = QUuid();
     _connectionSecret = QUuid();
     _registrationToken = QByteArray();
     _rootAuthenticationURL = QUrl();
@@ -38,11 +35,26 @@ void DomainInfo::reset() {
     _isConnected = false;
 }
 
+void DomainInfo::reset() {
+    clearConnectionInfo();
+    _hostname = QString();
+    _sockAddr.setAddress(QHostAddress::Null);
+}
+
 void DomainInfo::parseAuthInformationFromJsonObject(const QJsonObject& jsonObject) {
     QJsonObject dataObject = jsonObject["data"].toObject();
     _connectionSecret = QUuid(dataObject["connection_secret"].toString());
     _registrationToken = QByteArray::fromHex(dataObject["registration_token"].toString().toUtf8());
     _publicKey = dataObject["public_key"].toString();
+}
+
+void DomainInfo::setSockAddr(const HifiSockAddr& sockAddr) {
+    if (_sockAddr != sockAddr) {
+        // we should reset on a sockAddr change
+        reset();
+        // change the sockAddr
+        _sockAddr = sockAddr;
+    }
 }
 
 void DomainInfo::setHostname(const QString& hostname) {

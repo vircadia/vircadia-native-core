@@ -24,7 +24,7 @@ class DomainInfo : public QObject {
 public:
     DomainInfo();
     
-    void reset();
+    void clearConnectionInfo();
     
     void parseAuthInformationFromJsonObject(const QJsonObject& jsonObject);
     
@@ -38,7 +38,7 @@ public:
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
     
     const HifiSockAddr& getSockAddr() { return _sockAddr; }
-    void setSockAddr(const HifiSockAddr& sockAddr) { _sockAddr = sockAddr; }
+    void setSockAddr(const HifiSockAddr& sockAddr);
     
     unsigned short getPort() const { return _sockAddr.getPort(); }
     
@@ -64,6 +64,8 @@ signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
 private:
+    void reset();
+    
     QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;

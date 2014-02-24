@@ -328,6 +328,9 @@ void NodeList::reset() {
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
+    
+    // clear the domain connection information
+    _domainInfo.clearConnectionInfo();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
