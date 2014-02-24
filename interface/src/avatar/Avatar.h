@@ -74,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render(bool forceRenderHead);
+    void render();
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -176,7 +176,7 @@ private:
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
 
-    void renderBody(bool forceRenderHead);
+    void renderBody();
     void renderBillboard();
 
     void renderDisplayName();
