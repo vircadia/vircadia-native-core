@@ -52,8 +52,8 @@ bool Model::isLoadedWithTextures() const {
     }
     foreach (const NetworkMesh& mesh, _geometry->getMeshes()) {
         foreach (const NetworkMeshPart& part, mesh.parts) {
-            if (part.diffuseTexture && !part.diffuseTexture->isLoaded() ||
-                    part.normalTexture && !part.normalTexture->isLoaded()) {
+            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
+                    (part.normalTexture && !part.normalTexture->isLoaded())) {
                 return false;
             }
         }
