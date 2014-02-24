@@ -23,6 +23,7 @@ var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 var ORBIT_RATE_ALTITUDE = 200.0;
 var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
+var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
 
 var oldMode = Camera.getMode();
 
@@ -42,6 +43,8 @@ var lastVoxelPosition = { x: 0, y: 0, z: 0 };
 var lastVoxelColor = { red: 0, green: 0, blue: 0 };
 var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
+var wheelPixelsMoved = 0;
+
 
 var mouseX = 0;
 var mouseY = 0; 
@@ -971,6 +974,25 @@ function update() {
     }
 }
 
+function wheelEvent(event) {
+    wheelPixelsMoved += event.delta;
+    if (Math.abs(wheelPixelsMoved) > WHEEL_PIXELS_PER_SCALE_CHANGE)
+    {
+        if (!pointerVoxelScaleSet) {
+            pointerVoxelScale = 1.0;
+            pointerVoxelScaleSet = true;
+        }
+        if (wheelPixelsMoved > 0) {
+            pointerVoxelScale /= 2.0;  
+        } else {
+            pointerVoxelScale *= 2.0;
+        }
+        print("new scale " + pointerVoxelScale);
+        wheelPixelsMoved = 0;
+    }
+}
+
+Controller.wheelEvent.connect(wheelEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
