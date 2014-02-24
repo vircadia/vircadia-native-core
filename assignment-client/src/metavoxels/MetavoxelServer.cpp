@@ -32,7 +32,7 @@ void MetavoxelServer::removeSession(const QUuid& sessionId) {
     _sessions.take(sessionId)->deleteLater();
 }
 
-const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
+const QString METAVOXEL_SERVER_LOGGING_NAME = "metavoxel-server";
 
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);

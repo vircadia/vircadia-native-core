@@ -28,7 +28,6 @@ Head::Head(Avatar* owningAvatar) :
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _audioAttack(0.0f),
-    _bodyRotation(0.0f, 0.0f, 0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _saccade(0.0f, 0.0f, 0.0f),
@@ -158,6 +157,9 @@ void Head::simulate(float deltaTime, bool isMine) {
             glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
+    if (!isMine) {
+        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
+    }
     _faceModel.simulate(deltaTime);
     
     // the blend face may have custom eye meshes
@@ -180,12 +182,8 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getOrientation() const {
-    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
-}
-
 glm::quat Head::getTweakedOrientation() const {
-    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {

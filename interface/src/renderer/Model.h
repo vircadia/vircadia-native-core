@@ -46,6 +46,8 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
+    bool isLoadedWithTextures() const;
+    
     void init();
     void reset();
     void simulate(float deltaTime);
@@ -53,6 +55,9 @@ public:
     
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
     const QUrl& getURL() const { return _url; }
+    
+    /// Sets the distance parameter used for LOD computations.
+    void setLODDistance(float distance) { _lodDistance = distance; }
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
@@ -228,13 +233,14 @@ private:
     void renderMeshes(float alpha, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
+    float _lodDistance;
     float _lodHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;
     
     QUrl _url;
-    
+        
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
