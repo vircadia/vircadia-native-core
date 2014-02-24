@@ -24,6 +24,8 @@ var ORBIT_RATE_ALTITUDE = 200.0;
 var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
+var MAX_VOXEL_SCALE = 1.0;
+var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
 
 var oldMode = Camera.getMode();
 
@@ -268,7 +270,7 @@ var pointerVoxelScale = 0; // this is the voxel scale used for click to add or d
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
 
 var pointerVoxelScaleSteps = 8; // the number of slider position steps
-var pointerVoxelScaleOriginStep = 3; // the position of slider for the 1 meter size voxel
+var pointerVoxelScaleOriginStep = 8; // the position of slider for the 1 meter size voxel
 var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
 var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
 var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
@@ -983,11 +985,17 @@ function wheelEvent(event) {
             pointerVoxelScaleSet = true;
         }
         if (wheelPixelsMoved > 0) {
-            pointerVoxelScale /= 2.0;  
+            pointerVoxelScale /= 2.0;
+            if (pointerVoxelScale < MIN_VOXEL_SCALE) {
+                pointerVoxelScale = MIN_VOXEL_SCALE;
+            }  
         } else {
             pointerVoxelScale *= 2.0;
+            if (pointerVoxelScale > MAX_VOXEL_SCALE) {
+                pointerVoxelScale = MAX_VOXEL_SCALE;
+            }
         }
-        print("new scale " + pointerVoxelScale);
+        calcThumbFromScale(pointerVoxelScale);
         wheelPixelsMoved = 0;
     }
 }
