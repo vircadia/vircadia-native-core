@@ -54,9 +54,12 @@ BuckyBalls::BuckyBalls() {
     }
 }
 
-void BuckyBalls::grab(PalmData& palm, const glm::vec3& fingerTipPosition, glm::quat avatarOrientation, float deltaTime) {
+void BuckyBalls::grab(PalmData& palm, float deltaTime) {
     float penetration;
     glm::vec3 diff;
+    FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
+    glm::vec3 fingerTipPosition = finger.getTipPosition();
+
     if (palm.getControllerButtons() & BUTTON_FWD) {
         if (!_bballIsGrabbed[palm.getSixenseID()]) {
             // Look for a ball to grab
@@ -89,7 +92,13 @@ const float COLLISION_BLEND_RATE = 0.5f;
 const float ATTRACTION_BLEND_RATE = 0.9f;
 const float ATTRACTION_VELOCITY_BLEND_RATE = 0.10f;
 
-void BuckyBalls::simulate(float deltaTime) {
+void BuckyBalls::simulate(float deltaTime, const HandData* handData) {
+    //  First, update the grab behavior from the hand controllers
+    for (size_t i = 0; i < handData->getNumPalms(); ++i) {
+        PalmData palm = handData->getPalms()[i];
+        grab(palm, deltaTime);
+    }
+
     //  Look for collisions
     for (int i = 0; i < NUM_BBALLS; i++) {
         if (_bballElement[i] != 1) {

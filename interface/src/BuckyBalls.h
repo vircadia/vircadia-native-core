@@ -26,8 +26,8 @@ const int NUM_BBALLS = 200;
 class BuckyBalls {
 public:
     BuckyBalls();
-    void grab(PalmData& palm, const glm::vec3& fingerTipPosition, glm::quat avatarOrientation, float deltaTime);
-    void simulate(float deltaTime);
+    void grab(PalmData& palm, float deltaTime);
+    void simulate(float deltaTime, const HandData* handData);
     void render();
 
     

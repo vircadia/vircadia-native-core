@@ -32,6 +32,7 @@
 #include "Audio.h"
 
 #include "BandwidthMeter.h"
+#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -378,6 +379,8 @@ private:
     bool _justStarted;
 
     Stars _stars;
+    
+    BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
