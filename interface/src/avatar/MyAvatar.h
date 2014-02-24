@@ -84,6 +84,9 @@ public:
     void updateLookAtTargetAvatar(glm::vec3& eyePosition);
     void clearLookAtTargetAvatar();
 
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
 public slots:
     void goHome();
     void increaseSize();
@@ -118,6 +121,8 @@ private:
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
+    bool _billboardValid;
+
 	// private methods
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
@@ -128,6 +133,7 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
+    void maybeUpdateBillboard();
 };
 
 #endif
