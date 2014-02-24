@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <QBuffer>
+
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QtCore/QTimer>
@@ -61,7 +63,8 @@ MyAvatar::MyAvatar() :
     _thrustMultiplier(1.0f),
     _moveTarget(0,0,0),
     _moveTargetStepCounter(0),
-    _lookAtTargetAvatar()
+    _lookAtTargetAvatar(),
+    _billboardValid(false)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -330,7 +333,6 @@ void MyAvatar::simulate(float deltaTime) {
     _skeletonModel.simulate(deltaTime);
 
     Head* head = getHead();
-    head->setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _position;
@@ -341,7 +343,9 @@ void MyAvatar::simulate(float deltaTime) {
 
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);
-
+    
+    // consider updating our billboard
+    maybeUpdateBillboard();
 }
 
 const float MAX_PITCH = 90.0f;
@@ -674,7 +678,7 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     setPosition(position + rotation * (getPosition() - position));
 }
 
-void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
+void MyAvatar::updateLookAtTargetAvatar() {
     Application* applicationInstance = Application::getInstance();
     
     if (!applicationInstance->isMousePressed()) {
@@ -688,14 +692,9 @@ void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
             }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
-                // rescale to compensate for head embiggening
-                eyePosition = (avatar->getHead()->calculateAverageEyePosition() - avatar->getHead()->getScalePivot()) *
-                    (avatar->getScale() / avatar->getHead()->getScale()) + avatar->getHead()->getScalePivot();
                 _lookAtTargetAvatar = avatarPointer;
                 return;
-            } else {
             }
-
         }
         _lookAtTargetAvatar.clear();
     }
@@ -714,14 +713,25 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
+void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
+    Avatar::setFaceModelURL(faceModelURL);
+    _billboardValid = false;
+}
+
+void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    Avatar::setSkeletonModelURL(skeletonModelURL);
+    _billboardValid = false;
+}
+
 void MyAvatar::renderBody(bool forceRenderHead) {
     //  Render the body's voxels and head
     _skeletonModel.render(1.0f);
 
     //  Render head so long as the camera isn't inside it
-    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
+    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
-    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
+    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
+            RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
         getHead()->render(1.0f);
     }
     getHand()->render(true);
@@ -1131,6 +1141,20 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     // approach the target position
     const float APPROACH_RATE = 0.05f;
     _position = glm::mix(_position, targetPosition, APPROACH_RATE);
+}
+
+void MyAvatar::maybeUpdateBillboard() {
+    if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
+        return;
+    }
+    QImage image = Application::getInstance()->renderAvatarBillboard();
+    _billboard.clear();
+    QBuffer buffer(&_billboard);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    _billboardValid = true;
+    
+    sendBillboardPacket();
 }
 
 void MyAvatar::setGravity(glm::vec3 gravity) {

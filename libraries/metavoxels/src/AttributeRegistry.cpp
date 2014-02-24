@@ -13,6 +13,7 @@
 
 REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
+REGISTER_META_OBJECT(SharedObjectSetAttribute)
 
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
@@ -22,6 +23,7 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
         SharedObjectPointer(new DefaultMetavoxelGuide())))),
+    _spannersAttribute(registerAttribute(new SharedObjectSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
@@ -51,6 +53,10 @@ AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute
         pointer = attribute;
     }
     return pointer;
+}
+
+void AttributeRegistry::deregisterAttribute(const QString& name) {
+    _attributes.remove(name);
 }
 
 QScriptValue AttributeRegistry::getAttribute(QScriptContext* context, QScriptEngine* engine) {
@@ -222,4 +228,30 @@ QWidget* SharedObjectAttribute::createEditor(QWidget* parent) const {
     SharedObjectEditor* editor = new SharedObjectEditor(_metaObject, parent);
     editor->setObject(_defaultValue);
     return editor;
+}
+
+SharedObjectSetAttribute::SharedObjectSetAttribute(const QString& name, const QMetaObject* metaObject) :
+    InlineAttribute<SharedObjectSet>(name),
+    _metaObject(metaObject) {
+}
+
+void SharedObjectSetAttribute::read(Bitstream& in, void*& value, bool isLeaf) const {
+    in >> *((SharedObjectSet*)&value);
+}
+
+void SharedObjectSetAttribute::write(Bitstream& out, void* value, bool isLeaf) const {
+    out << decodeInline<SharedObjectSet>(value);
+}
+
+bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        if (!decodeInline<SharedObjectSet>(children[i]).isEmpty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+QWidget* SharedObjectSetAttribute::createEditor(QWidget* parent) const {
+    return new SharedObjectEditor(_metaObject, parent);
 }

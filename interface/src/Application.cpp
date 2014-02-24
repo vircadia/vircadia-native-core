@@ -98,6 +98,7 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
@@ -263,6 +264,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QTimer* identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
     identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+
+    // send the billboard packet for our avatar every few seconds
+    QTimer* billboardPacketTimer = new QTimer();
+    connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
+    billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
@@ -536,73 +542,8 @@ void Application::paintGL() {
         _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-
-            bool eyeRelativeCamera = false;
-            if (_rearMirrorTools->getZoomLevel() == BODY) {
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
-                _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
-            } else { // HEAD zoom level
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-                if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
-                    // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
-                    // face/body so that the average eye position lies at the origin
-                    eyeRelativeCamera = true;
-                    _mirrorCamera.setTargetPosition(glm::vec3());
-
-                } else {
-                    _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-                }
-            }
-
-            _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
-            _mirrorCamera.update(1.0f/_fps);
-
-            // set the bounds of rear mirror view
-            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            bool updateViewFrustum = false;
-            updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-            glEnable(GL_SCISSOR_TEST);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            // render rear mirror view
-            glPushMatrix();
-            if (eyeRelativeCamera) {
-                // save absolute translations
-                glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-                glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
-                // get the eye positions relative to the neck and use them to set the face translation
-                glm::vec3 leftEyePosition, rightEyePosition;
-                _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
-                _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
-                _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
-
-                // get the neck position relative to the body and use it to set the skeleton translation
-                glm::vec3 neckPosition;
-                _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
-                _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-                _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
-                    neckPosition);
-
-                displaySide(_mirrorCamera, true);
-
-                // restore absolute translations
-                _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-                _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
-            } else {
-                displaySide(_mirrorCamera, true);
-            }
-            glPopMatrix();
-
-            _rearMirrorTools->render(false);
-
-            // reset Viewport and projection matrix
-            glViewport(0, 0, _glWidget->width(), _glWidget->height());
-            glDisable(GL_SCISSOR_TEST);
-            updateProjectionMatrix(_myCamera, updateViewFrustum);
+            renderRearViewMirror(_mirrorViewRect);
+            
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
@@ -2039,6 +1980,9 @@ void Application::updateMouseRay() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
+    // make sure the frustum is up-to-date
+    loadViewFrustum(_myCamera, _viewFrustum);
+
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
@@ -2086,11 +2030,12 @@ void Application::updateVisage() {
     _visage.update();
 }
 
-void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot) {
+void Application::updateMyAvatarLookAtPosition() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
+    glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         lookAtSpot = _myCamera.getPosition();
 
@@ -2280,20 +2225,21 @@ void Application::updateMetavoxels(float deltaTime) {
 }
 
 void Application::cameraMenuChanged() {
+    float modeShiftPeriod = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 0.0f : 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
-            _myCamera.setModeShiftPeriod(0.00f);
+            _myCamera.setModeShiftPeriod(0.0f);
         }
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-            _myCamera.setModeShiftPeriod(1.0f);
+            _myCamera.setModeShiftPeriod(modeShiftPeriod);
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftPeriod(1.0f);
+            _myCamera.setModeShiftPeriod(modeShiftPeriod);
         }
     }
 }
@@ -2371,13 +2317,10 @@ void Application::update(float deltaTime) {
     // check what's under the mouse and update the mouse voxel
     updateMouseRay();
 
-    // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 lookAtSpot;
-
     updateFaceshift();
     updateVisage();
-    _myAvatar->updateLookAtTargetAvatar(lookAtSpot);
-    updateMyAvatarLookAtPosition(lookAtSpot);
+    _myAvatar->updateLookAtTargetAvatar();
+    updateMyAvatarLookAtPosition();
 
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
@@ -2400,6 +2343,9 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
+    
+    // let external parties know we're updating
+    emit simulating(deltaTime);
 }
 
 void Application::updateMyAvatar(float deltaTime) {
@@ -2740,6 +2686,24 @@ void Application::setupWorldLight() {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+QImage Application::renderAvatarBillboard() {
+    _textureCache.getPrimaryFramebufferObject()->bind();
+    
+    glDisable(GL_BLEND);
+
+    const int BILLBOARD_SIZE = 64;
+    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    
+    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
+    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    
+    glEnable(GL_BLEND);
+    
+    _textureCache.getPrimaryFramebufferObject()->release();
+    
+    return image;
+}
+
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
@@ -2933,8 +2897,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    bool renderMyHead = (whichCamera.getInterpolatedMode() != CAMERA_MODE_FIRST_PERSON);
-    _avatarManager.renderAvatars(renderMyHead, selfAvatarOnly);
+    bool forceRenderMyHead = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
+    _avatarManager.renderAvatars(forceRenderMyHead, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3657,6 +3621,84 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     }
 }
 
+void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+    bool eyeRelativeCamera = false;
+    if (billboard) {
+        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
+        
+    } else if (_rearMirrorTools->getZoomLevel() == BODY) {
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
+    
+    } else { // HEAD zoom level
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+        if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
+            // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
+            // face/body so that the average eye position lies at the origin
+            eyeRelativeCamera = true;
+            _mirrorCamera.setTargetPosition(glm::vec3());
+
+        } else {
+            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        }
+    }
+    _mirrorCamera.setAspectRatio((float)region.width() / region.height());
+    
+    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+    _mirrorCamera.update(1.0f/_fps);
+
+    // set the bounds of rear mirror view
+    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    bool updateViewFrustum = false;
+    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render rear mirror view
+    glPushMatrix();
+    if (eyeRelativeCamera) {
+        // save absolute translations
+        glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
+        glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
+
+        // get the eye positions relative to the neck and use them to set the face translation
+        glm::vec3 leftEyePosition, rightEyePosition;
+        _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
+        _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
+        _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
+
+        // get the neck position relative to the body and use it to set the skeleton translation
+        glm::vec3 neckPosition;
+        _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
+        _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
+        _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
+            neckPosition);
+
+        displaySide(_mirrorCamera, true);
+
+        // restore absolute translations
+        _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
+        _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
+    } else {
+        displaySide(_mirrorCamera, true);
+    }
+    glPopMatrix();
+
+    if (!billboard) {
+        _rearMirrorTools->render(false);
+    }
+    
+    // reset Viewport and projection matrix
+    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glDisable(GL_SCISSOR_TEST);
+    updateProjectionMatrix(_myCamera, updateViewFrustum);
+}
+
 // renderViewFrustum()
 //
 // Description: this will render the view frustum bounds for EITHER the head
@@ -4169,7 +4211,9 @@ void Application::reloadAllScripts() {
         scriptAction->activate(QAction::Trigger);
         qDebug() << "stopping script..." << scriptAction->text();
     }
-    _activeScripts.clear();
+
+    // NOTE: we don't need to clear the _activeScripts list because that is handled on script shutdown.
+    
     foreach (QString scriptName, reloadList){
         qDebug() << "reloading script..." << scriptName;
         loadScript(scriptName);
@@ -4177,7 +4221,7 @@ void Application::reloadAllScripts() {
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
-  _activeScripts.removeOne(fileNameString);
+    _activeScripts.removeOne(fileNameString);
 }
 
 void Application::loadScript(const QString& fileNameString) {

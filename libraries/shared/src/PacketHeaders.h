@@ -54,6 +54,7 @@ enum PacketType {
     PacketTypeParticleAddResponse,
     PacketTypeMetavoxelData,
     PacketTypeAvatarIdentity,
+    PacketTypeAvatarBillboard,
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerAuthRequest
 };
