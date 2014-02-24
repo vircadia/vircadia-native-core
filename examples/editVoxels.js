@@ -44,6 +44,7 @@ var orbitAzimuth = 0.0;
 var orbitAltitude = 0.0;
 var orbitCenter = { x: 0, y: 0, z: 0 };
 var orbitPosition = { x: 0, y: 0, z: 0 };
+var torsoToEyeVector = { x: 0, y: 0, z: 0 }; 
 var orbitRadius = 0.0;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
 var extrudeScale = 0.0;
@@ -708,6 +709,9 @@ function startOrbitMode(event) {
 
     // start orbit camera! 
     var cameraPosition = Camera.getPosition();
+    torsoToEyeVector = Vec3.subtract(cameraPosition, MyAvatar.position);
+    torsoToEyeVector.x = 0.0;
+    torsoToEyeVector.z = 0.0;
     oldMode = Camera.getMode();
     Camera.setMode("independent");
     Camera.keepLookingAt(intersection.intersection);
@@ -734,6 +738,11 @@ function handleOrbitingMove(event) {
                         z:(Math.cos(orbitAltitude) * Math.sin(orbitAzimuth)) * orbitRadius }; 
     orbitPosition = Vec3.sum(orbitCenter, orbitVector);
     Camera.setPosition(orbitPosition);
+    //  Move avatar to follow the orbit 
+    var cameraOrientation = Camera.getOrientation();
+    MyAvatar.position = Vec3.subtract(Camera.getPosition(), torsoToEyeVector);
+    MyAvatar.headOrientation = cameraOrientation;
+
     mouseX = event.x; 
     mouseY = event.y;
     //print("handleOrbitingMove...");
@@ -741,7 +750,7 @@ function handleOrbitingMove(event) {
 
 function endOrbitMode(event) {
     var cameraOrientation = Camera.getOrientation();
-    MyAvatar.position = Camera.getPosition();
+    MyAvatar.position = Vec3.subtract(Camera.getPosition(), torsoToEyeVector);
     MyAvatar.headOrientation = cameraOrientation;
     Camera.stopLooking();
     Camera.setMode(oldMode);
@@ -1343,6 +1352,7 @@ function wheelEvent(event) {
             }
         }
         calcThumbFromScale(pointerVoxelScale);
+        trackMouseEvent(event);
         wheelPixelsMoved = 0;
     }
 }
