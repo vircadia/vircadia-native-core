@@ -24,6 +24,8 @@ class DomainInfo : public QObject {
 public:
     DomainInfo();
     
+    void reset();
+    
     void parseAuthInformationFromJsonObject(const QJsonObject& jsonObject);
     
     const QUuid& getUUID() const { return _uuid; }
@@ -62,8 +64,6 @@ signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
 private:
-    void reset();
-    
     QUuid _uuid;
     QString _hostname;
     HifiSockAddr _sockAddr;

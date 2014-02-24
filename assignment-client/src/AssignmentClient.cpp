@@ -6,9 +6,11 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <QtCore/QProcess>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
+#include <AccountManager.h>
 #include <Assignment.h>
 #include <Logging.h>
 #include <NodeList.h>
@@ -91,6 +93,10 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     
     // connect our readPendingDatagrams method to the readyRead() signal of the socket
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
+    
+    // connections to AccountManager for authentication
+    connect(&AccountManager::getInstance(), &AccountManager::authRequired,
+            this, &AssignmentClient::handleAuthenticationRequest);
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -158,6 +164,30 @@ void AssignmentClient::readPendingDatagrams() {
     }
 }
 
+void AssignmentClient::handleAuthenticationRequest() {
+    const QString DATA_SERVER_USERNAME_ENV = "HIFI_AC_USERNAME";
+    const QString DATA_SERVER_PASSWORD_ENV = "HIFI_AC_PASSWORD";
+    
+    // this node will be using an authentication server, let's make sure we have a username/password
+    QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
+    
+    QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
+    QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (!username.isEmpty() && !password.isEmpty()) {
+        // ask the account manager to log us in from the env variables
+        accountManager.requestAccessToken(username, password);
+    } else {
+        qDebug() << "Authentication was requested against" << qPrintable(accountManager.getRootURL().toString())
+            << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
+            << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Unable to authenticate.";
+        
+        return;
+    }
+}
+
 void AssignmentClient::assignmentCompleted() {
     // reset the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -175,5 +205,6 @@ void AssignmentClient::assignmentCompleted() {
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
+    nodeList->getDomainInfo().reset();
     nodeList->resetNodeInterestSet();
 }

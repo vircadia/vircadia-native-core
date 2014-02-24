@@ -31,7 +31,7 @@ void DomainInfo::reset() {
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
     _assignmentUUID = QUuid();
-    _connectionSecret = QString();
+    _connectionSecret = QUuid();
     _registrationToken = QByteArray();
     _rootAuthenticationURL = QUrl();
     _publicKey = QString();

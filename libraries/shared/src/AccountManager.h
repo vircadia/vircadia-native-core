@@ -41,6 +41,7 @@ public:
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray());
     
+    const QUrl& getRootURL() const { return _rootURL; }
     void setRootURL(const QUrl& rootURL);
     bool hasAuthEndpoint() { return !_rootURL.isEmpty(); }
     

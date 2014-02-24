@@ -55,23 +55,24 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
     
     if (!_nodeAuthenticationURL.isEmpty()) {
-        // this domain-server will be using an authentication server, let's make sure we have a username/password
-        QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
-        
         const QString DATA_SERVER_USERNAME_ENV = "HIFI_DS_USERNAME";
         const QString DATA_SERVER_PASSWORD_ENV = "HIFI_DS_PASSWORD";
+        
+        // this node will be using an authentication server, let's make sure we have a username/password
+        QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
+        
         QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
         QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
         
+        AccountManager& accountManager = AccountManager::getInstance();
+        accountManager.setRootURL(_nodeAuthenticationURL);
+        
         if (!username.isEmpty() && !password.isEmpty()) {
-            AccountManager& accountManager = AccountManager::getInstance();
-            accountManager.setRootURL(_nodeAuthenticationURL);
-            
-            // TODO: failure case for not receiving a token
-            accountManager.requestAccessToken(username, password);
             
             connect(&accountManager, &AccountManager::loginComplete, this, &DomainServer::requestCreationFromDataServer);
             
+            // ask the account manager to log us in from the env variables
+            accountManager.requestAccessToken(username, password);
         } else {
             qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
                 << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
@@ -82,6 +83,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             
             return;
         }
+        
     } else {
         // auth is not requested for domain-server, setup NodeList and assignments now
         setupNodeListAndAssignments();
@@ -326,26 +328,27 @@ void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packe
     
     int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
     
-    QUuid nodeUUID = uuidFromPacketHeader(packet);
+    QUuid assignmentUUID = uuidFromPacketHeader(packet);
     SharedAssignmentPointer matchingAssignment;
     
-    if (!nodeUUID.isNull() && (matchingAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))) {
+    if (!assignmentUUID.isNull() && (matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType))
+        && matchingAssignment) {
         // this is an assigned node, make sure the UUID sent is for an assignment we're actually trying to give out
-        nodeUUID = uuidFromPacketHeader(packet);
         
-        if (matchingAssignment) {
-            // this was a newly added node with a matching assignment
-            
-            // remove the matching assignment from the assignment queue so we don't take the next check in
-            // (if it exists)
-            removeMatchingAssignmentFromQueue(matchingAssignment);
-        }
+        // remove the matching assignment from the assignment queue so we don't take the next check in
+        // (if it exists)
+        removeMatchingAssignmentFromQueue(matchingAssignment);
+    } else {
+        assignmentUUID = QUuid();
     }
     
     // create a new session UUID for this node
-    nodeUUID = QUuid::createUuid();
+    QUuid nodeUUID = QUuid::createUuid();
     
     SharedNodePointer newNode = NodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    
+    // when the newNode is created the linked data is also created, if this was a static assignment set the UUID
+    reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData())->setStaticAssignmentUUID(assignmentUUID);
     
     if (!authJsonObject.isEmpty()) {
         // pull the connection secret from the authJsonObject and set it as the connection secret for this node
@@ -779,19 +782,24 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-    // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
-    SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(node->getUUID());
     
-    if (matchedAssignment) {
-        refreshStaticAssignmentAndAddToQueue(matchedAssignment);
-    }
-    
-    // cleanup the connection secrets that we set up for this node (on the other nodes)
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-    foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
-        SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
-        if (otherNode) {
-            reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+    if (nodeData) {
+        // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
+        if (!nodeData->getStaticAssignmentUUID().isNull()) {
+            SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(nodeData->getStaticAssignmentUUID());
+            
+            if (matchedAssignment) {
+                refreshStaticAssignmentAndAddToQueue(matchedAssignment);
+            }
+        }
+        
+        // cleanup the connection secrets that we set up for this node (on the other nodes)
+        foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
+            SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+            if (otherNode) {
+                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
         }
     }
 }
