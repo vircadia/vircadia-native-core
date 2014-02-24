@@ -38,7 +38,7 @@ public:
     virtual bool equals(const SharedObject* other) const;
 
     // Dumps the contents of this object to the debug output.
-    virtual void dump(QDebug debug = qDebug()) const;
+    virtual void dump(QDebug debug = QDebug(QtDebugMsg)) const;
 
 signals:
     
