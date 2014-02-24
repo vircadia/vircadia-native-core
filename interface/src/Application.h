@@ -14,6 +14,7 @@
 
 #include <QApplication>
 #include <QAction>
+#include <QImage>
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
@@ -95,6 +96,9 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
+static const float BILLBOARD_DISTANCE = 5.0f;
 
 class Application : public QApplication {
     Q_OBJECT
@@ -185,6 +189,8 @@ public:
 
     void setupWorldLight();
 
+    QImage renderAvatarBillboard();
+
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
@@ -199,6 +205,8 @@ public:
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -331,7 +339,7 @@ private:
     void displayStats();
     void checkStatsClick();
     void toggleStatsExpanded();
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
+    void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();

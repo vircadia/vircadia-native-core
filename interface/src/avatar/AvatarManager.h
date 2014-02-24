@@ -42,6 +42,7 @@ private:
     
     void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarIdentityPacket(const QByteArray& packet);
+    void processAvatarBillboardPacket(const QByteArray& packet);
     void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);
