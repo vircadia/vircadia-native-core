@@ -79,11 +79,7 @@ public:
 
     void setPool(const QString& pool) { _pool = pool; };
     const QString& getPool() const { return _pool; }
-
-    int getNumberOfInstances() const { return _numberOfInstances; }
-    void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
-    void decrementNumberOfInstances() { --_numberOfInstances; }
-
+    
     const char* getTypeName() const;
 
     // implement parseData to return 0 so we can be a subclass of NodeData
@@ -99,7 +95,6 @@ protected:
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     QString _pool; /// the destination pool for this assignment
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
-    int _numberOfInstances; /// the number of instances of this assignment
     QByteArray _payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
 };
 

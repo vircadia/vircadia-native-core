@@ -45,7 +45,6 @@ Assignment::Assignment() :
     _type(Assignment::AllTypes),
     _pool(),
     _location(Assignment::LocalLocation),
-    _numberOfInstances(1),
     _payload()
 {
     
@@ -57,7 +56,6 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     _type(type),
     _pool(pool),
     _location(location),
-    _numberOfInstances(1),
     _payload()
 {
     if (_command == Assignment::CreateCommand) {
@@ -69,7 +67,6 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
 Assignment::Assignment(const QByteArray& packet) :
     _pool(),
     _location(GlobalLocation),
-    _numberOfInstances(1),
     _payload()
 {
     PacketType packetType = packetTypeForPacket(packet);
@@ -99,7 +96,6 @@ Assignment::Assignment(const Assignment& otherAssignment) {
     _type = otherAssignment._type;
     _location = otherAssignment._location;
     _pool = otherAssignment._pool;
-    _numberOfInstances = otherAssignment._numberOfInstances;
     _payload = otherAssignment._payload;
 }
 
@@ -117,8 +113,6 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_type, otherAssignment._type);
     swap(_location, otherAssignment._location);
     swap(_pool, otherAssignment._pool);
-    
-    swap(_numberOfInstances, otherAssignment._numberOfInstances);
     swap(_payload, otherAssignment._payload);
 }
 
