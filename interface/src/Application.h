@@ -269,7 +269,6 @@ private slots:
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
-    void cameraMenuChanged();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
 
@@ -307,7 +306,7 @@ private:
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
@@ -316,6 +315,7 @@ private:
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
+    void updateCameraMode();
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateAudio(float deltaTime);

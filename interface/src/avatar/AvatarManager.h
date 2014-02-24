@@ -30,7 +30,7 @@ public:
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
+    void renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
 

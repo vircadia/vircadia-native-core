@@ -69,7 +69,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
@@ -83,16 +83,16 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 avatar->init();
             }
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                avatar->render(forceRenderHead);
+                _myAvatar->render(forceRenderMyHead);
             } else {
-                avatar->render(true);
+                avatar->render();
             }
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
         renderAvatarFades();
     } else {
         // just render myAvatar
-        _myAvatar->render(forceRenderHead);
+        _myAvatar->render(forceRenderMyHead);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -121,7 +121,7 @@ void AvatarManager::renderAvatarFades() {
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        avatar->render(false);
+        avatar->render();
     }
 }
 
