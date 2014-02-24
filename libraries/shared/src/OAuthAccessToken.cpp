@@ -22,7 +22,7 @@ OAuthAccessToken::OAuthAccessToken() :
 OAuthAccessToken::OAuthAccessToken(const QJsonObject& jsonObject) :
     token(jsonObject["access_token"].toString()),
     refreshToken(jsonObject["refresh_token"].toString()),
-    expiryTimestamp(QDateTime::currentMSecsSinceEpoch() + jsonObject["expires_in"].toInt()),
+    expiryTimestamp(QDateTime::currentMSecsSinceEpoch() + jsonObject["expires_in"].toDouble()),
     tokenType(jsonObject["token_type"].toString())
 {
     
