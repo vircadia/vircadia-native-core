@@ -4201,7 +4201,9 @@ void Application::reloadAllScripts() {
         scriptAction->activate(QAction::Trigger);
         qDebug() << "stopping script..." << scriptAction->text();
     }
-    _activeScripts.clear();
+
+    // NOTE: we don't need to clear the _activeScripts list because that is handled on script shutdown.
+    
     foreach (QString scriptName, reloadList){
         qDebug() << "reloading script..." << scriptName;
         loadScript(scriptName);
@@ -4209,7 +4211,7 @@ void Application::reloadAllScripts() {
 }
 
 void Application::removeScriptName(const QString& fileNameString) {
-  _activeScripts.removeOne(fileNameString);
+    _activeScripts.removeOne(fileNameString);
 }
 
 void Application::loadScript(const QString& fileNameString) {
