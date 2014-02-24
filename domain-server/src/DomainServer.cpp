@@ -58,8 +58,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         // this domain-server will be using an authentication server, let's make sure we have a username/password
         QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
         
-        const QString DATA_SERVER_USERNAME_ENV = "DATA_SERVER_USERNAME";
-        const QString DATA_SERVER_PASSWORD_ENV = "DATA_SERVER_PASSWORD";
+        const QString DATA_SERVER_USERNAME_ENV = "HIFI_DS_USERNAME";
+        const QString DATA_SERVER_PASSWORD_ENV = "HIFI_DS_PASSWORD";
         QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
         QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
         
