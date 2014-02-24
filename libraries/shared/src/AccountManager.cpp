@@ -10,6 +10,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QMap>
+#include <QtCore/QStringList>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QNetworkRequest>
 
