@@ -117,7 +117,7 @@ var hueAngle = 0;
 var smoothedOffset;
 
 function step() {
-    if (stateHistory.length == 0) {
+    if (stateHistory.length === 0) {
         // start at a random position within the bounds, with a random velocity
         position = randomVector(BOUNDS_MIN, BOUNDS_MAX);
         do {
