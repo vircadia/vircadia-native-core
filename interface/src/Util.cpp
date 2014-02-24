@@ -554,7 +554,7 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
 }
 
 
-void renderBeverCornersRect(int x, int y, int width, int height, int bevelDistance) {
+void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
     glBegin(GL_POLYGON);
     
     // left side
