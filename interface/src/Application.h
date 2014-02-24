@@ -307,7 +307,7 @@ private:
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
