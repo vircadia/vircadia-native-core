@@ -689,42 +689,47 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
             
-            // create an assignment for this saved script
-            Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType);
+            
             
             // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
             
             QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
+            
+            int numInstances = 1;
+            
             if (!assignmentInstancesValue.isEmpty()) {
                 // the user has requested a specific number of instances
                 // so set that on the created assignment
-                int numInstances = assignmentInstancesValue.toInt();
-                if (numInstances > 0) {
-                    qDebug() << numInstances;
-                    scriptAssignment->setNumberOfInstances(numInstances);
-                }
+                
+                numInstances = assignmentInstancesValue.toInt();
             }
-            
+
             const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
             
-            QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-            newPath += "/";
-            // append the UUID for this script as the new filename, remove the curly braces
-            newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
-            
-            // create a file with the GUID of the assignment in the script host locaiton
-            QFile scriptFile(newPath);
-            scriptFile.open(QIODevice::WriteOnly);
-            scriptFile.write(formData[0].second);
-            
-            qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+            for (int i = 0; i < numInstances; i++) {
+                
+                // create an assignment for this saved script
+                Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType);
+                
+                QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+                newPath += "/";
+                // append the UUID for this script as the new filename, remove the curly braces
+                newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
+                
+                // create a file with the GUID of the assignment in the script host locaiton
+                QFile scriptFile(newPath);
+                scriptFile.open(QIODevice::WriteOnly);
+                scriptFile.write(formData[0].second);
+                
+                qDebug("Saved a script for assignment at %s", qPrintable(newPath));
+                
+                // add the script assigment to the assignment queue
+                _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
+            }
             
             // respond with a 200 code for successful upload
             connection->respond(HTTPConnection::StatusCode200);
-            
-            // add the script assigment to the assignment queue
-            _assignmentQueue.enqueue(SharedAssignmentPointer(scriptAssignment));
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
         if (path.startsWith(URI_NODE)) {
@@ -834,14 +839,7 @@ SharedAssignmentPointer DomainServer::deployableAssignmentForRequest(const Assig
 
             if (assignment->getType() == Assignment::AgentType) {
                 // if there is more than one instance to send out, simply decrease the number of instances
-
-                if (assignment->getNumberOfInstances() == 1) {
-                    return _assignmentQueue.takeAt(sharedAssignment - _assignmentQueue.begin());
-                } else {
-                    assignment->decrementNumberOfInstances();
-                    return *sharedAssignment;
-                }
-
+                return _assignmentQueue.takeAt(sharedAssignment - _assignmentQueue.begin());
             } else {
                 // remove the assignment from the queue
                 SharedAssignmentPointer deployableAssignment = _assignmentQueue.takeAt(sharedAssignment
