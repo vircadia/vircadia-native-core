@@ -2227,7 +2227,7 @@ void Application::updateMetavoxels(float deltaTime) {
     }
 }
 
-void Application::updateCameraMode() {
+void Application::cameraMenuChanged() {
     float modeShiftPeriod = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 0.0f : 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2317,9 +2317,6 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-    // lots of things depend on the camera mode, so get that first
-    updateCameraMode();
-    
     // check what's under the mouse and update the mouse voxel
     updateMouseRay();
 
