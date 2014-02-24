@@ -2,7 +2,7 @@
 //  bot.js
 //  hifi
 //
-//  Created by Brad Hefta-Gaub on 2/20/14.
+//  Created by Stephen Birarda on 2/20/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 //  This is an example script that demonstrates an NPC avatar.
@@ -46,10 +46,9 @@ if (botNumber <= 20) {
   newBodyFilePrefix = "bot" + botNumber;
 } 
 
-
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix ".fst";
-Avatar.bodyModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix ".fst";
+Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix + ".fst";
+Avatar.bodyModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix + ".fst";
 
 Agent.isAvatar = true;
