@@ -324,7 +324,6 @@ void MyAvatar::simulate(float deltaTime) {
     _skeletonModel.simulate(deltaTime);
 
     Head* head = getHead();
-    head->setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _position;

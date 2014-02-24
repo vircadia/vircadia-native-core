@@ -866,7 +866,7 @@ function mouseReleaseEvent(event) {
         var cameraOrientation = Camera.getOrientation();
         var eulers = Quat.safeEulerAngles(cameraOrientation);
         MyAvatar.position = Camera.getPosition();
-        MyAvatar.orientation = cameraOrientation;
+        MyAvatar.headOrientation = cameraOrientation;
         Camera.stopLooking();
         Camera.setMode(oldMode);
         Camera.setOrientation(cameraOrientation);
