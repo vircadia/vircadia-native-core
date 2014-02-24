@@ -1344,6 +1344,8 @@ function scriptEnding() {
     Overlays.deleteOverlay(recolorTool);
     Overlays.deleteOverlay(eyedropperTool);
     Overlays.deleteOverlay(selectTool);
+    Overlays.deleteOverlay(slider);
+    Overlays.deleteOverlay(thumb);
     Controller.releaseKeyEvents({ text: "+" });
     Controller.releaseKeyEvents({ text: "-" });
 }
