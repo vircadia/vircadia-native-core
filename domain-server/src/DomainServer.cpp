@@ -14,7 +14,6 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QProcess>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
 #include <AccountManager.h>

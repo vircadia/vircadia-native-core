@@ -14,6 +14,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QQueue>
 #include <QtCore/QSharedPointer>
+#include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
 #include <Assignment.h>
