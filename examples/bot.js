@@ -18,8 +18,8 @@ function getRandomInt (min, max) {
 }
 
 // choose a random x and y in the range of 0 to 50
-positionX = getRandomFloat(0, 50);
-positionZ = getRandomFloat(0, 50);
+positionX = getRandomFloat(0, 18);
+positionZ = getRandomFloat(0, 18);
 
 // change the avatar's position to the random one
 Avatar.position = {x: positionX, y: 0, z: positionZ};
@@ -49,6 +49,6 @@ if (botNumber <= 20) {
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
 Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix + ".fst";
-Avatar.bodyModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix + ".fst";
+Avatar.skeletonModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix + ".fst";
 
 Agent.isAvatar = true;
