@@ -28,7 +28,6 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
@@ -137,7 +136,6 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
 
     addDisabledActionAndSeparator(fileMenu, "Devices");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     addCheckableActionToQMenuAndActionHash(fileMenu, MenuOption::TransmitterDrive, 0, true);
 
     addActionToQMenuAndActionHash(fileMenu,

@@ -56,7 +56,6 @@
 #include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
-#include <PairingHandler.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <UUID.h>
