@@ -736,7 +736,6 @@ function handleOrbitingMove(event) {
 
 function endOrbitMode(event) {
     var cameraOrientation = Camera.getOrientation();
-    var eulers = Quat.safeEulerAngles(cameraOrientation);
     MyAvatar.position = Camera.getPosition();
     MyAvatar.headOrientation = cameraOrientation;
     Camera.stopLooking();
