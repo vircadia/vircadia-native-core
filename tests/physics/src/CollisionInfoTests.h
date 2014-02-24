@@ -11,8 +11,8 @@
 
 namespace CollisionInfoTests {
 
-    void rotateThenTranslate();
-    void translateThenRotate();
+//    void rotateThenTranslate();
+//    void translateThenRotate();
 
     void runAllTests(); 
 }

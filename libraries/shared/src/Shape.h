@@ -1,6 +1,5 @@
 //
 //  Shape.h
-//  hifi
 //
 //  Created by Andrew Meadows on 2014.02.20
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
@@ -20,6 +19,7 @@ public:
         SPHERE_SHAPE,
         CAPSULE_SHAPE,
         BOX_SHAPE,
+        LIST_SHAPE
     };
 
     Shape() : _type(UNKNOWN_SHAPE), _boundingRadius(0.f), _position(0.f), _rotation() { }
@@ -33,7 +33,11 @@ public:
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
 protected:
+    // these ctors are protected (used by derived classes only)
     Shape(Type type) : _type(type), _boundingRadius(0.f), _position(0.f), _rotation() {}
+
+    Shape(Type type, const glm::vec3& position) 
+        : _type(type), _boundingRadius(0.f), _position(position), _rotation() {}
 
     Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
         : _type(type), _boundingRadius(0.f), _position(position), _rotation(rotation) {}

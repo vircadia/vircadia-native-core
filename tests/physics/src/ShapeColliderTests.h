@@ -11,8 +11,14 @@
 
 namespace ShapeColliderTests {
 
-    void sphereSphere();
-    //void test2();
+    void sphereMissesSphere();
+    void sphereTouchesSphere();
+
+    void sphereMissesCapsule();
+    void sphereTouchesCapsule();
+
+    void capsuleMissesCapsule();
+    void capsuleTouchesCapsule();
 
     void runAllTests(); 
 }

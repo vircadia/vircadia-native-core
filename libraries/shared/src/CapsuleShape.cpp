@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include <iostream>
 #include <glm/gtx/vector_angle.hpp>
 
 #include "CapsuleShape.h"
@@ -13,6 +14,7 @@
 
 
 // default axis of CapsuleShape is Y-axis
+const glm::vec3 localAxis(0.f, 1.f, 0.f);
 
 CapsuleShape::CapsuleShape() : Shape(Shape::CAPSULE_SHAPE) {}
 
@@ -41,6 +43,21 @@ CapsuleShape::CapsuleShape(float radius, const glm::vec3& startPoint, const glm:
         }
     }
     updateBoundingRadius();
+}
+
+/// \param[out] startPoint is the center of start cap
+void CapsuleShape::getStartPoint(glm::vec3& startPoint) const {
+    startPoint = getPosition() - _halfHeight * (_rotation * glm::vec3(0.f, 1.f, 0.f));
+}
+
+/// \param[out] endPoint is the center of the end cap
+void CapsuleShape::getEndPoint(glm::vec3& endPoint) const {
+    endPoint = getPosition() + _halfHeight * (_rotation * glm::vec3(0.f, 1.f, 0.f));
+}
+
+void CapsuleShape::computeNormalizedAxis(glm::vec3& axis) const {
+    // default axis of a capsule is along the yAxis
+    axis = _rotation * glm::vec3(0.f, 1.f, 0.f);
 }
 
 void CapsuleShape::setRadius(float radius) {

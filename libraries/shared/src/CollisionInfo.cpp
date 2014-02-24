@@ -8,17 +8,6 @@
 
 #include "CollisionInfo.h"
 
-void CollisionInfo::rotateThenTranslate(const glm::quat& rotation, const glm::vec3& translation) {
-    _contactPoint = translation + rotation * _contactPoint;
-    _penetration = rotation * _penetration;
-    _addedVelocity = rotation * _addedVelocity;
-}
-
-void CollisionInfo::translateThenRotate(const glm::vec3& translation, const glm::quat& rotation) {
-    _contactPoint = rotation * (_contactPoint + translation);
-    _penetration = rotation * _penetration;
-    _addedVelocity = rotation * _addedVelocity;
-}
 
 CollisionList::CollisionList(int maxSize) :
     _maxSize(maxSize),

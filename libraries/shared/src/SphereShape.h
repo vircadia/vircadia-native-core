@@ -15,9 +15,12 @@ class SphereShape : public Shape {
 public:
     SphereShape() : Shape(Shape::SPHERE_SHAPE) {}
 
-    SphereShape(float radius, const glm::vec3& position) : Shape(Shape::SPHERE_SHAPE) {
+    SphereShape(float radius) : Shape(Shape::SPHERE_SHAPE) {
         _boundingRadius = radius;
-        setPosition(position);
+    }
+
+    SphereShape(float radius, const glm::vec3& position) : Shape(Shape::SPHERE_SHAPE, position) {
+        _boundingRadius = radius;
     }
 
     float getRadius() const { return _boundingRadius; }

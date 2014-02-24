@@ -11,6 +11,7 @@
 
 #include "Shape.h"
 
+// adebug bookmark TODO: convert to new world-frame approach
 // default axis of CapsuleShape is Y-axis
 
 class CapsuleShape : public Shape {
@@ -22,6 +23,14 @@ public:
 
     float getRadius() const { return _radius; }
     float getHalfHeight() const { return _halfHeight; }
+
+    /// \param[out] startPoint is the center of start cap
+    void getStartPoint(glm::vec3& startPoint) const;
+
+    /// \param[out] endPoint is the center of the end cap
+    void getEndPoint(glm::vec3& endPoint) const;
+
+    void computeNormalizedAxis(glm::vec3& axis) const;
 
     void setRadius(float radius);
     void setHalfHeight(float height);

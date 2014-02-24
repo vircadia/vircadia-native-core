@@ -18,6 +18,7 @@
 #include "PhysicsTestUtil.h"
 
 
+/*
 void CollisionInfoTests::rotateThenTranslate() {
     CollisionInfo collision;
     collision._penetration = xAxis;
@@ -95,8 +96,9 @@ void CollisionInfoTests::translateThenRotate() {
             << std::endl;
     } 
 }
+*/
 
 void CollisionInfoTests::runAllTests() {
-    CollisionInfoTests::rotateThenTranslate();
-    CollisionInfoTests::translateThenRotate();
+//    CollisionInfoTests::rotateThenTranslate();
+//    CollisionInfoTests::translateThenRotate();
 }
