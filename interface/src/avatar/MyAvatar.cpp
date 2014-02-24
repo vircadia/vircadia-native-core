@@ -480,8 +480,8 @@ void MyAvatar::render(bool forceRenderHead) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
         renderBody(forceRenderHead);
     }
-
-    //renderDebugBodyPoints();
+    setShowDisplayName(true);
+    renderDisplayName();
 
     if (!_chatMessage.empty()) {
         int width = 0;

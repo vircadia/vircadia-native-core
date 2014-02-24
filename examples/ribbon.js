@@ -1,4 +1,10 @@
-// Draws a screensavery rainbow ribbon.
+//
+//  ribbon.js
+//  hifi
+//
+//  Created by Andrzej Kapolka on 2/24/14.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
+//
 
 function vectorMultiply(vector, scalar) {
     return [ vector[0] * scalar, vector[1] * scalar, vector[2] * scalar ];
