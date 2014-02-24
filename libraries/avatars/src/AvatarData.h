@@ -29,10 +29,12 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QByteArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
+#include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -53,6 +55,7 @@ static const float MIN_AVATAR_SCALE = .005f;
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
@@ -77,6 +80,7 @@ class AvatarData : public NodeData {
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
@@ -107,6 +111,9 @@ public:
 
     glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
     void setOrientation(const glm::quat& orientation);
+
+    glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
+    void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
 
     // access to Head().set/getMousePitch
     float getHeadPitch() const { return _headData->getPitch(); }
@@ -150,6 +157,8 @@ public:
     bool hasIdentityChangedAfterParsing(const QByteArray& packet);
     QByteArray identityByteArray();
     
+    bool hasBillboardChangedAfterParsing(const QByteArray& packet);
+    
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
@@ -157,6 +166,9 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
+    
+    virtual void setBillboard(const QByteArray& billboard);
+    const QByteArray& getBillboard() const { return _billboard; }
     
     QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
     void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
@@ -168,6 +180,7 @@ public:
 
 public slots:
     void sendIdentityPacket();
+    void sendBillboardPacket();
 
 protected:
     glm::vec3 _position;
@@ -199,9 +212,11 @@ protected:
     QUrl _skeletonModelURL;
     QString _displayName;
 
-    int _displayNameWidth;
+    QRect _displayNameBoundingRect;
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
+
+    QByteArray _billboard;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

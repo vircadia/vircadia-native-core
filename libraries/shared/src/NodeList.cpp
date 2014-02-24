@@ -229,6 +229,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
             if (matchingNode) {
+                matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
             }
@@ -239,6 +240,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
             
             if (sendingNode) {
+                sendingNode->setLastHeardMicrostamp(usecTimestampNow());
+                
                 // activate the appropriate socket for this node, if not yet updated
                 activateSocketFromNodeCommunication(packet, sendingNode);
                 

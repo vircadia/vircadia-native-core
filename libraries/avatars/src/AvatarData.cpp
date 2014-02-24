@@ -36,7 +36,7 @@ AvatarData::AvatarData() :
     _isChatCirclingEnabled(false),
     _headData(NULL),
     _handData(NULL), 
-    _displayNameWidth(0), 
+    _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
     _displayNameAlpha(0.0f)
 {
@@ -305,6 +305,15 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
+bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
+    QByteArray newBillboard = packet.mid(numBytesForPacketHeader(packet));
+    if (newBillboard == _billboard) {
+        return false;
+    }
+    _billboard = newBillboard;
+    return true;
+}
+
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
     
@@ -321,6 +330,12 @@ void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
 
     qDebug() << "Changing display name for avatar to" << displayName;
+}
+
+void AvatarData::setBillboard(const QByteArray& billboard) {
+    _billboard = billboard;
+    
+    qDebug() << "Changing billboard for avatar.";
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {
@@ -343,4 +358,11 @@ void AvatarData::sendIdentityPacket() {
     identityPacket.append(identityByteArray());
     
     NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void AvatarData::sendBillboardPacket() {
+    QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+    billboardPacket.append(_billboard);
+    
+    NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
 }

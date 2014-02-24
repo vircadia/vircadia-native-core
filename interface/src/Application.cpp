@@ -62,6 +62,7 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
+#include "ClipboardScriptingInterface.h"
 #include "DataServerClient.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
@@ -97,6 +98,7 @@ const int MIRROR_VIEW_HEIGHT = 215;
 const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
 const float MIRROR_REARVIEW_DISTANCE = 0.65f;
 const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 const QString CHECK_VERSION_URL = "http://highfidelity.io/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
@@ -253,6 +255,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QTimer* identityPacketTimer = new QTimer();
     connect(identityPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendIdentityPacket);
     identityPacketTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+
+    // send the billboard packet for our avatar every few seconds
+    QTimer* billboardPacketTimer = new QTimer();
+    connect(billboardPacketTimer, &QTimer::timeout, _myAvatar, &MyAvatar::sendBillboardPacket);
+    billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
@@ -526,73 +533,8 @@ void Application::paintGL() {
         _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-
-            bool eyeRelativeCamera = false;
-            if (_rearMirrorTools->getZoomLevel() == BODY) {
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
-                _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
-            } else { // HEAD zoom level
-                _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-                if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
-                    // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
-                    // face/body so that the average eye position lies at the origin
-                    eyeRelativeCamera = true;
-                    _mirrorCamera.setTargetPosition(glm::vec3());
-
-                } else {
-                    _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
-                }
-            }
-
-            _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
-            _mirrorCamera.update(1.0f/_fps);
-
-            // set the bounds of rear mirror view
-            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(),
-                        _mirrorViewRect.width(), _mirrorViewRect.height());
-            bool updateViewFrustum = false;
-            updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-            glEnable(GL_SCISSOR_TEST);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            // render rear mirror view
-            glPushMatrix();
-            if (eyeRelativeCamera) {
-                // save absolute translations
-                glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-                glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
-                // get the eye positions relative to the neck and use them to set the face translation
-                glm::vec3 leftEyePosition, rightEyePosition;
-                _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
-                _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
-                _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
-
-                // get the neck position relative to the body and use it to set the skeleton translation
-                glm::vec3 neckPosition;
-                _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
-                _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-                _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
-                    neckPosition);
-
-                displaySide(_mirrorCamera, true);
-
-                // restore absolute translations
-                _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-                _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
-            } else {
-                displaySide(_mirrorCamera, true);
-            }
-            glPopMatrix();
-
-            _rearMirrorTools->render(false);
-
-            // reset Viewport and projection matrix
-            glViewport(0, 0, _glWidget->width(), _glWidget->height());
-            glDisable(GL_SCISSOR_TEST);
-            updateProjectionMatrix(_myCamera, updateViewFrustum);
+            renderRearViewMirror(_mirrorViewRect);
+            
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
@@ -1699,6 +1641,10 @@ bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
 }
 
 void Application::exportVoxels() {
+    exportVoxels(_mouseVoxel);
+}
+
+void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
@@ -1706,7 +1652,7 @@ void Application::exportVoxels() {
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
         _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
@@ -1740,11 +1686,19 @@ void Application::importVoxels() {
 }
 
 void Application::cutVoxels() {
-    copyVoxels();
-    deleteVoxelUnderCursor();
+    cutVoxels(_mouseVoxel);
+}
+
+void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
+    copyVoxels(sourceVoxel);
+    deleteVoxelAt(sourceVoxel);
 }
 
 void Application::copyVoxels() {
+    copyVoxels(_mouseVoxel);
+}
+
+void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
     // switch to and clear the clipboard first...
     _sharedVoxelSystem.killLocalVoxels();
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
@@ -1753,7 +1707,7 @@ void Application::copyVoxels() {
     }
 
     // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
     }
@@ -1775,8 +1729,12 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
 }
 
 void Application::pasteVoxels() {
+    pasteVoxels(_mouseVoxel);
+}
+
+void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
@@ -1785,7 +1743,7 @@ void Application::pasteVoxels() {
     if (selectedNode) {
         octalCodeDestination = selectedNode->getOctalCode();
     } else {
-        octalCodeDestination = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        octalCodeDestination = calculatedOctCode = pointToVoxel(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     }
 
     pasteVoxelsToOctalCode(octalCodeDestination);
@@ -1830,12 +1788,14 @@ void Application::nudgeVoxels() {
         // calculate nudgeVec
         glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
 
-        VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+        nudgeVoxelsByVector(_nudgeVoxel, nudgeVec);
+    }
+}
 
-        if (nodeToNudge) {
-            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-            _nudgeStarted = false;
-        }
+void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
+    VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    if (nodeToNudge) {
+        _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
     }
 }
 
@@ -2384,6 +2344,9 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
+    
+    // let external parties know we're updating
+    emit simulating(deltaTime);
 }
 
 void Application::updateMyAvatar(float deltaTime) {
@@ -2722,6 +2685,24 @@ void Application::setupWorldLight() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+}
+
+QImage Application::renderAvatarBillboard() {
+    _textureCache.getPrimaryFramebufferObject()->bind();
+    
+    glDisable(GL_BLEND);
+
+    const int BILLBOARD_SIZE = 64;
+    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    
+    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
+    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    
+    glEnable(GL_BLEND);
+    
+    _textureCache.getPrimaryFramebufferObject()->release();
+    
+    return image;
 }
 
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
@@ -3641,6 +3622,84 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     }
 }
 
+void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+    bool eyeRelativeCamera = false;
+    if (billboard) {
+        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
+        
+    } else if (_rearMirrorTools->getZoomLevel() == BODY) {
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+        _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
+    
+    } else { // HEAD zoom level
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);
+        _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+        if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
+            // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
+            // face/body so that the average eye position lies at the origin
+            eyeRelativeCamera = true;
+            _mirrorCamera.setTargetPosition(glm::vec3());
+
+        } else {
+            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->calculateAverageEyePosition());
+        }
+    }
+    _mirrorCamera.setAspectRatio((float)region.width() / region.height());
+    
+    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+    _mirrorCamera.update(1.0f/_fps);
+
+    // set the bounds of rear mirror view
+    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    bool updateViewFrustum = false;
+    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render rear mirror view
+    glPushMatrix();
+    if (eyeRelativeCamera) {
+        // save absolute translations
+        glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
+        glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
+
+        // get the eye positions relative to the neck and use them to set the face translation
+        glm::vec3 leftEyePosition, rightEyePosition;
+        _myAvatar->getHead()->getFaceModel().setTranslation(glm::vec3());
+        _myAvatar->getHead()->getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
+        _myAvatar->getHead()->getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
+
+        // get the neck position relative to the body and use it to set the skeleton translation
+        glm::vec3 neckPosition;
+        _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
+        _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
+        _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
+            neckPosition);
+
+        displaySide(_mirrorCamera, true);
+
+        // restore absolute translations
+        _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
+        _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
+    } else {
+        displaySide(_mirrorCamera, true);
+    }
+    glPopMatrix();
+
+    if (!billboard) {
+        _rearMirrorTools->render(false);
+    }
+    
+    // reset Viewport and projection matrix
+    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glDisable(GL_SCISSOR_TEST);
+    updateProjectionMatrix(_myCamera, updateViewFrustum);
+}
+
 // renderViewFrustum()
 //
 // Description: this will render the view frustum bounds for EITHER the head
@@ -3840,17 +3899,26 @@ bool Application::maybeEditVoxelUnderCursor() {
 }
 
 void Application::deleteVoxelUnderCursor() {
-    if (_mouseVoxel.s != 0) {
+    deleteVoxelAt(_mouseVoxel);
+}
+
+void Application::deleteVoxels(const VoxelDetail& voxel) {
+    deleteVoxelAt(voxel);
+}
+
+void Application::deleteVoxelAt(const VoxelDetail& voxel) {
+    if (voxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
-        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
 
     }
     // remember the position for drag detection
     _justEditedVoxel = true;
 }
+
 
 void Application::eyedropperVoxelUnderCursor() {
     VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -4189,6 +4257,10 @@ void Application::loadScript(const QString& fileNameString) {
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+
+    ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
+    scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
+    connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
