@@ -10,28 +10,20 @@
 #define __interface__MetavoxelUtil__
 
 #include <QColor>
+#include <QComboBox>
 #include <QSharedPointer>
 #include <QUrl>
-#include <QUuid>
 #include <QWidget>
 
-#include <NodeList.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Bitstream.h"
 
 class QByteArray;
 class QDoubleSpinBox;
-class QLineEdit;
 class QPushButton;
 
-class HifiSockAddr;
 class NetworkProgram;
-
-/// Reads and returns the session ID from a datagram.
-/// \param[out] headerPlusIDSize the size of the header (including the session ID) within the data
-/// \return the session ID, or a null ID if invalid (in which case a warning will be logged)
-QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize);
 
 /// Performs the runtime equivalent of Qt's SIGNAL macro, which is to attach a prefix to the signature.
 QByteArray signal(const char* signature);
@@ -45,10 +37,43 @@ public:
     STREAM glm::vec3 minimum;
     STREAM glm::vec3 maximum;
     
+    Box(const glm::vec3& minimum = glm::vec3(), const glm::vec3& maximum = glm::vec3());
+    
     bool contains(const Box& other) const;
+    
+    bool intersects(const Box& other) const;
+    
+    float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
+
+/// Editor for meta-object values.
+class QMetaObjectEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(const QMetaObject* metaObject MEMBER _metaObject WRITE setMetaObject NOTIFY metaObjectChanged USER true)
+
+public:
+    
+    QMetaObjectEditor(QWidget* parent);
+
+signals:
+    
+    void metaObjectChanged(const QMetaObject* metaObject);
+
+public slots:
+    
+    void setMetaObject(const QMetaObject* metaObject);
+
+private slots:
+    
+    void updateMetaObject();
+    
+private:
+    
+    QComboBox* _box;
+    const QMetaObject* _metaObject;
+};
 
 /// Editor for color values.
 class QColorEditor : public QWidget {
@@ -75,6 +100,32 @@ private:
     
     QPushButton* _button;
     QColor _color;
+};
+
+/// Editor for URL values.
+class QUrlEditor : public QComboBox {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url READ getURL WRITE setURL NOTIFY urlChanged USER true)
+
+public:
+    
+    QUrlEditor(QWidget* parent = NULL);
+
+    void setURL(const QUrl& url);
+    const QUrl& getURL() { return _url; }
+    
+signals:
+
+    void urlChanged(const QUrl& url);
+
+private slots:
+
+    void updateURL(const QString& text);
+    void updateSettings();
+
+private:
+    
+    QUrl _url;
 };
 
 /// Editor for vector values.
@@ -170,7 +221,7 @@ private:
     ParameterizedURL _url;
     QSharedPointer<NetworkProgram> _program;
     
-    QLineEdit* _line;
+    QUrlEditor _urlEditor;
 };
 
 #endif /* defined(__interface__MetavoxelUtil__) */

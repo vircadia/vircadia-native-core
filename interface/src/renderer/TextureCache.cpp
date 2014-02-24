@@ -258,9 +258,11 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     _reply(NULL),
     _attempts(0),
     _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
-    _translucent(false) {
+    _translucent(false),
+    _loaded(false) {
     
     if (!url.isValid()) {
+        _loaded = true;
         return;
     }
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
@@ -298,6 +300,7 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _reply->disconnect(this);
     _reply->deleteLater();
     _reply = NULL;
+    _loaded = true;
     
     QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
     
@@ -345,6 +348,8 @@ void NetworkTexture::handleReplyError() {
         QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
         debug << " -- retrying...";
         
+    } else {
+        _loaded = true;
     }
 }
 

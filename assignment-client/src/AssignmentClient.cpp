@@ -19,7 +19,7 @@
 
 #include "AssignmentClient.h"
 
-const char ASSIGNMENT_CLIENT_TARGET_NAME[] = "assignment-client";
+const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");

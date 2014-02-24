@@ -14,6 +14,7 @@
 
 #include <QApplication>
 #include <QAction>
+#include <QImage>
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
@@ -95,6 +96,9 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
+static const float BILLBOARD_DISTANCE = 5.0f;
 
 class Application : public QApplication {
     Q_OBJECT
@@ -185,6 +189,8 @@ public:
 
     void setupWorldLight();
 
+    QImage renderAvatarBillboard();
+
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
@@ -199,6 +205,8 @@ public:
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -217,6 +225,9 @@ public:
 
 signals:
 
+    /// Fired when we're simulating; allows external parties to hook in.
+    void simulating(float deltaTime);
+
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
     
@@ -227,13 +238,20 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     
-    void exportVoxels();
-    void importVoxels();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
-    void nudgeVoxels();
     void deleteVoxels();
+    void exportVoxels();
+    void importVoxels();
+    void nudgeVoxels();
+
+    void cutVoxels(const VoxelDetail& sourceVoxel);
+    void copyVoxels(const VoxelDetail& sourceVoxel);
+    void pasteVoxels(const VoxelDetail& sourceVoxel);
+    void deleteVoxels(const VoxelDetail& sourceVoxel);
+    void exportVoxels(const VoxelDetail& sourceVoxel);
+    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -289,7 +307,7 @@ private:
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
@@ -321,13 +339,14 @@ private:
     void displayStats();
     void checkStatsClick();
     void toggleStatsExpanded();
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
+    void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();
 
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
+    void deleteVoxelAt(const VoxelDetail& voxel);
     void eyedropperVoxelUnderCursor();
 
     void setMenuShortcutsEnabled(bool enabled);

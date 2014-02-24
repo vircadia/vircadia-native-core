@@ -11,9 +11,9 @@
 
 #include <vector>
 
-#include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtScript/QScriptEngine>
 
 #include <AbstractMenuInterface.h>
 #include <AudioScriptingInterface.h>
@@ -52,7 +52,7 @@ public:
 
     void registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     
-    void setIsAvatar(bool isAvatar) { _isAvatar = isAvatar; }
+    Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
     
     void setAvatarData(AvatarData* avatarData, const QString& objectName);
@@ -84,9 +84,12 @@ protected:
     bool _isInitialized;
     QScriptEngine _engine;
     bool _isAvatar;
+    QTimer* _avatarIdentityTimer;
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
+    void sendAvatarIdentityPacket();
+    
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
     

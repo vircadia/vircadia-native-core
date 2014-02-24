@@ -81,15 +81,17 @@ public:
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
+    void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
+
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
 public slots:
     void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    void sendIdentityPacket();
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -119,6 +121,8 @@ private:
     glm::vec3 _transmitterPickStart;
     glm::vec3 _transmitterPickEnd;
 
+    bool _billboardValid;
+
 	// private methods
     void renderBody(bool forceRenderHead);
     void updateThrust(float deltaTime);
@@ -129,6 +133,7 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
+    void maybeUpdateBillboard();
 };
 
 #endif

@@ -121,7 +121,7 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
                     out << " &&\n";
                     out << "        ";
                 }
-                out << "static_cast<" << base << "&>(first) == static_cast<" << base << "&>(second)";
+                out << "static_cast<const " << base << "&>(first) == static_cast<const " << base << "&>(second)";
                 first = false;
             }
             foreach (const QString& field, str.fields) {
@@ -147,7 +147,7 @@ void generateOutput (QTextStream& out, const QList<Streamable>& streamables) {
                     out << " ||\n";
                     out << "        ";
                 }
-                out << "static_cast<" << base << "&>(first) != static_cast<" << base << "&>(second)";
+                out << "static_cast<const " << base << "&>(first) != static_cast<const " << base << "&>(second)";
                 first = false;
             }
             foreach (const QString& field, str.fields) {
