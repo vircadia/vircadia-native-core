@@ -389,9 +389,10 @@ void Audio::handleAudioInput() {
             float measuredDcOffset = 0.f;
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                measuredDcOffset += monoAudioSamples[i];
+                monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
                 loudness += thisSample;
-                measuredDcOffset += monoAudioSamples[i];
                 //  Noise Reduction:  Count peaks above the average loudness
                 if (thisSample > (_noiseGateMeasuredFloor * NOISE_GATE_HEIGHT)) {
                     samplesOverNoiseGate++;
@@ -406,8 +407,8 @@ void Audio::handleAudioInput() {
                 _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.f - DC_OFFSET_AVERAGING) * measuredDcOffset;
             }
             
-            //qDebug("DC = %.1f", _dcOffset);
-            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL - _dcOffset);
+            //
+            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             float averageOfAllSampleFrames = 0.f;
             _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
@@ -428,7 +429,7 @@ void Audio::handleAudioInput() {
                 averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
                 _noiseGateMeasuredFloor = smallestSample;
                 _noiseGateSampleCounter = 0;
-                qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
+
             }
 
             if (_noiseGateEnabled) {
