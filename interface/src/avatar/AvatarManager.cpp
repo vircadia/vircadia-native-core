@@ -83,7 +83,7 @@ void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
                 avatar->init();
             }
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                avatar->render();
+                _myAvatar->render(forceRenderMyHead);
             } else {
                 avatar->render();
             }

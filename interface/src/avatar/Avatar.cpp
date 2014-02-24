@@ -368,19 +368,10 @@ void Avatar::renderDisplayName() {
 
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
-    glm::dmat4 modelViewMatrix2;
-    glGetDoublev(GL_MODELVIEW_MATRIX, (GLdouble*)&modelViewMatrix2);
-    modelViewMatrix2[0][0] = 1;
-    modelViewMatrix2[1][1] = 1;
-    modelViewMatrix2[2][2] = 1;
-    modelViewMatrix2[0][1] = modelViewMatrix2[0][2] = 0;
-    modelViewMatrix2[1][0] = modelViewMatrix2[1][2] = 0;
-    modelViewMatrix2[2][0] = modelViewMatrix2[2][1] = 0;
-    glLoadMatrixd((GLdouble*)&modelViewMatrix2);
     // we need "always facing camera": we must remove the camera rotation from the stack
-   // glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
-   // glm::vec3 axis = glm::axis(rotation);
-   // glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
@@ -434,14 +425,9 @@ void Avatar::renderDisplayName() {
         glPolygonOffset(1.0f, 1.0f);
 
         glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-      //  glColor4f(1.0f, 0.2f, 0.2f, 1.0f);
-      //  glScalef(10,10, 1);
-    
         renderBeverCornersRect(left, bottom, right - left, top - bottom, 3);
-        
-      
+       
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-               
         QByteArray ba = _displayName.toLocal8Bit();
         const char* text = ba.data();
         
