@@ -94,7 +94,7 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketTypeMetavoxelData:
-                    application->_metavoxels.processData(incomingPacket, senderSockAddr);
+                    nodeList->findNodeAndUpdateWithDataFromPacket(incomingPacket);
                     break;
                 case PacketTypeBulkAvatarData:
                 case PacketTypeKillAvatar:
