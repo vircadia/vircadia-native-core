@@ -17,6 +17,8 @@
 
 #include "UUID.h"
 
+// NOTE: if adding a new packet type, you can replace one marked usable or add at the end
+
 enum PacketType {
     PacketTypeUnknown,
     PacketTypeStunResponse,
@@ -30,7 +32,7 @@ enum PacketType {
     PacketTypeMicrophoneAudioNoEcho,
     PacketTypeMicrophoneAudioWithEcho,
     PacketTypeBulkAvatarData,
-    PacketTypeTransmitterData,
+    PacketTypeTransmitterData, // usable
     PacketTypeEnvironmentData,
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,

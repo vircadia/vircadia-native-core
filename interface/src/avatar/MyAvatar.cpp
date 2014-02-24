@@ -89,7 +89,6 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
-    _transmitter.resetLevels();
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -97,32 +96,7 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
     _moveTargetStepCounter = 0;
 }
 
-void MyAvatar::updateTransmitter(float deltaTime) {
-    // no transmitter drive implies transmitter pick
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
-        _transmitterPickStart = getChestPosition();
-        glm::vec3 direction = getOrientation() * glm::quat(glm::radians(_transmitter.getEstimatedRotation())) * IDENTITY_FRONT;
-
-        // check against voxels, avatars
-        const float MAX_PICK_DISTANCE = 100.0f;
-        float minDistance = MAX_PICK_DISTANCE;
-        VoxelDetail detail;
-        float distance;
-        BoxFace face;
-        VoxelSystem* voxels = Application::getInstance()->getVoxels();
-        if (voxels->findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
-            minDistance = min(minDistance, distance);
-        }
-        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
-
-    } else {
-        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
-    }
-}
-
 void MyAvatar::update(float deltaTime) {
-    updateTransmitter(deltaTime);
-
     updateFromGyros(deltaTime);
 
     // Update head mouse from faceshift if active
@@ -574,35 +548,6 @@ void MyAvatar::renderHeadMouse() const {
     */
 }
 
-void MyAvatar::renderTransmitterPickRay() const {
-    if (_transmitterPickStart != _transmitterPickEnd) {
-        Glower glower;
-        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
-        glColor3fv(TRANSMITTER_PICK_COLOR);
-        glLineWidth(3.0f);
-        glBegin(GL_LINES);
-        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
-        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-        glEnd();
-        glLineWidth(1.0f);
-
-        glPushMatrix();
-        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-
-        const float PICK_END_RADIUS = 0.025f;
-        glutSolidSphere(PICK_END_RADIUS, 8, 8);
-
-        glPopMatrix();
-    }
-}
-
-void MyAvatar::renderTransmitterLevels(int width, int height) const {
-    //  Show hand transmitter data if detected
-    if (_transmitter.isConnected()) {
-        _transmitter.renderLevels(width, height);
-    }
-}
-
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -782,36 +727,6 @@ void MyAvatar::updateThrust(float deltaTime) {
             _thrust += _scale * THRUST_JUMP * up;
         }
         _shouldJump = false;
-    }
-
-    //  Add thrusts from Transmitter
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
-        _transmitter.checkForLostTransmitter();
-        glm::vec3 rotation = _transmitter.getEstimatedRotation();
-        const float TRANSMITTER_MIN_RATE = 1.f;
-        const float TRANSMITTER_MIN_YAW_RATE = 4.f;
-        const float TRANSMITTER_LATERAL_FORCE_SCALE = 5.f;
-        const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
-        const float TRANSMITTER_UP_FORCE_SCALE = 100.f;
-        const float TRANSMITTER_YAW_SCALE = 10.0f;
-        const float TRANSMITTER_LIFT_SCALE = 3.f;
-        const float TOUCH_POSITION_RANGE_HALF = 32767.f;
-        if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
-            _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * right;
-        }
-        if (fabs(rotation.x) > TRANSMITTER_MIN_RATE) {
-            _thrust += -rotation.x * TRANSMITTER_FWD_FORCE_SCALE * deltaTime * front;
-        }
-        if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
-            _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
-        }
-        if (_transmitter.getTouchState()->state == 'D') {
-            _thrust += TRANSMITTER_UP_FORCE_SCALE *
-            (float)(_transmitter.getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
-            TRANSMITTER_LIFT_SCALE *
-            deltaTime *
-            up;
-        }
     }
 
     //  Update speed brake status

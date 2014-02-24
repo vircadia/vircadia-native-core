@@ -43,12 +43,6 @@ void DatagramProcessor::processDatagrams() {
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
-                case PacketTypeTransmitterData:
-                    //  V2 = IOS transmitter app
-                    application->getAvatar()->getTransmitter().processIncomingData(reinterpret_cast<unsigned char*>(incomingPacket.data()),
-                                                                    incomingPacket.size());
-                    
-                    break;
                 case PacketTypeMixedAudio:
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));

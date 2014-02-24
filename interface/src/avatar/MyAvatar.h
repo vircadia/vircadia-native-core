@@ -11,8 +11,6 @@
 
 #include <QSettings>
 
-#include <devices/Transmitter.h>
-
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -35,13 +33,10 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
-    void updateTransmitter(float deltaTime);
 
     void render(bool forceRenderHead);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
-    void renderTransmitterPickRay() const;
-    void renderTransmitterLevels(int width, int height) const;
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
@@ -60,7 +55,6 @@ public:
     float getAbsoluteHeadYaw() const;
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    Transmitter& getTransmitter() { return _transmitter; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
     
@@ -117,10 +111,6 @@ private:
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
-
-    Transmitter _transmitter;     // Gets UDP data from transmitter app used to animate the avatar
-    glm::vec3 _transmitterPickStart;
-    glm::vec3 _transmitterPickEnd;
 
     bool _billboardValid;
 

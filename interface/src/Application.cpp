@@ -2926,9 +2926,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
 
-        // render transmitter pick ray, if non-empty
-        _myAvatar->renderTransmitterPickRay();
-
         // give external parties a change to hook in
         emit renderingInWorldInterface();
         
@@ -2993,8 +2990,6 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();
     }
-
-    _myAvatar->renderTransmitterLevels(_glWidget->width(), _glWidget->height());
 
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
