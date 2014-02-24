@@ -42,7 +42,7 @@ void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z,
     VoxelDetail addVoxelDetail = {x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE, 
                                     scale / (float)TREE_SCALE, red, green, blue};
 
-    // queue the packet
+    // queue the add packet
     queueVoxelAdd(PacketTypeVoxelSet, addVoxelDetail);
     
     // handle the local tree also...
