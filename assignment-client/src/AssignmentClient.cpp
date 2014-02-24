@@ -30,6 +30,11 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
     _currentAssignment(NULL)
 {
+    setOrganizationName("High Fidelity");
+    setOrganizationDomain("highfidelity.io");
+    setApplicationName("assignment-client");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    
     // register meta type is required for queued invoke method on Assignment subclasses
     
     // set the logging target to the the CHILD_TARGET_NAME
