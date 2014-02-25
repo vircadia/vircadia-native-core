@@ -346,6 +346,7 @@ Application::~Application() {
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
+    MenuScriptingInterface::deleteLaterIfExists();
 
     _myAvatar = NULL;
     
@@ -4267,6 +4268,7 @@ void Application::loadScript(const QString& fileNameString) {
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+    scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

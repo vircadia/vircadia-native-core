@@ -493,7 +493,6 @@ Menu::Menu() :
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
     connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
 #endif
-
 }
 
 Menu::~Menu() {
@@ -1115,7 +1114,6 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
-    _MetavoxelEditor->activateWindow();
 }
 
 void Menu::audioMuteToggled() {
@@ -1286,3 +1284,119 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     
     return string;
 }
+
+void Menu::addTopMenu(const QString& menu) {
+    QMenu* newMenu = addMenu(menu);
+    //newMenu->setVisible(true);
+    //addDisabledActionAndSeparator(newMenu, "testing");
+
+    QMenuBar::repaint();
+
+    QList<QAction*> topLevelMenus = actions();
+    foreach (QAction* topLevelMenuAction, topLevelMenus) {
+        qDebug() << "menu:" << topLevelMenuAction->text();
+    }
+}
+
+void Menu::removeTopMenu(const QString& menu) {
+    QList<QAction*> topLevelMenus = actions();
+    foreach (QAction* topLevelMenuAction, topLevelMenus) {
+        if (topLevelMenuAction->text() == menu) {
+            QMenuBar::removeAction(topLevelMenuAction);
+        }
+    }
+}
+
+void Menu::addMenuItem(const QString& menu, const QString& menuitem) {
+    KeyEvent noKey;
+    addMenuItem(menu, menuitem, noKey);
+}
+
+void Menu::addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
+    const QKeySequence& shortcut = 0;
+    
+    QList<QAction*> topLevelMenus = actions();
+    foreach (QAction* topLevelMenuAction, topLevelMenus) {
+        if (topLevelMenuAction->text() == menu) {
+            // add the menu item here...
+            QMenu* menuObj = topLevelMenuAction->menu();
+            if (menuObj) {
+                addActionToQMenuAndActionHash(menuObj, menuitem, shortcut,
+                                            MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+            }
+        }
+    }
+    QMenuBar::repaint();
+}
+
+void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
+};
+
+
+
+MenuScriptingInterface* MenuScriptingInterface::_instance = NULL;
+QMutex MenuScriptingInterface::_instanceMutex;
+
+
+MenuScriptingInterface* MenuScriptingInterface::getInstance() {
+    // lock the menu instance mutex to make sure we don't race and create two menus and crash
+    _instanceMutex.lock();
+
+    if (!_instance) {
+        qDebug("First call to MenuScriptingInterface::getInstance() - initing menu.");
+
+        _instance = new MenuScriptingInterface();
+    }
+
+    _instanceMutex.unlock();
+
+    return _instance;
+}
+
+void MenuScriptingInterface::deleteLaterIfExists() {
+    _instanceMutex.lock();
+    if (_instance) {
+        _instance->deleteLater();
+        _instance = NULL;
+    }
+    _instanceMutex.unlock();
+}
+
+void MenuScriptingInterface::menuItemTriggered() {
+    QAction* menuItemAction = dynamic_cast<QAction*>(sender());
+    if (menuItemAction) {
+        qDebug() << "menu selected:" << menuItemAction->text();
+
+        // emit the event
+        emit menuItemEvent(menuItemAction->text());
+    }
+}
+
+
+
+void MenuScriptingInterface::addTopMenu(const QString& menu) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addTopMenu", Q_ARG(const QString&, menu));
+}
+
+void MenuScriptingInterface::removeTopMenu(const QString& menu) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeTopMenu", Q_ARG(const QString&, menu));
+}
+
+void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(const KeyEvent&, shortcutKey));
+}
+
+void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem));
+}
+
+void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& menuitem) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem));
+};

@@ -15,6 +15,7 @@
 #include <QPointer>
 
 #include <AbstractMenuInterface.h>
+#include <EventTypes.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -111,6 +112,13 @@ public slots:
     void exportSettings();
     void goTo();
     void pasteToVoxel();
+
+    void addTopMenu(const QString& menu);
+    void removeTopMenu(const QString& menu);
+    void addMenuItem(const QString& menu, const QString& menuitem);
+    void addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
+    void removeMenuItem(const QString& menu, const QString& menuitem);
+
 
 private slots:
     void aboutApp();
@@ -300,5 +308,39 @@ namespace MenuOption {
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
 }
+
+
+class MenuScriptingInterface : public QObject {
+    Q_OBJECT
+    MenuScriptingInterface() { };
+public:
+    static MenuScriptingInterface* getInstance();
+    static void deleteLaterIfExists();
+public slots:
+    void addTopMenu(const QString& topMenuName);
+    void removeTopMenu(const QString& topMenuName);
+
+    // TODO: how should we expose general nested sub menus to JS
+    //       we could use a string qualifier, like "Developer > Voxel Options" but that has the side effect of 
+    //       preventing use of whatever stop character we pick.
+    //
+    //       we could use a string array, but that makes things a little harder for the JS user
+    //
+    //void addSubMenu(const QString& topMenuName, const QString& menuitem);
+    //void removeSubMenu(const QString& topMenuName, const QString& menuitem);
+
+    void addMenuItem(const QString& topMenuName, const QString& menuitem, const KeyEvent& shortcutKey);
+    void addMenuItem(const QString& topMenuName, const QString& menuitem);
+    void removeMenuItem(const QString& topMenuName, const QString& menuitem);
+    void menuItemTriggered();
+    
+signals:
+    //void keyPressEvent(const KeyEvent& event);
+    void menuItemEvent(const QString& menuItem);
+    
+private:
+    static QMutex _instanceMutex;
+    static MenuScriptingInterface* _instance;
+};
 
 #endif /* defined(__hifi__Menu__) */

@@ -36,6 +36,7 @@
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
+#include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "PieMenu.h"
