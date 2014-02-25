@@ -15,6 +15,7 @@ function setupMenus() {
     Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
     Menu.addMenuItem("Foo","Foo item 3", "META+F" );
     Menu.addCheckableMenuItem("Foo","Foo item 4", "ALT+F", true);
+    Menu.addSeparator("Foo","Removable Tools");
     Menu.addMenuItem("Foo","Remove Foo item 4");
     Menu.addMenuItem("Foo","Remove Foo");
     Menu.addMenu("Bar");
@@ -23,6 +24,7 @@ function setupMenus() {
     Menu.addMenu("Bar > Spam");
     Menu.addMenuItem("Bar > Spam","Spam item 1");
     Menu.addCheckableMenuItem("Bar > Spam","Spam item 2",false);
+    Menu.addSeparator("Bar > Spam","Other Items");
     Menu.addMenuItem("Bar > Spam","Remove Spam item 2");
     Menu.addMenuItem("Foo","Remove Spam item 2");
 }

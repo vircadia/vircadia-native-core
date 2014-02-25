@@ -113,13 +113,14 @@ public slots:
     void goTo();
     void pasteToVoxel();
 
-    QMenu* addMenu(const QString& menu);
-    void removeMenu(const QString& menu);
-    void addMenuItem(const QString& menu, const QString& menuitem, bool checkable, bool checked);
-    void addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked);
-    void addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked);
-    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked);
-    void removeMenuItem(const QString& menu, const QString& menuitem);
+    QMenu* addMenu(const QString& menuName);
+    void removeMenu(const QString& menuName);
+    void addSeparator(const QString& menuName, const QString& separatorName);
+    void addMenuItem(const QString& menuName, const QString& menuitem, bool checkable, bool checked);
+    void addMenuItem(const QString& menuName, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked);
+    void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked);
+    void addMenuItem(const QString& menuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked);
+    void removeMenuItem(const QString& menuName, const QString& menuitem);
 
 
 private slots:
@@ -334,6 +335,8 @@ private slots:
 public slots:
     void addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
+
+    void addSeparator(const QString& menuName, const QString& separatorName);
 
     void addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);

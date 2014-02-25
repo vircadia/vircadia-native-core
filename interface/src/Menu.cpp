@@ -1393,6 +1393,14 @@ void Menu::removeMenu(const QString& menuName) {
     }
 }
 
+void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menuObj = getMenu(menuName);
+    if (menuObj) {
+        addDisabledActionAndSeparator(menuObj, separatorName);
+    }
+}
+
+
 void Menu::addMenuItem(const QString& menuName, const QString& menuitem, bool checkable, bool checked) {
     QMenu* menuObj = getMenu(menuName);
     if (menuObj) {
@@ -1478,6 +1486,12 @@ void MenuScriptingInterface::addMenu(const QString& menu) {
 
 void MenuScriptingInterface::removeMenu(const QString& menu) {
     QMetaObject::invokeMethod(Menu::getInstance(), "removeMenu", Q_ARG(const QString&, menu));
+}
+
+void MenuScriptingInterface::addSeparator(const QString& menuName, const QString& separatorName) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addSeparator",
+                Q_ARG(const QString&, menuName),
+                Q_ARG(const QString&, separatorName));
 }
 
 void MenuScriptingInterface::addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
