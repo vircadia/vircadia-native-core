@@ -65,10 +65,12 @@ public:
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     bool isVoxelModeActionChecked();
-
+    
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
+    void setAudioJitterBufferSamples(int audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
+    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -89,6 +91,7 @@ public:
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; }
 
     virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
     virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,

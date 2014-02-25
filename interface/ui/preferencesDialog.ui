@@ -7,16 +7,16 @@
     <x>0</x>
     <y>0</y>
     <width>611</width>
-    <height>745</height>
+    <height>805</height>
    </rect>
   </property>
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>30</y>
+     <y>0</y>
      <width>555</width>
-     <height>596</height>
+     <height>701</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -96,7 +96,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="faceURLEdit"/>
+     <widget class="QLineEdit" name="faceURLEdit">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QLabel" name="headLabel_2">
@@ -160,55 +167,34 @@
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="widget" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: #fff</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget">
-       <property name="geometry">
-        <rect>
-         <x>7</x>
-         <y>0</y>
-         <width>531</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>Lean scale (applies to Faceshift users)</string>
-          </property>
-          <property name="buddy">
-           <cstring>leanScaleSpin</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="leanScaleSpin"/>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Lean scale (applies to Faceshift users)</string>
+        </property>
+        <property name="buddy">
+         <cstring>leanScaleSpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="leanScaleSpin"/>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -248,55 +234,34 @@
      </layout>
     </item>
     <item>
-     <widget class="QWidget" name="widget_2" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: #fff</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_3">
-       <property name="geometry">
-        <rect>
-         <x>7</x>
-         <y>0</y>
-         <width>531</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Avatar scale (default is 1.0)</string>
-          </property>
-          <property name="buddy">
-           <cstring>avatarScaleSpin</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="avatarScaleSpin"/>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Avatar scale (default is 1.0)</string>
+        </property>
+        <property name="buddy">
+         <cstring>avatarScaleSpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_4">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="avatarScaleSpin"/>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -336,65 +301,81 @@
      </layout>
     </item>
     <item>
-     <widget class="QWidget" name="widget_3" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: #fff</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_5">
-       <property name="geometry">
-        <rect>
-         <x>7</x>
-         <y>0</y>
-         <width>531</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <item>
-         <widget class="QLabel" name="label_5">
-          <property name="text">
-           <string>Faceshift eye detection</string>
-          </property>
-          <property name="buddy">
-           <cstring>avatarScaleSpin</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QSlider" name="faceshiftEyeDeflectionSider">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_8">
+      <item alignment="Qt::AlignLeft">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Audio Jitter Buffer Samples (0 for automatic)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_7">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="audioJitterSpin">
+        <property name="minimum">
+         <number>-10000</number>
+        </property>
+        <property name="maximum">
+         <number>10000</number>
+        </property>
+        <property name="value">
+         <number>1</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <item>
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Faceshift eye detection</string>
+        </property>
+        <property name="buddy">
+         <cstring>avatarScaleSpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_6">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QSlider" name="faceshiftEyeDeflectionSider">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QLabel" name="avatarTitleLabel_2">
@@ -414,123 +395,81 @@
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="widget_5" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: #fff</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_6">
-       <property name="geometry">
-        <rect>
-         <x>7</x>
-         <y>0</y>
-         <width>531</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_9">
-        <item>
-         <widget class="QLabel" name="label_7">
-          <property name="text">
-           <string>Maximum voxels</string>
-          </property>
-          <property name="buddy">
-           <cstring>leanScaleSpin</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_8">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="maxVoxelsSpin">
-          <property name="maximum">
-           <number>5000000</number>
-          </property>
-          <property name="singleStep">
-           <number>50000</number>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_9">
+      <item>
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Maximum voxels</string>
+        </property>
+        <property name="buddy">
+         <cstring>leanScaleSpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_8">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="maxVoxelsSpin">
+        <property name="maximum">
+         <number>5000000</number>
+        </property>
+        <property name="singleStep">
+         <number>50000</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
-     <widget class="QWidget" name="widget_6" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: #fff</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_7">
-       <property name="geometry">
-        <rect>
-         <x>7</x>
-         <y>0</y>
-         <width>531</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_10">
-        <item>
-         <widget class="QLabel" name="label_8">
-          <property name="text">
-           <string>Max voxels sent each second</string>
-          </property>
-          <property name="buddy">
-           <cstring>leanScaleSpin</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_9">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="maxVoxelsPPSSpin">
-          <property name="minimum">
-           <number>60</number>
-          </property>
-          <property name="maximum">
-           <number>6000</number>
-          </property>
-          <property name="singleStep">
-           <number>10</number>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_10">
+      <item>
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>Max voxels sent each second</string>
+        </property>
+        <property name="buddy">
+         <cstring>leanScaleSpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_9">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="maxVoxelsPPSSpin">
+        <property name="minimum">
+         <number>60</number>
+        </property>
+        <property name="maximum">
+         <number>6000</number>
+        </property>
+        <property name="singleStep">
+         <number>10</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -538,7 +477,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>665</y>
+     <y>725</y>
      <width>616</width>
      <height>80</height>
     </rect>

@@ -35,13 +35,15 @@ void PreferencesDialog::loadPreferences() {
     _skeletonURLString = myAvatar->getSkeletonModel().getURL().toString();
     ui.skeletonURLEdit->setText(_skeletonURLString);
     
-    float pupilDilation = myAvatar->getHead()->getPupilDilation();
-    ui.pupilDilationSlider->setValue(pupilDilation * ui.pupilDilationSlider->maximum());
+    ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
+                                     ui.pupilDilationSlider->maximum());
     
     ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
-    ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView() * ui.fieldOfViewSpin->maximum());
+    ui.audioJitterSpin->setValue(menuInstance->getAudioJitterBufferSamples());
+    
+    ui.fieldOfViewSpin->setValue(menuInstance->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
@@ -82,15 +84,17 @@ void PreferencesDialog::savePreferences() {
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
-    Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
-    
-    
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
+    Application::getInstance()->getVoxels()->setMaxVoxels(ui.maxVoxelsSpin->value());
     Application::getInstance()->resizeGL(Application::getInstance()->getGLWidget()->width(),
                                          Application::getInstance()->getGLWidget()->height());
+
+    Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
+                                                     (float)ui.faceshiftEyeDeflectionSider->maximum());
+    Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
+
+    Menu::getInstance()->setAudioJitterBufferSamples(ui.audioJitterSpin->value());
     
-    // _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
-    // _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
 }
