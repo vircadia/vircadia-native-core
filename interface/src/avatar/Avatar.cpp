@@ -429,16 +429,9 @@ void Avatar::renderDisplayName() {
         glPolygonOffset(1.0f, 1.0f);
 
         glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-        glBegin(GL_QUADS);
-        glVertex2f(left, bottom);
-        glVertex2f(right, bottom);
-        glVertex2f(right, top);
-        glVertex2f(left, top);
-        glEnd();
-        
-      
+        renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+       
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-               
         QByteArray ba = _displayName.toLocal8Bit();
         const char* text = ba.data();
         
