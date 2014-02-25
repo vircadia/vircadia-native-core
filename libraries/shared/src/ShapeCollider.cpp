@@ -270,7 +270,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             if (points[4] > points[2]) {
                 points[5] = points[1];
                 points[1] = points[2];
-                points[2] = points[4]
+                points[2] = points[4];
             }
             if (points[2] > points[3]) {
                 points[4] = points[2];
