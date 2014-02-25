@@ -30,10 +30,6 @@ using namespace VisageSDK;
 const glm::vec3 DEFAULT_HEAD_ORIGIN(0.0f, 0.0f, 0.7f);
 
 Visage::Visage() :
-#ifdef HAVE_VISAGE
-    _leftInnerBrowIndex(0),
-    _rightInnerBrowIndex(0),
-#endif
     _active(false),
     _headOrigin(DEFAULT_HEAD_ORIGIN),
     _estimatedEyePitch(0.0f),
@@ -67,24 +63,25 @@ Visage::~Visage() {
 #ifdef HAVE_VISAGE
 static int leftEyeBlinkIndex = 0;
 static int rightEyeBlinkIndex = 1;
-static int centerBrowIndex = 16;
 
-static QHash<QByteArray, int> createBlendshapeIndices() {
-    QHash<QByteArray, QByteArray> blendshapeMap;
-    blendshapeMap.insert("Sneer", "au_nose_wrinkler");
-    blendshapeMap.insert("JawFwd", "au_jaw_z_push");
-    blendshapeMap.insert("JawLeft", "au_jaw_x_push");
-    blendshapeMap.insert("JawOpen", "au_jaw_drop");
-    blendshapeMap.insert("LipsLowerDown", "au_lower_lip_drop");
-    blendshapeMap.insert("LipsUpperUp", "au_upper_lip_raiser");
-    blendshapeMap.insert("LipsStretch_R", "au_lip_stretcher_left");
-    blendshapeMap.insert("BrowsU_R", "au_left_outer_brow_raiser");
-    blendshapeMap.insert("BrowsD_R", "au_left_brow_lowerer");
-    blendshapeMap.insert("LipsStretch_L", "au_lip_stretcher_right");
-    blendshapeMap.insert("BrowsU_L", "au_right_outer_brow_raiser");
-    blendshapeMap.insert("BrowsD_L", "au_right_brow_lowerer");
+static QMultiHash<QByteArray, QPair<int, float> > createActionUnitNameMap() {
+    QMultiHash<QByteArray, QPair<QByteArray, float> > blendshapeMap;
+    blendshapeMap.insert("Sneer", QPair("au_nose_wrinkler", 1.0f));
+    blendshapeMap.insert("JawFwd", QPair("au_jaw_z_push", 1.0f));
+    blendshapeMap.insert("JawLeft", QPair("au_jaw_x_push", 1.0f));
+    blendshapeMap.insert("JawOpen", QPair("au_jaw_drop", 1.0f));
+    blendshapeMap.insert("LipsLowerDown", QPair("au_lower_lip_drop", 1.0f));
+    blendshapeMap.insert("LipsUpperUp", QPair("au_upper_lip_raiser", 1.0f));
+    blendshapeMap.insert("LipsStretch_R", QPair("au_lip_stretcher_left", 1.0f));
+    blendshapeMap.insert("BrowsU_R", QPair("au_left_outer_brow_raiser", 1.0f));
+    blendshapeMap.insert("BrowsU_C", QPair("au_left_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsD_R", QPair("au_left_brow_lowerer", 1.0f));
+    blendshapeMap.insert("LipsStretch_L", QPair("au_lip_stretcher_right", 1.0f));
+    blendshapeMap.insert("BrowsU_L", QPair("au_right_outer_brow_raiser", 1.0f));
+    blendshapeMap.insert("BrowsU_C", QPair("au_right_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsD_L", QPair("au_right_brow_lowerer", 1.0f));
     
-    QHash<QByteArray, int> blendshapeIndices;
+    QMultiHash<QByteArray, QPair<int, float> > actionUnitNameMap;
     for (int i = 0;; i++) {
         QByteArray blendshape = FACESHIFT_BLENDSHAPES[i];
         if (blendshape.isEmpty()) {
@@ -94,23 +91,20 @@ static QHash<QByteArray, int> createBlendshapeIndices() {
             leftEyeBlinkIndex = i;
         
         } else if (blendshape == "EyeBlink_R") {
-            rightEyeBlinkIndex = i;
-            
-        } else if (blendshape == "BrowsU_C") {
-            centerBrowIndex = i;
+            rightEyeBlinkIndex = i;   
         }
-        QByteArray mapping = blendshapeMap.value(blendshape);
-        if (!mapping.isEmpty()) {
-            blendshapeIndices.insert(mapping, i + 1);
+        for (QMultiHash<QByteArray, QPair<QByteArray, float> >::const_iterator it = blendshapeMap.constFind(blendshape);
+                it != blendshapeMap.constEnd() && it.key() == blendshape; it++) {
+            actionUnitNameMap.insert(it.value().first, QPair(i, it.value().second));
         }
     }
     
-    return blendshapeIndices;
+    return actionUnitNameMap;
 }
 
-static const QHash<QByteArray, int>& getBlendshapeIndices() {
-    static QHash<QByteArray, int> blendshapeIndices = createBlendshapeIndices();
-    return blendshapeIndices;
+static const QMultiHash<QByteArray, QPair<int, float> >& getActionUnitNameMap() {
+    static QMultiHash<QByteArray, QPair<int, float> > actionUnitNameMap = createActionUnitNameMap();
+    return actionUnitNameMap;
 }
 #endif
 
@@ -128,18 +122,15 @@ void Visage::update() {
     _estimatedEyePitch = glm::degrees(-_data->gazeDirection[1]);
     _estimatedEyeYaw = glm::degrees(-_data->gazeDirection[0]);
     
-    if (_blendshapeIndices.isEmpty()) {
-        _blendshapeIndices.resize(_data->actionUnitCount);
+    if (_actionUnitIndexMap.isEmpty()) {
         int maxIndex = -1;
         for (int i = 0; i < _data->actionUnitCount; i++) {
             QByteArray name = _data->actionUnitsNames[i];
-            if (name == "au_left_inner_brow_raiser") {
-                _leftInnerBrowIndex = i;
-            } else if (name == "au_right_inner_brow_raiser") {
-                _rightInnerBrowIndex = i;
+            for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getActionUnitNameMap().constFind(name);
+                    it != getActionUnitNameMap().constEnd() && it.key() == name; it++) {
+                _blendshapeIndices.insert(i, it.value());
+                maxIndex = qMax(maxIndex, it.value().first);
             }
-            int index = getBlendshapeIndices().value(name) - 1;
-            maxIndex = qMax(maxIndex, _blendshapeIndices[i] = index);
         }
         _blendshapeCoefficients.resize(maxIndex + 1);
     }
@@ -149,15 +140,13 @@ void Visage::update() {
         if (!_data->actionUnitsUsed[i]) {
             continue;
         }
-        int index = _blendshapeIndices.at(i);
-        if (index != -1) {
-            _blendshapeCoefficients[index] = _data->actionUnits[i];
+        for (QMultiHash<int, QPair<int, float> >::const_iterator it = _actionUnitIndexMap.constFind(i);
+                it != _actionUnitIndexMap.constEnd() && it.key() == i; it++) {
+            _blendshapeCoefficients[it.value().first] += _data->actionUnits[i] * it.value().second;
         }
     }
     _blendshapeCoefficients[leftEyeBlinkIndex] = 1.0f - _data->eyeClosure[1];
     _blendshapeCoefficients[rightEyeBlinkIndex] = 1.0f - _data->eyeClosure[0];
-    _blendshapeCoefficients[centerBrowIndex] = (_data->actionUnits[_leftInnerBrowIndex] +
-        _data->actionUnits[_rightInnerBrowIndex]) * 0.5f;
 #endif
 }
 
