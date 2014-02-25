@@ -119,8 +119,8 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     _domainInfo.setUUID(uuidFromPacketHeader(packet));
                     
                     // we also know this domain-server requires no authentication
-                    // so set the account manager root URL empty
-                    AccountManager::getInstance().setAuthURL(QUrl());
+                    // so set the account manager root URL to the default one
+                    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
                 }
                 
                 if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
