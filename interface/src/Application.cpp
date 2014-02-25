@@ -51,11 +51,11 @@
 #include <QMimeData> 
 #include <QMessageBox>
 
+#include <AccountManager.h>
 #include <AudioInjector.h>
 #include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
-#include <PairingHandler.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <UUID.h>
@@ -63,7 +63,6 @@
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
-#include "DataServerClient.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -129,7 +128,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _myAvatar(),
-        _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -161,11 +159,27 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _pasteMode(false),
         _logger(new FileLogger(this))
 {
+    switchToResourcesParentIfRequired();
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+   
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(BUILD_VERSION);
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    
     _myAvatar = _avatarManager.getMyAvatar();
 
     _applicationStartupTime = startup_time;
-
-    switchToResourcesParentIfRequired();
+    
     QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
@@ -203,27 +217,27 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-    
-    connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
+
+    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
+   
+    // connect to appropriate slots on AccountManager
+    AccountManager& accountManager = AccountManager::getInstance();
+    connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
+    connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
     
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
-
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(BUILD_VERSION);
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
     
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    // once the event loop has started, check and signal for an access token
+    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
 
@@ -302,7 +316,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     checkVersion();
     
     _overlays.init(_glWidget); // do this before scripts load
-
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -600,13 +613,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&_projectionMatrix);
 
     glMatrixMode(GL_MODELVIEW);
-}
-
-void Application::resetProfile(const QString& username) {
-    // call the destructor on the old profile and construct a new one
-    (&_profile)->~Profile();
-    new (&_profile) Profile(username);
-    updateWindowTitle();
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
@@ -1428,12 +1434,7 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
     
-    // send unmatched DataServerClient packets
-    DataServerClient::resendUnmatchedPackets();
-
-    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
-    _profile.updatePosition(_myAvatar->getPosition());
-    _profile.updateOrientation(_myAvatar->getOrientation());
+    
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -1493,6 +1494,8 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
+            
+            _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
@@ -2815,10 +2818,20 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
         }
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
 
         // render particles...
-        _particles.render();
-
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... particles...");
+            _particles.render();
+        }
+        
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -2931,9 +2944,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             }
         }
 
-        // render transmitter pick ray, if non-empty
-        _myAvatar->renderTransmitterPickRay();
-
         // give external parties a change to hook in
         emit renderingInWorldInterface();
         
@@ -2998,8 +3008,6 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();
     }
-
-    _myAvatar->renderTransmitterLevels(_glWidget->width(), _glWidget->height());
 
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
@@ -3979,17 +3987,15 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
     
-    QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainHostname() + buildVersion;
+    QString username = AccountManager::getInstance().getUsername();
+    QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
+        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
     
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
 
 void Application::domainChanged(const QString& domainHostname) {
-    // update the user's last domain in their Profile (which will propagate to data-server)
-    _profile.updateDomain(domainHostname);
-
     updateWindowTitle();
 
     // reset the environment so that we don't erroneously end up with multiple
@@ -4002,6 +4008,19 @@ void Application::domainChanged(const QString& domainHostname) {
     
     // reset the particle renderer
     _particles.clear();
+}
+
+void Application::connectedToDomain(const QString& hostname) {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        // update our domain-server with the data-server we're logged in with
+        
+        QString domainPutJsonString = "{\"location\":{\"domain\":\"" + hostname + "\"}}";
+        
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
+    }
 }
 
 void Application::nodeAdded(SharedNodePointer node) {
@@ -4392,6 +4411,5 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, &_profile, _myAvatar);
+    Snapshot::saveSnapshot(_glWidget, _myAvatar);
 }
-

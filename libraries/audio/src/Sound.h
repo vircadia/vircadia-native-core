@@ -3,6 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 1/2/2014.
+//  Modified by Athanasios Gaitatzes to add WAVE file support.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
@@ -19,8 +20,13 @@ public:
     Sound(const QUrl& sampleURL, QObject* parent = 0);
     
     const QByteArray& getByteArray() { return _byteArray; }
+
 private:
     QByteArray _byteArray;
+
+    void downSample(const QByteArray& rawAudioByteArray);
+    void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+
 private slots:
     void replyFinished(QNetworkReply* reply);
 };

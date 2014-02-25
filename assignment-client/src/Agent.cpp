@@ -79,7 +79,7 @@ void Agent::run() {
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP().toString(),
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainInfo().getIP().toString(),
                                           uuidStringWithoutCurlyBraces(_uuid));
     
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);

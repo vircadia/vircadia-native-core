@@ -67,6 +67,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _dcOffset(0),
     _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
@@ -383,8 +384,13 @@ void Audio::handleAudioInput() {
             const int NOISE_GATE_WIDTH = 5;
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
+            const float DC_OFFSET_AVERAGING = 0.99f;
+            
+            float measuredDcOffset = 0.f;
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                measuredDcOffset += monoAudioSamples[i];
+                monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
@@ -392,7 +398,17 @@ void Audio::handleAudioInput() {
                     samplesOverNoiseGate++;
                 }
             }
-            _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            
+            measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            if (_dcOffset == 0.f) {
+                // On first frame, copy over measured offset
+                _dcOffset = measuredDcOffset;
+            } else {
+                _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.f - DC_OFFSET_AVERAGING) * measuredDcOffset;
+            }
+            
+            //
+            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             float averageOfAllSampleFrames = 0.f;
             _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
@@ -413,7 +429,7 @@ void Audio::handleAudioInput() {
                 averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
                 _noiseGateMeasuredFloor = smallestSample;
                 _noiseGateSampleCounter = 0;
-                //qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
+
             }
 
             if (_noiseGateEnabled) {

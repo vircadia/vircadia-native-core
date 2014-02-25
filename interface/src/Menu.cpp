@@ -25,11 +25,10 @@
 #include <QUuid>
 #include <QWindow>
 
+#include <AccountManager.h>
 #include <UUID.h>
 
 #include "Application.h"
-#include "DataServerClient.h"
-#include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
@@ -72,7 +71,8 @@ Menu::Menu() :
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
-    _lastAdjust(usecTimestampNow())
+    _lastAdjust(usecTimestampNow()),
+    _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
 
@@ -87,11 +87,16 @@ Menu::Menu() :
                                   QAction::AboutRole);
 #endif
 
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Login,
-                                   0,
-                                   this,
-                                   SLOT(login())));
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    _loginAction = addActionToQMenuAndActionHash(fileMenu, MenuOption::Logout);
+    
+    // call our toggle login function now so the menu option is setup properly
+    toggleLoginMenuItem();
+    
+    // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
+    connect(&accountManager, &AccountManager::loginComplete, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -129,10 +134,6 @@ Menu::Menu() :
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
-
-    addDisabledActionAndSeparator(fileMenu, "Devices");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
-    addCheckableActionToQMenuAndActionHash(fileMenu, MenuOption::TransmitterDrive, 0, true);
 
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
@@ -297,7 +298,9 @@ Menu::Menu() :
                                   SLOT(cycleRenderMode()));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
 
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
@@ -533,7 +536,6 @@ void Menu::loadSettings(QSettings* settings) {
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
-    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
 
@@ -566,7 +568,6 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
-    Application::getInstance()->getProfile()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 }
 
@@ -781,24 +782,38 @@ void sendFakeEnterEvent() {
 const int QLINE_MINIMUM_WIDTH = 400;
 const float DIALOG_RATIO_OF_WINDOW = 0.30f;
 
-void Menu::login() {
-    QInputDialog loginDialog(Application::getInstance()->getWindow());
+void Menu::loginForCurrentDomain() {
+    QDialog loginDialog(Application::getInstance()->getWindow());
     loginDialog.setWindowTitle("Login");
-    loginDialog.setLabelText("Username:");
-    QString username = Application::getInstance()->getProfile()->getUsername();
-    loginDialog.setTextValue(username);
+    
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    loginDialog.setLayout(layout);
     loginDialog.setWindowFlags(Qt::Sheet);
-    loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
-
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* loginLineEdit = new QLineEdit();
+    loginLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Login:", loginLineEdit);
+    
+    QLineEdit* passwordLineEdit = new QLineEdit();
+    passwordLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    passwordLineEdit->setEchoMode(QLineEdit::Password);
+    form->addRow("Password:", passwordLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    loginDialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    loginDialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
     int dialogReturn = loginDialog.exec();
-
-    if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
-        // there has been a username change
-        // ask for a profile reset with the new username
-        Application::getInstance()->resetProfile(loginDialog.textValue());
-
+    
+    if (dialogReturn == QDialog::Accepted && !loginLineEdit->text().isEmpty() && !passwordLineEdit->text().isEmpty()) {
+        // attempt to get an access token given this username and password
+        AccountManager::getInstance().requestAccessToken(loginLineEdit->text(), passwordLineEdit->text());
     }
-
+    
     sendFakeEnterEvent();
 }
 
@@ -807,9 +822,10 @@ void Menu::editPreferences() {
 
     QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
+    
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
-
+    
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
 
@@ -940,23 +956,23 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain(const QString newDomain) {
-    if (NodeList::getInstance()->getDomainHostname() != newDomain) {
+    if (NodeList::getInstance()->getDomainInfo().getHostname() != newDomain) {
         
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
         Application::getInstance()->getAvatar()->sendKillAvatar();
         
         // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->setDomainHostname(newDomain);
+        NodeList::getInstance()->getDomainInfo().setHostname(newDomain);
     }
 }
 
 void Menu::goToDomainDialog() {
 
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
+    QString currentDomainHostname = NodeList::getInstance()->getDomainInfo().getHostname();
 
-    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+    if (NodeList::getInstance()->getDomainInfo().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
         // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainInfo().getPort()));
     }
 
     QInputDialog domainDialog(Application::getInstance()->getWindow());
@@ -1050,7 +1066,7 @@ void Menu::goTo() {
     QInputDialog gotoDialog(Application::getInstance()->getWindow());
     gotoDialog.setWindowTitle("Go to");
     gotoDialog.setLabelText("Destination:");
-    QString destination = Application::getInstance()->getProfile()->getUsername();
+    QString destination = QString();
     gotoDialog.setTextValue(destination);
     gotoDialog.setWindowFlags(Qt::Sheet);
     gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
@@ -1062,14 +1078,14 @@ void Menu::goTo() {
         
         // go to coordinate destination or to Username
         if (!goToDestination(destination)) {
-            // there's a username entered by the user, make a request to the data-server
-            DataServerClient::getValuesForKeysAndUserString(
-                                                            QStringList()
-                                                            << DataServerKey::Domain
-                                                            << DataServerKey::Position
-                                                            << DataServerKey::Orientation,
-                                                            destination, Application::getInstance()->getProfile());
-    
+            JSONCallbackParameters callbackParams;
+            callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
+            callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
+            
+            // there's a username entered by the user, make a request to the data-server for the associated location
+            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/location",
+                                                               QNetworkAccessManager::GetOperation,
+                                                               callbackParams);
         }
     }
     
@@ -1123,6 +1139,23 @@ void Menu::pasteToVoxel() {
     }
 
     sendFakeEnterEvent();
+}
+
+void Menu::toggleLoginMenuItem() {
+    AccountManager& accountManager = AccountManager::getInstance();
+
+    disconnect(_loginAction, 0, 0, 0);
+    
+    if (accountManager.isLoggedIn()) {
+        // change the menu item to logout
+        _loginAction->setText("Logout " + accountManager.getUsername());
+        connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+    } else {
+        // change the menu item to login
+        _loginAction->setText("Login");
+        
+        connect(_loginAction, &QAction::triggered, this, &Menu::loginForCurrentDomain);
+    }
 }
 
 void Menu::bandwidthDetails() {
