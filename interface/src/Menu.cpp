@@ -173,13 +173,6 @@ Menu::Menu() :
 
     addAvatarCollisionSubMenu(editMenu);
 
-    /**
-    // test insert in middle of edit...
-    QAction* physics = getMenuAction("Edit>Physics");
-    QAction* testHack = new QAction("test", editMenu);
-    editMenu->insertAction(physics, testHack);
-    **/
-    
     QMenu* toolsMenu = addMenu("Tools");
 
     _voxelModeActionsGroup = new QActionGroup(this);
