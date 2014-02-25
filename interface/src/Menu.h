@@ -340,8 +340,6 @@ public slots:
     void addMenuItem(const MenuItemProperties& properties);
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
     void addMenuItem(const QString& menuName, const QString& menuitem);
-    void addCheckableMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checked);
-    void addCheckableMenuItem(const QString& menuName, const QString& menuitem, bool checked);
 
     void removeMenuItem(const QString& menuName, const QString& menuitem);
 

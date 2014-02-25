@@ -1508,17 +1508,6 @@ void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& men
     QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
-void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, 
-                                                                    const QString& shortcutKey, bool checked) {
-    MenuItemProperties properties(menu, menuitem, shortcutKey, true, checked);
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
-}
-
-void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, bool checked) {
-    MenuItemProperties properties(menu, menuitem, "", true, checked);
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
-}
-
 void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& menuitem) {
     QMetaObject::invokeMethod(Menu::getInstance(), "removeMenuItem", 
                 Q_ARG(const QString&, menu),

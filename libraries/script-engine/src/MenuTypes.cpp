@@ -55,11 +55,6 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     isCheckable(checkable),
     isChecked(checked)
 {
-qDebug() << "MenuItemProperties::MenuItemProperties(... KeyEvent... )";
-qDebug() << "shortcutKeyEvent.text=" << shortcutKeyEvent.text;
-qDebug() << "shortcutKeyEvent.key=" << shortcutKeyEvent.key;
-qDebug() << "shortcutKeyEvent.isControl=" << shortcutKeyEvent.isControl;
-qDebug() << "shortcutKeySequence=" << shortcutKeySequence;
 }
 
 void registerMenuTypes(QScriptEngine* engine) {
@@ -81,21 +76,13 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
     // handle the shortcut key options in order...
     QScriptValue shortcutKeyValue = object.property("shortcutKey");
     if (shortcutKeyValue.isValid()) {
-qDebug() << "got shortcutKey...";
         properties.shortcutKey = shortcutKeyValue.toVariant().toString();
         properties.shortcutKeySequence = properties.shortcutKey;
     } else {
-qDebug() << "testing shortcutKeyEvent...";
         QScriptValue shortcutKeyEventValue = object.property("shortcutKeyEvent");
         if (shortcutKeyEventValue.isValid()) {
-qDebug() << "got shortcutKeyEvent...";
             keyEventFromScriptValue(shortcutKeyEventValue, properties.shortcutKeyEvent);
-qDebug() << "shortcutKeyEvent.text=" << properties.shortcutKeyEvent.text;
-qDebug() << "shortcutKeyEvent.key=" << properties.shortcutKeyEvent.key;
-qDebug() << "shortcutKeyEvent.isControl=" << properties.shortcutKeyEvent.isControl;
-
             properties.shortcutKeySequence = properties.shortcutKeyEvent;
-qDebug() << "shortcutKeySequence=" << properties.shortcutKeySequence;
         }
     }
 

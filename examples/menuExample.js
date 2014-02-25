@@ -14,15 +14,18 @@ function setupMenus() {
     Menu.addMenuItem("Foo","Foo item 1", "SHIFT+CTRL+F" );
     Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
     Menu.addMenuItem("Foo","Foo item 3", "META+F" );
-
-    Menu.addCheckableMenuItem("Foo","Foo item 4", true);
+    Menu.addMenuItem({ 
+        menuName: "Foo", 
+        menuItemName: "Foo item 4", 
+        isCheckable: true, 
+        isChecked: true 
+    });
 
     Menu.addMenuItem({
         menuName: "Foo",
         menuItemName: "Foo item 5", 
         shortcutKey: "ALT+F", 
-        isCheckable: true,
-        isChecked: true
+        isCheckable: true
     });
 
 
@@ -40,13 +43,20 @@ function setupMenus() {
 
     Menu.addMenu("Bar > Spam");
     Menu.addMenuItem("Bar > Spam","Spam item 1");
-    Menu.addCheckableMenuItem("Bar > Spam","Spam item 2",false);
+    Menu.addMenuItem({ 
+                        menuName: "Bar > Spam", 
+                        menuItemName: "Spam item 2", 
+                        isCheckable: true, 
+                        isChecked: false 
+                    });
+                    
     Menu.addSeparator("Bar > Spam","Other Items");
     Menu.addMenuItem("Bar > Spam","Remove Spam item 2");
     Menu.addMenuItem("Foo","Remove Spam item 2");
 
-    Menu.addMenuItem({ menuName: "Foo",
-                       menuItemName: "Remove Spam item 2" 
+    Menu.addMenuItem({ 
+                        menuName: "Foo",
+                        menuItemName: "Remove Spam item 2" 
                      });
 
 }
