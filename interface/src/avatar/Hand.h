@@ -20,7 +20,6 @@
 #include <AudioScriptingInterface.h>
 #include <HandData.h>
 
-#include "BuckyBalls.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "VoxelSystem.h"
@@ -80,8 +79,6 @@ private:
     glm::vec3 _collisionCenter;
     float _collisionAge;
     float _collisionDuration;
-    
-    BuckyBalls _buckyBalls;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
