@@ -285,7 +285,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
 
             // average the internal pair, and then do the math from centerB
             collision._contactPoint = centerB + (0.5f * (points[1] + points[2])) * axisB 
-                + (capsuleA->getRadius() - distance) * BA
+                + (capsuleA->getRadius() - distance) * BA;
             return true;
         }
     }
