@@ -554,6 +554,78 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
 }
 
 
+void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
+    glBegin(GL_POLYGON);
+    
+    // left side
+    glVertex2f(x, y + bevelDistance);
+    glVertex2f(x, y + height - bevelDistance);
+    
+    // top side
+    glVertex2f(x + bevelDistance,  y + height);
+    glVertex2f(x + width - bevelDistance, y + height);
+    
+    // right
+    glVertex2f(x + width, y + height - bevelDistance);
+    glVertex2f(x + width, y + bevelDistance);
+    
+    // bottom
+    glVertex2f(x + width - bevelDistance,  y);
+    glVertex2f(x +bevelDistance, y);
+
+    glEnd();
+}
+
+void renderRoundedCornersRect(int x, int y, int width, int height, int radius, int numPointsCorner) {
+#define MAX_POINTS_CORNER 50
+    // At least "2" is needed
+    if (numPointsCorner <= 1) {
+        return;
+    }
+    if (numPointsCorner > MAX_POINTS_CORNER) {
+        numPointsCorner = MAX_POINTS_CORNER;
+    }
+
+    // Precompute sin and cos for [0, pi/2) for the number of points (numPointCorner)
+    double radiusTimesSin[MAX_POINTS_CORNER];
+    double radiusTimesCos[MAX_POINTS_CORNER];
+    int i = 0;
+    for (int i = 0; i < numPointsCorner; i++) {
+        double t = i * PIf /  (2.0f * (numPointsCorner - 1)); 
+        radiusTimesSin[i] = radius * sin(t);
+        radiusTimesCos[i] = radius * cos(t);
+    }
+
+    glm::dvec2 cornerCenter;
+    glBegin(GL_POINTS);
+   
+    // Top left corner
+    cornerCenter = glm::vec2(x + radius, y + height - radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x - radiusTimesCos[i], cornerCenter.y + radiusTimesSin[i]); 
+    }
+
+    // Top rigth corner
+    cornerCenter = glm::vec2(x + width - radius, y + height - radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x + radiusTimesSin[i], cornerCenter.y + radiusTimesCos[i]); 
+    }
+
+    // Bottom right
+    cornerCenter = glm::vec2(x + width - radius, y + radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x + radiusTimesCos[i], cornerCenter.y - radiusTimesSin[i]); 
+    }
+
+    // Bottom left
+    cornerCenter = glm::vec2(x + radius, y + radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x - radiusTimesSin[i], cornerCenter.y - radiusTimesCos[i]); 
+    }
+    glEnd();
+}
+
+
 void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
 	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
 	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;

@@ -73,6 +73,8 @@ void renderOrientationDirections( glm::vec3 position, const glm::quat& orientati
 
 void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition);
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
+void renderRoundedCornersRect(int x, int y, int width, int height, int radius, int numPointsCorner);
+void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance);
 
 void runTimingTests();
 
