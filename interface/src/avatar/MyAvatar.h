@@ -26,6 +26,7 @@ enum AvatarHandState
 
 class MyAvatar : public Avatar {
     Q_OBJECT
+    Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
 
 public:
 	MyAvatar();
@@ -50,6 +51,8 @@ public:
     void setGravity(glm::vec3 gravity);
     void setOrientation(const glm::quat& orientation);
     void setMoveTarget(const glm::vec3 moveTarget);
+    void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
+    
 
     // getters
     float getSpeed() const { return _speed; }
@@ -63,6 +66,7 @@ public:
     Transmitter& getTransmitter() { return _transmitter; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
+    bool getShouldRenderLocally() const { return _shouldRender; }
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -116,6 +120,7 @@ private:
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    bool _shouldRender;
 
     Transmitter _transmitter;     // Gets UDP data from transmitter app used to animate the avatar
     glm::vec3 _transmitterPickStart;
