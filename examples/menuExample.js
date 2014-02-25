@@ -59,6 +59,18 @@ function setupMenus() {
                         menuItemName: "Remove Spam item 2" 
                      });
 
+    Menu.addMenuItem({ 
+                        menuName: "Edit",
+                        menuItemName: "before Cut",
+                        beforeItem: "Cut"
+                     });
+
+    Menu.addMenuItem({ 
+                        menuName: "Edit",
+                        menuItemName: "after Nudge",
+                        afterItem: "Nudge"
+                     });
+
 }
 
 function scriptEnding() {

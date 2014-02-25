@@ -99,7 +99,7 @@ public:
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = -1);
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
@@ -159,7 +159,7 @@ private:
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
-                                                    int menuItemLocation = -1);
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void updateFrustumRenderModeAction();
 
@@ -170,6 +170,7 @@ private:
     QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
 
     QAction* getMenuAction(const QString& menuName);
+    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     QMenu* getMenu(const QString& menuName);
     
 

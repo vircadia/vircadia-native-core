@@ -129,7 +129,7 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
 
 KeyEvent::operator QKeySequence() const { 
     int resultCode = 0;
-    if (text >= "a" && text <= "z") {
+    if (text.size() == 1 && text >= "a" && text <= "z") {
         resultCode = text.toUpper().at(0).unicode();
     } else {
         resultCode = key;

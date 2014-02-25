@@ -690,13 +690,28 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const char* member,
                                              QAction::MenuRole role,
                                              int menuItemLocation) {
-    QAction* action;
+    QAction* action = NULL;
+    QAction* actionBefore = NULL;
 
-    if (receiver && member) {
-        action = destinationMenu->addAction(actionName, receiver, member, shortcut);
+    if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+        actionBefore = destinationMenu->actions()[menuItemLocation];
+    }
+
+    if (!actionBefore) {
+        if (receiver && member) {
+            action = destinationMenu->addAction(actionName, receiver, member, shortcut);
+        } else {
+            action = destinationMenu->addAction(actionName);
+            action->setShortcut(shortcut);
+        }
     } else {
-        action = destinationMenu->addAction(actionName);
+        action = new QAction(actionName, destinationMenu);
         action->setShortcut(shortcut);
+        destinationMenu->insertAction(actionBefore, action);
+
+        if (receiver && member) {
+            connect(action, SIGNAL(triggered()), receiver, member);
+        }
     }
     action->setMenuRole(role);
 
@@ -1366,6 +1381,17 @@ QAction* Menu::getMenuAction(const QString& menuName) {
     return action;
 }
 
+int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
+    int position = 0;
+    foreach(QAction* action, menu->actions()) {
+        if (action->text() == searchMenuItem) {
+            return position;
+        }
+        position++;
+    }
+    return UNSPECIFIED_POSITION; // not found
+}
+
 QMenu* Menu::addMenu(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
     QMenu* addTo = NULL;
@@ -1416,24 +1442,30 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
     if (menuObj) {
         QShortcut* shortcut = NULL;
         if (!properties.shortcutKeySequence.isEmpty()) {
-            shortcut = new QShortcut(properties.shortcutKey, this);
+            shortcut = new QShortcut(properties.shortcutKeySequence, this);
         }
         
-        /**
-        // test insert in middle of menu...
-        QAction* physics = getMenuAction("Edit>Physics");
-        QAction* testHack = new QAction("test", editMenu);
-        editMenu->insertAction(gravity, testHack);
-        **/
+        // check for positioning requests
+        int requestedPosition = properties.position;
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
+            requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
+        }
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
+            int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
+            if (afterPosition != UNSPECIFIED_POSITION) {
+                requestedPosition = afterPosition + 1;
+            }
+        }
         
         QAction* menuItemAction;
         if (properties.isCheckable) {
             menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName, 
                                     properties.shortcutKeySequence, properties.isChecked, 
-                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
         } else {
             menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
-                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
+                                    QAction::NoRole, requestedPosition);
         }
         if (shortcut) {
             connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));

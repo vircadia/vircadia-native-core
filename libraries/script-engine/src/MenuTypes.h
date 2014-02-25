@@ -13,6 +13,8 @@
 
 #include "EventTypes.h"
 
+const int UNSPECIFIED_POSITION = -1;
+
 class MenuItemProperties {
 public:
     MenuItemProperties(); 

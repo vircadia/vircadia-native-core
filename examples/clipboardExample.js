@@ -12,66 +12,66 @@
 var selectedVoxel = { x: 0, y: 0, z: 0, s: 0 };
 var selectedSize = 4;
 
-function printKeyEvent(eventName, event) {
-    print(eventName);
-    print("    event.key=" + event.key);
-    print("    event.text=" + event.text);
-    print("    event.isShifted=" + event.isShifted);
-    print("    event.isControl=" + event.isControl);
-    print("    event.isMeta=" + event.isMeta);
-    print("    event.isAlt=" + event.isAlt);
-    print("    event.isKeypad=" + event.isKeypad);
+function setupMenus() {
+    // hook up menus
+    Menu.menuItemEvent.connect(menuItemEvent);
+
+    // delete the standard application menu item
+    Menu.removeMenuItem("Edit", "Cut");
+    Menu.removeMenuItem("Edit", "Copy");
+    Menu.removeMenuItem("Edit", "Paste");
+    Menu.removeMenuItem("Edit", "Delete");
+    Menu.removeMenuItem("Edit", "Nudge");
+    Menu.removeMenuItem("File", "Export Voxels");
+    Menu.removeMenuItem("File", "Import Voxels");
+
+    // delete the standard application menu item
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Cut", shortcutKey: "CTRL+X", afterItem: "Voxels" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
 }
 
-
-function keyPressEvent(event) {
-    var debug = false;
+function menuItemEvent(menuItem) {
+    var debug = true;
     if (debug) {
-        printKeyEvent("keyPressEvent", event);
-    }
-}
-
-function keyReleaseEvent(event) {
-    var debug = false;
-    if (debug) {
-        printKeyEvent("keyReleaseEvent", event);
+        print("menuItemEvent " + menuItem);
     }
     
     // Note: this sample uses Alt+ as the key codes for these clipboard items
-    if ((event.key == 199 || event.key == 67 || event.text == "C" || event.text == "c") && event.isAlt) {
-        print("the Alt+C key was pressed");
+    if (menuItem == "Copy") {
+        print("copying...");
         Clipboard.copyVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    if ((event.key == 8776 || event.key == 88 || event.text == "X" || event.text == "x") && event.isAlt) {
-        print("the Alt+X key was pressed");
+    if (menuItem == "Cut") {
+        print("cutting...");
         Clipboard.cutVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    if ((event.key == 8730 || event.key == 86 || event.text == "V" || event.text == "v") && event.isAlt) {
-        print("the Alt+V key was pressed");
+    if (menuItem == "Paste") {
+        print("pasting...");
         Clipboard.pasteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    if (event.text == "DELETE" || event.text == "BACKSPACE") {
-        print("the DELETE/BACKSPACE key was pressed");
+    if (menuItem == "Delete") {
+        print("deleting...");
         Clipboard.deleteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
     
-    if ((event.text == "E" || event.text == "e") && event.isMeta) {
-        print("the Ctl+E key was pressed");
+    if (menuItem == "Export Voxels") {
+        print("export");
         Clipboard.exportVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
     }
-    if ((event.text == "I" || event.text == "i") && event.isMeta) {
-        print("the Ctl+I key was pressed");
+    if (menuItem == "Import Voxels") {
+        print("import");
         Clipboard.importVoxels();
     }
-    if ((event.key == 78 || event.text == "N" || event.text == "n") && event.isMeta) {
-        print("the Ctl+N key was pressed, nudging to left 1 meter");
+    if (menuItem == "Nudge") {
+        print("nudge");
         Clipboard.nudgeVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s, { x: -1, y: 0, z: 0 });
     }
 }
-
-// Map keyPress and mouse move events to our callbacks
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
 var selectCube = Overlays.addOverlay("cube", {
                     position: { x: 0, y: 0, z: 0},
@@ -149,3 +149,5 @@ function scriptEnding() {
 }
 
 Script.scriptEnding.connect(scriptEnding);
+
+setupMenus();

@@ -12,14 +12,13 @@
 #include <RegisteredMetaTypes.h>
 #include "MenuTypes.h"
 
-
 MenuItemProperties::MenuItemProperties() :
     menuName(""),
     menuItemName(""),
     shortcutKey(""),
     shortcutKeyEvent(),
     shortcutKeySequence(),
-    position(-1),
+    position(UNSPECIFIED_POSITION),
     beforeItem(""),
     afterItem(""),
     isCheckable(false),
@@ -34,7 +33,7 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     shortcutKey(shortcutKey),
     shortcutKeyEvent(),
     shortcutKeySequence(shortcutKey),
-    position(-1),
+    position(UNSPECIFIED_POSITION),
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
@@ -49,7 +48,7 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     shortcutKey(""),
     shortcutKeyEvent(shortcutKeyEvent),
     shortcutKeySequence(shortcutKeyEvent),
-    position(-1),
+    position(UNSPECIFIED_POSITION),
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
@@ -86,7 +85,9 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
         }
     }
 
-    properties.position = object.property("position").toVariant().toInt();
+    if (object.property("position").isValid()) {
+        properties.position = object.property("position").toVariant().toInt();
+    }
     properties.beforeItem = object.property("beforeItem").toVariant().toString();
     properties.afterItem = object.property("afterItem").toVariant().toString();
 }
