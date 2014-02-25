@@ -42,9 +42,10 @@ bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, Collis
     if (distanceSquared < totalRadius * totalRadius) {
         // normalize BA
         float distance = sqrtf(distanceSquared);
-        if (distanceSquared < EPSILON) {
+        if (distance < EPSILON) {
             // the spheres are on top of each other, so we pick an arbitrary penetration direction
             BA = glm::vec3(0.f, 1.f, 0.f);
+            distance = totalRadius;
         } else {
             BA /= distance;
         }
@@ -166,6 +167,128 @@ bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, Col
 }
 
 bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, CollisionInfo& collision) {
+    glm::vec3 axisA;
+    capsuleA->computeNormalizedAxis(axisA);
+    glm::vec3 axisB;
+    capsuleB->computeNormalizedAxis(axisB);
+    glm::vec3 centerA = capsuleA->getPosition();
+    glm::vec3 centerB = capsuleB->getPosition();
+
+    // NOTE: The formula for closest approach between two lines is:
+    // d = [(B - A) . (a - (a.b)b)] / (1 - (a.b)^2)
+
+    float aDotB = glm::dot(axisA, axisB);
+    float denominator = 1.f - aDotB * aDotB;
+    float totalRadius = capsuleA->getRadius() + capsuleB->getRadius();
+    if (denominator > EPSILON) {
+        // distances to points of closest approach
+        float distanceA = glm::dot((centerB - centerA), (axisA - (aDotB) * axisB)) / denominator;
+        float distanceB = glm::dot((centerA - centerB), (axisB - (aDotB) * axisA)) / denominator;
+        
+        // clamp the distances to the ends of the capsule line segments
+        float absDistanceA = fabs(distanceA);
+        if (absDistanceA > capsuleA->getHalfHeight() + capsuleA->getRadius()) {
+            float signA = distanceA < 0.f ? -1.f : 1.f;
+            distanceA = signA * capsuleA->getHalfHeight();
+        }
+        float absDistanceB = fabs(distanceB);
+        if (absDistanceB > capsuleB->getHalfHeight() + capsuleB->getRadius()) {
+            float signB = distanceB < 0.f ? -1.f : 1.f;
+            distanceB = signB * capsuleB->getHalfHeight();
+        }
+
+        // collide like spheres at closest approaches (do most of the math relative to B)
+        glm::vec3 BA = (centerB + distanceB * axisB) - (centerA + distanceA * axisA);
+        float distanceSquared = glm::dot(BA, BA);
+        if (distanceSquared < totalRadius * totalRadius) {
+            // normalize BA
+            float distance = sqrtf(distanceSquared);
+            if (distance < EPSILON) {
+                // the contact spheres are on top of each other, so we need to pick a penetration direction...
+                // try vector between the capsule centers...
+                BA = centerB - centerA;
+                distanceSquared = glm::length2(BA);
+                if (distanceSquared > EPSILON * EPSILON) {
+                    distance = sqrtf(distanceSquared);
+                    BA /= distance;
+                } else
+                {
+                    // the capsule centers are on top of each other!
+                    // give up on a valid penetration direction and just use the yAxis
+                    BA = glm::vec3(0.f, 1.f, 0.f);
+                    distance = glm::max(capsuleB->getRadius(), capsuleA->getRadius());
+                }
+            } else {
+                BA /= distance;
+            }
+            // penetration points from A into B
+            collision._penetration = BA * (totalRadius - distance);
+            // contactPoint is on surface of A
+            collision._contactPoint = centerA + distanceA * axisA + capsuleA->getRadius() * BA;
+            return true;
+        }
+    } else {
+        // capsules are approximiately parallel but might still collide
+        glm::vec3 BA = centerB - centerA;
+        float axialDistance = glm::dot(BA, axisB);
+        float maxAxialDistance = totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight();
+        if (axialDistance > totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight()) {
+            return false;
+        }
+        BA = BA - axialDistance * axisB;     // BA now points from centerA to axisB (perp to axis)
+        float distanceSquared = glm::length2(BA);
+        if (distanceSquared < totalRadius * totalRadius) {
+            // We have all the info we need to compute the penetration vector...
+            // normalize BA
+            float distance = sqrtf(distanceSquared);
+            if (distance < EPSILON) {
+                // the spheres are on top of each other, so we pick an arbitrary penetration direction
+                BA = glm::vec3(0.f, 1.f, 0.f);
+            } else {
+                BA /= distance;
+            }
+            // penetration points from A into B
+            collision._penetration = BA * (totalRadius - distance);
+
+            // However we need some more world-frame info to compute the contactPoint, 
+            // which is on the surface of capsuleA...
+            //
+            // Find the overlapping secion of the capsules --> they collide as if there were
+            // two spheres at the midpoint of this overlapping section.  
+            // So we project all endpoints to axisB, find the interior pair, 
+            // and put A's proxy sphere on axisA at the midpoint of this section.
+
+            // sort the projections as much as possible during calculation
+            float points[5];
+            points[0] = -capsuleB->getHalfHeight();
+            points[1] = axialDistance - capsuleA->getHalfHeight();
+            points[2] = axialDistance + capsuleA->getHalfHeight();
+            points[3] = capsuleB->getHalfHeight();
+
+            // Since there are only three comparisons to do we unroll the sort algorithm...
+            // and use a fifth slot as temp during swap.
+            if (points[4] > points[2]) {
+                points[5] = points[1];
+                points[1] = points[2];
+                points[2] = points[4]
+            }
+            if (points[2] > points[3]) {
+                points[4] = points[2];
+                points[2] = points[3];
+                points[3] = points[4];
+            }
+            if (points[0] > points[1]) {
+                points[4] = points[0];
+                points[0] = points[1];
+                points[1] = points[4];
+            }
+
+            // average the internal pair, and then do the math from centerB
+            collision._contactPoint = centerB + (0.5f * (points[1] + points[2])) * axisB 
+                + (capsuleA->getRadius() - distance) * BA
+            return true;
+        }
+    }
     return false;
 }
 
