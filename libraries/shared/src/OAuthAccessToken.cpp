@@ -7,7 +7,6 @@
 //
 
 #include <QtCore/QDataStream>
-#include <QtCore/QDebug>
 
 #include "OAuthAccessToken.h"
 
