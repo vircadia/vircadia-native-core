@@ -60,6 +60,7 @@ MyAvatar::MyAvatar() :
     _moveTarget(0,0,0),
     _moveTargetStepCounter(0),
     _lookAtTargetAvatar(),
+    _shouldRender(true),
     _billboardValid(false)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -469,6 +470,10 @@ void MyAvatar::renderDebugBodyPoints() {
 
 }
 void MyAvatar::render(bool forceRenderHead) {
+    // don't render if we've been asked to disable local rendering
+    if (!_shouldRender) {
+        return; // exit early
+    }
 
     // render body
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
