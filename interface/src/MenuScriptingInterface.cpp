@@ -11,26 +11,9 @@
 #include "MenuScriptingInterface.h"
 
 
-MenuScriptingInterface* MenuScriptingInterface::_instance = NULL;
-QMutex MenuScriptingInterface::_instanceMutex;
-
 MenuScriptingInterface* MenuScriptingInterface::getInstance() {
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    _instanceMutex.lock();
-    if (!_instance) {
-        _instance = new MenuScriptingInterface();
-    }
-    _instanceMutex.unlock();
-    return _instance;
-}
-
-void MenuScriptingInterface::deleteLaterIfExists() {
-    _instanceMutex.lock();
-    if (_instance) {
-        _instance->deleteLater();
-        _instance = NULL;
-    }
-    _instanceMutex.unlock();
+    static MenuScriptingInterface sharedInstance;
+    return &sharedInstance;
 }
 
 void MenuScriptingInterface::menuItemTriggered() {

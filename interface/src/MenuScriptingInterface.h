@@ -9,6 +9,7 @@
 #ifndef __hifi__MenuScriptingInterface__
 #define __hifi__MenuScriptingInterface__
 
+#include <QDebug>
 #include <QMutex>
 #include <QObject>
 #include <QString>
@@ -21,7 +22,6 @@ class MenuScriptingInterface : public QObject {
     MenuScriptingInterface() { };
 public:
     static MenuScriptingInterface* getInstance();
-    static void deleteLaterIfExists();
 
 private slots:
     friend class Menu;
@@ -44,10 +44,6 @@ public slots:
     
 signals:
     void menuItemEvent(const QString& menuItem);
-    
-private:
-    static QMutex _instanceMutex;
-    static MenuScriptingInterface* _instance;
 };
 
 #endif /* defined(__hifi__MenuScriptingInterface__) */
