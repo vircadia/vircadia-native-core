@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
@@ -1286,9 +1287,7 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
 }
 
 void Menu::addTopMenu(const QString& menu) {
-    QMenu* newMenu = addMenu(menu);
-    //newMenu->setVisible(true);
-    //addDisabledActionAndSeparator(newMenu, "testing");
+    addMenu(menu);
 
     QMenuBar::repaint();
 
@@ -1313,16 +1312,27 @@ void Menu::addMenuItem(const QString& menu, const QString& menuitem) {
 }
 
 void Menu::addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
-    const QKeySequence& shortcut = 0;
-    
+    QKeySequence shortcut(shortcutKey);
+    addMenuItem(menu, menuitem, shortcut);
+}
+
+void Menu::addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey) {
+    QKeySequence shortcut(shortcutKey);
+    addMenuItem(menu, menuitem, shortcut);
+}
+
+void Menu::addMenuItem(const QString& menu, const QString& menuitem, const QKeySequence& shortcutKey) {
     QList<QAction*> topLevelMenus = actions();
     foreach (QAction* topLevelMenuAction, topLevelMenus) {
         if (topLevelMenuAction->text() == menu) {
             // add the menu item here...
             QMenu* menuObj = topLevelMenuAction->menu();
             if (menuObj) {
-                addActionToQMenuAndActionHash(menuObj, menuitem, shortcut,
+                QShortcut* shortcut = new QShortcut(shortcutKey, this);
+                QAction* menuItemAction = addActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey,
                                             MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+
+                connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
             }
         }
     }
@@ -1333,23 +1343,16 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
 };
 
 
-
 MenuScriptingInterface* MenuScriptingInterface::_instance = NULL;
 QMutex MenuScriptingInterface::_instanceMutex;
-
 
 MenuScriptingInterface* MenuScriptingInterface::getInstance() {
     // lock the menu instance mutex to make sure we don't race and create two menus and crash
     _instanceMutex.lock();
-
     if (!_instance) {
-        qDebug("First call to MenuScriptingInterface::getInstance() - initing menu.");
-
         _instance = new MenuScriptingInterface();
     }
-
     _instanceMutex.unlock();
-
     return _instance;
 }
 
@@ -1365,8 +1368,6 @@ void MenuScriptingInterface::deleteLaterIfExists() {
 void MenuScriptingInterface::menuItemTriggered() {
     QAction* menuItemAction = dynamic_cast<QAction*>(sender());
     if (menuItemAction) {
-        qDebug() << "menu selected:" << menuItemAction->text();
-
         // emit the event
         emit menuItemEvent(menuItemAction->text());
     }
@@ -1382,11 +1383,18 @@ void MenuScriptingInterface::removeTopMenu(const QString& menu) {
     QMetaObject::invokeMethod(Menu::getInstance(), "removeTopMenu", Q_ARG(const QString&, menu));
 }
 
-void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
+void MenuScriptingInterface::addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
     QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem),
                 Q_ARG(const KeyEvent&, shortcutKey));
+}
+
+void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(const QString&, shortcutKey));
 }
 
 void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem) {

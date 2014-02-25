@@ -11,9 +11,13 @@
 
 function setupMenus() {
     Menu.addTopMenu("Foo");
-    Menu.addMenuItem("Foo","Foo item 1", { text: "F", isControl: true} );
-    Menu.addMenuItem("Foo","Foo item 2");
+    Menu.addMenuItem("Foo","Foo item 1", "SHIFT+CTRL+F" );
+    Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
+    Menu.addMenuItem("Foo","Foo item 3", "META+F" );
+    Menu.addMenuItem("Foo","Foo item 4", "ALT+F" );
     Menu.addTopMenu("Bar");
+    Menu.addMenuItemWithKeyEvent("Bar","Bar item 1", { text: "b" } );
+    Menu.addMenuItemWithKeyEvent("Bar","Bar item 2", { text: "B", isControl: true } );
 }
 
 function scriptEnding() {

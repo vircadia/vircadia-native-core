@@ -117,6 +117,8 @@ public slots:
     void removeTopMenu(const QString& menu);
     void addMenuItem(const QString& menu, const QString& menuitem);
     void addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
+    void addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey);
+    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QKeySequence& shortcutKey);
     void removeMenuItem(const QString& menu, const QString& menuitem);
 
 
@@ -329,7 +331,8 @@ public slots:
     //void addSubMenu(const QString& topMenuName, const QString& menuitem);
     //void removeSubMenu(const QString& topMenuName, const QString& menuitem);
 
-    void addMenuItem(const QString& topMenuName, const QString& menuitem, const KeyEvent& shortcutKey);
+    void addMenuItemWithKeyEvent(const QString& topMenuName, const QString& menuitem, const KeyEvent& shortcutKey);
+    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QString& shortcutKey);
     void addMenuItem(const QString& topMenuName, const QString& menuitem);
     void removeMenuItem(const QString& topMenuName, const QString& menuitem);
     void menuItemTriggered();
