@@ -738,10 +738,6 @@ function handleOrbitingMove(event) {
                         z:(Math.cos(orbitAltitude) * Math.sin(orbitAzimuth)) * orbitRadius }; 
     orbitPosition = Vec3.sum(orbitCenter, orbitVector);
     Camera.setPosition(orbitPosition);
-    //  Move avatar to follow the orbit 
-    var cameraOrientation = Camera.getOrientation();
-    MyAvatar.position = Vec3.subtract(Camera.getPosition(), torsoToEyeVector);
-    MyAvatar.headOrientation = cameraOrientation;
 
     mouseX = event.x; 
     mouseY = event.y;
