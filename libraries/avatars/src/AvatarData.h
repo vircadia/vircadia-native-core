@@ -68,6 +68,8 @@ enum KeyState {
 
 const glm::vec3 vec3Zero(0.0f);
 
+class QNetworkAccessManager;
+
 class AvatarData : public NodeData {
     Q_OBJECT
 
@@ -88,6 +90,7 @@ class AvatarData : public NodeData {
 
     Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 public:
     AvatarData();
     ~AvatarData();
@@ -170,6 +173,9 @@ public:
     virtual void setBillboard(const QByteArray& billboard);
     const QByteArray& getBillboard() const { return _billboard; }
     
+    void setBillboardFromURL(const QString& billboardURL);
+    const QString& getBillboardURL() { return _billboardURL; }
+    
     QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
     void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
     
@@ -177,11 +183,13 @@ public:
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
     
     virtual float getBoundingRadius() const { return 1.f; }
+    
+    static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
 
 public slots:
     void sendIdentityPacket();
     void sendBillboardPacket();
-
+    void setBillboardFromNetworkReply();
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -217,6 +225,9 @@ protected:
     float _displayNameAlpha;
 
     QByteArray _billboard;
+    QString _billboardURL;
+    
+    static QNetworkAccessManager* networkAccessManager;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

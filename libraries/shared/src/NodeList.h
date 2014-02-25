@@ -132,6 +132,7 @@ signals:
     void uuidChanged(const QUuid& ownerUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
+    void limitOfSilentDomainCheckInsReached();
 private slots:
     void domainServerAuthReply(const QJsonObject& jsonObject);
 private:

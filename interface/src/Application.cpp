@@ -227,6 +227,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
+    connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
    
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
