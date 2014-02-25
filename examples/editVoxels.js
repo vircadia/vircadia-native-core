@@ -72,16 +72,15 @@ var numColors = 8;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
-var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create.raw");
-var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete.raw");
-var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit.raw");
+var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
+var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
+var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
 audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
 
-var editToolsOn = false; // starts out off
-
+var editToolsOn = true; // starts out off
 
 // previewAsVoxel - by default, we will preview adds/deletes/recolors as just 4 lines on the intersecting face. But if you
 //                  the preview to show a full voxel then set this to true and the voxel will be displayed for voxel editing
@@ -280,6 +279,11 @@ var pointerVoxelScaleOriginStep = 8; // the position of slider for the 1 meter s
 var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
 var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
 var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
+
+if (editToolsOn) {
+    moveTools();
+}
+
 
 function calcThumbFromScale(scale) {
     var scaleLog = Math.log(scale)/Math.log(2);
@@ -805,8 +809,7 @@ function mousePressEvent(event) {
     if (!trackAsOrbitOrPan) {
         var clickedOnSomething = false;
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-        
-print("clickedOverlay="+clickedOverlay);        
+      
 
         // If the user clicked on the thumb, handle the slider logic
         if (clickedOverlay == thumb) {
