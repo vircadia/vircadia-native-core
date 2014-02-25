@@ -61,9 +61,10 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
-    ThreadedAssignment(packet)
+    ThreadedAssignment(packet),
+    _clientMixBuffer(NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio), 0)
 {
-
+    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AudioMixer::receivedSessionUUID);
 }
 
 void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -229,6 +230,10 @@ void AudioMixer::readPendingDatagrams() {
     }
 }
 
+void AudioMixer::receivedSessionUUID(const QUuid& sessionUUID) {
+    populatePacketHeader(_clientMixBuffer, PacketTypeMixedAudio);
+}
+
 void AudioMixer::run() {
 
     commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
@@ -245,13 +250,6 @@ void AudioMixer::run() {
     gettimeofday(&startTime, NULL);
 
     int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMixedAudio);
-    // note: Visual Studio 2010 doesn't support variable sized local arrays
-    #ifdef _WIN32
-    unsigned char clientPacket[MAX_PACKET_SIZE];
-    #else
-    unsigned char clientPacket[NETWORK_BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
-    #endif
-    populatePacketHeader(reinterpret_cast<char*>(clientPacket), PacketTypeMixedAudio);
 
     while (!_isFinished) {
 
@@ -272,8 +270,8 @@ void AudioMixer::run() {
                 && ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioRingBuffer()) {
                 prepareMixForListeningNode(node.data());
 
-                memcpy(clientPacket + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
-                nodeList->writeDatagram((char*) clientPacket, sizeof(clientPacket), node);
+                memcpy(_clientMixBuffer.data() + numBytesPacketHeader, _clientSamples, sizeof(_clientSamples));
+                nodeList->writeDatagram(_clientMixBuffer, node);
             }
         }
 

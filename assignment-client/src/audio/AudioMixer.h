@@ -26,6 +26,8 @@ public slots:
     void run();
     
     void readPendingDatagrams();
+private slots:
+    void receivedSessionUUID(const QUuid& sessionUUID);
 private:
     /// adds one buffer to the mix for a listening node
     void addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuffer* bufferToAdd,
@@ -34,6 +36,7 @@ private:
     /// prepares and sends a mix to one Node
     void prepareMixForListeningNode(Node* node);
     
+    QByteArray _clientMixBuffer;
     
     int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO];
 };
