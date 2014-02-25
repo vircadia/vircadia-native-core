@@ -73,8 +73,8 @@ static QMultiHash<QByteArray, QPair<int, float> > createActionUnitNameMap() {
     blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("au_lower_lip_drop", 1.0f));
     blendshapeMap.insert("LipsUpperUp", QPair<QByteArray, float>("au_upper_lip_raiser", 1.0f));
     blendshapeMap.insert("LipsStretch_R", QPair<QByteArray, float>("au_lip_stretcher_left", 1.0f));
-    blendshapeMap.insert("MouthSmile_L", QPair<QByteArray, float>("au_lip_corner_depressor", 1.0f);
-    blendshapeMap.insert("MouthSmile_R", QPair<QByteArray, float>("au_lip_corner_depressor", 1.0f);
+    blendshapeMap.insert("MouthSmile_L", QPair<QByteArray, float>("au_lip_corner_depressor", 1.0f));
+    blendshapeMap.insert("MouthSmile_R", QPair<QByteArray, float>("au_lip_corner_depressor", 1.0f));
     blendshapeMap.insert("LipsPucker", QPair<QByteArray, float>("au_lip_presser", 1.0f));
     blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("au_left_outer_brow_raiser", 1.0f));
     blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_left_inner_brow_raiser", 0.5f));
