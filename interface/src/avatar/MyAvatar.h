@@ -11,8 +11,6 @@
 
 #include <QSettings>
 
-#include <devices/Transmitter.h>
-
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -36,13 +34,10 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
-    void updateTransmitter(float deltaTime);
 
     void render(bool forceRenderHead);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
-    void renderTransmitterPickRay() const;
-    void renderTransmitterLevels(int width, int height) const;
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
@@ -63,7 +58,6 @@ public:
     float getAbsoluteHeadYaw() const;
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    Transmitter& getTransmitter() { return _transmitter; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
@@ -81,21 +75,22 @@ public:
     
     static void sendKillAvatar();
 
-
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
-
+    
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-
 public slots:
     void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    
+    void updateLocationInDataServer();
+    void goToLocationFromResponse(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -121,10 +116,6 @@ private:
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     bool _shouldRender;
-
-    Transmitter _transmitter;     // Gets UDP data from transmitter app used to animate the avatar
-    glm::vec3 _transmitterPickStart;
-    glm::vec3 _transmitterPickEnd;
 
     bool _billboardValid;
 

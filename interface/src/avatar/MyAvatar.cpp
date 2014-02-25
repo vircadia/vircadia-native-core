@@ -13,13 +13,15 @@
 
 #include <glm/gtx/vector_angle.hpp>
 
+#include <QtCore/QTimer>
+
+#include <AccountManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
 #include "Audio.h"
-#include "DataServerClient.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "MyAvatar.h"
@@ -41,6 +43,8 @@ const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
 const bool USING_HEAD_LEAN = false;
 const float SKIN_COLOR[] = {1.0f, 0.84f, 0.66f};
 const float DARK_SKIN_COLOR[] = {0.9f, 0.78f, 0.63f};
+
+const float DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
@@ -66,6 +70,11 @@ MyAvatar::MyAvatar() :
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
+    
+    // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
+    QTimer* locationUpdateTimer = new QTimer(this);
+    connect(locationUpdateTimer, &QTimer::timeout, this, &MyAvatar::updateLocationInDataServer);
+    locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 }
 
 MyAvatar::~MyAvatar() {
@@ -81,7 +90,6 @@ void MyAvatar::reset() {
 
     setVelocity(glm::vec3(0,0,0));
     setThrust(glm::vec3(0,0,0));
-    _transmitter.resetLevels();
 }
 
 void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
@@ -89,32 +97,7 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
     _moveTargetStepCounter = 0;
 }
 
-void MyAvatar::updateTransmitter(float deltaTime) {
-    // no transmitter drive implies transmitter pick
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
-        _transmitterPickStart = getChestPosition();
-        glm::vec3 direction = getOrientation() * glm::quat(glm::radians(_transmitter.getEstimatedRotation())) * IDENTITY_FRONT;
-
-        // check against voxels, avatars
-        const float MAX_PICK_DISTANCE = 100.0f;
-        float minDistance = MAX_PICK_DISTANCE;
-        VoxelDetail detail;
-        float distance;
-        BoxFace face;
-        VoxelSystem* voxels = Application::getInstance()->getVoxels();
-        if (voxels->findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
-            minDistance = min(minDistance, distance);
-        }
-        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
-
-    } else {
-        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
-    }
-}
-
 void MyAvatar::update(float deltaTime) {
-    updateTransmitter(deltaTime);
-
     updateFromGyros(deltaTime);
 
     // Update head mouse from faceshift if active
@@ -570,35 +553,6 @@ void MyAvatar::renderHeadMouse() const {
     */
 }
 
-void MyAvatar::renderTransmitterPickRay() const {
-    if (_transmitterPickStart != _transmitterPickEnd) {
-        Glower glower;
-        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
-        glColor3fv(TRANSMITTER_PICK_COLOR);
-        glLineWidth(3.0f);
-        glBegin(GL_LINES);
-        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
-        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-        glEnd();
-        glLineWidth(1.0f);
-
-        glPushMatrix();
-        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-
-        const float PICK_END_RADIUS = 0.025f;
-        glutSolidSphere(PICK_END_RADIUS, 8, 8);
-
-        glPopMatrix();
-    }
-}
-
-void MyAvatar::renderTransmitterLevels(int width, int height) const {
-    //  Show hand transmitter data if detected
-    if (_transmitter.isConnected()) {
-        _transmitter.renderLevels(width, height);
-    }
-}
-
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
@@ -778,36 +732,6 @@ void MyAvatar::updateThrust(float deltaTime) {
             _thrust += _scale * THRUST_JUMP * up;
         }
         _shouldJump = false;
-    }
-
-    //  Add thrusts from Transmitter
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _transmitter.isConnected()) {
-        _transmitter.checkForLostTransmitter();
-        glm::vec3 rotation = _transmitter.getEstimatedRotation();
-        const float TRANSMITTER_MIN_RATE = 1.f;
-        const float TRANSMITTER_MIN_YAW_RATE = 4.f;
-        const float TRANSMITTER_LATERAL_FORCE_SCALE = 5.f;
-        const float TRANSMITTER_FWD_FORCE_SCALE = 25.f;
-        const float TRANSMITTER_UP_FORCE_SCALE = 100.f;
-        const float TRANSMITTER_YAW_SCALE = 10.0f;
-        const float TRANSMITTER_LIFT_SCALE = 3.f;
-        const float TOUCH_POSITION_RANGE_HALF = 32767.f;
-        if (fabs(rotation.z) > TRANSMITTER_MIN_RATE) {
-            _thrust += rotation.z * TRANSMITTER_LATERAL_FORCE_SCALE * deltaTime * right;
-        }
-        if (fabs(rotation.x) > TRANSMITTER_MIN_RATE) {
-            _thrust += -rotation.x * TRANSMITTER_FWD_FORCE_SCALE * deltaTime * front;
-        }
-        if (fabs(rotation.y) > TRANSMITTER_MIN_YAW_RATE) {
-            _bodyYawDelta += rotation.y * TRANSMITTER_YAW_SCALE * deltaTime;
-        }
-        if (_transmitter.getTouchState()->state == 'D') {
-            _thrust += TRANSMITTER_UP_FORCE_SCALE *
-            (float)(_transmitter.getTouchState()->y - TOUCH_POSITION_RANGE_HALF) / TOUCH_POSITION_RANGE_HALF *
-            TRANSMITTER_LIFT_SCALE *
-            deltaTime *
-            up;
-        }
     }
 
     //  Update speed brake status
@@ -1197,3 +1121,62 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
+static QByteArray createByteArray(const glm::vec3& vector) {
+    return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
+}
+
+void MyAvatar::updateLocationInDataServer() {
+    // TODO: don't re-send this when it hasn't change or doesn't change by some threshold
+    // This will required storing the last sent values and clearing them when the AccountManager rootURL changes
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        QString positionString(createByteArray(_position));
+        QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
+        
+        // construct the json to put the user's location
+        QString locationPutJson = QString() + "{\"location\":{\"position\":\""
+            + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
+        
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), locationPutJson.toUtf8());
+    }
+}
+
+void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
+    
+    if (jsonObject["status"].toString() == "success") {
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        sendKillAvatar();
+        
+        QJsonObject locationObject = jsonObject["data"].toObject()["location"].toObject();
+        QString positionString = locationObject["position"].toString();
+        QString orientationString = locationObject["orientation"].toString();
+        QString domainHostnameString = locationObject["domain"].toString();
+        
+        qDebug() << "Changing domain to" << domainHostnameString <<
+            ", position to" << positionString <<
+            ", and orientation to" << orientationString;
+        
+        QStringList coordinateItems = positionString.split(',');
+        QStringList orientationItems = orientationString.split(',');
+        
+        NodeList::getInstance()->getDomainInfo().setHostname(domainHostnameString);
+        
+        // orient the user to face the target
+        glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
+                                                                    orientationItems[1].toFloat(),
+                                                                    orientationItems[2].toFloat())))
+            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+        setOrientation(newOrientation);
+        
+        // move the user a couple units away
+        const float DISTANCE_TO_USER = 2.0f;
+        glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
+                                          coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+        setPosition(newPosition);
+    }
+    
+}

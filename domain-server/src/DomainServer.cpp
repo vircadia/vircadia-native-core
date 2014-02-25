@@ -12,10 +12,11 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QtCore/QProcess>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
+#include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -25,12 +26,6 @@
 
 #include "DomainServer.h"
 
-const int RESTART_HOLD_TIME_MSECS = 5 * 1000;
-
-const char* VOXEL_SERVER_CONFIG = "voxelServerConfig";
-const char* PARTICLE_SERVER_CONFIG = "particleServerConfig";
-const char* METAVOXEL_SERVER_CONFIG = "metavoxelServerConfig";
-
 const quint16 DOMAIN_SERVER_HTTP_PORT = 8080;
 
 DomainServer::DomainServer(int argc, char* argv[]) :
@@ -38,39 +33,131 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _HTTPManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _staticAssignmentHash(),
     _assignmentQueue(),
-    _hasCompletedRestartHold(false)
+    _nodeAuthenticationURL(),
+    _redeemedTokenResponses()
 {
-    const char CUSTOM_PORT_OPTION[] = "-p";
-    const char* customPortString = getCmdOption(argc, (const char**) argv, CUSTOM_PORT_OPTION);
-    unsigned short domainServerPort = customPortString ? atoi(customPortString) : DEFAULT_DOMAIN_SERVER_PORT;
+    setOrganizationName("High Fidelity");
+    setOrganizationDomain("highfidelity.io");
+    setApplicationName("domain-server");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
     
-    QStringList argumentList = arguments();
+    _argumentList = arguments();
     int argumentIndex = 0;
     
+    // check if this domain server should use no authentication or a custom hostname for authentication
+    const QString DEFAULT_AUTH_OPTION = "--defaultAuth";
+    const QString CUSTOM_AUTH_OPTION = "--customAuth";
+    if ((argumentIndex = _argumentList.indexOf(DEFAULT_AUTH_OPTION) != -1)) {
+        _nodeAuthenticationURL = QUrl(DEFAULT_NODE_AUTH_URL);
+    } else if ((argumentIndex = _argumentList.indexOf(CUSTOM_AUTH_OPTION)) != -1)  {
+        _nodeAuthenticationURL = QUrl(_argumentList.value(argumentIndex + 1));
+    }
+    
+    if (!_nodeAuthenticationURL.isEmpty()) {
+        const QString DATA_SERVER_USERNAME_ENV = "HIFI_DS_USERNAME";
+        const QString DATA_SERVER_PASSWORD_ENV = "HIFI_DS_PASSWORD";
+        
+        // this node will be using an authentication server, let's make sure we have a username/password
+        QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();
+        
+        QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
+        QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
+        
+        AccountManager& accountManager = AccountManager::getInstance();
+        accountManager.setRootURL(_nodeAuthenticationURL);
+        
+        if (!username.isEmpty() && !password.isEmpty()) {
+            
+            connect(&accountManager, &AccountManager::loginComplete, this, &DomainServer::requestCreationFromDataServer);
+            
+            // ask the account manager to log us in from the env variables
+            accountManager.requestAccessToken(username, password);
+        } else {
+            qDebug() << "Authentication was requested against" << qPrintable(_nodeAuthenticationURL.toString())
+                << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
+                << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Qutting!";
+            
+            // bail out
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            
+            return;
+        }
+        
+    } else {
+        // auth is not requested for domain-server, setup NodeList and assignments now
+        setupNodeListAndAssignments();
+    }
+}
+
+void DomainServer::requestCreationFromDataServer() {
+    // this slot is fired when we get a valid access token from the data-server
+    // now let's ask it to set us up with a UUID
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "processCreateResponseFromDataServer";
+    
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/create",
+                                                       QNetworkAccessManager::PostOperation,
+                                                       callbackParams);
+}
+
+void DomainServer::processCreateResponseFromDataServer(const QJsonObject& jsonObject) {
+    if (jsonObject["status"].toString() == "success") {
+        // pull out the UUID the data-server is telling us to use, and complete our setup with it
+        QUuid newSessionUUID = QUuid(jsonObject["data"].toObject()["uuid"].toString());
+        setupNodeListAndAssignments(newSessionUUID);
+    }
+}
+
+void DomainServer::processTokenRedeemResponse(const QJsonObject& jsonObject) {
+    // pull out the registration token this is associated with
+    QString registrationToken = jsonObject["data"].toObject()["registration_token"].toString();
+    
+    // if we have a registration token add it to our hash of redeemed token responses
+    if (!registrationToken.isEmpty()) {
+        qDebug() << "Redeemed registration token" << registrationToken;
+        _redeemedTokenResponses.insert(registrationToken, jsonObject);
+    }
+}
+
+void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
+    
+    int argumentIndex = 0;
+    
+    const QString CUSTOM_PORT_OPTION = "-p";
+    unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    
+    if ((argumentIndex = _argumentList.indexOf(CUSTOM_PORT_OPTION)) != -1) {
+        domainServerPort = _argumentList.value(argumentIndex + 1).toUShort();
+    }
+    
     QSet<Assignment::Type> parsedTypes(QSet<Assignment::Type>() << Assignment::AgentType);
-    parseCommandLineTypeConfigs(argumentList, parsedTypes);
+    parseCommandLineTypeConfigs(_argumentList, parsedTypes);
     
     const QString CONFIG_FILE_OPTION = "--configFile";
-    if ((argumentIndex = argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
-        QString configFilePath = argumentList.value(argumentIndex + 1);
+    if ((argumentIndex = _argumentList.indexOf(CONFIG_FILE_OPTION)) != -1) {
+        QString configFilePath = _argumentList.value(argumentIndex + 1);
         readConfigFile(configFilePath, parsedTypes);
     }
     
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
-
+    
     NodeList* nodeList = NodeList::createInstance(NodeType::DomainServer, domainServerPort);
+    
+    // create a random UUID for this session for the domain-server
+    nodeList->setSessionUUID(sessionUUID);
     
     connect(nodeList, &NodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &DomainServer::nodeKilled);
-
+    
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
-
+    
     connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readAvailableDatagrams()));
-
-    // fire a single shot timer to add static assignments back into the queue after a restart
-    QTimer::singleShot(RESTART_HOLD_TIME_MSECS, this, SLOT(addStaticAssignmentsBackToQueueAfterRestart()));
+    
+    // add whatever static assignments that have been parsed to the queue
+    addStaticAssignmentsToQueue();
 }
 
 void DomainServer::parseCommandLineTypeConfigs(const QStringList& argumentList, QSet<Assignment::Type>& excludedTypes) {
@@ -212,24 +299,177 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
+void DomainServer::requestAuthenticationFromPotentialNode(const HifiSockAddr& senderSockAddr) {
+    // this is a node we do not recognize and we need authentication - ask them to do so
+    // by providing them the hostname they should authenticate with
+    QByteArray authenticationRequestPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerAuthRequest);
+    
+    QDataStream authPacketStream(&authenticationRequestPacket, QIODevice::Append);
+    authPacketStream << _nodeAuthenticationURL;
+    
+    qDebug() << "Asking node at" << senderSockAddr << "to authenticate.";
+    
+    // send the authentication request back to the node
+    NodeList::getInstance()->getNodeSocket().writeDatagram(authenticationRequestPacket,
+                                                           senderSockAddr.getAddress(), senderSockAddr.getPort());
+}
+
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer
     << NodeType::MetavoxelServer;
 
+
+void DomainServer::addNodeToNodeListAndConfirmConnection(const QByteArray& packet, const HifiSockAddr& senderSockAddr,
+                                                         const QJsonObject& authJsonObject) {
+
+    NodeType_t nodeType;
+    HifiSockAddr publicSockAddr, localSockAddr;
+    
+    int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
+    
+    QUuid assignmentUUID = uuidFromPacketHeader(packet);
+    SharedAssignmentPointer matchingAssignment;
+    
+    if (!assignmentUUID.isNull() && (matchingAssignment = matchingStaticAssignmentForCheckIn(assignmentUUID, nodeType))
+        && matchingAssignment) {
+        // this is an assigned node, make sure the UUID sent is for an assignment we're actually trying to give out
+        
+        // remove the matching assignment from the assignment queue so we don't take the next check in
+        // (if it exists)
+        removeMatchingAssignmentFromQueue(matchingAssignment);
+    } else {
+        assignmentUUID = QUuid();
+    }
+    
+    // create a new session UUID for this node
+    QUuid nodeUUID = QUuid::createUuid();
+    
+    SharedNodePointer newNode = NodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType, publicSockAddr, localSockAddr);
+    
+    // when the newNode is created the linked data is also created, if this was a static assignment set the UUID
+    reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData())->setStaticAssignmentUUID(assignmentUUID);
+    
+    if (!authJsonObject.isEmpty()) {
+        // pull the connection secret from the authJsonObject and set it as the connection secret for this node
+        QUuid connectionSecret(authJsonObject["data"].toObject()["connection_secret"].toString());
+        newNode->setConnectionSecret(connectionSecret);
+    }
+    
+    // reply back to the user with a PacketTypeDomainList
+    sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+}
+
+const int NUM_BYTES_DATA_SERVER_REGISTRATION_TOKEN = 16;
+
+int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
+                                              HifiSockAddr& localSockAddr, const QByteArray& packet,
+                                              const HifiSockAddr& senderSockAddr) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    if (packetTypeForPacket(packet) == PacketTypeDomainConnectRequest) {
+        // we need to skip a quint8 that indicates if there is a registration token
+        // and potentially the registration token itself
+        quint8 hasRegistrationToken;
+        packetStream >> hasRegistrationToken;
+        
+        if (hasRegistrationToken) {
+            QByteArray registrationToken;
+            packetStream >> registrationToken;
+        }
+    }
+    
+    packetStream >> nodeType;
+    packetStream >> publicSockAddr >> localSockAddr;
+    
+    if (publicSockAddr.getAddress().isNull()) {
+        // this node wants to use us its STUN server
+        // so set the node public address to whatever we perceive the public address to be
+        
+        // if the sender is on our box then leave its public address to 0 so that
+        // other users attempt to reach it on the same address they have for the domain-server
+        if (senderSockAddr.getAddress().isLoopback()) {
+            publicSockAddr.setAddress(QHostAddress());
+        } else {
+            publicSockAddr.setAddress(senderSockAddr.getAddress());
+        }
+    }
+    
+    return packetStream.device()->pos();
+}
+
+NodeSet DomainServer::nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes) {
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numPreceedingBytes);
+    
+    quint8 numInterestTypes = 0;
+    packetStream >> numInterestTypes;
+    
+    quint8 nodeType;
+    NodeSet nodeInterestSet;
+    
+    for (int i = 0; i < numInterestTypes; i++) {
+        packetStream >> nodeType;
+        nodeInterestSet.insert((NodeType_t) nodeType);
+    }
+    
+    return nodeInterestSet;
+}
+
+void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
+                                        const NodeSet& nodeInterestList) {
+    
+    QByteArray broadcastPacket = byteArrayWithPopulatedHeader(PacketTypeDomainList);
+    
+    // always send the node their own UUID back
+    QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
+    broadcastDataStream << node->getUUID();
+    
+    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (nodeInterestList.size() > 0) {
+        // if the node has any interest types, send back those nodes as well
+        foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+            if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
+                
+                // don't send avatar nodes to other avatars, that will come from avatar mixer
+                broadcastDataStream << *otherNode.data();
+                
+                // pack the secret that these two nodes will use to communicate with each other
+                QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
+                if (secretUUID.isNull()) {
+                    // generate a new secret UUID these two nodes can use
+                    secretUUID = QUuid::createUuid();
+                    
+                    // set that on the current Node's sessionSecretHash
+                    nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
+                    
+                    // set it on the other Node's sessionSecretHash
+                    reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
+                        ->getSessionSecretHash().insert(node->getUUID(), secretUUID);
+                    
+                }
+                
+                broadcastDataStream << secretUUID;
+            }
+        }
+    }
+    
+    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+}
+
 void DomainServer::readAvailableDatagrams() {
     NodeList* nodeList = NodeList::getInstance();
+    AccountManager& accountManager = AccountManager::getInstance();
 
-    HifiSockAddr senderSockAddr, nodePublicAddress, nodeLocalAddress;
-    
-    static QByteArray broadcastPacket = byteArrayWithPopulatedHeader(PacketTypeDomainList);
-    static int numBroadcastPacketHeaderBytes = broadcastPacket.size();
+    HifiSockAddr senderSockAddr;
     
     static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
     
     QByteArray receivedPacket;
-    NodeType_t nodeType;
-   
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
@@ -238,111 +478,69 @@ void DomainServer::readAvailableDatagrams() {
         
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType requestType = packetTypeForPacket(receivedPacket);
-            if (requestType == PacketTypeDomainListRequest) {
-                
-                // this is an RFD or domain list request packet, and there is a version match
+            
+            if (requestType == PacketTypeDomainConnectRequest) {
                 QDataStream packetStream(receivedPacket);
                 packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                 
-                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+                quint8 hasRegistrationToken;
+                packetStream >> hasRegistrationToken;
                 
-                packetStream >> nodeType;
-                packetStream >> nodePublicAddress >> nodeLocalAddress;
-                
-                if (nodePublicAddress.getAddress().isNull()) {
-                    // this node wants to use us its STUN server
-                    // so set the node public address to whatever we perceive the public address to be
+                if (requiresAuthentication() && !hasRegistrationToken) {
+                    // we need authentication and this node did not give us a registration token - tell it to auth
+                    requestAuthenticationFromPotentialNode(senderSockAddr);
+                } else if (requiresAuthentication()) {
+                    QByteArray registrationToken;
+                    packetStream >> registrationToken;
                     
-                    // if the sender is on our box then leave its public address to 0 so that
-                    // other users attempt to reach it on the same address they have for the domain-server
-                    if (senderSockAddr.getAddress().isLoopback()) {
-                        nodePublicAddress.setAddress(QHostAddress());
-                    } else {
-                        nodePublicAddress.setAddress(senderSockAddr.getAddress());
-                    }
-                }
-                
-                SharedAssignmentPointer matchingStaticAssignment;
-                
-                // check if this is a non-statically assigned node, a node that is assigned and checking in for the first time
-                // or a node that has already checked in and is continuing to report for duty
-                if (!STATICALLY_ASSIGNED_NODES.contains(nodeType)
-                    || (matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
-                    || nodeList->getInstance()->nodeWithUUID(nodeUUID)) {
+                    QString registrationTokenString(registrationToken.toHex());
+                    QJsonObject jsonForRedeemedToken = _redeemedTokenResponses.value(registrationTokenString);
                     
-                    if (nodeUUID.isNull()) {
-                        // this is a check in from an unidentified node
-                        // we need to generate a session UUID for this node
-                        nodeUUID = QUuid::createUuid();
-                    }
-                    
-                    SharedNodePointer checkInNode = nodeList->addOrUpdateNode(nodeUUID,
-                                                                              nodeType,
-                                                                              nodePublicAddress,
-                                                                              nodeLocalAddress);
-                    
-                    // resize our broadcast packet in preparation to set it up again
-                    broadcastPacket.resize(numBroadcastPacketHeaderBytes);
-                    
-                    if (matchingStaticAssignment) {
-                        // this was a newly added node with a matching static assignment
+                    // check if we have redeemed this token and are ready to check the node in
+                    if (jsonForRedeemedToken.isEmpty()) {
+                        // make a request against the data-server to get information required to connect to this node
+                        JSONCallbackParameters tokenCallbackParams;
+                        tokenCallbackParams.jsonCallbackReceiver = this;
+                        tokenCallbackParams.jsonCallbackMethod = "processTokenRedeemResponse";
                         
-                        // remove the matching assignment from the assignment queue so we don't take the next check in
-                        // (if it exists)
-                        if (_hasCompletedRestartHold) {
-                            removeMatchingAssignmentFromQueue(matchingStaticAssignment);
-                        }
+                        QString redeemURLString = QString("/api/v1/nodes/redeem/%1.json").arg(registrationTokenString);
+                        accountManager.authenticatedRequest(redeemURLString, QNetworkAccessManager::GetOperation,
+                                                            tokenCallbackParams);
+                    } else if (jsonForRedeemedToken["status"].toString() != "success") {
+                        // we redeemed the token, but it was invalid - get the node to get another
+                        requestAuthenticationFromPotentialNode(senderSockAddr);
+                    } else {
+                        // we've redeemed the token for this node and are ready to start communicating with it
+                        // add the node to our NodeList
+                        addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr, jsonForRedeemedToken);
                     }
                     
-                    quint8 numInterestTypes = 0;
-                    packetStream >> numInterestTypes;
+                    // if it exists, remove this response from the in-memory hash
+                    _redeemedTokenResponses.remove(registrationTokenString);
                     
-                    NodeType_t* nodeTypesOfInterest = reinterpret_cast<NodeType_t*>(receivedPacket.data()
-                                                                                  + packetStream.device()->pos());
-                    
-                    // always send the node their own UUID back
-                    QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
-                    broadcastDataStream << checkInNode->getUUID();
-                    
-                    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(checkInNode->getLinkedData());
-                    
-                    if (numInterestTypes > 0) {
-                        // if the node has any interest types, send back those nodes as well
-                        foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
-                            if (otherNode->getUUID() != nodeUUID &&
-                                memchr(nodeTypesOfInterest, otherNode->getType(), numInterestTypes)) {
-                                
-                                // don't send avatar nodes to other avatars, that will come from avatar mixer
-                                broadcastDataStream << *otherNode.data();
-                                
-                                // pack the secret that these two nodes will use to communicate with each other
-                                QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
-                                if (secretUUID.isNull()) {
-                                    // generate a new secret UUID these two nodes can use
-                                    secretUUID = QUuid::createUuid();
-                                    
-                                    // set that on the current Node's sessionSecretHash
-                                    nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
-                                    
-                                    // set it on the other Node's sessionSecretHash
-                                    reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
-                                        ->getSessionSecretHash().insert(nodeUUID, secretUUID);
-                                    
-                                }
-                                
-                                broadcastDataStream << secretUUID;
-                            }
-                        }
-                    }
-                    
-                    // update last receive to now
-                    quint64 timeNow = usecTimestampNow();
-                    checkInNode->setLastHeardMicrostamp(timeNow);
-                    
-                    // send the constructed list back to this node
-                    nodeList->getNodeSocket().writeDatagram(broadcastPacket,
-                                                            senderSockAddr.getAddress(), senderSockAddr.getPort());
+                } else {
+                    // we don't require authentication - add this node to our NodeList
+                    // and send back session UUID right away
+                    addNodeToNodeListAndConfirmConnection(receivedPacket, senderSockAddr);
                 }
+                
+            } else if (requestType == PacketTypeDomainListRequest) {
+                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+                NodeType_t throwawayNodeType;
+                HifiSockAddr nodePublicAddress, nodeLocalAddress;
+                
+                int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
+                                                                  receivedPacket, senderSockAddr);
+                
+                SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
+            
+                // update last receive to now
+                quint64 timeNow = usecTimestampNow();
+                checkInNode->setLastHeardMicrostamp(timeNow);
+                
+                
+                sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+                
             } else if (requestType == PacketTypeRequestAssignment) {
                 
                 // construct the requested assignment from the packet data
@@ -588,43 +786,39 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-    // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
-    SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(node->getUUID());
     
-    if (matchedAssignment) {
-        refreshStaticAssignmentAndAddToQueue(matchedAssignment);
-    }
-    
-    // cleanup the connection secrets that we set up for this node (on the other nodes)
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-    foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
-        SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
-        if (otherNode) {
-            reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+    if (nodeData) {
+        // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
+        if (!nodeData->getStaticAssignmentUUID().isNull()) {
+            SharedAssignmentPointer matchedAssignment = _staticAssignmentHash.value(nodeData->getStaticAssignmentUUID());
+            
+            if (matchedAssignment) {
+                refreshStaticAssignmentAndAddToQueue(matchedAssignment);
+            }
+        }
+        
+        // cleanup the connection secrets that we set up for this node (on the other nodes)
+        foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
+            SharedNodePointer otherNode = NodeList::getInstance()->nodeWithUUID(otherNodeSessionUUID);
+            if (otherNode) {
+                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
         }
     }
 }
 
 SharedAssignmentPointer DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType) {
-    if (_hasCompletedRestartHold) {
-        // look for a match in the assignment hash
-        
-        QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
-        
-        while (i != _assignmentQueue.end()) {
-            if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
-                return _assignmentQueue.takeAt(i - _assignmentQueue.begin());
-            } else {
-                ++i;
-            }
-        }
-    } else {
-        SharedAssignmentPointer matchingStaticAssignment = _staticAssignmentHash.value(checkInUUID);
-        if (matchingStaticAssignment && matchingStaticAssignment->getType() == nodeType) {
-            return matchingStaticAssignment;
+    QQueue<SharedAssignmentPointer>::iterator i = _assignmentQueue.begin();
+    
+    while (i != _assignmentQueue.end()) {
+        if (i->data()->getType() == Assignment::typeForNodeType(nodeType) && i->data()->getUUID() == checkInUUID) {
+            return _assignmentQueue.takeAt(i - _assignmentQueue.begin());
+        } else {
+            ++i;
         }
     }
-
+    
     return SharedAssignmentPointer();
 }
 
@@ -680,8 +874,7 @@ void DomainServer::removeMatchingAssignmentFromQueue(const SharedAssignmentPoint
     }
 }
 
-void DomainServer::addStaticAssignmentsBackToQueueAfterRestart() {
-    _hasCompletedRestartHold = true;
+void DomainServer::addStaticAssignmentsToQueue() {
 
     // if the domain-server has just restarted,
     // check if there are static assignments that we need to throw into the assignment queue
