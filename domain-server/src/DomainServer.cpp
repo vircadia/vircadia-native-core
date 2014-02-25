@@ -64,7 +64,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
         
         AccountManager& accountManager = AccountManager::getInstance();
-        accountManager.setRootURL(_nodeAuthenticationURL);
+        accountManager.setAuthURL(_nodeAuthenticationURL);
         
         if (!username.isEmpty() && !password.isEmpty()) {
             

@@ -232,6 +232,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+    
+    // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
+    
+    // once the event loop has started, check and signal for an access token
+    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
 
@@ -310,7 +316,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     checkVersion();
     
     _overlays.init(_glWidget); // do this before scripts load
-
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();

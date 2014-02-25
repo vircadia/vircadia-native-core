@@ -34,7 +34,7 @@ Q_DECLARE_METATYPE(JSONCallbackParameters)
 const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
-    _rootURL(),
+    _authURL(),
     _networkAccessManager(),
     _pendingCallbackMap(),
     _accounts()
@@ -67,15 +67,15 @@ const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
-    _accounts.remove(_rootURL);
+    _accounts.remove(_authURL);
     
     QSettings settings;
     settings.beginGroup(ACCOUNTS_GROUP);
     
-    QString keyURLString(_rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
+    QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
     settings.remove(keyURLString);
     
-    qDebug() << "Removed account info for" << _rootURL << "from in-memory accounts and .ini file";
+    qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
     
     emit logoutComplete();
     // the username has changed to blank
@@ -83,11 +83,11 @@ void AccountManager::logout() {
     
 }
 
-void AccountManager::setRootURL(const QUrl& rootURL) {
-    if (_rootURL != rootURL) {
-        _rootURL = rootURL;
+void AccountManager::setAuthURL(const QUrl& authURL) {
+    if (_authURL != authURL) {
+        _authURL = authURL;
         
-        qDebug() << "URL for node authentication has been changed to" << qPrintable(_rootURL.toString());
+        qDebug() << "URL for node authentication has been changed to" << qPrintable(_authURL.toString());
         qDebug() << "Re-setting authentication flow.";
         
         // tell listeners that the auth endpoint has changed
@@ -109,9 +109,9 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
     if (hasValidAccessToken()) {
         QNetworkRequest authenticatedRequest;
         
-        QUrl requestURL = _rootURL;
+        QUrl requestURL = _authURL;
         requestURL.setPath(path);
-        requestURL.setQuery("access_token=" + _accounts.value(_rootURL).getAccessToken().token);
+        requestURL.setQuery("access_token=" + _accounts.value(_authURL).getAccessToken().token);
         
         authenticatedRequest.setUrl(requestURL);
         
@@ -202,11 +202,11 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
 }
 
 bool AccountManager::hasValidAccessToken() {
-    DataServerAccountInfo accountInfo = _accounts.value(_rootURL);
+    DataServerAccountInfo accountInfo = _accounts.value(_authURL);
     
     if (accountInfo.getAccessToken().token.isEmpty() || accountInfo.getAccessToken().isExpired()) {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qDebug() << "An access token is required for requests to" << qPrintable(_rootURL.toString());
+            qDebug() << "An access token is required for requests to" << qPrintable(_authURL.toString());
         }
         
         return false;
@@ -229,7 +229,7 @@ bool AccountManager::checkAndSignalForAccessToken() {
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
     QNetworkRequest request;
     
-    QUrl grantURL = _rootURL;
+    QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
     
     QByteArray postData;
