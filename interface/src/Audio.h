@@ -110,6 +110,7 @@ private:
     float _measuredJitter;
     int16_t _jitterBufferSamples;
     float _lastInputLoudness;
+    float _dcOffset;
     float _noiseGateMeasuredFloor;
     float* _noiseSampleFrames;
     int _noiseGateSampleCounter;

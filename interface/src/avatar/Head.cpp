@@ -10,6 +10,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "GeometryUtil.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"

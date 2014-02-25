@@ -61,26 +61,36 @@ void broadcastAvatarData() {
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
             
+            AvatarMixerClientData* myData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+            glm::vec3 myPosition = myData->getPosition();
+            
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()) {
                     
-                    QByteArray avatarByteArray;
-                    avatarByteArray.append(otherNode->getUUID().toRfc4122());
-                    
-                    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
-                    avatarByteArray.append(nodeData->toByteArray());
-                    
-                    if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
-                        nodeList->writeDatagram(mixedAvatarByteArray, node);
+                    AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+                    glm::vec3 otherPosition = otherNodeData->getPosition();
+                    float distanceToAvatar = glm::length(myPosition - otherPosition);
+                    //  The full rate distance is the distance at which EVERY update will be sent for this avatar
+                    //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
+                    const float FULL_RATE_DISTANCE = 2.f;
+                    //  Decide whether to send this avatar's data based on it's distance from us
+                    if ((distanceToAvatar == 0.f) || (randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
+                        QByteArray avatarByteArray;
+                        avatarByteArray.append(otherNode->getUUID().toRfc4122());
+                        avatarByteArray.append(otherNodeData->toByteArray());
                         
-                        // reset the packet
-                        mixedAvatarByteArray.resize(numPacketHeaderBytes);
+                        if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
+                            nodeList->writeDatagram(mixedAvatarByteArray, node);
+                            
+                            // reset the packet
+                            mixedAvatarByteArray.resize(numPacketHeaderBytes);
+                        }
+                        
+                        // copy the avatar into the mixedAvatarByteArray packet
+                        mixedAvatarByteArray.append(avatarByteArray);
                     }
-                    
-                    // copy the avatar into the mixedAvatarByteArray packet
-                    mixedAvatarByteArray.append(avatarByteArray);
                 }
             }
             

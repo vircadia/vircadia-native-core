@@ -3,15 +3,16 @@
 //  hifi
 //
 //  Created by Stojce Slavkovski on 1/26/14.
+//  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
-//
-
-#include "Snapshot.h"
-
-#include <FileUtils.h>
 
 #include <QDateTime>
 #include <QFileInfo>
+
+#include <AccountManager.h>
+#include <FileUtils.h>
+
+#include "Snapshot.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -30,7 +31,6 @@ const QString ORIENTATION_Z = "orientation-z";
 const QString ORIENTATION_W = "orientation-w";
 
 const QString DOMAIN_KEY = "domain";
-
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     
@@ -60,7 +60,7 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-void Snapshot::saveSnapshot(QGLWidget* widget, Profile* profile, Avatar* avatar) {
+void Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     QImage shot = widget->grabFrameBuffer();
     
     glm::vec3 location = avatar->getPosition();
@@ -76,13 +76,13 @@ void Snapshot::saveSnapshot(QGLWidget* widget, Profile* profile, Avatar* avatar)
     shot.setText(ORIENTATION_Z, QString::number(orientation.z));
     shot.setText(ORIENTATION_W, QString::number(orientation.w));
     
-    shot.setText(DOMAIN_KEY, profile->getLastDomain());
+    shot.setText(DOMAIN_KEY, NodeList::getInstance()->getDomainInfo().getHostname());
 
     QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
     // replace decimal . with '-'
     formattedLocation.replace('.', '-');
     
-    QString username = profile->getUsername();
+    QString username = AccountManager::getInstance().getUsername();
     // normalize username, replace all non alphanumeric with '-'
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
     

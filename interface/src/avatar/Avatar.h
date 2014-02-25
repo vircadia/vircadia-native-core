@@ -171,6 +171,8 @@ protected:
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
+    void renderDisplayName();
+
 private:
 
     bool _initialized;
@@ -178,8 +180,6 @@ private:
 
     void renderBody();
     void renderBillboard();
-
-    void renderDisplayName();
 };
 
 #endif
