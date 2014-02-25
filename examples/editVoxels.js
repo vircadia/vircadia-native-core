@@ -164,7 +164,7 @@ for (s = 0; s < numColors; s++) {
                     width: swatchWidth,
                     height: swatchHeight,
                     subImage: { x: imageFromX, y: imageFromY, width: (swatchWidth - 1), height: swatchHeight },
-                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/testing-swatches.svg",
+                    imageURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/swatches.svg",
                     color: colors[s],
                     alpha: 1,
                     visible: editToolsOn
