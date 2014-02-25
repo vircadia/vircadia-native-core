@@ -17,6 +17,8 @@
 #include <AbstractMenuInterface.h>
 #include <EventTypes.h>
 #include <MenuTypes.h>
+#include <OctreeConstants.h>
+//#include <VoxelConstants.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -325,39 +327,5 @@ namespace MenuOption {
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
 }
-
-class MenuScriptingInterface : public QObject {
-    Q_OBJECT
-    MenuScriptingInterface() { };
-public:
-    static MenuScriptingInterface* getInstance();
-    static void deleteLaterIfExists();
-
-private slots:
-    friend class Menu;
-    void menuItemTriggered();
-
-public slots:
-    void addMenu(const QString& menuName);
-    void removeMenu(const QString& menuName);
-
-    void addSeparator(const QString& menuName, const QString& separatorName);
-    
-    void addMenuItem(const MenuItemProperties& properties);
-    void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
-    void addMenuItem(const QString& menuName, const QString& menuitem);
-
-    void removeMenuItem(const QString& menuName, const QString& menuitem);
-
-    bool isOptionChecked(const QString& menuOption);
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
-    
-signals:
-    void menuItemEvent(const QString& menuItem);
-    
-private:
-    static QMutex _instanceMutex;
-    static MenuScriptingInterface* _instance;
-};
 
 #endif /* defined(__hifi__Menu__) */

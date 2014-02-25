@@ -65,6 +65,7 @@
 #include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
+#include "MenuScriptingInterface.h"
 #include "Swatch.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
