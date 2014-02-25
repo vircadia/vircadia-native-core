@@ -480,8 +480,8 @@ void MyAvatar::render(bool forceRenderHead) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
         renderBody(forceRenderHead);
     }
-
-    //renderDebugBodyPoints();
+    setShowDisplayName(true);
+    renderDisplayName();
 
     if (!_chatMessage.empty()) {
         int width = 0;
@@ -669,7 +669,7 @@ void MyAvatar::orbit(const glm::vec3& position, int deltaX, int deltaY) {
     setPosition(position + rotation * (getPosition() - position));
 }
 
-void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
+void MyAvatar::updateLookAtTargetAvatar() {
     Application* applicationInstance = Application::getInstance();
     
     if (!applicationInstance->isMousePressed()) {
@@ -683,14 +683,9 @@ void MyAvatar::updateLookAtTargetAvatar(glm::vec3 &eyePosition) {
             }
             float distance;
             if (avatar->findRayIntersection(mouseOrigin, mouseDirection, distance)) {
-                // rescale to compensate for head embiggening
-                eyePosition = (avatar->getHead()->calculateAverageEyePosition() - avatar->getHead()->getScalePivot()) *
-                    (avatar->getScale() / avatar->getHead()->getScale()) + avatar->getHead()->getScalePivot();
                 _lookAtTargetAvatar = avatarPointer;
                 return;
-            } else {
             }
-
         }
         _lookAtTargetAvatar.clear();
     }
@@ -724,9 +719,10 @@ void MyAvatar::renderBody(bool forceRenderHead) {
     _skeletonModel.render(1.0f);
 
     //  Render head so long as the camera isn't inside it
-    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.10f;
+    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.40f;
     Camera* myCamera = Application::getInstance()->getCamera();
-    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE)) {
+    if (forceRenderHead || (glm::length(myCamera->getPosition() - getHead()->calculateAverageEyePosition()) >
+            RENDER_HEAD_CUTOFF_DISTANCE * _scale)) {
         getHead()->render(1.0f);
     }
     getHand()->render(true);

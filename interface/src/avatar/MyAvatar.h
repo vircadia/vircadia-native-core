@@ -81,7 +81,7 @@ public:
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
+    void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
     virtual void setFaceModelURL(const QUrl& faceModelURL);

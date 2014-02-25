@@ -226,6 +226,9 @@ public:
 
 signals:
 
+    /// Fired when we're simulating; allows external parties to hook in.
+    void simulating(float deltaTime);
+
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
     
@@ -305,7 +308,7 @@ private:
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);

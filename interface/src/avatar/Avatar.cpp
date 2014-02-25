@@ -187,7 +187,7 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(bool forceRenderHead) {
+void Avatar::render() {
     glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
     float lengthToTarget = glm::length(toTarget);
    
@@ -205,7 +205,7 @@ void Avatar::render(bool forceRenderHead) {
             getHead()->getFaceModel().renderCollisionProxies(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(forceRenderHead);
+            renderBody();
         }
 
         // render sphere when far away
@@ -286,16 +286,14 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool forceRenderHead) {
+void Avatar::renderBody() {
     const float BILLBOARD_DISTANCE = 40.0f;
     if (!_billboard.isEmpty() && getLODDistance() >= BILLBOARD_DISTANCE) {
         renderBillboard();
         return;
     }
     _skeletonModel.render(1.0f);
-    if (forceRenderHead) {
-        getHead()->render(1.0f);
-    }
+    getHead()->render(1.0f);
     getHand()->render(false);
 }
 
