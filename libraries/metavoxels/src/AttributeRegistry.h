@@ -23,6 +23,7 @@ class QScriptEngine;
 class QScriptValue;
 
 class Attribute;
+class MetavoxelNode;
 
 typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
@@ -170,6 +171,12 @@ public:
     virtual void readDelta(Bitstream& in, void*& value, void* reference, bool isLeaf) const { read(in, value, isLeaf); }
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const { write(out, value, isLeaf); }
 
+    virtual void read(MetavoxelNode& root, Bitstream& in);
+    virtual void write(const MetavoxelNode& root, Bitstream& out);
+    
+    virtual void readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in);
+    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out);
+
     virtual bool equal(void* first, void* second) const = 0;
 
     /// Merges the value of a parent and its children.
@@ -307,6 +314,22 @@ public:
 private:
     
     const QMetaObject* _metaObject;
+};
+
+/// An attribute that takes the form of a set of spanners.
+class SpannerSetAttribute : public SharedObjectSetAttribute {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SpannerSetAttribute(const QString& name = QString(),
+        const QMetaObject* metaObject = &SharedObject::staticMetaObject);
+    
+    virtual void read(MetavoxelNode& root, Bitstream& in);
+    virtual void write(const MetavoxelNode& root, Bitstream& out);
+    
+    virtual void readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in);
+    virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out);
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

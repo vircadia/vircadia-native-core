@@ -14,6 +14,7 @@
 REGISTER_META_OBJECT(QRgbAttribute)
 REGISTER_META_OBJECT(SharedObjectAttribute)
 REGISTER_META_OBJECT(SharedObjectSetAttribute)
+REGISTER_META_OBJECT(SpannerSetAttribute)
 
 AttributeRegistry* AttributeRegistry::getInstance() {
     static AttributeRegistry registry;
@@ -23,7 +24,7 @@ AttributeRegistry* AttributeRegistry::getInstance() {
 AttributeRegistry::AttributeRegistry() :
     _guideAttribute(registerAttribute(new SharedObjectAttribute("guide", &MetavoxelGuide::staticMetaObject,
         SharedObjectPointer(new DefaultMetavoxelGuide())))),
-    _spannersAttribute(registerAttribute(new SharedObjectSetAttribute("spanners", &Spanner::staticMetaObject))),
+    _spannersAttribute(registerAttribute(new SpannerSetAttribute("spanners", &Spanner::staticMetaObject))),
     _colorAttribute(registerAttribute(new QRgbAttribute("color"))),
     _normalAttribute(registerAttribute(new QRgbAttribute("normal", qRgb(0, 127, 0)))) {
 }
@@ -145,6 +146,22 @@ Attribute::Attribute(const QString& name) {
 Attribute::~Attribute() {
 }
 
+void Attribute::read(MetavoxelNode& root, Bitstream& in) {
+    root.read(this, in);
+}
+
+void Attribute::write(const MetavoxelNode& root, Bitstream& out) {
+    root.write(this, out);
+}
+
+void Attribute::readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in) {
+    root.readDelta(this, reference, in);
+}
+
+void Attribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out) {
+    root.writeDelta(this, reference, out);
+}
+
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
     InlineAttribute<QRgb>(name, defaultValue) {
 }
@@ -254,4 +271,24 @@ bool SharedObjectSetAttribute::merge(void*& parent, void* children[]) const {
 
 QWidget* SharedObjectSetAttribute::createEditor(QWidget* parent) const {
     return new SharedObjectEditor(_metaObject, parent);
+}
+
+SpannerSetAttribute::SpannerSetAttribute(const QString& name, const QMetaObject* metaObject) :
+    SharedObjectSetAttribute(name, metaObject) {
+}
+
+void SpannerSetAttribute::read(MetavoxelNode& root, Bitstream& in) {
+    root.read(this, in);
+}
+
+void SpannerSetAttribute::write(const MetavoxelNode& root, Bitstream& out) {
+    root.write(this, out);
+}
+
+void SpannerSetAttribute::readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in) {
+    root.readDelta(this, reference, in);
+}
+
+void SpannerSetAttribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out) {
+    root.writeDelta(this, reference, out);
 }
