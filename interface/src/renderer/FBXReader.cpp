@@ -1276,6 +1276,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.bindExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     geometry.staticExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     geometry.staticExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    geometry.meshExtents.minimum = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    geometry.meshExtents.maximum = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -1286,6 +1288,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
         extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
+
+        // compute the mesh extents from the transformed vertices
+        foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
+            glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+            geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
+            geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+        }
 
         // look for textures, material properties
         int materialIndex = 0;
@@ -1703,6 +1712,8 @@ FBXGeometry readSVO(const QByteArray& model) {
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);
+
+    geometry.meshExtents.maximum = glm::vec3(1.0f, 1.0f, 1.0f);
 
     return geometry;
 }

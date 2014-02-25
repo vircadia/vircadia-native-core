@@ -9,6 +9,8 @@
 #include <QMutexLocker>
 #include <QtDebug>
 
+#include <glm/gtx/transform.hpp>
+
 #include <SharedUtil.h>
 
 #include <MetavoxelUtil.h>
@@ -274,6 +276,14 @@ void StaticModelRenderer::init(Spanner* spanner) {
 }
 
 void StaticModelRenderer::simulate(float deltaTime) {
+    // update the bounds
+    Box bounds;
+    if (_model->isActive()) {
+        const Extents& extents = _model->getGeometry()->getFBXGeometry().meshExtents;
+        bounds = Box(extents.minimum, extents.maximum);
+    }
+    static_cast<StaticModel*>(parent())->setBounds(glm::translate(_model->getTranslation()) *
+        glm::mat4_cast(_model->getRotation()) * glm::scale(_model->getScale()) * bounds);
     _model->simulate(deltaTime);
 }
 

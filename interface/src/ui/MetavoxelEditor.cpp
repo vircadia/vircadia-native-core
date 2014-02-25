@@ -269,6 +269,12 @@ const float GRID_BRIGHTNESS = 0.5f;
 
 void MetavoxelEditor::render() {
     glDisable(GL_LIGHTING);
+    
+    MetavoxelTool* tool = getActiveTool();
+    if (tool) {
+        tool->render();
+    }
+    
     glDepthMask(GL_FALSE);
     
     glPushMatrix();
@@ -276,11 +282,6 @@ void MetavoxelEditor::render() {
     glm::quat rotation = getGridRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
-    
-    MetavoxelTool* tool = getActiveTool();
-    if (tool) {
-        tool->render();
-    }
     
     glLineWidth(1.0f);
     
@@ -375,7 +376,14 @@ void BoxSetTool::render() {
         resetState();
         return;
     }
+    glDepthMask(GL_FALSE);
+    
+    glPushMatrix();
+    
     glm::quat rotation = _editor->getGridRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
     glm::quat inverseRotation = glm::inverse(rotation);
     glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
     glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
@@ -439,6 +447,8 @@ void BoxSetTool::render() {
     
         glPopMatrix();   
     }
+    
+    glPopMatrix();
 }
 
 bool BoxSetTool::eventFilter(QObject* watched, QEvent* event) {
@@ -524,11 +534,6 @@ InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
 }
 
 void InsertSpannerTool::simulate(float deltaTime) {
-    SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    static_cast<Spanner*>(spanner.data())->getRenderer()->simulate(deltaTime);
-}
-
-void InsertSpannerTool::render() {
     _editor->detachValue();
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
@@ -543,6 +548,11 @@ void InsertSpannerTool::render() {
         
         transformable->setTranslation(rotation * glm::vec3(glm::vec2(rayOrigin + rayDirection * distance), position));
     }
+    spanner->getRenderer()->simulate(deltaTime);
+}
+
+void InsertSpannerTool::render() {
+    Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     const float SPANNER_ALPHA = 0.25f;
     spanner->getRenderer()->render(SPANNER_ALPHA);
 }

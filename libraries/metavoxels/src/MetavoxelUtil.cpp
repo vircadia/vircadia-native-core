@@ -162,6 +162,80 @@ bool Box::intersects(const Box& other) const {
         other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
 }
 
+Box operator*(const glm::mat4& matrix, const Box& box) {
+    // start with the constant component
+    Box newBox(glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]), glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]));
+
+    // for each element, we choose the minimum or maximum based on the matrix sign
+    if (matrix[0][0] >= 0.0f) {
+        newBox.minimum.x += matrix[0][0] * box.minimum.x;
+        newBox.maximum.x += matrix[0][0] * box.maximum.x;
+    } else {
+        newBox.minimum.x += matrix[0][0] * box.maximum.x;
+        newBox.maximum.x += matrix[0][0] * box.minimum.x;
+    }
+    if (matrix[1][0] >= 0.0f) {
+        newBox.minimum.x += matrix[1][0] * box.minimum.y;
+        newBox.maximum.x += matrix[1][0] * box.maximum.y;
+    } else {
+        newBox.minimum.x += matrix[1][0] * box.maximum.y;
+        newBox.maximum.x += matrix[1][0] * box.minimum.y;
+    }
+    if (matrix[2][0] >= 0.0f) {
+        newBox.minimum.x += matrix[2][0] * box.minimum.z;
+        newBox.maximum.x += matrix[2][0] * box.maximum.z;
+    } else {
+        newBox.minimum.x += matrix[2][0] * box.maximum.z;
+        newBox.maximum.x += matrix[2][0] * box.minimum.z;
+    }
+    
+    if (matrix[0][1] >= 0.0f) {
+        newBox.minimum.y += matrix[0][1] * box.minimum.x;
+        newBox.maximum.y += matrix[0][1] * box.maximum.x;
+    } else {
+        newBox.minimum.y += matrix[0][1] * box.maximum.x;
+        newBox.maximum.y += matrix[0][1] * box.minimum.x;
+    }
+    if (matrix[1][1] >= 0.0f) {
+        newBox.minimum.y += matrix[1][1] * box.minimum.y;
+        newBox.maximum.y += matrix[1][1] * box.maximum.y;
+    } else {
+        newBox.minimum.y += matrix[1][1] * box.maximum.y;
+        newBox.maximum.y += matrix[1][1] * box.minimum.y;
+    }
+    if (matrix[2][1] >= 0.0f) {
+        newBox.minimum.y += matrix[2][1] * box.minimum.z;
+        newBox.maximum.y += matrix[2][1] * box.maximum.z;
+    } else {
+        newBox.minimum.y += matrix[2][1] * box.maximum.z;
+        newBox.maximum.y += matrix[2][1] * box.minimum.z;
+    }
+    
+    if (matrix[0][2] >= 0.0f) {
+        newBox.minimum.z += matrix[0][2] * box.minimum.x;
+        newBox.maximum.z += matrix[0][2] * box.maximum.x;
+    } else {
+        newBox.minimum.z += matrix[0][2] * box.maximum.x;
+        newBox.maximum.z += matrix[0][2] * box.minimum.x;
+    }
+    if (matrix[1][2] >= 0.0f) {
+        newBox.minimum.z += matrix[1][2] * box.minimum.y;
+        newBox.maximum.z += matrix[1][2] * box.maximum.y;
+    } else {
+        newBox.minimum.z += matrix[1][2] * box.maximum.y;
+        newBox.maximum.z += matrix[1][2] * box.minimum.y;
+    }
+    if (matrix[2][2] >= 0.0f) {
+        newBox.minimum.z += matrix[2][2] * box.minimum.z;
+        newBox.maximum.z += matrix[2][2] * box.maximum.z;
+    } else {
+        newBox.minimum.z += matrix[2][2] * box.maximum.z;
+        newBox.maximum.z += matrix[2][2] * box.minimum.z;
+    }
+
+    return newBox;
+}
+
 QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setContentsMargins(QMargins());
