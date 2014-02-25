@@ -71,8 +71,6 @@ Menu::Menu() :
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
     _lastAdjust(usecTimestampNow()),
-    _loginAction(NULL)
-    _lastAdjust(usecTimestampNow()),
     _preferencesDialog()
 {
     Application *appInstance = Application::getInstance();
