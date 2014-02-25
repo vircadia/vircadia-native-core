@@ -7,6 +7,7 @@
 //
 
 #include <QtCore/QDataStream>
+#include <QtCore/QDebug>
 
 #include "OAuthAccessToken.h"
 
@@ -22,7 +23,7 @@ OAuthAccessToken::OAuthAccessToken() :
 OAuthAccessToken::OAuthAccessToken(const QJsonObject& jsonObject) :
     token(jsonObject["access_token"].toString()),
     refreshToken(jsonObject["refresh_token"].toString()),
-    expiryTimestamp(QDateTime::currentMSecsSinceEpoch() + jsonObject["expires_in"].toDouble()),
+    expiryTimestamp(QDateTime::currentMSecsSinceEpoch() + (jsonObject["expires_in"].toDouble() * 1000)),
     tokenType(jsonObject["token_type"].toString())
 {
     
