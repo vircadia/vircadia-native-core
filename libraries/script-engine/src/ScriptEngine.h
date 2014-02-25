@@ -85,10 +85,12 @@ protected:
     QScriptEngine _engine;
     bool _isAvatar;
     QTimer* _avatarIdentityTimer;
+    QTimer* _avatarBillboardTimer;
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
 
 private:
     void sendAvatarIdentityPacket();
+    void sendAvatarBillboardPacket();
     
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);

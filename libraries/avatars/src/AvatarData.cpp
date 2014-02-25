@@ -43,7 +43,8 @@ AvatarData::AvatarData() :
     _handData(NULL), 
     _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
-    _displayNameAlpha(0.0f)
+    _displayNameAlpha(0.0f),
+    _billboard()
 {
     
 }
@@ -388,8 +389,10 @@ void AvatarData::sendIdentityPacket() {
 }
 
 void AvatarData::sendBillboardPacket() {
-    QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
-    billboardPacket.append(_billboard);
-    
-    NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    if (!_billboard.isEmpty()) {
+        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        billboardPacket.append(_billboard);
+        
+        NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
 }
