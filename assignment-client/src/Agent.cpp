@@ -92,6 +92,9 @@ void Agent::run() {
     
     loop.exec();
     
+    // let the AvatarData class use our QNetworkAcessManager
+    AvatarData::setNetworkAccessManager(networkManager);
+    
     QString scriptContents(reply->readAll());
     
     qDebug() << "Downloaded script:" << scriptContents;
