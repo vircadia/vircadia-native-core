@@ -16,6 +16,7 @@
 
 #include <AbstractMenuInterface.h>
 #include <EventTypes.h>
+#include <MenuTypes.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -53,6 +54,7 @@ class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class VoxelStatsDialog;
+class MenuItemProperties;
 
 class Menu : public QMenuBar, public AbstractMenuInterface {
     Q_OBJECT
@@ -96,7 +98,8 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = -1);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
@@ -116,12 +119,8 @@ public slots:
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
-    void addMenuItem(const QString& menuName, const QString& menuitem, bool checkable, bool checked);
-    void addMenuItem(const QString& menuName, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked);
-    void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked);
-    void addMenuItem(const QString& menuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked);
+    void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
-
 
 private slots:
     void aboutApp();
@@ -159,7 +158,8 @@ private:
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
-                                                    const char* member = NULL);
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = -1);
 
     void updateFrustumRenderModeAction();
 
@@ -320,7 +320,6 @@ namespace MenuOption {
     const QString VoxelTextures = "Voxel Textures";
 }
 
-
 class MenuScriptingInterface : public QObject {
     Q_OBJECT
     MenuScriptingInterface() { };
@@ -337,12 +336,10 @@ public slots:
     void removeMenu(const QString& menuName);
 
     void addSeparator(const QString& menuName, const QString& separatorName);
-
-    void addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
+    
+    void addMenuItem(const MenuItemProperties& properties);
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
     void addMenuItem(const QString& menuName, const QString& menuitem);
-
-    void addCheckableMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checked);
     void addCheckableMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checked);
     void addCheckableMenuItem(const QString& menuName, const QString& menuitem, bool checked);
 

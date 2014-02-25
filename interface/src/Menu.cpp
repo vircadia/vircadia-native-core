@@ -171,6 +171,13 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
     addAvatarCollisionSubMenu(editMenu);
+
+    /**
+    // test insert in middle of edit...
+    QAction* physics = getMenuAction("Edit>Physics");
+    QAction* testHack = new QAction("test", editMenu);
+    editMenu->insertAction(physics, testHack);
+    **/
     
     QMenu* toolsMenu = addMenu("Tools");
 
@@ -681,7 +688,8 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
                                              const char* member,
-                                             QAction::MenuRole role) {
+                                             QAction::MenuRole role,
+                                             int menuItemLocation) {
     QAction* action;
 
     if (receiver && member) {
@@ -702,8 +710,11 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                       const QKeySequence& shortcut,
                                                       const bool checked,
                                                       const QObject* receiver,
-                                                      const char* member) {
-    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member);
+                                                      const char* member,
+                                                      int menuItemLocation) {
+
+    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member, 
+                                                        QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
 
@@ -1400,44 +1411,33 @@ void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
     }
 }
 
-
-void Menu::addMenuItem(const QString& menuName, const QString& menuitem, bool checkable, bool checked) {
-    QMenu* menuObj = getMenu(menuName);
+void Menu::addMenuItem(const MenuItemProperties& properties) {
+    QMenu* menuObj = getMenu(properties.menuName);
     if (menuObj) {
-        if (checkable) {
-            addCheckableActionToQMenuAndActionHash(menuObj, menuitem, 0, checked,  
-                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
-        } else {
-            addActionToQMenuAndActionHash(menuObj, menuitem, 0, 
-                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+        QShortcut* shortcut = NULL;
+        if (!properties.shortcutKeySequence.isEmpty()) {
+            shortcut = new QShortcut(properties.shortcutKey, this);
         }
-        QMenuBar::repaint();
-    }
-}
-
-void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked) {
-    QKeySequence shortcut(shortcutKey);
-    addMenuItem(menuName, menuitem, shortcut, checkable, checked);
-}
-
-void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked) {
-    QKeySequence shortcut(shortcutKey);
-    addMenuItem(menuName, menuitem, shortcut, checkable, checked);
-}
-
-void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked) {
-    QMenu* menuObj = getMenu(menuName);
-    if (menuObj) {
-        QShortcut* shortcut = new QShortcut(shortcutKey, this);
+        
+        /**
+        // test insert in middle of menu...
+        QAction* physics = getMenuAction("Edit>Physics");
+        QAction* testHack = new QAction("test", editMenu);
+        editMenu->insertAction(gravity, testHack);
+        **/
+        
         QAction* menuItemAction;
-        if (checkable) {
-            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey, checked,
+        if (properties.isCheckable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName, 
+                                    properties.shortcutKeySequence, properties.isChecked, 
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
         } else {
-            menuItemAction = addActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey,
+            menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
                                     MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
         }
-        connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+        if (shortcut) {
+            connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+        }
         QMenuBar::repaint();
     }
 }
@@ -1494,56 +1494,29 @@ void MenuScriptingInterface::addSeparator(const QString& menuName, const QString
                 Q_ARG(const QString&, separatorName));
 }
 
-void MenuScriptingInterface::addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem",
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(const KeyEvent&, shortcutKey),
-                Q_ARG(bool, false),
-                Q_ARG(bool, false));
+void MenuScriptingInterface::addMenuItem(const MenuItemProperties& properties) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
 void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(const QString&, shortcutKey),
-                Q_ARG(bool, false),
-                Q_ARG(bool, false));
+    MenuItemProperties properties(menu, menuitem, shortcutKey);
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
 void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(bool, false),
-                Q_ARG(bool, false));
+    MenuItemProperties properties(menu, menuitem);
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
-void MenuScriptingInterface::addCheckableMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checked) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem",
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(const KeyEvent&, shortcutKey),
-                Q_ARG(bool, true),
-                Q_ARG(bool, checked));
-}
-
-void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey, bool checked) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(const QString&, shortcutKey),
-                Q_ARG(bool, true),
-                Q_ARG(bool, checked));
+void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, 
+                                                                    const QString& shortcutKey, bool checked) {
+    MenuItemProperties properties(menu, menuitem, shortcutKey, true, checked);
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
 void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, bool checked) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem),
-                Q_ARG(bool, true),
-                Q_ARG(bool, checked));
+    MenuItemProperties properties(menu, menuitem, "", true, checked);
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
 
 void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& menuitem) {
