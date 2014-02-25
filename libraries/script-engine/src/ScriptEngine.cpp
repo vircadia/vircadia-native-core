@@ -45,6 +45,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
+    _avatarBillboardTimer(NULL),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -79,14 +80,17 @@ void ScriptEngine::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;
     
     if (_isAvatar && !_avatarIdentityTimer) {
-        // set up the avatar identity timer
+        // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
+        _avatarBillboardTimer = new QTimer(this);
         
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarIdentityPacket);
+        connect(_avatarBillboardTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarBillboardPacket);
         
-        // start the timer
+        // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+        _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
 }
 
@@ -193,6 +197,12 @@ void ScriptEngine::evaluate() {
 void ScriptEngine::sendAvatarIdentityPacket() {
     if (_isAvatar && _avatarData) {
         _avatarData->sendIdentityPacket();
+    }
+}
+
+void ScriptEngine::sendAvatarBillboardPacket() {
+    if (_isAvatar && _avatarData) {
+        _avatarData->sendBillboardPacket();
     }
 }
 

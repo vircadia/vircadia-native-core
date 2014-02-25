@@ -549,6 +549,12 @@ void NodeList::sendDomainServerCheckIn() {
                 sendSTUNRequest();
             }
             
+            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+                // so emit our signal that indicates that
+                emit limitOfSilentDomainCheckInsReached();
+            }
+            
             // increment the count of un-replied check-ins
             _numNoReplyDomainCheckIns++;
         }  else if (AccountManager::getInstance().hasValidAccessToken()) {

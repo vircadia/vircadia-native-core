@@ -44,13 +44,8 @@ void Sound::replyFinished(QNetworkReply* reply) {
 
         QByteArray headerContentType = reply->rawHeader("Content-Type");
 
-        // RAW audio file encountered
-        if (headerContentType == "application/octet-stream") {
-            downSample(rawAudioByteArray);
-        }
-
         // WAV audio file encountered
-        else if (headerContentType == "audio/x-wav"
+        if (headerContentType == "audio/x-wav"
             || headerContentType == "audio/wav"
             || headerContentType == "audio/wave") {
 
@@ -59,7 +54,8 @@ void Sound::replyFinished(QNetworkReply* reply) {
             interpretAsWav(rawAudioByteArray, outputAudioByteArray);
             downSample(outputAudioByteArray);
         } else {
-            qDebug() << "Unknown audio file 'Content-Type'.";
+            //  Process as RAW file
+            downSample(rawAudioByteArray);
         }
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
