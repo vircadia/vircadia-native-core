@@ -41,17 +41,17 @@ public:
                               const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                               const QByteArray& dataByteArray = QByteArray());
     
-    const QUrl& getRootURL() const { return _rootURL; }
-    void setRootURL(const QUrl& rootURL);
-    bool hasAuthEndpoint() { return !_rootURL.isEmpty(); }
+    const QUrl& getAuthURL() const { return _authURL; }
+    void setAuthURL(const QUrl& authURL);
+    bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
     
-    bool isLoggedIn() { return !_rootURL.isEmpty() && hasValidAccessToken(); }
+    bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
-    bool checkAndSignalForAccessToken();
+    Q_INVOKABLE bool checkAndSignalForAccessToken();
     
     void requestAccessToken(const QString& login, const QString& password);
     
-    QString getUsername() const { return _accounts[_rootURL].getUsername(); }
+    QString getUsername() const { return _accounts[_authURL].getUsername(); }
     
 public slots:
     void requestFinished();
@@ -61,7 +61,7 @@ signals:
     void authRequired();
     void authEndpointChanged();
     void usernameChanged(const QString& username);
-    void loginComplete(const QUrl& rootURL);
+    void loginComplete(const QUrl& authURL);
     void logoutComplete();
 private slots:
     void passSuccessToCallback();
@@ -74,7 +74,7 @@ private:
     Q_INVOKABLE void invokedRequest(const QString& path, QNetworkAccessManager::Operation operation,
                                     const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray);
     
-    QUrl _rootURL;
+    QUrl _authURL;
     QNetworkAccessManager _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     

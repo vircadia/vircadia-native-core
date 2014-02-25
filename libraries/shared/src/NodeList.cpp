@@ -120,7 +120,7 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     
                     // we also know this domain-server requires no authentication
                     // so set the account manager root URL empty
-                    AccountManager::getInstance().setRootURL(QUrl());
+                    AccountManager::getInstance().setAuthURL(QUrl());
                 }
                 
                 if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
@@ -644,7 +644,7 @@ void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
     QUrl authenticationRootURL;
     authPacketStream >> authenticationRootURL;
     
-    accountManager.setRootURL(authenticationRootURL);
+    accountManager.setAuthURL(authenticationRootURL);
     _domainInfo.setRootAuthenticationURL(authenticationRootURL);
     
     if (AccountManager::getInstance().checkAndSignalForAccessToken()) {
