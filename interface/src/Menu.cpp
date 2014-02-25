@@ -289,7 +289,9 @@ Menu::Menu() :
                                   SLOT(cycleRenderMode()));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::BuckyBalls, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
 
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");

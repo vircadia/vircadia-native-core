@@ -2817,11 +2817,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _metavoxels.render();
         }
         
-        _buckyBalls.render();
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
 
         // render particles...
-        _particles.render();
-
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... particles...");
+            _particles.render();
+        }
+        
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),

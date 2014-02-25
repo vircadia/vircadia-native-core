@@ -184,6 +184,7 @@ namespace MenuOption {
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BuckyBalls = "Bucky Balls";
     const QString ChatCircling = "Chat Circling";
     const QString Collisions = "Collisions";
     const QString CollideWithAvatars = "Collide With Avatars";
@@ -260,6 +261,7 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
+    const QString Particles = "Particles";
     const QString PasteVoxels = "Paste";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
