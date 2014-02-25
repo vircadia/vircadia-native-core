@@ -1286,62 +1286,161 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     return string;
 }
 
-void Menu::addTopMenu(const QString& menu) {
-    addMenu(menu);
-
-    QMenuBar::repaint();
-
-    QList<QAction*> topLevelMenus = actions();
-    foreach (QAction* topLevelMenuAction, topLevelMenus) {
-        qDebug() << "menu:" << topLevelMenuAction->text();
+QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
+    QList<QAction*> menuActions;
+    if (menu) {
+        menuActions = menu->actions();
+    } else {
+        menuActions = actions();   
     }
-}
-
-void Menu::removeTopMenu(const QString& menu) {
-    QList<QAction*> topLevelMenus = actions();
-    foreach (QAction* topLevelMenuAction, topLevelMenus) {
-        if (topLevelMenuAction->text() == menu) {
-            QMenuBar::removeAction(topLevelMenuAction);
+    
+    foreach (QAction* menuAction, menuActions) {
+        if (menuName == menuAction->text()) {
+            return menuAction;
         }
     }
+    return NULL;
 }
 
-void Menu::addMenuItem(const QString& menu, const QString& menuitem) {
-    KeyEvent noKey;
-    addMenuItem(menu, menuitem, noKey);
+QMenu* Menu::getSubMenuFromName(const QString& menuName, QMenu* menu) {
+    QAction* action = getActionFromName(menuName, menu);
+    if (action) {
+        return action->menu();
+    }
+    return NULL;
 }
 
-void Menu::addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
-    QKeySequence shortcut(shortcutKey);
-    addMenuItem(menu, menuitem, shortcut);
+QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        parent = menu;
+        finalMenuPart = menuTreePart.trimmed();
+        menu = getSubMenuFromName(finalMenuPart, parent);
+        if (!menu) {
+            break;
+        }
+    }
+    return parent;
 }
 
-void Menu::addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey) {
-    QKeySequence shortcut(shortcutKey);
-    addMenuItem(menu, menuitem, shortcut);
+QMenu* Menu::getMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    int item = 0;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), parent);
+        if (!menu) {
+            break;
+        }
+        parent = menu;
+        item++;
+    }
+    return menu;
 }
 
-void Menu::addMenuItem(const QString& menu, const QString& menuitem, const QKeySequence& shortcutKey) {
-    QList<QAction*> topLevelMenus = actions();
-    foreach (QAction* topLevelMenuAction, topLevelMenus) {
-        if (topLevelMenuAction->text() == menu) {
-            // add the menu item here...
-            QMenu* menuObj = topLevelMenuAction->menu();
-            if (menuObj) {
-                QShortcut* shortcut = new QShortcut(shortcutKey, this);
-                QAction* menuItemAction = addActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey,
-                                            MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+QAction* Menu::getMenuAction(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QAction* action = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        action = getActionFromName(menuTreePart.trimmed(), parent);
+        if (!action) {
+            break;
+        }
+        parent = action->menu();
+    }
+    return action;
+}
 
-                connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+QMenu* Menu::addMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* addTo = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), addTo);
+        if (!menu) {
+            if (!addTo) {
+                menu = QMenuBar::addMenu(menuTreePart.trimmed());
+            } else {
+                menu = addTo->addMenu(menuTreePart.trimmed());
             }
         }
+        addTo = menu;
     }
+
     QMenuBar::repaint();
+    return menu;
+}
+
+void Menu::removeMenu(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+    
+    // only proceed if the menu actually exists
+    if (action) {
+        QString finalMenuPart;
+        QMenu* parent = getMenuParent(menuName, finalMenuPart);
+    
+        if (parent) {
+            removeAction(parent, finalMenuPart);
+        } else {
+            QMenuBar::removeAction(action);
+        }
+
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::addMenuItem(const QString& menuName, const QString& menuitem, bool checkable, bool checked) {
+    QMenu* menuObj = getMenu(menuName);
+    if (menuObj) {
+        if (checkable) {
+            addCheckableActionToQMenuAndActionHash(menuObj, menuitem, 0, checked,  
+                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+        } else {
+            addActionToQMenuAndActionHash(menuObj, menuitem, 0, 
+                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+        }
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked) {
+    QKeySequence shortcut(shortcutKey);
+    addMenuItem(menuName, menuitem, shortcut, checkable, checked);
+}
+
+void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked) {
+    QKeySequence shortcut(shortcutKey);
+    addMenuItem(menuName, menuitem, shortcut, checkable, checked);
+}
+
+void Menu::addMenuItem(const QString& menuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked) {
+    QMenu* menuObj = getMenu(menuName);
+    if (menuObj) {
+        QShortcut* shortcut = new QShortcut(shortcutKey, this);
+        QAction* menuItemAction;
+        if (checkable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey, checked,
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+        } else {
+            menuItemAction = addActionToQMenuAndActionHash(menuObj, menuitem, shortcutKey,
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()));
+        }
+        connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+        QMenuBar::repaint();
+    }
 }
 
 void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
+    QMenu* menuObj = getMenu(menu);
+    if (menuObj) {
+        removeAction(menuObj, menuitem);
+    }
+    QMenuBar::repaint();
 };
-
 
 MenuScriptingInterface* MenuScriptingInterface::_instance = NULL;
 QMutex MenuScriptingInterface::_instanceMutex;
@@ -1373,34 +1472,64 @@ void MenuScriptingInterface::menuItemTriggered() {
     }
 }
 
-
-
-void MenuScriptingInterface::addTopMenu(const QString& menu) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addTopMenu", Q_ARG(const QString&, menu));
+void MenuScriptingInterface::addMenu(const QString& menu) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenu", Q_ARG(const QString&, menu));
 }
 
-void MenuScriptingInterface::removeTopMenu(const QString& menu) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "removeTopMenu", Q_ARG(const QString&, menu));
+void MenuScriptingInterface::removeMenu(const QString& menu) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeMenu", Q_ARG(const QString&, menu));
 }
 
 void MenuScriptingInterface::addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem",
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem),
-                Q_ARG(const KeyEvent&, shortcutKey));
+                Q_ARG(const KeyEvent&, shortcutKey),
+                Q_ARG(bool, false),
+                Q_ARG(bool, false));
 }
 
 void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey) {
     QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem),
-                Q_ARG(const QString&, shortcutKey));
+                Q_ARG(const QString&, shortcutKey),
+                Q_ARG(bool, false),
+                Q_ARG(bool, false));
 }
 
 void MenuScriptingInterface::addMenuItem(const QString& menu, const QString& menuitem) {
     QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
                 Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem));
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(bool, false),
+                Q_ARG(bool, false));
+}
+
+void MenuScriptingInterface::addCheckableMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checked) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem",
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(const KeyEvent&, shortcutKey),
+                Q_ARG(bool, true),
+                Q_ARG(bool, checked));
+}
+
+void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey, bool checked) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(const QString&, shortcutKey),
+                Q_ARG(bool, true),
+                Q_ARG(bool, checked));
+}
+
+void MenuScriptingInterface::addCheckableMenuItem(const QString& menu, const QString& menuitem, bool checked) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", 
+                Q_ARG(const QString&, menu),
+                Q_ARG(const QString&, menuitem),
+                Q_ARG(bool, true),
+                Q_ARG(bool, checked));
 }
 
 void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& menuitem) {
@@ -1408,3 +1537,11 @@ void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& 
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem));
 };
+
+bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
+    return Menu::getInstance()->isOptionChecked(menuOption);
+}
+
+void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool isChecked) {
+    return Menu::getInstance()->setIsOptionChecked(menuOption, isChecked);
+}

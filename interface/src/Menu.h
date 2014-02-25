@@ -113,12 +113,12 @@ public slots:
     void goTo();
     void pasteToVoxel();
 
-    void addTopMenu(const QString& menu);
-    void removeTopMenu(const QString& menu);
-    void addMenuItem(const QString& menu, const QString& menuitem);
-    void addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
-    void addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey);
-    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QKeySequence& shortcutKey);
+    QMenu* addMenu(const QString& menu);
+    void removeMenu(const QString& menu);
+    void addMenuItem(const QString& menu, const QString& menuitem, bool checkable, bool checked);
+    void addMenuItem(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checkable, bool checked);
+    void addMenuItem(const QString& menu, const QString& menuitem, const QString& shortcutKey, bool checkable, bool checked);
+    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QKeySequence& shortcutKey, bool checkable, bool checked);
     void removeMenuItem(const QString& menu, const QString& menuitem);
 
 
@@ -163,6 +163,14 @@ private:
     void updateFrustumRenderModeAction();
 
     void addAvatarCollisionSubMenu(QMenu* overMenu);
+
+    QAction* getActionFromName(const QString& menuName, QMenu* menu);
+    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
+    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+
+    QAction* getMenuAction(const QString& menuName);
+    QMenu* getMenu(const QString& menuName);
+    
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -318,27 +326,29 @@ class MenuScriptingInterface : public QObject {
 public:
     static MenuScriptingInterface* getInstance();
     static void deleteLaterIfExists();
-public slots:
-    void addTopMenu(const QString& topMenuName);
-    void removeTopMenu(const QString& topMenuName);
 
-    // TODO: how should we expose general nested sub menus to JS
-    //       we could use a string qualifier, like "Developer > Voxel Options" but that has the side effect of 
-    //       preventing use of whatever stop character we pick.
-    //
-    //       we could use a string array, but that makes things a little harder for the JS user
-    //
-    //void addSubMenu(const QString& topMenuName, const QString& menuitem);
-    //void removeSubMenu(const QString& topMenuName, const QString& menuitem);
-
-    void addMenuItemWithKeyEvent(const QString& topMenuName, const QString& menuitem, const KeyEvent& shortcutKey);
-    void addMenuItem(const QString& topMenuName, const QString& menuitem, const QString& shortcutKey);
-    void addMenuItem(const QString& topMenuName, const QString& menuitem);
-    void removeMenuItem(const QString& topMenuName, const QString& menuitem);
+private slots:
+    friend class Menu;
     void menuItemTriggered();
+
+public slots:
+    void addMenu(const QString& menuName);
+    void removeMenu(const QString& menuName);
+
+    void addMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey);
+    void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
+    void addMenuItem(const QString& menuName, const QString& menuitem);
+
+    void addCheckableMenuItemWithKeyEvent(const QString& menu, const QString& menuitem, const KeyEvent& shortcutKey, bool checked);
+    void addCheckableMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey, bool checked);
+    void addCheckableMenuItem(const QString& menuName, const QString& menuitem, bool checked);
+
+    void removeMenuItem(const QString& menuName, const QString& menuitem);
+
+    bool isOptionChecked(const QString& menuOption);
+    void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
 signals:
-    //void keyPressEvent(const KeyEvent& event);
     void menuItemEvent(const QString& menuItem);
     
 private:

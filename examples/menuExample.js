@@ -10,25 +10,44 @@
 
 
 function setupMenus() {
-    Menu.addTopMenu("Foo");
+    Menu.addMenu("Foo");
     Menu.addMenuItem("Foo","Foo item 1", "SHIFT+CTRL+F" );
     Menu.addMenuItem("Foo","Foo item 2", "SHIFT+F" );
     Menu.addMenuItem("Foo","Foo item 3", "META+F" );
-    Menu.addMenuItem("Foo","Foo item 4", "ALT+F" );
-    Menu.addTopMenu("Bar");
+    Menu.addCheckableMenuItem("Foo","Foo item 4", "ALT+F", true);
+    Menu.addMenuItem("Foo","Remove Foo item 4");
+    Menu.addMenuItem("Foo","Remove Foo");
+    Menu.addMenu("Bar");
     Menu.addMenuItemWithKeyEvent("Bar","Bar item 1", { text: "b" } );
     Menu.addMenuItemWithKeyEvent("Bar","Bar item 2", { text: "B", isControl: true } );
+    Menu.addMenu("Bar > Spam");
+    Menu.addMenuItem("Bar > Spam","Spam item 1");
+    Menu.addCheckableMenuItem("Bar > Spam","Spam item 2",false);
+    Menu.addMenuItem("Bar > Spam","Remove Spam item 2");
+    Menu.addMenuItem("Foo","Remove Spam item 2");
 }
 
 function scriptEnding() {
     print("SCRIPT ENDNG!!!\n");
 
-    Menu.removeTopMenu("Foo");
-    Menu.removeTopMenu("Bar");
+    Menu.removeMenu("Foo");
+    Menu.removeMenu("Bar");
 }
 
 function menuItemEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
+    if (menuItem == "Foo item 4") {
+        print("  checked=" + Menu.isOptionChecked("Foo item 4"));
+    }
+    if (menuItem == "Remove Foo item 4") {
+        Menu.removeMenuItem("Foo", "Foo item 4");
+    }
+    if (menuItem == "Remove Foo") {
+        Menu.removeMenu("Foo");
+    }
+    if (menuItem == "Remove Spam item 2") {
+        Menu.removeMenuItem("Bar > Spam", "Spam item 2");
+    }
 }
 
 setupMenus();
