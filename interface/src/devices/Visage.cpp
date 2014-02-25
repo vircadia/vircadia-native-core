@@ -66,20 +66,20 @@ static int rightEyeBlinkIndex = 1;
 
 static QMultiHash<QByteArray, QPair<int, float> > createActionUnitNameMap() {
     QMultiHash<QByteArray, QPair<QByteArray, float> > blendshapeMap;
-    blendshapeMap.insert("Sneer", QPair("au_nose_wrinkler", 1.0f));
-    blendshapeMap.insert("JawFwd", QPair("au_jaw_z_push", 1.0f));
-    blendshapeMap.insert("JawLeft", QPair("au_jaw_x_push", 1.0f));
-    blendshapeMap.insert("JawOpen", QPair("au_jaw_drop", 1.0f));
-    blendshapeMap.insert("LipsLowerDown", QPair("au_lower_lip_drop", 1.0f));
-    blendshapeMap.insert("LipsUpperUp", QPair("au_upper_lip_raiser", 1.0f));
-    blendshapeMap.insert("LipsStretch_R", QPair("au_lip_stretcher_left", 1.0f));
-    blendshapeMap.insert("BrowsU_R", QPair("au_left_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair("au_left_inner_brow_raiser", 0.5f));
-    blendshapeMap.insert("BrowsD_R", QPair("au_left_brow_lowerer", 1.0f));
-    blendshapeMap.insert("LipsStretch_L", QPair("au_lip_stretcher_right", 1.0f));
-    blendshapeMap.insert("BrowsU_L", QPair("au_right_outer_brow_raiser", 1.0f));
-    blendshapeMap.insert("BrowsU_C", QPair("au_right_inner_brow_raiser", 0.5f));
-    blendshapeMap.insert("BrowsD_L", QPair("au_right_brow_lowerer", 1.0f));
+    blendshapeMap.insert("Sneer", QPair<QByteArray, float>("au_nose_wrinkler", 1.0f));
+    blendshapeMap.insert("JawFwd", QPair<QByteArray, float>("au_jaw_z_push", 1.0f));
+    blendshapeMap.insert("JawLeft", QPair<QByteArray, float>("au_jaw_x_push", 1.0f));
+    blendshapeMap.insert("JawOpen", QPair<QByteArray, float>("au_jaw_drop", 1.0f));
+    blendshapeMap.insert("LipsLowerDown", QPair<QByteArray, float>("au_lower_lip_drop", 1.0f));
+    blendshapeMap.insert("LipsUpperUp", QPair<QByteArray, float>("au_upper_lip_raiser", 1.0f));
+    blendshapeMap.insert("LipsStretch_R", QPair<QByteArray, float>("au_lip_stretcher_left", 1.0f));
+    blendshapeMap.insert("BrowsU_R", QPair<QByteArray, float>("au_left_outer_brow_raiser", 1.0f));
+    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_left_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsD_R", QPair<QByteArray, float>("au_left_brow_lowerer", 1.0f));
+    blendshapeMap.insert("LipsStretch_L", QPair<QByteArray, float>("au_lip_stretcher_right", 1.0f));
+    blendshapeMap.insert("BrowsU_L", QPair<QByteArray, float>("au_right_outer_brow_raiser", 1.0f));
+    blendshapeMap.insert("BrowsU_C", QPair<QByteArray, float>("au_right_inner_brow_raiser", 0.5f));
+    blendshapeMap.insert("BrowsD_L", QPair<QByteArray, float>("au_right_brow_lowerer", 1.0f));
     
     QMultiHash<QByteArray, QPair<int, float> > actionUnitNameMap;
     for (int i = 0;; i++) {
@@ -95,7 +95,7 @@ static QMultiHash<QByteArray, QPair<int, float> > createActionUnitNameMap() {
         }
         for (QMultiHash<QByteArray, QPair<QByteArray, float> >::const_iterator it = blendshapeMap.constFind(blendshape);
                 it != blendshapeMap.constEnd() && it.key() == blendshape; it++) {
-            actionUnitNameMap.insert(it.value().first, QPair(i, it.value().second));
+            actionUnitNameMap.insert(it.value().first, QPair<int, float>(i, it.value().second));
         }
     }
     
@@ -128,7 +128,7 @@ void Visage::update() {
             QByteArray name = _data->actionUnitsNames[i];
             for (QMultiHash<QByteArray, QPair<int, float> >::const_iterator it = getActionUnitNameMap().constFind(name);
                     it != getActionUnitNameMap().constEnd() && it.key() == name; it++) {
-                _blendshapeIndices.insert(i, it.value());
+                _actionUnitIndexMap.insert(i, it.value());
                 maxIndex = qMax(maxIndex, it.value().first);
             }
         }
