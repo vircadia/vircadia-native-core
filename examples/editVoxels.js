@@ -23,6 +23,9 @@ var NEW_VOXEL_DISTANCE_FROM_CAMERA = 3.0;
 var ORBIT_RATE_ALTITUDE = 200.0;
 var ORBIT_RATE_AZIMUTH = 90.0;
 var PIXELS_PER_EXTRUDE_VOXEL = 16;
+var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
+var MAX_VOXEL_SCALE = 1.0;
+var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
 
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
@@ -41,6 +44,7 @@ var orbitAzimuth = 0.0;
 var orbitAltitude = 0.0;
 var orbitCenter = { x: 0, y: 0, z: 0 };
 var orbitPosition = { x: 0, y: 0, z: 0 };
+var torsoToEyeVector = { x: 0, y: 0, z: 0 }; 
 var orbitRadius = 0.0;
 var extrudeDirection = { x: 0, y: 0, z: 0 };
 var extrudeScale = 0.0;
@@ -48,6 +52,8 @@ var lastVoxelPosition = { x: 0, y: 0, z: 0 };
 var lastVoxelColor = { red: 0, green: 0, blue: 0 };
 var lastVoxelScale = 0;
 var dragStart = { x: 0, y: 0 };
+var wheelPixelsMoved = 0;
+
 
 var mouseX = 0;
 var mouseY = 0; 
@@ -66,16 +72,15 @@ var numColors = 8;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
-var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create.raw");
-var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete.raw");
-var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit.raw");
+var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
+var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
+var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
 var audioOptions = new AudioInjectionOptions(); 
 audioOptions.volume = 0.5;
 audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
 
-var editToolsOn = false; // starts out off
-
+var editToolsOn = true; // starts out off
 
 // previewAsVoxel - by default, we will preview adds/deletes/recolors as just 4 lines on the intersecting face. But if you
 //                  the preview to show a full voxel then set this to true and the voxel will be displayed for voxel editing
@@ -270,10 +275,15 @@ var pointerVoxelScale = 0; // this is the voxel scale used for click to add or d
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
 
 var pointerVoxelScaleSteps = 8; // the number of slider position steps
-var pointerVoxelScaleOriginStep = 3; // the position of slider for the 1 meter size voxel
+var pointerVoxelScaleOriginStep = 8; // the position of slider for the 1 meter size voxel
 var pointerVoxelScaleMin = Math.pow(2, (1-pointerVoxelScaleOriginStep));
 var pointerVoxelScaleMax = Math.pow(2, (pointerVoxelScaleSteps-pointerVoxelScaleOriginStep));
 var thumbDeltaPerStep = thumbExtents / (pointerVoxelScaleSteps - 1);
+
+if (editToolsOn) {
+    moveTools();
+}
+
 
 function calcThumbFromScale(scale) {
     var scaleLog = Math.log(scale)/Math.log(2);
@@ -703,6 +713,9 @@ function startOrbitMode(event) {
 
     // start orbit camera! 
     var cameraPosition = Camera.getPosition();
+    torsoToEyeVector = Vec3.subtract(cameraPosition, MyAvatar.position);
+    torsoToEyeVector.x = 0.0;
+    torsoToEyeVector.z = 0.0;
     oldMode = Camera.getMode();
     Camera.setMode("independent");
     Camera.keepLookingAt(intersection.intersection);
@@ -729,6 +742,7 @@ function handleOrbitingMove(event) {
                         z:(Math.cos(orbitAltitude) * Math.sin(orbitAzimuth)) * orbitRadius }; 
     orbitPosition = Vec3.sum(orbitCenter, orbitVector);
     Camera.setPosition(orbitPosition);
+
     mouseX = event.x; 
     mouseY = event.y;
     //print("handleOrbitingMove...");
@@ -736,7 +750,7 @@ function handleOrbitingMove(event) {
 
 function endOrbitMode(event) {
     var cameraOrientation = Camera.getOrientation();
-    MyAvatar.position = Camera.getPosition();
+    MyAvatar.position = Vec3.subtract(Camera.getPosition(), torsoToEyeVector);
     MyAvatar.headOrientation = cameraOrientation;
     Camera.stopLooking();
     Camera.setMode(oldMode);
@@ -795,8 +809,7 @@ function mousePressEvent(event) {
     if (!trackAsOrbitOrPan) {
         var clickedOnSomething = false;
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-        
-print("clickedOverlay="+clickedOverlay);        
+      
 
         // If the user clicked on the thumb, handle the slider logic
         if (clickedOverlay == thumb) {
@@ -1318,6 +1331,32 @@ function update() {
     }
 }
 
+function wheelEvent(event) {
+    wheelPixelsMoved += event.delta;
+    if (Math.abs(wheelPixelsMoved) > WHEEL_PIXELS_PER_SCALE_CHANGE)
+    {
+        if (!pointerVoxelScaleSet) {
+            pointerVoxelScale = 1.0;
+            pointerVoxelScaleSet = true;
+        }
+        if (wheelPixelsMoved > 0) {
+            pointerVoxelScale /= 2.0;
+            if (pointerVoxelScale < MIN_VOXEL_SCALE) {
+                pointerVoxelScale = MIN_VOXEL_SCALE;
+            }  
+        } else {
+            pointerVoxelScale *= 2.0;
+            if (pointerVoxelScale > MAX_VOXEL_SCALE) {
+                pointerVoxelScale = MAX_VOXEL_SCALE;
+            }
+        }
+        calcThumbFromScale(pointerVoxelScale);
+        trackMouseEvent(event);
+        wheelPixelsMoved = 0;
+    }
+}
+
+Controller.wheelEvent.connect(wheelEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
