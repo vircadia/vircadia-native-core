@@ -60,19 +60,22 @@ var mouseY = 0;
 
 //  Create a table of the different colors you can choose
 var colors = new Array();
-colors[0] = { red: 237, green: 175, blue: 0 };
-colors[1] = { red: 61,  green: 211, blue: 72 };
-colors[2] = { red: 51,  green: 204, blue: 204 };
-colors[3] = { red: 63,  green: 169, blue: 245 };
-colors[4] = { red: 193, green: 99,  blue: 122 };
-colors[5] = { red: 255, green: 54,  blue: 69 };
-colors[6] = { red: 124, green: 36,  blue: 36 };
-colors[7] = { red: 63,  green: 35,  blue: 19 };
+colors[0] = { red: 120, green: 181, blue: 126 };
+colors[1] = { red: 75,  green: 155, blue: 103 };
+colors[2] = { red: 56,  green: 132, blue: 86 };
+colors[3] = { red: 83,  green: 211, blue: 83 };
+colors[4] = { red: 236, green: 174,  blue: 0 };
+colors[5] = { red: 234, green: 133,  blue: 0 };
+colors[6] = { red: 211, green: 115,  blue: 0 };
+colors[7] = { red: 48,  green: 116,  blue: 119 };
 var numColors = 8;
 var whichColor = -1;            //  Starting color is 'Copy' mode
 
 //  Create sounds for adding, deleting, recoloring voxels 
-var addSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
+var addSound1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+2.raw");
+var addSound2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+3.raw");
+var addSound3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+create+4.raw");
+
 var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
 var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
@@ -349,6 +352,15 @@ var recolorToolSelected = false;
 var eyedropperToolSelected = false;
 var selectToolSelected = false;
 
+function playRandomAddSound(audioOptions) {
+    if (Math.random() < 0.33) {
+        Audio.playSound(addSound1, audioOptions);
+    } else if (Math.random() < 0.5) {
+        Audio.playSound(addSound2, audioOptions);
+    } else {
+        Audio.playSound(addSound3, audioOptions);
+    }
+}
 
 function calculateVoxelFromIntersection(intersection, operation) {
     //print("calculateVoxelFromIntersection() operation="+operation);
@@ -942,7 +954,8 @@ function mousePressEvent(event) {
             lastVoxelColor = { red: newColor.red, green: newColor.green, blue: newColor.blue };
             lastVoxelScale = voxelDetails.s;
 
-            Audio.playSound(addSound, audioOptions);
+            playRandomAddSound(audioOptions);
+            
             Overlays.editOverlay(voxelPreview, { visible: false });
             dragStart = { x: event.x, y: event.y };
             isAdding = true;
@@ -980,7 +993,7 @@ function keyPressEvent(event) {
             Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
-            Audio.playSound(addSound, audioOptions);
+            playRandomAddSound(audioOptions);
         }
     }
     

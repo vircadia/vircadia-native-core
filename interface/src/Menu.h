@@ -76,7 +76,6 @@ public:
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
-
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
@@ -102,6 +101,7 @@ public:
     void goToDomain(const QString newDomain);
 
 public slots:
+    void loginForCurrentDomain();
     void bandwidthDetails();
     void voxelStatsDetails();
     void lodTools();
@@ -111,10 +111,11 @@ public slots:
     void exportSettings();
     void goTo();
     void pasteToVoxel();
+    
+    void toggleLoginMenuItem();
 
 private slots:
     void aboutApp();
-    void login();
     void editPreferences();
     void goToDomainDialog();
     void goToLocation();
@@ -173,6 +174,7 @@ private:
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    QAction* _loginAction;
 };
 
 namespace MenuOption {
@@ -184,6 +186,7 @@ namespace MenuOption {
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BuckyBalls = "Bucky Balls";
     const QString ChatCircling = "Chat Circling";
     const QString Collisions = "Collisions";
     const QString CollideWithAvatars = "Collide With Avatars";
@@ -246,6 +249,7 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
+    const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
@@ -260,6 +264,7 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
+    const QString Particles = "Particles";
     const QString PasteVoxels = "Paste";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";

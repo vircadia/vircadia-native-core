@@ -53,7 +53,6 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
@@ -183,7 +182,6 @@ public:
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
-    Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
@@ -267,6 +265,8 @@ public slots:
 private slots:
     void timer();
     void idle();
+    
+    void connectedToDomain(const QString& hostname);
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
@@ -407,7 +407,6 @@ private:
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
     Visage _visage;
