@@ -460,52 +460,153 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
     CapsuleShape capsuleA(radiusA, halfHeightA);
     CapsuleShape capsuleB(radiusB, halfHeightB);
 
-    // side by side
-    capsuleB.setPosition((0.95f * totalRadius) * xAxis);
     CollisionInfo collision;
-    if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
-    }
-    if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
+
+    { // side by side
+        capsuleB.setPosition((0.99f * totalRadius) * xAxis);
+        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
     }
 
-    // end to end
-    capsuleB.setPosition((0.99f * totalHalfLength) * yAxis);
-    if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
-    }
-    if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
+    { // end to end
+        capsuleB.setPosition((0.99f * totalHalfLength) * yAxis);
+
+        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
     }
 
-    // rotate B and move it to the side
-    glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
-    capsuleB.setRotation(rotation);
-    capsuleB.setPosition((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
-    if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
+    { // rotate B and move it to the side
+        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        capsuleB.setRotation(rotation);
+        capsuleB.setPosition((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
+
+        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
     }
-    if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should touch"
-            << std::endl;
+
+    { // again, but this time check collision details
+        float overlap = 0.1f;
+        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        capsuleB.setRotation(rotation);
+        glm::vec3 positionB = ((totalRadius + capsuleB.getHalfHeight()) - overlap) * xAxis;
+        capsuleB.setPosition(positionB);
+
+        // capsuleA vs capsuleB
+        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+    
+        glm::vec3 expectedPenetration = overlap * xAxis;
+        float inaccuracy = glm::length(collision._penetration - expectedPenetration);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad penetration: expected = " << expectedPenetration
+                << " actual = " << collision._penetration 
+                << std::endl;
+        }
+    
+        glm::vec3 expectedContactPoint = capsuleA.getPosition() + radiusA * xAxis;
+        inaccuracy = glm::length(collision._contactPoint - expectedContactPoint);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                << " actual = " << collision._contactPoint 
+                << std::endl;
+        }
+
+        // capsuleB vs capsuleA
+        if (!ShapeCollider::shapeShape(&capsuleB, &capsuleA, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+    
+        expectedPenetration = - overlap * xAxis;
+        inaccuracy = glm::length(collision._penetration - expectedPenetration);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad penetration: expected = " << expectedPenetration
+                << " actual = " << collision._penetration 
+                << std::endl;
+        }
+    
+        expectedContactPoint = capsuleB.getPosition() - (radiusB + halfHeightB) * xAxis;
+        inaccuracy = glm::length(collision._contactPoint - expectedContactPoint);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                << " actual = " << collision._contactPoint 
+                << std::endl;
+        }
+    }
+
+    { // collide cylinder wall against cylinder wall
+        float overlap = 0.137f;
+        float shift = 0.317f * halfHeightA;
+        glm::quat rotation = glm::angleAxis(rightAngle, zAxis);
+        capsuleB.setRotation(rotation);
+        glm::vec3 positionB = (totalRadius - overlap) * zAxis + shift * yAxis;
+        capsuleB.setPosition(positionB);
+
+        // capsuleA vs capsuleB
+        if (!ShapeCollider::shapeShape(&capsuleA, &capsuleB, collision))
+        {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: capsule and capsule should touch"
+                << std::endl;
+        }
+    
+        glm::vec3 expectedPenetration = overlap * zAxis;
+        float inaccuracy = glm::length(collision._penetration - expectedPenetration);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad penetration: expected = " << expectedPenetration
+                << " actual = " << collision._penetration 
+                << std::endl;
+        }
+    
+        glm::vec3 expectedContactPoint = capsuleA.getPosition() + radiusA * zAxis + shift * yAxis;
+        inaccuracy = glm::length(collision._contactPoint - expectedContactPoint);
+        if (fabs(inaccuracy) > EPSILON) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
+                << " actual = " << collision._contactPoint 
+                << std::endl;
+        }
     }
 }
 
