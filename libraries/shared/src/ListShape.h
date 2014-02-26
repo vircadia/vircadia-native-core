@@ -41,15 +41,15 @@ public:
     void setPosition(const glm::vec3& position);
     void setRotation(const glm::quat& rotation);
 
+    const Shape* getSubShape(int index) const;
+
     void updateSubTransforms();
 
-    int size() { return _subShapeEntries.size(); }
+    int size() const { return _subShapeEntries.size(); }
 
     void addShape(Shape* shape, const glm::vec3& localPosition, const glm::quat& localRotation);
 
     void setShapes(QVector<ListShapeEntry>& shapes);
-
-    //const QVector<ListShapeEntry>& getSubShapes() { return _subShapeEntries; }
 
 protected:
     void clear();

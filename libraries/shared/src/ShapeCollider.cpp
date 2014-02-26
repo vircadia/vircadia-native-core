@@ -12,6 +12,11 @@
 
 #include "ShapeCollider.h"
 
+// NOTE:
+//
+// * Large ListShape's are inefficient keep the lists short.
+// * Collisions between lists of lists do not work.
+
 namespace ShapeCollider {
 
 bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
@@ -334,16 +339,71 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
     return false;
 }
 
+bool sphereList(const SphereShape* sphereA, const ListShape* listB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listB->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = sphereSphere(sphereA, static_cast<const SphereShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = sphereCapsule(sphereA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        }
+    }
+    return touching;
+}
+
+bool capsuleList(const CapsuleShape* capsuleA, const ListShape* listB, CollisionList& collisions) {
+    bool touching = false;
+    for (int i = 0; i < listB->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listB->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = capsuleSphere(capsuleA, static_cast<const SphereShape*>(subShape), collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(subShape), collisions) || touching;
+        }
+    }
+    return touching;
+}
+
 bool listSphere(const ListShape* listA, const SphereShape* sphereB, CollisionList& collisions) {
-    return false;
+    bool touching = false;
+    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listA->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = sphereSphere(static_cast<const SphereShape*>(subShape), sphereB, collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = capsuleSphere(static_cast<const CapsuleShape*>(subShape), sphereB, collisions) || touching;
+        }
+    }
+    return touching;
 }
 
 bool listCapsule(const ListShape* listA, const CapsuleShape* capsuleB, CollisionList& collisions) {
-    return false;
+    bool touching = false;
+    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listA->getSubShape(i);
+        int subType = subShape->getType();
+        if (subType == Shape::SPHERE_SHAPE) {
+            touching = sphereCapsule(static_cast<const SphereShape*>(subShape), capsuleB, collisions) || touching;
+        } else if (subType == Shape::CAPSULE_SHAPE) {
+            touching = capsuleCapsule(static_cast<const CapsuleShape*>(subShape), capsuleB, collisions) || touching;
+        }
+    }
+    return touching;
 }
 
 bool listList(const ListShape* listA, const ListShape* listB, CollisionList& collisions) {
-    return false;
+    bool touching = false;
+    for (int i = 0; i < listA->size() && !collisions.isFull(); ++i) {
+        const Shape* subShape = listA->getSubShape(i);
+        for (int j = 0; j < listB->size() && !collisions.isFull(); ++j) {
+            touching = shapeShape(subShape, listB->getSubShape(j), collisions) || touching;
+        }
+    }
+    return touching;
 }
 
 }   // namespace ShapeCollider

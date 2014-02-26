@@ -32,6 +32,13 @@ void ListShape::setRotation(const glm::quat& rotation) {
     Shape::setRotation(rotation);
 }
 
+const Shape* ListShape::getSubShape(int index) const {
+    if (index < 0 || index > _subShapeEntries.size()) {
+        return NULL;
+    }
+    return _subShapeEntries[index]._shape;
+}
+
 void ListShape::updateSubTransforms() {
     if (_subShapeTransformsAreDirty) {
         for (int i = 0; i < _subShapeEntries.size(); ++i) {

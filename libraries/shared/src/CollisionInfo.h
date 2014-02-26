@@ -80,6 +80,9 @@ public:
     /// \return pointer to collision by index.  NULL if index out of bounds.
     CollisionInfo* getCollision(int index);
 
+    /// \return true if list is full
+    bool isFull() const { return _size == _maxSize; }
+
     /// \return number of valid collisions
     int size() const { return _size; }
 
