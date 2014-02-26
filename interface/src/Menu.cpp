@@ -65,7 +65,6 @@ Menu::Menu() :
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-    _voxelModeActionsGroup(NULL),
     _voxelStatsDialog(NULL),
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
@@ -104,10 +103,6 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, 0, appInstance, SLOT(reloadAllScripts()));
     _activeScriptsMenu = fileMenu->addMenu("Running Scripts");
-
-    addDisabledActionAndSeparator(fileMenu, "Voxels");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
 
     addDisabledActionAndSeparator(fileMenu, "Go");
     addActionToQMenuAndActionHash(fileMenu,
@@ -153,19 +148,6 @@ Menu::Menu() :
                                   SLOT(editPreferences()),
                                   QAction::PreferencesRole);
 
-    addDisabledActionAndSeparator(editMenu, "Voxels");
-
-    addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
-
-    #ifdef __APPLE__
-        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Backspace, appInstance, SLOT(deleteVoxels()));
-    #else
-        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Delete, appInstance, SLOT(deleteVoxels()));
-    #endif
-
     addDisabledActionAndSeparator(editMenu, "Physics");
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, false);
 
@@ -175,55 +157,6 @@ Menu::Menu() :
     addAvatarCollisionSubMenu(editMenu);
 
     QMenu* toolsMenu = addMenu("Tools");
-
-    _voxelModeActionsGroup = new QActionGroup(this);
-    _voxelModeActionsGroup->setExclusive(false);
-
-    QAction* addVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelAddMode, Qt::Key_V);
-    _voxelModeActionsGroup->addAction(addVoxelMode);
-
-    QAction* deleteVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelDeleteMode, Qt::Key_R);
-    _voxelModeActionsGroup->addAction(deleteVoxelMode);
-
-    QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelColorMode, Qt::Key_B);
-    _voxelModeActionsGroup->addAction(colorVoxelMode);
-
-    QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
-    _voxelModeActionsGroup->addAction(selectVoxelMode);
-
-    QAction* getColorMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
-    _voxelModeActionsGroup->addAction(getColorMode);
-
-
-    // connect each of the voxel mode actions to the updateVoxelModeActionsSlot
-    foreach (QAction* action, _voxelModeActionsGroup->actions()) {
-        connect(action, SIGNAL(triggered()), this, SLOT(updateVoxelModeActions()));
-    }
-
-    QAction* voxelPaintColor = addActionToQMenuAndActionHash(toolsMenu,
-                                                             MenuOption::VoxelPaintColor,
-                                                             Qt::META | Qt::Key_C,
-                                                             this,
-                                                             SLOT(chooseVoxelPaintColor()));
-
-    Application::getInstance()->getSwatch()->setAction(voxelPaintColor);
-
-    QColor paintColor(128, 128, 128);
-    voxelPaintColor->setData(paintColor);
-    voxelPaintColor->setIcon(Swatch::createIcon(paintColor));
-
-    addActionToQMenuAndActionHash(toolsMenu,
-                                  MenuOption::DecreaseVoxelSize,
-                                  QKeySequence::ZoomOut,
-                                  appInstance,
-                                  SLOT(decreaseVoxelSize()));
-    addActionToQMenuAndActionHash(toolsMenu,
-                                  MenuOption::IncreaseVoxelSize,
-                                  QKeySequence::ZoomIn,
-                                  appInstance,
-                                  SLOT(increaseVoxelSize()));
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ResetSwatchColors, 0, this, SLOT(resetSwatchColors()));
-
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
 
 
@@ -529,7 +462,6 @@ void Menu::loadSettings(QSettings* settings) {
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
-    Application::getInstance()->getSwatch()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
 
@@ -561,7 +493,6 @@ void Menu::saveSettings(QSettings* settings) {
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
-    Application::getInstance()->getSwatch()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 }
 
@@ -749,15 +680,6 @@ void Menu::triggerOption(const QString& menuOption) {
 
 QAction* Menu::getActionForOption(const QString& menuOption) {
     return _actionHash.value(menuOption);
-}
-
-bool Menu::isVoxelModeActionChecked() {
-    foreach (QAction* action, _voxelModeActionsGroup->actions()) {
-        if (action->isChecked()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void Menu::aboutApp() {
@@ -1254,37 +1176,8 @@ void Menu::cycleFrustumRenderMode() {
     updateFrustumRenderModeAction();
 }
 
-void Menu::updateVoxelModeActions() {
-    // only the sender can be checked
-    foreach (QAction* action, _voxelModeActionsGroup->actions()) {
-        if (action->isChecked() && action != sender()) {
-            action->setChecked(false);
-        }
-    }
-}
-
-void Menu::chooseVoxelPaintColor() {
-    Application* appInstance = Application::getInstance();
-    QAction* paintColor = _actionHash.value(MenuOption::VoxelPaintColor);
-
-    QColor selected = QColorDialog::getColor(paintColor->data().value<QColor>(),
-                                             appInstance->getGLWidget(),
-                                             "Voxel Paint Color");
-    if (selected.isValid()) {
-        paintColor->setData(selected);
-        paintColor->setIcon(Swatch::createIcon(selected));
-    }
-
-    // restore the main window's active state
-    appInstance->getWindow()->activateWindow();
-}
-
 void Menu::runTests() {
     runTimingTests();
-}
-
-void Menu::resetSwatchColors() {
-    Application::getInstance()->getSwatch()->reset();
 }
 
 void Menu::updateFrustumRenderModeAction() {

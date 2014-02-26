@@ -68,7 +68,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
                  
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+                        QColor paintColor(128,128,128);
                         Application::getInstance()->makeVoxel(fingerTipPosition,
                                                               FINGERTIP_VOXEL_SIZE,
                                                               paintColor.red(),
