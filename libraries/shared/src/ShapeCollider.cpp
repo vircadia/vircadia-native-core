@@ -15,7 +15,7 @@
 // NOTE:
 //
 // * Large ListShape's are inefficient keep the lists short.
-// * Collisions between lists of lists do not work.
+// * Collisions between lists of lists work in theory but are not recommended.
 
 namespace ShapeCollider {
 
