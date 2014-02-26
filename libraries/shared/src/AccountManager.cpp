@@ -88,6 +88,8 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
                 // pull out the stored access token and store it in memory
                 _accountInfo = settings.value(key).value<DataServerAccountInfo>();
                 qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
+                
+                emit foundOrRequestedAccessToken();
             }
         }
         
@@ -271,6 +273,9 @@ void AccountManager::requestFinished() {
             emit loginComplete(rootURL);
             // the username has changed to whatever came back
             emit usernameChanged(_accountInfo.getUsername());
+            
+            // we have found or requested an access token
+            emit foundOrRequestedAccessToken();
             
             // store this access token into the local settings
             QSettings localSettings;
