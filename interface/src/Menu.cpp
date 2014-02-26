@@ -1509,31 +1509,3 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
     QMenuBar::repaint();
 };
 
-
-/**
-
-void Menu::invokeAddActionToQMenuAndActionHash(QMenu* destinationMenu, const QString actionName,
-                        const QKeySequence& shortcut, const QObject* receiver, const char* member) {
-
-    qDebug() << "about to call QMetaObject::invokeMethod(this, \"addActionToQMenuAndActionHash\"...)";
-
-    QMetaObject::invokeMethod(this, "addActionToQMenuAndActionHash",
-            Q_ARG(QMenu*, destinationMenu),
-            Q_ARG(const QString&, actionName),
-            Q_ARG(const QKeySequence&, shortcut),
-            Q_ARG(const QObject*, receiver),
-            Q_ARG(const char*, member)
-        );
-}
-
-void Menu::invokeRemoveAction(QMenu* menu, const QString& actionName) {
-
-    qDebug() << "about to call QMetaObject::invokeMethod(this, \"removeAction\"...)";
-
-    QMetaObject::invokeMethod(this, "removeAction",
-            Q_ARG(QMenu*, menu),
-            Q_ARG(const QString&, actionName)
-        );
-}
-
-**/

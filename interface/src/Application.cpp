@@ -4244,7 +4244,6 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
     Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
 }
 
-
 void Application::loadScript(const QString& fileNameString) {
     _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
@@ -4275,7 +4274,7 @@ void Application::loadScript(const QString& fileNameString) {
 
     ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, &_controllerScriptingInterface);
     
-    // add a stop menu itm
+    // add a stop menu item
     Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
                             scriptEngine->getScriptMenuName(), 0, scriptEngine, SLOT(stop()));
 

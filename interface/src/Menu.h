@@ -56,7 +56,7 @@ class MetavoxelEditor;
 class VoxelStatsDialog;
 class MenuItemProperties;
 
-class Menu : public QMenuBar /*, public AbstractMenuInterface*/ {
+class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
@@ -91,10 +91,6 @@ public:
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
 
-    bool goToDestination(QString destination);
-    void goToOrientation(QString orientation);
-    void goToDomain(const QString newDomain);
-
     QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
 
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
@@ -106,6 +102,10 @@ public:
                                            int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(QMenu* menu, const QString& actionName);
+
+    bool goToDestination(QString destination);
+    void goToOrientation(QString orientation);
+    void goToDomain(const QString newDomain);
 
 public slots:
 
