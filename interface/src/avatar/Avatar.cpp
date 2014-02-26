@@ -211,7 +211,7 @@ void Avatar::render() {
         // render voice intensity sphere for avatars that are farther away
         const float MAX_SPHERE_ANGLE = 10.f;
         const float MIN_SPHERE_ANGLE = 1.f;
-        const float MIN_SPHERE_SIZE = 0.01;
+        const float MIN_SPHERE_SIZE = 0.01f;
         const float SPHERE_LOUDNESS_SCALING = 0.0005f;
         const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
         float height = getSkeletonHeight();
