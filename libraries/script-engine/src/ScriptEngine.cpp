@@ -21,6 +21,7 @@
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
+#include <LocalVoxels.h>
 
 #include <Sound.h>
 
@@ -122,6 +123,7 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents) {
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
     if (_isInitialized) {
@@ -150,6 +152,9 @@ void ScriptEngine::init() {
 
     QScriptValue injectionOptionValue = _engine.scriptValueFromQMetaObject<AudioInjectorOptions>();
     _engine.globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
+    
+    QScriptValue localVoxelsValue = _engine.scriptValueFromQMetaObject<LocalVoxels>();
+    _engine.globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
