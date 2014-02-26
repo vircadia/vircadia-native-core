@@ -94,7 +94,7 @@ Menu::Menu() :
     toggleLoginMenuItem();
     
     // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
-    connect(&accountManager, &AccountManager::foundOrRequestedAccessToken, this, &Menu::toggleLoginMenuItem);
+    connect(&accountManager, &AccountManager::accessTokenChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");

@@ -61,7 +61,7 @@ signals:
     void authRequired();
     void authEndpointChanged();
     void usernameChanged(const QString& username);
-    void foundOrRequestedAccessToken();
+    void accessTokenChanged();
     void loginComplete(const QUrl& authURL);
     void logoutComplete();
 private slots:

@@ -89,7 +89,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
                 _accountInfo = settings.value(key).value<DataServerAccountInfo>();
                 qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
                 
-                emit foundOrRequestedAccessToken();
+                emit accessTokenChanged();
             }
         }
         
@@ -275,7 +275,7 @@ void AccountManager::requestFinished() {
             emit usernameChanged(_accountInfo.getUsername());
             
             // we have found or requested an access token
-            emit foundOrRequestedAccessToken();
+            emit accessTokenChanged();
             
             // store this access token into the local settings
             QSettings localSettings;
