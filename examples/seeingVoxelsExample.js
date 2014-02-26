@@ -14,23 +14,29 @@ var yaw = 45;
 var yawMax = 70;
 var yawMin = 20;
 
-var isLocal = true;
+var isLocal = false;
 
 // set up our VoxelViewer with a position and orientation
 var orientation = Quat.fromPitchYawRoll(0, yaw, 0);
 
-if (isLocal) {
-    MyAvatar.position = {x: 10, y: 0, z: 10};
-    MyAvatar.orientation = orientation;
-} else {
-    VoxelViewer.setPosition({x: 10, y: 0, z: 10});
-    VoxelViewer.setOrientation(orientation);
-    VoxelViewer.queryOctree();
-    Agent.isAvatar = true;
+function init() {
+    if (isLocal) {
+        MyAvatar.position = {x: 10, y: 0, z: 10};
+        MyAvatar.orientation = orientation;
+    } else {
+        VoxelViewer.setPosition({x: 10, y: 0, z: 10});
+        VoxelViewer.setOrientation(orientation);
+        VoxelViewer.queryOctree();
+        Agent.isAvatar = true;
+    }
 }
 
 function keepLooking() {
     //print("count =" + count);
+
+    if (count == 0) {
+        init();
+    }
     count++;
     if (count % 10 == 0) {
         yaw += yawDirection;
@@ -46,6 +52,7 @@ function keepLooking() {
         } else {
             VoxelViewer.setOrientation(orientation);
             VoxelViewer.queryOctree();
+            print("VoxelViewer.getOctreeElementsCount()=" + VoxelViewer.getOctreeElementsCount());
         }
         
     }
@@ -61,3 +68,7 @@ Script.willSendVisualDataCallback.connect(keepLooking);
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);
 
+
+// test for local...
+Menu.isOptionChecked("Voxels");
+isLocal = true; // will only get here on local client

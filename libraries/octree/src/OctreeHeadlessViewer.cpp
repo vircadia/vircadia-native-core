@@ -226,65 +226,13 @@ void OctreeHeadlessViewer::queryOctree() {
 
 
 int OctreeHeadlessViewer::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sourceNode) {
-    // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
-    // parse the incoming stats datas stick it in a temporary object for now, while we
-    // determine which server it belongs to
     OctreeSceneStats temp;
     int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+
+    // TODO: actually do something with these stats, like expose them to JS...
+    
     return statsMessageLength;
-
-#if 0 // CURRENTLY NOT YET IMPLEMENTED
-
-    // quick fix for crash... why would voxelServer be NULL?
-    if (sourceNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
-
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _voxelSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
-                                                                packet.size());
-        } else {
-            _octreeServerSceneStats[nodeUUID] = temp;
-        }
-        _voxelSceneStatsLock.unlock();
-
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
-
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = NULL;
-        if (sendingNode->getType() == NodeType::VoxelServer) {
-            jurisdiction = &_voxelServerJurisdictions;
-        } else {
-            jurisdiction = &_particleServerJurisdictions;
-        }
-
-
-        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            printf("stats from new server... v[%f, %f, %f, %f]\n",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFades.push_back(fade);
-            }
-        }
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but VoxelSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
-        // details from the VoxelSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        (*jurisdiction)[nodeUUID] = jurisdictionMap;
-    }
-    return statsMessageLength;
-#endif
 }
 
 void OctreeHeadlessViewer::trackIncomingOctreePacket(const QByteArray& packet, 

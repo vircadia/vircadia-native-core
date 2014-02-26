@@ -59,6 +59,8 @@ public slots:
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
+    unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
+
 private:
     ViewFrustum _viewFrustum;
     JurisdictionListener* _jurisdictionListener;
