@@ -27,7 +27,7 @@
 #include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
-#include <VoxelQuery.h>
+#include <OctreeQuery.h>
 
 #include "Audio.h"
 
@@ -387,7 +387,7 @@ private:
 
     Oscilloscope _audioScope;
 
-    VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
+    OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)

@@ -1931,23 +1931,23 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _voxelQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
-    _voxelQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
-    _voxelQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
-    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
-    _voxelQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
+    _octreeQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
+    _octreeQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
+    _octreeQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
+    _octreeQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
+    _octreeQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
 
-    _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
-    _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
-    _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
-    _voxelQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _voxelQuery.setCameraNearClip(_viewFrustum.getNearClip());
-    _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    _voxelQuery.setOctreeSizeScale(Menu::getInstance()->getVoxelSizeScale());
-    _voxelQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
+    _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
+    _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
+    _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
+    _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
+    _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
+    _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
+    _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
+    _octreeQuery.setOctreeSizeScale(Menu::getInstance()->getVoxelSizeScale());
+    _octreeQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
 
-    unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
+    unsigned char queryPacket[MAX_PACKET_SIZE];
 
     // Iterate all of the nodes, and get a count of how many voxel servers we have...
     int totalServers = 0;
@@ -2057,7 +2057,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
 
             if (inView) {
-                _voxelQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
@@ -2068,11 +2068,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
                 if (totalServers > 1) {
-                    _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
+                    _octreeQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
                     const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                    _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                    _voxelQuery.setCameraNearClip(0.1f);
-                    _voxelQuery.setCameraFarClip(0.1f);
+                    _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
+                    _octreeQuery.setCameraNearClip(0.1f);
+                    _octreeQuery.setCameraFarClip(0.1f);
                     if (wantExtraDebugging) {
                         qDebug() << "Using 'minimal' camera position for node" << *node;
                     }
@@ -2081,23 +2081,23 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                         qDebug() << "Using regular camera position for node" << *node;
                     }
                 }
-                _voxelQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
             } else {
-                _voxelQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxOctreePacketsPerSecond(0);
             }
             // set up the packet for sending...
-            unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+            unsigned char* endOfQueryPacket = queryPacket;
 
             // insert packet type/version and node UUID
-            endOfVoxelQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfVoxelQueryPacket), packetType);
+            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
 
             // encode the query data...
-            endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+            endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
 
-            int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+            int packetLength = endOfQueryPacket - queryPacket;
 
             // make sure we still have an active socket
-            nodeList->writeDatagram(reinterpret_cast<const char*>(voxelQueryPacket), packetLength, node);
+            nodeList->writeDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
 
             // Feed number of bytes to corresponding channel of the bandwidth meter
             _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
