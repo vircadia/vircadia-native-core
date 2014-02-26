@@ -218,9 +218,6 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
-    const QString DisableColorVoxels = "Disable Colored Voxels";
-    const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
@@ -228,8 +225,6 @@ namespace MenuOption {
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString EnableOcclusionCulling = "Enable Occlusion Culling";
-    const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";

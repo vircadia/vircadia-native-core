@@ -254,12 +254,6 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
-
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableColorVoxels);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableLowRes);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableDeltaSending);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::EnableVoxelPacketCompression);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::EnableOcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");

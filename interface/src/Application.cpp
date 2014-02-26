@@ -1931,11 +1931,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(!Menu::getInstance()->isOptionChecked(MenuOption::DisableLowRes));
-    _octreeQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
-    _octreeQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
-    _octreeQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
-    _octreeQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
+    _octreeQuery.setWantLowResMoving(true);
+    _octreeQuery.setWantColor(true);
+    _octreeQuery.setWantDelta(true);
+    _octreeQuery.setWantOcclusionCulling(false);
+    _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
