@@ -92,7 +92,7 @@ void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
         renderAvatarFades();
     } else {
         // just render myAvatar
-        _myAvatar->render(forceRenderMyHead);
+        _myAvatar->render(forceRenderMyHead, true);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }

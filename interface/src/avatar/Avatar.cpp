@@ -77,7 +77,8 @@ Avatar::Avatar() :
     _moving(false),
     _owningAvatarMixer(),
     _collisionFlags(0),
-    _initialized(false)
+    _initialized(false),
+    _billboardHysteresis(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -290,11 +291,22 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody() {
-    const float BILLBOARD_DISTANCE = 40.0f;
-    if (!_billboard.isEmpty() && getLODDistance() >= BILLBOARD_DISTANCE) {
-        renderBillboard();
-        return;
+const float BILLBOARD_LOD_DISTANCE = 40.0f;
+
+void Avatar::renderBody() {    
+    if (!_billboard.isEmpty()) {
+        const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
+        if (_billboardHysteresis) {
+            if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
+                _billboardHysteresis = false;
+            }
+        } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
+            _billboardHysteresis = true;
+        }
+        if (_billboardHysteresis) {
+            renderBillboard();
+            return;
+        }
     }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
@@ -565,6 +577,9 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     
     // clear out any existing billboard texture
     _billboardTexture.reset();
+    
+    // reset the hysteresis value
+    _billboardHysteresis = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
 }
 
 int Avatar::parseData(const QByteArray& packet) {
