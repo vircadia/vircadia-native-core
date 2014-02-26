@@ -12,7 +12,9 @@
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include "JurisdictionListener.h"
 #include "Octree.h"
+#include "OctreeQuery.h"
 #include "OctreeRenderer.h"
 #include "Octree.h"
 #include "ViewFrustum.h"
@@ -27,8 +29,23 @@ public:
 
     virtual void init();
     virtual void render() { /* swallow these */ };
+
+    void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
+    void queryOctree();
+
+    void setVoxelSizeScale(float sizeScale);
+    float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+    int getMaxPacketsPerSecond() const { return _maxTotalPPS; }
+
 private:
     ViewFrustum _viewFrustum;
+    JurisdictionListener* _jurisdictionListener;
+    OctreeQuery _octreeQuery;
+    float _voxelSizeScale;
+    int _boundaryLevelAdjust;
+    int _maxTotalPPS;
 };
 
 #endif /* defined(__hifi__OctreeHeadlessViewer__) */
