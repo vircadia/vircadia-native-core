@@ -2056,7 +2056,10 @@ void Application::updateMyAvatarLookAtPosition() {
         } else if (_isHoverVoxel) {
             distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
         }
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
+        const float FIXED_MIN_EYE_DISTANCE = 0.3f;
+        float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
+            glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
     }
     bool trackerActive = false;
     float eyePitch, eyeYaw;
