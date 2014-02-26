@@ -14,7 +14,6 @@
 #include <QKeySequence>
 #include <QPointer>
 
-#include <AbstractMenuInterface.h>
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
@@ -98,16 +97,6 @@ public:
 
     QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
 
-    /**
-    virtual void invokeAddActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL);
-    virtual void invokeRemoveAction(QMenu* menu, const QString& actionName);
-    **/
-
-public slots:
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
@@ -117,6 +106,8 @@ public slots:
                                            int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(QMenu* menu, const QString& actionName);
+
+public slots:
 
     void loginForCurrentDomain();
     void bandwidthDetails();

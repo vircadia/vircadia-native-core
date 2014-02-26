@@ -15,7 +15,6 @@
 #include <QtCore/QUrl>
 #include <QtScript/QScriptEngine>
 
-#include <AbstractMenuInterface.h>
 #include <AudioScriptingInterface.h>
 #include <VoxelsScriptingInterface.h>
 
