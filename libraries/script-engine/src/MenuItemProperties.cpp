@@ -1,5 +1,5 @@
 //
-//  MenuTypes.cpp
+//  MenuItemProperties.cpp
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
@@ -10,7 +10,7 @@
 
 #include <QDebug>
 #include <RegisteredMetaTypes.h>
-#include "MenuTypes.h"
+#include "MenuItemProperties.h"
 
 MenuItemProperties::MenuItemProperties() :
     menuName(""),
@@ -56,7 +56,7 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
 {
 }
 
-void registerMenuTypes(QScriptEngine* engine) {
+void registerMenuItemProperties(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, menuItemPropertiesToScriptValue, menuItemPropertiesFromScriptValue);
 }
 

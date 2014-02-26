@@ -15,7 +15,7 @@
 #include <QString>
 
 #include "Menu.h"
-#include <MenuTypes.h>
+#include <MenuItemProperties.h>
 
 class MenuScriptingInterface : public QObject {
     Q_OBJECT

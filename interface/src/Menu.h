@@ -16,9 +16,8 @@
 
 #include <AbstractMenuInterface.h>
 #include <EventTypes.h>
-#include <MenuTypes.h>
+#include <MenuItemProperties.h>
 #include <OctreeConstants.h>
-//#include <VoxelConstants.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;

@@ -24,7 +24,7 @@
 
 #include <Sound.h>
 
-#include "MenuTypes.h"
+#include "MenuItemProperties.h"
 #include "ScriptEngine.h"
 
 const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
@@ -138,7 +138,7 @@ void ScriptEngine::init() {
     registerMetaTypes(&_engine);
     registerVoxelMetaTypes(&_engine);
     registerEventTypes(&_engine);
-    registerMenuTypes(&_engine);
+    registerMenuItemProperties(&_engine);
     
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);

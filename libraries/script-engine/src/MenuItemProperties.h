@@ -1,13 +1,13 @@
 //
-//  MenuTypes.h
+//  MenuItemProperties.h
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 1/28/14.
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#ifndef __hifi_MenuTypes_h__
-#define __hifi_MenuTypes_h__
+#ifndef __hifi_MenuItemProperties_h__
+#define __hifi_MenuItemProperties_h__
 
 #include <QtScript/QScriptEngine>
 
@@ -43,8 +43,8 @@ public:
 Q_DECLARE_METATYPE(MenuItemProperties)
 QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);
 void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemProperties& props);
-void registerMenuTypes(QScriptEngine* engine);
+void registerMenuItemProperties(QScriptEngine* engine);
 
 
 
-#endif // __hifi_MenuTypes_h__
+#endif // __hifi_MenuItemProperties_h__
