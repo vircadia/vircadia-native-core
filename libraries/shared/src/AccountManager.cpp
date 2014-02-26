@@ -37,7 +37,7 @@ AccountManager::AccountManager() :
     _authURL(),
     _networkAccessManager(),
     _pendingCallbackMap(),
-    _accounts()
+    _accountInfo()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -47,27 +47,13 @@ AccountManager::AccountManager() :
     
     qRegisterMetaType<QNetworkAccessManager::Operation>("QNetworkAccessManager::Operation");
     qRegisterMetaType<JSONCallbackParameters>("JSONCallbackParameters");
-    
-    // check if there are existing access tokens to load from settings
-    QSettings settings;
-    settings.beginGroup(ACCOUNTS_GROUP);
-    
-    foreach(const QString& key, settings.allKeys()) {
-        // take a key copy to perform the double slash replacement
-        QString keyCopy(key);
-        QUrl keyURL(keyCopy.replace("slashslash", "//"));
-        
-        // pull out the stored access token and put it in our in memory array
-        _accounts.insert(keyURL, settings.value(key).value<DataServerAccountInfo>());
-        qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
-    }
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
-    _accounts.remove(_authURL);
+    _accountInfo = DataServerAccountInfo();
     
     QSettings settings;
     settings.beginGroup(ACCOUNTS_GROUP);
@@ -80,7 +66,6 @@ void AccountManager::logout() {
     emit logoutComplete();
     // the username has changed to blank
     emit usernameChanged(QString());
-    
 }
 
 void AccountManager::setAuthURL(const QUrl& authURL) {
@@ -89,6 +74,24 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         
         qDebug() << "URL for node authentication has been changed to" << qPrintable(_authURL.toString());
         qDebug() << "Re-setting authentication flow.";
+        
+        // check if there are existing access tokens to load from settings
+        QSettings settings;
+        settings.beginGroup(ACCOUNTS_GROUP);
+        
+        foreach(const QString& key, settings.allKeys()) {
+            // take a key copy to perform the double slash replacement
+            QString keyCopy(key);
+            QUrl keyURL(keyCopy.replace("slashslash", "//"));
+            
+            if (keyURL == _authURL) {
+                // pull out the stored access token and store it in memory
+                _accountInfo = settings.value(key).value<DataServerAccountInfo>();
+                qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
+                
+                emit accessTokenChanged();
+            }
+        }
         
         // tell listeners that the auth endpoint has changed
         emit authEndpointChanged();
@@ -111,7 +114,7 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         
         QUrl requestURL = _authURL;
         requestURL.setPath(path);
-        requestURL.setQuery("access_token=" + _accounts.value(_authURL).getAccessToken().token);
+        requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
         
         authenticatedRequest.setUrl(requestURL);
         
@@ -202,9 +205,8 @@ void AccountManager::passErrorToCallback(QNetworkReply::NetworkError errorCode) 
 }
 
 bool AccountManager::hasValidAccessToken() {
-    DataServerAccountInfo accountInfo = _accounts.value(_authURL);
     
-    if (accountInfo.getAccessToken().token.isEmpty() || accountInfo.getAccessToken().isExpired()) {
+    if (_accountInfo.getAccessToken().token.isEmpty() || _accountInfo.getAccessToken().isExpired()) {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "An access token is required for requests to" << qPrintable(_authURL.toString());
         }
@@ -266,18 +268,20 @@ void AccountManager::requestFinished() {
             
             qDebug() << "Storing an account with access-token for" << qPrintable(rootURL.toString());
             
-            DataServerAccountInfo freshAccountInfo(rootObject);
-            _accounts.insert(rootURL, freshAccountInfo);
+            _accountInfo = DataServerAccountInfo(rootObject);
             
             emit loginComplete(rootURL);
             // the username has changed to whatever came back
-            emit usernameChanged(freshAccountInfo.getUsername());
+            emit usernameChanged(_accountInfo.getUsername());
+            
+            // we have found or requested an access token
+            emit accessTokenChanged();
             
             // store this access token into the local settings
             QSettings localSettings;
             localSettings.beginGroup(ACCOUNTS_GROUP);
             localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                   QVariant::fromValue(freshAccountInfo));
+                                   QVariant::fromValue(_accountInfo));
         }
     } else {
         // TODO: error handling

@@ -24,6 +24,7 @@
 
 #include <Sound.h>
 
+#include "MenuItemProperties.h"
 #include "ScriptEngine.h"
 
 const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
@@ -41,7 +42,6 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
-                           AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
     _avatarIdentityTimer(NULL),
@@ -68,7 +68,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
-    _menu = menu;
     _controllerScriptingInterface = controllerScriptingInterface;
 }
 
@@ -104,16 +103,9 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     registerGlobalObject(objectName, _avatarData);
 }
 
-
-void ScriptEngine::setupMenuItems() {
-    if (_menu && _wantMenuItems) {
-        _menu->addActionToQMenuAndActionHash(_menu->getActiveScriptsMenu(), _scriptMenuName, 0, this, SLOT(stop()));
-    }
-}
-
-void ScriptEngine::cleanMenuItems() {
-    if (_menu && _wantMenuItems) {
-        _menu->removeAction(_menu->getActiveScriptsMenu(), _scriptMenuName);
+void ScriptEngine::cleanupMenuItems() {
+    if (_wantMenuItems) {
+        emit cleanupMenuItem(_scriptMenuName);
     }
 }
 
@@ -140,8 +132,8 @@ void ScriptEngine::init() {
     // register various meta-types
     registerMetaTypes(&_engine);
     registerVoxelMetaTypes(&_engine);
-    //registerParticleMetaTypes(&_engine);
     registerEventTypes(&_engine);
+    registerMenuItemProperties(&_engine);
     
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
@@ -171,7 +163,6 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
 
-    //qDebug() << "Script:\n" << _scriptContents << "\n";
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -300,7 +291,7 @@ void ScriptEngine::run() {
         }
     }
     
-    cleanMenuItems();
+    cleanupMenuItems();
 
     // If we were on a thread, then wait till it's done
     if (thread()) {
