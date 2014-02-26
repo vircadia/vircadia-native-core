@@ -25,7 +25,8 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole) = 0;
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = -1) = 0;
     virtual void removeAction(QMenu* menu, const QString& actionName) = 0;
 };
 

@@ -65,6 +65,7 @@
 #include "ClipboardScriptingInterface.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
+#include "MenuScriptingInterface.h"
 #include "Swatch.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
@@ -4290,6 +4291,7 @@ void Application::loadScript(const QString& fileNameString) {
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+    scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 

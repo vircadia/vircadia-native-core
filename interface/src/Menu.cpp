@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QShortcut>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
@@ -29,6 +30,7 @@
 
 #include "Application.h"
 #include "Menu.h"
+#include "MenuScriptingInterface.h"
 #include "Util.h"
 #include "InfoView.h"
 #include "ui/MetavoxelEditor.h"
@@ -171,7 +173,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::ClickToFly);
 
     addAvatarCollisionSubMenu(editMenu);
-    
+
     QMenu* toolsMenu = addMenu("Tools");
 
     _voxelModeActionsGroup = new QActionGroup(this);
@@ -496,7 +498,6 @@ Menu::Menu() :
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
     connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
 #endif
-
 }
 
 Menu::~Menu() {
@@ -682,14 +683,30 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
                                              const char* member,
-                                             QAction::MenuRole role) {
-    QAction* action;
+                                             QAction::MenuRole role,
+                                             int menuItemLocation) {
+    QAction* action = NULL;
+    QAction* actionBefore = NULL;
 
-    if (receiver && member) {
-        action = destinationMenu->addAction(actionName, receiver, member, shortcut);
+    if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+        actionBefore = destinationMenu->actions()[menuItemLocation];
+    }
+
+    if (!actionBefore) {
+        if (receiver && member) {
+            action = destinationMenu->addAction(actionName, receiver, member, shortcut);
+        } else {
+            action = destinationMenu->addAction(actionName);
+            action->setShortcut(shortcut);
+        }
     } else {
-        action = destinationMenu->addAction(actionName);
+        action = new QAction(actionName, destinationMenu);
         action->setShortcut(shortcut);
+        destinationMenu->insertAction(actionBefore, action);
+
+        if (receiver && member) {
+            connect(action, SIGNAL(triggered()), receiver, member);
+        }
     }
     action->setMenuRole(role);
 
@@ -703,8 +720,11 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                       const QKeySequence& shortcut,
                                                       const bool checked,
                                                       const QObject* receiver,
-                                                      const char* member) {
-    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member);
+                                                      const char* member,
+                                                      int menuItemLocation) {
+
+    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member, 
+                                                        QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
 
@@ -1148,7 +1168,6 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
-    _MetavoxelEditor->activateWindow();
 }
 
 void Menu::audioMuteToggled() {
@@ -1319,3 +1338,174 @@ QString Menu::replaceLastOccurrence(QChar search, QChar replace, QString string)
     
     return string;
 }
+
+QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
+    QList<QAction*> menuActions;
+    if (menu) {
+        menuActions = menu->actions();
+    } else {
+        menuActions = actions();   
+    }
+    
+    foreach (QAction* menuAction, menuActions) {
+        if (menuName == menuAction->text()) {
+            return menuAction;
+        }
+    }
+    return NULL;
+}
+
+QMenu* Menu::getSubMenuFromName(const QString& menuName, QMenu* menu) {
+    QAction* action = getActionFromName(menuName, menu);
+    if (action) {
+        return action->menu();
+    }
+    return NULL;
+}
+
+QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        parent = menu;
+        finalMenuPart = menuTreePart.trimmed();
+        menu = getSubMenuFromName(finalMenuPart, parent);
+        if (!menu) {
+            break;
+        }
+    }
+    return parent;
+}
+
+QMenu* Menu::getMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QMenu* menu = NULL;
+    int item = 0;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), parent);
+        if (!menu) {
+            break;
+        }
+        parent = menu;
+        item++;
+    }
+    return menu;
+}
+
+QAction* Menu::getMenuAction(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* parent = NULL;
+    QAction* action = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        action = getActionFromName(menuTreePart.trimmed(), parent);
+        if (!action) {
+            break;
+        }
+        parent = action->menu();
+    }
+    return action;
+}
+
+int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
+    int position = 0;
+    foreach(QAction* action, menu->actions()) {
+        if (action->text() == searchMenuItem) {
+            return position;
+        }
+        position++;
+    }
+    return UNSPECIFIED_POSITION; // not found
+}
+
+QMenu* Menu::addMenu(const QString& menuName) {
+    QStringList menuTree = menuName.split(">");
+    QMenu* addTo = NULL;
+    QMenu* menu = NULL;
+    foreach (QString menuTreePart, menuTree) {
+        menu = getSubMenuFromName(menuTreePart.trimmed(), addTo);
+        if (!menu) {
+            if (!addTo) {
+                menu = QMenuBar::addMenu(menuTreePart.trimmed());
+            } else {
+                menu = addTo->addMenu(menuTreePart.trimmed());
+            }
+        }
+        addTo = menu;
+    }
+
+    QMenuBar::repaint();
+    return menu;
+}
+
+void Menu::removeMenu(const QString& menuName) {
+    QAction* action = getMenuAction(menuName);
+    
+    // only proceed if the menu actually exists
+    if (action) {
+        QString finalMenuPart;
+        QMenu* parent = getMenuParent(menuName, finalMenuPart);
+    
+        if (parent) {
+            removeAction(parent, finalMenuPart);
+        } else {
+            QMenuBar::removeAction(action);
+        }
+
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
+    QMenu* menuObj = getMenu(menuName);
+    if (menuObj) {
+        addDisabledActionAndSeparator(menuObj, separatorName);
+    }
+}
+
+void Menu::addMenuItem(const MenuItemProperties& properties) {
+    QMenu* menuObj = getMenu(properties.menuName);
+    if (menuObj) {
+        QShortcut* shortcut = NULL;
+        if (!properties.shortcutKeySequence.isEmpty()) {
+            shortcut = new QShortcut(properties.shortcutKeySequence, this);
+        }
+        
+        // check for positioning requests
+        int requestedPosition = properties.position;
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
+            requestedPosition = findPositionOfMenuItem(menuObj, properties.beforeItem);
+        }
+        if (requestedPosition == UNSPECIFIED_POSITION && !properties.afterItem.isEmpty()) {
+            int afterPosition = findPositionOfMenuItem(menuObj, properties.afterItem);
+            if (afterPosition != UNSPECIFIED_POSITION) {
+                requestedPosition = afterPosition + 1;
+            }
+        }
+        
+        QAction* menuItemAction;
+        if (properties.isCheckable) {
+            menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName, 
+                                    properties.shortcutKeySequence, properties.isChecked, 
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
+        } else {
+            menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
+                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
+                                    QAction::NoRole, requestedPosition);
+        }
+        if (shortcut) {
+            connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
+        }
+        QMenuBar::repaint();
+    }
+}
+
+void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
+    QMenu* menuObj = getMenu(menu);
+    if (menuObj) {
+        removeAction(menuObj, menuitem);
+    }
+    QMenuBar::repaint();
+};
+

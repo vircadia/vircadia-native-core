@@ -15,6 +15,9 @@
 #include <QPointer>
 
 #include <AbstractMenuInterface.h>
+#include <EventTypes.h>
+#include <MenuItemProperties.h>
+#include <OctreeConstants.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -52,6 +55,7 @@ class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class VoxelStatsDialog;
+class MenuItemProperties;
 
 class Menu : public QMenuBar, public AbstractMenuInterface {
     Q_OBJECT
@@ -94,7 +98,8 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
     virtual void removeAction(QMenu* menu, const QString& actionName);
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
@@ -113,6 +118,12 @@ public slots:
     void pasteToVoxel();
     
     void toggleLoginMenuItem();
+
+    QMenu* addMenu(const QString& menuName);
+    void removeMenu(const QString& menuName);
+    void addSeparator(const QString& menuName, const QString& separatorName);
+    void addMenuItem(const MenuItemProperties& properties);
+    void removeMenuItem(const QString& menuName, const QString& menuitem);
 
 private slots:
     void aboutApp();
@@ -149,11 +160,21 @@ private:
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
-                                                    const char* member = NULL);
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void updateFrustumRenderModeAction();
 
     void addAvatarCollisionSubMenu(QMenu* overMenu);
+
+    QAction* getActionFromName(const QString& menuName, QMenu* menu);
+    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
+    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+
+    QAction* getMenuAction(const QString& menuName);
+    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
+    QMenu* getMenu(const QString& menuName);
+    
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
