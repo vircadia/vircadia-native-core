@@ -81,19 +81,17 @@ void Agent::readPendingDatagrams() {
                     if (messageLength > statsMessageLength) {
                         mutablePacket = mutablePacket.mid(statsMessageLength);
                         
-                        // TODO: this does not look correct, the goal is to test the packet version for the piggyback, but
+                        // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
                         //       this is testing the version and hash of the original packet
                         //       need to use numBytesArithmeticCodingFromBuffer()...
                         if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
                             return; // bail since piggyback data doesn't match our versioning
                         }
                     } else {
-                        // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
                         return; // bail since no piggyback data
                     }
 
                     datagramPacketType = packetTypeForPacket(mutablePacket);
-
                 } // fall through to piggyback message
 
                 if (datagramPacketType == PacketTypeParticleData || datagramPacketType == PacketTypeParticleErase) {
