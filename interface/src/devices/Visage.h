@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <QMultiHash>
+#include <QPair>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -46,9 +48,7 @@ private:
 #ifdef HAVE_VISAGE
     VisageSDK::VisageTracker2* _tracker;
     VisageSDK::FaceData* _data;
-    int _leftInnerBrowIndex;
-    int _rightInnerBrowIndex;
-    QVector<int> _blendshapeIndices;
+    QMultiHash<int, QPair<int, float> > _actionUnitIndexMap; 
 #endif
     
     bool _active;

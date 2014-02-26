@@ -37,12 +37,11 @@
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
+#include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "PieMenu.h"
 #include "Stars.h"
-#include "Swatch.h"
-#include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
 #include "VoxelEditPacketSender.h"
@@ -169,7 +168,6 @@ public:
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
-    Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
@@ -236,14 +234,6 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
-    
-    void cutVoxels();
-    void copyVoxels();
-    void pasteVoxels();
-    void deleteVoxels();
-    void exportVoxels();
-    void importVoxels();
-    void nudgeVoxels();
 
     void cutVoxels(const VoxelDetail& sourceVoxel);
     void copyVoxels(const VoxelDetail& sourceVoxel);
@@ -254,8 +244,6 @@ public slots:
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
-    void decreaseVoxelSize();
-    void increaseVoxelSize();
     void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
@@ -272,8 +260,6 @@ private slots:
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
     
-    void renderThrustAtVoxel(const glm::vec3& thrust);
-
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
 
@@ -290,6 +276,7 @@ private slots:
     void parseVersionXml();
 
     void removeScriptName(const QString& fileNameString);
+    void cleanupScriptMenuItem(const QString& scriptMenuName);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -310,7 +297,6 @@ private:
     void updateVisage();
     void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
-    void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -345,8 +331,6 @@ private:
 
     void checkBandwidthMeterClick();
 
-    bool maybeEditVoxelUnderCursor();
-    void deleteVoxelUnderCursor();
     void deleteVoxelAt(const VoxelDetail& voxel);
     void eyedropperVoxelUnderCursor();
 
@@ -447,26 +431,13 @@ private:
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
-    VoxelDetail _mouseVoxelDragging;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
     bool _isHoverVoxel;
 
-    VoxelDetail _mouseVoxel;      // details of the voxel to be edited
-    float _mouseVoxelScale;       // the scale for adding/removing voxels
-    bool _mouseVoxelScaleInitialized;
-    glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
-    bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
-
     VoxelDetail _highlightVoxel;
     bool _isHighlightVoxel;
-
-    VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
-    bool _nudgeStarted;
-    bool _lookingAlongX;
-    bool _lookingAwayFromOrigin;
-    glm::vec3 _nudgeGuidePosition;
 
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
@@ -495,11 +466,6 @@ private:
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
-
-    ToolsPalette _palette;
-    Swatch _swatch;
-
-    bool _pasteMode;
 
     PieMenu _pieMenu;
 
