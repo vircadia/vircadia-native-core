@@ -19,6 +19,7 @@ REGISTER_META_OBJECT(DefaultMetavoxelGuide)
 REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
 REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(Spanner)
+REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
 
 MetavoxelData::MetavoxelData() : _size(1.0f) {
@@ -880,6 +881,29 @@ void Transformable::setScale(float scale) {
     if (_scale != scale) {
         emit scaleChanged(_scale = scale);
     }
+}
+
+Sphere::Sphere() :
+    _color(Qt::gray) {
+    
+    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
+    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
+    updateBounds();
+}
+
+void Sphere::setColor(const QColor& color) {
+    if (_color != color) {
+        emit colorChanged(_color = color);
+    }
+}
+
+QByteArray Sphere::getRendererClassName() const {
+    return "SphereRenderer";
+}
+
+void Sphere::updateBounds() {
+    glm::vec3 extent(getScale(), getScale(), getScale());
+    setBounds(Box(getTranslation() - extent, getTranslation() + extent));
 }
 
 StaticModel::StaticModel() {

@@ -367,6 +367,35 @@ private:
     float _scale;
 };
 
+/// A sphere.
+class Sphere : public Transformable {
+    Q_OBJECT
+    Q_PROPERTY(QColor color MEMBER _color WRITE setColor NOTIFY colorChanged)
+
+public:
+    
+    Q_INVOKABLE Sphere();
+
+    void setColor(const QColor& color);
+    const QColor& getColor() const { return _color; }
+
+signals:
+
+    void colorChanged(const QColor& color);
+
+protected:
+    
+    virtual QByteArray getRendererClassName() const;
+
+private slots:
+    
+    void updateBounds();
+    
+private:
+    
+    QColor _color;
+};
+
 /// A static 3D model loaded from the network.
 class StaticModel : public Transformable {
     Q_OBJECT

@@ -124,6 +124,17 @@ private:
     QList<ReceiveRecord> _receiveRecords;
 };
 
+/// Renders spheres.
+class SphereRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE SphereRenderer();
+    
+    virtual void render(float alpha);
+};
+
 /// Renders static models.
 class StaticModelRenderer : public SpannerRenderer {
     Q_OBJECT

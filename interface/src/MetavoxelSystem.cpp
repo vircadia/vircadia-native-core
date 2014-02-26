@@ -20,6 +20,7 @@
 #include "MetavoxelSystem.h"
 #include "renderer/Model.h"
 
+REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
 ProgramObject MetavoxelSystem::_program;
@@ -254,6 +255,26 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             handleMessage(element, in);
         }
     }
+}
+
+SphereRenderer::SphereRenderer() {
+}
+
+void SphereRenderer::render(float alpha) {
+    Sphere* sphere = static_cast<Sphere*>(parent());
+    const QColor& color = sphere->getColor();
+    glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
+    
+    glPushMatrix();
+    const glm::vec3& translation = sphere->getTranslation();
+    glTranslatef(translation.x, translation.y, translation.z);
+    glm::quat rotation = glm::quat(glm::radians(sphere->getRotation()));
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
+    glutSolidSphere(sphere->getScale(), 10, 10);
+    
+    glPopMatrix();
 }
 
 StaticModelRenderer::StaticModelRenderer() :
