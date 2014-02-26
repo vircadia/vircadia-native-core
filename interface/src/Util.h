@@ -45,8 +45,6 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2);
 
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
 
-glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
-
 glm::vec3 extractTranslation(const glm::mat4& matrix);
 
 void setTranslation(glm::mat4& matrix, const glm::vec3& translation);

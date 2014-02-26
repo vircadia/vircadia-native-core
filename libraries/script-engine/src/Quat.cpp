@@ -13,7 +13,9 @@
 
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
+#include <Util.h>
 #include "Quat.h"
+
 
 glm::quat Quat::multiply(const glm::quat& q1, const glm::quat& q2) { 
     return q1 * q2; 
@@ -30,7 +32,6 @@ glm::quat Quat::fromPitchYawRoll(float pitch, float yaw, float roll) {
 glm::quat Quat::inverse(const glm::quat& q) {
     return glm::inverse(q);
 }
-
 
 glm::vec3 Quat::getFront(const glm::quat& orientation) {
     return orientation * IDENTITY_FRONT;
@@ -50,5 +51,9 @@ glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {
 
 glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
     return glm::angleAxis(angle, v);
+}
+
+glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {
+    return safeMix(q1, q2, alpha);
 }
 
