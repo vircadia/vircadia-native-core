@@ -26,10 +26,40 @@ QLabel p {
 QPushButton {
     border-width: 0;
     border-radius: 9px;
-    border-radius: 9px;
     font-family: Arial;
     font-size: 18px;
     font-weight: 100;
     color: #ffffff;
     padding: 10px 15px;
+}
+
+
+QSpinBox {
+    padding: 5px;
+    border-width: 1;
+    
+}
+
+QSpinBox::up-button {
+    
+    width: 25px;
+    height: 18px;
+    background-image: url(resources/styles/up.svg);
+    background-repeat: no-repeat;
+    border: 1px #ccc solid;
+    
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+QSpinBox::down-button {
+    
+    width: 25px;
+    height: 18px;
+    background-image: url(resources/styles/down.svg);
+    background-repeat: no-repeat;
+    border: 1px #ccc solid;
+    
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
 }

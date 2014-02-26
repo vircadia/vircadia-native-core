@@ -12,7 +12,6 @@
 
 PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags) : FramelessDialog(parent, flags) {
     ui.setupUi(this);
-    setAttribute(Qt::WA_DeleteOnClose);
     loadPreferences();
 }
 

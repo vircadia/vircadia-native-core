@@ -16,6 +16,7 @@ FramelessDialog::FramelessDialog(QWidget *parent, Qt::WindowFlags flags) : QDial
         setStyleSheet(styleSheet.readAll());
     }
     setWindowOpacity(0.95);
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 FramelessDialog::~FramelessDialog() {
