@@ -679,7 +679,7 @@ void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& 
 }
 
 QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                             const QString actionName,
+                                             const QString& actionName,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
                                              const char* member,
@@ -716,7 +716,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
 }
 
 QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                                      const QString actionName,
+                                                      const QString& actionName,
                                                       const QKeySequence& shortcut,
                                                       const bool checked,
                                                       const QObject* receiver,

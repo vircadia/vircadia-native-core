@@ -4240,6 +4240,10 @@ void Application::removeScriptName(const QString& fileNameString) {
     _activeScripts.removeOne(fileNameString);
 }
 
+void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
+    Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
+}
+
 void Application::loadScript(const QString& fileNameString) {
     _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
@@ -4268,9 +4272,11 @@ void Application::loadScript(const QString& fileNameString) {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
-                                                  &_controllerScriptingInterface);
-    scriptEngine->setupMenuItems();
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, &_controllerScriptingInterface);
+    
+    // add a stop menu item
+    Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
+                            scriptEngine->getScriptMenuName(), 0, scriptEngine, SLOT(stop()));
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -4302,6 +4308,7 @@ void Application::loadScript(const QString& fileNameString) {
     connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(removeScriptName(const QString&)));
+    connect(scriptEngine, SIGNAL(cleanupMenuItem(const QString&)), this, SLOT(cleanupScriptMenuItem(const QString&)));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));

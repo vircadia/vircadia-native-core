@@ -291,6 +291,7 @@ private slots:
     void parseVersionXml();
 
     void removeScriptName(const QString& fileNameString);
+    void cleanupScriptMenuItem(const QString& scriptMenuName);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);

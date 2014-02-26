@@ -14,7 +14,6 @@
 #include <QKeySequence>
 #include <QPointer>
 
-#include <AbstractMenuInterface.h>
 #include <EventTypes.h>
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
@@ -57,7 +56,7 @@ class MetavoxelEditor;
 class VoxelStatsDialog;
 class MenuItemProperties;
 
-class Menu : public QMenuBar, public AbstractMenuInterface {
+class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
@@ -92,20 +91,24 @@ public:
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
 
-    virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
-    virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString actionName,
+    QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
+
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           const QString& actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    virtual void removeAction(QMenu* menu, const QString& actionName);
+
+    void removeAction(QMenu* menu, const QString& actionName);
+
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
     void goToDomain(const QString newDomain);
 
 public slots:
+
     void loginForCurrentDomain();
     void bandwidthDetails();
     void voxelStatsDetails();
@@ -156,7 +159,7 @@ private:
     void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                                    const QString actionName,
+                                                    const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
