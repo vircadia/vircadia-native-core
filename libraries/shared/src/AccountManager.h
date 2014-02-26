@@ -51,7 +51,7 @@ public:
     
     void requestAccessToken(const QString& login, const QString& password);
     
-    QString getUsername() const { return _accounts[_authURL].getUsername(); }
+    QString getUsername() const { return _accountInfo.getUsername(); }
     
 public slots:
     void requestFinished();
@@ -61,6 +61,7 @@ signals:
     void authRequired();
     void authEndpointChanged();
     void usernameChanged(const QString& username);
+    void accessTokenChanged();
     void loginComplete(const QUrl& authURL);
     void logoutComplete();
 private slots:
@@ -78,7 +79,7 @@ private:
     QNetworkAccessManager _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
-    QMap<QUrl, DataServerAccountInfo> _accounts;
+    DataServerAccountInfo _accountInfo;
 };
 
 #endif /* defined(__hifi__AccountManager__) */
