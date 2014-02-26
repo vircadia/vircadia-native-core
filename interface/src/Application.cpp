@@ -3367,9 +3367,9 @@ void Application::connectedToDomain(const QString& hostname) {
     if (accountManager.isLoggedIn()) {
         // update our domain-server with the data-server we're logged in with
         
-        QString domainPutJsonString = "{\"location\":{\"domain\":\"" + hostname + "\"}}";
+        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
         
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
 }

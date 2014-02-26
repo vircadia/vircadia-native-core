@@ -1139,10 +1139,10 @@ void MyAvatar::updateLocationInDataServer() {
         QString orientationString(createByteArray(safeEulerAngles(getOrientation())));
         
         // construct the json to put the user's location
-        QString locationPutJson = QString() + "{\"location\":{\"position\":\""
+        QString locationPutJson = QString() + "{\"address\":{\"position\":\""
             + positionString + "\", \"orientation\":\"" + orientationString + "\"}}";
         
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), locationPutJson.toUtf8());
     }
 }
@@ -1154,7 +1154,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         // send a node kill request, indicating to other clients that they should play the "disappeared" effect
         sendKillAvatar();
         
-        QJsonObject locationObject = jsonObject["data"].toObject()["location"].toObject();
+        QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
         QString positionString = locationObject["position"].toString();
         QString orientationString = locationObject["orientation"].toString();
         QString domainHostnameString = locationObject["domain"].toString();
