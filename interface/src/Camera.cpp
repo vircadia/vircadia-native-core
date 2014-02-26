@@ -126,7 +126,7 @@ void Camera::setModeShiftPeriod (float period) {
     
     // if a zero period was requested, we clearly want to snap immediately to the target
     if (period == 0.0f) {
-        update(MIN_PERIOD);
+        update(MAX_PERIOD);
     }
 }
 
