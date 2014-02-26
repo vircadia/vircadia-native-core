@@ -33,7 +33,7 @@ class ScriptEngine : public QObject {
     Q_OBJECT
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, bool wantMenuItems = false,
-                 const QString& scriptMenuName = QString(""), AbstractMenuInterface* menu = NULL,
+                 const QString& scriptMenuName = QString(""), 
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
 
     ~ScriptEngine();
@@ -47,8 +47,8 @@ public:
     /// sets the script contents, will return false if failed, will fail if script is already running
     bool setScriptContents(const QString& scriptContents);
 
-    void setupMenuItems();
-    void cleanMenuItems();
+    const QString& getScriptMenuName() const { return _scriptMenuName; }
+    void cleanupMenuItems();
 
     void registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     
@@ -76,6 +76,7 @@ signals:
     void willSendVisualDataCallback();
     void scriptEnding();
     void finished(const QString& fileNameString);
+    void cleanupMenuItem(const QString& menuItemString);
 
 protected:
     QString _scriptContents;
@@ -103,7 +104,6 @@ private:
     bool _wantMenuItems;
     QString _scriptMenuName;
     QString _fileNameString;
-    AbstractMenuInterface* _menu;
     static int _scriptNumber;
     Quat _quatLibrary;
     Vec3 _vec3Library;
