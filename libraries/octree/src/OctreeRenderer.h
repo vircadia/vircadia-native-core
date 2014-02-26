@@ -13,6 +13,8 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 
+#include <QObject>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -31,7 +33,8 @@ public:
 
 
 // Generic client side Octree renderer class.
-class OctreeRenderer  {
+class OctreeRenderer : public QObject {
+    Q_OBJECT
 public:
     OctreeRenderer();
     virtual ~OctreeRenderer();
