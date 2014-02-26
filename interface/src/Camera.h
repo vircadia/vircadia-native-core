@@ -14,8 +14,6 @@
 #include <RegisteredMetaTypes.h>
 #include <ViewFrustum.h>
 
-const float DEFAULT_FIELD_OF_VIEW_DEGREES = 90.0f;
-
 enum CameraMode
 {
     CAMERA_MODE_NULL = -1,

@@ -3404,7 +3404,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _voxelServerJurisdictions.erase(nodeUUID);
+            _voxelServerJurisdictions.erase(_voxelServerJurisdictions.find(nodeUUID));
         }
 
         // also clean up scene stats for that server
@@ -3435,7 +3435,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _particleServerJurisdictions.erase(nodeUUID);
+            _particleServerJurisdictions.erase(_particleServerJurisdictions.find(nodeUUID));
         }
 
         // also clean up scene stats for that server
