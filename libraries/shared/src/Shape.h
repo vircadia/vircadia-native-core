@@ -29,8 +29,8 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getRotation() const { return _rotation; }
 
-    void setPosition(const glm::vec3& position) { _position = position; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+    virtual void setPosition(const glm::vec3& position) { _position = position; }
+    virtual void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
 protected:
     // these ctors are protected (used by derived classes only)

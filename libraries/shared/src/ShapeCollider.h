@@ -20,31 +20,31 @@ namespace ShapeCollider {
     /// \param shapeB pointer to second shape
     /// \param[out] collision where to store collision details
     /// \return true of shapes collide
-    bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionInfo& collision);
+    bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape (sphere)
     /// \param sphereB pointer to second shape (sphere)
     /// \param[out] collision where to store collision details
     /// \return true of shapes collide
-    bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, CollisionInfo& collision);
+    bool sphereSphere(const SphereShape* sphereA, const SphereShape* sphereB, CollisionList& collisions);
 
     /// \param sphereA pointer to first shape (sphere)
     /// \param capsuleB pointer to second shape (capsule)
     /// \param[out] collision where to store collision details
     /// \return true of shapes collide
-    bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, CollisionInfo& collision);
+    bool sphereCapsule(const SphereShape* sphereA, const CapsuleShape* capsuleB, CollisionList& collisions);
 
     /// \param capsuleA pointer to first shape (capsule)
     /// \param sphereB pointer to second shape (sphere)
     /// \param[out] collision where to store collision details
     /// \return true of shapes collide
-    bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, CollisionInfo& collision);
+    bool capsuleSphere(const CapsuleShape* capsuleA, const SphereShape* sphereB, CollisionList& collisions);
 
     /// \param capsuleA pointer to first shape (capsule)
     /// \param capsuleB pointer to second shape (capsule)
     /// \param[out] collision where to store collision details
     /// \return true of shapes collide
-    bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, CollisionInfo& collision);
+    bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, CollisionList& collisions);
 
 }   // namespace ShapeCollider
 

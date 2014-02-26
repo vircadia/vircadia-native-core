@@ -87,8 +87,8 @@ public:
     void clear();
 
 private:
-    int _maxSize;
-    int _size;
+    int _maxSize;   // the container cannot get larger than this
+    int _size;      // the current number of valid collisions in the list
     QVector<CollisionInfo> _collisions;
 };
 
