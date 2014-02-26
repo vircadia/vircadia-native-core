@@ -17,19 +17,28 @@ namespace ShapeCollider {
 bool shapeShape(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
     // ATM we only have two shape types so we just check every case.
     // TODO: make a fast lookup for correct method
-    if (shapeA->getType() == Shape::SPHERE_SHAPE) {
+    int typeA = shapeA->getType();
+    int typeB = shapeB->getType();
+    if (typeA == Shape::SPHERE_SHAPE) {
         const SphereShape* sphereA = static_cast<const SphereShape*>(shapeA);
-        if (shapeB->getType() == Shape::SPHERE_SHAPE) {
+        if (typeB == Shape::SPHERE_SHAPE) {
             return sphereSphere(sphereA, static_cast<const SphereShape*>(shapeB), collisions);
-        } else if (shapeB->getType() == Shape::CAPSULE_SHAPE) {
+        } else if (typeB == Shape::CAPSULE_SHAPE) {
             return sphereCapsule(sphereA, static_cast<const CapsuleShape*>(shapeB), collisions);
         }
-    } else if (shapeA->getType() == Shape::CAPSULE_SHAPE) {
+    } else if (typeA == Shape::CAPSULE_SHAPE) {
         const CapsuleShape* capsuleA = static_cast<const CapsuleShape*>(shapeA);
-        if (shapeB->getType() == Shape::SPHERE_SHAPE) {
+        if (typeB == Shape::SPHERE_SHAPE) {
             return capsuleSphere(capsuleA, static_cast<const SphereShape*>(shapeB), collisions);
-        } else if (shapeB->getType() == Shape::CAPSULE_SHAPE) {
+        } else if (typeB == Shape::CAPSULE_SHAPE) {
             return capsuleCapsule(capsuleA, static_cast<const CapsuleShape*>(shapeB), collisions);
+        }
+    } else if (typeA == Shape::LIST_SHAPE) {
+        const ListShape* listA = static_cast<const ListShape*>(shapeA);
+        if (typeB == Shape::SPHERE_SHAPE) {
+            return listSphere(listA, static_cast<const SphereShape*>(shapeB), collisions);
+        } else if (typeB == Shape::CAPSULE_SHAPE) {
+            return listCapsule(listA, static_cast<const CapsuleShape*>(shapeB), collisions);
         }
     }
     return false;
@@ -322,6 +331,18 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             return true;
         }
     }
+    return false;
+}
+
+bool listSphere(const ListShape* listA, const SphereShape* sphereB, CollisionList& collisions) {
+    return false;
+}
+
+bool listCapsule(const ListShape* listA, const CapsuleShape* capsuleB, CollisionList& collisions) {
+    return false;
+}
+
+bool listList(const ListShape* listA, const ListShape* listB, CollisionList& collisions) {
     return false;
 }
 
