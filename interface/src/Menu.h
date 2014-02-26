@@ -66,7 +66,6 @@ public:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-    bool isVoxelModeActionChecked();
 
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -137,10 +136,7 @@ private slots:
     void voxelStatsDetailsClosed();
     void lodToolsClosed();
     void cycleFrustumRenderMode();
-    void updateVoxelModeActions();
-    void chooseVoxelPaintColor();
     void runTests();
-    void resetSwatchColors();
     void showMetavoxelEditor();
     void audioMuteToggled();
 
@@ -186,7 +182,6 @@ private:
     float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
-    QActionGroup* _voxelModeActionsGroup;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     VoxelStatsDialog* _voxelStatsDialog;
     LodToolsDialog* _lodToolsDialog;
@@ -217,14 +212,11 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
     const QString CullSharedFaces = "Cull Shared Voxel Faces";
-    const QString CutVoxels = "Cut";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
-    const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DisableColorVoxels = "Disable Colored Voxels";
     const QString DisableDeltaSending = "Disable Delta Sending";
@@ -242,7 +234,6 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";
-    const QString ExportVoxels = "Export Voxels";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString HandsCollideWithSelf = "Collide With Self";
@@ -263,8 +254,6 @@ namespace MenuOption {
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
     const QString GoTo = "Go To...";
-    const QString ImportVoxels = "Import Voxels";
-    const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KillLocalVoxels = "Kill Local Voxels";
@@ -280,7 +269,6 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
-    const QString NudgeVoxels = "Nudge";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
@@ -289,7 +277,6 @@ namespace MenuOption {
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString Particles = "Particles";
-    const QString PasteVoxels = "Paste";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString PlaySlaps = "Play Slaps";
@@ -299,7 +286,6 @@ namespace MenuOption {
     const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
     const QString RenderHeadCollisionProxies = "Head Collision Proxies";
     const QString ResetAvatarSize = "Reset Avatar Size";
-    const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
@@ -318,14 +304,8 @@ namespace MenuOption {
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";
-    const QString VoxelAddMode = "Add Voxel Mode";
-    const QString VoxelColorMode = "Color Voxel Mode";
-    const QString VoxelDeleteMode = "Delete Voxel Mode";
     const QString VoxelDrumming = "Voxel Drumming";
-    const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
-    const QString VoxelPaintColor = "Voxel Paint Color";
-    const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
 }

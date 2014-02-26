@@ -61,12 +61,6 @@ float extractUniformScale(const glm::vec3& scale);
 
 double diffclock(timeval *clock1,timeval *clock2);
 
-void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
-
-void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision);
-
-void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS);
-
 void renderCollisionOverlay(int width, int height, float magnitude);
 
 void renderOrientationDirections( glm::vec3 position, const glm::quat& orientation, float size );

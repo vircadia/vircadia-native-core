@@ -1028,20 +1028,14 @@ function setupMenus() {
     Menu.menuItemEvent.connect(menuItemEvent);
 
     // delete the standard application menu item
-    Menu.removeMenuItem("Edit", "Cut");
-    Menu.removeMenuItem("Edit", "Copy");
-    Menu.removeMenuItem("Edit", "Paste");
-    Menu.removeMenuItem("Edit", "Delete");
-    Menu.removeMenuItem("Edit", "Nudge");
-    Menu.removeMenuItem("File", "Export Voxels");
-    Menu.removeMenuItem("File", "Import Voxels");
-
-    // delete the standard application menu item
+    Menu.addSeparator("Edit", "Voxels");
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Cut", shortcutKey: "CTRL+X", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
+
+    Menu.addSeparator("File", "Voxels");
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
 }
