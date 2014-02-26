@@ -35,7 +35,7 @@ public:
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
 
-    void render(bool forceRenderHead);
+    void render(bool forceRenderHead, bool avatarOnly = false);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
 

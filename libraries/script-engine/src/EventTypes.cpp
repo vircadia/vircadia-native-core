@@ -126,6 +126,30 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
         && other.isKeypad == isKeypad; 
 }
 
+
+KeyEvent::operator QKeySequence() const { 
+    int resultCode = 0;
+    if (text.size() == 1 && text >= "a" && text <= "z") {
+        resultCode = text.toUpper().at(0).unicode();
+    } else {
+        resultCode = key;
+    }
+
+    if (isMeta) {
+        resultCode |= Qt::META;
+    }
+    if (isAlt) {
+        resultCode |= Qt::ALT;
+    }
+    if (isControl) {
+        resultCode |= Qt::CTRL;
+    }
+    if (isShifted) {
+        resultCode |= Qt::SHIFT;
+    }
+    return QKeySequence(resultCode);
+}
+
 QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("key", event.key);

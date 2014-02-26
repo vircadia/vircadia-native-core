@@ -452,7 +452,7 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forceRenderHead) {
+void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
@@ -468,7 +468,10 @@ void MyAvatar::render(bool forceRenderHead) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
         renderBody(forceRenderHead);
     }
-    setShowDisplayName(true);
+    setShowDisplayName(!avatarOnly);
+    if (avatarOnly) {
+        return;
+    }
     renderDisplayName();
 
     if (!_chatMessage.empty()) {
