@@ -51,8 +51,6 @@ public:
     /// render the content of the octree
     virtual void render();
 
-    void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
-    const QUuid&  getDataSourceUUID() const { return _dataSourceUUID; }
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
 
@@ -62,7 +60,6 @@ public:
     void clear();
 protected:
     Octree* _tree;
-    QUuid _dataSourceUUID;
     ViewFrustum* _viewFrustum;
 };
 

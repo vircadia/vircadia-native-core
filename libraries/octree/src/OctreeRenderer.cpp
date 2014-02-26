@@ -37,6 +37,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     unsigned char command = *packetData;
     
     int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
+    QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
+
     
     PacketType expectedType = getExpectedPacketType();
     
@@ -91,7 +93,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                getDataSourceUUID(), sourceNode);
+                                                sourceUUID, sourceNode);
                 _tree->lockForWrite();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);
