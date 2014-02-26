@@ -149,7 +149,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
-        _pasteMode(false),
         _logger(new FileLogger(this))
 {
     switchToResourcesParentIfRequired();
@@ -926,9 +925,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         }
 
         switch (event->key()) {
-            case Qt::Key_Shift:
-                _pasteMode = false;
-                break;
             case Qt::Key_E:
                 _myAvatar->setDriveKeys(UP, 0);
                 break;
@@ -1437,7 +1433,6 @@ void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
     }
-    _pasteMode = false;
 }
 
 void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {

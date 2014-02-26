@@ -466,8 +466,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    bool _pasteMode;
-
     PieMenu _pieMenu;
 
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
