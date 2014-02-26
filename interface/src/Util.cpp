@@ -104,36 +104,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
-//  Safe version of glm::mix; based on the code in Nick Bobick's article,
-//  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
-//  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
-glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
-    float cosa = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
-    float ox = q2.x, oy = q2.y, oz = q2.z, ow = q2.w, s0, s1;
 
-    // adjust signs if necessary
-    if (cosa < 0.0f) {
-        cosa = -cosa;
-        ox = -ox;
-        oy = -oy;
-        oz = -oz;
-        ow = -ow;
-    }
-
-    // calculate coefficients; if the angle is too close to zero, we must fall back
-    // to linear interpolation
-    if ((1.0f - cosa) > EPSILON) {
-        float angle = acosf(cosa), sina = sinf(angle);
-        s0 = sinf((1.0f - proportion) * angle) / sina;
-        s1 = sinf(proportion * angle) / sina;
-
-    } else {
-        s0 = 1.0f - proportion;
-        s1 = proportion;
-    }
-
-    return glm::normalize(glm::quat(s0 * q1.w + s1 * ow, s0 * q1.x + s1 * ox, s0 * q1.y + s1 * oy, s0 * q1.z + s1 * oz));
-}
 
 glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);

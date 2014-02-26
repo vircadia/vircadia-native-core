@@ -79,7 +79,8 @@ var addSound3 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-publi
 var deleteSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+delete+2.raw");
 var changeColorSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel+edit+2.raw");
 var clickSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Switches+and+sliders/toggle+switch+-+medium.raw");
-var audioOptions = new AudioInjectionOptions(); 
+var audioOptions = new AudioInjectionOptions();
+
 audioOptions.volume = 0.5;
 audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
 
