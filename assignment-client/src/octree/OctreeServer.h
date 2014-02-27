@@ -24,6 +24,8 @@
 #include "OctreeServerConsts.h"
 #include "OctreeInboundPacketProcessor.h"
 
+const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per second total
+
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
@@ -42,6 +44,9 @@ public:
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
+    int getCurrentClientCount() const { return _clientCount; }
+    void clientConnected() { _clientCount++; }
+    void clientDisconnected() { _clientCount--; }
 
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
@@ -81,6 +86,7 @@ protected:
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
+    int _packetsTotalPerInterval;
     Octree* _tree; // this IS a reaveraging tree
     bool _wantPersist;
     bool _debugSending;
@@ -95,6 +101,8 @@ protected:
 
     time_t _started;
     quint64 _startedUSecs;
+    
+    int _clientCount;
 };
 
 #endif // __octree_server__OctreeServer__

@@ -41,6 +41,7 @@ void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, con
     // Create octree sending thread...
     _octreeSendThread = new OctreeSendThread(nodeUUID, octreeServer);
     _octreeSendThread->initialize(true);
+    //connect(_octreeSendThread, SIGNAL(finished()), _octreeSendThread, SLOT(deleteLater()));
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {
@@ -159,8 +160,11 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
 }
 
 OctreeQueryNode::~OctreeQueryNode() {
+    //qDebug() << "OctreeQueryNode::~OctreeQueryNode() this=" << this;
     if (_octreeSendThread) {
+        //qDebug() << "OctreeQueryNode::~OctreeQueryNode() calling _octreeSendThread->terminate() _octreeSendThread=" << _octreeSendThread;
         _octreeSendThread->terminate();
+        //qDebug() << "OctreeQueryNode::~OctreeQueryNode() calling _octreeSendThread->deleteLater() _octreeSendThread=" << _octreeSendThread;
         _octreeSendThread->deleteLater();
     }
 
