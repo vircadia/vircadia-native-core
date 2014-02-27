@@ -281,6 +281,7 @@ void Audio::start() {
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
             _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
+            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
             _outputDevice = _audioOutput->start();
 
             // setup a loopback audio output device
@@ -538,6 +539,8 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.f * SAMPLE_RATE;
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
+            qDebug() << "Jitter measured to be " << _measuredJitter;
+            qDebug() << "JitterBufferSamples " << getJitterBufferSamples() << " Which should be 3X of jitter or " << (_measuredJitter * 3.f)/10.6 * 512;
         }
     }
 
@@ -563,12 +566,14 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
         
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
-                                                         + (_jitterBufferSamples * 2))) {
-            // starved and we don't have enough to start, keep waiting
-            //qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.";
+        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
+        
+        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
+            //  We are still waiting for enough samples to begin playback
+            qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
+            //qDebug() << "pushing " << numNetworkOutputSamples;
             _ringBuffer.setIsStarved(false);
 
             // copy the samples we'll resample from the ring buffer - this also
