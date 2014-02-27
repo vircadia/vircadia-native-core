@@ -280,6 +280,7 @@ void Audio::start() {
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
             _outputDevice = _audioOutput->start();
 
             // setup a loopback audio output device
@@ -555,7 +556,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
-        
         
         int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
