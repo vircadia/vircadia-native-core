@@ -39,6 +39,7 @@ void Agent::readPendingDatagrams() {
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+            
             if (datagramPacketType == PacketTypeJurisdiction) {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);
                 
@@ -48,12 +49,12 @@ void Agent::readPendingDatagrams() {
                     // PacketType_JURISDICTION, first byte is the node type...
                     switch (receivedPacket[headerBytes]) {
                         case NodeType::VoxelServer:
-                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
-                                                                                                                        receivedPacket);
+                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode,receivedPacket);
                             break;
                         case NodeType::ParticleServer:
-                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->queueReceivedPacket(matchedNode,
-                                                                                                                           receivedPacket);
+                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
+                                                                queueReceivedPacket(matchedNode, receivedPacket);
                             break;
                     }
                 }
@@ -63,7 +64,44 @@ void Agent::readPendingDatagrams() {
                 Particle::handleAddParticleResponse(receivedPacket);
                 
                 // also give our local particle tree a chance to remap any internal locally created particles
-                _particleTree.handleAddParticleResponse(receivedPacket);
+                _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
+
+            } else if (datagramPacketType == PacketTypeParticleData
+                        || datagramPacketType == PacketTypeParticleErase
+                        || datagramPacketType == PacketTypeOctreeStats
+                        || datagramPacketType == PacketTypeVoxelData
+            ) {
+                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
+                QByteArray mutablePacket = receivedPacket;
+                ssize_t messageLength = mutablePacket.size();
+
+                if (datagramPacketType == PacketTypeOctreeStats) {
+
+                    int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, sourceNode);
+                    if (messageLength > statsMessageLength) {
+                        mutablePacket = mutablePacket.mid(statsMessageLength);
+                        
+                        // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
+                        //       this is testing the version and hash of the original packet
+                        //       need to use numBytesArithmeticCodingFromBuffer()...
+                        if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
+                            return; // bail since piggyback data doesn't match our versioning
+                        }
+                    } else {
+                        return; // bail since no piggyback data
+                    }
+
+                    datagramPacketType = packetTypeForPacket(mutablePacket);
+                } // fall through to piggyback message
+
+                if (datagramPacketType == PacketTypeParticleData || datagramPacketType == PacketTypeParticleErase) {
+                    _particleViewer.processDatagram(mutablePacket, sourceNode);
+                }
+
+                if (datagramPacketType == PacketTypeVoxelData) {
+                    _voxelViewer.processDatagram(mutablePacket, sourceNode);
+                }
+
             } else {
                 NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
@@ -110,9 +148,6 @@ void Agent::run() {
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
     
-    // tell our script engine about our local particle tree
-    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(&_particleTree);
-    
     // setup an Avatar for the script to use
     AvatarData scriptedAvatar;
     
@@ -126,6 +161,21 @@ void Agent::run() {
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
 
+    _scriptEngine.init(); // must be done before we set up the viewers
+
+    _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
+    // connect the VoxelViewer and the VoxelScriptingInterface to each other
+    JurisdictionListener* voxelJL = _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener();
+    _voxelViewer.setJurisdictionListener(voxelJL);
+    _voxelViewer.init();
+    _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
+    
+    _scriptEngine.registerGlobalObject("ParticleViewer", &_particleViewer);
+    JurisdictionListener* particleJL = _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener();
+    _particleViewer.setJurisdictionListener(particleJL);
+    _particleViewer.init();
+    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
+
     _scriptEngine.setScriptContents(scriptContents);
-    _scriptEngine.run();    
+    _scriptEngine.run();
 }
