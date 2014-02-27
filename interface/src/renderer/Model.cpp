@@ -13,6 +13,9 @@
 #include "Application.h"
 #include "Model.h"
 
+#include <SphereShape.h>
+#include <CapsuleShape.h>
+
 using namespace std;
 
 Model::Model(QObject* parent) :
@@ -89,6 +92,67 @@ void Model::reset() {
     }
 }
 
+void Model::createJointStates() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    foreach (const FBXJoint& joint, geometry.joints) {
+        JointState state;
+        state.translation = joint.translation;
+        state.rotation = joint.rotation;
+        _jointStates.append(state);
+    }
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        MeshState state;
+        state.clusterMatrices.resize(mesh.clusters.size());
+        if (mesh.springiness > 0.0f) {
+            state.worldSpaceVertices.resize(mesh.vertices.size());
+            state.vertexVelocities.resize(mesh.vertices.size());
+            state.worldSpaceNormals.resize(mesh.vertices.size());
+        }
+        _meshStates.append(state);    
+    }
+    foreach (const FBXAttachment& attachment, geometry.attachments) {
+        Model* model = new Model(this);
+        model->init();
+        model->setURL(attachment.url);
+        _attachments.append(model);
+    }
+    _resetStates = true;
+
+    for (int i = 0; i < _jointStates.size(); i++) {
+        updateJointState(i);
+    }
+    createCollisionShapes();
+}
+
+void Model::clearShapes() {
+    for (int i = 0; i < _shapes.size(); ++i) {
+        delete _shapes[i];
+    }
+    _shapes.clear();
+}
+
+void Model::createCollisionShapes() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    float uniformScale = extractUniformScale(_scale);
+    for (int i = 0; i < _jointStates.size(); i++) {
+        glm::vec3 position = extractTranslation(_jointStates[i].transform);
+        const FBXJoint& joint = geometry.joints[i];
+        // for now make everything a sphere at joint end
+        float radius = uniformScale * joint.boneRadius;
+        SphereShape* shape = new SphereShape(radius, position);
+        _shapes.push_back(shape);
+    }
+}
+
+void Model::updateShapePositions() {
+    if (_shapes.size() == _jointStates.size()) {
+        for (int i = 0; i < _jointStates.size(); i++) {
+            _shapes[i]->setPosition(extractTranslation(_jointStates[i].transform));
+            _shapes[i]->setRotation(_jointStates[i].combinedRotation);
+        }
+    }
+}
+
 void Model::simulate(float deltaTime) {
     // update our LOD
     if (_geometry) {
@@ -105,39 +169,17 @@ void Model::simulate(float deltaTime) {
     }
     
     // set up world vertices on first simulate after load
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_jointStates.isEmpty()) {
-        foreach (const FBXJoint& joint, geometry.joints) {
-            JointState state;
-            state.translation = joint.translation;
-            state.rotation = joint.rotation;
-            _jointStates.append(state);
+        createJointStates();
+    } else {
+        // update the world space transforms for all joints
+        for (int i = 0; i < _jointStates.size(); i++) {
+            updateJointState(i);
         }
-        foreach (const FBXMesh& mesh, geometry.meshes) {
-            MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
-            if (mesh.springiness > 0.0f) {
-                state.worldSpaceVertices.resize(mesh.vertices.size());
-                state.vertexVelocities.resize(mesh.vertices.size());
-                state.worldSpaceNormals.resize(mesh.vertices.size());
-            }
-            _meshStates.append(state);    
-        }
-        foreach (const FBXAttachment& attachment, geometry.attachments) {
-            Model* model = new Model(this);
-            model->init();
-            model->setURL(attachment.url);
-            _attachments.append(model);
-        }
-        _resetStates = true;
-    }
-    
-    // update the world space transforms for all joints
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i);
     }
     
     // update the attachment transforms and simulate them
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
         Model* model = _attachments.at(i);
@@ -706,34 +748,26 @@ void Model::applyRotationDelta(int jointIndex, const glm::quat& delta, bool cons
 void Model::renderCollisionProxies(float alpha) {
     glPushMatrix();
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    updateShapePositions();
     float uniformScale = extractUniformScale(_scale);
-    for (int i = 0; i < _jointStates.size(); i++) {
+    for (int i = 0; i < _shapes.size(); i++) {
         glPushMatrix();
+
+        Shape* shape = _shapes[i];
         
-        glm::vec3 position = extractTranslation(_jointStates[i].transform);
+        glm::vec3 position = shape->getPosition();
         glTranslatef(position.x, position.y, position.z);
         
-        glm::quat rotation;
-        getJointRotation(i, rotation);
+        const glm::quat& rotation = shape->getRotation();
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
         
         glColor4f(0.75f, 0.75f, 0.75f, alpha);
-        float scaledRadius = geometry.joints[i].boneRadius * uniformScale;
         const int BALL_SUBDIVISIONS = 10;
-        glutSolidSphere(scaledRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
         
         glPopMatrix();
-        
-        int parentIndex = geometry.joints[i].parentIndex;
-        if (parentIndex != -1) {
-            Avatar::renderJointConnectingCone(extractTranslation(_jointStates[parentIndex].transform), position,
-                geometry.joints[parentIndex].boneRadius * uniformScale, scaledRadius);
-        }
     }
-    
     glPopMatrix();
 }
 
@@ -796,6 +830,7 @@ void Model::deleteGeometry() {
     _blendedVertexBufferIDs.clear();
     _jointStates.clear();
     _meshStates.clear();
+    clearShapes();
 }
 
 void Model::renderMeshes(float alpha, bool translucent) {

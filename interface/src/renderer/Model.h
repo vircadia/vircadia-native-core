@@ -17,6 +17,8 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
+class Shape;
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -48,6 +50,10 @@ public:
     
     void init();
     void reset();
+    void createJointStates();
+    void clearShapes();
+    void createCollisionShapes();
+    void updateShapePositions();
     void simulate(float deltaTime);
     bool render(float alpha);
     
@@ -183,6 +189,7 @@ protected:
     };
     
     QVector<JointState> _jointStates;
+    QVector<Shape*> _shapes;
     
     class MeshState {
     public:
