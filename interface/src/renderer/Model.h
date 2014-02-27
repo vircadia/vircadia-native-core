@@ -50,11 +50,14 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool delayLoad = false);
     bool render(float alpha);
     
-    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
+    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
     const QUrl& getURL() const { return _url; }
+    
+    /// Makes sure our configured model is loading.
+    void ensureLoading();
     
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
