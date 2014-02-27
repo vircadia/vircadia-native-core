@@ -51,11 +51,11 @@
 #include <QMimeData> 
 #include <QMessageBox>
 
+#include <AccountManager.h>
 #include <AudioInjector.h>
 #include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
-#include <PairingHandler.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <UUID.h>
@@ -63,10 +63,9 @@
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
-#include "DataServerClient.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
-#include "Swatch.h"
+#include "MenuScriptingInterface.h"
 #include "Util.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
@@ -129,7 +128,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _myAvatar(),
-        _profile(QString()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _mouseX(0),
         _mouseY(0),
@@ -141,13 +139,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _mousePressed(false),
         _isHoverVoxel(false),
-        _mouseVoxelScale(1.0f / 1024.0f),
-        _mouseVoxelScaleInitialized(false),
-        _justEditedVoxel(false),
         _isHighlightVoxel(false),
-        _nudgeStarted(false),
-        _lookingAlongX(false),
-        _lookingAwayFromOrigin(true),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
@@ -157,15 +149,29 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _recentMaxPackets(0),
         _resetRecentMaxPacketsSoon(true),
-        _swatch(NULL),
-        _pasteMode(false),
         _logger(new FileLogger(this))
 {
+    switchToResourcesParentIfRequired();
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+   
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(BUILD_VERSION);
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    
     _myAvatar = _avatarManager.getMyAvatar();
 
     _applicationStartupTime = startup_time;
-
-    switchToResourcesParentIfRequired();
+    
     QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
@@ -203,27 +209,28 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     connect(audioThread, SIGNAL(started()), &_audio, SLOT(start()));
 
     audioThread->start();
-    
-    connect(nodeList, SIGNAL(domainChanged(const QString&)), SLOT(domainChanged(const QString&)));
+
+    connect(&nodeList->getDomainInfo(), SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&nodeList->getDomainInfo(), SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+
     connect(nodeList, &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList, &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), &_voxels, SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), &_voxels, SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList, &NodeList::uuidChanged, this, &Application::updateWindowTitle);
+    connect(nodeList, &NodeList::limitOfSilentDomainCheckInsReached, nodeList, &NodeList::reset);
+   
+    // connect to appropriate slots on AccountManager
+    AccountManager& accountManager = AccountManager::getInstance();
+    connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
+    connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
     
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
-
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(BUILD_VERSION);
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
     
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    // once the event loop has started, check and signal for an access token
+    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
 
     _settings = new QSettings(this);
 
@@ -302,7 +309,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     checkVersion();
     
     _overlays.init(_glWidget); // do this before scripts load
-
 
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
@@ -601,13 +607,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     glMatrixMode(GL_MODELVIEW);
 }
 
-void Application::resetProfile(const QString& username) {
-    // call the destructor on the old profile and construct a new one
-    (&_profile)->~Profile();
-    new (&_profile) Profile(username);
-    updateWindowTitle();
-}
-
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
         // Intercept data to voxel server when voxels are disabled
@@ -696,11 +695,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
                 break;
-            case Qt::Key_Shift:
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-                    _pasteMode = true;
-                }
-                break;
             case Qt::Key_BracketLeft:
             case Qt::Key_BracketRight:
             case Qt::Key_BraceLeft:
@@ -725,14 +719,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_E:
-                if (_nudgeStarted) {
-                    _nudgeGuidePosition.y += _mouseVoxel.s;
-                } else {
-                   if (!_myAvatar->getDriveKeys(UP)) {
-                        _myAvatar->jump();
-                    }
-                    _myAvatar->setDriveKeys(UP, 1);
+               if (!_myAvatar->getDriveKeys(UP)) {
+                    _myAvatar->jump();
                 }
+                _myAvatar->setDriveKeys(UP, 1);
                 break;
 
             case Qt::Key_Asterisk:
@@ -740,31 +730,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_C:
-                if (_nudgeStarted) {
-                    _nudgeGuidePosition.y -= _mouseVoxel.s;
-                } else {
-                    _myAvatar->setDriveKeys(DOWN, 1);
-                }
+                _myAvatar->setDriveKeys(DOWN, 1);
                 break;
 
             case Qt::Key_W:
-                if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        }
-                    }
-                } else {
-                    _myAvatar->setDriveKeys(FWD, 1);
-                }
+                _myAvatar->setDriveKeys(FWD, 1);
                 break;
 
             case Qt::Key_S:
@@ -774,20 +744,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (!isShifted && isMeta)  {
                     takeSnapshot();
-                } else if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        }
-                    }
                 } else {
                     _myAvatar->setDriveKeys(BACK, 1);
                 }
@@ -800,147 +756,43 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_G:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Gravity);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::VoxelGetColorMode);
                 }
                 break;
 
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                } else if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        }
-                    }
                 } else {
                     _myAvatar->setDriveKeys(ROT_LEFT, 1);
                 }
                 break;
 
             case Qt::Key_D:
-                if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        }
-                    }
-                } else {
-                    _myAvatar->setDriveKeys(ROT_RIGHT, 1);
-                }
+                _myAvatar->setDriveKeys(ROT_RIGHT, 1);
                 break;
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                if (_nudgeStarted) {
-                    nudgeVoxels();
-                } else {
-                    _chatEntryOn = true;
-                    _myAvatar->setKeyState(NO_KEY_DOWN);
-                    _myAvatar->setChatMessage(string());
-                    setMenuShortcutsEnabled(false);
-                }
+                _chatEntryOn = true;
+                _myAvatar->setKeyState(NO_KEY_DOWN);
+                _myAvatar->setChatMessage(string());
+                setMenuShortcutsEnabled(false);
                 break;
 
             case Qt::Key_Up:
-                if (_nudgeStarted && !isShifted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        }
-                    }
-                } else if (_nudgeStarted && isShifted) {
-                    _nudgeGuidePosition.y += _mouseVoxel.s;
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1);
-                }
+                _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1);
                 break;
 
             case Qt::Key_Down:
-                if (_nudgeStarted && !isShifted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        }
-                    }
-                } else if (_nudgeStarted && isShifted) {
-                    _nudgeGuidePosition.y -= _mouseVoxel.s;
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1);
-                }
+                _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1);
                 break;
 
             case Qt::Key_Left:
-                if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        }
-                    }
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
-                }
+                _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
                 break;
 
             case Qt::Key_Right:
-                if (_nudgeStarted) {
-                    if (_lookingAlongX) {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.z += _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.z -= _mouseVoxel.s;
-                        }
-                    } else {
-                        if (_lookingAwayFromOrigin) {
-                            _nudgeGuidePosition.x -= _mouseVoxel.s;
-                        } else {
-                            _nudgeGuidePosition.x += _mouseVoxel.s;
-                        }
-                    }
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
-                }
+                _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
                 break;
 
             case Qt::Key_I:
@@ -1022,9 +874,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_V:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Voxels);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::VoxelAddMode);
-                    _nudgeStarted = false;
                 }
                 break;
             case Qt::Key_P:
@@ -1033,28 +882,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_R:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::VoxelDeleteMode);
-                    _nudgeStarted = false;
                 }
                 break;
-            case Qt::Key_B:
-                Menu::getInstance()->triggerOption(MenuOption::VoxelColorMode);
-                _nudgeStarted = false;
-                break;
-            case Qt::Key_O:
-                Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
-                _nudgeStarted = false;
                 break;
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
-                break;
-            case Qt::Key_Backspace:
-            case Qt::Key_Delete:
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
-                    Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-                    deleteVoxelUnderCursor();
-                }
                 break;
             case Qt::Key_Plus:
                 _myAvatar->increaseSize();
@@ -1066,16 +898,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _myAvatar->resetSize();
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
-            case Qt::Key_4:
-            case Qt::Key_5:
-            case Qt::Key_6:
-            case Qt::Key_7:
-            case Qt::Key_8:
-                _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
-                break;
             case Qt::Key_At:
                 Menu::getInstance()->goTo();
                 break;
@@ -1103,9 +925,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         }
 
         switch (event->key()) {
-            case Qt::Key_Shift:
-                _pasteMode = false;
-                break;
             case Qt::Key_E:
                 _myAvatar->setDriveKeys(UP, 0);
                 break;
@@ -1173,35 +992,10 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         _seenMouseMove = true;
     }
 
-    int deltaX = event->x() - _mouseX;
-    int deltaY = event->y() - _mouseY;
     _mouseX = event->x();
     _mouseY = event->y();
         
     if (activeWindow() == _window) {
-        // orbit behavior
-        if (_mousePressed && !Menu::getInstance()->isVoxelModeActionChecked()) {
-            if (_myAvatar->getLookAtTargetAvatar()) {
-                _myAvatar->orbit(_myAvatar->getLookAtTargetAvatar()->getPosition(), deltaX, deltaY);
-                return;
-            }
-            if (_isHoverVoxel) {
-                //_myAvatar->orbit(getMouseVoxelWorldCoordinates(_hoverVoxel), deltaX, deltaY);
-                return;
-            }
-        }
-
-        // detect drag
-        glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-        if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
-            if (event->buttons().testFlag(Qt::LeftButton)) {
-                maybeEditVoxelUnderCursor();
-
-            } else if (event->buttons().testFlag(Qt::RightButton) && Menu::getInstance()->isVoxelModeActionChecked()) {
-                deleteVoxelUnderCursor();
-            }
-        }
-
         _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
@@ -1221,10 +1015,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
-            _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
-
-            maybeEditVoxelUnderCursor();
 
             if (_audio.mousePressEvent(_mouseX, _mouseY)) {
                 // stop propagation
@@ -1236,23 +1027,13 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 return;
             }
 
-            if (!_palette.isActive() && (!_isHoverVoxel || _myAvatar->getLookAtTargetAvatar())) {
+            if (!_isHoverVoxel || _myAvatar->getLookAtTargetAvatar()) {
                 // disable for now
                 // _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
-                pasteVoxels();
-            }
-
         } else if (event->button() == Qt::RightButton) {
-            if (Menu::getInstance()->isVoxelModeActionChecked()) {
-                deleteVoxelUnderCursor();
-            }
-            if (_pasteMode) {
-                _pasteMode = false;
-            }
-            
+            // right click items here
         }
     }
 }
@@ -1357,19 +1138,6 @@ void Application::wheelEvent(QWheelEvent* event) {
     if (_controllerScriptingInterface.isWheelCaptured()) {
         return;
     }
-    
-    //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.
-    if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
-        if (!Menu::getInstance()->isVoxelModeActionChecked()) {
-            event->ignore();
-            return;
-        }
-        if (event->delta() > 0) {
-            increaseVoxelSize();
-        } else {
-            decreaseVoxelSize();
-        }
-    }
 }
 
 void Application::dropEvent(QDropEvent *event) {
@@ -1427,35 +1195,7 @@ void Application::timer() {
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
     
-    // send unmatched DataServerClient packets
-    DataServerClient::resendUnmatchedPackets();
-
-    // give the MyAvatar object position, orientation to the Profile so it can propagate to the data-server
-    _profile.updatePosition(_myAvatar->getPosition());
-    _profile.updateOrientation(_myAvatar->getOrientation());
-}
-
-static glm::vec3 getFaceVector(BoxFace face) {
-    switch (face) {
-        case MIN_X_FACE:
-            return glm::vec3(-1, 0, 0);
-
-        case MAX_X_FACE:
-            return glm::vec3(1, 0, 0);
-
-        case MIN_Y_FACE:
-            return glm::vec3(0, -1, 0);
-
-        case MAX_Y_FACE:
-            return glm::vec3(0, 1, 0);
-
-        case MIN_Z_FACE:
-            return glm::vec3(0, 0, -1);
-
-		default: // quiet windows warnings
-        case MAX_Z_FACE:
-            return glm::vec3(0, 0, 1);
-    }
+    
 }
 
 void Application::idle() {
@@ -1492,6 +1232,8 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
+            
+            _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
@@ -1577,28 +1319,6 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
         (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
-const float NUDGE_PRECISION_MIN = 1 / pow(2.0, 12.0);
-
-void Application::decreaseVoxelSize() {
-    if (_nudgeStarted) {
-        if (_mouseVoxelScale >= NUDGE_PRECISION_MIN) {
-            _mouseVoxelScale /= 2;
-        }
-    } else {
-        _mouseVoxelScale /= 2;
-    }
-}
-
-void Application::increaseVoxelSize() {
-    if (_nudgeStarted) {
-        if (_mouseVoxelScale < _nudgeVoxel.s) {
-            _mouseVoxelScale *= 2;
-        }
-    } else {
-        _mouseVoxelScale *= 2;
-    }
-}
-
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
@@ -1640,10 +1360,6 @@ bool Application::sendVoxelsOperation(OctreeElement* element, void* extraData) {
     return true; // keep going
 }
 
-void Application::exportVoxels() {
-    exportVoxels(_mouseVoxel);
-}
-
 void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
@@ -1663,39 +1379,9 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     _window->activateWindow();
 }
 
-void Application::importVoxels() {
-    if (!_voxelImporter) {
-        _voxelImporter = new VoxelImporter(_window);
-        _voxelImporter->loadSettings(_settings);
-    }
-    
-    if (!_voxelImporter->exec()) {
-        qDebug() << "[DEBUG] Import succeeded." << endl;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::VoxelSelectMode, true);
-        _pasteMode = true;
-    } else {
-        qDebug() << "[DEBUG] Import failed." << endl;
-        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
-            _sharedVoxelSystem.killLocalVoxels();
-            _sharedVoxelSystem.changeTree(&_clipboard);
-        }
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
-void Application::cutVoxels() {
-    cutVoxels(_mouseVoxel);
-}
-
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
     copyVoxels(sourceVoxel);
     deleteVoxelAt(sourceVoxel);
-}
-
-void Application::copyVoxels() {
-    copyVoxels(_mouseVoxel);
 }
 
 void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
@@ -1728,10 +1414,6 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     _voxelEditSender.releaseQueuedMessages();
 }
 
-void Application::pasteVoxels() {
-    pasteVoxels(_mouseVoxel);
-}
-
 void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     unsigned char* calculatedOctCode = NULL;
     VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
@@ -1751,45 +1433,6 @@ void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
     }
-    _pasteMode = false;
-}
-
-void Application::findAxisAlignment() {
-    glm::vec3 direction = _myAvatar->getMouseRayDirection();
-    if (fabs(direction.z) > fabs(direction.x)) {
-        _lookingAlongX = false;
-        if (direction.z < 0) {
-            _lookingAwayFromOrigin = false;
-        } else {
-            _lookingAwayFromOrigin = true;
-        }
-    } else {
-        _lookingAlongX = true;
-        if (direction.x < 0) {
-            _lookingAwayFromOrigin = false;
-        } else {
-            _lookingAwayFromOrigin = true;
-        }
-    }
-}
-
-void Application::nudgeVoxels() {
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && selectedNode) {
-        Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
-    }
-
-    if (!_nudgeStarted && selectedNode) {
-        _nudgeVoxel = _mouseVoxel;
-        _nudgeStarted = true;
-        _nudgeGuidePosition = glm::vec3(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z);
-        findAxisAlignment();
-    } else {
-        // calculate nudgeVec
-        glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
-
-        nudgeVoxelsByVector(_nudgeVoxel, nudgeVec);
-    }
 }
 
 void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
@@ -1797,10 +1440,6 @@ void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm:
     if (nodeToNudge) {
         _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
     }
-}
-
-void Application::deleteVoxels() {
-    deleteVoxelUnderCursor();
 }
 
 void Application::initDisplay() {
@@ -1848,8 +1487,7 @@ void Application::init() {
     _myCamera.setModeShiftPeriod(1.0f);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-    _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
-    _mirrorCamera.setFieldOfView(30);
+    _mirrorCamera.setModeShiftPeriod(0.0f);
 
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -1901,14 +1539,6 @@ void Application::init() {
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
-
-    _palette.init(_glWidget->width(), _glWidget->height());
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
-    _palette.addTool(&_swatch);
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelColorMode), 0, 2);
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelGetColorMode), 0, 3);
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelSelectMode), 0, 4);
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
@@ -2052,7 +1682,10 @@ void Application::updateMyAvatarLookAtPosition() {
         } else if (_isHoverVoxel) {
             distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
         }
-        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * distance;
+        const float FIXED_MIN_EYE_DISTANCE = 0.3f;
+        float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
+            glm::distance(_mouseRayOrigin, _myAvatar->getHead()->calculateAverageEyePosition()));
+        lookAtSpot = _mouseRayOrigin + _mouseRayDirection * qMax(minEyeDistance, distance);
     }
     bool trackerActive = false;
     float eyePitch, eyeYaw;
@@ -2088,94 +1721,6 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
         _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
     }
 }
-
-void Application::updateMouseVoxels(float deltaTime, float& distance, BoxFace& face) {
-
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
-
-    _mouseVoxel.s = 0.0f;
-    bool wasInitialized = _mouseVoxelScaleInitialized;
-    if (Menu::getInstance()->isVoxelModeActionChecked() &&
-        (fabs(_myAvatar->getVelocity().x) +
-         fabs(_myAvatar->getVelocity().y) +
-         fabs(_myAvatar->getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-
-        if (_voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _mouseVoxel, distance, face)) {
-            if (distance < MAX_VOXEL_EDIT_DISTANCE) {
-                // set the voxel scale to that of the first moused-over voxel
-                if (!wasInitialized) {
-                    _mouseVoxelScale = _mouseVoxel.s;
-                }
-                _mouseVoxelScaleInitialized = true;
-
-                // find the nearest voxel with the desired scale
-                if (_mouseVoxelScale > _mouseVoxel.s) {
-                    // choose the larger voxel that encompasses the one selected
-                    _mouseVoxel.x = _mouseVoxelScale * floorf(_mouseVoxel.x / _mouseVoxelScale);
-                    _mouseVoxel.y = _mouseVoxelScale * floorf(_mouseVoxel.y / _mouseVoxelScale);
-                    _mouseVoxel.z = _mouseVoxelScale * floorf(_mouseVoxel.z / _mouseVoxelScale);
-                    _mouseVoxel.s = _mouseVoxelScale;
-
-                } else {
-                    glm::vec3 faceVector = getFaceVector(face);
-                    if (_mouseVoxelScale < _mouseVoxel.s) {
-                        // find the closest contained voxel
-                        glm::vec3 pt = (_mouseRayOrigin + _mouseRayDirection * distance) / (float)TREE_SCALE -
-                        faceVector * (_mouseVoxelScale * 0.5f);
-                        _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / _mouseVoxelScale);
-                        _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / _mouseVoxelScale);
-                        _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / _mouseVoxelScale);
-                        _mouseVoxel.s = _mouseVoxelScale;
-                    }
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
-                        // use the face to determine the side on which to create a neighbor
-                        _mouseVoxel.x += faceVector.x * _mouseVoxel.s;
-                        _mouseVoxel.y += faceVector.y * _mouseVoxel.s;
-                        _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
-                    }
-                }
-            } else {
-                _mouseVoxel.s = 0.0f;
-            }
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            // place the voxel a fixed distance away
-            float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
-            glm::vec3 pt = _mouseRayOrigin + _mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
-            _mouseVoxel.x = _mouseVoxelScale * floorf(pt.x / worldMouseVoxelScale);
-            _mouseVoxel.y = _mouseVoxelScale * floorf(pt.y / worldMouseVoxelScale);
-            _mouseVoxel.z = _mouseVoxelScale * floorf(pt.z / worldMouseVoxelScale);
-            _mouseVoxel.s = _mouseVoxelScale;
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode)) {
-            // red indicates deletion
-            _mouseVoxel.red = 255;
-            _mouseVoxel.green = _mouseVoxel.blue = 0;
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            if (_nudgeStarted) {
-                _mouseVoxel.red = _mouseVoxel.green = _mouseVoxel.blue = 255;
-            } else {
-                // yellow indicates selection
-                _mouseVoxel.red = _mouseVoxel.green = 255;
-                _mouseVoxel.blue = 0;
-            }
-        } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
-            QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
-            _mouseVoxel.red = paintColor.red();
-            _mouseVoxel.green = paintColor.green();
-            _mouseVoxel.blue = paintColor.blue();
-        }
-
-        // if we just edited, use the currently selected voxel as the "last" for drag detection
-        if (_justEditedVoxel) {
-            _lastMouseVoxelPos = glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-            _justEditedVoxel = false;
-        }
-    }
-}
-
 
 void Application::updateHandAndTouch(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2330,7 +1875,6 @@ void Application::update(float deltaTime) {
     BoxFace face;
 
     updateHoverVoxels(deltaTime, distance, face); // clicking on voxels and making sounds
-    updateMouseVoxels(deltaTime, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
     updateSixense(deltaTime); // Razer Hydra controllers
@@ -2779,9 +2323,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
-    //  Enable to show line from me to the voxel I am touching
-    //renderThrustAtVoxel(_voxelThrust);
-
     if (!selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
@@ -2814,10 +2355,20 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
         }
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
 
         // render particles...
-        _particles.render();
-
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... particles...");
+            _particles.render();
+        }
+        
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -2831,72 +2382,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         //  Render the highlighted voxel
         if (_isHighlightVoxel) {
             renderHighlightVoxel(_highlightVoxel);
-        }
-
-        // indicate what we'll be adding/removing in mouse mode, if anything
-        if (_mouseVoxel.s != 0 && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... voxels TOOLS UX...");
-
-            glDisable(GL_LIGHTING);
-            glPushMatrix();
-            glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-            const float CUBE_EXPANSION = 1.01f;
-            if (_nudgeStarted) {
-                renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
-                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
-                glPushMatrix();
-                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
-                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
-                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
-                glColor3ub(255, 255, 255);
-                glLineWidth(4.0f);
-                glutWireCube(_nudgeVoxel.s * CUBE_EXPANSION);
-                glPopMatrix();
-            } else {
-                renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-            }
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
-                // use a contrasting color so that we can see what we're doing
-                glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
-            } else {
-                glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
-            }
-
-            if (_nudgeStarted) {
-                // render nudge guide cube
-                glTranslatef(_nudgeGuidePosition.x + _nudgeVoxel.s*0.5f,
-                    _nudgeGuidePosition.y + _nudgeVoxel.s*0.5f,
-                    _nudgeGuidePosition.z + _nudgeVoxel.s*0.5f);
-                glLineWidth(4.0f);
-                glutWireCube(_nudgeVoxel.s * CUBE_EXPANSION);
-            } else {
-                glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
-                    _mouseVoxel.y + _mouseVoxel.s*0.5f,
-                    _mouseVoxel.z + _mouseVoxel.s*0.5f);
-                glLineWidth(4.0f);
-                glutWireCube(_mouseVoxel.s * CUBE_EXPANSION);
-            }
-            glLineWidth(1.0f);
-            glPopMatrix();
-            glEnable(GL_LIGHTING);
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... PASTE Preview...");
-
-            glPushMatrix();
-            glTranslatef(_mouseVoxel.x * TREE_SCALE,
-                         _mouseVoxel.y * TREE_SCALE,
-                         _mouseVoxel.z * TREE_SCALE);
-            glScalef(_mouseVoxel.s,
-                     _mouseVoxel.s,
-                     _mouseVoxel.s);
-
-            _sharedVoxelSystem.render();
-            glPopMatrix();
         }
     }
 
@@ -2929,9 +2414,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 }
             }
         }
-
-        // render transmitter pick ray, if non-empty
-        _myAvatar->renderTransmitterPickRay();
 
         // give external parties a change to hook in
         emit renderingInWorldInterface();
@@ -2998,8 +2480,6 @@ void Application::displayOverlay() {
         _myAvatar->renderHeadMouse();
     }
 
-    _myAvatar->renderTransmitterLevels(_glWidget->width(), _glWidget->height());
-
     //  Display stats and log text onscreen
     glLineWidth(1.0f);
     glPointSize(1.0f);
@@ -3039,54 +2519,6 @@ void Application::displayOverlay() {
                 ? 80 : 20;
         drawtext(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 0, 1.0f, 0, frameTimer, 0, 0, 0);
         drawtext(_glWidget->width() - 102, _glWidget->height() - timerBottom - 2, 0.30f, 0, 1.0f, 0, frameTimer, 1, 1, 1);
-    }
-
-    _palette.render(_glWidget->width(), _glWidget->height());
-
-    QAction* paintColorAction = NULL;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode)
-        && (paintColorAction = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor))->data().value<QColor>()
-            != _swatch.getColor()) {
-        QColor color = paintColorAction->data().value<QColor>();
-        TextRenderer textRenderer(SANS_FONT_FAMILY, 11, 50);
-        const char line1[] = "Assign this color to a swatch";
-        const char line2[] = "by choosing a key from 1 to 8.";
-
-        int left = (_glWidget->width() - POPUP_WIDTH - 2 * POPUP_MARGIN) / 2;
-        int top = _glWidget->height() / 40;
-
-        glBegin(GL_POLYGON);
-        glColor3f(0.0f, 0.0f, 0.0f);
-        for (double a = M_PI; a < 1.5f * M_PI; a += POPUP_STEP) {
-            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_MARGIN * sin(a));
-        }
-        for (double a = 1.5f * M_PI; a < 2.0f * M_PI; a += POPUP_STEP) {
-            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_MARGIN * sin(a));
-        }
-        for (double a = 0.0f; a < 0.5f * M_PI; a += POPUP_STEP) {
-            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
-        }
-        for (double a = 0.5f * M_PI; a < 1.0f * M_PI; a += POPUP_STEP) {
-            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
-        }
-        glEnd();
-
-        glBegin(GL_QUADS);
-        glColor3f(color.redF(),
-                  color.greenF(),
-                  color.blueF());
-        glVertex2f(left               , top);
-        glVertex2f(left + SWATCH_WIDTH, top);
-        glVertex2f(left + SWATCH_WIDTH, top + SWATCH_HEIGHT);
-        glVertex2f(left               , top + SWATCH_HEIGHT);
-        glEnd();
-
-        glColor3f(1.0f, 1.0f, 1.0f);
-        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + FIRST_LINE_OFFSET , line1);
-        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + SECOND_LINE_OFFSET, line2);
-    }
-    else {
-        _swatch.checkColor();
     }
 
     if (_pieMenu.isDisplayed()) {
@@ -3476,19 +2908,6 @@ void Application::toggleStatsExpanded() {
     _statsExpanded = !_statsExpanded;
 }
 
-void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
-    if (_mousePressed) {
-        glColor3f(1, 0, 0);
-        glLineWidth(2.0f);
-        glBegin(GL_LINES);
-        glm::vec3 voxelTouched = getMouseVoxelWorldCoordinates(_mouseVoxelDragging);
-        glVertex3f(voxelTouched.x, voxelTouched.y, voxelTouched.z);
-        glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
-        glEnd();
-    }
-}
-
-
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     float horizontalScale = _glWidget->width() / 2.0f;
     float verticalScale   = _glWidget->height() / 2.0f;
@@ -3863,47 +3282,6 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     }
 }
 
-bool Application::maybeEditVoxelUnderCursor() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-        || Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode)) {
-        if (_mouseVoxel.s != 0) {
-            makeVoxel(glm::vec3(_mouseVoxel.x * TREE_SCALE,
-                      _mouseVoxel.y * TREE_SCALE,
-                      _mouseVoxel.z * TREE_SCALE),
-                      _mouseVoxel.s * TREE_SCALE,
-                      _mouseVoxel.red,
-                      _mouseVoxel.green,
-                      _mouseVoxel.blue,
-                      Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel));
-
-            // remember the position for drag detection
-            _justEditedVoxel = true;
-
-        }
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode)) {
-        deleteVoxelUnderCursor();
-        VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
-        const float VOXEL_BOUNDS_ADJUST = 0.01f;
-        float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
-        fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
-        fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
-        fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
-        fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
-        _voxelFades.push_back(fade);
-
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode)) {
-        eyedropperVoxelUnderCursor();
-    } else {
-        return false;
-    }
-
-    return true;
-}
-
-void Application::deleteVoxelUnderCursor() {
-    deleteVoxelAt(_mouseVoxel);
-}
-
 void Application::deleteVoxels(const VoxelDetail& voxel) {
     deleteVoxelAt(voxel);
 }
@@ -3915,27 +3293,9 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
         _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
-
-    }
-    // remember the position for drag detection
-    _justEditedVoxel = true;
-}
-
-
-void Application::eyedropperVoxelUnderCursor() {
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    if (selectedNode && selectedNode->isColored()) {
-        QColor selectedColor(selectedNode->getColor()[RED_INDEX],
-                             selectedNode->getColor()[GREEN_INDEX],
-                             selectedNode->getColor()[BLUE_INDEX]);
-
-        if (selectedColor.isValid()) {
-            QAction* voxelPaintColorAction = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor);
-            voxelPaintColorAction->setData(selectedColor);
-            voxelPaintColorAction->setIcon(Swatch::createIcon(selectedColor));
-        }
     }
 }
+
 
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
@@ -3978,17 +3338,15 @@ void Application::updateWindowTitle(){
     QString buildVersion = " (build " + applicationVersion() + ")";
     NodeList* nodeList = NodeList::getInstance();
     
-    QString title = QString() + _profile.getUsername() + " " + nodeList->getSessionUUID().toString()
-        + " @ " + nodeList->getDomainHostname() + buildVersion;
+    QString username = AccountManager::getInstance().getUsername();
+    QString title = QString() + (!username.isEmpty() ? username + " " : QString()) + nodeList->getSessionUUID().toString()
+        + " @ " + nodeList->getDomainInfo().getHostname() + buildVersion;
     
     qDebug("Application title set to: %s", title.toStdString().c_str());
     _window->setWindowTitle(title);
 }
 
 void Application::domainChanged(const QString& domainHostname) {
-    // update the user's last domain in their Profile (which will propagate to data-server)
-    _profile.updateDomain(domainHostname);
-
     updateWindowTitle();
 
     // reset the environment so that we don't erroneously end up with multiple
@@ -4001,6 +3359,19 @@ void Application::domainChanged(const QString& domainHostname) {
     
     // reset the particle renderer
     _particles.clear();
+}
+
+void Application::connectedToDomain(const QString& hostname) {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.isLoggedIn()) {
+        // update our domain-server with the data-server we're logged in with
+        
+        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
+        
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
+    }
 }
 
 void Application::nodeAdded(SharedNodePointer node) {
@@ -4216,6 +3587,10 @@ void Application::removeScriptName(const QString& fileNameString) {
     _activeScripts.removeOne(fileNameString);
 }
 
+void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
+    Menu::getInstance()->removeAction(Menu::getInstance()->getActiveScriptsMenu(), scriptMenuName);
+}
+
 void Application::loadScript(const QString& fileNameString) {
     _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
@@ -4244,9 +3619,11 @@ void Application::loadScript(const QString& fileNameString) {
     // start the script on a new thread...
     bool wantMenuItems = true; // tells the ScriptEngine object to add menu items for itself
 
-    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, Menu::getInstance(),
-                                                  &_controllerScriptingInterface);
-    scriptEngine->setupMenuItems();
+    ScriptEngine* scriptEngine = new ScriptEngine(script, wantMenuItems, fileName, &_controllerScriptingInterface);
+    
+    // add a stop menu item
+    Menu::getInstance()->addActionToQMenuAndActionHash(Menu::getInstance()->getActiveScriptsMenu(), 
+                            scriptEngine->getScriptMenuName(), 0, scriptEngine, SLOT(stop()));
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -4267,6 +3644,7 @@ void Application::loadScript(const QString& fileNameString) {
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+    scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
 
     QThread* workerThread = new QThread(this);
 
@@ -4277,6 +3655,7 @@ void Application::loadScript(const QString& fileNameString) {
     connect(scriptEngine, SIGNAL(finished(const QString&)), scriptEngine, SLOT(deleteLater()));
     connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(removeScriptName(const QString&)));
+    connect(scriptEngine, SIGNAL(cleanupMenuItem(const QString&)), this, SLOT(cleanupScriptMenuItem(const QString&)));
 
     // when the application is about to quit, stop our script engine so it unwinds properly
     connect(this, SIGNAL(aboutToQuit()), scriptEngine, SLOT(stop()));
@@ -4390,6 +3769,5 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    Snapshot::saveSnapshot(_glWidget, &_profile, _myAvatar);
+    Snapshot::saveSnapshot(_glWidget, _myAvatar);
 }
-

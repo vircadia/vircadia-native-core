@@ -38,6 +38,7 @@ int main(int argc, const char * argv[]) {
     
     int exitCode;
     {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startup_time);
     
         qDebug( "Created QT Application.");

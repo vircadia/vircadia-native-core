@@ -11,6 +11,9 @@
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -23,6 +26,8 @@
 using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
+
+QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
     NodeData(),
@@ -38,7 +43,8 @@ AvatarData::AvatarData() :
     _handData(NULL), 
     _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
-    _displayNameAlpha(0.0f)
+    _displayNameAlpha(0.0f),
+    _billboard()
 {
     
 }
@@ -338,6 +344,28 @@ void AvatarData::setBillboard(const QByteArray& billboard) {
     qDebug() << "Changing billboard for avatar.";
 }
 
+void AvatarData::setBillboardFromURL(const QString &billboardURL) {
+    _billboardURL = billboardURL;
+    
+    if (AvatarData::networkAccessManager) {
+        qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+        
+        QNetworkRequest billboardRequest;
+        billboardRequest.setUrl(QUrl(billboardURL));
+        
+        QNetworkReply* networkReply = AvatarData::networkAccessManager->get(billboardRequest);
+        connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
+        
+    } else {
+        qDebug() << "Billboard PNG download requested but no network access manager is available.";
+    }
+}
+
+void AvatarData::setBillboardFromNetworkReply() {
+    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    setBillboard(networkReply->readAll());
+}
+
 void AvatarData::setClampedTargetScale(float targetScale) {
     
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
@@ -361,8 +389,10 @@ void AvatarData::sendIdentityPacket() {
 }
 
 void AvatarData::sendBillboardPacket() {
-    QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
-    billboardPacket.append(_billboard);
-    
-    NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    if (!_billboard.isEmpty()) {
+        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        billboardPacket.append(_billboard);
+        
+        NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
 }

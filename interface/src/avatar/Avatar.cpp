@@ -19,7 +19,6 @@
 
 #include "Application.h"
 #include "Avatar.h"
-#include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -78,7 +77,8 @@ Avatar::Avatar() :
     _moving(false),
     _owningAvatarMixer(),
     _collisionFlags(0),
-    _initialized(false)
+    _initialized(false),
+    _billboardHysteresis(false)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -208,18 +208,23 @@ void Avatar::render() {
             renderBody();
         }
 
-        // render sphere when far away
-        const float MAX_ANGLE = 10.f;
+        // render voice intensity sphere for avatars that are farther away
+        const float MAX_SPHERE_ANGLE = 10.f;
+        const float MIN_SPHERE_ANGLE = 1.f;
+        const float MIN_SPHERE_SIZE = 0.01f;
+        const float SPHERE_LOUDNESS_SCALING = 0.0005f;
+        const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
         float height = getSkeletonHeight();
         glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
-
-        if (angle < MAX_ANGLE) {
-            glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
+        float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
+        
+        if ((sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+            glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
             glPushMatrix();
             glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(height / 2.f, height / 2.f, height / 2.f);
-            glutSolidSphere(1.2f + getHead()->getAverageLoudness() * .0005f, 20, 20);
+            glScalef(height, height, height);
+            glutSolidSphere(sphereRadius, 15, 15);
             glPopMatrix();
         }
     }
@@ -286,11 +291,22 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody() {
-    const float BILLBOARD_DISTANCE = 40.0f;
-    if (!_billboard.isEmpty() && getLODDistance() >= BILLBOARD_DISTANCE) {
-        renderBillboard();
-        return;
+const float BILLBOARD_LOD_DISTANCE = 40.0f;
+
+void Avatar::renderBody() {    
+    if (!_billboard.isEmpty()) {
+        const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
+        if (_billboardHysteresis) {
+            if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
+                _billboardHysteresis = false;
+            }
+        } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
+            _billboardHysteresis = true;
+        }
+        if (_billboardHysteresis) {
+            renderBillboard();
+            return;
+        }
     }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
@@ -425,16 +441,9 @@ void Avatar::renderDisplayName() {
         glPolygonOffset(1.0f, 1.0f);
 
         glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-        glBegin(GL_QUADS);
-        glVertex2f(left, bottom);
-        glVertex2f(right, bottom);
-        glVertex2f(right, top);
-        glVertex2f(left, top);
-        glEnd();
-        
-      
+        renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+       
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-               
         QByteArray ba = _displayName.toLocal8Bit();
         const char* text = ba.data();
         
@@ -568,6 +577,9 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     
     // clear out any existing billboard texture
     _billboardTexture.reset();
+    
+    // reset the hysteresis value
+    _billboardHysteresis = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
 }
 
 int Avatar::parseData(const QByteArray& packet) {

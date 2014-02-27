@@ -79,7 +79,7 @@ void Agent::run() {
     
     // figure out the URL for the script for this agent assignment
     QString scriptURLString("http://%1:8080/assignment/%2");
-    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP().toString(),
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainInfo().getIP().toString(),
                                           uuidStringWithoutCurlyBraces(_uuid));
     
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
@@ -91,6 +91,9 @@ void Agent::run() {
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     
     loop.exec();
+    
+    // let the AvatarData class use our QNetworkAcessManager
+    AvatarData::setNetworkAccessManager(networkManager);
     
     QString scriptContents(reply->readAll());
     
