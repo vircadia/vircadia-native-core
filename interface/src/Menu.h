@@ -18,6 +18,8 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
+#include "ui/PreferencesDialog.h"
+
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
 
@@ -66,10 +68,12 @@ public:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-
+    
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
+    void setAudioJitterBufferSamples(float audioJitterBufferSamples) { _audioJitterBufferSamples = audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
+    void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -89,6 +93,7 @@ public:
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    void setMaxVoxelPacketsPerSecond(int maxVoxelPacketsPerSecond) { _maxVoxelPacketsPerSecond = maxVoxelPacketsPerSecond; }
 
     QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
 
@@ -194,6 +199,7 @@ private:
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
     QAction* _loginAction;
+    QPointer<PreferencesDialog> _preferencesDialog;
 };
 
 namespace MenuOption {
