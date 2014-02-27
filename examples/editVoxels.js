@@ -1172,6 +1172,7 @@ function moveTools() {
 
     sliderX = swatchesX + swatchesWidth - 17;
     sliderY = windowDimensions.y - sliderHeight + 1;
+    thumbY = sliderY + 11;
     Overlays.editOverlay(slider, { x: sliderX, y: sliderY, visible: editToolsOn });
 
     // This is the thumb of our slider
