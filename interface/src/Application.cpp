@@ -1517,8 +1517,8 @@ void Application::init() {
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
-    _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
-    _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
+    _voxels.setUseVoxelShader(false);
+    _voxels.setVoxelsAsPoints(false);
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
 
@@ -1914,7 +1914,7 @@ void Application::updateMyAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-
+    
     // Update my voxel servers with my current voxel query...
     queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
     queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
@@ -1926,6 +1926,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         return;
     }
+
+    //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
 
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
@@ -1986,7 +1988,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
         }
     }
 
-    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
             totalServers, inViewServers, unknownJurisdictionServers);
     }
@@ -2007,7 +2009,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
         }
     }
 
-    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging) {
         qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
@@ -2338,14 +2340,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-                _voxels.render();
-                
-                // double check that our LOD doesn't need to be auto-adjusted
-                // only adjust if our option is set
-                if (Menu::getInstance()->isOptionChecked(MenuOption::AutoAdjustLOD)) {
-                    Menu::getInstance()->autoAdjustLOD(_fps);
-                }
+
+            _voxels.render();
+            
+            // double check that our LOD doesn't need to be auto-adjusted
+            // adjust it unless we were asked to disable this feature
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+                Menu::getInstance()->autoAdjustLOD(_fps);
             }
         }
 

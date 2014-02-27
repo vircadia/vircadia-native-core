@@ -238,23 +238,12 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRenderVoxels);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontCallOpenGLForVoxels);
-
-    _useVoxelShader = addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0,
-                                           false, appInstance->getVoxels(), SLOT(setUseVoxelShader(bool)));
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelsAsPoints, 0,
-                                           false, appInstance->getVoxels(), SLOT(setVoxelsAsPoints(bool)));
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
-
-    QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
