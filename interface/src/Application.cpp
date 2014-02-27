@@ -60,6 +60,7 @@
 #include <PerfStat.h>
 #include <UUID.h>
 #include <VoxelSceneStats.h>
+#include <LocalVoxelsList.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -309,7 +310,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     checkVersion();
     
     _overlays.init(_glWidget); // do this before scripts load
-
+    
+    LocalVoxelsList::getInstance()->addPersistantTree("domain", _voxels.getTree());
+    LocalVoxelsList::getInstance()->addPersistantTree("clipboard", &_clipboard);
+    
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
 }
