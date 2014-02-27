@@ -52,6 +52,8 @@ bool OctreeSendThread::process() {
                 }
 
                 node->getMutex().unlock(); // we're done with this node for now.
+            } else {
+                qDebug("OctreeSendThread::process() failed to get node lock");
             }
         }
     } else {
@@ -70,8 +72,8 @@ bool OctreeSendThread::process() {
             PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
             usleep(usecToSleep);
         } else {
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                std::cout << "Last send took too much time, not sleeping!\n";
+            if (true || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                qDebug() << "Last send took too much time (" << (elapsed / USECS_PER_MSEC) <<" msecs), not sleeping!\n";
             }
         }
     }
@@ -420,9 +422,23 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
 
 
+                quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->lockForRead();
+                quint64 lockWaitEnd = usecTimestampNow();
+                int lockWaitElapsedMsec = (lockWaitEnd - lockWaitStart)/USECS_PER_MSEC;
+                if (lockWaitElapsedMsec > 0) {
+                    qDebug() << "lockWaitElapsedMsec=" << lockWaitElapsedMsec;
+                }
+                
                 nodeData->stats.encodeStarted();
+
+                quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
+                quint64 encodeEnd = usecTimestampNow();
+                int encodeElapsedMsec = (encodeEnd - encodeStart)/USECS_PER_MSEC;
+                if (encodeElapsedMsec > 0) {
+                    qDebug() << "encodeElapsedMsec=" << encodeElapsedMsec;
+                }
 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into
@@ -543,7 +559,11 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
         quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
-
+        if (elapsedmsec > 0) {
+            qDebug() << "elapsedmsec=" << elapsedmsec;
+        }
+        OctreeServer::trackLoopTime((float)elapsedmsec);
+        
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
                 int elapsedsec = (end - start)/1000000;

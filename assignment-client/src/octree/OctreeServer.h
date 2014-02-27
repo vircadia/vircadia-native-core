@@ -63,6 +63,8 @@ public:
 
     static void attachQueryNodeToNode(Node* newNode);
 
+    static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
+
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
 public slots:
     /// runs the voxel server assignment
@@ -95,6 +97,9 @@ protected:
 
     time_t _started;
     quint64 _startedUSecs;
+    
+    static int _clientCount;
+    static SimpleMovingAverage _averageLoopTime;
 };
 
 #endif // __octree_server__OctreeServer__

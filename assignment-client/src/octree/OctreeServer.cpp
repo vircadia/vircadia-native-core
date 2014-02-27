@@ -19,6 +19,8 @@
 #include "OctreeServerConsts.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
+int OctreeServer::_clientCount = 0;
+SimpleMovingAverage OctreeServer::_averageLoopTime(1000);
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -48,6 +50,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _startedUSecs(usecTimestampNow())
 {
     _instance = this;
+    _averageLoopTime.updateAverage(0);
 }
 
 OctreeServer::~OctreeServer() {
@@ -234,6 +237,19 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
         const int COLUMN_WIDTH = 10;
+        statsString += QString("        Configured Max PPS/Client: %1 pps/client\r\n")
+            .arg(locale.toString((uint)getPacketsPerClientPerSecond()).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Configured Max PPS/Server: %1 pps/server\r\n\r\n")
+            .arg(locale.toString((uint)getPacketsTotalPerSecond()).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("          Total Clients Connected: %1 clients\r\n\r\n")
+            .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
+
+        float averageLoopTime = _averageLoopTime.getAverage();
+        statsString += QString().sprintf("        Average packetLoop() time:      %5.2f msecs\r\n", averageLoopTime);
+        
+        qDebug() << "_averageLoopTime.getAverage()=" << averageLoopTime;
+
+
         statsString += QString("           Total Outbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
