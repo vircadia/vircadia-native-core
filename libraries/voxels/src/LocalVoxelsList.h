@@ -19,6 +19,9 @@
 typedef QSharedPointer<VoxelTree> StrongVoxelTreePointer;
 typedef QWeakPointer<VoxelTree> WeakVoxelTreePointer;
 
+static const QString DOMAIN_TREE_NAME = "domain";
+static const QString CLIPBOARD_TREE_NAME = "clipboard";
+
 /// Handles the the storage and cleanup of local named trees used by JS
 class LocalVoxelsList {
 public:

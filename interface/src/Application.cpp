@@ -311,8 +311,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _overlays.init(_glWidget); // do this before scripts load
     
-    LocalVoxelsList::getInstance()->addPersistantTree("domain", _voxels.getTree());
-    LocalVoxelsList::getInstance()->addPersistantTree("clipboard", &_clipboard);
+    LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
+    LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
     
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
