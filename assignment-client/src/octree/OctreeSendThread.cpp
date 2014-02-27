@@ -22,20 +22,17 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
     _myServer(myServer),
     _packetData()
 {
-    qDebug() << "client connected this=" << this;
+    qDebug() << "client connected";
     _myServer->clientConnected();
 }
 
 OctreeSendThread::~OctreeSendThread() { 
-    qDebug() << "OctreeSendThread::~OctreeSendThread()... this=" << this;
-    qDebug() << "client disconnected this=" << this;
+    qDebug() << "client disconnected";
     _myServer->clientDisconnected(); 
 }
 
 
 bool OctreeSendThread::process() {
-    qDebug() << "OctreeSendThread::process() this=" << this;
-
     quint64  start = usecTimestampNow();
     bool gotLock = false;
 

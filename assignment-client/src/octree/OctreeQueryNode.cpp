@@ -165,7 +165,8 @@ OctreeQueryNode::~OctreeQueryNode() {
         //qDebug() << "OctreeQueryNode::~OctreeQueryNode() calling _octreeSendThread->terminate() _octreeSendThread=" << _octreeSendThread;
         _octreeSendThread->terminate();
         //qDebug() << "OctreeQueryNode::~OctreeQueryNode() calling _octreeSendThread->deleteLater() _octreeSendThread=" << _octreeSendThread;
-        _octreeSendThread->deleteLater();
+        //_octreeSendThread->deleteLater();
+        delete _octreeSendThread;
     }
 
     delete[] _octreePacket;
