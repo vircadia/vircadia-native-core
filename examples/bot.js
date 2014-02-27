@@ -72,12 +72,10 @@ Avatar.position = firstPosition;
 // pick an integer between 1 and 20 for the face model for this bot
 botNumber = getRandomInt(1, 100);
 
-newBodyFilePrefix = "defaultAvatar";
-
 if (botNumber <= 20) {
   newFaceFilePrefix = "bot" + botNumber;
+  newBodyFilePrefix = "defaultAvatar_body"
 } else {
-  
   if (botNumber <= 40) {
     newFaceFilePrefix = "superhero";
   } else if (botNumber <= 60) {
