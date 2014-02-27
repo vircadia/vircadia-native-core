@@ -371,6 +371,10 @@ BoxSetTool::BoxSetTool(MetavoxelEditor* editor) :
 }
 
 void BoxSetTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        resetState();
+        return;
+    }
     QString selected = _editor->getSelectedAttribute();
     if (selected.isNull()) {
         resetState();
@@ -534,6 +538,9 @@ InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
 }
 
 void InsertSpannerTool::simulate(float deltaTime) {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
     _editor->detachValue();
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
@@ -552,13 +559,16 @@ void InsertSpannerTool::simulate(float deltaTime) {
 }
 
 void InsertSpannerTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
     Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
     const float SPANNER_ALPHA = 0.25f;
     spanner->getRenderer()->render(SPANNER_ALPHA);
 }
 
 bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 bool InsertSpannerTool::eventFilter(QObject* watched, QEvent* event) {
@@ -584,7 +594,7 @@ RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
 }
 
 bool RemoveSpannerTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 bool RemoveSpannerTool::eventFilter(QObject* watched, QEvent* event) {
@@ -604,7 +614,7 @@ ClearSpannersTool::ClearSpannersTool(MetavoxelEditor* editor) :
 }
 
 bool ClearSpannersTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("SharedObjectSetAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 void ClearSpannersTool::clear() {
