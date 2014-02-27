@@ -230,8 +230,8 @@ var eyedropperTool = Overlays.addOverlay("image", {
 //var sliderWidth = 158;
 //var sliderHeight = 35;
 
-
-var sliderX = swatchesX - swatchWidth;
+var sliderOffsetX = 17;
+var sliderX = swatchesX - swatchWidth - sliderOffsetX;
 var sliderY = windowDimensions.y - sliderHeight + 1;
 var slider = Overlays.addOverlay("image", {
                     // alternate form of expressing bounds
@@ -250,7 +250,8 @@ var minThumbX = 20; // relative to the x of the slider
 var maxThumbX = minThumbX + 90;
 var thumbExtents = maxThumbX - minThumbX;
 var thumbX = (minThumbX + maxThumbX) / 2;
-var thumbY = sliderY + 11;
+var thumbOffsetY = 11;
+var thumbY = sliderY + thumbOffsetY;
 var thumb = Overlays.addOverlay("image", {
                     x: sliderX + thumbX,
                     y: thumbY,
@@ -1170,9 +1171,9 @@ function moveTools() {
                     visible: editToolsOn
                 });
 
-    sliderX = swatchesX + swatchesWidth - 17;
+    sliderX = swatchesX + swatchesWidth - sliderOffsetX;
     sliderY = windowDimensions.y - sliderHeight + 1;
-    thumbY = sliderY + 11;
+    thumbY = sliderY + thumbOffsetY;
     Overlays.editOverlay(slider, { x: sliderX, y: sliderY, visible: editToolsOn });
 
     // This is the thumb of our slider
