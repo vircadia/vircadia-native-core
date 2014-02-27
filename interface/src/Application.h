@@ -235,6 +235,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
+    void importVoxels(); // doesn't include source voxel because it goes to clipboard
     void cutVoxels(const VoxelDetail& sourceVoxel);
     void copyVoxels(const VoxelDetail& sourceVoxel);
     void pasteVoxels(const VoxelDetail& sourceVoxel);

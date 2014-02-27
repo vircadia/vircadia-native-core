@@ -1379,6 +1379,26 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     _window->activateWindow();
 }
 
+void Application::importVoxels() {
+    if (!_voxelImporter) {
+        _voxelImporter = new VoxelImporter(_window);
+        _voxelImporter->loadSettings(_settings);
+    }
+    
+    if (!_voxelImporter->exec()) {
+        qDebug() << "[DEBUG] Import succeeded." << endl;
+    } else {
+        qDebug() << "[DEBUG] Import failed." << endl;
+        if (_sharedVoxelSystem.getTree() == _voxelImporter->getVoxelTree()) {
+            _sharedVoxelSystem.killLocalVoxels();
+            _sharedVoxelSystem.changeTree(&_clipboard);
+        }
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
     copyVoxels(sourceVoxel);
     deleteVoxelAt(sourceVoxel);
