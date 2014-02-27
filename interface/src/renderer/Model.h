@@ -269,6 +269,7 @@ private:
     static SkinLocations _skinNormalMapLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
+    static QVector<JointState> createJointStates(const FBXGeometry& geometry);
 };
 
 #endif /* defined(__interface__Model__) */
