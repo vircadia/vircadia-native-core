@@ -19,6 +19,8 @@
 #include "OctreeServerConsts.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
+int OctreeServer::_clientCount = 0;
+
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -46,8 +48,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _octreeInboundPacketProcessor(NULL),
     _persistThread(NULL),
     _started(time(0)),
-    _startedUSecs(usecTimestampNow()),
-    _clientCount(0)
+    _startedUSecs(usecTimestampNow())
 {
     _instance = this;
 }
@@ -77,8 +78,7 @@ OctreeServer::~OctreeServer() {
 
     delete _jurisdiction;
     _jurisdiction = NULL;
-
-    qDebug() << "OctreeServer::run()... DONE";
+    qDebug() << "OctreeServer::~OctreeServer()... DONE";
 }
 
 void OctreeServer::initHTTPManager(int port) {
@@ -157,10 +157,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         statsString += "Uptime: ";
 
         if (hours > 0) {
-            statsString += QString("%1 hour%2").arg(hours).arg((hours > 1) ? "s" : "");
+            statsString += QString("%1 hour").arg(hours);
+            if (hours > 1) {
+                statsString += QString("s");
+            }
         }
         if (minutes > 0) {
-            statsString += QString("%1 minute%s").arg(minutes).arg((minutes > 1) ? "s" : "");
+            statsString += QString("%1 minute").arg(minutes);
+            if (minutes > 1) {
+                statsString += QString("s");
+            }
         }
         if (seconds > 0) {
             statsString += QString().sprintf("%.3f seconds", seconds);
@@ -182,12 +188,18 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
             int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
 
-            statsString += QString("%1 File Load Took").arg(getMyServerName());
+            statsString += QString("%1 File Load Took ").arg(getMyServerName());
             if (hours > 0) {
-                statsString += QString("%1 hour%2").arg(hours).arg((hours > 1) ? "s" : "");
+                statsString += QString("%1 hour").arg(hours);
+                if (hours > 1) {
+                    statsString += QString("s");
+                }
             }
             if (minutes > 0) {
-                statsString += QString("%1 minute%2").arg(minutes).arg((minutes > 1) ? "s" : "");
+                statsString += QString("%1 minute").arg(minutes);
+                if (minutes > 1) {
+                    statsString += QString("s");
+                }
             }
             if (seconds >= 0) {
                 statsString += QString().sprintf("%.3f seconds", seconds);
@@ -236,6 +248,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
         quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
         const int COLUMN_WIDTH = 10;
+        statsString += QString("        Configured Max PPS/Client: %1 pps/client\r\n")
+            .arg(locale.toString((uint)getPacketsPerClientPerSecond()).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Configured Max PPS/Server: %1 pps/server\r\n\r\n")
+            .arg(locale.toString((uint)getPacketsTotalPerSecond()).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("          Total Clients Connected: %1 clients\r\n\r\n")
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
             

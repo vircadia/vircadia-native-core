@@ -44,9 +44,13 @@ public:
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
-    int getCurrentClientCount() const { return _clientCount; }
-    void clientConnected() { _clientCount++; }
-    void clientDisconnected() { _clientCount--; }
+    int getPacketsPerClientPerSecond() const { return getPacketsPerClientPerInterval() * INTERVALS_PER_SECOND; }
+    int getPacketsTotalPerInterval() const { return _packetsTotalPerInterval; }
+    int getPacketsTotalPerSecond() const { return getPacketsTotalPerInterval() * INTERVALS_PER_SECOND; }
+    
+    static int getCurrentClientCount() { return _clientCount; }
+    static void clientConnected() { _clientCount++; }
+    static void clientDisconnected() { _clientCount--; }
 
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
@@ -102,7 +106,7 @@ protected:
     time_t _started;
     quint64 _startedUSecs;
     
-    int _clientCount;
+    static int _clientCount;
 };
 
 #endif // __octree_server__OctreeServer__
