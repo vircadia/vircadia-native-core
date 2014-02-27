@@ -56,9 +56,6 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
     const QUrl& getURL() const { return _url; }
     
-    /// Makes sure our configured model is loading.
-    void ensureLoading();
-    
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
     

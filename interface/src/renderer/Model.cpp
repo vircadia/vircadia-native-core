@@ -462,12 +462,6 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
 }
 
-void Model::ensureLoading() {
-    if (_geometry) {
-        _geometry->ensureLoading();
-    }
-}
-
 glm::vec4 Model::computeAverageColor() const {
     return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
