@@ -46,6 +46,17 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
     program.release();
 }
 
+QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry) {
+    QVector<JointState> jointStates;
+    foreach (const FBXJoint& joint, geometry.joints) {
+        JointState state;
+        state.translation = joint.translation;
+        state.rotation = joint.rotation;
+        jointStates.append(state);
+    }
+    return jointStates;
+}
+
 bool Model::isLoadedWithTextures() const {
     if (!isActive()) {
         return false;
@@ -106,9 +117,23 @@ void Model::reset() {
 
 void Model::simulate(float deltaTime) {
     // update our LOD
+    QVector<JointState> newJointStates;
     if (_geometry) {
         QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
         if (_geometry != geometry) {
+            if (!_jointStates.isEmpty()) {
+                // copy the existing joint states
+                const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
+                const FBXGeometry& newGeometry = geometry->getFBXGeometry();
+                newJointStates = createJointStates(newGeometry);
+                for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
+                        it != oldGeometry.jointIndices.constEnd(); it++) {
+                    int newIndex = newGeometry.jointIndices.value(it.key());
+                    if (newIndex != 0) {
+                        newJointStates[newIndex - 1] = _jointStates.at(it.value() - 1);
+                    }
+                }
+            }
             deleteGeometry();
             _dilatedTextures.clear();
             _geometry = geometry;
@@ -121,12 +146,7 @@ void Model::simulate(float deltaTime) {
     // set up world vertices on first simulate after load
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_jointStates.isEmpty()) {
-        foreach (const FBXJoint& joint, geometry.joints) {
-            JointState state;
-            state.translation = joint.translation;
-            state.rotation = joint.rotation;
-            _jointStates.append(state);
-        }
+        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
