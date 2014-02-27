@@ -21,10 +21,10 @@ var orientation = Quat.fromPitchYawRoll(0, yaw, 0);
 
 function init() {
     if (isLocal) {
-        MyAvatar.position = {x: 10, y: 0, z: 10};
+        MyAvatar.position = {x: 5000, y: 500, z: 5000};
         MyAvatar.orientation = orientation;
     } else {
-        VoxelViewer.setPosition({x: 10, y: 0, z: 10});
+        VoxelViewer.setPosition({x: 5000, y: 500, z: 5000});
         VoxelViewer.setOrientation(orientation);
         VoxelViewer.queryOctree();
         Agent.isAvatar = true;

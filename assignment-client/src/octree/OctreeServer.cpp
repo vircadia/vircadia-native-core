@@ -703,12 +703,3 @@ void OctreeServer::run() {
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
 }
 
-
-int OctreeServer::getPacketsPerClientPerInterval() const { 
-    int totalEvenly = getPacketsTotalPerInterval() / getCurrentClientCount();
-    if (totalEvenly < 1) {
-        totalEvenly = 1;
-    }
-    int packetsPerClientPerInterval = std::min(_packetsPerClientPerInterval, totalEvenly);
-    return packetsPerClientPerInterval; 
-}
