@@ -43,7 +43,7 @@ public:
     Octree* getOctree() { return _tree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
-    int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
+    int getPacketsPerClientPerInterval() const;
     int getPacketsPerClientPerSecond() const { return getPacketsPerClientPerInterval() * INTERVALS_PER_SECOND; }
     int getPacketsTotalPerInterval() const { return _packetsTotalPerInterval; }
     int getPacketsTotalPerSecond() const { return getPacketsTotalPerInterval() * INTERVALS_PER_SECOND; }

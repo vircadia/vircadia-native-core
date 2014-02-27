@@ -163,12 +163,18 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             }
         }
         if (minutes > 0) {
+            if (hours > 0) {
+                statsString += QString(" ");
+            }
             statsString += QString("%1 minute").arg(minutes);
             if (minutes > 1) {
                 statsString += QString("s");
             }
         }
         if (seconds > 0) {
+            if (hours > 0 || minutes > 0) {
+                statsString += QString(" ");
+            }
             statsString += QString().sprintf("%.3f seconds", seconds);
         }
         statsString += "\r\n\r\n";
@@ -196,12 +202,18 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
                 }
             }
             if (minutes > 0) {
+                if (hours > 0) {
+                    statsString += QString(" ");
+                }
                 statsString += QString("%1 minute").arg(minutes);
                 if (minutes > 1) {
                     statsString += QString("s");
                 }
             }
             if (seconds >= 0) {
+                if (hours > 0 || minutes > 0) {
+                    statsString += QString(" ");
+                }
                 statsString += QString().sprintf("%.3f seconds", seconds);
             }
             statsString += "\r\n";
@@ -689,4 +701,14 @@ void OctreeServer::run() {
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+}
+
+
+int OctreeServer::getPacketsPerClientPerInterval() const { 
+    int totalEvenly = getPacketsTotalPerInterval() / getCurrentClientCount();
+    if (totalEvenly < 1) {
+        totalEvenly = 1;
+    }
+    int packetsPerClientPerInterval = std::min(_packetsPerClientPerInterval, totalEvenly);
+    return packetsPerClientPerInterval; 
 }
