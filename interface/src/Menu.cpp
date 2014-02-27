@@ -993,7 +993,7 @@ void Menu::goTo() {
             callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
             
             // there's a username entered by the user, make a request to the data-server for the associated location
-            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/location",
+            AccountManager::getInstance().authenticatedRequest("/api/v1/users/" + gotoDialog.textValue() + "/address",
                                                                QNetworkAccessManager::GetOperation,
                                                                callbackParams);
         }

@@ -1487,8 +1487,7 @@ void Application::init() {
     _myCamera.setModeShiftPeriod(1.0f);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-    _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
-    _mirrorCamera.setFieldOfView(30);
+    _mirrorCamera.setModeShiftPeriod(0.0f);
 
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -3368,9 +3367,9 @@ void Application::connectedToDomain(const QString& hostname) {
     if (accountManager.isLoggedIn()) {
         // update our domain-server with the data-server we're logged in with
         
-        QString domainPutJsonString = "{\"location\":{\"domain\":\"" + hostname + "\"}}";
+        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
         
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
 }

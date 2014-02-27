@@ -75,6 +75,8 @@ float randFloatInRange (float min,float max);
 unsigned char randomColorValue(int minimum);
 bool randomBoolean();
 
+glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
+
 bool shouldDo(float desiredInterval, float deltaTime);
 
 void outputBufferBits(const unsigned char* buffer, int length, QDebug* continuedDebug = NULL);
