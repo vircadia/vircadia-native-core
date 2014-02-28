@@ -68,6 +68,8 @@ public:
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
     
+    void renderMuteIcon(int x, int y);
+    
 public slots:
     void start();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);
@@ -146,7 +148,6 @@ private:
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
-    void renderToolIcon(int screenHeight);
 };
 
 

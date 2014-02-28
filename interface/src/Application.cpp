@@ -2487,13 +2487,12 @@ void Application::displayOverlay() {
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        _audio.renderMuteIcon(1, _glWidget->height() - 50);
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
+            int oscilloscopeTop = _glWidget->height() - 135;
             _audioScope.render(25, oscilloscopeTop);
         }
     }
-
-    //noiseTest(_glWidget->width(), _glWidget->height());
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
         _myAvatar->renderHeadMouse();

@@ -40,10 +40,7 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 // Mute icon configration
-static const int ICON_SIZE = 24;
-static const int ICON_LEFT = 0;
-static const int ICON_TOP = 115;
-static const int ICON_TOP_MIRROR = 220;
+static const int MUTE_ICON_SIZE = 24;
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
@@ -706,11 +703,9 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
     // or send to the mixer and use delayed loopback
 }
 
-void Audio::renderToolIcon(int screenHeight) {
+void Audio::renderMuteIcon(int x, int y) {
 
-    int iconTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? ICON_TOP_MIRROR : ICON_TOP;
-
-    _iconBounds = QRect(ICON_LEFT, iconTop, ICON_SIZE, ICON_SIZE);
+    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _micTextureId);
