@@ -525,6 +525,10 @@ bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadi
             }
         }
         if (ShapeCollider::shapeShape(&sphere, _shapes[i], collisions)) {
+            CollisionInfo* collision = collisions.getLastCollision();
+            collision->_type = MODEL_COLLISION;
+            collision->_data = (void*)(this);
+            collision->_flags = i;
             collided = true;
         }
         outerContinue: ;

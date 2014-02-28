@@ -80,6 +80,9 @@ public:
     /// \return pointer to collision by index.  NULL if index out of bounds.
     CollisionInfo* getCollision(int index);
 
+    /// \return pointer to last collision on the list.  NULL if list is empty
+    CollisionInfo* getLastCollision();
+
     /// \return true if list is full
     bool isFull() const { return _size == _maxSize; }
 

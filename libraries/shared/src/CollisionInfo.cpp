@@ -24,6 +24,10 @@ CollisionInfo* CollisionList::getCollision(int index) {
     return (index > -1 && index < _size) ? &(_collisions[index]) : NULL;
 }
 
+CollisionInfo* CollisionList::getLastCollision() {
+    return (_size > 0) ? &(_collisions[_size - 1]) : NULL;
+}
+
 void CollisionList::clear() {
     for (int i = 0; i < _size; ++i) {
         // we only clear the important stuff
