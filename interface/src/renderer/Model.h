@@ -237,10 +237,13 @@ protected:
     
 private:
     
+    QVector<JointState> updateGeometry(bool delayLoad);
+    void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
+    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
