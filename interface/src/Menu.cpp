@@ -850,6 +850,7 @@ void Menu::editPreferences() {
 
         _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
+    QMetaObject::invokeMethod(applicationInstance->getAudio(), "reset", Qt::QueuedConnection);
 
     sendFakeEnterEvent();
 }
