@@ -15,12 +15,14 @@
 
 #include <SphereShape.h>
 #include <CapsuleShape.h>
+#include <ShapeCollider.h>
 
 using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
-    _pupilDilation(0.0f)
+    _pupilDilation(0.0f),
+    _shapesAreDirty(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -145,11 +147,13 @@ void Model::createCollisionShapes() {
 }
 
 void Model::updateShapePositions() {
-    if (_shapes.size() == _jointStates.size()) {
+    if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
         for (int i = 0; i < _jointStates.size(); i++) {
-            _shapes[i]->setPosition(extractTranslation(_jointStates[i].transform));
+            // shape positions are stored in world-frame
+            _shapes[i]->setPosition(_rotation * extractTranslation(_jointStates[i].transform) + _translation);
             _shapes[i]->setRotation(_jointStates[i].combinedRotation);
         }
+        _shapesAreDirty = false;
     }
 }
 
@@ -500,20 +504,14 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
-bool Model::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-    CollisionList& collisions, float boneScale, int skipIndex) const {
+bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
+    CollisionList& collisions, int skipIndex) {
     bool collided = false;
-    const glm::vec3 relativeCenter = penetratorCenter - _translation;
+    updateShapePositions();
+    SphereShape sphere(sphereRadius, sphereCenter);
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::vec3 totalPenetration;
-    float radiusScale = extractUniformScale(_scale) * boneScale;
-    for (int i = 0; i < _jointStates.size(); i++) {
+    for (int i = 0; i < _shapes.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 end = extractTranslation(_jointStates[i].transform);
-        float endRadius = joint.boneRadius * radiusScale;
-        glm::vec3 start = end;
-        float startRadius = joint.boneRadius * radiusScale;
-        glm::vec3 bonePenetration;
         if (joint.parentIndex != -1) {
             if (skipIndex != -1) {
                 int ancestorIndex = joint.parentIndex;
@@ -525,24 +523,9 @@ bool Model::findSphereCollisions(const glm::vec3& penetratorCenter, float penetr
                     
                 } while (ancestorIndex != -1);
             }
-            start = extractTranslation(_jointStates[joint.parentIndex].transform);
-            startRadius = geometry.joints[joint.parentIndex].boneRadius * radiusScale;
         }
-        if (findSphereCapsuleConePenetration(relativeCenter, penetratorRadius, start, end,
-                startRadius, endRadius, bonePenetration)) {
-            totalPenetration = addPenetrations(totalPenetration, bonePenetration);
-            CollisionInfo* collision = collisions.getNewCollision();
-            if (collision) {
-                collision->_type = MODEL_COLLISION;
-                collision->_data = (void*)(this);
-                collision->_flags = i;
-                collision->_contactPoint = penetratorCenter + penetratorRadius * glm::normalize(totalPenetration);
-                collision->_penetration = totalPenetration;
-                collided = true;
-            } else {
-                // collisions are full, so we might as well break
-                break;
-            }
+        if (ShapeCollider::shapeShape(&sphere, _shapes[i], collisions)) {
+            collided = true;
         }
         outerContinue: ;
     }
@@ -550,6 +533,7 @@ bool Model::findSphereCollisions(const glm::vec3& penetratorCenter, float penetr
 }
 
 void Model::updateJointState(int index) {
+    _shapesAreDirty = true;
     JointState& state = _jointStates[index];
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
@@ -750,12 +734,14 @@ void Model::renderCollisionProxies(float alpha) {
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     updateShapePositions();
     float uniformScale = extractUniformScale(_scale);
+    glm::quat inverseRotation = glm::inverse(_rotation);
     for (int i = 0; i < _shapes.size(); i++) {
         glPushMatrix();
 
         Shape* shape = _shapes[i];
         
-        glm::vec3 position = shape->getPosition();
+        // shapes are stored in world-frame, so we have to transform into local frame
+        glm::vec3 position = inverseRotation * (shape->getPosition() - _translation);
         glTranslatef(position.x, position.y, position.z);
         
         const glm::quat& rotation = shape->getRotation();

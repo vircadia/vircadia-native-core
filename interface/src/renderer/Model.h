@@ -159,7 +159,7 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
-        CollisionList& collisions, float boneScale = 1.0f, int skipIndex = -1) const;
+        CollisionList& collisions, int skipIndex = -1);
     
     void renderCollisionProxies(float alpha);
 
@@ -188,6 +188,7 @@ protected:
         glm::quat combinedRotation;
     };
     
+    bool _shapesAreDirty;
     QVector<JointState> _jointStates;
     QVector<Shape*> _shapes;
     

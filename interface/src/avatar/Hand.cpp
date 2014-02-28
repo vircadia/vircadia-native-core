@@ -215,11 +215,12 @@ void Hand::collideAgainstOurself() {
     getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     float scaledPalmRadius = PALM_COLLISION_RADIUS * _owningAvatar->getScale();
     
+    const Model& skeletonModel = _owningAvatar->getSkeletonModel();
     for (size_t i = 0; i < getNumPalms(); i++) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
-        }        
+        }
         const Model& skeletonModel = _owningAvatar->getSkeletonModel();
         // ignoring everything below the parent of the parent of the last free joint
         int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
@@ -227,15 +228,15 @@ void Hand::collideAgainstOurself() {
                 (i == rightPalmIndex) ? skeletonModel.getRightHandJointIndex() : -1)));
 
         handCollisions.clear();
-        glm::vec3 totalPenetration;
         if (_owningAvatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions, skipIndex)) {
+            glm::vec3 totalPenetration;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
                 totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
             }
+            // resolve penetration
+            palm.addToPosition(-totalPenetration);
         }
-        // resolve penetration
-        palm.addToPosition(-totalPenetration);
     }
 }
 
