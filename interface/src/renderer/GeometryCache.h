@@ -12,24 +12,19 @@
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QHash>
 #include <QMap>
-#include <QNetworkRequest>
-#include <QObject>
 #include <QOpenGLBuffer>
-#include <QSharedPointer>
-#include <QWeakPointer>
+
+#include <ResourceCache.h>
 
 #include "FBXReader.h"
-
-class QNetworkReply;
 
 class NetworkGeometry;
 class NetworkMesh;
 class NetworkTexture;
 
 /// Stores cached geometry.
-class GeometryCache {
+class GeometryCache : public ResourceCache {
 public:
     
     ~GeometryCache();
@@ -41,8 +36,14 @@ public:
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
-    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl());
+    /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
+    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
     
+protected:
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+        
 private:
     
     typedef QPair<int, int> IntPair;
@@ -57,7 +58,7 @@ private:
 };
 
 /// Geometry loaded from the network.
-class NetworkGeometry : public QObject {
+class NetworkGeometry : public Resource {
     Q_OBJECT
 
 public:
@@ -65,16 +66,15 @@ public:
     /// A hysteresis value indicating that we have no state memory.
     static const float NO_HYSTERESIS;
     
-    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
+    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
-    ~NetworkGeometry();
 
     /// Checks whether the geometry is fulled loaded.
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
 
     /// Returns a pointer to the geometry appropriate for the specified distance.
     /// \param hysteresis a hysteresis parameter that prevents rapid model switching
-    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis) const;
+    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis, bool delayLoad = false) const;
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
@@ -82,11 +82,13 @@ public:
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
-private slots:
+    virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
+    virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
+    virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
-    void makeRequest();
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();
+protected:
+
+    virtual void downloadFinished(QNetworkReply* reply);
     
 private:
     
@@ -94,15 +96,10 @@ private:
     
     void setLODParent(const QWeakPointer<NetworkGeometry>& lodParent) { _lodParent = lodParent; }
     
-    QNetworkRequest _request;
-    QNetworkReply* _reply;
     QVariantHash _mapping;
     QUrl _textureBase;
     QSharedPointer<NetworkGeometry> _fallback;
-    bool _startedLoading;
-    bool _failedToLoad;
     
-    int _attempts;
     QMap<float, QSharedPointer<NetworkGeometry> > _lods;
     FBXGeometry _geometry;
     QVector<NetworkMesh> _meshes;

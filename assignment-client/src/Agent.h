@@ -17,9 +17,11 @@
 
 #include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
+#include <ParticleTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 #include <VoxelEditPacketSender.h>
+#include <VoxelTreeHeadlessViewer.h>
 
 
 class Agent : public ThreadedAssignment {
@@ -41,9 +43,11 @@ signals:
     void willSendVisualDataCallback();
 private:
     ScriptEngine _scriptEngine;
-    ParticleTree _particleTree;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
+
+    ParticleTreeHeadlessViewer _particleViewer;
+    VoxelTreeHeadlessViewer _voxelViewer;
 };
 
 #endif /* defined(__hifi__Agent__) */

@@ -27,42 +27,48 @@ OctreeRenderer::~OctreeRenderer() {
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    bool extraDebugging = false;
+    
+    if (extraDebugging) {
+        qDebug() << "OctreeRenderer::processDatagram()";
+    }
+
+    if (!_tree) {
+        qDebug() << "OctreeRenderer::processDatagram() called before init, calling init()...";
+        this->init();
+    }
+
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    bool extraDebugging = false; // Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
     
-    const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     int packetLength = dataByteArray.size();
-
-    unsigned char command = *packetData;
-    
+    PacketType command = packetTypeForPacket(dataByteArray);
     int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
-    
+    QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
     
     if(command == expectedType) {
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
-        
         // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
         _tree->setIsViewing(true);
-    
+
         const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(dataByteArray.data()) + numBytesPacketHeader;
 
         OCTREE_PACKET_FLAGS flags = (*(OCTREE_PACKET_FLAGS*)(dataAt));
         dataAt += sizeof(OCTREE_PACKET_FLAGS);
         OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
         dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-        
+
         OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
         dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
-        
+
         bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
         bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
         
         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
         int clockSkew = sourceNode ? sourceNode->getClockSkewUsec() : 0;
         int flightTime = arrivedAt - sentAt + clockSkew;
-        
+
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
         int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
@@ -91,7 +97,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                getDataSourceUUID(), sourceNode);
+                                                sourceUUID, sourceNode);
                 _tree->lockForWrite();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);

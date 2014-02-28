@@ -115,11 +115,11 @@ void Model::reset() {
     }
 }
 
-void Model::simulate(float deltaTime) {
+void Model::simulate(float deltaTime, bool delayLoad) {
     // update our LOD
     QVector<JointState> newJointStates;
     if (_geometry) {
-        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
+        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
         if (_geometry != geometry) {
             if (!_jointStates.isEmpty()) {
                 // copy the existing joint states
@@ -137,6 +137,10 @@ void Model::simulate(float deltaTime) {
             deleteGeometry();
             _dilatedTextures.clear();
             _geometry = geometry;
+        }
+        if (!delayLoad) {
+            _geometry->setLoadPriority(this, -_lodDistance);
+            _geometry->ensureLoading();
         }
     }
     if (!isActive()) {
@@ -443,7 +447,7 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url, const QUrl& fallback) {
+void Model::setURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
@@ -456,7 +460,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback) {
     _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -830,6 +834,10 @@ void Model::deleteGeometry() {
     _blendedVertexBufferIDs.clear();
     _jointStates.clear();
     _meshStates.clear();
+    
+    if (_geometry) {
+        _geometry->clearLoadPriority(this);
+    }
 }
 
 void Model::renderMeshes(float alpha, bool translucent) {

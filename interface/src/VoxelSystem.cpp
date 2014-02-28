@@ -867,7 +867,6 @@ void VoxelSystem::checkForCulling() {
     bool fullRedraw = (_lastKnownVoxelSizeScale != Menu::getInstance()->getVoxelSizeScale() || 
                         _lastKnownBoundaryLevelAdjust != Menu::getInstance()->getBoundaryLevelAdjust());
 
-    // track that these values
     _lastKnownVoxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
     _lastKnownBoundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
 
@@ -1386,7 +1385,6 @@ void VoxelSystem::render() {
 
     updateVBOs();
 
-    bool dontCallOpenGLDraw = Menu::getInstance()->isOptionChecked(MenuOption::DontCallOpenGLForVoxels);
     // if not don't... then do...
     if (_useVoxelShader) {
         PerformanceWarning warn(showWarnings,"render().. _useVoxelShader openGL..");
@@ -1432,9 +1430,7 @@ void VoxelSystem::render() {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
 
-        if (!dontCallOpenGLDraw) {
-            glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //The starting point of the IBO
-        }
+        glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //The starting point of the IBO
 
         // deactivate vertex and color arrays after drawing
         glDisableClientState(GL_VERTEX_ARRAY);
@@ -1477,7 +1473,7 @@ void VoxelSystem::render() {
 
         // draw voxels in 6 passes
 
-        if (!dontCallOpenGLDraw) {
+        {
             PerformanceWarning warn(showWarnings, "render().. glDrawRangeElementsEXT()...");
 
             glNormal3f(0,1.0f,0);
@@ -1510,7 +1506,6 @@ void VoxelSystem::render() {
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, GLOBAL_NORMALS_VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
                 INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
         }
-
         {
             PerformanceWarning warn(showWarnings, "render().. cleanup after glDrawRangeElementsEXT()...");
 
