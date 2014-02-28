@@ -35,9 +35,6 @@ void MetavoxelSystem::init() {
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");
-        
-        // let the script cache know to use our common access manager
-        ScriptCache::getInstance()->setNetworkAccessManager(Application::getInstance()->getNetworkAccessManager());
     }
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
