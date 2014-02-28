@@ -35,7 +35,7 @@ StrongVoxelTreePointer LocalVoxelsList::getTree(QString treeName) {
 
 void LocalVoxelsList::addPersistantTree(QString treeName, VoxelTree* tree) {
     StrongVoxelTreePointer treePtr(tree, doNothing);
-    _persistantTree.push_back(treePtr);
+    _persistantTrees.push_back(treePtr);
     _trees.insert(treeName, treePtr);
     qDebug() << "[DEBUG] LocalVoxelsList : added persistant tree (" << treeName << ")" << endl;
 }

@@ -21,6 +21,7 @@ typedef QWeakPointer<VoxelTree> WeakVoxelTreePointer;
 
 static const QString DOMAIN_TREE_NAME = "domain";
 static const QString CLIPBOARD_TREE_NAME = "clipboard";
+static const QString IMPORT_TREE_NAME = "import";
 
 /// Handles the the storage and cleanup of local named trees used by JS
 class LocalVoxelsList {
@@ -52,7 +53,7 @@ private:
     
     QHash<QString, WeakVoxelTreePointer> _trees;
     
-    QList<StrongVoxelTreePointer> _persistantTree;
+    QList<StrongVoxelTreePointer> _persistantTrees;
 };
 
 #endif /* defined(__hifi__LocalVoxelsList__) */
