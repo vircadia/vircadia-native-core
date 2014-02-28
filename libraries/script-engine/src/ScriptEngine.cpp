@@ -21,11 +21,11 @@
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
 #include <ParticlesScriptingInterface.h>
-#include <LocalVoxels.h>
 
 #include <Sound.h>
 
 #include "MenuItemProperties.h"
+#include "LocalVoxels.h"
 #include "ScriptEngine.h"
 
 const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
