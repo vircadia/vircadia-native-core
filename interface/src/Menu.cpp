@@ -56,6 +56,7 @@ Menu* Menu::getInstance() {
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
+const int FIVE_SECONDS_OF_FRAMES = 5 * 60;
 
 Menu::Menu() :
     _actionHash(),
@@ -72,6 +73,7 @@ Menu::Menu() :
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
     _lastAdjust(usecTimestampNow()),
+    _fpsAverage(FIVE_SECONDS_OF_FRAMES),
     _loginAction(NULL)
 {
     Application *appInstance = Application::getInstance();
@@ -1104,22 +1106,43 @@ void Menu::voxelStatsDetailsClosed() {
 }
 
 void Menu::autoAdjustLOD(float currentFPS) {
+    // NOTE: our first ~100 samples at app startup are completely all over the place, and we don't 
+    // really want to count them in our average, so we will ignore the real frame rates and stuff
+    // our moving average with simulated good data
+    const int IGNORE_THESE_SAMPLES = 100;
+    const float ASSUMED_FPS = 60.0f;
+    if (_fpsAverage.getSampleCount() < IGNORE_THESE_SAMPLES) {
+        currentFPS = ASSUMED_FPS;
+    }
+    _fpsAverage.updateAverage(currentFPS);
+
     bool changed = false;
     quint64 now = usecTimestampNow();
     quint64 elapsed = now - _lastAdjust;
-    
-    if (elapsed > ADJUST_LOD_DOWN_DELAY && currentFPS < ADJUST_LOD_DOWN_FPS && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+
+    if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS 
+            && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+
         _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+            _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+        }
         changed = true;
         _lastAdjust = now;
-        qDebug() << "adjusting LOD down... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+        qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
+                     << "_voxelSizeScale=" << _voxelSizeScale;
     }
 
-    if (elapsed > ADJUST_LOD_UP_DELAY && currentFPS > ADJUST_LOD_UP_FPS && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+    if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS 
+            && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
         _voxelSizeScale *= ADJUST_LOD_UP_BY;
+        if (_voxelSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+            _voxelSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+        }
         changed = true;
         _lastAdjust = now;
-        qDebug() << "adjusting LOD up... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+        qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
+                     << "_voxelSizeScale=" << _voxelSizeScale;
     }
     
     if (changed) {
