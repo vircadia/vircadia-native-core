@@ -13,10 +13,6 @@ LocalVoxels::LocalVoxels(QString name) :
     _name(name),
     _tree(new VoxelTree(true))
 {
-    if (_name == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
-    }
-    
     LocalVoxelsList::getInstance()->insert(_name, _tree);
 }
 
@@ -28,7 +24,6 @@ LocalVoxels::~LocalVoxels() {
 VoxelDetail LocalVoxels::getVoxelAt(float x, float y, float z, float scale) {
     // setup a VoxelDetail struct with the data
     VoxelDetail result = {0,0,0,0,0,0,0};
-    
     if (_tree) {
         _tree->lockForRead();
         
@@ -54,10 +49,9 @@ VoxelDetail LocalVoxels::getVoxelAt(float x, float y, float z, float scale) {
 void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
                                          uchar red, uchar green, uchar blue) {
     if (_name == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        qDebug() << "LocalVoxels::setVoxelNonDestructive(): Please use the \"Voxels\" interface to modify the domain tree.";
         return;
     }
-    
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
             _tree->createVoxel(x, y, z, scale, red, green, blue, false);
@@ -69,10 +63,9 @@ void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
 void LocalVoxels::setVoxel(float x, float y, float z, float scale,
                            uchar red, uchar green, uchar blue) {
     if (_name == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        qDebug() << "LocalVoxels::setVoxel(): Please use the \"Voxels\" interface to modify the domain tree.";
         return;
     }
-    
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
             _tree->createVoxel(x, y, z, scale, red, green, blue, true);
@@ -83,10 +76,9 @@ void LocalVoxels::setVoxel(float x, float y, float z, float scale,
 
 void LocalVoxels::eraseVoxel(float x, float y, float z, float scale) {
     if (_name == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        qDebug() << "LocalVoxels::eraseVoxel(): Please use the \"Voxels\" interface to modify the domain tree.";
         return;
     }
-    
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
             _tree->deleteVoxelAt(x, y, z, scale);
@@ -97,25 +89,20 @@ void LocalVoxels::eraseVoxel(float x, float y, float z, float scale) {
 
 void LocalVoxels::copyTo(float x, float y, float z, float scale, const QString destination) {
     if (destination == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        qDebug() << "LocalVoxels::copyTo(): Please use the \"Voxels\" interface to modify the domain tree.";
         return;
     }
-    
-    
     StrongVoxelTreePointer destinationTree = LocalVoxelsList::getInstance()->getTree(destination);
-    
     VoxelTreeElement* destinationNode = destinationTree->getVoxelAt(x, y, z, scale);
     destinationTree->copyFromTreeIntoSubTree(_tree.data(), destinationNode);
 }
 
 void LocalVoxels::pasteFrom(float x, float y, float z, float scale, const QString source) {
     if (_name == DOMAIN_TREE_NAME) {
-        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        qDebug() << "LocalVoxels::pasteFrom(): Please use the \"Voxels\" interface to modify the domain tree.";
         return;
     }
-    
     StrongVoxelTreePointer sourceTree = LocalVoxelsList::getInstance()->getTree(source);
-    
     VoxelTreeElement* sourceNode = _tree->getVoxelAt(x, y, z, scale);
     _tree->copySubTreeIntoNewTree(sourceNode, sourceTree.data(), true);
 }

@@ -1434,6 +1434,7 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     args.newBaseOctCode = octalCodeDestination;
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
+    // Switch back to clipboard if it was an import
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
         _sharedVoxelSystem.killLocalVoxels();
         _sharedVoxelSystem.changeTree(&_clipboard);
