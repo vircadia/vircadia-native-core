@@ -5,7 +5,9 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#include "SvoViewer.h"
+#include "SvoViewerConfig.h"
+
+#include "svoviewer.h"
 
 #include "GLCanvas.h"
 #include <QMimeData>

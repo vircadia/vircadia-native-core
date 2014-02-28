@@ -10,13 +10,6 @@
 /////////////////////////////////////////////////////////////////////////////
 // Helper functions
 
-inline glm::vec3 SvoViewer::computeQuickAndDirtyQuadCenter(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3)
-{
-	glm::vec3 avg = p0 + p1 + p2 + p3;
-	avg /= 4.0f;
-	return avg;
-}
-
 // Precision dependent hack. After debugging - change this to a magnitude function.
 // simple version for clarity/debugging.
 int SvoViewer::ptCompFunc(const void * a, const void * b)
