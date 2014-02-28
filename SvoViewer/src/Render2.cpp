@@ -221,11 +221,11 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 				_segmentNodeReferences[_numSegments] = childNode2ndOrder;
 				_totalPossibleElems += data.numLeaves * NUM_CUBE_FACES * 2;
 				_numSegments++;
-				DebugPrint("child node %d %d has %d leaves and %d children itself\n", i, j, data.numLeaves, childNode2ndOrder->getChildCount());
-				if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { DebugPrint("Out of segment space??? What the?\n"); break; }
+				qDebug("child node %d %d has %d leaves and %d children itself\n", i, j, data.numLeaves, childNode2ndOrder->getChildCount());
+				if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { qDebug("Out of segment space??? What the?\n"); break; }
 			}
 		}
-		if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { DebugPrint("Out of segment space??? What the?\n"); break; }
+		if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { qDebug("Out of segment space??? What the?\n"); break; }
 	}
 
 
@@ -240,7 +240,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 		_systemTree.recurseNodeWithOperation(_segmentNodeReferences[i], &TrackVisibleFaces, &visFaceData, 0);
 		// Now there's a list of all the face centers. Sort it.
 		qsort(faceCenters, visFaceData.count, sizeof(glm::vec3), ptCompFunc);
-		DebugPrint("Creating VBO's. Sorted neighbor list %d\n", i);
+		qDebug("Creating VBO's. Sorted neighbor list %d\n", i);
 
 		_readVertexStructs = new Vertex[GLOBAL_NORMALS_VERTICES_PER_VOXEL * _numChildNodeLeaves[i]];
 		memset(&_segmentIdxBuffers[i], 0, sizeof(VoxelDimIdxSet)); // Don't do it this way if we ever use a vtable for AABoundingVolumes!
@@ -269,7 +269,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 			_segmentIdxBuffers[i].bounds[k].setIsSingleDirection(true, SvoViewerNames::faceNormals[k]);
 		}
  
-		DebugPrint("Partition %d, vertices %d, indices %d, discarded %d\n", i, args.vtxCount, idxCount, args.discardedCount);
+		qDebug("Partition %d, vertices %d, indices %d, discarded %d\n", i, args.vtxCount, idxCount, args.discardedCount);
 
 		delete [] _readVertexStructs;
 		//delete [] _readIndicesArray;
