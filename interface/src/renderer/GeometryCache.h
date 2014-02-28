@@ -42,7 +42,7 @@ public:
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, void* extra);
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
         
 private:
     
@@ -82,6 +82,10 @@ public:
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
+    virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
+    virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
+    virtual void clearLoadPriority(const QPointer<QObject>& owner);
+    
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);

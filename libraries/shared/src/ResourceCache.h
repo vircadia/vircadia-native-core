@@ -48,7 +48,7 @@ protected:
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, void* extra) = 0;
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) = 0;
 
     static void attemptRequest(Resource* resource);
     static void requestCompleted();
@@ -77,10 +77,13 @@ public:
     void ensureLoading();
 
     /// Sets the load priority for one owner.
-    void setLoadPriority(const QPointer<QObject>& owner, float priority) { _loadPriorities.insert(owner, priority); }
+    virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
+    
+    /// Sets a set of priorities at once.
+    virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     
     /// Clears the load priority for one owner.
-    void clearLoadPriority(const QPointer<QObject>& owner) { _loadPriorities.remove(owner); }
+    virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
     /// Returns the highest load priority across all owners.
     float getLoadPriority();
@@ -96,6 +99,7 @@ protected:
     QNetworkRequest _request;
     bool _startedLoading;
     bool _failedToLoad;
+    QHash<QPointer<QObject>, float> _loadPriorities;
     
 private slots:
     
@@ -110,8 +114,6 @@ private:
     
     QNetworkReply* _reply;
     int _attempts;
-    
-    QHash<QPointer<QObject>, float> _loadPriorities;
 };
 
 uint qHash(const QPointer<QObject>& value, uint seed = 0);

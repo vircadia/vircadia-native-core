@@ -290,7 +290,7 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
 }
 
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, void* extra) {
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     
     QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad));
     geometry->setLODParent(geometry);
@@ -377,6 +377,57 @@ glm::vec4 NetworkGeometry::computeAverageColor() const {
     return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
 }
 
+void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
+    Resource::setLoadPriority(owner, priority);
+    
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriority(owner, priority);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriority(owner, priority);
+            }
+        }
+    }
+}
+
+void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
+    Resource::setLoadPriorities(priorities);
+    
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriorities(priorities);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriorities(priorities);
+            }
+        }
+    }
+}
+
+void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
+    Resource::clearLoadPriority(owner);
+    
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->clearLoadPriority(owner);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->clearLoadPriority(owner);
+            }
+        }
+    }
+}
+
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
     QByteArray data = reply->readAll();
@@ -433,10 +484,12 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
             if (!part.diffuseFilename.isEmpty()) {
                 networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.diffuseFilename)), false, mesh.isEye);
+                networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalFilename.isEmpty()) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.normalFilename)), true);
+                networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
                         

@@ -122,15 +122,16 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
     return id;
 }
 
-class TextureExtra {
-public:
-    bool normalMap;
-    bool dilatable;
-};
-
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
-    TextureExtra extra = { normalMap, dilatable };
-    return getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
+    if (!dilatable) {
+        return ResourceCache::getResource(url, QUrl(), false, &normalMap).staticCast<NetworkTexture>();
+    }
+    QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
+    if (texture.isNull()) {
+        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+        _dilatableNetworkTextures.insert(url, texture);
+    }
+    return texture;
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
@@ -226,10 +227,8 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, void* extra) {
-    TextureExtra* textureExtra = static_cast<TextureExtra*>(extra);
-    return QSharedPointer<Resource>(textureExtra->dilatable ? new DilatableNetworkTexture(url, textureExtra->normalMap) :
-        new NetworkTexture(url, textureExtra->normalMap));
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+    return QSharedPointer<Resource>(new NetworkTexture(url, *(const bool*)extra));
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
@@ -311,8 +310,8 @@ void NetworkTexture::imageLoaded(const QImage& image) {
     // nothing by default
 }
 
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :
-    NetworkTexture(url, normalMap),
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
+    NetworkTexture(url, false),
     _innerRadius(0),
     _outerRadius(0)
 {

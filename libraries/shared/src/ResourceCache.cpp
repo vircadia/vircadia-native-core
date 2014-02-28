@@ -105,6 +105,21 @@ void Resource::ensureLoading() {
     }
 }
 
+void Resource::setLoadPriority(const QPointer<QObject>& owner, float priority) {
+    _loadPriorities.insert(owner, priority);
+}
+
+void Resource::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
+    for (QHash<QPointer<QObject>, float>::const_iterator it = priorities.constBegin();
+            it != priorities.constEnd(); it++) {
+        _loadPriorities.insert(it.key(), it.value());
+    }
+}
+
+void Resource::clearLoadPriority(const QPointer<QObject>& owner) {
+    _loadPriorities.remove(owner);
+}
+
 float Resource::getLoadPriority() {
     float highestPriority = -FLT_MAX;
     for (QHash<QPointer<QObject>, float>::iterator it = _loadPriorities.begin(); it != _loadPriorities.end(); ) {

@@ -277,6 +277,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _networkAccessManager->setCache(cache);
 
     ResourceCache::setNetworkAccessManager(_networkAccessManager);
+    ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
 
