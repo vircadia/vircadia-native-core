@@ -117,8 +117,6 @@ public:
     
     NetworkTexture(const QUrl& url, bool normalMap);
 
-    bool isLoaded() const { return _loaded; }
-
     /// Returns the average color over the entire texture.
     const glm::vec4& getAverageColor() const { return _averageColor; }
 
@@ -135,7 +133,6 @@ private:
 
     glm::vec4 _averageColor;
     bool _translucent;
-    bool _loaded;
 };
 
 /// Caches derived, dilated textures.

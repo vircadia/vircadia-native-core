@@ -77,6 +77,7 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _request(url),
     _startedLoading(false),
     _failedToLoad(false),
+    _loaded(false),
     _attempts(0),
     _reply(NULL) {
     
@@ -106,10 +107,15 @@ void Resource::ensureLoading() {
 }
 
 void Resource::setLoadPriority(const QPointer<QObject>& owner, float priority) {
-    _loadPriorities.insert(owner, priority);
+    if (!(_failedToLoad || _loaded)) {
+        _loadPriorities.insert(owner, priority);
+    }
 }
 
 void Resource::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
+    if (_failedToLoad || _loaded) {
+        return;
+    }
     for (QHash<QPointer<QObject>, float>::const_iterator it = priorities.constBegin();
             it != priorities.constEnd(); it++) {
         _loadPriorities.insert(it.key(), it.value());
@@ -117,7 +123,9 @@ void Resource::setLoadPriorities(const QHash<QPointer<QObject>, float>& prioriti
 }
 
 void Resource::clearLoadPriority(const QPointer<QObject>& owner) {
-    _loadPriorities.remove(owner);
+    if (!(_failedToLoad || _loaded)) {
+        _loadPriorities.remove(owner);
+    }
 }
 
 float Resource::getLoadPriority() {
@@ -136,6 +144,15 @@ float Resource::getLoadPriority() {
 void Resource::attemptRequest() {
     _startedLoading = true;
     ResourceCache::attemptRequest(this);
+}
+
+void Resource::finishedLoading(bool success) {
+    if (success) {
+        _loaded = true;
+    } else {
+        _failedToLoad = true;
+    }
+    _loadPriorities.clear();
 }
 
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
@@ -182,7 +199,7 @@ void Resource::handleReplyError() {
             // fall through to final failure
         }    
         default:
-            _failedToLoad = true;
+            finishedLoading(false);
             break;
     }
 }

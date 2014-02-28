@@ -72,8 +72,6 @@ public:
     
     ScriptCache* getCache() const { return _cache; }
     
-    bool isLoaded() const { return !_program.isNull(); }
-    
     const QScriptProgram& getProgram() const { return _program; }
 
 signals:

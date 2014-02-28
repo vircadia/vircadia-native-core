@@ -57,21 +57,6 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
     return jointStates;
 }
 
-bool Model::isLoadedWithTextures() const {
-    if (!isActive()) {
-        return false;
-    }
-    foreach (const NetworkMesh& mesh, _geometry->getMeshes()) {
-        foreach (const NetworkMeshPart& part, mesh.parts) {
-            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
-                    (part.normalTexture && !part.normalTexture->isLoaded())) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 void Model::init() {
     if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();
@@ -119,7 +104,18 @@ void Model::simulate(float deltaTime, bool delayLoad) {
     // update our LOD
     QVector<JointState> newJointStates;
     if (_geometry) {
-        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+        QSharedPointer<NetworkGeometry> geometry = _geometry;
+        if (_nextGeometry) {
+            if (!delayLoad) {
+                _nextGeometry->setLoadPriority(this, -_lodDistance);
+                _nextGeometry->ensureLoading();
+            }
+            if (_nextGeometry->isLoaded()) {
+                geometry = _nextGeometry;
+                _nextGeometry.clear();
+            }
+        }
+        geometry = geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
         if (_geometry != geometry) {
             if (!_jointStates.isEmpty()) {
                 // copy the existing joint states
@@ -447,12 +443,18 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
     }
     _url = url;
+
+    // if so instructed, keep the current geometry until the new one is loaded 
+    _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    if (retainCurrent && isActive() && !_nextGeometry->isLoaded()) {
+        return;
+    }
 
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -460,7 +462,8 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    _baseGeometry = _geometry = _nextGeometry;
+    _nextGeometry.reset();
 }
 
 glm::vec4 Model::computeAverageColor() const {

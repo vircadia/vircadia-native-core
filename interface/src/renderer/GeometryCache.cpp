@@ -307,6 +307,21 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     _fallback(fallback) {
 }
 
+bool NetworkGeometry::isLoadedWithTextures() const {
+    if (!isLoaded()) {
+        return false;
+    }
+    foreach (const NetworkMesh& mesh, _meshes) {
+        foreach (const NetworkMeshPart& part, mesh.parts) {
+            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
+                    (part.normalTexture && !part.normalTexture->isLoaded())) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
     if (_lodParent.data() != this) {
         return _lodParent.data()->getLODOrFallback(distance, hysteresis, delayLoad);
@@ -438,7 +453,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qDebug() << "Mapping file " << url << " has no filename.";
-            _failedToLoad = true;
+            finishedLoading(false);
             
         } else {
             QString texdir = _mapping.value("texdir").toString();
@@ -471,7 +486,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << url << ": " << error;
-        _failedToLoad = true;
+        finishedLoading(false);
         return;
     }
     
@@ -567,6 +582,8 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         
         _meshes.append(networkMesh);
     }
+    
+    finishedLoading(true);
 }
 
 bool NetworkMeshPart::isTranslucent() const {

@@ -254,8 +254,7 @@ Texture::~Texture() {
 NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     Resource(url),
     _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
-    _translucent(false),
-    _loaded(false) {
+    _translucent(false) {
     
     if (!url.isValid()) {
         _loaded = true;
@@ -269,8 +268,6 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
-    _loaded = true;
-    
     QImage image = QImage::fromData(reply->readAll());
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
@@ -298,6 +295,7 @@ void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     _averageColor = accumulated / (imageArea * EIGHT_BIT_MAXIMUM);
     _translucent = (translucentPixels >= imageArea / 2);
     
+    finishedLoading(true);
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
