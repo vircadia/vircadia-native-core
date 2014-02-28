@@ -7,6 +7,7 @@
 
 #include "svoviewer.h"
 #include "GLCanvas.h"
+#include "TextRenderer.h"
 
 #include <cstdio>
 #include <QDesktopWidget>
@@ -211,7 +212,9 @@ void SvoViewer::init() {
 void SvoViewer::initializeGL() 
 {
     int argc = 0;
+    #ifdef WIN32
     glutInit(&argc, 0);
+    #endif
     init();
     #ifdef WIN32
         GLenum err = glewInit();
@@ -324,11 +327,12 @@ void SvoViewer::paintGL()
 	// Update every x seconds for more stability
 	quint64 tc = usecTimestampNow();
 	quint64 interval = tc - _lastTimeFpsUpdated;
-#define FPS_UPDATE_TIME_INTERVAL 2
-	if (interval > 1000 * FPS_UPDATE_TIME_INTERVAL)
-	{
-		int numFrames = _frameCount - _lastTrackedFrameCount; 
-		_fps = (float)numFrames / (float)(FPS_UPDATE_TIME_INTERVAL);
+	const quint64 USECS_PER_SECOND = 1000 * 1000;
+    const int FPS_UPDATE_TIME_INTERVAL = 2;
+	if (interval > (USECS_PER_SECOND * FPS_UPDATE_TIME_INTERVAL)) {
+		int numFrames = _frameCount - _lastTrackedFrameCount;
+		float intervalSeconds = (float)((float)interval/(float)USECS_PER_SECOND);
+		_fps = (float)numFrames / intervalSeconds;
 		_lastTrackedFrameCount = _frameCount;
 		_lastTimeFpsUpdated = tc;
 	}
@@ -336,6 +340,27 @@ void SvoViewer::paintGL()
 	PrintToScreen(10, 10, "Camera Pos : %f %f %f", pos.x, pos.y, pos.z);
 	PrintToScreen(10, 30, "Drawing %d of %d (%% %f) total elements", _numElemsDrawn, _totalPossibleElems, ((float)_numElemsDrawn / (float)_totalPossibleElems) * 100.0);
 }
+
+void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
+              char const* string, float r, float g, float b) {
+    //
+    //  Draws text on screen as stroked so it can be resized
+    //
+    glPushMatrix();
+    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
+    glColor3f(r,g,b);
+    glRotated(rotate,0,0,1);
+    // glLineWidth(thick);
+    glScalef(scale / 0.10, scale / 0.10, 1.0);
+
+    TextRenderer textRenderer(SANS_FONT_FAMILY, 11, 50);
+    textRenderer.draw(0, 0, string);
+
+    //textRenderer(mono)->draw(0, 0, string);
+
+    glPopMatrix();
+}
+
 
 #define TEMP_STRING_BUFFER_MAX 1024
 #define SHADOW_OFFSET 2
@@ -352,28 +377,23 @@ void SvoViewer::PrintToScreen(const int width, const int height, const char* szF
 	memset(szUBuff, 0, sizeof(szUBuff));
 	int len = strlen(szBuff); 
 	for (int i = 0; i < len; i++) szUBuff[i] = (unsigned char)szBuff[i];
+    qDebug() << szBuff;
+
 
 	glEnable(GL_DEPTH_TEST);
 
 	glMatrixMode( GL_PROJECTION ); 
 	glPushMatrix();
 	glLoadIdentity();
-	glOrtho(0, _width, 0, _height, 0, 1);
+    gluOrtho2D(0, _width, _height, 0);
 
 	glDisable(GL_LIGHTING);
 	glMatrixMode( GL_MODELVIEW );
 	glPushMatrix();
 	glLoadIdentity();
 
-	glColor3f(.8f, .8f, .8f); // Matt:: reverse ordering once depth enabled.
-	glRasterPos2i(width, height);
-	//glutBitmapString(GLUT_BITMAP_HELVETICA_18, szUBuff);
+    drawtext(width, height, 0.10f, 0, 1, 2, szBuff, 1,1,1);
 
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glRasterPos2i(width - SHADOW_OFFSET, height - SHADOW_OFFSET );	
-	//glutBitmapString(GLUT_BITMAP_HELVETICA_18, szUBuff);
-
-	//glEnable(GL_LIGHTING);
 	glPopMatrix();
 	glMatrixMode( GL_PROJECTION );
 	glPopMatrix();
