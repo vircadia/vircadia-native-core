@@ -11,7 +11,6 @@
 #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
-#include <QTimer>
 
 #include <glm/gtc/random.hpp>
 
@@ -123,22 +122,15 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
     return id;
 }
 
+class TextureExtra {
+public:
+    bool normalMap;
+    bool dilatable;
+};
+
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
-    QSharedPointer<NetworkTexture> texture;
-    if (dilatable) {
-        texture = _dilatableNetworkTextures.value(url);
-        if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, normalMap));
-            _dilatableNetworkTextures.insert(url, texture);
-        }
-    } else {
-        texture = _networkTextures.value(url);
-        if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url, normalMap));
-            _networkTextures.insert(url, texture);
-        }
-    }
-    return texture;
+    TextureExtra extra = { normalMap, dilatable };
+    return getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
@@ -233,6 +225,13 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
+QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, void* extra) {
+    TextureExtra* textureExtra = static_cast<TextureExtra*>(extra);
+    return QSharedPointer<Resource>(textureExtra->dilatable ? new DilatableNetworkTexture(url, textureExtra->normalMap) :
+        new NetworkTexture(url, textureExtra->normalMap));
+}
+
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
     QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
     Application::getInstance()->getGLWidget()->installEventFilter(this);
@@ -254,9 +253,7 @@ Texture::~Texture() {
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
-    _request(url),
-    _reply(NULL),
-    _attempts(0),
+    Resource(url),
     _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
     _translucent(false),
     _loaded(false) {
@@ -265,8 +262,6 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
         _loaded = true;
         return;
     }
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    makeRequest();
     
     // default to white/blue
     glBindTexture(GL_TEXTURE_2D, getID());
@@ -274,35 +269,13 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-NetworkTexture::~NetworkTexture() {
-    if (_reply != NULL) {
-        delete _reply;
-    }
-}
-
-void NetworkTexture::imageLoaded(const QImage& image) {
-    // nothing by default
-}
-
-void NetworkTexture::makeRequest() {
-    _reply = Application::getInstance()->getNetworkAccessManager()->get(_request);
-    
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
-}
-
-void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal && !_reply->isFinished()) {
-        return;
-    }
-
-    QByteArray entirety = _reply->readAll();
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
+void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     _loaded = true;
     
-    QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
+    QImage image = QImage::fromData(reply->readAll());
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
     
     // sum up the colors for the average and check for translucency
     glm::vec4 accumulated;
@@ -334,23 +307,8 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void NetworkTexture::handleReplyError() {
-    QDebug debug = qDebug() << _reply->errorString();
-    
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
-    // retry with increasing delays
-    const int MAX_ATTEMPTS = 8;
-    const int BASE_DELAY_MS = 1000;
-    if (++_attempts < MAX_ATTEMPTS) {
-        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
-        debug << " -- retrying...";
-        
-    } else {
-        _loaded = true;
-    }
+void NetworkTexture::imageLoaded(const QImage& image) {
+    // nothing by default
 }
 
 DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :
