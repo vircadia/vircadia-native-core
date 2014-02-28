@@ -226,29 +226,6 @@ void drawVector(glm::vec3 * vector) {
 
 }
 
-//  Render a 2D set of squares using perlin/fractal noise
-void noiseTest(int w, int h) {
-    const float CELLS = 500;
-    const float NOISE_SCALE = 10.0;
-    float xStep = (float) w / CELLS;
-    float yStep = (float) h / CELLS;
-    glBegin(GL_QUADS);
-    for (float x = 0; x < (float)w; x += xStep) {
-        for (float y = 0; y < (float)h; y += yStep) {
-            //  Generate a vector varying between 0-1 corresponding to the screen location
-            glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
-            //  Set the cell color using the noise value at that location
-            float color = glm::perlin(position);
-            glColor4f(color, color, color, 1.0);
-            glVertex2f(x, y);
-            glVertex2f(x + xStep, y);
-            glVertex2f(x + xStep, y + yStep);
-            glVertex2f(x, y + yStep);
-        }
-    }
-    glEnd();
-}
-
 void renderWorldBox() {
     //  Show edge of world
     float red[] = {1, 0, 0};
@@ -337,23 +314,20 @@ float widthChar(float scale, int mono, char ch) {
     return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
 }
 
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b) {
+void drawText(int x, int y, float scale, float rotate, int mono,
+              char const* string, const float* color) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-    glColor3f(r,g,b);
+    glColor3fv(color);
     glRotated(rotate,0,0,1);
-    // glLineWidth(thick);
     glScalef(scale / 0.10, scale / 0.10, 1.0);
-
     textRenderer(mono)->draw(0, 0, string);
-
     glPopMatrix();
-
 }
+
 
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //

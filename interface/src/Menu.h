@@ -27,7 +27,7 @@ const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
 const float ADJUST_LOD_DOWN_BY = 0.9f;
 const float ADJUST_LOD_UP_BY = 1.1f;
 
-const float ADJUST_LOD_MIN_SIZE_SCALE = TREE_SCALE * 1.0f;
+const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
 enum FrustumDrawMode {
@@ -193,6 +193,7 @@ private:
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    SimpleMovingAverage _fpsAverage;
     QAction* _loginAction;
 };
 

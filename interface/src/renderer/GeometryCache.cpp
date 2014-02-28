@@ -8,7 +8,6 @@
 #include <cmath>
 
 #include <QNetworkReply>
-#include <QTimer>
 
 #include "Application.h"
 #include "GeometryCache.h"
@@ -287,53 +286,25 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
 }
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
-    if (!url.isValid() && fallback.isValid()) {
-        return getGeometry(fallback, QUrl(), delayLoad);
-    }
-    QSharedPointer<NetworkGeometry> geometry = _networkGeometry.value(url);
-    if (geometry.isNull()) {
-        geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url, fallback.isValid() ?
-            getGeometry(fallback, QUrl(), true) : QSharedPointer<NetworkGeometry>(), delayLoad));
-        geometry->setLODParent(geometry);
-        _networkGeometry.insert(url, geometry);
-    }
-    return geometry;
+    return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
+}
+
+QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+    
+    QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad));
+    geometry->setLODParent(geometry);
+    return geometry.staticCast<Resource>();
 }
 
 const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
 
 NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
         const QVariantHash& mapping, const QUrl& textureBase) :
-    _request(url),
-    _reply(NULL),
+    Resource(url, delayLoad),
     _mapping(mapping),
     _textureBase(textureBase.isValid() ? textureBase : url),
-    _fallback(fallback),
-    _startedLoading(false),
-    _failedToLoad(false),
-    _attempts(0) {
-    
-    if (!url.isValid()) {
-        return;
-    }
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    
-    // start loading immediately unless instructed otherwise
-    if (!delayLoad) {    
-        makeRequest();
-    }
-}
-
-NetworkGeometry::~NetworkGeometry() {
-    if (_reply != NULL) {
-        delete _reply;
-    }
-}
-
-void NetworkGeometry::ensureLoading() {
-    if (!_startedLoading) {
-        makeRequest();
-    }
+    _fallback(fallback) {
 }
 
 QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
@@ -406,24 +377,60 @@ glm::vec4 NetworkGeometry::computeAverageColor() const {
     return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
 }
 
-void NetworkGeometry::makeRequest() {
-    _startedLoading = true;
-    _reply = Application::getInstance()->getNetworkAccessManager()->get(_request);
+void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
+    Resource::setLoadPriority(owner, priority);
     
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriority(owner, priority);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriority(owner, priority);
+            }
+        }
+    }
 }
 
-void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (!_reply->isFinished()) {
-        return;
-    }
+void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities) {
+    Resource::setLoadPriorities(priorities);
     
-    QUrl url = _reply->url();
-    QByteArray data = _reply->readAll();
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->setLoadPriorities(priorities);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->setLoadPriorities(priorities);
+            }
+        }
+    }
+}
+
+void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
+    Resource::clearLoadPriority(owner);
+    
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            if (part.diffuseTexture) {
+                part.diffuseTexture->clearLoadPriority(owner);
+            }
+            if (part.normalTexture) {
+                part.normalTexture->clearLoadPriority(owner);
+            }
+        }
+    }
+}
+
+void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
+    QUrl url = reply->url();
+    QByteArray data = reply->readAll();
     
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
@@ -453,7 +460,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
             // make the request immediately only if we have no LODs to switch between
             _startedLoading = false;
             if (_lods.isEmpty()) {
-                makeRequest();
+                attemptRequest();
             }
         }
         return;
@@ -477,10 +484,12 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
             if (!part.diffuseFilename.isEmpty()) {
                 networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.diffuseFilename)), false, mesh.isEye);
+                networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalFilename.isEmpty()) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.normalFilename)), true);
+                networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
                         
@@ -558,42 +567,6 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         
         _meshes.append(networkMesh);
     }
-}
-
-void NetworkGeometry::handleReplyError() {
-    QDebug debug = qDebug() << _reply->errorString();
-    
-    QNetworkReply::NetworkError error = _reply->error();
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
-    // retry for certain types of failures
-    switch (error) {
-        case QNetworkReply::RemoteHostClosedError:
-        case QNetworkReply::TimeoutError:
-        case QNetworkReply::TemporaryNetworkFailureError:
-        case QNetworkReply::ProxyConnectionClosedError:
-        case QNetworkReply::ProxyTimeoutError:
-        case QNetworkReply::UnknownNetworkError:
-        case QNetworkReply::UnknownProxyError:
-        case QNetworkReply::UnknownContentError:
-        case QNetworkReply::ProtocolFailure: {        
-            // retry with increasing delays
-            const int MAX_ATTEMPTS = 8;
-            const int BASE_DELAY_MS = 1000;
-            if (++_attempts < MAX_ATTEMPTS) {
-                QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
-                debug << " -- retrying...";
-                return;
-            }
-            // fall through to final failure
-        }    
-        default:
-            _failedToLoad = true;
-            break;
-    }
-    
 }
 
 bool NetworkMeshPart::isTranslucent() const {
