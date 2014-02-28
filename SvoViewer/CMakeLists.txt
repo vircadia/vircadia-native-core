@@ -114,54 +114,10 @@ include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(octree ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(metavoxels ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(particles ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
-link_hifi_library(script-engine ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
-find_package(Faceshift)
 find_package(GLM REQUIRED)
-find_package(LibOVR)
-find_package(Sixense)
-find_package(Visage)
 find_package(ZLIB)
-
-# include the Sixense library for Razer Hydra if available
-if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
-    add_definitions(-DHAVE_SIXENSE)
-    include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
-endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
-
-# likewise with Visage library for webcam feature tracking
-if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
-    add_definitions(-DHAVE_VISAGE -DVISAGE_STATIC)
-    include_directories(SYSTEM ${VISAGE_INCLUDE_DIRS})
-    if (APPLE)
-        add_definitions(-DMAC_OS_X)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment -isystem ${VISAGE_INCLUDE_DIRS}")
-        find_library(AVFoundation AVFoundation)
-        find_library(CoreMedia CoreMedia)
-        find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
-        target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-    endif (APPLE)
-    target_link_libraries(${TARGET_NAME} ${VISAGE_LIBRARIES})
-endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
-
-# and with LibOVR for Oculus Rift
-if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
-    add_definitions(-DHAVE_LIBOVR)
-    include_directories(SYSTEM ${LIBOVR_INCLUDE_DIRS})
-    if (APPLE OR UNIX)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${LIBOVR_INCLUDE_DIRS}")
-    endif (APPLE OR UNIX)
-    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
-endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
@@ -175,13 +131,11 @@ include_directories(
 # use system flag so warnings are supressed
 include_directories(
   SYSTEM
-  ${FACESHIFT_INCLUDE_DIRS}
   ${GLM_INCLUDE_DIRS}
 )
 
 target_link_libraries(
   ${TARGET_NAME}
-  ${FACESHIFT_LIBRARIES}
   ${ZLIB_LIBRARIES}
 )
 

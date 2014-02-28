@@ -328,15 +328,18 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	GLchar shaderLog[1000];
 	GLsizei shaderLogLength;
 	GLint compiled;
-	glCompileShaderARB(&_vertexShader);
+// TODO: this was Matt's original windows code, it doesn't compile on mac, due to type mismatches
+#ifdef WIN32
+	glCompileShaderARB(_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
-	glCompileShaderARB(&_geometryShader);
+	glCompileShaderARB(_geometryShader);
 	glGetShaderInfoLog(_geometryShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog g :\n %s\n", shaderLog);
-	glCompileShaderARB(&_pixelShader);
+	glCompileShaderARB(_pixelShader);
 	glGetShaderInfoLog(_pixelShader, 51000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog p :\n %s\n", shaderLog);
+#endif //def WIN32
 
 	_linkProgram = glCreateProgram();
 	glAttachShader(_linkProgram, _vertexShader);
