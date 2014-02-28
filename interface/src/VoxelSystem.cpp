@@ -55,7 +55,7 @@ GLubyte identityIndicesRight[]  = {  1, 2, 6,  1, 6, 5 };
 GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
 GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
-VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
+VoxelSystem::VoxelSystem(float treeScale, int maxVoxels, VoxelTree* tree)
     : NodeData(),
     _treeScale(treeScale),
     _maxVoxels(maxVoxels),
@@ -71,7 +71,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
-    _tree = new VoxelTree();
+    _tree = (tree) ? tree : new VoxelTree();
 
     _tree->getRoot()->setVoxelSystem(this);
 

@@ -45,7 +45,7 @@ class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public Octr
     friend class VoxelHideShowThread;
 
 public:
-    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM, VoxelTree* tree = NULL);
     ~VoxelSystem();
 
     void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
