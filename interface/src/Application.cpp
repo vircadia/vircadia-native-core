@@ -58,6 +58,7 @@
 #include <PacketHeaders.h>
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
+#include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelSceneStats.h>
 
@@ -274,6 +275,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     _networkAccessManager->setCache(cache);
+
+    ResourceCache::setNetworkAccessManager(_networkAccessManager);
+    ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(_glWidget);
 

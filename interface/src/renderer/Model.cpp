@@ -139,6 +139,7 @@ void Model::simulate(float deltaTime, bool delayLoad) {
             _geometry = geometry;
         }
         if (!delayLoad) {
+            _geometry->setLoadPriority(this, -_lodDistance);
             _geometry->ensureLoading();
         }
     }
@@ -833,6 +834,10 @@ void Model::deleteGeometry() {
     _blendedVertexBufferIDs.clear();
     _jointStates.clear();
     _meshStates.clear();
+    
+    if (_geometry) {
+        _geometry->clearLoadPriority(this);
+    }
 }
 
 void Model::renderMeshes(float alpha, bool translucent) {
