@@ -70,6 +70,9 @@ public:
     
     void renderMuteIcon(int x, int y);
     
+    int getNetworkSampleRate() { return SAMPLE_RATE; }
+    int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
+    
 public slots:
     void start();
     void addReceivedAudioToBuffer(const QByteArray& audioByteArray);

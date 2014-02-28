@@ -30,8 +30,10 @@ const glm::vec3 randVector();
 void renderWorldBox();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono, 
-              char const* string, float r=1.0, float g=1.0, float b=1.0);
+
+void drawText(int x, int y, float scale, float rotate, int mono,
+              char const* string, const float* color);
+
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
 

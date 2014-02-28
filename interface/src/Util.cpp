@@ -314,23 +314,20 @@ float widthChar(float scale, int mono, char ch) {
     return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
 }
 
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b) {
+void drawText(int x, int y, float scale, float rotate, int mono,
+              char const* string, const float* color) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-    glColor3f(r,g,b);
+    glColor3fv(color);
     glRotated(rotate,0,0,1);
-    // glLineWidth(thick);
     glScalef(scale / 0.10, scale / 0.10, 1.0);
-
     textRenderer(mono)->draw(0, 0, string);
-
     glPopMatrix();
-
 }
+
 
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
