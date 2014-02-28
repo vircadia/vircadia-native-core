@@ -539,8 +539,6 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter) / 1000.f * SAMPLE_RATE;
             setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
-            qDebug() << "Jitter measured to be " << _measuredJitter;
-            qDebug() << "JitterBufferSamples " << getJitterBufferSamples() << " Which should be 3X of jitter or " << (_measuredJitter * 3.f)/10.6 * 512;
         }
     }
 
@@ -570,7 +568,7 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
         
         if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
             //  We are still waiting for enough samples to begin playback
-            qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
+            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
             //qDebug() << "pushing " << numNetworkOutputSamples;
@@ -626,101 +624,7 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::render(int screenWidth, int screenHeight) {
-    if (_audioInput && _audioOutput) {
-        glLineWidth(2.0);
-        glBegin(GL_LINES);
-        glColor3f(.93f, .93f, .93f);
 
-        int startX = 20.0;
-        int currentX = startX;
-        int topY = screenHeight - 45;
-        int bottomY = screenHeight - 25;
-        float frameWidth = 23.0;
-        float halfY = topY + ((bottomY - topY) / 2.0);
-
-        // draw the lines for the base of the ring buffer
-
-        glVertex2f(currentX, topY);
-        glVertex2f(currentX, bottomY);
-
-        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
-            glVertex2f(currentX, halfY);
-            glVertex2f(currentX + frameWidth, halfY);
-            currentX += frameWidth;
-
-            glVertex2f(currentX, topY);
-            glVertex2f(currentX, bottomY);
-        }
-        glEnd();
-
-        // show a bar with the amount of audio remaining in ring buffer and output device
-        // beyond the current playback
-
-        int bytesLeftInAudioOutput = _audioOutput->bufferSize() - _audioOutput->bytesFree();
-        float secondsLeftForAudioOutput = (bytesLeftInAudioOutput / sizeof(int16_t))
-            / ((float) _outputFormat.sampleRate() * _outputFormat.channelCount());
-        float secondsLeftForRingBuffer = _ringBuffer.samplesAvailable()
-            / ((float) _desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
-        float msLeftForAudioOutput = (secondsLeftForAudioOutput + secondsLeftForRingBuffer) * 1000;
-
-        if (_numFramesDisplayStarve == 0) {
-            glColor3f(0, .8f, .4f);
-        } else {
-            glColor3f(0.5 + (_numFramesDisplayStarve / 20.0f), .2f, .4f);
-            _numFramesDisplayStarve--;
-        }
-
-        if (_averagedLatency == 0.0) {
-            _averagedLatency = msLeftForAudioOutput;
-        } else {
-            _averagedLatency = 0.99f * _averagedLatency + 0.01f * (msLeftForAudioOutput);
-        }
-
-        glBegin(GL_QUADS);
-        glVertex2f(startX + 1, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, bottomY - 2);
-        glVertex2f(startX + 1, bottomY - 2);
-        glEnd();
-
-        //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
-        glColor3f(1, .8f, 0);
-        glBegin(GL_QUADS);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, bottomY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, bottomY + 2);
-        glEnd();
-
-        char out[40];
-        sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10f, 0, 1, 2, out, 1, .8f, 0);
-
-        //  Show a red bar with the 'start' point of one frame plus the jitter buffer
-
-        glColor3f(1, .2f, .4f);
-        int jitterBufferPels = (1.f + (float)getJitterBufferSamples()
-                                / (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
-        sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
-        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        sprintf(out, "j %.1f\n", _measuredJitter);
-        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        } else {
-            drawtext(startX, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        }
-
-        glBegin(GL_QUADS);
-        glVertex2f(startX + jitterBufferPels - 1, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 3, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 3, bottomY + 2);
-        glVertex2f(startX + jitterBufferPels - 1, bottomY + 2);
-        glEnd();
-
-    }
-    renderToolIcon(screenHeight);
-}
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {

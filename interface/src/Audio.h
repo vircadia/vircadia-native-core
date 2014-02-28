@@ -42,9 +42,7 @@ class Audio : public AbstractAudioInterface {
 public:
     // setup for audio I/O
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
-    
-    void render(int screenWidth, int screenHeight);
-    
+
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 

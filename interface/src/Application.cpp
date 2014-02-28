@@ -2487,8 +2487,6 @@ void Application::displayOverlay() {
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        displayStatsBackground(0x33333399, 0, _glWidget->height() - 68, 296, 68);
-        _audio.render(_glWidget->width(), _glWidget->height());
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
             int oscilloscopeTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 130 : 25;
             _audioScope.render(25, oscilloscopeTop);
