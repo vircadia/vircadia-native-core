@@ -32,6 +32,9 @@ public:
     virtual NodeType_t getServerNodeType() const = 0;
     virtual OctreeEditPacketSender* createPacketSender() = 0;
 
+private slots:
+    void cleanupManagedObjects();
+    
 public slots:
     /// Set the desired max packet size in bytes that should be created
     void setMaxPacketSize(int maxPacketSize) { return _packetSender->setMaxPacketSize(maxPacketSize); }
@@ -84,9 +87,6 @@ public slots:
     /// returns the total bytes queued by this object over its lifetime
     long long unsigned int getLifetimeBytesQueued() const { return _packetSender->getLifetimeBytesQueued(); }
 
-    // TODO: hmmm... we don't want this called from JS, how to handle that?
-    void cleanupManagedObjects();
-    
 protected:
     /// attached OctreeEditPacketSender that handles queuing and sending of packets to VS
     OctreeEditPacketSender* _packetSender;

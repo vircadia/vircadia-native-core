@@ -41,7 +41,8 @@ public:
 
     /// Loads geometry from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
-    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl());
+    /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
+    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
     
 private:
     
@@ -65,16 +66,19 @@ public:
     /// A hysteresis value indicating that we have no state memory.
     static const float NO_HYSTERESIS;
     
-    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
+    NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
     ~NetworkGeometry();
 
     /// Checks whether the geometry is fulled loaded.
     bool isLoaded() const { return !_geometry.joints.isEmpty(); }
 
+    /// Makes sure that the geometry has started loading.
+    void ensureLoading();
+
     /// Returns a pointer to the geometry appropriate for the specified distance.
     /// \param hysteresis a hysteresis parameter that prevents rapid model switching
-    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis) const;
+    QSharedPointer<NetworkGeometry> getLODOrFallback(float distance, float& hysteresis, bool delayLoad = false) const;
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }

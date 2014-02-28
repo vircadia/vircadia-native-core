@@ -6,21 +6,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <cstdio>
-#include <cstring>
-#include <stdint.h>
-
-#include <NodeList.h>
-#include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <UUID.h>
+
 #include "OctreeConstants.h"
-
 #include "OctreeQuery.h"
-
-using namespace std;
-
-static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
 
 OctreeQuery::OctreeQuery() :
     NodeData(),

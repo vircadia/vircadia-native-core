@@ -286,14 +286,14 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
     buffer.release();
 }
 
-QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback) {
+QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
     if (!url.isValid() && fallback.isValid()) {
-        return getGeometry(fallback);
+        return getGeometry(fallback, QUrl(), delayLoad);
     }
     QSharedPointer<NetworkGeometry> geometry = _networkGeometry.value(url);
     if (geometry.isNull()) {
         geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url, fallback.isValid() ?
-            getGeometry(fallback) : QSharedPointer<NetworkGeometry>()));
+            getGeometry(fallback, QUrl(), true) : QSharedPointer<NetworkGeometry>(), delayLoad));
         geometry->setLODParent(geometry);
         _networkGeometry.insert(url, geometry);
     }
@@ -302,7 +302,7 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
 
 const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
 
-NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback,
+NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
         const QVariantHash& mapping, const QUrl& textureBase) :
     _request(url),
     _reply(NULL),
@@ -318,8 +318,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     }
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     
-    // if we already have a mapping (because we're an LOD), hold off on loading until we're requested
-    if (mapping.isEmpty()) {    
+    // start loading immediately unless instructed otherwise
+    if (!delayLoad) {    
         makeRequest();
     }
 }
@@ -330,9 +330,15 @@ NetworkGeometry::~NetworkGeometry() {
     }
 }
 
-QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis) const {
+void NetworkGeometry::ensureLoading() {
+    if (!_startedLoading) {
+        makeRequest();
+    }
+}
+
+QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
     if (_lodParent.data() != this) {
-        return _lodParent.data()->getLODOrFallback(distance, hysteresis);
+        return _lodParent.data()->getLODOrFallback(distance, hysteresis, delayLoad);
     }
     if (_failedToLoad && _fallback) {
         return _fallback;
@@ -357,8 +363,8 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
         return lod;
     }
     // if the ideal LOD isn't loaded, we need to make sure it's started to load, and possibly return the closest loaded one
-    if (!lod->_startedLoading) {
-        lod->makeRequest();
+    if (!delayLoad) {
+        lod->ensureLoading();
     }
     float closestDistance = FLT_MAX;
     if (isLoaded()) {
@@ -438,7 +444,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
             QVariantHash lods = _mapping.value("lod").toHash();
             for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
                 QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url.resolved(it.key()),
-                    QSharedPointer<NetworkGeometry>(), _mapping, _textureBase));    
+                    QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase));    
                 geometry->setLODParent(_lodParent);
                 _lods.insert(it.value().toFloat(), geometry);
             }     
