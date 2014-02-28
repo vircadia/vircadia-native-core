@@ -20,7 +20,8 @@ quint64 endSceneSleepTime = 0;
 OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer) :
     _nodeUUID(nodeUUID),
     _myServer(myServer),
-    _packetData()
+    _packetData(),
+    _nodeMissingCount(0)
 {
     qDebug() << "client connected";
     _myServer->clientConnected();
@@ -33,6 +34,14 @@ OctreeSendThread::~OctreeSendThread() {
 
 
 bool OctreeSendThread::process() {
+
+    const int MAX_NODE_MISSING_CHECKS = 10;
+    if (_nodeMissingCount > MAX_NODE_MISSING_CHECKS) {
+        qDebug() << "our target node:" << _nodeUUID << "has been missing the last" << _nodeMissingCount 
+                        << "times we checked, we are going to stop attempting to send.";
+        return false; // stop processing and shutdown, our node no longer exists
+    }
+
     quint64  start = usecTimestampNow();
     bool gotLock = false;
 
@@ -41,6 +50,7 @@ bool OctreeSendThread::process() {
         SharedNodePointer node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
 
         if (node) {
+            _nodeMissingCount = 0;
             // make sure the node list doesn't kill our node while we're using it
             if (node->getMutex().tryLock()) {
                 gotLock = true;
@@ -61,6 +71,8 @@ bool OctreeSendThread::process() {
 
                 node->getMutex().unlock(); // we're done with this node for now.
             }
+        } else {
+            _nodeMissingCount++;
         }
     } else {
         if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
