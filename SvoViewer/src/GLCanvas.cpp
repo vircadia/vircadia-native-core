@@ -7,7 +7,7 @@
 
 #include "SvoViewerConfig.h"
 
-#include "SvoViewer.h"
+#include "svoviewer.h"
 
 #include "GLCanvas.h"
 #include <QMimeData>
