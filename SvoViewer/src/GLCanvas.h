@@ -1,9 +1,7 @@
 //
 //  GLCanvas.h
-//  hifi
 //
-//  Created by Stephen Birarda on 8/14/13.
-//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__GLCanvas__

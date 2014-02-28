@@ -2,6 +2,8 @@
 //  AABoundingVolume.h - Axis Aligned Bounding Volumes
 //  hifi
 //
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//
 
 #ifndef _AABOUNDING_VOLUME_
 #define _AABOUNDING_VOLUME_

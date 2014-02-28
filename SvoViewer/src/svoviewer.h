@@ -1,3 +1,11 @@
+//
+//  svoviewer.h
+//
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//
+
+
+
 #ifndef SVOVIEWER_H
 #define SVOVIEWER_H
 

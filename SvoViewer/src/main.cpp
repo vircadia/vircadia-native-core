@@ -1,3 +1,9 @@
+//
+//  main.cpp
+//
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//
+
 #include "svoviewer.h"
 #include <QtWidgets/QApplication>
 

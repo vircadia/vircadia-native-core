@@ -1,3 +1,8 @@
+//
+//  globals.h
+//
+//  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
+//
 
 #pragma once
 
