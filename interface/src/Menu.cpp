@@ -262,8 +262,6 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
-    addAvatarCollisionSubMenu(avatarOptionsMenu);
-    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -852,6 +850,7 @@ void Menu::editPreferences() {
 
         _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
+    QMetaObject::invokeMethod(applicationInstance->getAudio(), "reset", Qt::QueuedConnection);
 
     sendFakeEnterEvent();
 }
