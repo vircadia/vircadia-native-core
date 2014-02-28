@@ -20,6 +20,7 @@
 class OctreeSendThread : public GenericThread {
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
+    virtual ~OctreeSendThread();
 
     static quint64 _totalBytes;
     static quint64 _totalWastedBytes;

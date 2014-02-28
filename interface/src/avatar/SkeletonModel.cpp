@@ -18,9 +18,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime) {
+void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
     if (!isActive()) {
-        Model::simulate(deltaTime);
+        Model::simulate(deltaTime, delayLoad);
         return;
     }
     setTranslation(_owningAvatar->getPosition());
@@ -28,7 +28,7 @@ void SkeletonModel::simulate(float deltaTime) {
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
 
-    Model::simulate(deltaTime);
+    Model::simulate(deltaTime, delayLoad);
 
     // find the left and rightmost active Leap palms
     int leftPalmIndex, rightPalmIndex;

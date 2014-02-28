@@ -36,7 +36,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    void simulate(float deltaTime, bool isMine, bool delayLoad = false);
     void render(float alpha);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }

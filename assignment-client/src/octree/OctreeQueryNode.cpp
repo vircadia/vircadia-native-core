@@ -161,7 +161,7 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
 OctreeQueryNode::~OctreeQueryNode() {
     if (_octreeSendThread) {
         _octreeSendThread->terminate();
-        _octreeSendThread->deleteLater();
+        delete _octreeSendThread;
     }
 
     delete[] _octreePacket;
