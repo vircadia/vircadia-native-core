@@ -163,7 +163,12 @@ public:
 
 	// Some helper functions.
 	GLubyte SetupGlVBO(GLuint * id, int sizeInBytes, GLenum target, GLenum usage, void * dataUp );
-	static glm::vec3 computeQuickAndDirtyQuadCenter(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3);
+	static glm::vec3 computeQuickAndDirtyQuadCenter(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
+        glm::vec3 avg = p0 + p1 + p2 + p3;
+        avg /= 4.0f;
+        return avg;
+    }
+
 	bool isVisibleBV(AABoundingVolume * volume, Camera * camera, ViewFrustum * frustum);
 	float visibleAngleSubtended(AABoundingVolume * volume, Camera * camera, ViewFrustum * frustum);
 	static int ptCompFunc(const void * a, const void * b);
@@ -317,5 +322,6 @@ private:
 
 //Extern hack since this wasn't built with global linking to old project in mind.
 extern SvoViewer * _globalSvoViewerObj;
+
 
 #endif // SVOVIEWER_H
