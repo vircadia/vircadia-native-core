@@ -77,15 +77,42 @@ SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 
 	_window->setCentralWidget(_glWidget);
 
-	DebugPrint("Window initialized\n");
+	qDebug("Window initialized\n");
 
 	_window->setVisible(true);
 	_glWidget->setFocusPolicy(Qt::StrongFocus);
 	_glWidget->setFocus();
 	_glWidget->setMouseTracking(true);
-
 	
-	_currentShaderModel = RENDER_OPT_CULLED_POLYS; //RENDER_OPT_POLYS;// RENDER_CLASSIC_POLYS; //RENDER_POINTS;//
+	QString svoFileToRead;
+	QString shaderMode;
+
+    QStringList argumentList = arguments();
+    int argumentIndex = 0;
+    
+    // check if this domain server should use no authentication or a custom hostname for authentication
+    const QString FILE_NAME = "--file";
+    const QString SHADER_MODE = "--mode";
+    if (argumentList.indexOf(FILE_NAME) != -1) {
+        svoFileToRead = argumentList.value(argumentList.indexOf(FILE_NAME) + 1);
+        qDebug() << "file:" << svoFileToRead;
+    }
+    if (argumentList.indexOf(SHADER_MODE) != -1) {
+        shaderMode = argumentList.value(argumentList.indexOf(SHADER_MODE) + 1);
+        qDebug() << "shaderMode:" << shaderMode;
+    }
+
+    if (shaderMode == "RENDER_OPT_CULLED_POLYS") {
+        _currentShaderModel = RENDER_OPT_CULLED_POLYS;
+    } else if (shaderMode == "RENDER_OPT_POLYS") {
+        _currentShaderModel = RENDER_OPT_POLYS;
+    } else if (shaderMode == "RENDER_CLASSIC_POLYS") {
+        _currentShaderModel = RENDER_CLASSIC_POLYS;
+    } else if (shaderMode == "RENDER_POINTS") {
+        _currentShaderModel = RENDER_POINTS;
+    } else {
+    	_currentShaderModel = RENDER_OPT_CULLED_POLYS;
+    }
 	memset(&_renderFlags, 0, sizeof(_renderFlags));
 	_renderFlags.useShadows = false;
 
@@ -94,29 +121,34 @@ SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 	// We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...
     float voxelSize = 0.5f / TREE_SCALE;
 
-	DebugPrint("Reading SVO file\n");
+	qDebug("Reading SVO file\n");
 
 	//H:\highfidelity\hifi-19509\build\interface\resources\voxels1A.svo
+	/**
     const int MAX_PATH = 1024;
 	char svoFileToRead[MAX_PATH] = "./voxels10.svo"; //"H:\\highfidelity\\hifi-19509\\build\\interface\\resources\\voxels10.svo"
-	if (argc > 1) strcpy(svoFileToRead, argv[1]); // Command line is arg 0 by default.
+	if (argc > 1) {
+	    strcpy(svoFileToRead, argv[1]); // Command line is arg 0 by default.
+	    qDebug() << svoFileToRead;
+	}
+	**/
 
-	//DebugPrint("Sizeof Octree element is %d\n", sizeof(OctreeElement));
+	//qDebug("Sizeof Octree element is %d\n", sizeof(OctreeElement));
 
 	quint64 readStart = usecTimestampNow();
-	bool readSucceeded = _systemTree.readFromSVOFile(svoFileToRead);
-	DebugPrint("Done reading SVO file : %f seconds :  ", (float)(usecTimestampNow() - readStart) / 1000.0f);
-	readSucceeded ? DebugPrint("Succeeded\n") : DebugPrint("Failed\n");
+	bool readSucceeded = _systemTree.readFromSVOFile(qPrintable(svoFileToRead));
+	qDebug("Done reading SVO file : %f seconds :  ", (float)(usecTimestampNow() - readStart) / 1000.0f);
+	readSucceeded ? qDebug("Succeeded\n") : qDebug("Failed\n");
 
 	// this should exist... we just loaded it...
     if (_systemTree.getVoxelAt(voxelSize, 0, voxelSize, voxelSize)) {
-        DebugPrint("corner point voxelSize, 0, voxelSize exists...\n");
+        qDebug("corner point voxelSize, 0, voxelSize exists...\n");
     } else {
-        DebugPrint("corner point voxelSize, 0, voxelSize does not exists...\n");
+        qDebug("corner point voxelSize, 0, voxelSize does not exists...\n");
     }
 
     _nodeCount = _systemTree.getOctreeElementsCount();
-    DebugPrint("Nodes after loading file: %ld nodes\n", _nodeCount);
+    qDebug("Nodes after loading file: %ld nodes\n", _nodeCount);
 
 		// Initialize the display model we're using.
 	switch(_currentShaderModel)
@@ -185,9 +217,9 @@ void SvoViewer::initializeGL()
         GLenum err = glewInit();
         if (GLEW_OK != err) {
             /* Problem: glewInit failed, something is seriously wrong. */
-            DebugPrint("Error: %s\n", glewGetErrorString(err));
+            qDebug("Error: %s\n", glewGetErrorString(err));
         }
-        DebugPrint("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+        qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
     #endif
     glViewport(0, 0, _width, _height);
     glGetIntegerv(GL_VIEWPORT, _viewport);
@@ -205,7 +237,7 @@ void SvoViewer::initializeGL()
     //_idleLoopStdev.reset();
     _lastTimeFpsUpdated = _lastTimeFpsUpdated = usecTimestampNow();
     float startupTime = (float)(_lastTimeFpsUpdated - _appStartTickCount) / 1000.0;
-    DebugPrint("Startup time: %4.2f seconds.", startupTime);
+    qDebug("Startup time: %4.2f seconds.", startupTime);
     //// update before the first render
     updateProjectionMatrix(_myCamera, true);
     update(0.0f);
@@ -628,24 +660,10 @@ float SvoViewer::visibleAngleSubtended(AABoundingVolume * volume, Camera * camer
 	return area / (float)_pixelCount;
 }
 
-void SvoViewer::DebugPrint(const char* szFormat, ...)
-{
-    /**
-    char szBuff[TEMP_STRING_BUFFER_MAX]; 
-	assert(strlen(szFormat) < TEMP_STRING_BUFFER_MAX); // > max_path. Use this only for small messages.
-    va_list arg;
-    va_start(arg, szFormat);
-    vsnprintf(szBuff, sizeof(szBuff), TEMP_STRING_BUFFER_MAX-100, szFormat, arg);
-    va_end(arg);
-    **/
-
-    qDebug(szFormat);
-}
-
 GLubyte SvoViewer::PrintGLErrorCode()
 {
 	GLubyte  err = glGetError();
-	if( err != GL_NO_ERROR ) //DebugPrint("GL Error! : %x\n", err);
-		DebugPrint("Error! : %u, %s\n", (unsigned int)err, gluErrorString(err));
+	if( err != GL_NO_ERROR ) //qDebug("GL Error! : %x\n", err);
+		qDebug("Error! : %u, %s\n", (unsigned int)err, gluErrorString(err));
 	return err;
 }
