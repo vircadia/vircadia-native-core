@@ -8,6 +8,7 @@
 
 #include <VoxelImporter.h>
 #include <Application.h>
+#include <LocalVoxelsList.h>
 
 #include <QFileInfo>
 #include <QThreadPool>
@@ -31,6 +32,8 @@ VoxelImporter::VoxelImporter(QWidget* parent) :
     _task(NULL),
     _didImport(false)
 {
+    LocalVoxelsList::getInstance()->addPersistantTree(IMPORT_TREE_NAME, &_voxelTree);
+    
     connect(&_voxelTree, SIGNAL(importProgress(int)), &_importDialog, SLOT(setProgressBarValue(int)));
     connect(&_importDialog, SIGNAL(canceled()), this, SLOT(cancel()));
     connect(&_importDialog, SIGNAL(accepted()), this, SLOT(import()));
