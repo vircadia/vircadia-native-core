@@ -724,24 +724,7 @@ void Audio::render(int screenWidth, int screenHeight) {
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
-    const float MAX_AUDIBLE_VELOCITY = 6.0f;
-    const float MIN_AUDIBLE_VELOCITY = 0.1f;
-    const int VOLUME_BASELINE = 400;
-    const float SOUND_PITCH = 8.f;
-
-    float speed = glm::length(_lastVelocity);
-    float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
-
     float sample;
-
-    // Travelling noise
-    //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
-    if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
-        for (int i = 0; i < numSamples; i++) {
-            monoInput[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH )
-                                      * volume * (1.f + randFloat() * 0.25f) * speed);
-        }
-    }
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
     const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
     const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
