@@ -38,9 +38,6 @@ public slots:
 
     void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
     void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
-    
-    void copyTo(float x, float y, float z, float s, const QString source, const QString destination);
-    void pasteFrom(float x, float y, float z, float s, const QString source, const QString destination);
 };
 
 #endif // __interface__Clipboard__

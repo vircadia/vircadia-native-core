@@ -93,22 +93,3 @@ void ClipboardScriptingInterface::nudgeVoxel(float x, float y, float z, float s,
 
     Application::getInstance()->nudgeVoxelsByVector(sourceVoxel, nudgeVecInTreeSpace);
 }
-
-void ClipboardScriptingInterface::copyTo(float x, float y, float z, float s,
-                                         const QString source, const QString destination) {
-    StrongVoxelTreePointer sourceTree = LocalVoxelsList::getInstance()->getTree(source);
-    StrongVoxelTreePointer destinationTree = LocalVoxelsList::getInstance()->getTree(destination);
-    
-    VoxelTreeElement* destinationNode = destinationTree->getVoxelAt(x, y, z, s);
-    destinationTree->copyFromTreeIntoSubTree(sourceTree.data(), destinationNode);
-    
-}
-
-void ClipboardScriptingInterface::pasteFrom(float x, float y, float z, float s,
-                                            const QString source, const QString destination) {
-    StrongVoxelTreePointer sourceTree = LocalVoxelsList::getInstance()->getTree(source);
-    StrongVoxelTreePointer destinationTree = LocalVoxelsList::getInstance()->getTree(destination);
-    
-    VoxelTreeElement* sourceNode = sourceTree->getVoxelAt(x, y, z, s);
-    destinationTree->copySubTreeIntoNewTree(sourceNode, destinationTree.data(), true);
-}
