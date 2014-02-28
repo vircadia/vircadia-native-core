@@ -11,14 +11,11 @@
 
 #pragma once
 
+#include "SvoViewerConfig.h"
+
 #include <QApplication>
 #include <QGLWidget>
 
-/***
-#define GL_GLEXT_PROTOTYPES 1
-#define GLEW_STATIC
-#include <windowshacks.h>
- ***/
 #include "globals.h"
 #include "AABoundingVolume.h"
 

@@ -4,16 +4,15 @@
 //
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include "SvoViewerConfig.h"
+
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
-#include <EventTypes.h>
 
 #include "Camera.h"
-#include "Menu.h"
-#include "Util.h"
 
 const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
