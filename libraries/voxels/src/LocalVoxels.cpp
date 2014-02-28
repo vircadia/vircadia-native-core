@@ -13,6 +13,13 @@ LocalVoxels::LocalVoxels(QString name) :
     _name(name),
     _tree(new VoxelTree(true))
 {
+    // Don't allow creation of a local tree pointing to the domain tree.
+    if (_name == DOMAIN_TREE_NAME) {
+        qDebug() << "Please use the \"Voxels\" interface to modify the domain tree.";
+        _name.clear();
+        _tree.clear();
+    }
+    
     LocalVoxelsList::getInstance()->insert(_name, _tree);
 }
 
@@ -21,13 +28,40 @@ LocalVoxels::~LocalVoxels() {
     LocalVoxelsList::getInstance()->remove(_name);
 }
 
-void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
-                                         uchar red, uchar green, uchar blue) {if (_tree ) {
-    if (_tree->tryLockForWrite()) {
-        _tree->createVoxel(x, y, z, scale, red, green, blue, false);
+VoxelDetail LocalVoxels::getVoxelAt(float x, float y, float z, float scale) {
+    // setup a VoxelDetail struct with the data
+    VoxelDetail result = {0,0,0,0,0,0,0};
+    
+    if (_tree) {
+        _tree->lockForRead();
+        
+        VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(_tree->getOctreeElementAt(x / (float)TREE_SCALE,
+                                                                                           y / (float)TREE_SCALE,
+                                                                                           z / (float)TREE_SCALE,
+                                                                                           scale / (float)TREE_SCALE));
         _tree->unlock();
+        if (voxel) {
+            // Note: these need to be in voxel space because the VoxelDetail -> js converter will upscale
+            result.x = voxel->getCorner().x;
+            result.y = voxel->getCorner().y;
+            result.z = voxel->getCorner().z;
+            result.s = voxel->getScale();
+            result.red = voxel->getColor()[RED_INDEX];
+            result.green = voxel->getColor()[GREEN_INDEX];
+            result.blue = voxel->getColor()[BLUE_INDEX];
+        }
     }
+    return result;
 }
+
+void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
+                                         uchar red, uchar green, uchar blue) {
+    if (_tree ) {
+        if (_tree->tryLockForWrite()) {
+            _tree->createVoxel(x, y, z, scale, red, green, blue, false);
+            _tree->unlock();
+        }
+    }
 }
 
 void LocalVoxels::setVoxel(float x, float y, float z, float scale,
