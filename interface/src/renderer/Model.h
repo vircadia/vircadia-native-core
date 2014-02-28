@@ -46,6 +46,8 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
+    bool isRenderable() const { return !_meshStates.isEmpty(); }
+    
     bool isLoadedWithTextures() const;
     
     void init();

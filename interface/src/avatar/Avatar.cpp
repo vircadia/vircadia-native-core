@@ -309,6 +309,9 @@ void Avatar::renderBody() {
         renderBillboard();
         return;
     }
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
+    }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
     getHand()->render(false);
