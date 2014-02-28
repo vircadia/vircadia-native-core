@@ -260,8 +260,6 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
-    addAvatarCollisionSubMenu(avatarOptionsMenu);
-    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
