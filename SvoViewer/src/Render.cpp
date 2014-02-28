@@ -61,7 +61,7 @@ bool SvoViewer::PointRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 
 void SvoViewer::InitializePointRenderSystem()
 {
-	DebugPrint("Initializing point render system!\n");
+	qDebug("Initializing point render system!\n");
 	quint64 fstart = usecTimestampNow();
 	_renderFlags.voxelRenderDirty = true;
 	_renderFlags.voxelOptRenderDirty = true;
@@ -93,7 +93,7 @@ void SvoViewer::InitializePointRenderSystem()
 	_renderFlags.ptRenderDirty = false;
 	_ptRenderInitialized = true;
 	float elapsed = (float)(usecTimestampNow() - fstart) / 1000.f;
-	DebugPrint("Point render intialization took %f time for %d nodes\n", elapsed, _nodeCount);
+	qDebug("Point render intialization took %f time for %d nodes\n", elapsed, _nodeCount);
 }
 
 void SvoViewer::RenderTreeSystemAsPoints()
@@ -222,7 +222,7 @@ bool SvoViewer::VoxelRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 
 	if (totalNodesProcessedSinceLastFlush >= REASONABLY_LARGE_BUFFER) // Flush data to GL once we have assembled enough of it.
 	{
-		//DebugPrint("committing!\n");
+		//qDebug("committing!\n");
 		PrintGLErrorCode();
 		glBindBuffer(GL_ARRAY_BUFFER, args->vtxID);
         glBufferSubData(GL_ARRAY_BUFFER, args->lastBufferSegmentStart * sizeof(glm::vec3) * GLOBAL_NORMALS_VERTICES_PER_VOXEL, 
@@ -252,7 +252,7 @@ bool SvoViewer::VoxelRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 
 void SvoViewer::InitializeVoxelRenderSystem()
 {
-	DebugPrint("Initializing voxel render system.\n");
+	qDebug("Initializing voxel render system.\n");
 
 	FindNumLeavesData data;
 	data.numLeaves = 0;	
@@ -330,13 +330,13 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	GLint compiled;
 	glCompileShaderARB(&_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
-	if (shaderLog[0] != 0) DebugPrint("Shaderlog v :\n %s\n", shaderLog);
+	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
 	glCompileShaderARB(&_geometryShader);
 	glGetShaderInfoLog(_geometryShader, 1000, &shaderLogLength, shaderLog);
-	if (shaderLog[0] != 0) DebugPrint("Shaderlog g :\n %s\n", shaderLog);
+	if (shaderLog[0] != 0) qDebug("Shaderlog g :\n %s\n", shaderLog);
 	glCompileShaderARB(&_pixelShader);
 	glGetShaderInfoLog(_pixelShader, 51000, &shaderLogLength, shaderLog);
-	if (shaderLog[0] != 0) DebugPrint("Shaderlog p :\n %s\n", shaderLog);
+	if (shaderLog[0] != 0) qDebug("Shaderlog p :\n %s\n", shaderLog);
 
 	_linkProgram = glCreateProgram();
 	glAttachShader(_linkProgram, _vertexShader);
@@ -345,7 +345,7 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	glLinkProgram(_linkProgram);     
 	GLint linked;
 	glGetProgramiv(_linkProgram, GL_LINK_STATUS, &linked);
-	if (!linked) DebugPrint("Linking failed! %d\n", linked);
+	if (!linked) qDebug("Linking failed! %d\n", linked);
   
 
 	_voxelOptRenderInitialized = true;
@@ -643,11 +643,11 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 				_segmentNodeReferences[_numSegments] = childNode2ndOrder;
 				_totalPossibleElems += data.numLeaves * NUM_CUBE_FACES * 2;
 				_numSegments++;
-				DebugPrint("child node %d %d has %d leaves and %d children itself\n", i, j, data.numLeaves, childNode2ndOrder->getChildCount());
-				if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { DebugPrint("Out of segment space??? What the?\n"); break; }
+				qDebug("child node %d %d has %d leaves and %d children itself\n", i, j, data.numLeaves, childNode2ndOrder->getChildCount());
+				if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { qDebug("Out of segment space??? What the?\n"); break; }
 			}
 		}
-		if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { DebugPrint("Out of segment space??? What the?\n"); break; }
+		if (_numSegments >= MAX_NUM_OCTREE_PARTITIONS ) { qDebug("Out of segment space??? What the?\n"); break; }
 	}
 
 
@@ -662,7 +662,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 		_systemTree.recurseNodeWithOperation(_segmentNodeReferences[i], &TrackVisibleFaces, &visFaceData, 0);
 		// Now there's a list of all the face centers. Sort it.
 		qsort(faceCenters, visFaceData.count, sizeof(glm::vec3), ptCompFunc);
-		DebugPrint("Creating VBO's. Sorted neighbor list %d\n", i);
+		qDebug("Creating VBO's. Sorted neighbor list %d\n", i);
 
 		_readVertexStructs = new Vertex[GLOBAL_NORMALS_VERTICES_PER_VOXEL * _numChildNodeLeaves[i]];
 		_readIndicesArray  = new GLuint[NUM_CUBE_FACES * 2 * 3 * _numChildNodeLeaves[i]];
@@ -683,7 +683,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 		SetupGlVBO(&_vboOVerticesIds[i], args.vtxCount * sizeof(Vertex), GL_ARRAY_BUFFER, GL_STATIC_DRAW, _readVertexStructs);				
 		SetupGlVBO(&_vboOIndicesIds[i], args.idxCount * sizeof(GLuint), GL_ARRAY_BUFFER, GL_STATIC_DRAW, _readIndicesArray);
 
-		DebugPrint("Partition %d, vertices %d, indices %d, discarded %d\n", i, args.vtxCount, args.idxCount, args.discardedCount);
+		qDebug("Partition %d, vertices %d, indices %d, discarded %d\n", i, args.vtxCount, args.idxCount, args.discardedCount);
 
 		delete [] _readVertexStructs;
 		delete [] _readIndicesArray;

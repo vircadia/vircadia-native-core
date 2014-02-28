@@ -162,7 +162,6 @@ public:
     void mouseReleaseEvent(QMouseEvent* event);
 
 	void PrintToScreen(const int width, const int height, const char* szFormat, ...);
-	static void DebugPrint(const char* szFormat, ...); // utility function.
 	static GLubyte PrintGLErrorCode();
 
 	// Some helper functions.
