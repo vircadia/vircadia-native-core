@@ -456,10 +456,10 @@ public:
 
 private:
      
-     QWeakPointer<Resource> _geometry;
-     QUrl _url;
-     QByteArray _data;
-     QVariantHash _mapping;
+    QWeakPointer<Resource> _geometry;
+    QUrl _url;
+    QByteArray _data;
+    QVariantHash _mapping;
 };
 
 GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
