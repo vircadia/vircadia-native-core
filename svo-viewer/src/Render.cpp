@@ -80,7 +80,7 @@ void SvoViewer::InitializePointRenderSystem()
 	_pointVerticesCount = args.count;
 
 	// create the data store.
-	int size = _nodeCount * sizeof(glm::vec3);
+	//int size = _nodeCount * sizeof(glm::vec3);
 	glBindBuffer( GL_ARRAY_BUFFER, _pointVtxBuffer);
 	glBufferData(GL_ARRAY_BUFFER, _nodeCount * 3, args.buffer, GL_STATIC_DRAW);
 	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -92,7 +92,7 @@ void SvoViewer::InitializePointRenderSystem()
 	_renderFlags.ptRenderDirty = false;
 	_ptRenderInitialized = true;
 	float elapsed = (float)(usecTimestampNow() - fstart) / 1000.f;
-	qDebug("Point render intialization took %f time for %d nodes\n", elapsed, _nodeCount);
+	qDebug("Point render intialization took %f time for %ld nodes\n", elapsed, _nodeCount);
 }
 
 void SvoViewer::RenderTreeSystemAsPoints()
@@ -324,11 +324,11 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	glShaderSource(_geometryShader, 1, &simpleGeomShaderSrc, &simpleGeomShaderLen);
 	glShaderSource(_pixelShader, 1, &simpleFragShaderSrc, &simpleFragShaderLen);
 
+// TODO: this was Matt's original windows code, it doesn't compile on mac, due to type mismatches
+#ifdef WIN32
 	GLchar shaderLog[1000];
 	GLsizei shaderLogLength;
 	GLint compiled;
-// TODO: this was Matt's original windows code, it doesn't compile on mac, due to type mismatches
-#ifdef WIN32
 	glCompileShaderARB(_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
@@ -621,7 +621,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 	// Set up the segments. Find the number of leaves at each subtree. 
 	OctreeElement * rootNode = _systemTree.getRoot();
 	OctreeElement* node0fromRoot = rootNode->getChildAtIndex(0); // ALL the interesting data for our test SVO is in this node! HACK!!
-	int rootNumChildren = rootNode->getChildCount();
+	//int rootNumChildren = rootNode->getChildCount();
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
@@ -632,7 +632,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
 			if (childNode2ndOrder == NULL) continue;
 
-			int num2ndOrderChildren = childNode2ndOrder->getChildCount();
+			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.
 			FindNumLeavesData data;
 			data.numLeaves = 0;

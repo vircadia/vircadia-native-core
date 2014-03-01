@@ -190,7 +190,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 	// Set up the segments. Find the number of leaves at each subtree. 
 	OctreeElement * rootNode = _systemTree.getRoot();
 	OctreeElement* node0fromRoot = rootNode->getChildAtIndex(0); // ALL the interesting data for our test SVO is in this node! HACK!!
-	int rootNumChildren = rootNode->getChildCount();
+	//int rootNumChildren = rootNode->getChildCount();
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
@@ -201,7 +201,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
 			if (childNode2ndOrder == NULL) continue;
 
-			int num2ndOrderChildren = childNode2ndOrder->getChildCount();
+			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.
 			FindNumLeavesData data;
 			data.numLeaves = 0;
@@ -328,7 +328,7 @@ void SvoViewer::UpdateOpt2BVFaceVisibility()
 {
 	if (_currentShaderModel != RENDER_OPT_CULLED_POLYS || _voxelOptRenderInitialized != true ) return; 
 
-	float faceParamVals[NUM_CUBE_FACES];
+	//float faceParamVals[NUM_CUBE_FACES];
 	glm::vec3 pos = _myCamera.getPosition();
 
 	for (int i = 0; i < _numSegments; i++)
