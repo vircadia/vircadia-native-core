@@ -9,23 +9,19 @@
 #ifndef __interface__TextureCache__
 #define __interface__TextureCache__
 
-#include <QHash>
 #include <QImage>
 #include <QMap>
-#include <QNetworkRequest>
-#include <QObject>
-#include <QSharedPointer>
-#include <QWeakPointer>
+
+#include <ResourceCache.h>
 
 #include "InterfaceConfig.h"
 
-class QNetworkReply;
 class QOpenGLFramebufferObject;
 
 class NetworkTexture;
 
 /// Stores cached textures, including render-to-texture targets.
-class TextureCache : public QObject {
+class TextureCache : public ResourceCache {
     Q_OBJECT
     
 public:
@@ -73,6 +69,11 @@ public:
     
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
+protected:
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+        
 private:
     
     QOpenGLFramebufferObject* createFramebufferObject();
@@ -83,7 +84,6 @@ private:
     
     QHash<QString, GLuint> _fileTextureIDs;
 
-    QHash<QUrl, QWeakPointer<NetworkTexture> > _networkTextures;
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
     
     GLuint _primaryDepthTextureID;
@@ -110,15 +110,12 @@ private:
 };
 
 /// A texture loaded from the network.
-class NetworkTexture : public QObject, public Texture {
+class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
     
     NetworkTexture(const QUrl& url, bool normalMap);
-    ~NetworkTexture();
-
-    bool isLoaded() const { return _loaded; }
 
     /// Returns the average color over the entire texture.
     const glm::vec4& getAverageColor() const { return _averageColor; }
@@ -129,22 +126,15 @@ public:
 
 protected:
 
-    virtual void imageLoaded(const QImage& image);    
-    
-private slots:
-    
-    void makeRequest();
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();    
+    virtual void downloadFinished(QNetworkReply* reply);
+    virtual void imageLoaded(const QImage& image);      
+
+    Q_INVOKABLE void setImage(const QImage& image, const glm::vec4& averageColor, bool translucent);
 
 private:
 
-    QNetworkRequest _request;
-    QNetworkReply* _reply;
-    int _attempts;
     glm::vec4 _averageColor;
     bool _translucent;
-    bool _loaded;
 };
 
 /// Caches derived, dilated textures.
@@ -153,7 +143,7 @@ class DilatableNetworkTexture : public NetworkTexture {
     
 public:
     
-    DilatableNetworkTexture(const QUrl& url, bool normalMap);
+    DilatableNetworkTexture(const QUrl& url);
     
     /// Returns a pointer to a texture with the requested amount of dilation.
     QSharedPointer<Texture> getDilatedTexture(float dilation);

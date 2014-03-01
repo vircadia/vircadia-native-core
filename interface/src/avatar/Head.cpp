@@ -58,7 +58,7 @@ void Head::reset() {
 
 
 
-void Head::simulate(float deltaTime, bool isMine) {
+void Head::simulate(float deltaTime, bool isMine, bool delayLoad) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -161,7 +161,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (!isMine) {
         _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
     }
-    _faceModel.simulate(deltaTime);
+    _faceModel.simulate(deltaTime, delayLoad);
     
     // the blend face may have custom eye meshes
     if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {

@@ -13,6 +13,8 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 
+#include <QObject>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -31,7 +33,8 @@ public:
 
 
 // Generic client side Octree renderer class.
-class OctreeRenderer  {
+class OctreeRenderer : public QObject {
+    Q_OBJECT
 public:
     OctreeRenderer();
     virtual ~OctreeRenderer();
@@ -51,8 +54,6 @@ public:
     /// render the content of the octree
     virtual void render();
 
-    void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
-    const QUuid&  getDataSourceUUID() const { return _dataSourceUUID; }
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
 
@@ -62,7 +63,6 @@ public:
     void clear();
 protected:
     Octree* _tree;
-    QUuid _dataSourceUUID;
     ViewFrustum* _viewFrustum;
 };
 

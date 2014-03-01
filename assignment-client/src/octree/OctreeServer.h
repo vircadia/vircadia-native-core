@@ -24,6 +24,8 @@
 #include "OctreeServerConsts.h"
 #include "OctreeInboundPacketProcessor.h"
 
+const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per second total
+
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
@@ -41,7 +43,16 @@ public:
     Octree* getOctree() { return _tree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
-    int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
+    int getPacketsPerClientPerInterval() const { return std::min(_packetsPerClientPerInterval, 
+                                std::max(1, getPacketsTotalPerInterval() / std::max(1, getCurrentClientCount()))); }
+
+    int getPacketsPerClientPerSecond() const { return getPacketsPerClientPerInterval() * INTERVALS_PER_SECOND; }
+    int getPacketsTotalPerInterval() const { return _packetsTotalPerInterval; }
+    int getPacketsTotalPerSecond() const { return getPacketsTotalPerInterval() * INTERVALS_PER_SECOND; }
+    
+    static int getCurrentClientCount() { return _clientCount; }
+    static void clientConnected() { _clientCount++; }
+    static void clientDisconnected() { _clientCount--; }
 
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
@@ -63,11 +74,24 @@ public:
 
     static void attachQueryNodeToNode(Node* newNode);
 
+    static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
+    static float getAverageLoopTime() { return _averageLoopTime.getAverage(); }
+
+    static void trackEncodeTime(float time) { _averageEncodeTime.updateAverage(time); }
+    static float getAverageEncodeTime() { return _averageEncodeTime.getAverage(); }
+
+    static void trackTreeWaitTime(float time) { _averageTreeWaitTime.updateAverage(time); }
+    static float getAverageTreeWaitTime() { return _averageTreeWaitTime.getAverage(); }
+    static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
+    static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
+
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
 public slots:
     /// runs the voxel server assignment
     void run();
     void readPendingDatagrams();
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
 
 protected:
     void parsePayload();
@@ -81,6 +105,7 @@ protected:
 
     char _persistFilename[MAX_FILENAME_LENGTH];
     int _packetsPerClientPerInterval;
+    int _packetsTotalPerInterval;
     Octree* _tree; // this IS a reaveraging tree
     bool _wantPersist;
     bool _debugSending;
@@ -95,6 +120,12 @@ protected:
 
     time_t _started;
     quint64 _startedUSecs;
+    
+    static int _clientCount;
+    static SimpleMovingAverage _averageLoopTime;
+    static SimpleMovingAverage _averageEncodeTime;
+    static SimpleMovingAverage _averageTreeWaitTime;
+    static SimpleMovingAverage _averageNodeWaitTime;
 };
 
 #endif // __octree_server__OctreeServer__

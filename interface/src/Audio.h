@@ -42,9 +42,7 @@ class Audio : public AbstractAudioInterface {
 public:
     // setup for audio I/O
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent = 0);
-    
-    void render(int screenWidth, int screenHeight);
-    
+
     float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
@@ -69,6 +67,11 @@ public:
     
     void init(QGLWidget *parent = 0);
     bool mousePressEvent(int x, int y);
+    
+    void renderMuteIcon(int x, int y);
+    
+    int getNetworkSampleRate() { return SAMPLE_RATE; }
+    int getNetworkBufferLengthSamplesPerChannel() { return NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; }
     
 public slots:
     void start();
@@ -148,7 +151,6 @@ private:
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
     
-    void renderToolIcon(int screenHeight);
 };
 
 

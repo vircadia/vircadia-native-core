@@ -1,0 +1,8 @@
+//
+//  SvoViewerVersion.h
+//  Declaration of version and build data
+//
+//  Copyright (c) 2014 High Fidelity, Inc.. All rights reserved.
+//
+
+const QString BUILD_VERSION = "@BUILD_SEQ@";

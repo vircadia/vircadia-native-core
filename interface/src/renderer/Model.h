@@ -46,14 +46,22 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
-    bool isLoadedWithTextures() const;
+    bool isRenderable() const { return !_meshStates.isEmpty(); }
+    
+    bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
     void init();
     void reset();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool delayLoad = false);
     bool render(float alpha);
     
-    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
+    /// Sets the URL of the model to render.
+    /// \param fallback the URL of a fallback model to render if the requested model fails to load
+    /// \param retainCurrent if true, keep rendering the current model until the new one is loaded
+    /// \param delayLoad if true, don't load the model immediately; wait until actually requested
+    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
+        bool retainCurrent = false, bool delayLoad = false);
+    
     const QUrl& getURL() const { return _url; }
     
     /// Sets the distance parameter used for LOD computations.
@@ -229,10 +237,14 @@ protected:
     
 private:
     
+    QVector<JointState> updateGeometry(bool delayLoad);
+    void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
     
     QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
+    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
+    QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
     
