@@ -143,7 +143,7 @@ if (botNumber <= 20) {
 // there is no need to change the body model - we're using the default
 Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix + ".fst";
 Avatar.skeletonModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix + ".fst";
-Avatar.billboardURL = "https://dl.dropboxusercontent.com/u/1864924/bot-billboard.png";
+Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/billboards/bot" + botNumber + ".png";
 
 Agent.isAvatar = true;
 
