@@ -23,13 +23,13 @@ OctreeSendThread::OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer
     _packetData(),
     _nodeMissingCount(0)
 {
-    qDebug() << "client connected";
-    _myServer->clientConnected();
+    qDebug() << "client connected - starting sending thread";
+    OctreeServer::clientConnected();
 }
 
 OctreeSendThread::~OctreeSendThread() { 
-    qDebug() << "client disconnected";
-    _myServer->clientDisconnected(); 
+    qDebug() << "client disconnected - ending sending thread";
+    OctreeServer::clientDisconnected(); 
 }
 
 
@@ -43,7 +43,6 @@ bool OctreeSendThread::process() {
     }
 
     quint64  start = usecTimestampNow();
-    bool gotLock = false;
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
@@ -51,25 +50,19 @@ bool OctreeSendThread::process() {
 
         if (node) {
             _nodeMissingCount = 0;
-            // make sure the node list doesn't kill our node while we're using it
-            if (node->getMutex().tryLock()) {
-                gotLock = true;
-                OctreeQueryNode* nodeData = NULL;
+            OctreeQueryNode* nodeData = NULL;
 
-                nodeData = (OctreeQueryNode*) node->getLinkedData();
+            nodeData = (OctreeQueryNode*) node->getLinkedData();
 
-                int packetsSent = 0;
+            int packetsSent = 0;
 
-                // Sometimes the node data has not yet been linked, in which case we can't really do anything
-                if (nodeData) {
-                    bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                    if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                        printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
-                    }
-                    packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
+            // Sometimes the node data has not yet been linked, in which case we can't really do anything
+            if (nodeData) {
+                bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
+                if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
+                    printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                 }
-
-                node->getMutex().unlock(); // we're done with this node for now.
+                packetsSent = packetDistributor(node, nodeData, viewFrustumChanged);
             }
         } else {
             _nodeMissingCount++;
@@ -81,7 +74,7 @@ bool OctreeSendThread::process() {
     }
 
     // Only sleep if we're still running and we got the lock last time we tried, otherwise try to get the lock asap
-    if (isStillRunning() && gotLock) {
+    if (isStillRunning()) {
         // dynamically sleep until we need to fire off the next set of octree elements
         int elapsed = (usecTimestampNow() - start);
         int usecToSleep =  OCTREE_SEND_INTERVAL_USECS - elapsed;
@@ -90,9 +83,12 @@ bool OctreeSendThread::process() {
             PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
             usleep(usecToSleep);
         } else {
-            if (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug()) {
-                std::cout << "Last send took too much time, not sleeping!\n";
+            if (true || (_myServer->wantsDebugSending() && _myServer->wantsVerboseDebug())) {
+                qDebug() << "Last send took too much time (" << (elapsed / USECS_PER_MSEC) 
+                                <<" msecs), barely sleeping 1 usec!\n";
             }
+            const int MIN_USEC_TO_SLEEP = 1;
+            usleep(MIN_USEC_TO_SLEEP);
         }
     }
 
@@ -114,6 +110,13 @@ int OctreeSendThread::handlePacketSend(const SharedNodePointer& node, OctreeQuer
     int packetsSent = 0;
     
     // double check that the node has an active socket, otherwise, don't send...
+
+    quint64 lockWaitStart = usecTimestampNow();
+    QMutexLocker locker(&node->getMutex());
+    quint64 lockWaitEnd = usecTimestampNow();
+    float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+    OctreeServer::trackNodeWaitTime(lockWaitElapsedUsec);
+
     const HifiSockAddr* nodeAddress = node->getActiveSocket();
     if (!nodeAddress) {
         return packetsSent; // without sending...
@@ -440,9 +443,19 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
 
 
+                quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->lockForRead();
+                quint64 lockWaitEnd = usecTimestampNow();
+                float lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
+                
                 nodeData->stats.encodeStarted();
+
+                quint64 encodeStart = usecTimestampNow();
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->nodeBag, params);
+                quint64 encodeEnd = usecTimestampNow();
+                int encodeElapsedMsec = (encodeEnd - encodeStart)/USECS_PER_MSEC;
+                OctreeServer::trackEncodeTime(encodeElapsedMsec);
 
                 // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
                 // sent the entire scene. We want to know this below so we'll actually write this content into
@@ -555,14 +568,14 @@ int OctreeSendThread::packetDistributor(const SharedNodePointer& node, OctreeQue
 
 
         quint64 end = usecTimestampNow();
-        int elapsedmsec = (end - start)/1000;
+        int elapsedmsec = (end - start)/USECS_PER_MSEC;
+        OctreeServer::trackLoopTime(elapsedmsec);
 
         quint64 endCompressCalls = OctreePacketData::getCompressContentCalls();
         int elapsedCompressCalls = endCompressCalls - startCompressCalls;
 
         quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
-
 
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {

@@ -20,7 +20,10 @@
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
-
+SimpleMovingAverage OctreeServer::_averageLoopTime(10000);
+SimpleMovingAverage OctreeServer::_averageEncodeTime(10000);
+SimpleMovingAverage OctreeServer::_averageTreeWaitTime(10000);
+SimpleMovingAverage OctreeServer::_averageNodeWaitTime(10000);
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -51,6 +54,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _startedUSecs(usecTimestampNow())
 {
     _instance = this;
+    _averageLoopTime.updateAverage(0);
 }
 
 OctreeServer::~OctreeServer() {
@@ -266,7 +270,27 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QString& 
             .arg(locale.toString((uint)getPacketsTotalPerSecond()).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("          Total Clients Connected: %1 clients\r\n\r\n")
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
-            
+
+        float averageLoopTime = getAverageLoopTime();
+        statsString += QString().sprintf("        Average packetLoop() time:      %5.2f msecs\r\n", averageLoopTime);
+        qDebug() << "averageLoopTime=" << averageLoopTime;
+
+        float averageEncodeTime = getAverageEncodeTime();
+        statsString += QString().sprintf("              Average encode time:      %5.2f msecs\r\n", averageEncodeTime);
+        qDebug() << "averageEncodeTime=" << averageEncodeTime;
+
+
+        float averageTreeWaitTime = getAverageTreeWaitTime();
+        statsString += QString().sprintf("      Average tree lock wait time:    %7.2f usecs\r\n", averageTreeWaitTime);
+        qDebug() << "averageTreeWaitTime=" << averageTreeWaitTime;
+
+        float averageNodeWaitTime = getAverageNodeWaitTime();
+        statsString += QString().sprintf("      Average node lock wait time:    %7.2f usecs\r\n", averageNodeWaitTime);
+        qDebug() << "averageNodeWaitTime=" << averageNodeWaitTime;
+
+
+        statsString += QString("\r\n");
+
         statsString += QString("           Total Outbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
@@ -584,6 +608,9 @@ void OctreeServer::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(getMyNodeType());
 
+    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
+    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)),SLOT(nodeKilled(SharedNodePointer)));
+
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
@@ -701,5 +728,21 @@ void OctreeServer::run() {
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, SIGNAL(timeout()), nodeList, SLOT(removeSilentNodes()));
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_USECS / 1000);
+}
+
+void OctreeServer::nodeAdded(SharedNodePointer node) {
+    // we might choose to use this notifier to track clients in a pending state
+}
+
+void OctreeServer::nodeKilled(SharedNodePointer node) {
+    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    if (nodeData) {
+        // Note: It should be safe to do this without locking the node, because if any other threads
+        // are using the SharedNodePointer, then they have a reference to the SharedNodePointer and the deleteLater()
+        // won't actually delete it until all threads have released their references to the pointer. 
+        // But we can and should clear the linked data so that no one else tries to access it.
+        nodeData->deleteLater();
+        node->setLinkedData(NULL);
+    }
 }
 
