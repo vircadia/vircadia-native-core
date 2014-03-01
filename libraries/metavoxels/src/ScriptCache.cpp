@@ -61,6 +61,7 @@ NetworkProgram::NetworkProgram(ScriptCache* cache, const QUrl& url) :
 
 void NetworkProgram::downloadFinished(QNetworkReply* reply) {
     _program = QScriptProgram(QTextStream(reply).readAll(), reply->url().toString());
+    finishedLoading(true);
     emit loaded();
 }
 

@@ -88,6 +88,11 @@ public:
     /// Returns the highest load priority across all owners.
     float getLoadPriority();
 
+    /// Checks whether the resource has loaded.
+    bool isLoaded() const { return _loaded; }
+
+    void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
+
 protected slots:
 
     void attemptRequest();
@@ -96,10 +101,15 @@ protected:
 
     virtual void downloadFinished(QNetworkReply* reply) = 0;
 
+    /// Should be called by subclasses when all the loading that will be done has been done.
+    Q_INVOKABLE void finishedLoading(bool success);
+
     QNetworkRequest _request;
     bool _startedLoading;
     bool _failedToLoad;
+    bool _loaded;
     QHash<QPointer<QObject>, float> _loadPriorities;
+    QWeakPointer<Resource> _self;
     
 private slots:
     
