@@ -327,13 +327,13 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	GLchar shaderLog[1000];
 	GLsizei shaderLogLength;
 	//GLint compiled;
-	glCompileShaderARB((void*)_vertexShader);
+	glCompileShaderARB((GLhandleARB)_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
-	glCompileShaderARB((void*)_geometryShader);
+	glCompileShaderARB((GLhandleARB)_geometryShader);
 	glGetShaderInfoLog(_geometryShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog g :\n %s\n", shaderLog);
-	glCompileShaderARB((void*)_pixelShader);
+	glCompileShaderARB((GLhandleARB)_pixelShader);
 	glGetShaderInfoLog(_pixelShader, 51000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog p :\n %s\n", shaderLog);
 
