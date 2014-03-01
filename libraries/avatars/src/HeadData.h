@@ -27,6 +27,7 @@ class AvatarData;
 class HeadData {
 public:
     HeadData(AvatarData* owningAvatar);
+    virtual ~HeadData() { };
     
     float getLeanSideways() const { return _leanSideways; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
