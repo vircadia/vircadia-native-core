@@ -91,9 +91,9 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
     
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)

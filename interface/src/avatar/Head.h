@@ -74,9 +74,9 @@ public:
     void tweakYaw(float yaw) { _tweakedYaw = yaw; }
     void tweakRoll(float roll) { _tweakedRoll = roll; }
 
-    float getTweakedPitch() const;
-    float getTweakedYaw() const;
-    float getTweakedRoll() const;
+    virtual float getTweakedPitch() const;
+    virtual float getTweakedYaw() const;
+    virtual float getTweakedRoll() const;
 
     void  applyCollision(CollisionInfo& collisionInfo);
     
