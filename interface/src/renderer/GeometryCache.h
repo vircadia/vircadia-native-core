@@ -90,6 +90,8 @@ protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
     
+    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
+    
 private:
     
     friend class GeometryCache;

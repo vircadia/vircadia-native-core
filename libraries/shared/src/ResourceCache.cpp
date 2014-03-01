@@ -27,6 +27,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     if (resource.isNull()) {
         resource = createResource(url, fallback.isValid() ?
             getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+        resource->setSelf(resource);
         _resources.insert(url, resource);
     }
     return resource;

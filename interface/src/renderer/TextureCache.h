@@ -129,6 +129,8 @@ protected:
     virtual void downloadFinished(QNetworkReply* reply);
     virtual void imageLoaded(const QImage& image);      
 
+    Q_INVOKABLE void setImage(const QImage& image, const glm::vec4& averageColor, bool translucent);
+
 private:
 
     glm::vec4 _averageColor;
