@@ -24,6 +24,13 @@ typedef QList<FBXNode> FBXNodeList;
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
 
+class Extents {
+public:
+    
+    glm::vec3 minimum;
+    glm::vec3 maximum;
+};
+
 /// A node within an FBX document.
 class FBXNode {
 public:
@@ -63,6 +70,11 @@ public:
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
+    QString name;
+    Extents extents;
+    int numVertices;
+    glm::vec3 averageVertex;
+    float averageRadius;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -122,13 +134,6 @@ public:
     glm::vec3 translation;
     glm::quat rotation;
     glm::vec3 scale;
-};
-
-class Extents {
-public:
-    
-    glm::vec3 minimum;
-    glm::vec3 maximum;
 };
 
 /// A set of meshes extracted from an FBX document.
