@@ -27,6 +27,9 @@ Agent::Agent(const QByteArray& packet) :
     _voxelEditSender(),
     _particleEditSender()
 {
+    // be the parent of the script engine so it gets moved when we do
+    _scriptEngine.setParent(this);
+    
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
 }
