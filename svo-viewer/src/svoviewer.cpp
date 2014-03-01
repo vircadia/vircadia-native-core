@@ -53,6 +53,7 @@ SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 	  _pixelShader(0),
 	  _geometryShader(0),
 	  _pointVertices(NULL),
+	  _pointColors(NULL),
 	  _pointVerticesCount(0),
       _numSegments(0),
       _useBoundingVolumes(true),

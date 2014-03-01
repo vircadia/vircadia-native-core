@@ -296,15 +296,24 @@ void SvoViewer::RenderTreeSystemAsOpt2Voxels()
 		if (_displayOnlyPartition == i || _displayOnlyPartition == NO_PARTITION )
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, _vboOVerticesIds[i]);
-			glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+			glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
 			glEnableVertexAttribArray(ATTRIB_POSITION);
 
-			glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+			glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 			glEnableVertexAttribArray(ATTRIB_COLOR);
 
 			//glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,position));
 			glEnableClientState(GL_COLOR_ARRAY);
-			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
 			for (int j = 0; j < NUM_CUBE_FACES; j++)
 			{

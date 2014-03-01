@@ -324,21 +324,18 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	glShaderSource(_geometryShader, 1, &simpleGeomShaderSrc, &simpleGeomShaderLen);
 	glShaderSource(_pixelShader, 1, &simpleFragShaderSrc, &simpleFragShaderLen);
 
-// TODO: this was Matt's original windows code, it doesn't compile on mac, due to type mismatches
-#ifdef WIN32
 	GLchar shaderLog[1000];
 	GLsizei shaderLogLength;
-	GLint compiled;
-	glCompileShaderARB(_vertexShader);
+	//GLint compiled;
+	glCompileShaderARB((void*)_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
-	glCompileShaderARB(_geometryShader);
+	glCompileShaderARB((void*)_geometryShader);
 	glGetShaderInfoLog(_geometryShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog g :\n %s\n", shaderLog);
-	glCompileShaderARB(_pixelShader);
+	glCompileShaderARB((void*)_pixelShader);
 	glGetShaderInfoLog(_pixelShader, 51000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog p :\n %s\n", shaderLog);
-#endif //def WIN32
 
 	_linkProgram = glCreateProgram();
 	glAttachShader(_linkProgram, _vertexShader);
@@ -713,15 +710,22 @@ void SvoViewer::RenderTreeSystemAsOptVoxels()
 			if (isVisibleBV(&_segmentBoundingVolumes[i], &_myCamera, &_viewFrustum)) // Add aggressive LOD check here.
 			{
 				glBindBuffer(GL_ARRAY_BUFFER, _vboOVerticesIds[i]);
-				glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+				glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 				glEnableVertexAttribArray(ATTRIB_POSITION);
 
-				glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+				glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 				glEnableVertexAttribArray(ATTRIB_COLOR);
 
 				//glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,position));
 				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+				glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboOIndicesIds[i]);
 
