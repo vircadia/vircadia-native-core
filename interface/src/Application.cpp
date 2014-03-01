@@ -2469,7 +2469,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
-const float WHITE_TEXT[] = { 0.93, 0.93, 0.93 };
+const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
 void Application::displayOverlay() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displayOverlay()");
