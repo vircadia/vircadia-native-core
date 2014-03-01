@@ -17,12 +17,16 @@
 
 #include "SharedUtil.h"
 
+Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
 
 void registerMetaTypes(QScriptEngine* engine);
+
+QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
+void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
 void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
