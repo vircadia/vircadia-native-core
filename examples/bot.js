@@ -25,6 +25,7 @@ var CHANCE_OF_BIG_MOVE = 0.1;
 
 var isMoving = false;
 var isTurningHead = false;
+var isPlayingAudio = false; 
 
 var STARTING_RANGE = 18.0;
 var MAX_RANGE = 25.0;
@@ -98,17 +99,25 @@ sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/so
 
 
 //  Play a random sound from a list of conversational audio clips
+function audioDone() {
+  isPlayingAudio = false;
+}
+
+var AVERAGE_AUDIO_LENGTH = 8000;
 function playRandomSound(position) {
-  var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
-  var audioOptions = new AudioInjectionOptions();
-  audioOptions.volume = 0.25 + (Math.random() * 0.75);
-  audioOptions.position = position;
-  Audio.playSound(sounds[whichSound], audioOptions);
-  print("PlaySound " + whichSound);
+  if (!isPlayingAudio) {
+    var whichSound = Math.floor((Math.random() * sounds.length) % sounds.length);
+    var audioOptions = new AudioInjectionOptions();
+    audioOptions.volume = 0.25 + (Math.random() * 0.75);
+    audioOptions.position = position;
+    Audio.playSound(sounds[whichSound], audioOptions);
+    isPlayingAudio = true;
+    Script.setTimeout(audioDone, AVERAGE_AUDIO_LENGTH);
+  }
 }
 
 // change the avatar's position to the random one
-Avatar.position = firstPosition;
+Avatar.position = firstPosition;  
 
 // pick an integer between 1 and 20 for the face model for this bot
 botNumber = getRandomInt(1, 100);
