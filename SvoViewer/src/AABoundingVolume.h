@@ -20,7 +20,7 @@
 class AABoundingVolume
 {
 public:
-	AABoundingVolume() : _isSingleDirectionSet(false), _numPointsInSet(0) { memset(_bounds,0,sizeof(_bounds)); }
+	AABoundingVolume() : _numPointsInSet(0), _isSingleDirectionSet(false) { memset(_bounds,0,sizeof(_bounds)); }
 	~AABoundingVolume(){}
 
 	void AddToSet(const glm::vec3 newPt) 

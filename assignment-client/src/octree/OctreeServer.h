@@ -74,11 +74,24 @@ public:
 
     static void attachQueryNodeToNode(Node* newNode);
 
+    static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
+    static float getAverageLoopTime() { return _averageLoopTime.getAverage(); }
+
+    static void trackEncodeTime(float time) { _averageEncodeTime.updateAverage(time); }
+    static float getAverageEncodeTime() { return _averageEncodeTime.getAverage(); }
+
+    static void trackTreeWaitTime(float time) { _averageTreeWaitTime.updateAverage(time); }
+    static float getAverageTreeWaitTime() { return _averageTreeWaitTime.getAverage(); }
+    static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
+    static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
+
     bool handleHTTPRequest(HTTPConnection* connection, const QString& path);
 public slots:
     /// runs the voxel server assignment
     void run();
     void readPendingDatagrams();
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
 
 protected:
     void parsePayload();
@@ -109,6 +122,10 @@ protected:
     quint64 _startedUSecs;
     
     static int _clientCount;
+    static SimpleMovingAverage _averageLoopTime;
+    static SimpleMovingAverage _averageEncodeTime;
+    static SimpleMovingAverage _averageTreeWaitTime;
+    static SimpleMovingAverage _averageNodeWaitTime;
 };
 
 #endif // __octree_server__OctreeServer__
