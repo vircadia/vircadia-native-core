@@ -677,6 +677,10 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void MyAvatar::renderBody(bool forceRenderHead) {
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
+    }
+    
     //  Render the body's voxels and head
     _skeletonModel.render(1.0f);
 

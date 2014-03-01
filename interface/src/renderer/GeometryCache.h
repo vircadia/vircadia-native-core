@@ -69,8 +69,8 @@ public:
     NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
         const QVariantHash& mapping = QVariantHash(), const QUrl& textureBase = QUrl());
 
-    /// Checks whether the geometry is fulled loaded.
-    bool isLoaded() const { return !_geometry.joints.isEmpty(); }
+    /// Checks whether the geometry and its textures are loaded.
+    bool isLoadedWithTextures() const;
 
     /// Returns a pointer to the geometry appropriate for the specified distance.
     /// \param hysteresis a hysteresis parameter that prevents rapid model switching
@@ -89,6 +89,8 @@ public:
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
+    
+    Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     
 private:
     

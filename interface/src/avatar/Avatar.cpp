@@ -309,6 +309,9 @@ void Avatar::renderBody() {
         renderBillboard();
         return;
     }
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
+    }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
     getHand()->render(false);
@@ -564,13 +567,13 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, !isMyAvatar());
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setDisplayName(const QString& displayName) {
