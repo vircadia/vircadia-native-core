@@ -77,8 +77,8 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _request(url),
     _startedLoading(false),
     _failedToLoad(false),
-    _attempts(0),
-    _reply(NULL) {
+    _reply(NULL),
+    _attempts(0) {
     
     if (!url.isValid()) {
         _startedLoading = _failedToLoad = true;

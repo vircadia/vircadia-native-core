@@ -28,7 +28,6 @@ GLubyte SvoViewer::SetupGlVBO(GLuint * id, int sizeInBytes, GLenum target, GLenu
 	
 bool SvoViewer::FindNumLeaves(OctreeElement* node, void* extraData)
 {
-	VoxelTreeElement* voxel = (VoxelTreeElement*)node;
     FindNumLeavesData* args = (FindNumLeavesData*)extraData;
 	if (node->isLeaf()) args->numLeaves++;
 	return true;
