@@ -182,10 +182,10 @@ protected:
     
     class JointState {
     public:
-        glm::vec3 translation;
-        glm::quat rotation;
-        glm::mat4 transform;
-        glm::quat combinedRotation;
+        glm::vec3 translation;  // translation relative to parent
+        glm::quat rotation;     // rotation relative to parent
+        glm::mat4 transform;    // rotation to world frame + translation in model frame
+        glm::quat combinedRotation; // rotation to world frame
     };
     
     bool _shapesAreDirty;

@@ -137,9 +137,10 @@ void Model::createCollisionShapes() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     float uniformScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
-        glm::vec3 position = extractTranslation(_jointStates[i].transform);
         const FBXJoint& joint = geometry.joints[i];
-        // for now make everything a sphere at joint end
+        glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.averageVertex;
+        glm::vec3 position = _rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation;
+
         float radius = uniformScale * joint.boneRadius;
         SphereShape* shape = new SphereShape(radius, position);
         _shapes.push_back(shape);
@@ -147,10 +148,14 @@ void Model::createCollisionShapes() {
 }
 
 void Model::updateShapePositions() {
+    float uniformScale = extractUniformScale(_scale);
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
         for (int i = 0; i < _jointStates.size(); i++) {
+            const FBXJoint& joint = geometry.joints[i];
             // shape positions are stored in world-frame
-            _shapes[i]->setPosition(_rotation * extractTranslation(_jointStates[i].transform) + _translation);
+            glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.averageVertex;
+            _shapes[i]->setPosition(_rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation);
             _shapes[i]->setRotation(_jointStates[i].combinedRotation);
         }
         _shapesAreDirty = false;
