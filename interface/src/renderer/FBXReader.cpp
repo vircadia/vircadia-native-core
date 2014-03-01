@@ -848,9 +848,6 @@ QString getString(const QVariant& value) {
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
-//    std::cout << "adebug beginPrintNode " << std::endl;    // adebug
-//    printNode(node, 0);   // adebug
-//    std::cout << "adebug endPrintNode " << std::endl;    // adebug
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<QString, QString> parentMap;
@@ -1517,28 +1514,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
 
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
+            glm::vec3 averageVertex(0.f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                float proj = glm::dot(boneDirection, vertex - boneEnd);
-                if (proj < 0.0f && proj > -boneLength) {
-                    joint.boneRadius = glm::max(joint.boneRadius, radiusScale * glm::distance(
-                        vertex, boneEnd + boneDirection * proj));
-                }
                 glm::vec3 vertexInJointFrame = rotateMeshToJoint * (radiusScale * (vertex - boneEnd));
                 joint.extents.minimum = glm::min(joint.extents.minimum, vertexInJointFrame);
                 joint.extents.maximum = glm::max(joint.extents.maximum, vertexInJointFrame);
-                joint.averageVertex += vertex;
-                ++joint.numVertices;
+                joint.averageVertex += vertexInJointFrame;
+                averageVertex += vertex;
             }
-            if (joint.numVertices > 0) {
-                joint.averageVertex /= float(joint.numVertices);
+            int numVertices = extracted.mesh.vertices.size();
+            joint.numVertices = numVertices;
+            if (numVertices > 0) {
+                averageVertex /= float(joint.numVertices);
                 float averageRadius = 0.f;
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
-                    averageRadius += glm::distance(vertex, joint.averageVertex);
+                    averageRadius += glm::distance(vertex, averageVertex);
                 }
-                joint.boneRadius = averageRadius * (radiusScale / float(joint.numVertices));
-                //joint.averageVertex /= float(joint.numVertices);
-                joint.averageVertex = rotateMeshToJoint * (radiusScale * (joint.averageVertex - boneEnd));
-                joint.numVertices = 1;
+                joint.boneRadius = averageRadius * (radiusScale / float(numVertices));
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
@@ -1588,6 +1580,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         geometry.meshes.append(extracted.mesh);
     }
 
+    // now that all joints have been scanned, divide the averages by number of vertices
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        FBXJoint& joint = geometry.joints[i];
+        if (joint.numVertices > 0) {
+            joint.averageVertex /= float(joint.numVertices);
+        }
+    }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 
     // process attachments
@@ -1616,22 +1615,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
         geometry.attachments.append(attachment);
-    }
-
-    for (int i = 0; i < geometry.joints.size(); ++i) {
-        FBXJoint& joint = geometry.joints[i];
-        if (joint.numVertices > 0) {
-            //joint.averageVertex /= 1.f;
-            joint.averageVertex /= float(joint.numVertices);
-        }
-        /*
-        std::cout << joint.name.toStdString().c_str() 
-            << " bR = " << joint.boneRadius
-            << " extents = " << (joint.extents.maximum - joint.extents.minimum)
-            << " avgV = " << joint.averageVertex
-            << " numV = " << joint.numVertices
-            << std::endl;    // adebug
-        */
     }
 
     return geometry;
