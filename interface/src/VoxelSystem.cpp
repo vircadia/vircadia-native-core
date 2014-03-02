@@ -2302,34 +2302,6 @@ bool VoxelSystem::findCapsulePenetration(const glm::vec3& start, const glm::vec3
     return result;
 }
 
-void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::deleteVoxelAt()");
-    _tree->lockForWrite();
-    _tree->deleteVoxelAt(x, y, z, s);
-    _tree->unlock();
-
-    // redraw!
-    setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
-};
-
-VoxelTreeElement* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const {
-    return _tree->getVoxelAt(x, y, z, s);
-};
-
-void VoxelSystem::createVoxel(float x, float y, float z, float s,
-                              unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
-
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::createVoxel()");
-
-    _tree->lockForWrite();
-    _tree->createVoxel(x, y, z, s, red, green, blue, destructive);
-    _tree->unlock();
-
-    setupNewVoxelsForDrawing();
-};
-
 void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
     destination->setupNewVoxelsForDrawing();

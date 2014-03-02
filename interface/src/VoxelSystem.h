@@ -93,11 +93,6 @@ public:
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
 
-    void deleteVoxelAt(float x, float y, float z, float s);
-    VoxelTreeElement* getVoxelAt(float x, float y, float z, float s) const;
-    void createVoxel(float x, float y, float z, float s,
-                     unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
-
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);

@@ -47,9 +47,7 @@ void VoxelsScriptingInterface::setVoxelNonDestructive(float x, float y, float z,
     
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, false);
-        _tree->unlock();
     }
 }
 
@@ -64,9 +62,7 @@ void VoxelsScriptingInterface::setVoxel(float x, float y, float z, float scale,
 
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->createVoxel(addVoxelDetail.x, addVoxelDetail.y, addVoxelDetail.z, addVoxelDetail.s, red, green, blue, true);
-        _tree->unlock();
     }
 }
 
@@ -80,9 +76,7 @@ void VoxelsScriptingInterface::eraseVoxel(float x, float y, float z, float scale
 
     // handle the local tree also...
     if (_tree) {
-        _tree->lockForWrite();
         _tree->deleteVoxelAt(deleteVoxelDetail.x, deleteVoxelDetail.y, deleteVoxelDetail.z, deleteVoxelDetail.s);
-        _tree->unlock();
     }
 }
 

@@ -47,12 +47,9 @@ void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
 
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-
-    //int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(voxelData)) + BYTES_PER_COLOR;
-    //printf("createVoxel()...");
-    //outputBufferBits(voxelData,length);
-
-    this->readCodeColorBufferToTree(voxelData, destructive);
+    lockForWrite();
+    readCodeColorBufferToTree(voxelData, destructive);
+    unlock();
     delete[] voxelData;
 }
 

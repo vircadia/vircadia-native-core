@@ -330,7 +330,9 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
 
 void Octree::deleteOctreeElementAt(float x, float y, float z, float s) {
     unsigned char* octalCode = pointToOctalCode(x,y,z,s);
+    lockForWrite();
     deleteOctalCodeFromTree(octalCode);
+    unlock();
     delete[] octalCode; // cleanup memory
 }
 
