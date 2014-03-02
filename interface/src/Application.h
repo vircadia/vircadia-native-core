@@ -37,7 +37,6 @@
 #include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
-#include "ExperimentalVoxelTreeRenderer.h"
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
