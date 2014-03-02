@@ -34,12 +34,16 @@
 #include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
+#include "ControllerScriptingInterface.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
+#include "ExperimentalVoxelTreeRenderer.h"
+#include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
+#include "ParticleTreeRenderer.h"
 #include "PieMenu.h"
 #include "Stars.h"
 #include "ViewFrustum.h"
@@ -68,9 +72,6 @@
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/UpdateDialog.h"
-#include "FileLogger.h"
-#include "ParticleTreeRenderer.h"
-#include "ControllerScriptingInterface.h"
 #include "ui/Overlays.h"
 
 
@@ -261,12 +262,6 @@ private slots:
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
     
-    void renderCoverageMap();
-    void renderCoverageMapsRecursively(CoverageMap* map);
-
-    void renderCoverageMapV2();
-    void renderCoverageMapsV2Recursively(CoverageMapV2* map);
-
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();

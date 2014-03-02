@@ -14,7 +14,6 @@
 
 #include <SharedUtil.h>
 
-#include <CoverageMapV2.h>
 #include <NodeData.h>
 #include <ViewFrustum.h>
 #include <VoxelTree.h>
@@ -106,9 +105,6 @@ public:
 
     void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
 
-    CoverageMapV2 myCoverageMapV2;
-    CoverageMap   myCoverageMap;
-
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
 
@@ -122,19 +118,8 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
                         
-    void collectStatsForTreesAndVBOs();
 
     // Methods that recurse tree
-    void showAllLocalVoxels();
-    void randomizeVoxelColors();
-    void falseColorizeRandom();
-    void trueColorize();
-    void falseColorizeInView();
-    void falseColorizeDistanceFromView();
-    void falseColorizeRandomEveryOther();
-    void falseColorizeOccluded();
-    void falseColorizeOccludedV2();
-    void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
     void cullSharedFaces();
@@ -178,19 +163,7 @@ private:
 
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool randomColorOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeRandomOperation(OctreeElement* element, void* extraData);
-    static bool trueColorizeOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeInViewOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeDistanceFromViewOperation(OctreeElement* element, void* extraData);
-    static bool getDistanceFromViewRangeOperation(OctreeElement* element, void* extraData);
     static bool removeOutOfViewOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeRandomEveryOtherOperation(OctreeElement* element, void* extraData);
-    static bool collectStatsForTreesAndVBOsOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeOccludedOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeSubTreeOperation(OctreeElement* element, void* extraData);
-    static bool falseColorizeOccludedV2Operation(OctreeElement* element, void* extraData);
-    static bool falseColorizeBySourceOperation(OctreeElement* element, void* extraData);
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
@@ -199,7 +172,6 @@ private:
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
-    static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
     static bool getVoxelEnclosingOperation(OctreeElement* element, void* extraData);
     static bool recreateVoxelGeometryInViewOperation(OctreeElement* element, void* extraData);
 

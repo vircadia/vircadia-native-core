@@ -9,17 +9,11 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include <set>
-#include <SimpleMovingAverage.h>
-#include <OctreeElementBag.h>
 #include <Octree.h>
-#include <CoverageMap.h>
-#include <JurisdictionMap.h>
-#include <ViewFrustum.h>
 
 #include "VoxelTreeElement.h"
-#include "VoxelPacketData.h"
-#include "VoxelSceneStats.h"
+//#include "VoxelPacketData.h"
+//#include "VoxelSceneStats.h"
 #include "VoxelEditPacketSender.h"
 
 class ReadCodeColorBufferToTreeArgs;

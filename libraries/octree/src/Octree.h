@@ -12,7 +12,6 @@
 #include <set>
 #include <SimpleMovingAverage.h>
 
-//#include "CoverageMap.h"
 class CoverageMap;
 class ReadBitstreamToTreeParams;
 class Octree;

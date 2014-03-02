@@ -742,9 +742,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_S:
-                if (isShifted && !isMeta)  {
-                    _voxels.collectStatsForTreesAndVBOs();
-                } else if (isShifted && isMeta)  {
+                if (isShifted && isMeta)  {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (!isShifted && isMeta)  {
                     takeSnapshot();
@@ -2518,15 +2516,6 @@ void Application::displayOverlay() {
         }
     }
 
-    // testing rendering coverage map
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMapV2)) {
-        renderCoverageMapV2();
-    }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
-        renderCoverageMap();
-    }
-
     //  Show chat entry field
     if (_chatEntryOn) {
         _chatEntry.render(_glWidget->width(), _glWidget->height());
@@ -2966,115 +2955,6 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
         ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
 
     return screenPoint;
-}
-
-// render the coverage map on screen
-void Application::renderCoverageMapV2() {
-    glDisable(GL_LIGHTING);
-    glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor3f(0,1,1);
-
-    renderCoverageMapsV2Recursively(&_voxels.myCoverageMapV2);
-
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
-void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
-    // render ourselves...
-    if (map->isCovered()) {
-        BoundingBox box = map->getBoundingBox();
-
-        glm::vec2 firstPoint = getScaledScreenPoint(box.getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-
-        for (int i = 1; i < box.getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(box.getVertex(i));
-
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
-        }
-
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    } else {
-        // iterate our children and call render on them.
-        for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
-            CoverageMapV2* childMap = map->getChild(i);
-            if (childMap) {
-                renderCoverageMapsV2Recursively(childMap);
-            }
-        }
-    }
-}
-
-// render the coverage map on screen
-void Application::renderCoverageMap() {
-
-    glDisable(GL_LIGHTING);
-    glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor3f(0,0,1);
-
-    renderCoverageMapsRecursively(&_voxels.myCoverageMap);
-
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
-void Application::renderCoverageMapsRecursively(CoverageMap* map) {
-    for (int i = 0; i < map->getPolygonCount(); i++) {
-
-        OctreeProjectedPolygon* polygon = map->getPolygon(i);
-
-        if (polygon->getProjectionType()        == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) {
-            glColor3f(.5,0,0); // dark red
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT)) {
-            glColor3f(.5,.5,0); // dark yellow
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT)) {
-            glColor3f(.5,.5,.5); // gray
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_BOTTOM)) {
-            glColor3f(.5,0,.5); // dark magenta
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)) {
-            glColor3f(.75,0,0); // red
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)) {
-            glColor3f(1,0,1); // magenta
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_TOP)) {
-            glColor3f(0,0,1); // Blue
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT | PROJECTION_TOP)) {
-            glColor3f(0,1,0); // green
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR)) {
-            glColor3f(1,1,0); // yellow
-        } else if (polygon->getProjectionType() == (PROJECTION_FAR | PROJECTION_RIGHT | PROJECTION_BOTTOM)) {
-            glColor3f(0,.5,.5); // dark cyan
-        } else {
-            glColor3f(1,0,0);
-        }
-
-        glm::vec2 firstPoint = getScaledScreenPoint(polygon->getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-
-        for (int i = 1; i < polygon->getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(polygon->getVertex(i));
-
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
-        }
-
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    }
-
-    // iterate our children and call render on them.
-    for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
-        CoverageMap* childMap = map->getChild(i);
-        if (childMap) {
-            renderCoverageMapsRecursively(childMap);
-        }
-    }
 }
 
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
