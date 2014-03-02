@@ -24,10 +24,12 @@
 #include "Util.h"
 #include "world.h"
 #include "renderer/VoxelShader.h"
+#include "PrimitiveRenderer.h"
 
 class ProgramObject;
 
 const int NUM_CHILDREN = 8;
+
 
 struct VoxelShaderVBOData
 {
@@ -53,7 +55,7 @@ public:
 
     virtual void init();
     void simulate(float deltaTime) { }
-    void render(bool texture);
+    void render();
 
     void changeTree(VoxelTree* newTree);
     VoxelTree* getTree() const { return _tree; }
@@ -79,10 +81,10 @@ public:
     unsigned long getVoxelMemoryUsageGPU();
 
     void killLocalVoxels();
-    void redrawInViewVoxels();
 
     virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
+    void inspectForOcclusions();
     bool hasViewChanged();
     bool isViewChanging();
 
@@ -135,6 +137,8 @@ public slots:
     void falseColorizeBySource();
     void forceRedrawEntireTree();
     void clearAllNodesBufferIndex();
+    void cullSharedFaces();
+    void showCulledSharedFaces();
 
     void cancelImport();
 
@@ -151,6 +155,7 @@ protected:
     static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
     void checkForCulling();
+    void recreateVoxelGeometryInView();
 
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
@@ -189,11 +194,14 @@ private:
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);
+    static bool inspectForExteriorOcclusionsOperation(OctreeElement* element, void* extraData);
+    static bool inspectForInteriorOcclusionsOperation(OctreeElement* element, void* extraData);
     static bool hideOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool hideAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllSubTreeOperation(OctreeElement* element, void* extraData);
     static bool showAllLocalVoxelsOperation(OctreeElement* element, void* extraData);
     static bool getVoxelEnclosingOperation(OctreeElement* element, void* extraData);
+    static bool recreateVoxelGeometryInViewOperation(OctreeElement* element, void* extraData);
 
     int updateNodeInArrays(VoxelTreeElement* node, bool reuseIndex, bool forceDraw);
     int forceRemoveNodeFromArrays(VoxelTreeElement* node);
@@ -211,6 +219,11 @@ private:
 
     GLfloat* _readVerticesArray;
     GLubyte* _readColorsArray;
+
+    QReadWriteLock _writeArraysLock;
+    QReadWriteLock _readArraysLock;
+
+
     GLfloat* _writeVerticesArray;
     GLubyte* _writeColorsArray;
     bool* _writeVoxelDirtyArray;
@@ -252,9 +265,6 @@ private:
     GLuint _vboIndicesRight;
     GLuint _vboIndicesFront;
     GLuint _vboIndicesBack;
-
-    QMutex _bufferWriteLock;
-    QMutex _treeLock;
 
     ViewFrustum _lastKnownViewFrustum;
     ViewFrustum _lastStableViewFrustum;
@@ -299,6 +309,21 @@ private:
     bool _useFastVoxelPipeline;
 
     bool _inhideOutOfView;
+
+    float _lastKnownVoxelSizeScale;
+    int _lastKnownBoundaryLevelAdjust;
+
+    bool _inOcclusions;
+    bool _showCulledSharedFaces;                ///< Flag visibility of culled faces
+    bool _usePrimitiveRenderer;                 ///< Flag primitive renderer for use
+    PrimitiveRenderer* _renderer;               ///< Voxel renderer
+
+    static const int _sNumOctantsPerHemiVoxel = 4;
+    static int _sCorrectedChildIndex[8];
+    static unsigned short _sSwizzledOcclusionBits[64];          ///< Swizzle value of bit pairs of the value of index
+    static unsigned char _sOctantIndexToBitMask[8];             ///< Map octant index to partition mask
+    static unsigned char _sOctantIndexToSharedBitMask[8][8];    ///< Map octant indices to shared partition mask
+
 };
 
 #endif

@@ -17,9 +17,11 @@
 
 #include <ParticleEditPacketSender.h>
 #include <ParticleTree.h>
+#include <ParticleTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 #include <VoxelEditPacketSender.h>
+#include <VoxelTreeHeadlessViewer.h>
 
 
 class Agent : public ThreadedAssignment {
@@ -29,7 +31,7 @@ class Agent : public ThreadedAssignment {
 public:
     Agent(const QByteArray& packet);
     
-    void setIsAvatar(bool isAvatar) { _scriptEngine.setIsAvatar(isAvatar); }
+    void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
     
 public slots:
@@ -41,9 +43,11 @@ signals:
     void willSendVisualDataCallback();
 private:
     ScriptEngine _scriptEngine;
-    ParticleTree _particleTree;
     VoxelEditPacketSender _voxelEditSender;
     ParticleEditPacketSender _particleEditSender;
+
+    ParticleTreeHeadlessViewer _particleViewer;
+    VoxelTreeHeadlessViewer _voxelViewer;
 };
 
 #endif /* defined(__hifi__Agent__) */

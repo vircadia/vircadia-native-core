@@ -22,7 +22,7 @@
 /// PacketTypeVoxelSet, PacketTypeVoxelSetDestructive, or PacketTypeVoxelErase. The buffer is returned to caller becomes
 /// responsibility of caller and MUST be deleted by caller.
 bool createVoxelEditMessage(PacketType command, short int sequence,
-                            int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
+                            int voxelCount, const VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut) {
     
     bool success = true; // assume the best
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
@@ -102,7 +102,7 @@ bool encodeVoxelEditMessageDetails(PacketType, int voxelCount, VoxelDetail* voxe
     return success;
 }
 
-void VoxelEditPacketSender::sendVoxelEditMessage(PacketType type, VoxelDetail& detail) {
+void VoxelEditPacketSender::sendVoxelEditMessage(PacketType type, const VoxelDetail& detail) {
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early

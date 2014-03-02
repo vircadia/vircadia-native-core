@@ -9,6 +9,8 @@
 #include "Application.h"
 
 #include "GLCanvas.h"
+#include <QMimeData>
+#include <QUrl>
 
 GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
 }
@@ -16,6 +18,7 @@ GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuf
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
+    setAcceptDrops(true);
 }
 
 void GLCanvas::paintGL() {
@@ -67,4 +70,18 @@ bool GLCanvas::event(QEvent* event) {
 
 void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
+}
+
+void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
+    const QMimeData *mimeData = event->mimeData();
+    foreach (QUrl url, mimeData->urls()) {
+        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+            event->acceptProposedAction();
+            break;
+        }
+    }
+}
+
+void GLCanvas::dropEvent(QDropEvent* event) {
+    Application::getInstance()->dropEvent(event);
 }

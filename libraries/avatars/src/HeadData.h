@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 const float MIN_HEAD_YAW = -110;
 const float MAX_HEAD_YAW = 110;
@@ -26,6 +27,7 @@ class AvatarData;
 class HeadData {
 public:
     HeadData(AvatarData* owningAvatar);
+    virtual ~HeadData() { };
     
     float getLeanSideways() const { return _leanSideways; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
@@ -41,9 +43,20 @@ public:
     
     float getRoll() const { return _roll; }
     void setRoll(float roll) { _roll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
-    
-    void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
-    
+
+    virtual float getTweakedYaw() const { return _yaw; }
+    virtual float getTweakedPitch() const { return _pitch; }
+    virtual float getTweakedRoll() const { return _roll; }
+
+    glm::quat getOrientation() const;
+    void setOrientation(const glm::quat& orientation);
+
+    float getAudioLoudness() const { return _audioLoudness; }
+	void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
+
+    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
+	void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
+
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
     float getPupilDilation() const { return _pupilDilation; }
@@ -72,6 +85,7 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
+    float _audioAverageLoudness;
     std::vector<float> _blendshapeCoefficients;
     float _pupilDilation;
     AvatarData* _owningAvatar;

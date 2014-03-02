@@ -47,7 +47,7 @@ void AudioInjector::injectAudio() {
         NodeList* nodeList = NodeList::getInstance();
         
         // setup the packet for injected audio
-        QByteArray injectAudioPacket = byteArrayWithPopluatedHeader(PacketTypeInjectAudio);
+        QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
         packetStream << QUuid::createUuid();

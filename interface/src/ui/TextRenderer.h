@@ -20,6 +20,16 @@
 // a special "character" that renders as a solid block
 const char SOLID_BLOCK_CHAR = 127;
 
+// the standard sans serif font family
+#define SANS_FONT_FAMILY "Helvetica"
+
+// the standard mono font family
+#define MONO_FONT_FAMILY "Courier"
+
+// the Inconsolata font family
+#define INCONSOLATA_FONT_FAMILY "Inconsolata"
+
+
 class Glyph;
 
 class TextRenderer {
@@ -33,7 +43,11 @@ public:
 
     const QFontMetrics& metrics() const { return _metrics; }
 
-    void draw(int x, int y, const char* str);
+    // returns the height of the tallest character
+    int calculateHeight(const char* str);
+
+    // also returns the height of the tallest character
+    int draw(int x, int y, const char* str);
     
     int computeWidth(char ch);
     int computeWidth(const char* str);

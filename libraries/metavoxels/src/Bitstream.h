@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QMetaType>
+#include <QPointer>
 #include <QScriptString>
 #include <QSharedPointer>
 #include <QVariant>
@@ -31,7 +32,7 @@ class Bitstream;
 class OwnedAttributeValue;
 class TypeStreamer;
 
-typedef QSharedPointer<Attribute> AttributePointer;
+typedef SharedObjectPointerTemplate<Attribute> AttributePointer;
 
 /// Streams integer identifiers that conform to the following pattern: each ID encountered in the stream is either one that
 /// has been sent (received) before, or is one more than the highest previously encountered ID (starting at zero).  This allows
@@ -196,6 +197,9 @@ public:
     /// \return zero; the function only returns a value so that it can be used in static initialization
     static int registerTypeStreamer(int type, TypeStreamer* streamer);
 
+    /// Returns the meta-object registered under the supplied class name, if any.
+    static const QMetaObject* getMetaObject(const QByteArray& className);
+
     /// Returns the list of registered subclasses for the supplied meta-object.
     static QList<const QMetaObject*> getMetaObjectSubClasses(const QMetaObject* metaObject);
 
@@ -266,6 +270,9 @@ public:
     template<class T> Bitstream& operator<<(const QList<T>& list);
     template<class T> Bitstream& operator>>(QList<T>& list);
     
+    template<class T> Bitstream& operator<<(const QSet<T>& set);
+    template<class T> Bitstream& operator>>(QSet<T>& set);
+    
     template<class K, class V> Bitstream& operator<<(const QHash<K, V>& hash);
     template<class K, class V> Bitstream& operator>>(QHash<K, V>& hash);
     
@@ -311,6 +318,8 @@ private slots:
     void clearSharedObject();
 
 private:
+    
+    void readProperties(QObject* object);
    
     QDataStream& _underlying;
     quint8 _byte;
@@ -321,6 +330,8 @@ private:
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer> _sharedObjectStreamer;
+
+    QHash<int, QPointer<SharedObject> > _transientSharedObjects;
 
     static QHash<QByteArray, const QMetaObject*>& getMetaObjects();
     static QMultiHash<const QMetaObject*, const QMetaObject*>& getMetaObjectSubClasses();
@@ -344,6 +355,27 @@ template<class T> inline Bitstream& Bitstream::operator>>(QList<T>& list) {
         T entry;
         *this >> entry;
         list.append(entry);
+    }
+    return *this;
+}
+
+template<class T> inline Bitstream& Bitstream::operator<<(const QSet<T>& set) {
+    *this << set.size();
+    foreach (const T& entry, set) {
+        *this << entry;
+    }
+    return *this;
+}
+
+template<class T> inline Bitstream& Bitstream::operator>>(QSet<T>& set) {
+    int size;
+    *this >> size;
+    set.clear();
+    set.reserve(size);
+    for (int i = 0; i < size; i++) {
+        T entry;
+        *this >> entry;
+        set.insert(entry);
     }
     return *this;
 }

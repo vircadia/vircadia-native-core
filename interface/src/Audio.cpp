@@ -40,10 +40,7 @@ static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_
 static const int NUMBER_OF_NOISE_SAMPLE_FRAMES = 300;
 
 // Mute icon configration
-static const int ICON_SIZE = 24;
-static const int ICON_LEFT = 0;
-static const int ICON_TOP = 115;
-static const int ICON_TOP_MIRROR = 220;
+static const int MUTE_ICON_SIZE = 24;
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* parent) :
     AbstractAudioInterface(parent),
@@ -67,6 +64,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples, QObject* p
     _measuredJitter(0),
     _jitterBufferSamples(initialJitterBufferSamples),
     _lastInputLoudness(0),
+    _dcOffset(0),
     _noiseGateMeasuredFloor(0),
     _noiseGateSampleCounter(0),
     _noiseGateOpen(false),
@@ -279,6 +277,8 @@ void Audio::start() {
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
+            _audioOutput->setBufferSize(_ringBuffer.getSampleCapacity() * sizeof(int16_t));
+            qDebug() << "Ring Buffer capacity in samples: " << _ringBuffer.getSampleCapacity();
             _outputDevice = _audioOutput->start();
 
             // setup a loopback audio output device
@@ -383,8 +383,13 @@ void Audio::handleAudioInput() {
             const int NOISE_GATE_WIDTH = 5;
             const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
             const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
+            const float DC_OFFSET_AVERAGING = 0.99f;
+            
+            float measuredDcOffset = 0.f;
             
             for (int i = 0; i < NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                measuredDcOffset += monoAudioSamples[i];
+                monoAudioSamples[i] -= (int16_t) _dcOffset;
                 thisSample = fabsf(monoAudioSamples[i]);
                 loudness += thisSample;
                 //  Noise Reduction:  Count peaks above the average loudness
@@ -392,7 +397,17 @@ void Audio::handleAudioInput() {
                     samplesOverNoiseGate++;
                 }
             }
-            _lastInputLoudness = loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            
+            measuredDcOffset /= NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            if (_dcOffset == 0.f) {
+                // On first frame, copy over measured offset
+                _dcOffset = measuredDcOffset;
+            } else {
+                _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.f - DC_OFFSET_AVERAGING) * measuredDcOffset;
+            }
+            
+            //
+            _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             float averageOfAllSampleFrames = 0.f;
             _noiseSampleFrames[_noiseGateSampleCounter++] = _lastInputLoudness;
@@ -413,7 +428,7 @@ void Audio::handleAudioInput() {
                 averageOfAllSampleFrames /= NUMBER_OF_NOISE_SAMPLE_FRAMES;
                 _noiseGateMeasuredFloor = smallestSample;
                 _noiseGateSampleCounter = 0;
-                //qDebug("smallest sample = %.1f, avg of all = %.1f",  _noiseGateMeasuredFloor, averageOfAllSampleFrames);
+
             }
 
             if (_noiseGateEnabled) {
@@ -467,8 +482,8 @@ void Audio::handleAudioInput() {
         
         if (audioMixer && audioMixer->getActiveSocket()) {
             MyAvatar* interfaceAvatar = Application::getInstance()->getAvatar();
-            glm::vec3 headPosition = interfaceAvatar->getHead().getPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+            glm::vec3 headPosition = interfaceAvatar->getHead()->getPosition();
+            glm::quat headOrientation = interfaceAvatar->getHead()->getOrientation();
 
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
@@ -540,19 +555,20 @@ void Audio::addReceivedAudioToBuffer(const QByteArray& audioByteArray) {
     // if there is anything in the ring buffer, decide what to do
     if (_ringBuffer.samplesAvailable() > 0) {
         
-        
         int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
         int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
         
         QByteArray outputBuffer;
         outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
         
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO
-                                                         + (_jitterBufferSamples * 2))) {
-            // starved and we don't have enough to start, keep waiting
-            //qDebug() << "Buffer is starved and doesn't have enough samples to start. Held back.";
+        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
+        
+        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
+            //  We are still waiting for enough samples to begin playback
+            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
         } else {
             //  We are either already playing back, or we have enough audio to start playing back.
+            //qDebug() << "pushing " << numNetworkOutputSamples;
             _ringBuffer.setIsStarved(false);
 
             // copy the samples we'll resample from the ring buffer - this also
@@ -605,122 +621,11 @@ void Audio::toggleAudioNoiseReduction() {
     _noiseGateEnabled = !_noiseGateEnabled;
 }
 
-void Audio::render(int screenWidth, int screenHeight) {
-    if (_audioInput && _audioOutput) {
-        glLineWidth(2.0);
-        glBegin(GL_LINES);
-        glColor3f(.93f, .93f, .93f);
 
-        int startX = 20.0;
-        int currentX = startX;
-        int topY = screenHeight - 45;
-        int bottomY = screenHeight - 25;
-        float frameWidth = 23.0;
-        float halfY = topY + ((bottomY - topY) / 2.0);
-
-        // draw the lines for the base of the ring buffer
-
-        glVertex2f(currentX, topY);
-        glVertex2f(currentX, bottomY);
-
-        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
-            glVertex2f(currentX, halfY);
-            glVertex2f(currentX + frameWidth, halfY);
-            currentX += frameWidth;
-
-            glVertex2f(currentX, topY);
-            glVertex2f(currentX, bottomY);
-        }
-        glEnd();
-
-        // show a bar with the amount of audio remaining in ring buffer and output device
-        // beyond the current playback
-
-        int bytesLeftInAudioOutput = _audioOutput->bufferSize() - _audioOutput->bytesFree();
-        float secondsLeftForAudioOutput = (bytesLeftInAudioOutput / sizeof(int16_t))
-            / ((float) _outputFormat.sampleRate() * _outputFormat.channelCount());
-        float secondsLeftForRingBuffer = _ringBuffer.samplesAvailable()
-            / ((float) _desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
-        float msLeftForAudioOutput = (secondsLeftForAudioOutput + secondsLeftForRingBuffer) * 1000;
-
-        if (_numFramesDisplayStarve == 0) {
-            glColor3f(0, .8f, .4f);
-        } else {
-            glColor3f(0.5 + (_numFramesDisplayStarve / 20.0f), .2f, .4f);
-            _numFramesDisplayStarve--;
-        }
-
-        if (_averagedLatency == 0.0) {
-            _averagedLatency = msLeftForAudioOutput;
-        } else {
-            _averagedLatency = 0.99f * _averagedLatency + 0.01f * (msLeftForAudioOutput);
-        }
-
-        glBegin(GL_QUADS);
-        glVertex2f(startX + 1, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, topY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 1, bottomY - 2);
-        glVertex2f(startX + 1, bottomY - 2);
-        glEnd();
-
-        //  Show a yellow bar with the averaged msecs latency you are hearing (from time of packet receipt)
-        glColor3f(1, .8f, 0);
-        glBegin(GL_QUADS);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, topY - 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth + 3, bottomY + 2);
-        glVertex2f(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 1, bottomY + 2);
-        glEnd();
-
-        char out[40];
-        sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10f, 0, 1, 2, out, 1, .8f, 0);
-
-        //  Show a red bar with the 'start' point of one frame plus the jitter buffer
-
-        glColor3f(1, .2f, .4f);
-        int jitterBufferPels = (1.f + (float)getJitterBufferSamples()
-                                / (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
-        sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
-        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        sprintf(out, "j %.1f\n", _measuredJitter);
-        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
-            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        } else {
-            drawtext(startX, bottomY + 12, 0.10f, 0, 1, 2, out, 1, .2f, .4f);
-        }
-
-        glBegin(GL_QUADS);
-        glVertex2f(startX + jitterBufferPels - 1, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 3, topY - 2);
-        glVertex2f(startX + jitterBufferPels + 3, bottomY + 2);
-        glVertex2f(startX + jitterBufferPels - 1, bottomY + 2);
-        glEnd();
-
-    }
-    renderToolIcon(screenHeight);
-}
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
 void Audio::addProceduralSounds(int16_t* monoInput, int numSamples) {
-    const float MAX_AUDIBLE_VELOCITY = 6.0f;
-    const float MIN_AUDIBLE_VELOCITY = 0.1f;
-    const int VOLUME_BASELINE = 400;
-    const float SOUND_PITCH = 8.f;
-
-    float speed = glm::length(_lastVelocity);
-    float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
-
     float sample;
-
-    // Travelling noise
-    //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
-    if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
-        for (int i = 0; i < numSamples; i++) {
-            monoInput[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH )
-                                      * volume * (1.f + randFloat() * 0.25f) * speed);
-        }
-    }
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
     const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
     const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
@@ -798,11 +703,9 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
     // or send to the mixer and use delayed loopback
 }
 
-void Audio::renderToolIcon(int screenHeight) {
+void Audio::renderMuteIcon(int x, int y) {
 
-    int iconTop = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? ICON_TOP_MIRROR : ICON_TOP;
-
-    _iconBounds = QRect(ICON_LEFT, iconTop, ICON_SIZE, ICON_SIZE);
+    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _micTextureId);

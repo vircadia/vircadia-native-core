@@ -52,6 +52,10 @@ public slots:
     virtual void captureWheelEvents() = 0;
     virtual void releaseWheelEvents() = 0;
 
+    virtual void captureJoystick(int joystickIndex) = 0;
+    virtual void releaseJoystick(int joystickIndex) = 0;
+
+    virtual glm::vec2 getViewportDimensions() const = 0;
 
 signals:
     void keyPressEvent(const KeyEvent& event);

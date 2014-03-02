@@ -68,8 +68,8 @@ IDStreamer& IDStreamer::operator>>(int& value) {
 int Bitstream::registerMetaObject(const char* className, const QMetaObject* metaObject) {
     getMetaObjects().insert(className, metaObject);
     
-    // register it as a subclass of all of its superclasses
-    for (const QMetaObject* superClass = metaObject->superClass(); superClass != NULL; superClass = superClass->superClass()) {
+    // register it as a subclass of itself and all of its superclasses
+    for (const QMetaObject* superClass = metaObject; superClass != NULL; superClass = superClass->superClass()) {
         getMetaObjectSubClasses().insert(superClass, metaObject);
     }
     return 0;
@@ -79,6 +79,10 @@ int Bitstream::registerTypeStreamer(int type, TypeStreamer* streamer) {
     streamer->setType(type);
     getTypeStreamers().insert(type, streamer);
     return 0;
+}
+
+const QMetaObject* Bitstream::getMetaObject(const QByteArray& className) {
+    return getMetaObjects().value(className);
 }
 
 QList<const QMetaObject*> Bitstream::getMetaObjectSubClasses(const QMetaObject* metaObject) {
@@ -351,17 +355,7 @@ Bitstream& Bitstream::operator>>(QObject*& object) {
         object = NULL;
         return *this;
     }
-    object = metaObject->newInstance();
-    for (int i = 0; i < metaObject->propertyCount(); i++) {
-        QMetaProperty property = metaObject->property(i);
-        if (!property.isStored(object)) {
-            continue;
-        }
-        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
-        if (streamer) {
-            property.write(object, streamer->read(*this));    
-        }
-    }
+    readProperties(object = metaObject->newInstance());
     return *this;
 }
 
@@ -472,13 +466,34 @@ Bitstream& Bitstream::operator>(QScriptString& string) {
 }
 
 Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
-    return *this << object.data();
+    if (!object) {
+        return *this << (int)0;
+    }
+    return *this << object->getID() << (QObject*)object.data();
 }
 
 Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
-    QObject* rawObject;
-    *this >> rawObject;  
-    object = static_cast<SharedObject*>(rawObject);
+    int id;
+    *this >> id;
+    if (id == 0) {
+        object = SharedObjectPointer();
+        return *this;
+    }
+    QPointer<SharedObject>& pointer = _transientSharedObjects[id];
+    if (pointer) {
+        const QMetaObject* metaObject;
+        _metaObjectStreamer >> metaObject;
+        if (metaObject != pointer->metaObject()) {
+            qWarning() << "Class mismatch: " << pointer->metaObject()->className() << metaObject->className();
+        }
+        readProperties(pointer.data());
+    
+    } else {
+        QObject* rawObject;
+        *this >> rawObject;
+        pointer = static_cast<SharedObject*>(rawObject);
+    }
+    object = static_cast<SharedObject*>(pointer.data());
     return *this;
 }
 
@@ -486,6 +501,20 @@ void Bitstream::clearSharedObject() {
     SharedObjectPointer object(static_cast<SharedObject*>(sender()));
     object->disconnect(this);
     emit sharedObjectCleared(_sharedObjectStreamer.takePersistentID(object));
+}
+
+void Bitstream::readProperties(QObject* object) {
+    const QMetaObject* metaObject = object->metaObject();
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        QMetaProperty property = metaObject->property(i);
+        if (!property.isStored(object)) {
+            continue;
+        }
+        const TypeStreamer* streamer = getTypeStreamers().value(property.userType());
+        if (streamer) {
+            property.write(object, streamer->read(*this));    
+        }
+    }
 }
 
 QHash<QByteArray, const QMetaObject*>& Bitstream::getMetaObjects() {

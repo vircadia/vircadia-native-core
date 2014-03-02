@@ -11,8 +11,6 @@
 
 #include <QSettings>
 
-#include <devices/Transmitter.h>
-
 #include "Avatar.h"
 
 enum AvatarHandState
@@ -26,6 +24,7 @@ enum AvatarHandState
 
 class MyAvatar : public Avatar {
     Q_OBJECT
+    Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
 
 public:
 	MyAvatar();
@@ -35,13 +34,10 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromGyros(float deltaTime);
-    void updateTransmitter(float deltaTime);
 
-    void render(bool forceRenderHead);
+    void render(bool forceRenderHead, bool avatarOnly = false);
     void renderDebugBodyPoints();
     void renderHeadMouse() const;
-    void renderTransmitterPickRay() const;
-    void renderTransmitterLevels(int width, int height) const;
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
@@ -50,6 +46,8 @@ public:
     void setGravity(glm::vec3 gravity);
     void setOrientation(const glm::quat& orientation);
     void setMoveTarget(const glm::vec3 moveTarget);
+    void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
+    
 
     // getters
     float getSpeed() const { return _speed; }
@@ -60,9 +58,9 @@ public:
     float getAbsoluteHeadYaw() const;
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    Transmitter& getTransmitter() { return _transmitter; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
+    bool getShouldRenderLocally() const { return _shouldRender; }
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -77,20 +75,22 @@ public:
     
     static void sendKillAvatar();
 
-
     void orbit(const glm::vec3& position, int deltaX, int deltaY);
 
     AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
-    void updateLookAtTargetAvatar(glm::vec3& eyePosition);
+    void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
-
+    
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 public slots:
     void goHome();
-    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    void sendIdentityPacket();
+    
+    void updateLocationInDataServer();
+    void goToLocationFromResponse(const QJsonObject& jsonObject);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -110,16 +110,14 @@ private:
     float _elapsedTimeSinceCollision;
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
-    bool _isCollisionsOn;
     bool _isThrustOn;
     float _thrustMultiplier;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    bool _shouldRender;
 
-    Transmitter _transmitter;     // Gets UDP data from transmitter app used to animate the avatar
-    glm::vec3 _transmitterPickStart;
-    glm::vec3 _transmitterPickEnd;
+    bool _billboardValid;
 
 	// private methods
     void renderBody(bool forceRenderHead);
@@ -131,6 +129,7 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void updateChatCircle(float deltaTime);
+    void maybeUpdateBillboard();
 };
 
 #endif

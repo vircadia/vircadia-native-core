@@ -12,8 +12,11 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "Logging.h"
@@ -27,8 +30,7 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
-const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data-web.highfidelity.io");
 
 NodeList* NodeList::_sharedInstance = NULL;
 
@@ -59,8 +61,6 @@ NodeList* NodeList::getInstance() {
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeHash(),
     _nodeHashMutex(QMutex::Recursive),
-    _domainHostname(),
-    _domainSockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _nodeSocket(this),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
@@ -73,16 +73,18 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
 {
     _nodeSocket.bind(QHostAddress::AnyIPv4, newSocketListenPort);
     qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
-}
-
-
-NodeList::~NodeList() {
-    clear();
+    
+    // clear our NodeList when the domain changes
+    connect(&_domainInfo, &DomainInfo::hostnameChanged, this, &NodeList::reset);
+    
+    // clear our NodeList when logout is requested
+    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
 bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-    if (packet[1] != versionForPacketType(packetTypeForPacket(packet))
-        && packetTypeForPacket(packet) != PacketTypeStunResponse) {
+    PacketType checkType = packetTypeForPacket(packet);
+    if (packet[1] != versionForPacketType(checkType)
+        && checkType != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
         int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
         
@@ -91,12 +93,13 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
     }
     
-    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>() << PacketTypeDomainList
-        << PacketTypeDomainListRequest << PacketTypeStunResponse << PacketTypeDataServerConfirm
+    const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
+        << PacketTypeDomainServerAuthRequest << PacketTypeDomainConnectRequest
+        << PacketTypeStunResponse << PacketTypeDataServerConfirm
         << PacketTypeDataServerGet << PacketTypeDataServerPut << PacketTypeDataServerSend
         << PacketTypeCreateAssignment << PacketTypeRequestAssignment;
     
-    if (!NON_VERIFIED_PACKETS.contains(packetTypeForPacket(packet))) {
+    if (!NON_VERIFIED_PACKETS.contains(checkType)) {
         // figure out which node this is from
         SharedNodePointer sendingNode = sendingNodeForPacket(packet);
         if (sendingNode) {
@@ -104,11 +107,36 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
                 return true;
             } else {
-                qDebug() << "Packet hash mismatch on" << packetTypeForPacket(packet) << "- Sender"
+                qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
                     << uuidFromPacketHeader(packet);
             }
         } else {
-            qDebug() << "Packet of type" << packetTypeForPacket(packet) << "received from unknown node with UUID"
+            if (checkType == PacketTypeDomainList) {
+                
+                if (_domainInfo.getRootAuthenticationURL().isEmpty() && _domainInfo.getUUID().isNull()) {
+                    // if this is a domain-server that doesn't require auth,
+                    // pull the UUID from this packet and set it as our domain-server UUID
+                    _domainInfo.setUUID(uuidFromPacketHeader(packet));
+                    
+                    // we also know this domain-server requires no authentication
+                    // so set the account manager root URL to the default one
+                    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+                }
+                
+                if (_domainInfo.getUUID() == uuidFromPacketHeader(packet)) {
+                    if (hashForPacketAndConnectionUUID(packet, _domainInfo.getConnectionSecret()) == hashFromPacketHeader(packet)) {
+                        // this is a packet from the domain-server (PacketTypeDomainServerListRequest)
+                        // and the sender UUID matches the UUID we expect for the domain
+                        return true;
+                    } else {
+                        // this is a packet from the domain-server but there is a hash mismatch
+                        qDebug() << "Packet hash mismatch on" << checkType << "from domain-server at" << _domainInfo.getHostname();
+                        return false;
+                    }
+                }
+            }
+            
+            qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
                 << uuidFromPacketHeader(packet);
         }
     } else {
@@ -116,6 +144,17 @@ bool NodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     }
     
     return false;
+}
+
+qint64 NodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+                               const QUuid& connectionSecret) {
+    QByteArray datagramCopy = datagram;
+    
+    // setup the MD5 hash for source verification in the header
+    replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
+
+    return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    
 }
 
 qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
@@ -133,11 +172,7 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
             }
         }
         
-        QByteArray datagramCopy = datagram;
-        // setup the MD5 hash for source verification in the header
-        replaceHashInPacketGivenConnectionUUID(datagramCopy, destinationNode->getConnectionSecret());
-        
-        return _nodeSocket.writeDatagram(datagramCopy, destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+        writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -147,37 +182,6 @@ qint64 NodeList::writeDatagram(const QByteArray& datagram, const SharedNodePoint
 qint64 NodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
-}
-
-void NodeList::setDomainHostname(const QString& domainHostname) {
-
-    if (domainHostname != _domainHostname) {
-        int colonIndex = domainHostname.indexOf(':');
-
-        if (colonIndex > 0) {
-            // the user has included a custom DS port with the hostname
-
-            // the new hostname is everything up to the colon
-            _domainHostname = domainHostname.left(colonIndex);
-
-            // grab the port by reading the string after the colon
-            _domainSockAddr.setPort(atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData()));
-
-            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainSockAddr.getPort();
-
-        } else {
-            // no port included with the hostname, simply set the member variable and reset the domain server port to default
-            _domainHostname = domainHostname;
-            _domainSockAddr.setPort(DEFAULT_DOMAIN_SERVER_PORT);
-        }
-
-        // clear the NodeList so nodes from this domain are killed
-        clear();
-
-        // reset our _domainIP to the null address so that a lookup happens on next check in
-        _domainSockAddr.setAddress(QHostAddress::Null);
-        emit domainChanged(_domainHostname);
-    }
 }
 
 void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode) {
@@ -218,17 +222,20 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
-            // only process the DS if this is our current domain server
-            if (_domainSockAddr == senderSockAddr) {
-                processDomainServerList(packet);
-            }
-
+            processDomainServerList(packet);
+            break;
+        }
+        case PacketTypeDomainServerAuthRequest: {
+            // the domain-server has asked us to auth via a data-server
+            processDomainServerAuthRequest(packet);
+            
             break;
         }
         case PacketTypePing: {
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
             if (matchingNode) {
+                matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 QByteArray replyPacket = constructPingReplyPacket(packet);
                 writeDatagram(replyPacket, matchingNode, senderSockAddr);
             }
@@ -239,6 +246,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
             
             if (sendingNode) {
+                sendingNode->setLastHeardMicrostamp(usecTimestampNow());
+                
                 // activate the appropriate socket for this node, if not yet updated
                 activateSocketFromNodeCommunication(packet, sendingNode);
                 
@@ -317,10 +326,11 @@ void NodeList::reset() {
     clear();
     _numNoReplyDomainCheckIns = 0;
 
-    _nodeTypesOfInterest.clear();
-
-    // refresh the owner UUID
-    _sessionUUID = QUuid::createUuid();
+    // refresh the owner UUID to the NULL UUID
+    setSessionUUID(QUuid());
+    
+    // clear the domain connection information
+    _domainInfo.clearConnectionInfo();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -492,66 +502,66 @@ void NodeList::processKillNode(const QByteArray& dataByteArray) {
 }
 
 void NodeList::sendDomainServerCheckIn() {
-    static bool printedDomainServerIP = false;
-
-    //  Lookup the IP address of the domain server if we need to
-    if (_domainSockAddr.getAddress().isNull() && !_domainHostname.isEmpty()) {
-        qDebug("Looking up DS hostname %s.", _domainHostname.toLocal8Bit().constData());
-        QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
-
-        for (int i = 0; i < domainServerHostInfo.addresses().size(); i++) {
-            if (domainServerHostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-                _domainSockAddr.setAddress(domainServerHostInfo.addresses()[i]);
-                qDebug("DS at %s is at %s", _domainHostname.toLocal8Bit().constData(),
-                       _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
-
-                printedDomainServerIP = true;
-
-                break;
-            }
-
-            // if we got here without a break out of the for loop then we failed to lookup the address
-            if (i == domainServerHostInfo.addresses().size() - 1) {
-                qDebug("Failed domain server lookup");
-            }
-        }
-    } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s", _domainSockAddr.getAddress().toString().toLocal8Bit().constData());
-        printedDomainServerIP = true;
-    }
-
     if (_publicSockAddr.isNull() && !_hasCompletedInitialSTUNFailure) {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_domainSockAddr.getAddress().isNull()) {
-        // construct the DS check in packet if we can
-
-        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        QByteArray domainServerPacket = byteArrayWithPopluatedHeader(PacketTypeDomainListRequest);
-        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
-
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr
-            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-            << (quint8) _nodeTypesOfInterest.size();
-        
-        // copy over the bytes for node types of interest, if required
-        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-            packetStream << nodeTypeOfInterest;
+    } else if (!_domainInfo.getIP().isNull()) {
+        if (_domainInfo.getRootAuthenticationURL().isEmpty()
+            || !_sessionUUID.isNull()
+            || !_domainInfo.getRegistrationToken().isEmpty() ) {
+            // construct the DS check in packet
+            
+            PacketType domainPacketType = _sessionUUID.isNull() ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+            
+            QUuid packetUUID = (domainPacketType == PacketTypeDomainListRequest)
+                ? _sessionUUID : _domainInfo.getAssignmentUUID();
+            
+            QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+            QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+            
+            if (domainPacketType == PacketTypeDomainConnectRequest) {
+                // we may need a registration token to present to the domain-server
+                packetStream << (quint8) !_domainInfo.getRegistrationToken().isEmpty();
+                
+                if (!_domainInfo.getRegistrationToken().isEmpty()) {
+                    // if we have a registration token send that along in the request
+                    packetStream << _domainInfo.getRegistrationToken();
+                }
+            }
+            
+            // pack our data to send to the domain-server
+            packetStream << _ownerType << _publicSockAddr
+                << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+                << (quint8) _nodeTypesOfInterest.size();
+            
+            // copy over the bytes for node types of interest, if required
+            foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
+                packetStream << nodeTypeOfInterest;
+            }
+            
+            writeDatagram(domainServerPacket, _domainInfo.getSockAddr(), _domainInfo.getConnectionSecret());
+            const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
+            static unsigned int numDomainCheckins = 0;
+            
+            // send a STUN request every Nth domain server check in so we update our public socket, if required
+            if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
+                sendSTUNRequest();
+            }
+            
+            if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+                // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+                // so emit our signal that indicates that
+                emit limitOfSilentDomainCheckInsReached();
+            }
+            
+            // increment the count of un-replied check-ins
+            _numNoReplyDomainCheckIns++;
+        }  else if (AccountManager::getInstance().hasValidAccessToken()) {
+            // we have an access token we can use for the authentication server the domain-server requested
+            // so ask that server to provide us with information to connect to the domain-server
+            requestAuthForDomainServer();
         }
-        
-        _nodeSocket.writeDatagram(domainServerPacket, _domainSockAddr.getAddress(), _domainSockAddr.getPort());
-        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-        static unsigned int numDomainCheckins = 0;
-
-        // send a STUN request every Nth domain server check in so we update our public socket, if required
-        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-            sendSTUNRequest();
-        }
-
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
     }
 }
 
@@ -560,7 +570,8 @@ void NodeList::setSessionUUID(const QUuid& sessionUUID) {
     _sessionUUID = sessionUUID;
     
     if (sessionUUID != oldUUID) {
-        qDebug() << "NodeList UUID changed from" << oldUUID << "to" << _sessionUUID;
+        qDebug() << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
+            << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
         emit uuidChanged(sessionUUID);
     }
 }
@@ -568,6 +579,9 @@ void NodeList::setSessionUUID(const QUuid& sessionUUID) {
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
+    
+    // if this was the first domain-server list from this domain, we've now connected
+    _domainInfo.setIsConnected(true);
 
     int readNodes = 0;
     
@@ -594,7 +608,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
         if (nodePublicSocket.getAddress().isNull()) {
-            nodePublicSocket.setAddress(_domainSockAddr.getAddress());
+            nodePublicSocket.setAddress(_domainInfo.getIP());
         }
 
         SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket);
@@ -610,13 +624,48 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     return readNodes;
 }
 
+void NodeList::domainServerAuthReply(const QJsonObject& jsonObject) {
+    _domainInfo.parseAuthInformationFromJsonObject(jsonObject);
+}
+
+void NodeList::requestAuthForDomainServer() {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "domainServerAuthReply";
+    
+    AccountManager::getInstance().authenticatedRequest("/api/v1/domains/"
+                                                       + uuidStringWithoutCurlyBraces(_domainInfo.getUUID()) + "/auth.json",
+                                                       QNetworkAccessManager::GetOperation,
+                                                       callbackParams);
+}
+
+void NodeList::processDomainServerAuthRequest(const QByteArray& packet) {
+    QDataStream authPacketStream(packet);
+    authPacketStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    _domainInfo.setUUID(uuidFromPacketHeader(packet));
+    AccountManager& accountManager = AccountManager::getInstance();
+
+    // grab the hostname this domain-server wants us to authenticate with
+    QUrl authenticationRootURL;
+    authPacketStream >> authenticationRootURL;
+    
+    accountManager.setAuthURL(authenticationRootURL);
+    _domainInfo.setRootAuthenticationURL(authenticationRootURL);
+    
+    if (AccountManager::getInstance().checkAndSignalForAccessToken()) {
+        // request a domain-server auth
+        requestAuthForDomainServer();
+    }
+}
+
 void NodeList::sendAssignment(Assignment& assignment) {
     
     PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketTypeCreateAssignment
         : PacketTypeRequestAssignment;
     
-    QByteArray packet = byteArrayWithPopluatedHeader(assignmentPacketType);
+    QByteArray packet = byteArrayWithPopulatedHeader(assignmentPacketType);
     QDataStream packetStream(&packet, QIODevice::Append);
     
     packetStream << assignment;
@@ -631,7 +680,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 QByteArray NodeList::constructPingPacket(PingType_t pingType) {
-    QByteArray pingPacket = byteArrayWithPopluatedHeader(PacketTypePing);
+    QByteArray pingPacket = byteArrayWithPopulatedHeader(PacketTypePing);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -651,7 +700,7 @@ QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
     
-    QByteArray replyPacket = byteArrayWithPopluatedHeader(PacketTypePingReply);
+    QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
@@ -673,9 +722,8 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
                                             const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     _nodeHashMutex.lock();
     
-    SharedNodePointer matchingNode = _nodeHash.value(uuid);
-    
-    if (!matchingNode) {
+    if (!_nodeHash.contains(uuid)) {
+        
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
@@ -692,29 +740,32 @@ SharedNodePointer NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType,
     } else {
         _nodeHashMutex.unlock();
         
+        return updateSocketsForNode(uuid, publicSocket, localSocket);
+    }
+}
+
+SharedNodePointer NodeList::updateSocketsForNode(const QUuid& uuid,
+                                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+
+    SharedNodePointer matchingNode = nodeWithUUID(uuid);
+    
+    if (matchingNode) {
+        // perform appropriate updates to this node
         QMutexLocker locker(&matchingNode->getMutex());
-
-        if (matchingNode->getType() == NodeType::AudioMixer ||
-            matchingNode->getType() == NodeType::VoxelServer ||
-            matchingNode->getType() == NodeType::MetavoxelServer) {
-            // until the Audio class also uses our nodeList, we need to update
-            // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-        }
-
+        
         // check if we need to change this node's public or local sockets
         if (publicSocket != matchingNode->getPublicSocket()) {
             matchingNode->setPublicSocket(publicSocket);
             qDebug() << "Public socket change for node" << *matchingNode;
         }
-
+        
         if (localSocket != matchingNode->getLocalSocket()) {
             matchingNode->setLocalSocket(localSocket);
             qDebug() << "Local socket change for node" << *matchingNode;
         }
-        // we had this node already, do nothing for now
-        return matchingNode;
     }
+    
+    return matchingNode;
 }
 
 unsigned NodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
@@ -803,20 +854,20 @@ void NodeList::loadData(QSettings *settings) {
     QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
 
     if (domainServerHostname.size() > 0) {
-        _domainHostname = domainServerHostname;
+        _domainInfo.setHostname(domainServerHostname);
     } else {
-        _domainHostname = DEFAULT_DOMAIN_HOSTNAME;
+        _domainInfo.setHostname(DEFAULT_DOMAIN_HOSTNAME);
     }
-
+    
     settings->endGroup();
 }
 
 void NodeList::saveData(QSettings* settings) {
     settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
 
-    if (_domainHostname != DEFAULT_DOMAIN_HOSTNAME) {
+    if (_domainInfo.getHostname() != DEFAULT_DOMAIN_HOSTNAME) {
         // the user is using a different hostname, store it
-        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
+        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainInfo.getHostname()));
     } else {
         // the user has switched back to default, remove the current setting
         settings->remove(DOMAIN_SERVER_SETTING_KEY);

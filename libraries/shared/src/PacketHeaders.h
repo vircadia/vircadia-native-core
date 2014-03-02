@@ -17,6 +17,8 @@
 
 #include "UUID.h"
 
+// NOTE: if adding a new packet type, you can replace one marked usable or add at the end
+
 enum PacketType {
     PacketTypeUnknown,
     PacketTypeStunResponse,
@@ -30,7 +32,7 @@ enum PacketType {
     PacketTypeMicrophoneAudioNoEcho,
     PacketTypeMicrophoneAudioWithEcho,
     PacketTypeBulkAvatarData,
-    PacketTypeTransmitterData,
+    PacketTypeTransmitterData, // usable
     PacketTypeEnvironmentData,
     PacketTypeDomainListRequest,
     PacketTypeRequestAssignment,
@@ -53,7 +55,10 @@ enum PacketType {
     PacketTypeParticleErase,
     PacketTypeParticleAddResponse,
     PacketTypeMetavoxelData,
-    PacketTypeAvatarIdentity
+    PacketTypeAvatarIdentity,
+    PacketTypeAvatarBillboard,
+    PacketTypeDomainConnectRequest,
+    PacketTypeDomainServerAuthRequest
 };
 
 typedef char PacketVersion;
@@ -66,7 +71,7 @@ PacketVersion versionForPacketType(PacketType type);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithPopluatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
+QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
 int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
 int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
 

@@ -20,12 +20,23 @@ QLabel#infoLabel {
     color: #666666;
 }
 
+QProgressBar  {
+    border: 0px;
+    border-radius: 0px;
+    background-color: #BFE4E4;
+    margin-right: 60px;
+}
+
+QProgressBar::chunk  {
+    background-color: #000000;
+}
+
 QPushButton {
     border-width: 0;
     border-radius: 9px;
     font-size: 18px;
     padding: 17px 0px 15px;
-    width: 107px;
+    width: 150px;
     margin-top: 20px;
     margin-bottom: 18px;
 }
@@ -49,6 +60,21 @@ QPushButton#cancelButton {
     background-color: #FFFFFF;
     width: 74px;
     margin-right: 11px;
+}
+
+#backButton {
+    background-image: url(resources/icons/backButton.svg);
+    border-radius: 0px;
+}
+
+#forwardButton {
+    background-image: url(resources/icons/forwardButton.svg);
+    border-radius: 0px;
+}
+
+#toParentButton {
+    background-image: url(resources/icons/toParentButton.svg);
+    border-radius: 0px;
 }
 
 QSidebar, QTreeView {

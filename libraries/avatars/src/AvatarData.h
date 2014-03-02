@@ -29,10 +29,12 @@ typedef unsigned long long quint64;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QByteArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
+#include <QRect>
 
 #include <CollisionInfo.h>
 #include <RegisteredMetaTypes.h>
@@ -52,8 +54,11 @@ static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fbx");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fbx");
+const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
+
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -62,6 +67,8 @@ enum KeyState {
 };
 
 const glm::vec3 vec3Zero(0.0f);
+
+class QNetworkAccessManager;
 
 class AvatarData : public NodeData {
     Q_OBJECT
@@ -75,10 +82,15 @@ class AvatarData : public NodeData {
     Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
-    
-    Q_PROPERTY(QUrl faceModelURL READ getFaceModelURL WRITE setFaceModelURL)
-    Q_PROPERTY(QUrl skeletonModelURL READ getSkeletonModelURL WRITE setSkeletonModelURL)
+
+    Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
+    Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
+
+    Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
+    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 public:
     AvatarData();
     ~AvatarData();
@@ -103,9 +115,18 @@ public:
     glm::quat getOrientation() const { return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll))); }
     void setOrientation(const glm::quat& orientation);
 
+    glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
+    void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
+
     // access to Head().set/getMousePitch
     float getHeadPitch() const { return _headData->getPitch(); }
     void setHeadPitch(float value) { _headData->setPitch(value); };
+
+    // access to Head().set/getAverageLoudness
+    float getAudioLoudness() const { return _headData->getAudioLoudness(); }
+    void setAudioLoudness(float value) { _headData->setAudioLoudness(value); }
+    float getAudioAverageLoudness() const { return _headData->getAudioAverageLoudness(); }
+    void setAudioAverageLoudness(float value) { _headData->setAudioAverageLoudness(value); }
 
     //  Scale
     float getTargetScale() const { return _targetScale; }
@@ -130,27 +151,45 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    void setHeadData(HeadData* headData) { _headData = headData; }
-    void setHandData(HandData* handData) { _handData = handData; }
-
     virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
-    virtual bool findSphereCollisionWithHands(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
+    virtual bool findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;
     }
 
-    virtual bool findSphereCollisionWithSkeleton(const glm::vec3& sphereCenter, float sphereRadius, CollisionInfo& collision) {
-        return false;
-    }
-    
     bool hasIdentityChangedAfterParsing(const QByteArray& packet);
     QByteArray identityByteArray();
     
+    bool hasBillboardChangedAfterParsing(const QByteArray& packet);
+    
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
+    QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    virtual void setDisplayName(const QString& displayName);
     
+    virtual void setBillboard(const QByteArray& billboard);
+    const QByteArray& getBillboard() const { return _billboard; }
+    
+    void setBillboardFromURL(const QString& billboardURL);
+    const QString& getBillboardURL() { return _billboardURL; }
+    
+    QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
+    void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
+    
+    QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
+    void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
+    
+    virtual float getBoundingRadius() const { return 1.f; }
+    
+    static void setNetworkAccessManager(QNetworkAccessManager* sharedAccessManager) { networkAccessManager = sharedAccessManager; }
+
+public slots:
+    void sendIdentityPacket();
+    void sendBillboardPacket();
+    void setBillboardFromNetworkReply();
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -179,6 +218,17 @@ protected:
 
     QUrl _faceModelURL;
     QUrl _skeletonModelURL;
+    QString _displayName;
+
+    QRect _displayNameBoundingRect;
+    float _displayNameTargetAlpha;
+    float _displayNameAlpha;
+
+    QByteArray _billboard;
+    QString _billboardURL;
+    
+    static QNetworkAccessManager* networkAccessManager;
+
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);

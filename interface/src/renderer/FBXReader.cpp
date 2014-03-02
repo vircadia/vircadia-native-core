@@ -28,6 +28,8 @@
 
 using namespace std;
 
+static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
     quint32 encoding;
@@ -1249,7 +1251,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         geometry.joints.append(joint);
-        geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);
+        geometry.jointIndices.insert(model.name, geometry.joints.size());
     }
 
     // find our special joints
@@ -1405,6 +1407,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
+            // BUG: joints that fall into this context do not get their bindTransform and
+            // inverseBindRotation data members properly set.  This causes bad boneRadius 
+            // and boneLength calculations for collision proxies.  Affected joints are usually:
+            // hair, teeth, tongue.  I tried to figure out how to fix this but was going
+            // crosseyed trying to understand FBX so I gave up for the time being -- Andrew.
         }
 
         // whether we're skinned depends on how many clusters are attached
@@ -1577,14 +1584,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
-    QBuffer modelBuffer(const_cast<QByteArray*>(&model));
-    modelBuffer.open(QIODevice::ReadOnly);
+QVariantHash readMapping(const QByteArray& data) {
+    QBuffer buffer(const_cast<QByteArray*>(&data));
+    buffer.open(QIODevice::ReadOnly);
+    return parseMapping(&buffer);
+}
 
-    QBuffer mappingBuffer(const_cast<QByteArray*>(&mapping));
-    mappingBuffer.open(QIODevice::ReadOnly);
-
-    return extractFBXGeometry(parseFBX(&modelBuffer), parseMapping(&mappingBuffer));
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping) {
+    QBuffer buffer(const_cast<QByteArray*>(&model));
+    buffer.open(QIODevice::ReadOnly);
+    return extractFBXGeometry(parseFBX(&buffer), mapping);
 }
 
 bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {

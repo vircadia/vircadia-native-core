@@ -17,16 +17,6 @@
 #include "ProgramObject.h"
 #include "TextureCache.h"
 
-class Model;
-
-// TODO: Andrew to move this into its own file
-class ModelCollisionInfo : public CollisionInfo {
-public:
-    ModelCollisionInfo() : CollisionInfo(), _model(NULL), _jointIndex(-1) {}
-    Model* _model;
-    int _jointIndex;
-};
-
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject {
     Q_OBJECT
@@ -56,13 +46,26 @@ public:
     
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
+    bool isRenderable() const { return !_meshStates.isEmpty(); }
+    
+    bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
+    
     void init();
     void reset();
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool delayLoad = false);
     bool render(float alpha);
     
-    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl());
+    /// Sets the URL of the model to render.
+    /// \param fallback the URL of a fallback model to render if the requested model fails to load
+    /// \param retainCurrent if true, keep rendering the current model until the new one is loaded
+    /// \param delayLoad if true, don't load the model immediately; wait until actually requested
+    Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
+        bool retainCurrent = false, bool delayLoad = false);
+    
     const QUrl& getURL() const { return _url; }
+    
+    /// Sets the distance parameter used for LOD computations.
+    void setLODDistance(float distance) { _lodDistance = distance; }
     
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
@@ -162,17 +165,18 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    bool findSphereCollision(const glm::vec3& penetratorCenter, float penetratorRadius,
-        ModelCollisionInfo& collision, float boneScale = 1.0f, int skipIndex = -1) const;
+    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
+        CollisionList& collisions, float boneScale = 1.0f, int skipIndex = -1) const;
     
     void renderCollisionProxies(float alpha);
 
+    /// \param collision details about the collisions
     /// \return true if the collision is against a moveable joint
-    bool collisionHitsMoveableJoint(ModelCollisionInfo& collision) const;
+    bool collisionHitsMoveableJoint(CollisionInfo& collision) const;
 
-    /// \param collisionInfo info about the collision
-    /// Use the collisionInfo to affect the model
-    void  applyCollision(ModelCollisionInfo& collisionInfo);
+    /// \param collision details about the collision
+    /// Use the collision to affect the model
+    void applyCollision(CollisionInfo& collision);
 
 protected:
 
@@ -233,14 +237,22 @@ protected:
     
 private:
     
+    QVector<JointState> updateGeometry(bool delayLoad);
+    void applyNextGeometry();
     void deleteGeometry();
     void renderMeshes(float alpha, bool translucent);
+    
+    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
+    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
+    QSharedPointer<NetworkGeometry> _nextGeometry;
+    float _lodDistance;
+    float _lodHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;
     
     QUrl _url;
-    
+        
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
@@ -269,6 +281,7 @@ private:
     static SkinLocations _skinNormalMapLocations;
     
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
+    static QVector<JointState> createJointStates(const FBXGeometry& geometry);
 };
 
 #endif /* defined(__interface__Model__) */

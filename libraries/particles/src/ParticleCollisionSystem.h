@@ -66,6 +66,7 @@ private:
     VoxelTree* _voxels;
     AbstractAudioInterface* _audio;
     AvatarHashMap* _avatars;
+    CollisionList _collisions;
 };
 
 #endif /* defined(__hifi__ParticleCollisionSystem__) */

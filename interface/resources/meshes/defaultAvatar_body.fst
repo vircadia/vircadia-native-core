@@ -1,3 +1,5 @@
+filename=defaultAvatar/body.fbx
+texdir=defaultAvatar
 scale=130
 joint = jointRoot = jointRoot
 joint = jointLean = jointSpine

@@ -102,6 +102,18 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
         text = "END";
     } else if (key == Qt::Key_Help) {
         text = "HELP";
+    } else if (key == Qt::Key_CapsLock) {
+        text = "CAPS LOCK";
+    } else if (key >= Qt::Key_A && key <= Qt::Key_Z && (isMeta || isControl || isAlt))  {
+        // this little bit of hackery will fix the text character keys like a-z in cases of control/alt/meta where
+        // qt doesn't always give you the key characters and will sometimes give you crazy non-printable characters
+        const int lowerCaseAdjust = 0x20;
+        QString unicode;
+        if (isShifted) {
+            text = QString(QChar(key));
+        } else {
+            text = QString(QChar(key + lowerCaseAdjust));
+        }
     }
 }
 
@@ -112,6 +124,30 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
         && other.isMeta == isMeta
         && other.isAlt == isAlt
         && other.isKeypad == isKeypad; 
+}
+
+
+KeyEvent::operator QKeySequence() const { 
+    int resultCode = 0;
+    if (text.size() == 1 && text >= "a" && text <= "z") {
+        resultCode = text.toUpper().at(0).unicode();
+    } else {
+        resultCode = key;
+    }
+
+    if (isMeta) {
+        resultCode |= Qt::META;
+    }
+    if (isAlt) {
+        resultCode |= Qt::ALT;
+    }
+    if (isControl) {
+        resultCode |= Qt::CTRL;
+    }
+    if (isShifted) {
+        resultCode |= Qt::SHIFT;
+    }
+    return QKeySequence(resultCode);
 }
 
 QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event) {
@@ -208,6 +244,8 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
                 event.key = Qt::Key_End;
             } else if (event.text.toUpper() == "HELP") {
                 event.key = Qt::Key_Help;
+            } else if (event.text.toUpper() == "CAPS LOCK") {
+                event.key = Qt::Key_CapsLock;
             } else {
                 event.key = event.text.at(0).unicode();
             }
@@ -258,10 +296,17 @@ MouseEvent::MouseEvent() :
 }; 
 
 
-MouseEvent::MouseEvent(const QMouseEvent& event) {
-    x = event.x();
-    y = event.y();
-    
+MouseEvent::MouseEvent(const QMouseEvent& event) :
+    x(event.x()), 
+    y(event.y()),
+    isLeftButton(event.buttons().testFlag(Qt::LeftButton)), 
+    isRightButton(event.buttons().testFlag(Qt::RightButton)), 
+    isMiddleButton(event.buttons().testFlag(Qt::MiddleButton)),
+    isShifted(event.modifiers().testFlag(Qt::ShiftModifier)),
+    isControl(event.modifiers().testFlag(Qt::ControlModifier)),
+    isMeta(event.modifiers().testFlag(Qt::MetaModifier)),
+    isAlt(event.modifiers().testFlag(Qt::AltModifier))
+{
     // single button that caused the event
     switch (event.button()) {
         case Qt::LeftButton:
@@ -280,16 +325,6 @@ MouseEvent::MouseEvent(const QMouseEvent& event) {
             button = "NONE";
             break;
     }
-    // button pressed state
-    isLeftButton = isLeftButton || (event.buttons().testFlag(Qt::LeftButton));
-    isRightButton = isRightButton || (event.buttons().testFlag(Qt::RightButton));
-    isMiddleButton = isMiddleButton || (event.buttons().testFlag(Qt::MiddleButton));
-
-    // keyboard modifiers
-    isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
-    isMeta = event.modifiers().testFlag(Qt::MetaModifier);
-    isControl = event.modifiers().testFlag(Qt::ControlModifier);
-    isAlt = event.modifiers().testFlag(Qt::AltModifier);
 }
 
 QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event) {

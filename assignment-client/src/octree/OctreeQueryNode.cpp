@@ -37,6 +37,18 @@ OctreeQueryNode::OctreeQueryNode() :
     _sequenceNumber = 0;
 }
 
+OctreeQueryNode::~OctreeQueryNode() {
+    if (_octreeSendThread) {
+        _octreeSendThread->terminate();
+        delete _octreeSendThread;
+    }
+
+    delete[] _octreePacket;
+    delete[] _lastOctreePacket;
+}
+
+
+
 void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* octreeServer, const QUuid& nodeUUID) {
     // Create octree sending thread...
     _octreeSendThread = new OctreeSendThread(nodeUUID, octreeServer);
@@ -156,16 +168,6 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, int bytes) {
         _octreePacketAt += bytes;
         _octreePacketWaiting = true;
     }
-}
-
-OctreeQueryNode::~OctreeQueryNode() {
-    if (_octreeSendThread) {
-        _octreeSendThread->terminate();
-        _octreeSendThread->deleteLater();
-    }
-
-    delete[] _octreePacket;
-    delete[] _lastOctreePacket;
 }
 
 bool OctreeQueryNode::updateCurrentViewFrustum() {

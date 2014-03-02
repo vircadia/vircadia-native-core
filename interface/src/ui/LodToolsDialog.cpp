@@ -121,6 +121,12 @@ LodToolsDialog::~LodToolsDialog() {
     delete _boundaryLevelAdjust;
 }
 
+void LodToolsDialog::reloadSliders() {
+    _lodSize->setValue(Menu::getInstance()->getVoxelSizeScale() / TREE_SCALE);
+    _boundaryLevelAdjust->setValue(Menu::getInstance()->getBoundaryLevelAdjust());
+    _feedback->setText(getFeedbackText());
+}
+
 void LodToolsDialog::sizeScaleValueChanged(int value) {
     float realValue = value * TREE_SCALE;
     Menu::getInstance()->setVoxelSizeScale(realValue);
