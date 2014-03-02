@@ -562,3 +562,28 @@ int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char*
     }
 }
 
+
+bool VoxelTree::findRayIntersectionDetail(const glm::vec3& origin, const glm::vec3& direction,
+                                      VoxelDetail& detail, float& distance, BoxFace& face) {
+
+    bool result = false; // assume no intersection
+    if (tryLockForRead()) {
+        OctreeElement* element;
+        result = findRayIntersection(origin, direction, element, distance, face);
+        if (result) {
+            VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+            detail.x = voxel->getCorner().x;
+            detail.y = voxel->getCorner().y;
+            detail.z = voxel->getCorner().z;
+            detail.s = voxel->getScale();
+            detail.red = voxel->getColor()[0];
+            detail.green = voxel->getColor()[1];
+            detail.blue = voxel->getColor()[2];
+        }
+        unlock();
+    }
+    return result;
+}
+
+
+

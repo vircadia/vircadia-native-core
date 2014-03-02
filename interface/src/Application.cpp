@@ -1740,7 +1740,7 @@ void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& f
 
     if (!_mousePressed) {
         PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-        _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
+        _isHoverVoxel = getVoxelTree()->findRayIntersectionDetail(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
     }
 }
 

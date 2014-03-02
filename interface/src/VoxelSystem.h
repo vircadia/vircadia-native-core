@@ -87,9 +87,6 @@ public:
     bool hasViewChanged();
     bool isViewChanging();
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             VoxelDetail& detail, float& distance, BoxFace& face);
-
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);

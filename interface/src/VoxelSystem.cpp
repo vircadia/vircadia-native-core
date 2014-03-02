@@ -2256,30 +2256,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
 }
 
 
-bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                      VoxelDetail& detail, float& distance, BoxFace& face) {
-
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::findRayIntersection()");
-    bool result = false; // assume no intersection
-    if (_tree->tryLockForRead()) {
-        OctreeElement* element;
-        result = _tree->findRayIntersection(origin, direction, element, distance, face);
-        if (result) {
-            VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-            detail.x = voxel->getCorner().x;
-            detail.y = voxel->getCorner().y;
-            detail.z = voxel->getCorner().z;
-            detail.s = voxel->getScale();
-            detail.red = voxel->getColor()[0];
-            detail.green = voxel->getColor()[1];
-            detail.blue = voxel->getColor()[2];
-        }
-        _tree->unlock();
-    }
-    return result;
-}
-
 void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
     destination->setupNewVoxelsForDrawing();
