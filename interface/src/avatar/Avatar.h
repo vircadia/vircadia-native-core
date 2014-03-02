@@ -177,7 +177,7 @@ private:
 
     bool _initialized;
     QScopedPointer<Texture> _billboardTexture;
-    bool _billboardHysteresis;
+    bool _shouldRenderBillboard;
 
     void renderBody();
     void renderBillboard();

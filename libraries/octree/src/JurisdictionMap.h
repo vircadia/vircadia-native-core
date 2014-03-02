@@ -79,7 +79,8 @@ private:
 
 /// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
 /// managing which jurisdictions.
-typedef std::map<QUuid, JurisdictionMap> NodeToJurisdictionMap;
+typedef QMap<QUuid, JurisdictionMap> NodeToJurisdictionMap;
+typedef QMap<QUuid, JurisdictionMap>::iterator NodeToJurisdictionMapIterator;
 
 
 #endif /* defined(__hifi__JurisdictionMap__) */

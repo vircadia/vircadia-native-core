@@ -73,6 +73,8 @@ bool ChatEntry::keyPressEvent(QKeyEvent* event) {
     }
 }
 
+const float ALL_WHITE[] = { 1.0f, 1.0f, 1.0f };
+
 void ChatEntry::render(int screenWidth, int screenHeight) {
     // draw a gray background so that we can actually see what we're typing
     int bottom = screenHeight - 150, top = screenHeight - 165;
@@ -85,8 +87,8 @@ void ChatEntry::render(int screenWidth, int screenHeight) {
     glVertex2f(right + 5, top - 3);
     glVertex2f(left - 5, top - 3);
     glEnd();
-
-    drawtext(left, bottom, 0.10f, 0, 1.0f, 0, _contents.c_str(), 1, 1, 1);
+    
+    drawText(left, bottom, 0.10f, 0, 2, _contents.c_str(), ALL_WHITE);
     
     float width = 0;
     for (string::iterator it = _contents.begin(), end = it + _cursorPos; it != end; it++) {

@@ -28,6 +28,8 @@
 
 using namespace std;
 
+static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
     quint32 encoding;

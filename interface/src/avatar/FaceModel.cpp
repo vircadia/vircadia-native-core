@@ -18,9 +18,9 @@ FaceModel::FaceModel(Head* owningHead) :
 {
 }
 
-void FaceModel::simulate(float deltaTime) {
+void FaceModel::simulate(float deltaTime, bool delayLoad) {
     if (!isActive()) {
-        Model::simulate(deltaTime);
+        Model::simulate(deltaTime, delayLoad);
         return;
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
@@ -41,7 +41,7 @@ void FaceModel::simulate(float deltaTime) {
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    Model::simulate(deltaTime);
+    Model::simulate(deltaTime, delayLoad);
 }
 
 bool FaceModel::render(float alpha) {

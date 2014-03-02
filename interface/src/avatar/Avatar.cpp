@@ -78,7 +78,7 @@ Avatar::Avatar() :
     _owningAvatarMixer(),
     _collisionFlags(0),
     _initialized(false),
-    _billboardHysteresis(false)
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -91,11 +91,14 @@ Avatar::Avatar() :
 Avatar::~Avatar() {
 }
 
+const float BILLBOARD_LOD_DISTANCE = 40.0f;
+
 void Avatar::init() {
     getHead()->init();
     getHand()->init();
     _skeletonModel.init();
     _initialized = true;
+    _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -117,20 +120,30 @@ void Avatar::simulate(float deltaTime) {
         setScale(_targetScale);
     }
 
+    // update the billboard render flag
+    const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
+    if (_shouldRenderBillboard) {
+        if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
+            _shouldRenderBillboard = false;
+        }
+    } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
+        _shouldRenderBillboard = true;
+    }
+
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
-    _skeletonModel.simulate(deltaTime);
-    Head* head = getHead();
+    _skeletonModel.simulate(deltaTime, _shouldRenderBillboard);
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _position;
     }
+    Head* head = getHead();
     head->setPosition(headPosition);
     head->setScale(_scale);
-    getHead()->simulate(deltaTime, false);
+    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -291,22 +304,13 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-const float BILLBOARD_LOD_DISTANCE = 40.0f;
-
 void Avatar::renderBody() {    
-    if (!_billboard.isEmpty()) {
-        const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
-        if (_billboardHysteresis) {
-            if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
-                _billboardHysteresis = false;
-            }
-        } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
-            _billboardHysteresis = true;
-        }
-        if (_billboardHysteresis) {
-            renderBillboard();
-            return;
-        }
+    if (_shouldRenderBillboard) {
+        renderBillboard();
+        return;
+    }
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
     }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);
@@ -314,9 +318,14 @@ void Avatar::renderBody() {
 }
 
 void Avatar::renderBillboard() {
+    if (_billboard.isEmpty()) {
+        return;
+    }
     if (!_billboardTexture) {
-        QImage image = QImage::fromData(_billboard).convertToFormat(QImage::Format_ARGB32);
-        
+        QImage image = QImage::fromData(_billboard);
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
         _billboardTexture.reset(new Texture());
         glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
@@ -555,16 +564,16 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
     return collided;
 }
 
-void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
+void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
+    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
-void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
+void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setDisplayName(const QString& displayName) {
@@ -577,9 +586,6 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     
     // clear out any existing billboard texture
     _billboardTexture.reset();
-    
-    // reset the hysteresis value
-    _billboardHysteresis = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
 }
 
 int Avatar::parseData(const QByteArray& packet) {

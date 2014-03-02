@@ -56,6 +56,7 @@ Menu* Menu::getInstance() {
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
+const int FIVE_SECONDS_OF_FRAMES = 5 * 60;
 
 Menu::Menu() :
     _actionHash(),
@@ -72,7 +73,10 @@ Menu::Menu() :
     _boundaryLevelAdjust(0),
     _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS),
     _lastAdjust(usecTimestampNow()),
+    _fpsAverage(FIVE_SECONDS_OF_FRAMES),
+    _loginAction(NULL),
     _preferencesDialog()
+
 {
     Application *appInstance = Application::getInstance();
 
@@ -238,29 +242,12 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRenderVoxels);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontCallOpenGLForVoxels);
-
-    _useVoxelShader = addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0,
-                                           false, appInstance->getVoxels(), SLOT(setUseVoxelShader(bool)));
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelsAsPoints, 0,
-                                           false, appInstance->getVoxels(), SLOT(setVoxelsAsPoints(bool)));
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutoAdjustLOD);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
-
-    QMenu* voxelProtoOptionsMenu = voxelOptionsMenu->addMenu("Voxel Server Protocol Options");
-
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableColorVoxels);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableLowRes);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DisableDeltaSending);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::EnableVoxelPacketCompression);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::EnableOcclusionCulling);
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
 
@@ -277,8 +264,6 @@ Menu::Menu() :
                                            SLOT(setTCPEnabled(bool)));
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, false);
 
-    addAvatarCollisionSubMenu(avatarOptionsMenu);
-    
     QMenu* handOptionsMenu = developerMenu->addMenu("Hand Options");
 
     addCheckableActionToQMenuAndActionHash(handOptionsMenu,
@@ -734,11 +719,142 @@ void Menu::loginForCurrentDomain() {
 }
 
 void Menu::editPreferences() {
-    if(! _preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getGLWidget());
-    }
+    Application* applicationInstance = Application::getInstance();
 
-    _preferencesDialog->show();
+    QDialog dialog(applicationInstance->getWindow());
+    dialog.setWindowTitle("Interface Preferences");
+    
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+
+    QString faceURLString = applicationInstance->getAvatar()->getHead()->getFaceModel().getURL().toString();
+    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
+    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    faceURLEdit->setPlaceholderText(DEFAULT_HEAD_MODEL_URL.toString());
+    form->addRow("Face URL:", faceURLEdit);
+
+    QString skeletonURLString = applicationInstance->getAvatar()->getSkeletonModel().getURL().toString();
+    QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
+    skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    skeletonURLEdit->setPlaceholderText(DEFAULT_BODY_MODEL_URL.toString());
+    form->addRow("Skeleton URL:", skeletonURLEdit);
+
+    QString displayNameString = applicationInstance->getAvatar()->getDisplayName();
+    QLineEdit* displayNameEdit = new QLineEdit(displayNameString);
+    displayNameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Display name:", displayNameEdit);
+
+    QSlider* pupilDilation = new QSlider(Qt::Horizontal);
+    pupilDilation->setValue(applicationInstance->getAvatar()->getHead()->getPupilDilation() * pupilDilation->maximum());
+    form->addRow("Pupil Dilation:", pupilDilation);
+
+    QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
+    faceshiftEyeDeflection->setValue(_faceshiftEyeDeflection * faceshiftEyeDeflection->maximum());
+    form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
+
+    QSpinBox* fieldOfView = new QSpinBox();
+    fieldOfView->setMaximum(180);
+    fieldOfView->setMinimum(1);
+    fieldOfView->setValue(_fieldOfView);
+    form->addRow("Vertical Field of View (Degrees):", fieldOfView);
+
+    QDoubleSpinBox* leanScale = new QDoubleSpinBox();
+    leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
+    form->addRow("Lean Scale:", leanScale);
+
+    QDoubleSpinBox* avatarScale = new QDoubleSpinBox();
+    avatarScale->setValue(applicationInstance->getAvatar()->getScale());
+    form->addRow("Avatar Scale:", avatarScale);
+
+    QSpinBox* audioJitterBufferSamples = new QSpinBox();
+    audioJitterBufferSamples->setMaximum(10000);
+    audioJitterBufferSamples->setMinimum(-10000);
+    audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
+    form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
+
+    QSpinBox* maxVoxels = new QSpinBox();
+    const int MAX_MAX_VOXELS = 5000000;
+    const int MIN_MAX_VOXELS = 0;
+    const int STEP_MAX_VOXELS = 50000;
+    maxVoxels->setMaximum(MAX_MAX_VOXELS);
+    maxVoxels->setMinimum(MIN_MAX_VOXELS);
+    maxVoxels->setSingleStep(STEP_MAX_VOXELS);
+    maxVoxels->setValue(_maxVoxels);
+    form->addRow("Maximum Voxels:", maxVoxels);
+
+    QSpinBox* maxVoxelsPPS = new QSpinBox();
+    const int MAX_MAX_VOXELS_PPS = 6000;
+    const int MIN_MAX_VOXELS_PPS = 60;
+    const int STEP_MAX_VOXELS_PPS = 10;
+    maxVoxelsPPS->setMaximum(MAX_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setMinimum(MIN_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setSingleStep(STEP_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setValue(_maxVoxelPacketsPerSecond);
+    form->addRow("Maximum Voxels Packets Per Second:", maxVoxelsPPS);
+
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+
+    int ret = dialog.exec();
+    if (ret == QDialog::Accepted) {
+        QUrl faceModelURL(faceURLEdit->text());
+        
+        bool shouldDispatchIdentityPacket = false;
+
+        if (faceModelURL.toString() != faceURLString) {
+            // change the faceModelURL in the profile, it will also update this user's BlendFace
+            applicationInstance->getAvatar()->setFaceModelURL(faceModelURL);
+            shouldDispatchIdentityPacket = true;
+        }
+
+        QUrl skeletonModelURL(skeletonURLEdit->text());
+
+        if (skeletonModelURL.toString() != skeletonURLString) {
+            // change the skeletonModelURL in the profile, it will also update this user's Body
+            applicationInstance->getAvatar()->setSkeletonModelURL(skeletonModelURL);
+            shouldDispatchIdentityPacket = true;
+        }
+
+        QString displayNameStr(displayNameEdit->text());
+        
+        if (displayNameStr != displayNameString) {
+            applicationInstance->getAvatar()->setDisplayName(displayNameStr);
+            shouldDispatchIdentityPacket = true;
+        }
+                
+        if (shouldDispatchIdentityPacket) {
+            applicationInstance->getAvatar()->sendIdentityPacket();
+        }
+
+        applicationInstance->getAvatar()->getHead()->setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
+
+        _maxVoxels = maxVoxels->value();
+        applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
+
+        _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
+
+        applicationInstance->getAvatar()->setLeanScale(leanScale->value());
+        applicationInstance->getAvatar()->setClampedTargetScale(avatarScale->value());
+
+        _audioJitterBufferSamples = audioJitterBufferSamples->value();
+
+        if (_audioJitterBufferSamples != 0) {
+            applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
+        }
+
+        _fieldOfView = fieldOfView->value();
+        applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+
+        _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
+    }
+    QMetaObject::invokeMethod(applicationInstance->getAudio(), "reset", Qt::QueuedConnection);
+
+    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain(const QString newDomain) {
@@ -992,22 +1108,43 @@ void Menu::voxelStatsDetailsClosed() {
 }
 
 void Menu::autoAdjustLOD(float currentFPS) {
+    // NOTE: our first ~100 samples at app startup are completely all over the place, and we don't 
+    // really want to count them in our average, so we will ignore the real frame rates and stuff
+    // our moving average with simulated good data
+    const int IGNORE_THESE_SAMPLES = 100;
+    const float ASSUMED_FPS = 60.0f;
+    if (_fpsAverage.getSampleCount() < IGNORE_THESE_SAMPLES) {
+        currentFPS = ASSUMED_FPS;
+    }
+    _fpsAverage.updateAverage(currentFPS);
+
     bool changed = false;
     quint64 now = usecTimestampNow();
     quint64 elapsed = now - _lastAdjust;
-    
-    if (elapsed > ADJUST_LOD_DOWN_DELAY && currentFPS < ADJUST_LOD_DOWN_FPS && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+
+    if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS 
+            && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+
         _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+        if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+            _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+        }
         changed = true;
         _lastAdjust = now;
-        qDebug() << "adjusting LOD down... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+        qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
+                     << "_voxelSizeScale=" << _voxelSizeScale;
     }
 
-    if (elapsed > ADJUST_LOD_UP_DELAY && currentFPS > ADJUST_LOD_UP_FPS && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+    if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS 
+            && _voxelSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
         _voxelSizeScale *= ADJUST_LOD_UP_BY;
+        if (_voxelSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+            _voxelSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+        }
         changed = true;
         _lastAdjust = now;
-        qDebug() << "adjusting LOD up... currentFPS=" << currentFPS << "_voxelSizeScale=" << _voxelSizeScale;
+        qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
+                     << "_voxelSizeScale=" << _voxelSizeScale;
     }
     
     if (changed) {

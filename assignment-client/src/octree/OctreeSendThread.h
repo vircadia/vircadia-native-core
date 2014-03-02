@@ -16,10 +16,12 @@
 #include "OctreeQueryNode.h"
 #include "OctreeServer.h"
 
+
 /// Threaded processor for sending voxel packets to a single client
 class OctreeSendThread : public GenericThread {
 public:
     OctreeSendThread(const QUuid& nodeUUID, OctreeServer* myServer);
+    virtual ~OctreeSendThread();
 
     static quint64 _totalBytes;
     static quint64 _totalWastedBytes;
@@ -40,6 +42,8 @@ private:
     int packetDistributor(const SharedNodePointer& node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
+    
+    int _nodeMissingCount;
 };
 
 #endif // __octree_server__OctreeSendThread__
