@@ -1,4 +1,4 @@
-    //
+//
 //  main.cpp
 //  Voxel Edit
 //
@@ -8,7 +8,7 @@
 
 #include <VoxelTree.h>
 #include <SharedUtil.h>
-#include <SceneUtils.h>
+#include "SceneUtils.h"
 #include <JurisdictionMap.h>
 #include <QString>
 #include <QStringList>
