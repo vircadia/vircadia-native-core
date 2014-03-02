@@ -154,6 +154,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }

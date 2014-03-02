@@ -90,9 +90,6 @@ public:
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelDetail& detail, float& distance, BoxFace& face);
 
-    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
-
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);

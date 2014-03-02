@@ -2280,28 +2280,6 @@ bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     return result;
 }
 
-bool VoxelSystem::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::findSpherePenetration()");
-    bool result = false; // assume no penetration
-    if (_tree->tryLockForRead()) {
-        result = _tree->findSpherePenetration(center, radius, penetration);
-        _tree->unlock();
-    }
-    return result;
-}
-
-bool VoxelSystem::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                            "VoxelSystem::findCapsulePenetration()");
-    bool result = false; // assume no penetration
-    if (_tree->tryLockForRead()) {
-        result = _tree->findCapsulePenetration(start, end, radius, penetration);
-        _tree->unlock();
-    }
-    return result;
-}
-
 void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
     destination->setupNewVoxelsForDrawing();

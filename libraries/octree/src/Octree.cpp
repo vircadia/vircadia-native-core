@@ -628,18 +628,23 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
                     void** penetratedObject) {
 
-    SphereArgs args = {
-        center / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
-        penetration,
-        false,
-        NULL };
-    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
-    recurseTreeWithOperation(findSpherePenetrationOp, &args);
-    if (penetratedObject) {
-        *penetratedObject = args.penetratedObject;
+    bool result = false; // assume no penetration
+    if (tryLockForRead()) {
+        SphereArgs args = {
+            center / (float)(TREE_SCALE),
+            radius / (float)(TREE_SCALE),
+            penetration,
+            false,
+            NULL };
+        penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+        recurseTreeWithOperation(findSpherePenetrationOp, &args);
+        if (penetratedObject) {
+            *penetratedObject = args.penetratedObject;
+        }
+        unlock();
+        result = args.found;
     }
-    return args.found;
+    return result;
 }
 
 class CapsuleArgs {
@@ -673,14 +678,19 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    CapsuleArgs args = {
-        start / (float)(TREE_SCALE),
-        end / (float)(TREE_SCALE),
-        radius / (float)(TREE_SCALE),
-        penetration };
-    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
-    recurseTreeWithOperation(findCapsulePenetrationOp, &args);
-    return args.found;
+    bool result = false; // assume no penetration
+    if (tryLockForRead()) {
+        CapsuleArgs args = {
+            start / (float)(TREE_SCALE),
+            end / (float)(TREE_SCALE),
+            radius / (float)(TREE_SCALE),
+            penetration };
+        penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+        recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+        result = args.found;
+        unlock();
+    }
+    return result;
 }
 
 int Octree::encodeTreeBitstream(OctreeElement* node,
