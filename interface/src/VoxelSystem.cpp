@@ -2117,15 +2117,9 @@ bool VoxelSystem::hideAllSubTreeOperation(OctreeElement* element, void* extraDat
     args->nodesOutside++;
     if (voxel->isKnownBufferIndex()) {
         args->nodesRemoved++;
-        bool falseColorize = false;
-        if (falseColorize) {
-            voxel->setFalseColor(255,0,0); // false colorize
-        } else {
-            VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-            thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->forceRemoveNodeFromArrays(voxel);
-            thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
-        }
-
+        VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
+        thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->forceRemoveNodeFromArrays(voxel);
+        thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
     }
 
     return true;
@@ -2158,20 +2152,9 @@ bool VoxelSystem::showAllSubTreeOperation(OctreeElement* element, void* extraDat
     voxel->setShouldRender(shouldRender);
 
     if (shouldRender && !voxel->isKnownBufferIndex()) {
-        bool falseColorize = false;
-        if (falseColorize) {
-            voxel->setFalseColor(0,0,255); // false colorize
-        }
         // These are both needed to force redraw...
         voxel->setDirtyBit();
         voxel->markWithChangedTime();
-        // and this?
-// no, not needed, because markWithChangedTime notifies hooks, which calls elementUpdated, which calls updateNodeInArrays
-//        {
-//            VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-//            thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->updateNodeInArrays(voxel, true, true);
-//            thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
-//        }
         args->nodesShown++;
     }
 
