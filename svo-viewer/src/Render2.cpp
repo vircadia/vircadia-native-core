@@ -148,9 +148,9 @@ bool SvoViewer::VoxelOpt2RenderAssemblePerVoxel(OctreeElement* node, void* extra
 			args->vtxBuffer[args->vtxCount].position *= 100;
 			args->vtxBuffer[args->vtxCount].position.x -= 25;
 			args->vtxBuffer[args->vtxCount].position.y -= 4;
-			args->vtxBuffer[args->vtxCount].color[0] = voxel->getTrueColor()[0];		
-			args->vtxBuffer[args->vtxCount].color[1] = voxel->getTrueColor()[1];		
-			args->vtxBuffer[args->vtxCount].color[2] = voxel->getTrueColor()[2];		
+			args->vtxBuffer[args->vtxCount].color[0] = voxel->getColor()[0];		
+			args->vtxBuffer[args->vtxCount].color[1] = voxel->getColor()[1];		
+			args->vtxBuffer[args->vtxCount].color[2] = voxel->getColor()[2];		
 			args->vtxBuffer[args->vtxCount].color[3] = 1;		
 			cubeVerts[i] = args->vtxBuffer[args->vtxCount].position;
 			args->vtxCount++;

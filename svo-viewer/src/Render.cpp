@@ -51,9 +51,9 @@ bool SvoViewer::PointRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 	center *= 100.0;
 	args->buffer[args->count] = center;
 	int cCount = args->count * 3;
-	args->colorBuffer[cCount] = voxel->getTrueColor()[0];
-	args->colorBuffer[cCount+1] = voxel->getTrueColor()[1];
-	args->colorBuffer[cCount+2] = voxel->getTrueColor()[2];
+	args->colorBuffer[cCount] = voxel->getColor()[0];
+	args->colorBuffer[cCount+1] = voxel->getColor()[1];
+	args->colorBuffer[cCount+2] = voxel->getColor()[2];
 	args->count++;
     return true; // keep going!
 }
@@ -189,7 +189,7 @@ bool SvoViewer::VoxelRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 	int totalNodesProcessedSinceLastFlush = args->leafCount - args->lastBufferSegmentStart;
 	// ack, one of these components is flags, not alpha
 	int cCount = totalNodesProcessedSinceLastFlush * 4; // Place it relative to the current segment.
-	unsigned char col[4] = {voxel->getTrueColor()[0], voxel->getTrueColor()[1], voxel->getTrueColor()[2], 1};
+	unsigned char col[4] = {voxel->getColor()[0], voxel->getColor()[1], voxel->getColor()[2], 1};
 	for(int i = 0; i < GLOBAL_NORMALS_VERTICES_PER_VOXEL; i++)
 		memcpy(&args->colorBuffer[cCount+i*4], col, sizeof(col));
 
@@ -579,9 +579,9 @@ bool SvoViewer::VoxelOptRenderAssemblePerVoxel(OctreeElement* node, void* extraD
 			args->vtxBuffer[args->vtxCount].position *= 100;
 			args->vtxBuffer[args->vtxCount].position.x -= 25;
 			args->vtxBuffer[args->vtxCount].position.y -= 4;
-			args->vtxBuffer[args->vtxCount].color[0] = voxel->getTrueColor()[0];		
-			args->vtxBuffer[args->vtxCount].color[1] = voxel->getTrueColor()[1];		
-			args->vtxBuffer[args->vtxCount].color[2] = voxel->getTrueColor()[2];		
+			args->vtxBuffer[args->vtxCount].color[0] = voxel->getColor()[0];		
+			args->vtxBuffer[args->vtxCount].color[1] = voxel->getColor()[1];		
+			args->vtxBuffer[args->vtxCount].color[2] = voxel->getColor()[2];		
 			args->vtxBuffer[args->vtxCount].color[3] = 1;
 			args->bounds.AddToSet(args->vtxBuffer[args->vtxCount].position);			
 			args->vtxCount++;
