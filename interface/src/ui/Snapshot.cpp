@@ -9,6 +9,7 @@
 #include "Snapshot.h"
 
 #include <FileUtils.h>
+#include <ui/snapshotShareDialog.cpp>
 
 #include <QDateTime>
 #include <QFileInfo>
@@ -41,6 +42,8 @@ void Snapshot::saveSnapshot(QGLWidget* widget, QString username, glm::vec3 locat
     QString fileName = FileUtils::standardPath(SNAPSHOTS_DIRECTORY);
     fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
     shot.save(fileName, 0, 100);
+    
+    
 }
 
 
