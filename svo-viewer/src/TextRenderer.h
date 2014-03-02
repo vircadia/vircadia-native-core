@@ -9,13 +9,14 @@
 #ifndef __interface__TextRenderer__
 #define __interface__TextRenderer__
 
+#include "svo-viewer-config.h"
+
 #include <QFont>
 #include <QFontMetrics>
 #include <QHash>
 #include <QImage>
 #include <QVector>
 
-#include "SvoViewerConfig.h"
 
 // a special "character" that renders as a solid block
 const char SOLID_BLOCK_CHAR = 127;
