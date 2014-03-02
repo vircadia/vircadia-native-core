@@ -1751,11 +1751,12 @@ bool VoxelSystem::inspectForExteriorOcclusionsOperation(OctreeElement* element, 
 
             //qDebug("Completely occupied voxel at %f %f %f size: %f", v.x, v.y, v.z, s);
 
-            // TODO: All of the exterior faces of this voxel element are
-            //        occluders, which means that this element is completely
-            //        occupied. Hence, the subtree from this node could be
-            //        pruned and replaced by a leaf voxel, if the visible 
-            //        properties of the children are the same
+            // All of the exterior faces of this voxel element are
+            // occluders, which means that this element is completely
+            // occupied. Hence, the subtree from this node could be
+            // pruned and replaced by a leaf voxel, if the visible 
+            // properties of the children are the same
+
         } else if (exteriorOcclusions != OctreeElement::HalfSpace::None) {
             //const glm::vec3& v = voxel->getCorner();
             //float s = voxel->getScale();
