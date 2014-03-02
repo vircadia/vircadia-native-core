@@ -55,10 +55,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
         _collisionAge += deltaTime;
     }
     
-    if (isMine) {
-        _buckyBalls.simulate(deltaTime);
-    }
-    
     calculateGeometry();
     
     if (isMine) {
@@ -69,11 +65,11 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 
-                _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
-                
+                 
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+                        // TODO: we need to move this code to JS so it can access the editVoxels.js color palette
+                        QColor paintColor(128,128,128);
                         Application::getInstance()->makeVoxel(fingerTipPosition,
                                                               FINGERTIP_VOXEL_SIZE,
                                                               paintColor.red(),
@@ -308,10 +304,6 @@ void Hand::calculateGeometry() {
 void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
-    
-    if (isMine) {
-        _buckyBalls.render();
-    }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)

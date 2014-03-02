@@ -36,17 +36,15 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    void simulate(float deltaTime, bool isMine, bool delayLoad = false);
     void render(float alpha);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
-    void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
     void setGravity(glm::vec3 gravity) { _gravity = gravity; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     
-    glm::quat getOrientation() const;
     glm::quat getTweakedOrientation() const;
     glm::quat getCameraOrientation () const;
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
@@ -76,9 +74,9 @@ public:
     void tweakYaw(float yaw) { _tweakedYaw = yaw; }
     void tweakRoll(float roll) { _tweakedRoll = roll; }
 
-    float getTweakedPitch() const;
-    float getTweakedYaw() const;
-    float getTweakedRoll() const;
+    virtual float getTweakedPitch() const;
+    virtual float getTweakedYaw() const;
+    virtual float getTweakedRoll() const;
 
     void  applyCollision(CollisionInfo& collisionInfo);
     
@@ -97,7 +95,6 @@ private:
     glm::vec3 _gravity;
     float _lastLoudness;
     float _audioAttack;
-    glm::vec3 _bodyRotation;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
     glm::vec3 _saccade;

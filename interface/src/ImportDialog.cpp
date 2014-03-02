@@ -15,7 +15,7 @@
 #include <QJsonObject>
 
 const QString WINDOW_NAME = QObject::tr("Import Voxels");
-const QString IMPORT_BUTTON_NAME = QObject::tr("Import");
+const QString IMPORT_BUTTON_NAME = QObject::tr("Import Voxels");
 const QString LOADING_BUTTON_NAME = QObject::tr("Loading ...");
 const QString PLACE_BUTTON_NAME = QObject::tr("Place voxels");
 const QString IMPORT_INFO = QObject::tr("<b>Import</b> %1 as voxels");
@@ -186,16 +186,26 @@ void ImportDialog::setLayout() {
     _progressBar.setFixedHeight(progressBarHeight);
     _progressBar.setTextVisible(false);
     
+    QGridLayout* subLayout = new QGridLayout();
+    subLayout->addWidget(findChild<QWidget*>("lookInLabel"), 0, 0, 1, 5);
+    
     QSize BUTTON_SIZE = QSize(43, 33);
     QPushButton* button = (QPushButton*) findChild<QWidget*>("backButton");
     button->setIcon(QIcon());
     button->setFixedSize(BUTTON_SIZE);
+    subLayout->addWidget(button, 1, 0, 1, 1);
+    
     button = (QPushButton*) findChild<QWidget*>("forwardButton");
     button->setIcon(QIcon());
     button->setFixedSize(BUTTON_SIZE);
+    subLayout->addWidget(button, 1, 1, 1, 1);
+    
     button = (QPushButton*) findChild<QWidget*>("toParentButton");
     button->setIcon(QIcon());
     button->setFixedSize(BUTTON_SIZE);
+    subLayout->addWidget(button, 1, 2, 1, 1);
+    
+    gridLayout->addLayout(subLayout, 0, 0, 1, 1);
 
     // hide unused embedded widgets in QFileDialog
     QWidget* widget = findChild<QWidget*>("lookInCombo");

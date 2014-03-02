@@ -19,13 +19,13 @@
 
 #include "Application.h"
 #include "Avatar.h"
-#include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Physics.h"
 #include "world.h"
 #include "devices/OculusManager.h"
+#include "renderer/TextureCache.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -77,7 +77,8 @@ Avatar::Avatar() :
     _moving(false),
     _owningAvatarMixer(),
     _collisionFlags(0),
-    _initialized(false)
+    _initialized(false),
+    _shouldRenderBillboard(true)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -90,11 +91,14 @@ Avatar::Avatar() :
 Avatar::~Avatar() {
 }
 
+const float BILLBOARD_LOD_DISTANCE = 40.0f;
+
 void Avatar::init() {
     getHead()->init();
     getHand()->init();
     _skeletonModel.init();
     _initialized = true;
+    _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -107,25 +111,39 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
+float Avatar::getLODDistance() const {
+    return glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+}
+
 void Avatar::simulate(float deltaTime) {
     if (_scale != _targetScale) {
         setScale(_targetScale);
+    }
+
+    // update the billboard render flag
+    const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
+    if (_shouldRenderBillboard) {
+        if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
+            _shouldRenderBillboard = false;
+        }
+    } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
+        _shouldRenderBillboard = true;
     }
 
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
     getHand()->simulate(deltaTime, false);
-    _skeletonModel.simulate(deltaTime);
-    Head* head = getHead();
-    head->setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
+    _skeletonModel.setLODDistance(getLODDistance());
+    _skeletonModel.simulate(deltaTime, _shouldRenderBillboard);
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
         headPosition = _position;
     }
+    Head* head = getHead();
     head->setPosition(headPosition);
     head->setScale(_scale);
-    getHead()->simulate(deltaTime, false);
+    head->simulate(deltaTime, false, _shouldRenderBillboard);
     
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -182,7 +200,7 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(bool forceRenderHead) {
+void Avatar::render() {
     glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
     float lengthToTarget = glm::length(toTarget);
    
@@ -200,21 +218,26 @@ void Avatar::render(bool forceRenderHead) {
             getHead()->getFaceModel().renderCollisionProxies(0.7f);
         }
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(forceRenderHead);
+            renderBody();
         }
 
-        // render sphere when far away
-        const float MAX_ANGLE = 10.f;
+        // render voice intensity sphere for avatars that are farther away
+        const float MAX_SPHERE_ANGLE = 10.f;
+        const float MIN_SPHERE_ANGLE = 1.f;
+        const float MIN_SPHERE_SIZE = 0.01f;
+        const float SPHERE_LOUDNESS_SCALING = 0.0005f;
+        const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
         float height = getSkeletonHeight();
         glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
-
-        if (angle < MAX_ANGLE) {
-            glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
+        float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
+        
+        if ((sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+            glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
             glPushMatrix();
             glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(height / 2.f, height / 2.f, height / 2.f);
-            glutSolidSphere(1.2f + getHead()->getAverageLoudness() * .0005f, 20, 20);
+            glScalef(height, height, height);
+            glutSolidSphere(sphereRadius, 15, 15);
             glPopMatrix();
         }
     }
@@ -281,15 +304,78 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(bool forceRenderHead) {
-    //  Render the body's voxels and head
-    glm::vec3 pos = getPosition();
-    //printf("Render other at %.3f, %.2f, %.2f\n", pos.x, pos.y, pos.z);
-    _skeletonModel.render(1.0f);
-    if (forceRenderHead) {
-        getHead()->render(1.0f);
+void Avatar::renderBody() {    
+    if (_shouldRenderBillboard) {
+        renderBillboard();
+        return;
     }
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
+    }
+    _skeletonModel.render(1.0f);
+    getHead()->render(1.0f);
     getHand()->render(false);
+}
+
+void Avatar::renderBillboard() {
+    if (_billboard.isEmpty()) {
+        return;
+    }
+    if (!_billboardTexture) {
+        QImage image = QImage::fromData(_billboard);
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+        _billboardTexture.reset(new Texture());
+        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+    }
+    
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.5f);
+    
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+    
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    
+    // rotate about vertical to face the camera
+    glm::quat rotation = getOrientation();
+    glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
+    rotation = rotation * glm::angleAxis(glm::degrees(atan2f(-cameraVector.x, -cameraVector.z)), 0.0f, 1.0f, 0.0f);
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
+    // compute the size from the billboard camera parameters and scale
+    float size = _scale * BILLBOARD_DISTANCE * tanf(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    glScalef(size, size, size);
+    
+    glColor3f(1.0f, 1.0f, 1.0f);
+    
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex2f(-1.0f, -1.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex2f(1.0f, -1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex2f(1.0f, 1.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex2f(-1.0f, 1.0f);
+    glEnd();
+    
+    glPopMatrix();
+    
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Avatar::renderDisplayName() {
@@ -364,16 +450,9 @@ void Avatar::renderDisplayName() {
         glPolygonOffset(1.0f, 1.0f);
 
         glColor4f(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
-        glBegin(GL_QUADS);
-        glVertex2f(left, bottom);
-        glVertex2f(right, bottom);
-        glVertex2f(right, top);
-        glVertex2f(left, top);
-        glEnd();
-        
-      
+        renderBevelCornersRect(left, bottom, right - left, top - bottom, 3);
+       
         glColor4f(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-               
         QByteArray ba = _displayName.toLocal8Bit();
         const char* text = ba.data();
         
@@ -485,21 +564,28 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
     return collided;
 }
 
-void Avatar::setFaceModelURL(const QUrl &faceModelURL) {
+void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL);
+    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
-void Avatar::setSkeletonModelURL(const QUrl &skeletonModelURL) {
+void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL);
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
     _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+}
+
+void Avatar::setBillboard(const QByteArray& billboard) {
+    AvatarData::setBillboard(billboard);
+    
+    // clear out any existing billboard texture
+    _billboardTexture.reset();
 }
 
 int Avatar::parseData(const QByteArray& packet) {

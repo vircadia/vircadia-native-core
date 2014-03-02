@@ -24,6 +24,7 @@
 
 #include <Sound.h>
 
+#include "MenuItemProperties.h"
 #include "ScriptEngine.h"
 
 const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
@@ -41,9 +42,10 @@ static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* eng
 
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, const QString& fileNameString,
-                           AbstractMenuInterface* menu,
                            AbstractControllerScriptingInterface* controllerScriptingInterface) :
     _isAvatar(false),
+    _avatarIdentityTimer(NULL),
+    _avatarBillboardTimer(NULL),
     _avatarData(NULL)
 {
     _scriptContents = scriptContents;
@@ -66,12 +68,29 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, bool wantMenuItems, co
         _scriptMenuName.append(_scriptNumber);
     }
     _scriptNumber++;
-    _menu = menu;
     _controllerScriptingInterface = controllerScriptingInterface;
 }
 
 ScriptEngine::~ScriptEngine() {
     //printf("ScriptEngine::~ScriptEngine()...\n");
+}
+
+void ScriptEngine::setIsAvatar(bool isAvatar) {
+    _isAvatar = isAvatar;
+    
+    if (_isAvatar && !_avatarIdentityTimer) {
+        // set up the avatar timers
+        _avatarIdentityTimer = new QTimer(this);
+        _avatarBillboardTimer = new QTimer(this);
+        
+        // connect our slot
+        connect(_avatarIdentityTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarIdentityPacket);
+        connect(_avatarBillboardTimer, &QTimer::timeout, this, &ScriptEngine::sendAvatarBillboardPacket);
+        
+        // start the timers
+        _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
+        _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
+    }
 }
 
 void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectName) {
@@ -84,15 +103,9 @@ void ScriptEngine::setAvatarData(AvatarData* avatarData, const QString& objectNa
     registerGlobalObject(objectName, _avatarData);
 }
 
-void ScriptEngine::setupMenuItems() {
-    if (_menu && _wantMenuItems) {
-        _menu->addActionToQMenuAndActionHash(_menu->getActiveScriptsMenu(), _scriptMenuName, 0, this, SLOT(stop()));
-    }
-}
-
-void ScriptEngine::cleanMenuItems() {
-    if (_menu && _wantMenuItems) {
-        _menu->removeAction(_menu->getActiveScriptsMenu(), _scriptMenuName);
+void ScriptEngine::cleanupMenuItems() {
+    if (_wantMenuItems) {
+        emit cleanupMenuItem(_scriptMenuName);
     }
 }
 
@@ -119,8 +132,8 @@ void ScriptEngine::init() {
     // register various meta-types
     registerMetaTypes(&_engine);
     registerVoxelMetaTypes(&_engine);
-    //registerParticleMetaTypes(&_engine);
     registerEventTypes(&_engine);
+    registerMenuItemProperties(&_engine);
     
     qScriptRegisterMetaType(&_engine, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
     qScriptRegisterMetaType(&_engine, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
@@ -150,7 +163,6 @@ void ScriptEngine::init() {
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
     _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
 
-    //qDebug() << "Script:\n" << _scriptContents << "\n";
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -170,6 +182,18 @@ void ScriptEngine::evaluate() {
     if (_engine.hasUncaughtException()) {
         int line = _engine.uncaughtExceptionLineNumber();
         qDebug() << "Uncaught exception at line" << line << ":" << result.toString();
+    }
+}
+
+void ScriptEngine::sendAvatarIdentityPacket() {
+    if (_isAvatar && _avatarData) {
+        _avatarData->sendIdentityPacket();
+    }
+}
+
+void ScriptEngine::sendAvatarBillboardPacket() {
+    if (_isAvatar && _avatarData) {
+        _avatarData->sendBillboardPacket();
     }
 }
 
@@ -229,16 +253,7 @@ void ScriptEngine::run() {
         }
         
         if (_isAvatar && _avatarData) {
-            static QByteArray avatarPacket;
-            int numAvatarHeaderBytes = 0;
-            
-            if (avatarPacket.size() == 0) {
-                // pack the avatar header bytes the first time
-                // unlike the _avatar.getBroadcastData these won't change
-                numAvatarHeaderBytes = populatePacketHeader(avatarPacket, PacketTypeAvatarData);
-            }
-            
-            avatarPacket.resize(numAvatarHeaderBytes);
+            QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
             
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
@@ -252,6 +267,9 @@ void ScriptEngine::run() {
         }
     }
     emit scriptEnding();
+    
+    // kill the avatar identity timer
+    delete _avatarIdentityTimer;
     
     if (_voxelsScriptingInterface.getVoxelPacketSender()->serversExist()) {
         // release the queue of edit voxel messages.
@@ -273,7 +291,7 @@ void ScriptEngine::run() {
         }
     }
     
-    cleanMenuItems();
+    cleanupMenuItems();
 
     // If we were on a thread, then wait till it's done
     if (thread()) {

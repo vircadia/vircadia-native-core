@@ -12,11 +12,11 @@ find_package(Qt5Network REQUIRED)
 find_package(Qt5Script REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 
-include(${MACRO_DIR}/SetupHifiProject.cmake)
-setup_hifi_project(${TARGET_NAME} TRUE)
-
 include(${MACRO_DIR}/AutoMTC.cmake)
 auto_mtc(${TARGET_NAME} ${ROOT_DIR})
+
+include(${MACRO_DIR}/SetupHifiProject.cmake)
+setup_hifi_project(${TARGET_NAME} TRUE ${AUTOMTC_SRC})
 
 qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 

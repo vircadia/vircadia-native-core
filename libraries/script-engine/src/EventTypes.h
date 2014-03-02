@@ -24,6 +24,8 @@ public:
     KeyEvent();
     KeyEvent(const QKeyEvent& event);
     bool operator==(const KeyEvent& other) const;
+    operator QKeySequence() const;
+
     int key;
     QString text;
     bool isShifted;

@@ -28,6 +28,8 @@
 
 using namespace std;
 
+static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
     quint32 encoding;
@@ -1249,7 +1251,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         geometry.joints.append(joint);
-        geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);
+        geometry.jointIndices.insert(model.name, geometry.joints.size());
     }
 
     // find our special joints

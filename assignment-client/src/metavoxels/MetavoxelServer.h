@@ -9,12 +9,9 @@
 #ifndef __hifi__MetavoxelServer__
 #define __hifi__MetavoxelServer__
 
-#include <QHash>
 #include <QList>
 #include <QTimer>
-#include <QUuid>
 
-#include <HifiSockAddr.h>
 #include <ThreadedAssignment.h>
 
 #include <DatagramSequencer.h>
@@ -35,44 +32,37 @@ public:
 
     const MetavoxelData& getData() const { return _data; }
 
-    void removeSession(const QUuid& sessionId);
-
     virtual void run();
     
     virtual void readPendingDatagrams();
 
 private slots:
-    
+
+    void maybeAttachSession(const SharedNodePointer& node);
     void sendDeltas();    
     
 private:
     
-    void processData(const QByteArray& data, const SharedNodePointer& sendingNode);
-    
     QTimer _sendTimer;
     qint64 _lastSend;
-    
-    QHash<QUuid, MetavoxelSession*> _sessions;
     
     MetavoxelData _data;
 };
 
 /// Contains the state of a single client session.
-class MetavoxelSession : public QObject {
+class MetavoxelSession : public NodeData {
     Q_OBJECT
     
 public:
     
-    MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
-        const QByteArray& datagramHeader, const SharedNodePointer& sendingNode);
+    MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node);
+    virtual ~MetavoxelSession();
 
-    void receivedData(const QByteArray& data, const SharedNodePointer& sendingNode);
+    virtual int parseData(const QByteArray& packet);
 
     void sendDelta();
 
 private slots:
-
-    void timedOut();
 
     void sendData(const QByteArray& data);
 
@@ -91,12 +81,10 @@ private:
     };
     
     MetavoxelServer* _server;
-    QUuid _sessionId;
     
-    QTimer _timeoutTimer;
     DatagramSequencer _sequencer;
     
-    SharedNodePointer _sendingNode;
+    SharedNodePointer _node;
     
     glm::vec3 _position;
     

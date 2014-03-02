@@ -21,9 +21,15 @@ public:
     bool hasSentIdentityBetweenKeyFrames() const { return _hasSentIdentityBetweenKeyFrames; }
     void setHasSentIdentityBetweenKeyFrames(bool hasSentIdentityBetweenKeyFrames)
         { _hasSentIdentityBetweenKeyFrames = hasSentIdentityBetweenKeyFrames; }
+    
+    bool hasSentBillboardBetweenKeyFrames() const { return _hasSentBillboardBetweenKeyFrames; }
+    void setHasSentBillboardBetweenKeyFrames(bool hasSentBillboardBetweenKeyFrames)
+        { _hasSentBillboardBetweenKeyFrames = hasSentBillboardBetweenKeyFrames; }
+        
 private:
    
     bool _hasSentIdentityBetweenKeyFrames;
+    bool _hasSentBillboardBetweenKeyFrames;
 };
 
 #endif /* defined(__hifi__AvatarMixerClientData__) */

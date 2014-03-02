@@ -9,8 +9,6 @@
 #ifndef __hifi__OctreeQuery__
 #define __hifi__OctreeQuery__
 
-#include <string>
-
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -27,16 +25,8 @@ typedef unsigned long long quint64;
 #endif
 
 
-#include <vector>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-
-#include <QtCore/QObject>
-#include <QtCore/QUuid>
-#include <QtCore/QVariantMap>
-
-#include <RegisteredMetaTypes.h>
 
 #include <NodeData.h>
 

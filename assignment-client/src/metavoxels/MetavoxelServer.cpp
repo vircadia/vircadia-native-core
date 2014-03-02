@@ -28,17 +28,15 @@ void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
     edit.apply(_data);
 }
 
-void MetavoxelServer::removeSession(const QUuid& sessionId) {
-    _sessions.take(sessionId)->deleteLater();
-}
-
-const char METAVOXEL_SERVER_LOGGING_NAME[] = "metavoxel-server";
+const QString METAVOXEL_SERVER_LOGGING_NAME = "metavoxel-server";
 
 void MetavoxelServer::run() {
     commonInit(METAVOXEL_SERVER_LOGGING_NAME, NodeType::MetavoxelServer);
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    
+    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachSession(const SharedNodePointer&)));
     
     _lastSend = QDateTime::currentMSecsSinceEpoch();
     _sendTimer.start(SEND_INTERVAL);
@@ -53,25 +51,31 @@ void MetavoxelServer::readPendingDatagrams() {
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             switch (packetTypeForPacket(receivedPacket)) {
-                case PacketTypeMetavoxelData: {
-                    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-                    if (matchingNode) {
-                        processData(receivedPacket, matchingNode);
-                    }
+                case PacketTypeMetavoxelData:
+                    nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
                     break;
-                }
+                
                 default:
-                    NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                    nodeList->processNodeData(senderSockAddr, receivedPacket);
                     break;
             }
         }
     }
 }
 
+void MetavoxelServer::maybeAttachSession(const SharedNodePointer& node) {
+    if (node->getType() == NodeType::Agent) {
+        QMutexLocker locker(&node->getMutex());
+        node->setLinkedData(new MetavoxelSession(this, NodeList::getInstance()->nodeWithUUID(node->getUUID())));
+    }
+}
+
 void MetavoxelServer::sendDeltas() {
     // send deltas for all sessions
-    foreach (MetavoxelSession* session, _sessions) {
-        session->sendDelta();
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::Agent) {
+            static_cast<MetavoxelSession*>(node->getLinkedData())->sendDelta();
+        }
     }
     
     // restart the send timer
@@ -82,35 +86,10 @@ void MetavoxelServer::sendDeltas() {
     _sendTimer.start(qMax(0, 2 * SEND_INTERVAL - elapsed));
 }
 
-void MetavoxelServer::processData(const QByteArray& data, const SharedNodePointer& sendingNode) {
-    // read the session id
-    int headerPlusIDSize;
-    QUuid sessionID = readSessionID(data, sendingNode, headerPlusIDSize);
-    if (sessionID.isNull()) {
-        return;
-    }
-    
-    // forward to session, creating if necessary
-    MetavoxelSession*& session = _sessions[sessionID];
-    if (!session) {
-        session = new MetavoxelSession(this, sessionID, QByteArray::fromRawData(data.constData(), headerPlusIDSize),
-                                       sendingNode);
-    }
-    session->receivedData(data, sendingNode);
-}
-
-MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& sessionId,
-        const QByteArray& datagramHeader, const SharedNodePointer& sendingNode) :
-    QObject(server),
+MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const SharedNodePointer& node) :
     _server(server),
-    _sessionId(sessionId),
-    _sequencer(datagramHeader),
-    _sendingNode(sendingNode) {
-    
-    const int TIMEOUT_INTERVAL = 30 * 1000;
-    _timeoutTimer.setInterval(TIMEOUT_INTERVAL);
-    _timeoutTimer.setSingleShot(true);
-    connect(&_timeoutTimer, SIGNAL(timeout()), SLOT(timedOut()));
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)),
+    _node(node) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
@@ -120,19 +99,15 @@ MetavoxelSession::MetavoxelSession(MetavoxelServer* server, const QUuid& session
     // insert the baseline send record
     SendRecord record = { 0 };
     _sendRecords.append(record);
-    
-    qDebug() << "Opened session [sessionId=" << _sessionId << ", sendingNode=" << sendingNode << "]";
 }
 
-void MetavoxelSession::receivedData(const QByteArray& data, const SharedNodePointer& sendingNode) {
-    // reset the timeout timer
-    _timeoutTimer.start();
+MetavoxelSession::~MetavoxelSession() {
+}
 
-    // save the most recent sender
-    _sendingNode = sendingNode;
-    
+int MetavoxelSession::parseData(const QByteArray& packet) {
     // process through sequencer
-    _sequencer.receivedDatagram(data);
+    _sequencer.receivedDatagram(packet);
+    return packet.size();
 }
 
 void MetavoxelSession::sendDelta() {
@@ -146,13 +121,8 @@ void MetavoxelSession::sendDelta() {
     _sendRecords.append(record);
 }
 
-void MetavoxelSession::timedOut() {
-    qDebug() << "Session timed out [sessionId=" << _sessionId << ", sendingNode=" << _sendingNode << "]";
-    _server->removeSession(_sessionId);
-}
-
 void MetavoxelSession::sendData(const QByteArray& data) {
-    NodeList::getInstance()->writeDatagram(data, _sendingNode);
+    NodeList::getInstance()->writeDatagram(data, _node);
 }
 
 void MetavoxelSession::readPacket(Bitstream& in) {
@@ -167,11 +137,7 @@ void MetavoxelSession::clearSendRecordsBefore(int index) {
 
 void MetavoxelSession::handleMessage(const QVariant& message) {
     int userType = message.userType();
-    if (userType == CloseSessionMessage::Type) {
-        qDebug() << "Session closed [sessionId=" << _sessionId << ", sendingNode=" << _sendingNode << "]";
-        _server->removeSession(_sessionId);
-    
-    } else if (userType == ClientStateMessage::Type) {
+    if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
         _position = state.position;
     

@@ -1,0 +1,14 @@
+//
+//  SvoViewerConfig.h
+//  SvoViewer
+//
+//  Copyright (c) 2014 High Fidelity, Inc.. All rights reserved.
+//
+
+#ifndef __SvoViewerConfig__
+#define __SvoViewerConfig__
+
+#define GL_GLEXT_PROTOTYPES 1
+@GL_HEADERS@
+
+#endif

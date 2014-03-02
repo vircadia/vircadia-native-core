@@ -14,7 +14,6 @@
 #include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
-#include <DataServerClient.h>
 
 #include "Avatar.h"
 
@@ -30,7 +29,7 @@ public:
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
+    void renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
 
@@ -42,6 +41,7 @@ private:
     
     void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarIdentityPacket(const QByteArray& packet);
+    void processAvatarBillboardPacket(const QByteArray& packet);
     void processKillAvatar(const QByteArray& datagram);
 
     void simulateAvatarFades(float deltaTime);

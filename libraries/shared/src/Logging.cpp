@@ -27,27 +27,27 @@
 
 #include "Logging.h"
 
-HifiSockAddr Logging::logstashSocket = HifiSockAddr();
-char* Logging::targetName = NULL;
+HifiSockAddr Logging::_logstashSocket = HifiSockAddr();
+QString Logging::_targetName = QString();
 
 const HifiSockAddr& Logging::socket() {
 
-    if (logstashSocket.getAddress().isNull()) {
+    if (_logstashSocket.getAddress().isNull()) {
         // we need to construct the socket object
         // use the constant port
-        logstashSocket.setPort(htons(LOGSTASH_UDP_PORT));
+        _logstashSocket.setPort(htons(LOGSTASH_UDP_PORT));
 
         // lookup the IP address for the constant hostname
         QHostInfo hostInfo = QHostInfo::fromName(LOGSTASH_HOSTNAME);
         if (!hostInfo.addresses().isEmpty()) {
             // use the first IP address
-            logstashSocket.setAddress(hostInfo.addresses().first());
+            _logstashSocket.setAddress(hostInfo.addresses().first());
         } else {
             printf("Failed to lookup logstash IP - will try again on next log attempt.\n");
         }
     }
 
-    return logstashSocket;
+    return _logstashSocket;
 }
 
 bool Logging::shouldSendStats() {
@@ -66,17 +66,8 @@ void Logging::stashValue(char statType, const char* key, float value) {
 
     if (nodeList) {
         nodeList->getNodeSocket().writeDatagram(logstashPacket, numPacketBytes,
-                                                logstashSocket.getAddress(), logstashSocket.getPort());
+                                                _logstashSocket.getAddress(), _logstashSocket.getPort());
     }
-}
-
-void Logging::setTargetName(const char* targetName) {
-    // remove the old target name, if it exists
-    delete Logging::targetName;
-
-    // copy over the new target name
-    Logging::targetName = new char[strlen(targetName)];
-    strcpy(Logging::targetName, targetName);
 }
 
 const char* stringForLogType(QtMsgType msgType) {
@@ -124,8 +115,8 @@ void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& co
         prefixString.append("]");
     }
 
-    if (Logging::targetName) {
-        prefixString.append(QString(" [%1]").arg(Logging::targetName));
+    if (!_targetName.isEmpty()) {
+        prefixString.append(QString(" [%1]").arg(_targetName));
     }
     
     fprintf(stdout, "%s %s\n", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());

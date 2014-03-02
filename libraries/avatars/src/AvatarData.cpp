@@ -11,6 +11,9 @@
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -23,6 +26,8 @@
 using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
+
+QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
 
 AvatarData::AvatarData() :
     NodeData(),
@@ -38,7 +43,8 @@ AvatarData::AvatarData() :
     _handData(NULL), 
     _displayNameBoundingRect(), 
     _displayNameTargetAlpha(0.0f), 
-    _displayNameAlpha(0.0f)
+    _displayNameAlpha(0.0f),
+    _billboard()
 {
     
 }
@@ -85,9 +91,9 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
     
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
@@ -305,6 +311,15 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
+bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
+    QByteArray newBillboard = packet.mid(numBytesForPacketHeader(packet));
+    if (newBillboard == _billboard) {
+        return false;
+    }
+    _billboard = newBillboard;
+    return true;
+}
+
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL.isEmpty() ? DEFAULT_HEAD_MODEL_URL : faceModelURL;
     
@@ -323,6 +338,33 @@ void AvatarData::setDisplayName(const QString& displayName) {
     qDebug() << "Changing display name for avatar to" << displayName;
 }
 
+void AvatarData::setBillboard(const QByteArray& billboard) {
+    _billboard = billboard;
+    
+    qDebug() << "Changing billboard for avatar.";
+}
+
+void AvatarData::setBillboardFromURL(const QString &billboardURL) {
+    _billboardURL = billboardURL;
+    
+    if (AvatarData::networkAccessManager) {
+        qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+        
+        QNetworkRequest billboardRequest;
+        billboardRequest.setUrl(QUrl(billboardURL));
+        
+        QNetworkReply* networkReply = AvatarData::networkAccessManager->get(billboardRequest);
+        connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
+        
+    } else {
+        qDebug() << "Billboard PNG download requested but no network access manager is available.";
+    }
+}
+
+void AvatarData::setBillboardFromNetworkReply() {
+    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    setBillboard(networkReply->readAll());
+}
 
 void AvatarData::setClampedTargetScale(float targetScale) {
     
@@ -337,4 +379,20 @@ void AvatarData::setOrientation(const glm::quat& orientation) {
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
+}
+
+void AvatarData::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void AvatarData::sendBillboardPacket() {
+    if (!_billboard.isEmpty()) {
+        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        billboardPacket.append(_billboard);
+        
+        NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
 }
