@@ -10,6 +10,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "GeometryUtil.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
@@ -28,7 +29,6 @@ Head::Head(Avatar* owningAvatar) :
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
     _audioAttack(0.0f),
-    _bodyRotation(0.0f, 0.0f, 0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _saccade(0.0f, 0.0f, 0.0f),
@@ -58,28 +58,24 @@ void Head::reset() {
 
 
 
-void Head::simulate(float deltaTime, bool isMine) {
+void Head::simulate(float deltaTime, bool isMine, bool delayLoad) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    Visage* visage = Application::getInstance()->getVisage();
     if (isMine) {
-        _isFaceshiftConnected = faceshift->isActive();
+        _isFaceshiftConnected = false;
+        if (faceshift->isActive()) {
+            _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+            
+        } else if (visage->isActive()) {
+            _blendshapeCoefficients = visage->getBlendshapeCoefficients();
+            _isFaceshiftConnected = true;
+        }
     }
     
-    if (isMine && faceshift->isActive()) {
-        const float EYE_OPEN_SCALE = 0.5f;
-        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
-        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
-        
-        // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
-        // mapping between their blendshape coefficients and our avatar features
-        const float MOUTH_SIZE_SCALE = 2500.0f;
-        _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
-        const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
-        _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
-        
-    } else if (!_isFaceshiftConnected) {
+    if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -162,7 +158,10 @@ void Head::simulate(float deltaTime, bool isMine) {
             glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
-    _faceModel.simulate(deltaTime);
+    if (!isMine) {
+        _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
+    }
+    _faceModel.simulate(deltaTime, delayLoad);
     
     // the blend face may have custom eye meshes
     if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
@@ -184,12 +183,8 @@ void Head::setScale (float scale) {
     _scale = scale;
 }
 
-glm::quat Head::getOrientation() const {
-    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
-}
-
 glm::quat Head::getTweakedOrientation() const {
-    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
+    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(getTweakedPitch(), getTweakedYaw(), getTweakedRoll() )));
 }
 
 glm::quat Head::getCameraOrientation () const {

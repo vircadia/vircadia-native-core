@@ -113,17 +113,30 @@ _owningHandData(owningHandData)
     setTrailLength(standardTrailLength);
 }
 
+// static
+int HandData::encodeData(HandData* hand, unsigned char* destinationBuffer) {
+    if (hand) {
+        return hand->encodeRemoteData(destinationBuffer);
+    }
+    // else encode empty data: 
+    // One byte for zero hands
+    // One byte for error checking.
+    *destinationBuffer = 0;
+    *(destinationBuffer + 1) = 1;
+    return 2;
+}
+
 int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
     const unsigned char* startPosition = destinationBuffer;
 
-    unsigned int numHands = 0;
+    unsigned int numPalms = 0;
     for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
         PalmData& palm = getPalms()[handIndex];
         if (palm.isActive()) {
-            numHands++;
+            numPalms++;
         }
     }
-    *destinationBuffer++ = numHands;
+    *destinationBuffer++ = numPalms;
 
     for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
         PalmData& palm = getPalms()[handIndex];
@@ -162,9 +175,9 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
 int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
     const unsigned char* startPosition;
     const unsigned char* sourceBuffer = startPosition = reinterpret_cast<const unsigned char*>(dataByteArray.data());
-    unsigned int numHands = *sourceBuffer++;
+    unsigned int numPalms = *sourceBuffer++;
     
-    for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
+    for (unsigned int handIndex = 0; handIndex < numPalms; ++handIndex) {
         if (handIndex >= getNumPalms())
             addNewPalm();
         PalmData& palm = getPalms()[handIndex];
@@ -203,7 +216,7 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
         }
     }
     // Turn off any hands which weren't used.
-    for (unsigned int handIndex = numHands; handIndex < getNumPalms(); ++handIndex) {
+    for (unsigned int handIndex = numPalms; handIndex < getNumPalms(); ++handIndex) {
         PalmData& palm = getPalms()[handIndex];
         palm.setActive(false);
     }

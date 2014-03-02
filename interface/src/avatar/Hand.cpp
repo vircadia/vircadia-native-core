@@ -55,10 +55,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
         _collisionAge += deltaTime;
     }
     
-    if (isMine) {
-        _buckyBalls.simulate(deltaTime);
-    }
-    
     calculateGeometry();
     
     if (isMine) {
@@ -69,11 +65,11 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
                 
-                _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
-                
+                 
                 if (palm.getControllerButtons() & BUTTON_1) {
                     if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+                        // TODO: we need to move this code to JS so it can access the editVoxels.js color palette
+                        QColor paintColor(128,128,128);
                         Application::getInstance()->makeVoxel(fingerTipPosition,
                                                               FINGERTIP_VOXEL_SIZE,
                                                               paintColor.red(),
@@ -125,6 +121,41 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
+void Hand::playSlaps(PalmData& palm, Avatar* avatar)
+{
+    //  Check for palm collisions
+    glm::vec3 myPalmPosition = palm.getPosition();
+    float palmCollisionDistance = 0.1f;
+    bool wasColliding = palm.getIsCollidingWithPalm();
+    palm.setIsCollidingWithPalm(false);
+    //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
+    for (size_t j = 0; j < avatar->getHand()->getNumPalms(); j++) {
+        PalmData& otherPalm = avatar->getHand()->getPalms()[j];
+        if (!otherPalm.isActive()) {
+            continue;
+        }
+        glm::vec3 otherPalmPosition = otherPalm.getPosition();
+        if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
+            palm.setIsCollidingWithPalm(true);
+            if (!wasColliding) {
+                const float PALM_COLLIDE_VOLUME = 1.f;
+                const float PALM_COLLIDE_FREQUENCY = 1000.f;
+                const float PALM_COLLIDE_DURATION_MAX = 0.75f;
+                const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
+                Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
+                                                                    PALM_COLLIDE_FREQUENCY,
+                                                                    PALM_COLLIDE_DURATION_MAX,
+                                                                    PALM_COLLIDE_DECAY_PER_SAMPLE);
+                //  If the other person's palm is in motion, move mine downward to show I was hit
+                const float MIN_VELOCITY_FOR_SLAP = 0.05f;
+                if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
+                    // add slapback here
+                }
+            }
+        }
+    }
+}
+
 // We create a static CollisionList that is recycled for each collision test.
 const float MAX_COLLISIONS_PER_AVATAR = 32;
 static CollisionList handCollisions(MAX_COLLISIONS_PER_AVATAR);
@@ -139,41 +170,12 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         PalmData& palm = getPalms()[i];
         if (!palm.isActive()) {
             continue;
-        }        
-        glm::vec3 totalPenetration;
-        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
-            //  Check for palm collisions
-            glm::vec3 myPalmPosition = palm.getPosition();
-            float palmCollisionDistance = 0.1f;
-            bool wasColliding = palm.getIsCollidingWithPalm();
-            palm.setIsCollidingWithPalm(false);
-            //  If 'Play Slaps' is enabled, look for palm-to-palm collisions and make sound
-            for (size_t j = 0; j < avatar->getHand().getNumPalms(); j++) {
-                PalmData& otherPalm = avatar->getHand().getPalms()[j];
-                if (!otherPalm.isActive()) {
-                    continue;
-                }
-                glm::vec3 otherPalmPosition = otherPalm.getPosition();
-                if (glm::length(otherPalmPosition - myPalmPosition) < palmCollisionDistance) {
-                    palm.setIsCollidingWithPalm(true);
-                    if (!wasColliding) {
-                        const float PALM_COLLIDE_VOLUME = 1.f;
-                        const float PALM_COLLIDE_FREQUENCY = 1000.f;
-                        const float PALM_COLLIDE_DURATION_MAX = 0.75f;
-                        const float PALM_COLLIDE_DECAY_PER_SAMPLE = 0.01f;
-                        Application::getInstance()->getAudio()->startDrumSound(PALM_COLLIDE_VOLUME,
-                                                                            PALM_COLLIDE_FREQUENCY,
-                                                                            PALM_COLLIDE_DURATION_MAX,
-                                                                            PALM_COLLIDE_DECAY_PER_SAMPLE);
-                        //  If the other person's palm is in motion, move mine downward to show I was hit
-                        const float MIN_VELOCITY_FOR_SLAP = 0.05f;
-                        if (glm::length(otherPalm.getVelocity()) > MIN_VELOCITY_FOR_SLAP) {
-                            // add slapback here
-                        }
-                    }
-                }
-            }
         }
+        if (isMyHand && Menu::getInstance()->isOptionChecked(MenuOption::PlaySlaps)) {
+            playSlaps(palm, avatar);
+        }
+
+        glm::vec3 totalPenetration;
         handCollisions.clear();
         if (avatar->findSphereCollisions(palm.getPosition(), scaledPalmRadius, handCollisions)) {
             for (int j = 0; j < handCollisions.size(); ++j) {
@@ -303,11 +305,8 @@ void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (isMine) {
-        _buckyBalls.render();
-    }
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollisionProxies)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
+        // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
             PalmData& palm = getPalms()[i];
             if (!palm.isActive()) {

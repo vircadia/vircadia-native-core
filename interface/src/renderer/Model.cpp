@@ -17,8 +17,8 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
-    _pupilDilation(0.0f)
-{
+    _lodDistance(0.0f),
+    _pupilDilation(0.0f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -44,6 +44,17 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
     program.release();
+}
+
+QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry) {
+    QVector<JointState> jointStates;
+    foreach (const FBXJoint& joint, geometry.joints) {
+        JointState state;
+        state.translation = joint.translation;
+        state.rotation = joint.rotation;
+        jointStates.append(state);
+    }
+    return jointStates;
 }
 
 void Model::init() {
@@ -89,17 +100,9 @@ void Model::reset() {
     }
 }
 
-void Model::simulate(float deltaTime) {
+void Model::simulate(float deltaTime, bool delayLoad) {
     // update our LOD
-    if (_geometry) {
-        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
-            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
-        if (_geometry != geometry) {
-            deleteGeometry();
-            _dilatedTextures.clear();
-            _geometry = geometry;
-        }
-    }
+    QVector<JointState> newJointStates = updateGeometry(delayLoad);
     if (!isActive()) {
         return;
     }
@@ -107,12 +110,7 @@ void Model::simulate(float deltaTime) {
     // set up world vertices on first simulate after load
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_jointStates.isEmpty()) {
-        foreach (const FBXJoint& joint, geometry.joints) {
-            JointState state;
-            state.translation = joint.translation;
-            state.rotation = joint.rotation;
-            _jointStates.append(state);
-        }
+        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -276,7 +274,7 @@ bool Model::render(float alpha) {
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
+    glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
     renderMeshes(alpha, false);
     
@@ -409,19 +407,18 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url, const QUrl& fallback) {
+void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
     }
     _url = url;
 
-    // delete our local geometry and custom textures
-    deleteGeometry();
-    _dilatedTextures.clear();
-    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
-    
-    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    // if so instructed, keep the current geometry until the new one is loaded 
+    _nextBaseGeometry = _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
+        applyNextGeometry();
+    }
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -784,6 +781,61 @@ void Model::applyCollision(CollisionInfo& collision) {
     }
 }
 
+QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
+    QVector<JointState> newJointStates;
+    if (_nextGeometry) {
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+        if (!delayLoad) {
+            _nextGeometry->setLoadPriority(this, -_lodDistance);
+            _nextGeometry->ensureLoading();
+        }
+        if (_nextGeometry->isLoaded()) {
+            applyNextGeometry();
+            return newJointStates;
+        }
+    }
+    if (!_geometry) {
+        return newJointStates;
+    }
+    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+    if (_geometry != geometry) {
+        if (!_jointStates.isEmpty()) {
+            // copy the existing joint states
+            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
+            const FBXGeometry& newGeometry = geometry->getFBXGeometry();
+            newJointStates = createJointStates(newGeometry);
+            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
+                    it != oldGeometry.jointIndices.constEnd(); it++) {
+                int newIndex = newGeometry.jointIndices.value(it.key());
+                if (newIndex != 0) {
+                    newJointStates[newIndex - 1] = _jointStates.at(it.value() - 1);
+                }
+            }
+        }
+        deleteGeometry();
+        _dilatedTextures.clear();
+        _geometry = geometry;
+    }
+    if (!delayLoad) {
+        _geometry->setLoadPriority(this, -_lodDistance);
+        _geometry->ensureLoading();
+    }
+    return newJointStates;
+}
+
+void Model::applyNextGeometry() {
+    // delete our local geometry and custom textures
+    deleteGeometry();
+    _dilatedTextures.clear();
+    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
+    
+    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
+    _baseGeometry = _nextBaseGeometry;
+    _geometry = _nextGeometry;
+    _nextBaseGeometry.reset();
+    _nextGeometry.reset();
+}
+
 void Model::deleteGeometry() {
     foreach (Model* attachment, _attachments) {
         delete attachment;
@@ -795,6 +847,10 @@ void Model::deleteGeometry() {
     _blendedVertexBufferIDs.clear();
     _jointStates.clear();
     _meshStates.clear();
+    
+    if (_geometry) {
+        _geometry->clearLoadPriority(this);
+    }
 }
 
 void Model::renderMeshes(float alpha, bool translucent) {
@@ -916,7 +972,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor3f(1.0f, 1.0f, 1.0f);
+            glColor4f(1.0f, 1.0f, 1.0f, alpha);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);

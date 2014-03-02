@@ -8,10 +8,9 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <HandData.h>
-
 #include "Application.h"
 #include "Avatar.h"
+#include "Hand.h"
 #include "Menu.h"
 #include "SkeletonModel.h"
 
@@ -19,9 +18,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar) {
 }
 
-void SkeletonModel::simulate(float deltaTime) {
+void SkeletonModel::simulate(float deltaTime, bool delayLoad) {
     if (!isActive()) {
-        Model::simulate(deltaTime);
+        Model::simulate(deltaTime, delayLoad);
         return;
     }
     setTranslation(_owningAvatar->getPosition());
@@ -29,12 +28,12 @@ void SkeletonModel::simulate(float deltaTime) {
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
 
-    Model::simulate(deltaTime);
+    Model::simulate(deltaTime, delayLoad);
 
     // find the left and rightmost active Leap palms
     int leftPalmIndex, rightPalmIndex;
-    HandData& hand = _owningAvatar->getHand();
-    hand.getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
+    Hand* hand = _owningAvatar->getHand();
+    hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
     const float HAND_RESTORATION_PERIOD = 1.f;  // seconds
     float handRestorePercent = glm::clamp(deltaTime / HAND_RESTORATION_PERIOD, 0.f, 1.f);
@@ -52,14 +51,14 @@ void SkeletonModel::simulate(float deltaTime) {
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
         applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand.getPalms()[leftPalmIndex]);
+            hand->getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(handRestorePercent);
 
     } else {
         applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
-            hand.getPalms()[leftPalmIndex]);
+            hand->getPalms()[leftPalmIndex]);
         applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
-            hand.getPalms()[rightPalmIndex]);
+            hand->getPalms()[rightPalmIndex]);
     }
 }
 
@@ -182,8 +181,8 @@ void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform * glm::translate(state.translation) * 
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(-_owningAvatar->getHead().getLeanSideways(), glm::normalize(inverse * axes[2])) *
-        glm::angleAxis(-_owningAvatar->getHead().getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
+    state.rotation = glm::angleAxis(-_owningAvatar->getHead()->getLeanSideways(), glm::normalize(inverse * axes[2])) *
+        glm::angleAxis(-_owningAvatar->getHead()->getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
 void SkeletonModel::stretchArm(int jointIndex, const glm::vec3& position) {

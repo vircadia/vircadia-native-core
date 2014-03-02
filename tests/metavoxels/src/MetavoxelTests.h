@@ -48,9 +48,9 @@ private slots:
     void sendDatagram(const QByteArray& datagram);    
     void handleHighPriorityMessage(const QVariant& message);
     void readMessage(Bitstream& in);
+    void handleReliableMessage(const QVariant& message);
     void readReliableChannel();
-    void readLowPriorityReliableChannel();
-    
+
 private:
     
     DatagramSequencer* _sequencer;
@@ -59,8 +59,9 @@ private:
     float _highPriorityMessagesToSend;
     QVariantList _highPriorityMessagesSent;
     QList<SequencedTestMessage> _unreliableMessagesSent;
+    float _reliableMessagesToSend;
+    QVariantList _reliableMessagesSent;
     CircularBuffer _dataStreamed;
-    CircularBuffer _lowPriorityDataStreamed;
 };
 
 /// A simple test message.
@@ -88,7 +89,7 @@ public:
 DECLARE_STREAMABLE_METATYPE(TestMessageB)
 
 // A test message that demonstrates inheritance and composition.
-class TestMessageC : public TestMessageA {
+class TestMessageC : STREAM public TestMessageA {
     STREAMABLE
 
 public:

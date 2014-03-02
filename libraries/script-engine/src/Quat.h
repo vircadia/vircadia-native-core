@@ -29,6 +29,7 @@ public slots:
     glm::vec3 getUp(const glm::quat& orientation);
     glm::vec3 safeEulerAngles(const glm::quat& orientation);
     glm::quat angleAxis(float angle, const glm::vec3& v);
+    glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
 };
 
 #endif /* defined(__hifi__Quat__) */

@@ -13,9 +13,9 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "DataServerClient.h"
+// #include "DataServerClient.h"
 
-class NamedLocation : public QObject, public DataServerCallbackObject, public DataServerCallerObject {
+class NamedLocation : public QObject { //, public DataServerCallbackObject, public DataServerCallerObject {
     Q_OBJECT
     
 public:

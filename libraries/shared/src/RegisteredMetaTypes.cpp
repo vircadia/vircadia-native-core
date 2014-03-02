@@ -10,12 +10,36 @@
 
 #include "RegisteredMetaTypes.h"
 
+static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
+static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
+static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
+static int xColorMetaTypeId = qRegisterMetaType<xColor>();
+static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
+
 void registerMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
+}
+
+QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", vec4.x);
+    obj.setProperty("y", vec4.y);
+    obj.setProperty("z", vec4.z);
+    obj.setProperty("w", vec4.w);
+    return obj;
+}
+
+void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4) {
+    vec4.x = object.property("x").toVariant().toFloat();
+    vec4.y = object.property("y").toVariant().toFloat();
+    vec4.z = object.property("z").toVariant().toFloat();
+    vec4.w = object.property("w").toVariant().toFloat();
 }
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {

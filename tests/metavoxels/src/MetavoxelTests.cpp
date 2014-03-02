@@ -22,10 +22,10 @@ static int highPriorityMessagesSent = 0;
 static int highPriorityMessagesReceived = 0;
 static int unreliableMessagesSent = 0;
 static int unreliableMessagesReceived = 0;
+static int reliableMessagesSent = 0;
+static int reliableMessagesReceived = 0;
 static int streamedBytesSent = 0;
 static int streamedBytesReceived = 0;
-static int lowPriorityStreamedBytesSent = 0;
-static int lowPriorityStreamedBytesReceived = 0;
 
 bool MetavoxelTests::run() {
     
@@ -51,9 +51,8 @@ bool MetavoxelTests::run() {
     
     qDebug() << "Sent" << highPriorityMessagesSent << "high priority messages, received" << highPriorityMessagesReceived;
     qDebug() << "Sent" << unreliableMessagesSent << "unreliable messages, received" << unreliableMessagesReceived;
+    qDebug() << "Sent" << reliableMessagesSent << "reliable messages, received" << reliableMessagesReceived;
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
-    qDebug() << "Sent" << lowPriorityStreamedBytesSent << "low-priority streamed bytes, received" <<
-        lowPriorityStreamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
     
     qDebug() << "All tests passed!";
@@ -77,24 +76,31 @@ static QByteArray createRandomBytes() {
 
 Endpoint::Endpoint(const QByteArray& datagramHeader) :
     _sequencer(new DatagramSequencer(datagramHeader, this)),
-    _highPriorityMessagesToSend(0.0f) {
+    _highPriorityMessagesToSend(0.0f),
+    _reliableMessagesToSend(0.0f) {
     
     connect(_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendDatagram(const QByteArray&)));
     connect(_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readMessage(Bitstream&)));
     connect(_sequencer, SIGNAL(receivedHighPriorityMessage(const QVariant&)),
         SLOT(handleHighPriorityMessage(const QVariant&)));
-    connect(&_sequencer->getReliableInputChannel()->getBuffer(), SIGNAL(readyRead()), SLOT(readReliableChannel()));
-    connect(&_sequencer->getReliableInputChannel(1)->getBuffer(), SIGNAL(readyRead()), SLOT(readLowPriorityReliableChannel()));
+    
+    connect(_sequencer->getReliableInputChannel(), SIGNAL(receivedMessage(const QVariant&)),
+        SLOT(handleReliableMessage(const QVariant&)));
+    
+    ReliableChannel* secondInput = _sequencer->getReliableInputChannel(1);
+    secondInput->setMessagesEnabled(false);
+    connect(&secondInput->getBuffer(), SIGNAL(readyRead()), SLOT(readReliableChannel()));
     
     // enqueue a large amount of data in a low-priority channel
     ReliableChannel* output = _sequencer->getReliableOutputChannel(1);
     output->setPriority(0.25f);
-    const int MIN_LOW_PRIORITY_DATA = 100000;
-    const int MAX_LOW_PRIORITY_DATA = 200000;
-    QByteArray bytes = createRandomBytes(MIN_LOW_PRIORITY_DATA, MAX_LOW_PRIORITY_DATA);
-    _lowPriorityDataStreamed.append(bytes);
+    output->setMessagesEnabled(false);
+    const int MIN_STREAM_BYTES = 100000;
+    const int MAX_STREAM_BYTES = 200000;
+    QByteArray bytes = createRandomBytes(MIN_STREAM_BYTES, MAX_STREAM_BYTES);
+    _dataStreamed.append(bytes);
     output->getBuffer().write(bytes);
-    lowPriorityStreamedBytesSent += bytes.size();
+    streamedBytesSent += bytes.size();
 }
 
 static QVariant createRandomMessage() {
@@ -160,13 +166,17 @@ bool Endpoint::simulate(int iterationNumber) {
         _highPriorityMessagesToSend -= 1.0f;
     }
     
-    // stream some random data
-    const int MIN_BYTES_TO_STREAM = 10;
-    const int MAX_BYTES_TO_STREAM = 100;
-    QByteArray bytes = createRandomBytes(MIN_BYTES_TO_STREAM, MAX_BYTES_TO_STREAM);
-    _dataStreamed.append(bytes);
-    streamedBytesSent += bytes.size();
-    _sequencer->getReliableOutputChannel()->getDataStream().writeRawData(bytes.constData(), bytes.size());
+    // and some number of reliable messages
+    const float MIN_RELIABLE_MESSAGES = 0.0f;
+    const float MAX_RELIABLE_MESSAGES = 4.0f;
+    _reliableMessagesToSend += randFloatInRange(MIN_RELIABLE_MESSAGES, MAX_RELIABLE_MESSAGES);   
+    while (_reliableMessagesToSend >= 1.0f) {
+        QVariant message = createRandomMessage();
+        _reliableMessagesSent.append(message);
+        _sequencer->getReliableOutputChannel()->sendMessage(message);
+        reliableMessagesSent++;
+        _reliableMessagesToSend -= 1.0f;
+    }
     
     // send a packet
     try {
@@ -243,8 +253,19 @@ void Endpoint::readMessage(Bitstream& in) {
     throw QString("Received unsent/already sent unreliable message.");
 }
 
+void Endpoint::handleReliableMessage(const QVariant& message) {
+    if (_other->_reliableMessagesSent.isEmpty()) {
+        throw QString("Received unsent/already sent reliable message.");
+    }
+    QVariant sentMessage = _other->_reliableMessagesSent.takeFirst();
+    if (!messagesEqual(message, sentMessage)) {
+        throw QString("Sent/received reliable message mismatch.");
+    }
+    reliableMessagesReceived++;
+}
+
 void Endpoint::readReliableChannel() {
-    CircularBuffer& buffer = _sequencer->getReliableInputChannel()->getBuffer();
+    CircularBuffer& buffer = _sequencer->getReliableInputChannel(1)->getBuffer();
     QByteArray bytes = buffer.read(buffer.bytesAvailable());
     if (_other->_dataStreamed.size() < bytes.size()) {
         throw QString("Received unsent/already sent streamed data.");
@@ -255,18 +276,4 @@ void Endpoint::readReliableChannel() {
         throw QString("Sent/received streamed data mismatch.");
     }
     streamedBytesReceived += bytes.size();
-}
-
-void Endpoint::readLowPriorityReliableChannel() {
-    CircularBuffer& buffer = _sequencer->getReliableInputChannel(1)->getBuffer();
-    QByteArray bytes = buffer.read(buffer.bytesAvailable());
-    if (_other->_lowPriorityDataStreamed.size() < bytes.size()) {
-        throw QString("Received unsent/already sent low-priority streamed data.");
-    }
-    QByteArray compare = _other->_lowPriorityDataStreamed.readBytes(0, bytes.size());
-    _other->_lowPriorityDataStreamed.remove(bytes.size());
-    if (compare != bytes) {
-        throw QString("Sent/received low-priority streamed data mismatch.");
-    }
-    lowPriorityStreamedBytesReceived += bytes.size();
 }

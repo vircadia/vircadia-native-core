@@ -74,6 +74,8 @@ public slots:
     virtual void captureJoystick(int joystickIndex);
     virtual void releaseJoystick(int joystickIndex);
 
+    virtual glm::vec2 getViewportDimensions() const;
+
 private:
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;

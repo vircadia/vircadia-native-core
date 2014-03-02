@@ -11,6 +11,7 @@
 
 #include <QFileDialog>
 #include <QPushButton>
+#include <QProgressBar>
 #include <QLabel>
 #include <QFileIconProvider>
 #include <QHash>
@@ -26,37 +27,42 @@ public:
     QHash<QString, QString> iconsMap;
 };
 
+enum dialogMode {
+    importMode,
+    loadingMode,
+    placeMode
+};
+
 class ImportDialog : public QFileDialog {
     Q_OBJECT
     
 public:
     ImportDialog(QWidget* parent = NULL);
-    ~ImportDialog();
-
     void reset();
-
+    
     QString getCurrentFile() const { return _currentFile; }
-
+    dialogMode getMode() const { return _mode; }
+    void setMode(dialogMode mode);
+    
 signals:
-    void accepted();
-
+    void canceled();
+    
 public slots:
-    int  exec();
-    void import();
-    void accept();
-    void reject();
+    void setProgressBarValue(int value);
 
 private slots:
-    void saveCurrentFile(QString);
+    void accept();
+    void saveCurrentFile(QString filename);
 
 private:
     QString _currentFile;
+    QProgressBar _progressBar;
     QPushButton _importButton;
     QPushButton _cancelButton;
-    
+    dialogMode _mode;
+        
     void setLayout();
     void setImportTypes();
-    bool fileAccepted;
 };
 
 #endif /* defined(__hifi__ImportDialog__) */

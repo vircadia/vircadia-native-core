@@ -48,6 +48,9 @@ void VoxelPacketProcessor::processPacket(const SharedNodePointer& sendingNode, c
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             mutablePacket = mutablePacket.mid(statsMessageLength);
+            
+            // TODO: this does not look correct, the goal is to test the packet version for the piggyback, but
+            //       this is testing the version and hash of the original packet
             if (!NodeList::getInstance()->packetVersionAndHashMatch(packet)) {
                 return; // bail since piggyback data doesn't match our versioning
             }

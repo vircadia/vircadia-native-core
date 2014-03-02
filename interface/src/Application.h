@@ -14,6 +14,7 @@
 
 #include <QApplication>
 #include <QAction>
+#include <QImage>
 #include <QSettings>
 #include <QTouchEvent>
 #include <QList>
@@ -26,21 +27,21 @@
 #include <ParticleCollisionSystem.h>
 #include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
-#include <VoxelQuery.h>
+#include <OctreeQuery.h>
 
 #include "Audio.h"
 
 #include "BandwidthMeter.h"
+#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "GLCanvas.h"
+#include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "PieMenu.h"
 #include "Stars.h"
-#include "Swatch.h"
-#include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
 #include "VoxelEditPacketSender.h"
@@ -51,9 +52,9 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "avatar/Profile.h"
 #include "devices/Faceshift.h"
 #include "devices/SixenseManager.h"
+#include "devices/Visage.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -94,6 +95,9 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f;
+static const float BILLBOARD_DISTANCE = 5.0f;
 
 class Application : public QApplication {
     Q_OBJECT
@@ -160,10 +164,10 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     Faceshift* getFaceshift() { return &_faceshift; }
+    Visage* getVisage() { return &_visage; }
     SixenseManager* getSixenseManager() { return &_sixenseManager; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
-    Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     NodeToVoxelSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
@@ -176,12 +180,13 @@ public:
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
     AvatarManager& getAvatarManager() { return _avatarManager; }
-    Profile* getProfile() { return &_profile; }
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
     void setupWorldLight();
+
+    QImage renderAvatarBillboard();
 
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
 
@@ -191,9 +196,14 @@ public:
 
     const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
+    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
+    void getProjectionMatrix(glm::dmat4* projectionMatrix);
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+
 
     VoxelShader& getVoxelShader() { return _voxelShader; }
     PointShader& getPointShader() { return _pointShader; }
@@ -212,6 +222,9 @@ public:
 
 signals:
 
+    /// Fired when we're simulating; allows external parties to hook in.
+    void simulating(float deltaTime);
+
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
     
@@ -221,19 +234,17 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
-    
-    void exportVoxels();
-    void importVoxels();
-    void cutVoxels();
-    void copyVoxels();
-    void pasteVoxels();
-    void nudgeVoxels();
-    void deleteVoxels();
+
+    void importVoxels(); // doesn't include source voxel because it goes to clipboard
+    void cutVoxels(const VoxelDetail& sourceVoxel);
+    void copyVoxels(const VoxelDetail& sourceVoxel);
+    void pasteVoxels(const VoxelDetail& sourceVoxel);
+    void deleteVoxels(const VoxelDetail& sourceVoxel);
+    void exportVoxels(const VoxelDetail& sourceVoxel);
+    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
 
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
-    void decreaseVoxelSize();
-    void increaseVoxelSize();
     void loadDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
@@ -243,13 +254,13 @@ public slots:
 private slots:
     void timer();
     void idle();
+    
+    void connectedToDomain(const QString& hostname);
 
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void cameraMenuChanged();
     
-    void renderThrustAtVoxel(const glm::vec3& thrust);
-
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
 
@@ -266,6 +277,7 @@ private slots:
     void parseVersionXml();
 
     void removeScriptName(const QString& fileNameString);
+    void cleanupScriptMenuItem(const QString& scriptMenuName);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -283,9 +295,9 @@ private:
     // Various helper functions called during update()
     void updateMouseRay();
     void updateFaceshift();
-    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot);
+    void updateVisage();
+    void updateMyAvatarLookAtPosition();
     void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
-    void updateMouseVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -315,13 +327,12 @@ private:
     void displayStats();
     void checkStatsClick();
     void toggleStatsExpanded();
-    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
+    void renderRearViewMirror(const QRect& region, bool billboard = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
 
     void checkBandwidthMeterClick();
 
-    bool maybeEditVoxelUnderCursor();
-    void deleteVoxelUnderCursor();
+    void deleteVoxelAt(const VoxelDetail& voxel);
     void eyedropperVoxelUnderCursor();
 
     void setMenuShortcutsEnabled(bool enabled);
@@ -356,6 +367,8 @@ private:
     bool _justStarted;
 
     Stars _stars;
+    
+    BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
@@ -375,13 +388,13 @@ private:
 
     Oscilloscope _audioScope;
 
-    VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
+    OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
 
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    Profile _profile;               // The data-server linked profile for this user
 
     Faceshift _faceshift;
+    Visage _visage;
 
     SixenseManager _sixenseManager;
     QStringList _activeScripts;
@@ -394,6 +407,7 @@ private:
 
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
+    glm::mat4 _projectionMatrix;
 
     glm::mat4 _shadowMatrix;
 
@@ -418,26 +432,13 @@ private:
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
-    VoxelDetail _mouseVoxelDragging;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
     bool _isHoverVoxel;
 
-    VoxelDetail _mouseVoxel;      // details of the voxel to be edited
-    float _mouseVoxelScale;       // the scale for adding/removing voxels
-    bool _mouseVoxelScaleInitialized;
-    glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
-    bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
-
     VoxelDetail _highlightVoxel;
     bool _isHighlightVoxel;
-
-    VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
-    bool _nudgeStarted;
-    bool _lookingAlongX;
-    bool _lookingAwayFromOrigin;
-    glm::vec3 _nudgeGuidePosition;
 
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry
@@ -466,11 +467,6 @@ private:
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
-
-    ToolsPalette _palette;
-    Swatch _swatch;
-
-    bool _pasteMode;
 
     PieMenu _pieMenu;
 

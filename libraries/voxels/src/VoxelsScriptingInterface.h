@@ -30,6 +30,14 @@ public:
     void setVoxelTree(VoxelTree* tree) { _tree = tree; }
 
 public slots:
+
+    /// checks the local voxel tree for a voxel at the specified location and scale
+    /// \param x the x-coordinate of the voxel (in meter units)
+    /// \param y the y-coordinate of the voxel (in meter units)
+    /// \param z the z-coordinate of the voxel (in meter units)
+    /// \param scale the scale of the voxel (in meter units)
+    VoxelDetail getVoxelAt(float x, float y, float z, float scale);
+
     /// queues the creation of a voxel which will be sent by calling process on the PacketSender
     /// \param x the x-coordinate of the voxel (in meter units)
     /// \param y the y-coordinate of the voxel (in meter units)
@@ -59,6 +67,9 @@ public slots:
 
     /// If the scripting context has visible voxels, this will determine a ray intersection
     RayToVoxelIntersectionResult findRayIntersection(const PickRay& ray);
+
+    /// returns a voxel space axis aligned vector for the face, useful in doing voxel math
+    glm::vec3 getFaceVector(const QString& face);
 
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);

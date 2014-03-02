@@ -11,6 +11,9 @@
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -24,6 +27,8 @@ using namespace std;
 
 static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
 
+QNetworkAccessManager* AvatarData::networkAccessManager = NULL;
+
 AvatarData::AvatarData() :
     NodeData(),
     _handPosition(0,0,0),
@@ -35,7 +40,11 @@ AvatarData::AvatarData() :
     _keyState(NO_KEY_DOWN),
     _isChatCirclingEnabled(false),
     _headData(NULL),
-    _handData(NULL)
+    _handData(NULL), 
+    _displayNameBoundingRect(), 
+    _displayNameTargetAlpha(0.0f), 
+    _displayNameAlpha(0.0f),
+    _billboard()
 {
     
 }
@@ -63,10 +72,6 @@ QByteArray AvatarData::toByteArray() {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-    // lazily allocate memory for HandData in case we're not an Avatar instance
-    if (!_handData) {
-        _handData = new HandData(this);
-    }
     
     QByteArray avatarDataByteArray;
     avatarDataByteArray.resize(MAX_PACKET_SIZE);
@@ -86,9 +91,9 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_roll);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getTweakedRoll());
     
     
     // Head lean X,Z (head lateral and fwd/back motion relative to torso)
@@ -152,8 +157,8 @@ QByteArray AvatarData::toByteArray() {
     // pupil dilation
     destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
     
-    // leap hand data
-    destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
+    // hand data
+    destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
@@ -259,7 +264,7 @@ int AvatarData::parseData(const QByteArray& packet) {
     // pupil dilation
     sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     
-    // leap hand data
+    // hand data
     if (sourceBuffer - startPosition < packet.size()) {
         // check passed, bytes match
         sourceBuffer += _handData->decodeRemoteData(packet.mid(sourceBuffer - startPosition));
@@ -274,7 +279,8 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
     
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL;
+    QString displayName;
+    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> displayName;
     
     bool hasIdentityChanged = false;
     
@@ -287,17 +293,31 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
         setSkeletonModelURL(skeletonModelURL);
         hasIdentityChanged = true;
     }
-    
+
+    if (displayName != _displayName) {
+        setDisplayName(displayName);
+        hasIdentityChanged = true;
+    }
+        
     return hasIdentityChanged;
 }
 
 QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    
-    identityStream << QUuid() << _faceModelURL << _skeletonModelURL;
+
+    identityStream << QUuid() << _faceModelURL << _skeletonModelURL << _displayName;
     
     return identityData;
+}
+
+bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
+    QByteArray newBillboard = packet.mid(numBytesForPacketHeader(packet));
+    if (newBillboard == _billboard) {
+        return false;
+    }
+    _billboard = newBillboard;
+    return true;
 }
 
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
@@ -310,6 +330,40 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
     
     qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+}
+
+void AvatarData::setDisplayName(const QString& displayName) {
+    _displayName = displayName;
+
+    qDebug() << "Changing display name for avatar to" << displayName;
+}
+
+void AvatarData::setBillboard(const QByteArray& billboard) {
+    _billboard = billboard;
+    
+    qDebug() << "Changing billboard for avatar.";
+}
+
+void AvatarData::setBillboardFromURL(const QString &billboardURL) {
+    _billboardURL = billboardURL;
+    
+    if (AvatarData::networkAccessManager) {
+        qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+        
+        QNetworkRequest billboardRequest;
+        billboardRequest.setUrl(QUrl(billboardURL));
+        
+        QNetworkReply* networkReply = AvatarData::networkAccessManager->get(billboardRequest);
+        connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
+        
+    } else {
+        qDebug() << "Billboard PNG download requested but no network access manager is available.";
+    }
+}
+
+void AvatarData::setBillboardFromNetworkReply() {
+    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    setBillboard(networkReply->readAll());
 }
 
 void AvatarData::setClampedTargetScale(float targetScale) {
@@ -325,4 +379,20 @@ void AvatarData::setOrientation(const glm::quat& orientation) {
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
+}
+
+void AvatarData::sendIdentityPacket() {
+    QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+    identityPacket.append(identityByteArray());
+    
+    NodeList::getInstance()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+}
+
+void AvatarData::sendBillboardPacket() {
+    if (!_billboard.isEmpty()) {
+        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        billboardPacket.append(_billboard);
+        
+        NodeList::getInstance()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+    }
 }

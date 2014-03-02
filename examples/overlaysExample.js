@@ -156,6 +156,13 @@ var line3d = Overlays.addOverlay("line3d", {
                     lineWidth: 5
                 });
 
+// this will display the content of your clipboard at the origin of the domain
+var clipboardPreview = Overlays.addOverlay("clipboard", {
+                                           position: { x: 0, y: 0, z: 0},
+                                           size: 1 / 32,
+                                           visible: true
+                                           });
+
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
@@ -170,6 +177,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(solidCube);
     Overlays.deleteOverlay(sphere);
     Overlays.deleteOverlay(line3d);
+    Overlays.deleteOverlay(clipboardPreview);
 }
 Script.scriptEnding.connect(scriptEnding);
 

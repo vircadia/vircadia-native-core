@@ -9,6 +9,7 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
@@ -20,6 +21,9 @@
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
+
+/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
+extern const char* FACESHIFT_BLENDSHAPES[];
 
 /// A node within an FBX document.
 class FBXNode {
@@ -163,6 +167,8 @@ public:
     
     QVector<FBXAttachment> attachments;
 };
+
+Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads an FST mapping from the supplied data.
 QVariantHash readMapping(const QByteArray& data);

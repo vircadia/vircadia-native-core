@@ -23,7 +23,7 @@
 
 #include "renderer/ProgramObject.h"
 
-class MetavoxelClient;
+class Model;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public QObject {
@@ -32,28 +32,20 @@ class MetavoxelSystem : public QObject {
 public:
 
     MetavoxelSystem();
-    ~MetavoxelSystem();
 
     void init();
     
     void applyEdit(const MetavoxelEditMessage& edit);
     
-    void processData(const QByteArray& data, const HifiSockAddr& sender);
-    
     void simulate(float deltaTime);
     void render();
     
-public slots:
+private slots:
 
-    void nodeAdded(SharedNodePointer node);
-    void nodeKilled(SharedNodePointer node);
-    
+    void maybeAttachClient(const SharedNodePointer& node);
+
 private:
-
-    Q_INVOKABLE void addClient(const SharedNodePointer& node);
-    Q_INVOKABLE void removeClient(const QUuid& uuid);
-    Q_INVOKABLE void receivedData(const QByteArray& data, const SharedNodePointer& sendingNode);
-
+    
     class Point {
     public:
         glm::vec4 vertex;
@@ -61,28 +53,35 @@ private:
         quint8 normal[3];
     };
     
-    class PointVisitor : public MetavoxelVisitor {
+    class SimulateVisitor : public SpannerVisitor {
     public:
-        PointVisitor(QVector<Point>& points);
+        SimulateVisitor(QVector<Point>& points);
+        void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
+        virtual void visit(Spanner* spanner);
         virtual bool visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;
+        float _deltaTime;
+    };
+    
+    class RenderVisitor : public SpannerVisitor {
+    public:
+        RenderVisitor();
+        virtual void visit(Spanner* spanner);
     };
     
     static ProgramObject _program;
     static int _pointScaleLocation;
     
     QVector<Point> _points;
-    PointVisitor _pointVisitor;
+    SimulateVisitor _simulateVisitor;
+    RenderVisitor _renderVisitor;
     QOpenGLBuffer _buffer;
-    
-    QHash<QUuid, MetavoxelClient*> _clients;
-    QHash<QUuid, MetavoxelClient*> _clientsBySessionID;
 };
 
 /// A client session associated with a single server.
-class MetavoxelClient : public QObject {
+class MetavoxelClient : public NodeData {
     Q_OBJECT    
     
 public:
@@ -90,13 +89,13 @@ public:
     MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
 
-    const QUuid& getSessionID() const { return _sessionID; }
+    MetavoxelData& getData() { return _data; }
 
     void applyEdit(const MetavoxelEditMessage& edit);
 
-    void simulate(float deltaTime, MetavoxelVisitor& visitor);
+    void simulate(float deltaTime);
 
-    void receivedData(const QByteArray& data);
+    virtual int parseData(const QByteArray& packet);
 
 private slots:
     
@@ -117,13 +116,36 @@ private:
     };
     
     SharedNodePointer _node;
-    QUuid _sessionID;
     
     DatagramSequencer _sequencer;
     
     MetavoxelData _data;
     
     QList<ReceiveRecord> _receiveRecords;
+};
+
+/// Renders static models.
+class StaticModelRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE StaticModelRenderer();
+    
+    virtual void init(Spanner* spanner);
+    virtual void simulate(float deltaTime);
+    virtual void render(float alpha);
+
+private slots:
+
+    void applyTranslation(const glm::vec3& translation);
+    void applyRotation(const glm::vec3& rotation);
+    void applyScale(float scale);
+    void applyURL(const QUrl& url);
+
+private:
+    
+    Model* _model;
 };
 
 #endif /* defined(__interface__MetavoxelSystem__) */

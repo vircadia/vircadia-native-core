@@ -14,8 +14,6 @@
 #include <RegisteredMetaTypes.h>
 #include <ViewFrustum.h>
 
-const float DEFAULT_FIELD_OF_VIEW_DEGREES = 90.0f;
-
 enum CameraMode
 {
     CAMERA_MODE_NULL = -1,
@@ -43,7 +41,7 @@ public:
     void setTargetRotation(const glm::quat& rotation);
     
     void setMode(CameraMode m);
-    void setModeShiftRate(float r);
+    void setModeShiftPeriod(float r);
     void setFieldOfView(float f);
     void setAspectRatio(float a);
     void setNearClip(float n);
@@ -55,6 +53,7 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getRotation() const { return _rotation; }
     CameraMode getMode() const { return _mode; }
+    float getModeShiftPeriod() const { return _modeShiftPeriod; }
     const glm::vec3& getTargetPosition() const { return _targetPosition; }
     const glm::quat& getTargetRotation() const { return _targetRotation; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -109,7 +108,7 @@ private:
     float _newTightness;
     float _modeShift;
     float _linearModeShift;
-    float _modeShiftRate;
+    float _modeShiftPeriod;
     float _scale;
 
     glm::vec3 _lookingAt;

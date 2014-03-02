@@ -21,6 +21,7 @@ private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
     void assignmentCompleted();
+    void handleAuthenticationRequest();
 private:
     Assignment _requestAssignment;
     ThreadedAssignment* _currentAssignment;

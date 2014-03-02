@@ -11,12 +11,11 @@
 
 #include "InterfaceConfig.h"
 
-#include <QString>
 #include <QImage>
 #include <QGLWidget>
+#include <QString>
 
 #include "avatar/Avatar.h"
-#include "avatar/Profile.h"
 
 class SnapshotMetaData {
 public:
@@ -39,7 +38,7 @@ private:
 class Snapshot {
 
 public:
-    static void saveSnapshot(QGLWidget* widget, Profile* profile, Avatar* avatar);
+    static void saveSnapshot(QGLWidget* widget, Avatar* avatar);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 };
 

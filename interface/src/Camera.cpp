@@ -15,8 +15,6 @@
 #include "Menu.h"
 #include "Util.h"
 
-const float CAMERA_MINIMUM_MODE_SHIFT_RATE     = 0.5f;
-
 const float CAMERA_FIRST_PERSON_MODE_UP_SHIFT  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_DISTANCE  = 0.0f;
 const float CAMERA_FIRST_PERSON_MODE_TIGHTNESS = 100.0f;
@@ -57,7 +55,7 @@ Camera::Camera() :
     _newTightness(0.0f),
     _modeShift(1.0f),
     _linearModeShift(0.0f),
-    _modeShiftRate(1.0f),
+    _modeShiftPeriod(1.0f),
     _scale(1.0f),
     _lookingAt(0.0f, 0.0f, 0.0f),
     _isKeepLookingAt(false)
@@ -75,18 +73,18 @@ void Camera::update(float deltaTime)  {
 // use iterative forces to keep the camera at the desired position and angle
 void Camera::updateFollowMode(float deltaTime) {  
     if (_linearModeShift < 1.0f) {
-        _linearModeShift += _modeShiftRate * deltaTime;
-        _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE );
-        _upShift   = _previousUpShift   * (1.0f - _modeShift) + _newUpShift   * _modeShift;
-        _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;
-        _tightness = _previousTightness * (1.0f - _modeShift) + _newTightness * _modeShift;
-
+        _linearModeShift += deltaTime / _modeShiftPeriod;
         if (_needsToInitialize || _linearModeShift > 1.0f) {
             _linearModeShift = 1.0f;
             _modeShift = 1.0f;
             _upShift   = _newUpShift;
             _distance  = _newDistance;
             _tightness = _newTightness;
+        } else {
+            _modeShift = ONE_HALF - ONE_HALF * cosf(_linearModeShift * PIE );
+            _upShift   = _previousUpShift   * (1.0f - _modeShift) + _newUpShift   * _modeShift;
+            _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;
+            _tightness = _previousTightness * (1.0f - _modeShift) + _newTightness * _modeShift;
         }
     }
 
@@ -121,12 +119,14 @@ float Camera::getFarClip() const {
             : std::numeric_limits<int16_t>::max() - 1;
 }
 
-void Camera::setModeShiftRate ( float rate ) {
+void Camera::setModeShiftPeriod (float period) {
+    const float MIN_PERIOD = 0.001f;
+    const float MAX_PERIOD = 3.0f;
+    _modeShiftPeriod = glm::clamp(period, MIN_PERIOD, MAX_PERIOD);
     
-    _modeShiftRate = rate;
-    
-    if (_modeShiftRate < CAMERA_MINIMUM_MODE_SHIFT_RATE ) {
-        _modeShiftRate = CAMERA_MINIMUM_MODE_SHIFT_RATE;
+    // if a zero period was requested, we clearly want to snap immediately to the target
+    if (period == 0.0f) {
+        update(MAX_PERIOD);
     }
 }
 
@@ -307,7 +307,8 @@ void CameraScriptableObject::setMode(const QString& mode) {
     }
     if (currentMode != targetMode) {
         _camera->setMode(targetMode);
-        _camera->setModeShiftRate(10.0f);
+        const float DEFAULT_MODE_SHIFT_PERIOD = 0.5f; // half second
+        _camera->setModeShiftPeriod(DEFAULT_MODE_SHIFT_PERIOD);
     }
 }
 

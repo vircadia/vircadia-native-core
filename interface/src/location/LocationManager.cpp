@@ -11,7 +11,7 @@
 void LocationManager::createNamedLocation(QString locationName, QString creator, glm::vec3 location, glm::quat orientation) {
     _namedLocation = new NamedLocation(locationName, creator, location, orientation);
     connect(_namedLocation, SIGNAL(dataReceived(bool)), SLOT(locationDataReceived(bool)));
-    DataServerClient::getHashFieldsForKey(DataServerKey::NamedLocation, _namedLocation->locationName(), _namedLocation);
+    // DataServerClient::getHashFieldsForKey(DataServerKey::NamedLocation, _namedLocation->locationName(), _namedLocation);
 }
 
 void LocationManager::locationDataReceived(bool locationExists) {
@@ -19,7 +19,7 @@ void LocationManager::locationDataReceived(bool locationExists) {
     if (locationExists) {
         emit creationCompleted(AlreadyExists, _namedLocation);
     } else {
-        DataServerClient::putHashFieldsForKey(DataServerKey::NamedLocation, _namedLocation->locationName(), _namedLocation);
+        // DataServerClient::putHashFieldsForKey(DataServerKey::NamedLocation, _namedLocation->locationName(), _namedLocation);
         emit creationCompleted(Created, _namedLocation);
     }
 }

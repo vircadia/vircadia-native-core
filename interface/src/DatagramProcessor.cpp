@@ -43,12 +43,6 @@ void DatagramProcessor::processDatagrams() {
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
             // only process this packet if we have a match on the packet version
             switch (packetTypeForPacket(incomingPacket)) {
-                case PacketTypeTransmitterData:
-                    //  V2 = IOS transmitter app
-                    application->getAvatar()->getTransmitter().processIncomingData(reinterpret_cast<unsigned char*>(incomingPacket.data()),
-                                                                    incomingPacket.size());
-                    
-                    break;
                 case PacketTypeMixedAudio:
                     QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToBuffer", Qt::QueuedConnection,
                                               Q_ARG(QByteArray, incomingPacket));
@@ -94,11 +88,12 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketTypeMetavoxelData:
-                    application->_metavoxels.processData(incomingPacket, senderSockAddr);
+                    nodeList->findNodeAndUpdateWithDataFromPacket(incomingPacket);
                     break;
                 case PacketTypeBulkAvatarData:
                 case PacketTypeKillAvatar:
-                case PacketTypeAvatarIdentity: {
+                case PacketTypeAvatarIdentity:
+                case PacketTypeAvatarBillboard: {
                     // update having heard from the avatar-mixer and record the bytes received
                     SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
                     
@@ -114,15 +109,6 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDataServerGet:
-                case PacketTypeDataServerPut:
-                case PacketTypeDataServerHashPut:
-                case PacketTypeDataServerHashGet:
-                case PacketTypeDataServerSend:
-                case PacketTypeDataServerHashSend:
-                case PacketTypeDataServerConfirm:
-                    DataServerClient::processMessageFromDataServer(incomingPacket);
-                    break;
                 default:
                     nodeList->processNodeData(senderSockAddr, incomingPacket);
                     break;

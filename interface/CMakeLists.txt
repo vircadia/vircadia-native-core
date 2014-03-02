@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
+set(VISAGE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/visage)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -40,7 +41,7 @@ if (WIN32)
     # which are not accessible on windows without glew or some other dynamic linking mechanism
     set(GLEW_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glew)
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
-    include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
+    include_directories(SYSTEM ${GLEW_ROOT_PATH}/include ${GLUT_ROOT_PATH}/include)
 
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
@@ -138,9 +139,10 @@ find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(Sixense)
+find_package(Visage)
 find_package(ZLIB)
 
-# likewise with Sixense library for Razer Hydra
+# include the Sixense library for Razer Hydra if available
 if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     add_definitions(-DHAVE_SIXENSE)
     include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
@@ -149,6 +151,21 @@ if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
     endif (APPLE OR UNIX)
     target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
 endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
+
+# likewise with Visage library for webcam feature tracking
+if (VISAGE_FOUND AND NOT DISABLE_VISAGE)
+    add_definitions(-DHAVE_VISAGE -DVISAGE_STATIC)
+    include_directories(SYSTEM ${VISAGE_INCLUDE_DIRS})
+    if (APPLE)
+        add_definitions(-DMAC_OS_X)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment -isystem ${VISAGE_INCLUDE_DIRS}")
+        find_library(AVFoundation AVFoundation)
+        find_library(CoreMedia CoreMedia)
+        find_library(NEW_STD_LIBRARY libc++.dylib /usr/lib/)
+        target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
+    endif (APPLE)
+    target_link_libraries(${TARGET_NAME} ${VISAGE_LIBRARIES})
+endif (VISAGE_FOUND AND NOT DISABLE_VISAGE)
 
 # and with LibOVR for Oculus Rift
 if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
