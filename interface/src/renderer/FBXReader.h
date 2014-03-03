@@ -26,7 +26,10 @@ extern const char* FACESHIFT_BLENDSHAPES[];
 
 class Extents {
 public:
-    
+    //Extents() : minimum(FLT_MAX), maximum(-FLT_MAX) {}
+    void reset();
+    void addPoint(const glm::vec3& point);
+    bool containsPoint(const glm::vec3& point) const;
     glm::vec3 minimum;
     glm::vec3 maximum;
 };
@@ -70,12 +73,14 @@ public:
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
+    // TODO: add some comments to these data members
+    // Trying to provide enough info so that the proper shape can be generated in Model
     QString name;
-    Extents extents;
-    int numVertices;
-    glm::vec3 averageVertex;
-    float averageRadius;
+    glm::vec3 shapePosition;  // in joint frame (where boneEnd = origin)
+    glm::quat shapeRotation;
+    int shapeType;
 };
+
 
 /// A single binding to a joint in an FBX document.
 class FBXCluster {

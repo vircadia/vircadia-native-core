@@ -138,7 +138,7 @@ void Model::createCollisionShapes() {
     float uniformScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
         const FBXJoint& joint = geometry.joints[i];
-        glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.averageVertex;
+        glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.shapePosition;
         glm::vec3 position = _rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation;
 
         float radius = uniformScale * joint.boneRadius;
@@ -154,7 +154,7 @@ void Model::updateShapePositions() {
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
             // shape positions are stored in world-frame
-            glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.averageVertex;
+            glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.shapePosition;
             _shapes[i]->setPosition(_rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation);
             _shapes[i]->setRotation(_jointStates[i].combinedRotation);
         }
