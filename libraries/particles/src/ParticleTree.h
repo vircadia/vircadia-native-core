@@ -44,7 +44,7 @@ public:
     void addParticle(const ParticleID& particleID, const ParticleProperties& properties);
     void deleteParticle(const ParticleID& particleID);
     const Particle* findClosestParticle(glm::vec3 position, float targetRadius);
-    const Particle* findParticleByID(uint32_t id, bool alreadyLocked = false);
+    const Particle* findParticleByID(uint32_t id);
 
     /// finds all particles that touch a sphere
     /// \param center the center of the sphere
