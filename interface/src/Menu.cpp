@@ -576,7 +576,11 @@ void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
 }
 
 bool Menu::isOptionChecked(const QString& menuOption) {
-    return _actionHash.value(menuOption)->isChecked();
+    QAction* menu = _actionHash.value(menuOption);
+    if (menu) {
+        return menu->isChecked();
+    }
+    return false;
 }
 
 void Menu::triggerOption(const QString& menuOption) {
