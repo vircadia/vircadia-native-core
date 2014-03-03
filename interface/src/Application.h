@@ -292,7 +292,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateMyAvatarLookAtPosition();
-    void updateHoverVoxels(float deltaTime, float& distance, BoxFace& face);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
     void updateSixense(float deltaTime);
@@ -428,9 +427,6 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
-
-    VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
-    bool _isHoverVoxel;
 
     VoxelDetail _highlightVoxel;
     bool _isHighlightVoxel;

@@ -139,7 +139,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _isHoverVoxel(false),
         _isHighlightVoxel(false),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
@@ -1029,11 +1028,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 return;
             }
 
-            if (!_isHoverVoxel || _myAvatar->getLookAtTargetAvatar()) {
-                // disable for now
-                // _pieMenu.mousePressEvent(_mouseX, _mouseY);
-            }
-
         } else if (event->button() == Qt::RightButton) {
             // right click items here
         }
@@ -1701,9 +1695,6 @@ void Application::updateMyAvatarLookAtPosition() {
         if (_myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
                 static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
-            
-        } else if (_isHoverVoxel) {
-            distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
         }
         const float FIXED_MIN_EYE_DISTANCE = 0.3f;
         float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
@@ -1732,17 +1723,6 @@ void Application::updateMyAvatarLookAtPosition() {
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
-}
-
-void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& face) {
-
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
-
-    if (!_mousePressed) {
-        PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-        _isHoverVoxel = getVoxelTree()->findRayIntersectionDetail(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
-    }
 }
 
 void Application::updateHandAndTouch(float deltaTime) {
@@ -1893,11 +1873,6 @@ void Application::update(float deltaTime) {
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
 
-    //  Find the voxel we are hovering over, and respond if clicked
-    float distance;
-    BoxFace face;
-
-    updateHoverVoxels(deltaTime, distance, face); // clicking on voxels and making sounds
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
     updateSixense(deltaTime); // Razer Hydra controllers
