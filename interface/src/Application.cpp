@@ -358,6 +358,8 @@ Application::~Application() {
     _myAvatar = NULL;
     
     delete _glWidget;
+    
+    AccountManager::getInstance().destroy();
 }
 
 void Application::restoreSizeAndPosition() {
