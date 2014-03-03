@@ -10,6 +10,8 @@
 
 #include <SharedUtil.h>
 
+#include <MetavoxelMessages.h>
+
 #include "MetavoxelTests.h"
 
 REGISTER_META_OBJECT(TestSharedObjectA)
@@ -245,6 +247,9 @@ void Endpoint::sendDatagram(const QByteArray& datagram) {
 }
 
 void Endpoint::handleHighPriorityMessage(const QVariant& message) {
+    if (message.userType() == ClearSharedObjectMessage::Type) {
+        return;
+    }
     if (_other->_highPriorityMessagesSent.isEmpty()) {
         throw QString("Received unsent/already sent high priority message.");
     }
@@ -274,6 +279,10 @@ void Endpoint::readMessage(Bitstream& in) {
 }
 
 void Endpoint::handleReliableMessage(const QVariant& message) {
+    if (message.userType() == ClearSharedObjectMessage::Type ||
+            message.userType() == ClearMainChannelSharedObjectMessage::Type) {
+        return;
+    }
     if (_other->_reliableMessagesSent.isEmpty()) {
         throw QString("Received unsent/already sent reliable message.");
     }

@@ -27,14 +27,10 @@ public:
 
     int getID() { return _id; }
 
-    int getHardReferenceCount() const { return _hardReferenceCount; }
-    
-    void incrementHardReferenceCount() { _hardReferenceCount++; }
-    void decrementHardReferenceCount();
+    int getReferenceCount() const { return _referenceCount; }
+    void incrementReferenceCount();
+    void decrementReferenceCount();
 
-    void incrementSoftReferenceCount() { _softReferenceCount++; }
-    void decrementSoftReferenceCount();
-    
     /// Creates a new clone of this object.
     virtual SharedObject* clone() const;
 
@@ -44,31 +40,20 @@ public:
     // Dumps the contents of this object to the debug output.
     virtual void dump(QDebug debug = QDebug(QtDebugMsg)) const;
 
-signals:
-    
-    /// Emitted when only soft reference counts remain.
-    void allHardReferencesCleared(QObject* object);
-
 private:
     
     int _id;
-    int _hardReferenceCount;
-    int _softReferenceCount;
+    int _referenceCount;
     
     static int _lastID;
 };
 
-typedef void (SharedObject::*SharedObjectFn)();
-
 /// A pointer to a shared object.
-template<class T, SharedObjectFn Inc = &SharedObject::incrementHardReferenceCount,
-    SharedObjectFn Dec = &SharedObject::decrementHardReferenceCount> class SharedObjectPointerTemplate {
+template<class T> class SharedObjectPointerTemplate {
 public:
     
     SharedObjectPointerTemplate(T* data = NULL);
-    SharedObjectPointerTemplate(const SharedObjectPointerTemplate<T, Inc, Dec>& other);
-    template<class X, SharedObjectFn Inc2, SharedObjectFn Dec2> SharedObjectPointerTemplate(
-        const SharedObjectPointerTemplate<X, Inc2, Dec2>& other);
+    SharedObjectPointerTemplate(const SharedObjectPointerTemplate<T>& other);
     ~SharedObjectPointerTemplate();
 
     T* data() const { return _data; }
@@ -76,7 +61,7 @@ public:
     /// "Detaches" this object, making a new copy if its reference count is greater than one.
     bool detach();
 
-    void swap(SharedObjectPointerTemplate<T, Inc, Dec>& other) { qSwap(_data, other._data); }
+    void swap(SharedObjectPointerTemplate<T>& other) { qSwap(_data, other._data); }
 
     void reset();
 
@@ -85,96 +70,86 @@ public:
     T& operator*() const { return *_data; }
     T* operator->() const { return _data; }
     
-    template<class X> SharedObjectPointerTemplate<X, Inc, Dec> staticCast() const;
+    template<class X> SharedObjectPointerTemplate<X> staticCast() const;
     
-    SharedObjectPointerTemplate<T, Inc, Dec>& operator=(T* data);
-    SharedObjectPointerTemplate<T, Inc, Dec>& operator=(const SharedObjectPointerTemplate<T, Inc, Dec>& other) {
-        return *this = other.data(); }
-    template<class X, SharedObjectFn Inc2, SharedObjectFn Dec2> SharedObjectPointerTemplate<T, Inc, Dec>& operator=(
-        const SharedObjectPointerTemplate<X, Inc2, Dec2>& other) { return *this = other.data(); }
+    SharedObjectPointerTemplate<T>& operator=(T* data);
+    SharedObjectPointerTemplate<T>& operator=(const SharedObjectPointerTemplate<T>& other);
 
-    bool operator==(T* data) const { return _data == data; }
-    bool operator!=(T* data) const { return _data != data; }
+    bool operator==(const SharedObjectPointerTemplate<T>& other) const { return _data == other._data; }
+    bool operator!=(const SharedObjectPointerTemplate<T>& other) const { return _data != other._data; }
     
-    template<class X, SharedObjectFn Inc2, SharedObjectFn Dec2> bool operator==(
-        const SharedObjectPointerTemplate<X, Inc2, Dec2>& other) const { return _data == other.data(); }
-    template<class X, SharedObjectFn Inc2, SharedObjectFn Dec2> bool operator!=(
-        const SharedObjectPointerTemplate<X, Inc2, Dec2>& other) const { return _data != other.data(); }
-        
 private:
 
     T* _data;
 };
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline
-        SharedObjectPointerTemplate<T, Inc, Dec>::SharedObjectPointerTemplate(T* data) : _data(data) {
+template<class T> inline SharedObjectPointerTemplate<T>::SharedObjectPointerTemplate(T* data) : _data(data) {
     if (_data) {
-        (_data->*Inc)();
+        _data->incrementReferenceCount();
     }
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline
-    SharedObjectPointerTemplate<T, Inc, Dec>::SharedObjectPointerTemplate(
-        const SharedObjectPointerTemplate<T, Inc, Dec>& other) : _data(other.data()) {
+template<class T> inline SharedObjectPointerTemplate<T>::SharedObjectPointerTemplate(const SharedObjectPointerTemplate<T>& other) :
+    _data(other._data) {
+    
     if (_data) {
-        (_data->*Inc)();
+        _data->incrementReferenceCount();
     }
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> template<class X, SharedObjectFn Inc2, SharedObjectFn Dec2> inline
-    SharedObjectPointerTemplate<T, Inc, Dec>::SharedObjectPointerTemplate(
-        const SharedObjectPointerTemplate<X, Inc2, Dec2>& other) : _data(other.data()) {
+template<class T> inline SharedObjectPointerTemplate<T>::~SharedObjectPointerTemplate() {
     if (_data) {
-        (_data->*Inc)();
+        _data->decrementReferenceCount();
     }
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline
-        SharedObjectPointerTemplate<T, Inc, Dec>::~SharedObjectPointerTemplate() {
-    if (_data) {
-        (_data->*Dec)();
-    }
-}
-
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline bool SharedObjectPointerTemplate<T, Inc, Dec>::detach() {
-    if (_data && _data->getHardReferenceCount() > 1) {
-        (_data->*Dec)();
-        ((_data = _data->clone())->*Inc)();
+template<class T> inline bool SharedObjectPointerTemplate<T>::detach() {
+    if (_data && _data->getReferenceCount() > 1) {
+        _data->decrementReferenceCount();
+        (_data = _data->clone())->incrementReferenceCount();
         return true;
     }
     return false;
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline void SharedObjectPointerTemplate<T, Inc, Dec>::reset() {
+template<class T> inline void SharedObjectPointerTemplate<T>::reset() {
     if (_data) {
-        (_data->*Dec)();
+        _data->decrementReferenceCount();
     }
     _data = NULL;
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> template<class X> inline
-        SharedObjectPointerTemplate<X, Inc, Dec> SharedObjectPointerTemplate<T, Inc, Dec>::staticCast() const {
-    return SharedObjectPointerTemplate<X, Inc, Dec>(static_cast<X*>(_data));
+template<class T> template<class X> inline SharedObjectPointerTemplate<X> SharedObjectPointerTemplate<T>::staticCast() const {
+    return SharedObjectPointerTemplate<X>(static_cast<X*>(_data));
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> inline
-        SharedObjectPointerTemplate<T, Inc, Dec>& SharedObjectPointerTemplate<T, Inc, Dec>::operator=(T* data) {
+template<class T> inline SharedObjectPointerTemplate<T>& SharedObjectPointerTemplate<T>::operator=(T* data) {
     if (_data) {
-        (_data->*Dec)();
+        _data->decrementReferenceCount();
     }
     if ((_data = data)) {
-        (_data->*Inc)();
+        _data->incrementReferenceCount();
     }
     return *this;
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec> uint qHash(
-        const SharedObjectPointerTemplate<T, Inc, Dec>& pointer, uint seed = 0) {
+template<class T> inline SharedObjectPointerTemplate<T>& SharedObjectPointerTemplate<T>::operator=(
+        const SharedObjectPointerTemplate<T>& other) {
+    if (_data) {
+        _data->decrementReferenceCount();
+    }
+    if ((_data = other._data)) {
+        _data->incrementReferenceCount();
+    }
+    return *this;
+}
+
+template<class T> uint qHash(const SharedObjectPointerTemplate<T>& pointer, uint seed = 0) {
     return qHash(pointer.data(), seed);
 }
 
-template<class T, SharedObjectFn Inc, SharedObjectFn Dec, class X, SharedObjectFn Inc2, SharedObjectFn Dec2> bool equals(
-        const SharedObjectPointerTemplate<T, Inc, Dec>& first, const SharedObjectPointerTemplate<X, Inc2, Dec2>& second) {
+template<class T, class X> bool equals(const SharedObjectPointerTemplate<T>& first,
+        const SharedObjectPointerTemplate<X>& second) {
     return first ? first->equals(second) : !second;
 }
 
@@ -185,11 +160,6 @@ Q_DECLARE_METATYPE(SharedObjectPointer)
 typedef QSet<SharedObjectPointer> SharedObjectSet;
 
 Q_DECLARE_METATYPE(SharedObjectSet)
-
-typedef SharedObjectPointerTemplate<SharedObject, &SharedObject::incrementSoftReferenceCount,
-    &SharedObject::decrementSoftReferenceCount> SoftSharedObjectPointer;
-
-Q_DECLARE_METATYPE(SoftSharedObjectPointer)
 
 /// Allows editing shared object instances.
 class SharedObjectEditor : public QWidget {

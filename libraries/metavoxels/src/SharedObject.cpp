@@ -18,29 +18,15 @@
 
 REGISTER_META_OBJECT(SharedObject)
 
-static int sharedObjectPointerMetaTypeId = qRegisterMetaType<SharedObjectPointer>();
-static int softSharedObjectPointerMetaTypeId = qRegisterMetaType<SoftSharedObjectPointer>();
-
-SharedObject::SharedObject() :
-    _id(++_lastID),
-    _hardReferenceCount(0),
-    _softReferenceCount(0) {
+SharedObject::SharedObject() : _id(++_lastID), _referenceCount(0) {
 }
 
-void SharedObject::decrementHardReferenceCount() {
-    _hardReferenceCount--;
-    if (_hardReferenceCount == 0) {
-        if (_softReferenceCount == 0) {
-            delete this;
-        } else {
-            emit allHardReferencesCleared(this);
-        }
-    }
+void SharedObject::incrementReferenceCount() {
+    _referenceCount++;
 }
 
-void SharedObject::decrementSoftReferenceCount() {
-    _softReferenceCount--;
-    if (_hardReferenceCount == 0 && _softReferenceCount == 0) {
+void SharedObject::decrementReferenceCount() {
+    if (--_referenceCount == 0) {
         delete this;
     }
 }
@@ -62,13 +48,13 @@ SharedObject* SharedObject::clone() const {
 }
 
 bool SharedObject::equals(const SharedObject* other) const {
-    // default behavior is to compare the properties
     if (!other) {
         return false;
     }
     if (other == this) {
         return true;
     }
+    // default behavior is to compare the properties
     const QMetaObject* metaObject = this->metaObject();
     if (metaObject != other->metaObject()) {
         return false;
