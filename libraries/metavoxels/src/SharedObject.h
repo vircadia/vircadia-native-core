@@ -173,6 +173,11 @@ template<class T, SharedObjectFn Inc, SharedObjectFn Dec> uint qHash(
     return qHash(pointer.data(), seed);
 }
 
+template<class T, SharedObjectFn Inc, SharedObjectFn Dec, class X, SharedObjectFn Inc2, SharedObjectFn Dec2> bool equals(
+        const SharedObjectPointerTemplate<T, Inc, Dec>& first, const SharedObjectPointerTemplate<X, Inc2, Dec2>& second) {
+    return first ? first->equals(second) : !second;
+}
+
 typedef SharedObjectPointerTemplate<SharedObject> SharedObjectPointer;
 
 Q_DECLARE_METATYPE(SharedObjectPointer)

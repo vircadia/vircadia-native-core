@@ -12,6 +12,9 @@
 
 #include "MetavoxelTests.h"
 
+REGISTER_META_OBJECT(TestSharedObjectA)
+REGISTER_META_OBJECT(TestSharedObjectB)
+
 MetavoxelTests::MetavoxelTests(int& argc, char** argv) :
     QCoreApplication(argc, argv) {
 }
@@ -26,6 +29,8 @@ static int reliableMessagesSent = 0;
 static int reliableMessagesReceived = 0;
 static int streamedBytesSent = 0;
 static int streamedBytesReceived = 0;
+static int sharedObjectsCreated = 0;
+static int sharedObjectsDestroyed = 0;
 
 bool MetavoxelTests::run() {
     
@@ -54,6 +59,7 @@ bool MetavoxelTests::run() {
     qDebug() << "Sent" << reliableMessagesSent << "reliable messages, received" << reliableMessagesReceived;
     qDebug() << "Sent" << streamedBytesSent << "streamed bytes, received" << streamedBytesReceived;
     qDebug() << "Sent" << datagramsSent << "datagrams, received" << datagramsReceived;
+    qDebug() << "Created" << sharedObjectsCreated << "shared objects, destroyed" << sharedObjectsDestroyed;
     
     qDebug() << "All tests passed!";
     
@@ -72,6 +78,15 @@ static QByteArray createRandomBytes() {
     const int MIN_BYTES = 4;
     const int MAX_BYTES = 16;
     return createRandomBytes(MIN_BYTES, MAX_BYTES);
+}
+
+static SharedObjectPointer createRandomSharedObject() {
+    switch (randIntInRange(0, 2)) {
+        case 0: return new TestSharedObjectA(randFloat());
+        case 1: return new TestSharedObjectB();
+        case 2:
+        default: return SharedObjectPointer();
+    }
 }
 
 Endpoint::Endpoint(const QByteArray& datagramHeader) :
@@ -110,7 +125,7 @@ static QVariant createRandomMessage() {
             return QVariant::fromValue(message);
         }
         case 1: {
-            TestMessageB message = { createRandomBytes() };
+            TestMessageB message = { createRandomBytes(), createRandomSharedObject() };
             return QVariant::fromValue(message); 
         }
         case 2:
@@ -132,10 +147,15 @@ static bool messagesEqual(const QVariant& firstMessage, const QVariant& secondMe
     }
     if (type == TestMessageA::Type) {
         return firstMessage.value<TestMessageA>() == secondMessage.value<TestMessageA>();
+    
     } else if (type == TestMessageB::Type) {
-        return firstMessage.value<TestMessageB>() == secondMessage.value<TestMessageB>();
+        TestMessageB first = firstMessage.value<TestMessageB>();
+        TestMessageB second = secondMessage.value<TestMessageB>();
+        return first.foo == second.foo && equals(first.bar, second.bar);
+        
     } else if (type == TestMessageC::Type) {
         return firstMessage.value<TestMessageC>() == secondMessage.value<TestMessageC>();
+    
     } else {
         return firstMessage == secondMessage;
     }
@@ -276,4 +296,27 @@ void Endpoint::readReliableChannel() {
         throw QString("Sent/received streamed data mismatch.");
     }
     streamedBytesReceived += bytes.size();
+}
+
+TestSharedObjectA::TestSharedObjectA(float foo) :
+        _foo(foo) {
+    sharedObjectsCreated++;    
+}
+
+TestSharedObjectA::~TestSharedObjectA() {
+    sharedObjectsDestroyed++;
+}
+
+void TestSharedObjectA::setFoo(float foo) {
+    if (_foo != foo) {
+        emit fooChanged(_foo = foo);
+    }
+}
+
+TestSharedObjectB::TestSharedObjectB() {
+    sharedObjectsCreated++;
+}
+
+TestSharedObjectB::~TestSharedObjectB() {
+    sharedObjectsDestroyed++;
 }

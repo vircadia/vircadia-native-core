@@ -63,6 +63,12 @@ SharedObject* SharedObject::clone() const {
 
 bool SharedObject::equals(const SharedObject* other) const {
     // default behavior is to compare the properties
+    if (!other) {
+        return false;
+    }
+    if (other == this) {
+        return true;
+    }
     const QMetaObject* metaObject = this->metaObject();
     if (metaObject != other->metaObject()) {
         return false;
