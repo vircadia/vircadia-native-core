@@ -996,18 +996,18 @@ void Model::renderMeshes(float alpha, bool translucent) {
         
             Texture* diffuseMap = networkPart.diffuseTexture.data();
             if (mesh.isEye) {
-                if (diffuseMap != NULL) {
+                if (diffuseMap) {
                     diffuseMap = (_dilatedTextures[i][j] =
                         static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                 }
             }
-            glBindTexture(GL_TEXTURE_2D, diffuseMap == NULL ?
+            glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
                 Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
             
             if (!mesh.tangents.isEmpty()) {
                 glActiveTexture(GL_TEXTURE1);                
                 Texture* normalMap = networkPart.normalTexture.data();
-                glBindTexture(GL_TEXTURE_2D, normalMap == NULL ?
+                glBindTexture(GL_TEXTURE_2D, !normalMap ?
                     Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
                 glActiveTexture(GL_TEXTURE0);
             }

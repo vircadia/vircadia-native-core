@@ -40,14 +40,14 @@ TextureCache::~TextureCache() {
     foreach (GLuint id, _fileTextureIDs) {
         glDeleteTextures(1, &id);
     }
-    if (_primaryFramebufferObject != NULL) {
+    if (_primaryFramebufferObject) {
         delete _primaryFramebufferObject;
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
-    if (_secondaryFramebufferObject != NULL) {
+    if (_secondaryFramebufferObject) {
         delete _secondaryFramebufferObject;
     }
-    if (_tertiaryFramebufferObject != NULL) {
+    if (_tertiaryFramebufferObject) {
         delete _tertiaryFramebufferObject;
     }
 }
@@ -138,7 +138,7 @@ QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool no
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
-    if (_primaryFramebufferObject == NULL) {
+    if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
         
         glGenTextures(1, &_primaryDepthTextureID);
@@ -164,21 +164,21 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
 }
 
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
-    if (_secondaryFramebufferObject == NULL) {
+    if (!_secondaryFramebufferObject) {
         _secondaryFramebufferObject = createFramebufferObject();
     }
     return _secondaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
-    if (_tertiaryFramebufferObject == NULL) {
+    if (!_tertiaryFramebufferObject) {
         _tertiaryFramebufferObject = createFramebufferObject();
     }
     return _tertiaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
-    if (_shadowFramebufferObject == NULL) {
+    if (!_shadowFramebufferObject) {
         const int SHADOW_MAP_SIZE = 2048;
         _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
             QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
@@ -212,16 +212,16 @@ GLuint TextureCache::getShadowDepthTextureID() {
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_primaryFramebufferObject != NULL && _primaryFramebufferObject->size() != size) {
+        if (_primaryFramebufferObject && _primaryFramebufferObject->size() != size) {
             delete _primaryFramebufferObject;
             _primaryFramebufferObject = NULL;
             glDeleteTextures(1, &_primaryDepthTextureID);
         }
-        if (_secondaryFramebufferObject != NULL && _secondaryFramebufferObject->size() != size) {
+        if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
             delete _secondaryFramebufferObject;
             _secondaryFramebufferObject = NULL;
         }
-        if (_tertiaryFramebufferObject != NULL && _tertiaryFramebufferObject->size() != size) {
+        if (_tertiaryFramebufferObject && _tertiaryFramebufferObject->size() != size) {
             delete _tertiaryFramebufferObject;
             _tertiaryFramebufferObject = NULL;
         }

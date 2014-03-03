@@ -177,7 +177,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t l
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
+        if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
             // we need to get the jurisdiction for this
@@ -226,7 +226,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getActiveSocket() != NULL && node->getType() == getMyNodeType()) {
+        if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
 
