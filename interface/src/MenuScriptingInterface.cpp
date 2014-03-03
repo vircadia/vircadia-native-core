@@ -38,6 +38,12 @@ void MenuScriptingInterface::addSeparator(const QString& menuName, const QString
                 Q_ARG(const QString&, separatorName));
 }
 
+void MenuScriptingInterface::removeSeparator(const QString& menuName, const QString& separatorName) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeSeparator",
+                Q_ARG(const QString&, menuName),
+                Q_ARG(const QString&, separatorName));
+}
+
 void MenuScriptingInterface::addMenuItem(const MenuItemProperties& properties) {
     QMetaObject::invokeMethod(Menu::getInstance(), "addMenuItem", Q_ARG(const MenuItemProperties&, properties));
 }
