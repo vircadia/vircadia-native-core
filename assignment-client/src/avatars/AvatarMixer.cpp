@@ -36,7 +36,7 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 }
 
 void attachAvatarDataToNode(Node* newNode) {
-    if (newNode->getLinkedData() == NULL) {
+    if (!newNode->getLinkedData()) {
         newNode->setLinkedData(new AvatarMixerClientData());
     }
 }

@@ -1146,7 +1146,7 @@ void Application::dropEvent(QDropEvent *event) {
     }
     
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
-    if (snapshotData != NULL) {
+    if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
             Menu::getInstance()->goToDomain(snapshotData->getDomain());
         }
@@ -1940,7 +1940,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
 
             // get the server bounds for this server
@@ -2000,7 +2000,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
 
 
             // get the server bounds for this server

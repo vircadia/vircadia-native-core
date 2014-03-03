@@ -98,7 +98,7 @@ void Node::activatePublicSocket() {
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
-    if (_bytesReceivedMovingAverage == NULL) {
+    if (!_bytesReceivedMovingAverage) {
         _bytesReceivedMovingAverage = new SimpleMovingAverage(100);
     }
 
