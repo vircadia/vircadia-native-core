@@ -945,17 +945,30 @@ function setupMenus() {
     // hook up menus
     Menu.menuItemEvent.connect(menuItemEvent);
 
-    // delete the standard application menu item
-    Menu.addSeparator("Edit", "Voxels");
+    // add our menuitems
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Voxels", isSeparator: true, beforeItem: "Physics" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Cut", shortcutKey: "CTRL+X", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Copy", shortcutKey: "CTRL+C", afterItem: "Cut" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste", shortcutKey: "CTRL+V", afterItem: "Copy" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Nudge", shortcutKey: "CTRL+N", afterItem: "Paste" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete", shortcutKeyEvent: { text: "backspace" }, afterItem: "Nudge" });
 
-    Menu.addSeparator("File", "Voxels");
+    Menu.addMenuItem({ menuName: "File", menuItemName: "Voxels", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Voxels", shortcutKey: "CTRL+E", afterItem: "Voxels" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Voxels", shortcutKey: "CTRL+I", afterItem: "Export Voxels" });
+}
+
+function cleanupMenus() {
+    // delete our menuitems
+    Menu.removeSeparator("Edit", "Voxels");
+    Menu.removeMenuItem("Edit", "Cut");
+    Menu.removeMenuItem("Edit", "Copy");
+    Menu.removeMenuItem("Edit", "Paste");
+    Menu.removeMenuItem("Edit", "Nudge");
+    Menu.removeMenuItem("Edit", "Delete");
+    Menu.removeSeparator("File", "Voxels");
+    Menu.removeMenuItem("File", "Export Voxels");
+    Menu.removeMenuItem("File", "Import Voxels");
 }
 
 function menuItemEvent(menuItem) {
@@ -1382,6 +1395,7 @@ function scriptEnding() {
     Overlays.deleteOverlay(thumb);
     Controller.releaseKeyEvents({ text: "+" });
     Controller.releaseKeyEvents({ text: "-" });
+    cleanupMenus();
 }
 Script.scriptEnding.connect(scriptEnding);
 
