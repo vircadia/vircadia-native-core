@@ -52,43 +52,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
         //  Iterate hand controllers, take actions as needed
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
-            if (palm.isActive()) {
-                FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
-                glm::vec3 fingerTipPosition = finger.getTipPosition();
-                
-                //  Voxel Drumming with fingertips if enabled
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
-                    OctreeElement* fingerElement = Application::getInstance()->getVoxelTree()->getElementEnclosingPoint(
-                                                                                glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                    VoxelTreeElement* fingerVoxel = static_cast<VoxelTreeElement*>(fingerElement);
-                    if (fingerVoxel) {
-                        if (!palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just started
-                            palm.setIsCollidingWithVoxel(true);
-                            handleVoxelCollision(&palm, fingerTipPosition, fingerVoxel, deltaTime);
-                            
-                            //  Set highlight voxel
-                            VoxelDetail voxel;
-                            glm::vec3 pos = fingerVoxel->getCorner();
-                            voxel.x = pos.x;
-                            voxel.y = pos.y;
-                            voxel.z = pos.z;
-                            voxel.s = fingerVoxel->getScale();
-                            voxel.red = fingerVoxel->getColor()[0];
-                            voxel.green = fingerVoxel->getColor()[1];
-                            voxel.blue = fingerVoxel->getColor()[2];
-                            Application::getInstance()->setHighlightVoxel(voxel);
-                            Application::getInstance()->setIsHighlightVoxel(true);
-                        }
-                    } else {
-                        if (palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just ended
-                            palm.setIsCollidingWithVoxel(false);
-                            Application::getInstance()->setIsHighlightVoxel(false);
-                        }
-                    }
-                }
-            }
             palm.setLastControllerButtons(palm.getControllerButtons());
         }
     }

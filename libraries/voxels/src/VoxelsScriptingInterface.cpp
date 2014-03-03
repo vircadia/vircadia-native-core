@@ -121,7 +121,7 @@ glm::vec3 VoxelsScriptingInterface::getFaceVector(const QString& face) {
 VoxelDetail VoxelsScriptingInterface::getVoxelEnclosingPoint(const glm::vec3& point) {
     VoxelDetail result = { 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0 };
     if (_tree) {
-        OctreeElement* element = _tree->getElementEnclosingPoint(point);
+        OctreeElement* element = _tree->getElementEnclosingPoint(point / (float)TREE_SCALE);
         if (element) {
             VoxelTreeElement* voxel = static_cast<VoxelTreeElement*>(element);
             result.x = voxel->getCorner().x;

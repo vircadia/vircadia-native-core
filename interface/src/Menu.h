@@ -280,7 +280,6 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
-    const QString VoxelDrumming = "Voxel Drumming";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
