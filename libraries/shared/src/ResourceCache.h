@@ -99,6 +99,7 @@ protected slots:
 
 protected:
 
+    /// Called when the download has finished.  The recipient should delete the reply when done with it.
     virtual void downloadFinished(QNetworkReply* reply) = 0;
 
     /// Should be called by subclasses when all the loading that will be done has been done.

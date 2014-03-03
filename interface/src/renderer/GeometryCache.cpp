@@ -450,7 +450,7 @@ class GeometryReader : public QRunnable {
 public:
 
     GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        const QByteArray& data, const QVariantHash& mapping);
+        QNetworkReply* reply, const QVariantHash& mapping);
 
     virtual void run();
 
@@ -458,40 +458,41 @@ private:
      
     QWeakPointer<Resource> _geometry;
     QUrl _url;
-    QByteArray _data;
+    QNetworkReply* _reply;
     QVariantHash _mapping;
 };
 
 GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
-        const QByteArray& data, const QVariantHash& mapping) :
+        QNetworkReply* reply, const QVariantHash& mapping) :
     _geometry(geometry),
     _url(url),
-    _data(data),
+    _reply(reply),
     _mapping(mapping) {
 }
 
 void GeometryReader::run() {
     QSharedPointer<Resource> geometry = _geometry.toStrongRef();
     if (geometry.isNull()) {
+        _reply->deleteLater();
         return;
     }
     try {
         QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
-            _url.path().toLower().endsWith(".svo") ? readSVO(_data) : readFBX(_data, _mapping)));
+            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
     }
+    _reply->deleteLater();
 }
 
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
-    QByteArray data = reply->readAll();
-    
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = readMapping(data);
+        _mapping = readMapping(reply->readAll());
+        reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qDebug() << "Mapping file " << url << " has no filename.";
@@ -525,7 +526,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     }
     
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, data, _mapping));
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
 }
 
 void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
