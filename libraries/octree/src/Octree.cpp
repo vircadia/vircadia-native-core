@@ -41,7 +41,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
-    _stopImport(false) {
+    _stopImport(false),
+    _lock(QReadWriteLock::Recursive) {
     _rootNode = NULL;
     _isViewing = false;
 }
@@ -551,7 +552,10 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
 
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
-    return getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    lockForWrite();
+    OctreeElement* result = getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    unlock();
+    return result;
 }
 
 
@@ -1478,10 +1482,12 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* node) {
         while (!nodeBag.isEmpty()) {
             OctreeElement* subTree = nodeBag.extract();
 
+            qDebug() << "waiting to lockForRead() to encode() for writeSVO...";
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &packetData, nodeBag, params);
             unlock();
+            qDebug() << "unlock() after encode() for writeSVO...";
 
             // if the subTree couldn't fit, and so we should reset the packet and reinsert the node in our bag and try again...
             if (bytesWritten == 0 && (params.stopReason == EncodeBitstreamParams::DIDNT_FIT)) {
