@@ -19,7 +19,6 @@
 #include "Sound.h"
 
 class AbstractAudioInterface;
-class AudioScriptingInterface;
 
 class AudioInjector : public QObject {
     Q_OBJECT
