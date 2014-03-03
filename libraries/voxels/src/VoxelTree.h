@@ -45,9 +45,6 @@ public:
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
 
-    bool findRayIntersectionDetail(const glm::vec3& origin, const glm::vec3& direction,
-                             VoxelDetail& detail, float& distance, BoxFace& face);
-
 private:
     // helper functions for nudgeSubTree
     void recurseNodeForNudge(VoxelTreeElement* element, RecurseOctreeOperation operation, void* extraData);
