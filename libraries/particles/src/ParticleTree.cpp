@@ -487,7 +487,9 @@ void ParticleTree::update() {
     }
 
     // prune the tree...
+    lockForWrite();
     recurseTreeWithOperation(pruneOperation, NULL);
+    unlock();
 }
 
 
