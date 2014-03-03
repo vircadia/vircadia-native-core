@@ -29,7 +29,6 @@ Hand::Hand(Avatar* owningAvatar) :
 
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _ballColor(0.0, 0.0, 0.4),
     _collisionCenter(0,0,0),
     _collisionAge(0),
     _collisionDuration(0)
@@ -37,13 +36,6 @@ Hand::Hand(Avatar* owningAvatar) :
 }
 
 void Hand::init() {
-    // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
-        _ballColor = glm::vec3(0.0, 0.4, 0.0);
-    }
-    else {
-        _ballColor = glm::vec3(0.0, 0.0, 0.4);
-    }
 }
 
 void Hand::reset() {
@@ -351,7 +343,6 @@ void Hand::renderLeapHands(bool isMine) {
 
     const float alpha = 1.0f;
     
-    //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
     glEnable(GL_DEPTH_TEST);
