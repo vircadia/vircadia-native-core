@@ -2256,23 +2256,6 @@ bool VoxelSystem::hideOutOfViewOperation(OctreeElement* element, void* extraData
 }
 
 
-void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destination, bool rebaseToRoot) {
-    _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
-    destination->setupNewVoxelsForDrawing();
-}
-
-void VoxelSystem::copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destination, bool rebaseToRoot) {
-    _tree->copySubTreeIntoNewTree(startNode, destination, rebaseToRoot);
-}
-
-void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode) {
-    _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
-}
-
-void VoxelSystem::recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData) {
-    _tree->recurseTreeWithOperation(operation, extraData);
-}
-
 void VoxelSystem::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::VoxelServer) {
         qDebug("VoxelSystem... voxel server %s added...", node->getUUID().toString().toLocal8Bit().constData());

@@ -87,12 +87,6 @@ public:
     bool hasViewChanged();
     bool isViewChanging();
 
-    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
-    void copySubTreeIntoNewTree(VoxelTreeElement* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
-    void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelTreeElement* destinationNode);
-
-    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
-
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
 

@@ -1373,7 +1373,7 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
     VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
-        _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
         exportTree.writeToSVOFile(fileName);
     }
 
@@ -1417,7 +1417,8 @@ void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
     // then copy onto it if there is something to copy
     VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
+        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, _sharedVoxelSystem.getTree(), true);
+        _sharedVoxelSystem.forceRedrawEntireTree();
     }
 }
 
