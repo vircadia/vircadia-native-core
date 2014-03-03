@@ -1806,11 +1806,6 @@ VoxelTreeElement* VoxelSystem::getVoxelEnclosing(const glm::vec3& point) {
     return voxelAndPoint.voxel;
 }
 
-void VoxelSystem::cancelImport() {
-    _tree->cancelImport();
-}
-
-
 bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 

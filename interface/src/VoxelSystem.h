@@ -86,10 +86,6 @@ public:
 
     VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
 
-signals:
-    void importSize(float x, float y, float z);
-    void importProgress(int progress);
-
 public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
@@ -100,8 +96,6 @@ public slots:
     void clearAllNodesBufferIndex();
     void cullSharedFaces();
     void showCulledSharedFaces();
-
-    void cancelImport();
 
     void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
