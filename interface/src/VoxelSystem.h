@@ -81,7 +81,6 @@ public:
 
     void killLocalVoxels();
 
-    virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
     void inspectForOcclusions();
     bool hasViewChanged();
@@ -145,7 +144,6 @@ private:
 
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool removeOutOfViewOperation(OctreeElement* element, void* extraData);
     static bool killSourceVoxelsOperation(OctreeElement* element, void* extraData);
     static bool forceRedrawEntireTreeOperation(OctreeElement* element, void* extraData);
     static bool clearAllNodesBufferIndexOperation(OctreeElement* element, void* extraData);

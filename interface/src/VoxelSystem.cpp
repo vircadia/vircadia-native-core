@@ -675,8 +675,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
             _abandonedVBOSlots = 0; // reset the count of our abandoned slots, why is this here and not earlier????
         }
 
-        // since we called treeToArrays, we can assume that our VBO is in sync, and so partial updates to the VBOs are
-        // ok again, until/unless we call removeOutOfView()
         _writeRenderFullVBO = false;
     } else {
         _voxelsUpdated = 0;
@@ -1836,94 +1834,10 @@ VoxelTreeElement* VoxelSystem::getVoxelEnclosing(const glm::vec3& point) {
     return voxelAndPoint.voxel;
 }
 
-// combines the removeOutOfView args into a single class
-class removeOutOfViewArgs {
-public:
-    VoxelSystem* thisVoxelSystem;
-    ViewFrustum thisViewFrustum;
-    OctreeElementBag dontRecurseBag;
-    unsigned long nodesScanned;
-    unsigned long nodesRemoved;
-    unsigned long nodesInside;
-    unsigned long nodesIntersect;
-    unsigned long nodesOutside;
-    VoxelTreeElement*      insideRoot;
-    VoxelTreeElement*      outsideRoot;
-
-    removeOutOfViewArgs(VoxelSystem* voxelSystem, bool widenViewFrustum = true) :
-        thisVoxelSystem(voxelSystem),
-        thisViewFrustum(*voxelSystem->getViewFrustum()),
-        dontRecurseBag(),
-        nodesScanned(0),
-        nodesRemoved(0),
-        nodesInside(0),
-        nodesIntersect(0),
-        nodesOutside(0),
-        insideRoot(NULL),
-        outsideRoot(NULL)
-    {
-        // Widen the FOV for trimming
-        if (widenViewFrustum) {
-            float originalFOV = thisViewFrustum.getFieldOfView();
-            float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
-            thisViewFrustum.setFieldOfView(wideFOV);
-            thisViewFrustum.calculate();
-        }
-    }
-};
-
 void VoxelSystem::cancelImport() {
     _tree->cancelImport();
 }
 
-// "Remove" voxels from the tree that are not in view. We don't actually delete them,
-// we remove them from the tree and place them into a holding area for later deletion
-bool VoxelSystem::removeOutOfViewOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*) element;
-    removeOutOfViewArgs* args = (removeOutOfViewArgs*)extraData;
-
-    // If our node was previously added to the don't recurse bag, then return false to
-    // stop the further recursion. This means that the whole node and it's children are
-    // known to be in view, so don't recurse them
-    if (args->dontRecurseBag.contains(voxel)) {
-        args->dontRecurseBag.remove(voxel);
-        return false; // stop recursion
-    }
-
-    VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-    args->nodesScanned++;
-    // Need to operate on our child nodes, so we can remove them
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelTreeElement* childNode = voxel->getChildAtIndex(i);
-        if (childNode) {
-            ViewFrustum::location inFrustum = childNode->inFrustum(args->thisViewFrustum);
-            switch (inFrustum) {
-                case ViewFrustum::OUTSIDE: {
-                    args->nodesOutside++;
-                    args->nodesRemoved++;
-                    voxel->removeChildAtIndex(i);
-                    thisVoxelSystem->_removedVoxels.insert(childNode);
-                    // by removing the child, it will not get recursed!
-                } break;
-                case ViewFrustum::INSIDE: {
-                    // if the child node is fully INSIDE the view, then there's no need to recurse it
-                    // because we know all it's children will also be in the view, so we want to
-                    // tell the caller to NOT recurse this child
-                    args->nodesInside++;
-                    args->dontRecurseBag.insert(childNode);
-                } break;
-                case ViewFrustum::INTERSECT: {
-                    // if the child node INTERSECTs the view, then we don't want to remove it because
-                    // it is at least partially in view. But we DO want to recurse the children because
-                    // some of them may not be in view... nothing specifically to do, just keep iterating
-                    // the children
-                    args->nodesIntersect++;
-                } break;
-            }
-        }
-    }
-    return true; // keep going!
-}
 
 bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
@@ -1950,23 +1864,6 @@ bool VoxelSystem::hasViewChanged() {
         _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
     return result;
-}
-
-void VoxelSystem::removeOutOfView() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "removeOutOfView()");
-    removeOutOfViewArgs args(this);
-    _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
-
-    if (args.nodesRemoved) {
-        _tree->setDirtyBit();
-    }
-    bool showRemoveDebugDetails = false;
-    if (showRemoveDebugDetails) {
-        qDebug("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d",
-                args.nodesScanned, args.nodesRemoved, args.nodesInside,
-                args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
-            );
-    }
 }
 
 // combines the removeOutOfView args into a single class
