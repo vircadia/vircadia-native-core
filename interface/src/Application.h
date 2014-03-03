@@ -215,10 +215,6 @@ public:
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
-    /// set a voxel which is to be rendered with a highlight
-    void setHighlightVoxel(const VoxelDetail& highlightVoxel) { _highlightVoxel = highlightVoxel; }
-    void setIsHighlightVoxel(bool isHighlightVoxel) { _isHighlightVoxel = isHighlightVoxel; }
-    
     void skipVersion(QString latestVersion);
 
 signals:
@@ -307,7 +303,6 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
-    void renderHighlightVoxel(VoxelDetail voxel);
 
     void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
@@ -427,9 +422,6 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
-
-    VoxelDetail _highlightVoxel;
-    bool _isHighlightVoxel;
 
     ChatEntry _chatEntry; // chat entry field
     bool _chatEntryOn;    // Whether to show the chat entry

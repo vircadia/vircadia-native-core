@@ -139,7 +139,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _isHighlightVoxel(false),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
@@ -1611,20 +1610,6 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     return false;
 }
 
-void Application::renderHighlightVoxel(VoxelDetail voxel) {
-    glDisable(GL_LIGHTING);
-    glPushMatrix();
-    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    const float EDGE_EXPAND = 1.02f;
-    glColor3ub(voxel.red + 128, voxel.green + 128, voxel.blue + 128);
-    glTranslatef(voxel.x + voxel.s * 0.5f,
-                 voxel.y + voxel.s * 0.5f,
-                 voxel.z + voxel.s * 0.5f);
-    glLineWidth(2.0f);
-    glutWireCube(voxel.s * EDGE_EXPAND);
-    glPopMatrix();
-}
-
 void Application::updateMouseRay() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2377,11 +2362,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
-
-        //  Render the highlighted voxel
-        if (_isHighlightVoxel) {
-            renderHighlightVoxel(_highlightVoxel);
-        }
     }
 
     bool forceRenderMyHead = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
