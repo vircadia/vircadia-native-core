@@ -18,8 +18,6 @@
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
-class AbstractAudioInterface;
-
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
