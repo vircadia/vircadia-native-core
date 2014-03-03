@@ -23,7 +23,7 @@ public:
         jsonCallbackReceiver(NULL), jsonCallbackMethod(),
         errorCallbackReceiver(NULL), errorCallbackMethod() {};
     
-    bool isEmpty() const { return jsonCallbackReceiver == NULL && errorCallbackReceiver == NULL; }
+    bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
     
     QObject* jsonCallbackReceiver;
     QString jsonCallbackMethod;
