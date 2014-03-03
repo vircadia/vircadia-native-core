@@ -20,7 +20,6 @@
 using namespace std;
 
 const float FINGERTIP_COLLISION_RADIUS = 0.01f;
-const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const float PALM_COLLISION_RADIUS = 0.03f;
 
 
@@ -56,26 +55,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
             if (palm.isActive()) {
                 FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
                 glm::vec3 fingerTipPosition = finger.getTipPosition();
-                
-                 
-                if (palm.getControllerButtons() & BUTTON_1) {
-                    if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        // TODO: we need to move this code to JS so it can access the editVoxels.js color palette
-                        QColor paintColor(128,128,128);
-                        Application::getInstance()->makeVoxel(fingerTipPosition,
-                                                              FINGERTIP_VOXEL_SIZE,
-                                                              paintColor.red(),
-                                                              paintColor.green(),
-                                                              paintColor.blue(),
-                                                              true);
-                        _lastFingerAddVoxel = fingerTipPosition;
-                    }
-                } else if (palm.getControllerButtons() & BUTTON_2) {
-                    if (glm::length(fingerTipPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        Application::getInstance()->removeVoxel(fingerTipPosition, FINGERTIP_VOXEL_SIZE);
-                        _lastFingerDeleteVoxel = fingerTipPosition;
-                    }
-                }
                 
                 //  Voxel Drumming with fingertips if enabled
                 if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {

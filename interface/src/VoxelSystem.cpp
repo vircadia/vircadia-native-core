@@ -82,9 +82,6 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
     _viewFrustum = Application::getInstance()->getViewFrustum();
 
-    connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
-    connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
-
     _useVoxelShader = false;
     _voxelsAsPoints = false;
     _voxelShaderModeWhenVoxelsAsPointsEnabled = false;
@@ -1184,9 +1181,6 @@ void VoxelSystem::changeTree(VoxelTree* newTree) {
 
     _tree->setDirtyBit();
     _tree->getRoot()->setVoxelSystem(this);
-
-    connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
-    connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
     setupNewVoxelsForDrawing();
 }
