@@ -39,8 +39,7 @@ void VoxelTreeElement::init(unsigned char* octalCode) {
      setVoxelSystem(NULL);
      setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
     _falseColored = false; // assume true color
-    _currentColor[0] = _currentColor[1] = _currentColor[2] = _currentColor[3] = 0;
-    _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
+    _color[0] = _color[1] = _color[2] = _color[3] = 0;
     _density = 0.0f;
     OctreeElement::init(octalCode);
     _voxelMemoryUsage += sizeof(VoxelTreeElement);
@@ -115,39 +114,9 @@ void VoxelTreeElement::setVoxelSystem(VoxelSystem* voxelSystem) {
     }
 }
 
-
-void VoxelTreeElement::setFalseColor(colorPart red, colorPart green, colorPart blue) {
-    if (_falseColored != true || _currentColor[0] != red || _currentColor[1] != green || _currentColor[2] != blue) {
-        _falseColored=true;
-        _currentColor[0] = red;
-        _currentColor[1] = green;
-        _currentColor[2] = blue;
-        _currentColor[3] = 1; // XXXBHG - False colors are always considered set
-        _isDirty = true;
-        markWithChangedTime();
-    }
-}
-
-void VoxelTreeElement::setFalseColored(bool isFalseColored) {
-    if (_falseColored != isFalseColored) {
-        // if we were false colored, and are no longer false colored, then swap back
-        if (_falseColored && !isFalseColored) {
-            memcpy(&_currentColor,&_trueColor,sizeof(nodeColor));
-        }
-        _falseColored = isFalseColored;
-        _isDirty = true;
-        _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
-        markWithChangedTime();
-    }
-};
-
-
 void VoxelTreeElement::setColor(const nodeColor& color) {
-    if (_trueColor[0] != color[0] || _trueColor[1] != color[1] || _trueColor[2] != color[2]) {
-        memcpy(&_trueColor,&color,sizeof(nodeColor));
-        if (!_falseColored) {
-            memcpy(&_currentColor,&color,sizeof(nodeColor));
-        }
+    if (_color[0] != color[0] || _color[1] != color[1] || _color[2] != color[2]) {
+        memcpy(&_color,&color,sizeof(nodeColor));
         _isDirty = true;
         if (color[3]) {
             _density = 1.0f; // If color set, assume leaf, re-averaging will update density if needed.
@@ -168,7 +137,7 @@ void VoxelTreeElement::calculateAverageFromChildren() {
         VoxelTreeElement* childAt = getChildAtIndex(i);
         if (childAt && childAt->isColored()) {
             for (int j = 0; j < 3; j++) {
-                colorArray[j] += childAt->getTrueColor()[j]; // color averaging should always be based on true colors
+                colorArray[j] += childAt->getColor()[j]; // color averaging should always be based on true colors
             }
             colorArray[3]++;
         }
@@ -260,9 +229,9 @@ bool VoxelTreeElement::findSpherePenetration(const glm::vec3& center, float radi
             voxelDetails->y = _box.getCorner().y;
             voxelDetails->z = _box.getCorner().z;
             voxelDetails->s = _box.getScale();
-            voxelDetails->red = getTrueColor()[RED_INDEX];
-            voxelDetails->green = getTrueColor()[GREEN_INDEX];
-            voxelDetails->blue = getTrueColor()[BLUE_INDEX];
+            voxelDetails->red = getColor()[RED_INDEX];
+            voxelDetails->green = getColor()[GREEN_INDEX];
+            voxelDetails->blue = getColor()[BLUE_INDEX];
 
             *penetratedObject = (void*)voxelDetails;
         }

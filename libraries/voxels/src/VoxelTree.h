@@ -9,17 +9,9 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include <set>
-#include <SimpleMovingAverage.h>
-#include <OctreeElementBag.h>
 #include <Octree.h>
-#include <CoverageMap.h>
-#include <JurisdictionMap.h>
-#include <ViewFrustum.h>
 
 #include "VoxelTreeElement.h"
-#include "VoxelPacketData.h"
-#include "VoxelSceneStats.h"
 #include "VoxelEditPacketSender.h"
 
 class ReadCodeColorBufferToTreeArgs;
@@ -38,10 +30,7 @@ public:
     void createVoxel(float x, float y, float z, float s,
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
 
-    void createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive = false);
-
     void nudgeSubTree(VoxelTreeElement* elementToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
-
 
     /// reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const char *filename);
@@ -55,16 +44,6 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& node);
-    void processSetVoxelsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
-
-/**
-signals:
-    void importSize(float x, float y, float z);
-    void importProgress(int progress);
-
-public slots:
-    void cancelImport();
-**/
 
 private:
     // helper functions for nudgeSubTree

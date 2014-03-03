@@ -810,7 +810,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
             _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;

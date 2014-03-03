@@ -1277,11 +1277,54 @@ function touchEndEvent(event) {
     }
 }
 
+var lastFingerAddVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
+var lastFingerDeleteVoxel = { x: -1, y: -1, z: -1}; // off of the build-able area
+
+function checkControllers() {
+    var controllersPerPalm = 2; // palm and finger
+    for (var palm = 0; palm < 2; palm++) {
+        var palmController = palm * controllersPerPalm; 
+        var fingerTipController = palmController + 1; 
+        var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
+        
+        var BUTTON_COUNT = 6;
+        var BUTTON_BASE = palm * BUTTON_COUNT;
+        var BUTTON_1 = BUTTON_BASE + 1;
+        var BUTTON_2 = BUTTON_BASE + 2;
+        var FINGERTIP_VOXEL_SIZE = 0.05;
+
+        if (Controller.isButtonPressed(BUTTON_1)) {
+            if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerAddVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
+                if (whichColor == -1) {
+                    newColor = { red: colors[0].red, green: colors[0].green, blue: colors[0].blue };
+                } else {
+                    newColor = { red: colors[whichColor].red, green: colors[whichColor].green, blue: colors[whichColor].blue };
+                }
+
+                Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
+                Voxels.setVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE,
+                    newColor.red, newColor.green, newColor.blue);
+                
+                lastFingerAddVoxel = fingerTipPosition;
+            }
+        } else if (Controller.isButtonPressed(BUTTON_2)) {
+            if (Vec3.length(Vec3.subtract(fingerTipPosition,lastFingerDeleteVoxel)) > (FINGERTIP_VOXEL_SIZE / 2)) {
+                Voxels.eraseVoxel(fingerTipPosition.x, fingerTipPosition.y, fingerTipPosition.z, FINGERTIP_VOXEL_SIZE);
+                lastFingerDeleteVoxel = fingerTipPosition;
+            }
+        }
+    }
+}
+
 function update() {
     var newWindowDimensions = Controller.getViewportDimensions();
     if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
         windowDimensions = newWindowDimensions;
         moveTools();
+    }
+    
+    if (editToolsOn) {
+        checkControllers();
     }
 }
 

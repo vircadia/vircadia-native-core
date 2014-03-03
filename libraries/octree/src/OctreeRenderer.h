@@ -44,6 +44,8 @@ public:
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
+
+    virtual void setTree(Octree* newTree);
     
     /// process incoming data
     virtual void processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
@@ -63,6 +65,7 @@ public:
     void clear();
 protected:
     Octree* _tree;
+    bool _managedTree;
     ViewFrustum* _viewFrustum;
 };
 
