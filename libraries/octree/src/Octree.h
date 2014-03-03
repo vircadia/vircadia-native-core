@@ -235,9 +235,6 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, OctreeElement* node = NULL);
     bool readFromSVOFile(const char* filename);
-    // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const char *filename);
-    bool readFromSchematicFile(const char* filename);
 
     // Octree does not currently handle its own locking, caller must use these to lock/unlock
     void lockForRead() { lock.lockForRead(); }

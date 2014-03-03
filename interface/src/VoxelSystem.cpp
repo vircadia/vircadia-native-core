@@ -524,34 +524,6 @@ void VoxelSystem::initVoxelMemory() {
     _readArraysLock.unlock();
 }
 
-void VoxelSystem::writeToSVOFile(const char* filename, VoxelTreeElement* element) const {
-    _tree->writeToSVOFile(filename, element);
-}
-
-bool VoxelSystem::readFromSVOFile(const char* filename) {
-    bool result = _tree->readFromSVOFile(filename);
-    if (result) {
-        setupNewVoxelsForDrawing();
-    }
-    return result;
-}
-
-bool VoxelSystem::readFromSquareARGB32Pixels(const char *filename) {
-    bool result = _tree->readFromSquareARGB32Pixels(filename);
-    if (result) {
-        setupNewVoxelsForDrawing();
-    }
-    return result;
-}
-
-bool VoxelSystem::readFromSchematicFile(const char* filename) {
-    bool result = _tree->readFromSchematicFile(filename);
-    if (result) {
-        setupNewVoxelsForDrawing();
-    }
-    return result;
-}
-
 int VoxelSystem::parseData(const QByteArray& packet) {
     bool showTimingDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showTimingDetails, "VoxelSystem::parseData()",showTimingDetails);

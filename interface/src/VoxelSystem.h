@@ -67,11 +67,6 @@ public:
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
-    void writeToSVOFile(const char* filename, VoxelTreeElement* element) const;
-    bool readFromSVOFile(const char* filename);
-    bool readFromSquareARGB32Pixels(const char* filename);
-    bool readFromSchematicFile(const char* filename);
-
     void setMaxVoxels(int maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
     unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
