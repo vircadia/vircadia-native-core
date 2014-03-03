@@ -112,7 +112,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 float Avatar::getLODDistance() const {
-    return glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+    return Application::getInstance()->getAvatarManager().getLODDistanceMultiplier() *
+        glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
 }
 
 void Avatar::simulate(float deltaTime) {
@@ -305,12 +306,10 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody() {    
-    if (_shouldRenderBillboard) {
+    if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        // render the billboard until both models are loaded
         renderBillboard();
         return;
-    }
-    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        return; // wait until both models are loaded
     }
     _skeletonModel.render(1.0f);
     getHead()->render(1.0f);

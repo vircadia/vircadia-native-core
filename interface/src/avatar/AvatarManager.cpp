@@ -23,7 +23,8 @@
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
-    _avatarFades() {
+    _avatarFades(),
+    _lodDistanceMultiplier(1.0f) {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
     _myAvatar = QSharedPointer<MyAvatar>(new MyAvatar());

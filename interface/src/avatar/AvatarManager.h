@@ -33,6 +33,8 @@ public:
     
     void clearOtherAvatars();
 
+    float getLODDistanceMultiplier() const { return _lodDistanceMultiplier; }
+
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     
@@ -52,6 +54,8 @@ private:
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
+    
+    float _lodDistanceMultiplier;
 };
 
 #endif /* defined(__hifi__AvatarManager__) */
