@@ -87,23 +87,25 @@ void Hand::simulate(float deltaTime, bool isMine) {
                 
                 //  Voxel Drumming with fingertips if enabled
                 if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
-                    VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
+                    OctreeElement* fingerElement = Application::getInstance()->getVoxelTree()->getElementEnclosingPoint(
                                                                                 glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                    if (fingerNode) {
+                    VoxelTreeElement* fingerVoxel = static_cast<VoxelTreeElement*>(fingerElement);
+                    if (fingerVoxel) {
                         if (!palm.getIsCollidingWithVoxel()) {
                             //  Collision has just started
                             palm.setIsCollidingWithVoxel(true);
-                            handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
+                            handleVoxelCollision(&palm, fingerTipPosition, fingerVoxel, deltaTime);
+                            
                             //  Set highlight voxel
                             VoxelDetail voxel;
-                            glm::vec3 pos = fingerNode->getCorner();
+                            glm::vec3 pos = fingerVoxel->getCorner();
                             voxel.x = pos.x;
                             voxel.y = pos.y;
                             voxel.z = pos.z;
-                            voxel.s = fingerNode->getScale();
-                            voxel.red = fingerNode->getColor()[0];
-                            voxel.green = fingerNode->getColor()[1];
-                            voxel.blue = fingerNode->getColor()[2];
+                            voxel.s = fingerVoxel->getScale();
+                            voxel.red = fingerVoxel->getColor()[0];
+                            voxel.green = fingerVoxel->getColor()[1];
+                            voxel.blue = fingerVoxel->getColor()[2];
                             Application::getInstance()->setHighlightVoxel(voxel);
                             Application::getInstance()->setIsHighlightVoxel(true);
                         }

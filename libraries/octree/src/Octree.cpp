@@ -588,9 +588,16 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& node, float& distance, BoxFace& face) {
+                                    OctreeElement*& node, float& distance, BoxFace& face, bool tryLock) {
     RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face };
-    recurseTreeWithOperation(findRayIntersectionOp, &args);
+
+    if (!tryLock) {
+        lockForRead();
+    }
+    if (tryLock && tryLockForRead()) {
+        recurseTreeWithOperation(findRayIntersectionOp, &args);
+        unlock();
+    }
     return args.found;
 }
 
@@ -626,25 +633,27 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 }
 
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                    void** penetratedObject) {
+                    void** penetratedObject, bool tryLock) {
 
-    bool result = false; // assume no penetration
-    if (tryLockForRead()) {
-        SphereArgs args = {
-            center / (float)(TREE_SCALE),
-            radius / (float)(TREE_SCALE),
-            penetration,
-            false,
-            NULL };
-        penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+    SphereArgs args = {
+        center / (float)(TREE_SCALE),
+        radius / (float)(TREE_SCALE),
+        penetration,
+        false,
+        NULL };
+    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+    
+    if (!tryLock) {
+        lockForRead();
+    }
+    if (tryLock && tryLockForRead()) {
         recurseTreeWithOperation(findSpherePenetrationOp, &args);
         if (penetratedObject) {
             *penetratedObject = args.penetratedObject;
         }
         unlock();
-        result = args.found;
     }
-    return result;
+    return args.found;
 }
 
 class CapsuleArgs {
@@ -677,21 +686,66 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
     return false;
 }
 
-bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    bool result = false; // assume no penetration
-    if (tryLockForRead()) {
-        CapsuleArgs args = {
-            start / (float)(TREE_SCALE),
-            end / (float)(TREE_SCALE),
-            radius / (float)(TREE_SCALE),
-            penetration };
-        penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
+                    glm::vec3& penetration, bool tryLock) {
+                    
+    CapsuleArgs args = {
+        start / (float)(TREE_SCALE),
+        end / (float)(TREE_SCALE),
+        radius / (float)(TREE_SCALE),
+        penetration,
+        false };
+    penetration = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    if (!tryLock) {
+        lockForRead();
+    }
+    if (tryLock && tryLockForRead()) {
         recurseTreeWithOperation(findCapsulePenetrationOp, &args);
-        result = args.found;
         unlock();
     }
-    return result;
+    return args.found;
 }
+
+class GetElementEnclosingArgs {
+public:
+    OctreeElement* element;
+    glm::vec3 point;
+};
+
+// Find the smallest colored voxel enclosing a point (if there is one)
+bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
+    GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
+    AABox elementBox = element->getAABox();
+    if (elementBox.contains(args->point)) {
+        if (element->hasContent() && element->isLeaf()) {
+            // we've reached a solid leaf containing the point, return the node.
+            args->element = element;
+            return false;
+        }
+    } else {
+        //  The point is not inside this voxel, so stop recursing.
+        return false;
+    }
+    return true; // keep looking
+}
+
+OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, bool tryLock) {
+    GetElementEnclosingArgs args;
+    args.point = point;
+    args.element = NULL;
+    
+    if (!tryLock) {
+        lockForRead();
+    }
+    if (tryLock && tryLockForRead()) {
+        recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
+        unlock();
+    }
+    return args.element;
+}
+
+
 
 int Octree::encodeTreeBitstream(OctreeElement* node,
                         OctreePacketData* packetData, OctreeElementBag& bag,

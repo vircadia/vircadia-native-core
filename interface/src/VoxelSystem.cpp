@@ -1774,38 +1774,6 @@ void VoxelSystem::forceRedrawEntireTree() {
     setupNewVoxelsForDrawing();
 }
 
-class VoxelAndPoint {
-public:
-    VoxelTreeElement* voxel;
-    glm::vec3 point;
-};
-
-// Find the smallest colored voxel enclosing a point (if there is one)
-bool VoxelSystem::getVoxelEnclosingOperation(OctreeElement* element, void* extraData) {
-    VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-    VoxelAndPoint* args = (VoxelAndPoint*) extraData;
-    AABox voxelBox = voxel->getAABox();
-    if (voxelBox.contains(args->point)) {
-        if (voxel->isColored() && voxel->isLeaf()) {
-            // we've reached a solid leaf containing the point, return the node.
-            args->voxel = voxel;
-            return false;
-        }
-    } else {
-        //  The point is not inside this voxel, so stop recursing.
-        return false;
-    }
-    return true; // keep looking
-}
-
-VoxelTreeElement* VoxelSystem::getVoxelEnclosing(const glm::vec3& point) {
-    VoxelAndPoint voxelAndPoint;
-    voxelAndPoint.point = point;
-    voxelAndPoint.voxel = NULL;
-    _tree->recurseTreeWithOperation(getVoxelEnclosingOperation, (void*) &voxelAndPoint);
-    return voxelAndPoint.voxel;
-}
-
 bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 

@@ -84,8 +84,6 @@ public:
     virtual void elementDeleted(OctreeElement* element);
     virtual void elementUpdated(OctreeElement* element);
 
-    VoxelTreeElement* getVoxelEnclosing(const glm::vec3& point);
-
 public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);

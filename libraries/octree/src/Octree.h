@@ -222,12 +222,15 @@ public:
     void setDirtyBit() { _isDirty = true; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face);
+                             OctreeElement*& node, float& distance, BoxFace& face, bool tryLock = true);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                                void** penetratedObject = NULL);
+                                    void** penetratedObject = NULL, bool tryLock = true);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
+                                    glm::vec3& penetration, bool tryLock = true);
+
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, bool tryLock = true);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
