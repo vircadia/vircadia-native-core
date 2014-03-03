@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "SvoViewerConfig.h"
+#include "svo-viewer-config.h"
 
 #include <QApplication>
 #include <QGLWidget>

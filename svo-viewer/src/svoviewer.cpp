@@ -31,13 +31,17 @@ SvoViewer * _globalSvoViewerObj; // Hack :: var to store global pointer since th
 SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 	: QApplication(argc, argv),
 	  _window(new QMainWindow(desktop())),
-      _glWidget(new GLCanvas()),
 	  _width(1280),
 	  _height(720),
 	  _pixelCount(1280*720),
-	  _frameCount(0),
+      _glWidget(new GLCanvas()),
+      _nodeCount(0),
 	  _leafCount(0),
-	  _nodeCount(0),
+      _pitch(0),
+      _yaw(0),
+      _roll(0),
+      _displayOnlyPartition(NO_PARTITION),
+      _frameCount(0),
 	  _fps(0.0),
 	  _lastTimeFpsUpdated(0),
 	  _lastTimeFrameUpdated(0),
@@ -48,29 +52,26 @@ SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 	  _vertexShader(0),
 	  _pixelShader(0),
 	  _geometryShader(0),
-	  _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
-	  _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-	  _boundaryLevelAdjust(0),
-	  _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
-	  _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-	  _useVoxelTextures(false),
 	  _pointVertices(NULL),
+	  _pointColors(NULL),
 	  _pointVerticesCount(0),
+      _numSegments(0),
+      _useBoundingVolumes(true),
+      _numElemsDrawn(0),
+      _totalPossibleElems(0),
+      _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
+      _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
+      _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
+      _boundaryLevelAdjust(0),
 	  //_vboShaderData(NULL),
-	  _mousePressed(false),
-	  _pitch(0),
-	  _yaw(0),
-	  _roll(0),
-	  _numSegments(0),
-	  _displayOnlyPartition(NO_PARTITION),
-	  _totalPossibleElems(0),
-	  _numElemsDrawn(0),
-	  _useBoundingVolumes(true)
+    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES)
 {
     gettimeofday(&_applicationStartupTime, NULL);
 	_appStartTickCount = usecTimestampNow();
 
 	_globalSvoViewerObj = this;
+    _mousePressed = false;
+    _useVoxelTextures = false;
 
 	//ui.setupUi(this);
 	_window->setWindowTitle("SvoViewer");
@@ -89,7 +90,6 @@ SvoViewer::SvoViewer(int& argc, char** argv, QWidget *parent)
 	QString shaderMode;
 
     QStringList argumentList = arguments();
-    int argumentIndex = 0;
     
     // check if this domain server should use no authentication or a custom hostname for authentication
     const QString FILE_NAME = "--file";
@@ -211,8 +211,8 @@ void SvoViewer::init() {
 
 void SvoViewer::initializeGL() 
 {
-    int argc = 0;
     #ifdef WIN32
+    int argc = 0;
     glutInit(&argc, 0);
     #endif
     init();
@@ -585,13 +585,9 @@ void SvoViewer::keyReleaseEvent(QKeyEvent* event) {}
 
 void SvoViewer::mouseMoveEvent(QMouseEvent* event) 
 {
-	int deltaX = event->x() - _mouseX;
-    int deltaY = event->y() - _mouseY;
     _mouseX = event->x();
     _mouseY = event->y();
-
-
-	loadViewFrustum(_myCamera, _viewFrustum);  
+	loadViewFrustum(_myCamera, _viewFrustum);
 }
 
 void SvoViewer::mousePressEvent(QMouseEvent* event) 
@@ -639,8 +635,8 @@ bool SvoViewer::isVisibleBV(AABoundingVolume * volume, Camera * camera, ViewFrus
 	//if (pos.z >= volume->getBound(2,AABF_HIGH)) return false;
 	// Project all the points into screen space.
 	AA2DBoundingVolume twoDBounds;
-	float xvals[2] = {9999.0, -1.0};
-	float yvals[2] = {9999.0, -1.0};
+	//float xvals[2] = {9999.0, -1.0};
+	//float yvals[2] = {9999.0, -1.0};
 	//project all bv points into screen space.
 	GLdouble scr[3];
 	for (int i = 0; i < 8; i++)
@@ -660,8 +656,8 @@ bool SvoViewer::isVisibleBV(AABoundingVolume * volume, Camera * camera, ViewFrus
 float SvoViewer::visibleAngleSubtended(AABoundingVolume * volume, Camera * camera, ViewFrustum * frustum)
 {
 	AA2DBoundingVolume twoDBounds;
-	float xvals[2] = {9999.0, -1.0};
-	float yvals[2] = {9999.0, -1.0};
+	//float xvals[2] = {9999.0, -1.0};
+	//float yvals[2] = {9999.0, -1.0};
 	//project all bv points into screen space.
 	GLdouble scr[3];
 	for (int i = 0; i < 8; i++)

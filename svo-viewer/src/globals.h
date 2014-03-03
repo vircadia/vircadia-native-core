@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "SvoViewerConfig.h"
+#include "svo-viewer-config.h"
 
 #include <QtWidgets/QMainWindow>
 #include <QDesktopWidget>

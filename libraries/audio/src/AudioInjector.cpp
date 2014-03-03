@@ -18,8 +18,6 @@
 
 #include "AudioInjector.h"
 
-int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
-
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
     _options(injectorOptions)

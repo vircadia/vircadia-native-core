@@ -148,9 +148,9 @@ bool SvoViewer::VoxelOpt2RenderAssemblePerVoxel(OctreeElement* node, void* extra
 			args->vtxBuffer[args->vtxCount].position *= 100;
 			args->vtxBuffer[args->vtxCount].position.x -= 25;
 			args->vtxBuffer[args->vtxCount].position.y -= 4;
-			args->vtxBuffer[args->vtxCount].color[0] = voxel->getTrueColor()[0];		
-			args->vtxBuffer[args->vtxCount].color[1] = voxel->getTrueColor()[1];		
-			args->vtxBuffer[args->vtxCount].color[2] = voxel->getTrueColor()[2];		
+			args->vtxBuffer[args->vtxCount].color[0] = voxel->getColor()[0];		
+			args->vtxBuffer[args->vtxCount].color[1] = voxel->getColor()[1];		
+			args->vtxBuffer[args->vtxCount].color[2] = voxel->getColor()[2];		
 			args->vtxBuffer[args->vtxCount].color[3] = 1;		
 			cubeVerts[i] = args->vtxBuffer[args->vtxCount].position;
 			args->vtxCount++;
@@ -190,7 +190,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 	// Set up the segments. Find the number of leaves at each subtree. 
 	OctreeElement * rootNode = _systemTree.getRoot();
 	OctreeElement* node0fromRoot = rootNode->getChildAtIndex(0); // ALL the interesting data for our test SVO is in this node! HACK!!
-	int rootNumChildren = rootNode->getChildCount();
+	//int rootNumChildren = rootNode->getChildCount();
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
@@ -201,7 +201,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
 			if (childNode2ndOrder == NULL) continue;
 
-			int num2ndOrderChildren = childNode2ndOrder->getChildCount();
+			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.
 			FindNumLeavesData data;
 			data.numLeaves = 0;
@@ -296,15 +296,24 @@ void SvoViewer::RenderTreeSystemAsOpt2Voxels()
 		if (_displayOnlyPartition == i || _displayOnlyPartition == NO_PARTITION )
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, _vboOVerticesIds[i]);
-			glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+			glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
 			glEnableVertexAttribArray(ATTRIB_POSITION);
 
-			glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+			glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 			glEnableVertexAttribArray(ATTRIB_COLOR);
 
 			//glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,position));
 			glEnableClientState(GL_COLOR_ARRAY);
-			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+
+            // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+			//glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
 			for (int j = 0; j < NUM_CUBE_FACES; j++)
 			{
@@ -328,7 +337,7 @@ void SvoViewer::UpdateOpt2BVFaceVisibility()
 {
 	if (_currentShaderModel != RENDER_OPT_CULLED_POLYS || _voxelOptRenderInitialized != true ) return; 
 
-	float faceParamVals[NUM_CUBE_FACES];
+	//float faceParamVals[NUM_CUBE_FACES];
 	glm::vec3 pos = _myCamera.getPosition();
 
 	for (int i = 0; i < _numSegments; i++)

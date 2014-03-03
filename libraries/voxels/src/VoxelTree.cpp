@@ -47,26 +47,10 @@ void VoxelTree::createVoxel(float x, float y, float z, float s,
                             unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
 
     unsigned char* voxelData = pointToVoxel(x,y,z,s,red,green,blue);
-
-    //int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(voxelData)) + BYTES_PER_COLOR;
-    //printf("createVoxel()...");
-    //outputBufferBits(voxelData,length);
-
-    this->readCodeColorBufferToTree(voxelData, destructive);
+    lockForWrite();
+    readCodeColorBufferToTree(voxelData, destructive);
+    unlock();
     delete[] voxelData;
-}
-
-
-void VoxelTree::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive) {
-    glm::vec3 distance = point2 - point1;
-    glm::vec3 items = distance / unitSize;
-    int maxItems = std::max(items.x, std::max(items.y, items.z));
-    glm::vec3 increment = distance * (1.0f/ maxItems);
-    glm::vec3 pointAt = point1;
-    for (int i = 0; i <= maxItems; i++ ) {
-        pointAt += increment;
-        createVoxel(pointAt.x, pointAt.y, pointAt.z, unitSize, color[0], color[1], color[2], destructive);
-    }
 }
 
 class NodeChunkArgs {
@@ -577,4 +561,3 @@ int VoxelTree::processEditPacketData(PacketType packetType, const unsigned char*
             return 0;
     }
 }
-

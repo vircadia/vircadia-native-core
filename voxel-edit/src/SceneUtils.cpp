@@ -27,18 +27,6 @@ void addCornersAndAxisLines(VoxelTree* tree) {
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 0              , voxelSize, 255, 255 ,0  );
     tree->createVoxel(1.0 - voxelSize, 1.0 - voxelSize, 1.0 - voxelSize, voxelSize, 255, 255 ,255);
     printf("DONE creating corner points...\n");
-
-    // Now some more examples... creating some lines using the line primitive
-    printf("creating voxel lines...\n");
-    // We want our line voxels to be about 1/32 meter high, and our TREE_SCALE is in meters, so...    
-    float lineVoxelSize = 1.f / (32 * TREE_SCALE);
-    rgbColor red   = {255, 0, 0};
-    rgbColor green = {0, 255, 0};
-    rgbColor blue  = {0, 0, 255};
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), lineVoxelSize, blue);
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), lineVoxelSize, red);
-    tree->createLine(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), lineVoxelSize, green);
-    printf("DONE creating lines...\n");
 }
 
 void addSurfaceScene(VoxelTree * tree) {

@@ -51,9 +51,9 @@ bool SvoViewer::PointRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 	center *= 100.0;
 	args->buffer[args->count] = center;
 	int cCount = args->count * 3;
-	args->colorBuffer[cCount] = voxel->getTrueColor()[0];
-	args->colorBuffer[cCount+1] = voxel->getTrueColor()[1];
-	args->colorBuffer[cCount+2] = voxel->getTrueColor()[2];
+	args->colorBuffer[cCount] = voxel->getColor()[0];
+	args->colorBuffer[cCount+1] = voxel->getColor()[1];
+	args->colorBuffer[cCount+2] = voxel->getColor()[2];
 	args->count++;
     return true; // keep going!
 }
@@ -80,7 +80,7 @@ void SvoViewer::InitializePointRenderSystem()
 	_pointVerticesCount = args.count;
 
 	// create the data store.
-	int size = _nodeCount * sizeof(glm::vec3);
+	//int size = _nodeCount * sizeof(glm::vec3);
 	glBindBuffer( GL_ARRAY_BUFFER, _pointVtxBuffer);
 	glBufferData(GL_ARRAY_BUFFER, _nodeCount * 3, args.buffer, GL_STATIC_DRAW);
 	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -92,7 +92,7 @@ void SvoViewer::InitializePointRenderSystem()
 	_renderFlags.ptRenderDirty = false;
 	_ptRenderInitialized = true;
 	float elapsed = (float)(usecTimestampNow() - fstart) / 1000.f;
-	qDebug("Point render intialization took %f time for %d nodes\n", elapsed, _nodeCount);
+	qDebug("Point render intialization took %f time for %ld nodes\n", elapsed, _nodeCount);
 }
 
 void SvoViewer::RenderTreeSystemAsPoints()
@@ -189,7 +189,7 @@ bool SvoViewer::VoxelRenderAssemblePerVoxel(OctreeElement* node, void* extraData
 	int totalNodesProcessedSinceLastFlush = args->leafCount - args->lastBufferSegmentStart;
 	// ack, one of these components is flags, not alpha
 	int cCount = totalNodesProcessedSinceLastFlush * 4; // Place it relative to the current segment.
-	unsigned char col[4] = {voxel->getTrueColor()[0], voxel->getTrueColor()[1], voxel->getTrueColor()[2], 1};
+	unsigned char col[4] = {voxel->getColor()[0], voxel->getColor()[1], voxel->getColor()[2], 1};
 	for(int i = 0; i < GLOBAL_NORMALS_VERTICES_PER_VOXEL; i++)
 		memcpy(&args->colorBuffer[cCount+i*4], col, sizeof(col));
 
@@ -326,19 +326,16 @@ void SvoViewer::InitializeVoxelRenderSystem()
 
 	GLchar shaderLog[1000];
 	GLsizei shaderLogLength;
-	GLint compiled;
-// TODO: this was Matt's original windows code, it doesn't compile on mac, due to type mismatches
-#ifdef WIN32
-	glCompileShaderARB(_vertexShader);
+	//GLint compiled;
+	glCompileShaderARB((GLhandleARB)_vertexShader);
 	glGetShaderInfoLog(_vertexShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog v :\n %s\n", shaderLog);
-	glCompileShaderARB(_geometryShader);
+	glCompileShaderARB((GLhandleARB)_geometryShader);
 	glGetShaderInfoLog(_geometryShader, 1000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog g :\n %s\n", shaderLog);
-	glCompileShaderARB(_pixelShader);
+	glCompileShaderARB((GLhandleARB)_pixelShader);
 	glGetShaderInfoLog(_pixelShader, 51000, &shaderLogLength, shaderLog);
 	if (shaderLog[0] != 0) qDebug("Shaderlog p :\n %s\n", shaderLog);
-#endif //def WIN32
 
 	_linkProgram = glCreateProgram();
 	glAttachShader(_linkProgram, _vertexShader);
@@ -582,9 +579,9 @@ bool SvoViewer::VoxelOptRenderAssemblePerVoxel(OctreeElement* node, void* extraD
 			args->vtxBuffer[args->vtxCount].position *= 100;
 			args->vtxBuffer[args->vtxCount].position.x -= 25;
 			args->vtxBuffer[args->vtxCount].position.y -= 4;
-			args->vtxBuffer[args->vtxCount].color[0] = voxel->getTrueColor()[0];		
-			args->vtxBuffer[args->vtxCount].color[1] = voxel->getTrueColor()[1];		
-			args->vtxBuffer[args->vtxCount].color[2] = voxel->getTrueColor()[2];		
+			args->vtxBuffer[args->vtxCount].color[0] = voxel->getColor()[0];		
+			args->vtxBuffer[args->vtxCount].color[1] = voxel->getColor()[1];		
+			args->vtxBuffer[args->vtxCount].color[2] = voxel->getColor()[2];		
 			args->vtxBuffer[args->vtxCount].color[3] = 1;
 			args->bounds.AddToSet(args->vtxBuffer[args->vtxCount].position);			
 			args->vtxCount++;
@@ -621,7 +618,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 	// Set up the segments. Find the number of leaves at each subtree. 
 	OctreeElement * rootNode = _systemTree.getRoot();
 	OctreeElement* node0fromRoot = rootNode->getChildAtIndex(0); // ALL the interesting data for our test SVO is in this node! HACK!!
-	int rootNumChildren = rootNode->getChildCount();
+	//int rootNumChildren = rootNode->getChildCount();
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
@@ -632,7 +629,7 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
 			if (childNode2ndOrder == NULL) continue;
 
-			int num2ndOrderChildren = childNode2ndOrder->getChildCount();
+			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.
 			FindNumLeavesData data;
 			data.numLeaves = 0;
@@ -713,15 +710,22 @@ void SvoViewer::RenderTreeSystemAsOptVoxels()
 			if (isVisibleBV(&_segmentBoundingVolumes[i], &_myCamera, &_viewFrustum)) // Add aggressive LOD check here.
 			{
 				glBindBuffer(GL_ARRAY_BUFFER, _vboOVerticesIds[i]);
-				glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,position));
+				glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 				glEnableVertexAttribArray(ATTRIB_POSITION);
 
-				glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+				glVertexAttribPointer(ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 				glEnableVertexAttribArray(ATTRIB_COLOR);
 
 				//glVertexPointer(3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex,position));
 				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+
+                // NOTE: mac compiler doesn't support offsetof() for non-POD types, which apparently glm::vec3 is
+				//glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)offsetof(Vertex,color));
+				glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboOIndicesIds[i]);
 
