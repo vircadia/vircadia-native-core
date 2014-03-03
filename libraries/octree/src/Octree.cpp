@@ -41,7 +41,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
-    _stopImport(false) {
+    _stopImport(false),
+    _lock(QReadWriteLock::Recursive) {
     _rootNode = NULL;
     _isViewing = false;
 }
@@ -551,7 +552,10 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
 
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
-    return getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    lockForWrite();
+    OctreeElement* result = getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    unlock();
+    return result;
 }
 
 
