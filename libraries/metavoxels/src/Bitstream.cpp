@@ -167,11 +167,18 @@ void Bitstream::persistWriteMappings(const WriteMappings& mappings) {
     _scriptStringStreamer.persistTransientOffsets(mappings.scriptStringOffsets);
     _sharedObjectStreamer.persistTransientOffsets(mappings.sharedObjectOffsets);
     
-    // find out when shared objects' reference counts drop to one in order to clear their mappings
-    for (QHash<SharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
+    // find out when shared objects are deleted in order to clear their mappings
+    for (QHash<SoftSharedObjectPointer, int>::const_iterator it = mappings.sharedObjectOffsets.constBegin();
             it != mappings.sharedObjectOffsets.constEnd(); it++) {
         if (it.key()) {
-            connect(it.key().data(), SIGNAL(referenceCountDroppedToOne()), SLOT(clearSharedObject()));
+            if (it.key()->getHardReferenceCount() > 0) {
+                connect(it.key().data(), SIGNAL(allHardReferencesCleared(QObject*)),
+                    SLOT(clearSharedObject(QObject*)));
+            } else {
+                // invoke on a queued connection so as to run after any other mappings are persisted
+                QMetaObject::invokeMethod(this, "clearSharedObject", Qt::QueuedConnection,
+                    Q_ARG(QObject*, it.key().data()));
+            }
         }
     }
 }
@@ -465,7 +472,7 @@ Bitstream& Bitstream::operator>(QScriptString& string) {
     return *this;
 }
 
-Bitstream& Bitstream::operator<(const SharedObjectPointer& object) {
+Bitstream& Bitstream::operator<(const SoftSharedObjectPointer& object) {
     if (!object) {
         return *this << (int)0;
     }
@@ -497,10 +504,12 @@ Bitstream& Bitstream::operator>(SharedObjectPointer& object) {
     return *this;
 }
 
-void Bitstream::clearSharedObject() {
-    SharedObjectPointer object(static_cast<SharedObject*>(sender()));
+void Bitstream::clearSharedObject(QObject* object) {
     object->disconnect(this);
-    emit sharedObjectCleared(_sharedObjectStreamer.takePersistentID(object));
+    int id = _sharedObjectStreamer.takePersistentID(static_cast<SharedObject*>(object));
+    if (id != 0) {
+        emit sharedObjectCleared(id);
+    }
 }
 
 void Bitstream::readProperties(QObject* object) {

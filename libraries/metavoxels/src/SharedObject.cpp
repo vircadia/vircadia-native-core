@@ -18,19 +18,30 @@
 
 REGISTER_META_OBJECT(SharedObject)
 
-SharedObject::SharedObject() : _id(++_lastID), _referenceCount(0) {
+static int sharedObjectPointerMetaTypeId = qRegisterMetaType<SharedObjectPointer>();
+static int softSharedObjectPointerMetaTypeId = qRegisterMetaType<SoftSharedObjectPointer>();
+
+SharedObject::SharedObject() :
+    _id(++_lastID),
+    _hardReferenceCount(0),
+    _softReferenceCount(0) {
 }
 
-void SharedObject::incrementReferenceCount() {
-    _referenceCount++;
+void SharedObject::decrementHardReferenceCount() {
+    _hardReferenceCount--;
+    if (_hardReferenceCount == 0) {
+        if (_softReferenceCount == 0) {
+            delete this;
+        } else {
+            emit allHardReferencesCleared(this);
+        }
+    }
 }
 
-void SharedObject::decrementReferenceCount() {
-    if (--_referenceCount == 0) {
+void SharedObject::decrementSoftReferenceCount() {
+    _softReferenceCount--;
+    if (_hardReferenceCount == 0 && _softReferenceCount == 0) {
         delete this;
-    
-    } else if (_referenceCount == 1) {
-        emit referenceCountDroppedToOne();
     }
 }
 
