@@ -109,18 +109,24 @@ protected:
     void setupNewVoxelsForDrawing();
     static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
+
+    /// called on the hide/show thread to hide any out of view voxels and show any newly in view voxels. 
     void checkForCulling();
+    
+    /// single pass to remove old VBO data and fill it with correct current view, used when switching LOD or needing to force
+    /// a full redraw of everything in view
     void recreateVoxelGeometryInView();
 
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
-
 
     virtual void updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
-    virtual void applyScaleAndBindProgram(bool texture);
-    virtual void removeScaleAndReleaseProgram(bool texture);
+
+    
+    virtual void applyScaleAndBindProgram(bool texture); /// used in render() to apply shadows and textures
+    virtual void removeScaleAndReleaseProgram(bool texture); /// stop the shaders for shadows and textures
 
 private:
     // disallow copying of VoxelSystem objects
