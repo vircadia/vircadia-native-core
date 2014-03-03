@@ -26,7 +26,7 @@ SimpleMovingAverage OctreeServer::_averageTreeWaitTime(10000);
 SimpleMovingAverage OctreeServer::_averageNodeWaitTime(10000);
 
 void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (newNode->getLinkedData() == NULL) {
+    if (!newNode->getLinkedData()) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->resetOctreePacket(true); // don't bump sequence
         newNode->setLinkedData(newQueryNodeData);
@@ -716,7 +716,7 @@ void OctreeServer::run() {
     strftime(localBuffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
     // Convert now to tm struct for UTC
     tm* gmtm = gmtime(&_started);
-    if (gmtm != NULL) {
+    if (gmtm) {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer;

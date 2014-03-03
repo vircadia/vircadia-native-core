@@ -810,7 +810,7 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
 
 SharedNodePointer NodeList::soloNodeOfType(char nodeType) {
 
-    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES)) != NULL) {
+    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
         foreach (const SharedNodePointer& node, getNodeHash()) {
             if (node->getType() == nodeType) {
                 return node;

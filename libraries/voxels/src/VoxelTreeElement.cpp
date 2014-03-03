@@ -98,7 +98,7 @@ VoxelSystem* VoxelTreeElement::getVoxelSystem() const {
 }
 
 void VoxelTreeElement::setVoxelSystem(VoxelSystem* voxelSystem) {
-    if (voxelSystem == NULL) {
+    if (!voxelSystem) {
         _voxelSystemIndex = INDEX_FOR_NULL;
     } else {
         uint8_t index;

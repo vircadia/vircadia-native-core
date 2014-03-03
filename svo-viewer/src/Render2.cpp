@@ -194,12 +194,12 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
-		if (childNode1stOrder == NULL) continue;
+		if (!childNode1stOrder) continue;
 		// Grab 2nd order nodes for better separation. At some point, this would need to be done intelligently.
 		for (int j = 0; j < NUMBER_OF_CHILDREN; j++)
 		{			
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
-			if (childNode2ndOrder == NULL) continue;
+			if (!childNode2ndOrder) continue;
 
 			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.
@@ -240,7 +240,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 		for (int k = 0; k < NUM_CUBE_FACES; k++)
 		{
 			_segmentIdxBuffers[i].idxBuff[k] = new GLuint[2 * 3 * _numChildNodeLeaves[i]];
-			assert(_segmentIdxBuffers[i].idxBuff[k] != NULL);
+			assert(_segmentIdxBuffers[i].idxBuff[k]);
 		}
 
 		VoxelOpt2RenderAssembleData args;
@@ -267,7 +267,7 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 		delete [] _readVertexStructs;
 		//delete [] _readIndicesArray;
 		delete [] faceCenters;
-		for (int k = 0; k < NUM_CUBE_FACES; k++) if (_segmentIdxBuffers[i].idxBuff[k] != NULL) delete [] _segmentIdxBuffers[i].idxBuff[k];
+		for (int k = 0; k < NUM_CUBE_FACES; k++) if (_segmentIdxBuffers[i].idxBuff[k]) delete [] _segmentIdxBuffers[i].idxBuff[k];
 	}
 
 	_voxelOptRenderInitialized = true;

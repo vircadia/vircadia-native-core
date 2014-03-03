@@ -73,7 +73,7 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
     
     // find the length (in number of three bit code sequences)
     // in the parent
-    int parentCodeSections = parentOctalCode != NULL
+    int parentCodeSections = parentOctalCode
         ? numberOfThreeBitSectionsInCode(parentOctalCode)
         : 0;
     
@@ -87,7 +87,7 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
     unsigned char* newCode = new unsigned char[childCodeBytes];
     
     // copy the parent code to the child
-    if (parentOctalCode != NULL) {
+    if (parentOctalCode) {
         memcpy(newCode, parentOctalCode, parentCodeBytes);
     }    
     

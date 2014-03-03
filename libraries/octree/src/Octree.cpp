@@ -150,7 +150,7 @@ void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, Recurse
 OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorNode,
                                        const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const {
     // special case for NULL octcode
-    if (needleCode == NULL) {
+    if (!needleCode) {
         return _rootNode;
     }
 
@@ -499,7 +499,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
 void Octree::reaverageOctreeElements(OctreeElement* startNode) {
-    if (startNode == NULL) {
+    if (!startNode) {
         startNode = getRoot();
     }
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
