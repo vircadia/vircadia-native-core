@@ -1284,19 +1284,13 @@ function checkControllers() {
     var controllersPerPalm = 2; // palm and finger
     for (var palm = 0; palm < 2; palm++) {
         var palmController = palm * controllersPerPalm; 
-        var palmPosition = Controller.getSpatialControlPosition(palmController);
-
         var fingerTipController = palmController + 1; 
         var fingerTipPosition = Controller.getSpatialControlPosition(fingerTipController);
         
         var BUTTON_COUNT = 6;
         var BUTTON_BASE = palm * BUTTON_COUNT;
-        var BUTTON_0 = BUTTON_BASE + 0; // the skinny button between 1 and 2
         var BUTTON_1 = BUTTON_BASE + 1;
         var BUTTON_2 = BUTTON_BASE + 2;
-        var BUTTON_3 = BUTTON_BASE + 3;
-        var BUTTON_4 = BUTTON_BASE + 4;
-        var BUTTON_FWD = BUTTON_BASE + 5;
         var FINGERTIP_VOXEL_SIZE = 0.05;
 
         if (Controller.isButtonPressed(BUTTON_1)) {
