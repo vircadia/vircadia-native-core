@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 set(ROOT_DIR ../..)
-set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
+set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
