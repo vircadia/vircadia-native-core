@@ -24,4 +24,4 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 find_package(ZLIB)
 include_directories("${ZLIB_INCLUDE_DIRS}")
 
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Particles)
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets)
