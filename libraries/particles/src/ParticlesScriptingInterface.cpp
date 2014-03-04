@@ -33,7 +33,9 @@ ParticleID ParticlesScriptingInterface::addParticle(const ParticleProperties& pr
 
     // If we have a local particle tree set, then also update it.
     if (_particleTree) {
+        _particleTree->lockForWrite();
         _particleTree->addParticle(id, properties);
+        _particleTree->unlock();
     }
 
     return id;
@@ -64,7 +66,7 @@ ParticleProperties ParticlesScriptingInterface::getParticleProperties(ParticleID
     }
     if (_particleTree) {
         _particleTree->lockForRead();
-        const Particle* particle = _particleTree->findParticleByID(identity.id);
+        const Particle* particle = _particleTree->findParticleByID(identity.id, true);
         if (particle) {
             results.copyFromParticle(*particle);
         } else {
