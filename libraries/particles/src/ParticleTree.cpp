@@ -370,12 +370,16 @@ bool ParticleTree::findByIDOperation(OctreeElement* element, void* extraData) {
 }
 
 
-const Particle* ParticleTree::findParticleByID(uint32_t id) {
+const Particle* ParticleTree::findParticleByID(uint32_t id, bool alreadyLocked) {
     FindByIDArgs args = { id, false, NULL };
 
-    lockForRead();
+    if (!alreadyLocked) {
+        lockForRead();
+    }
     recurseTreeWithOperation(findByIDOperation, &args);
-    unlock();
+    if (!alreadyLocked) {
+        unlock();
+    }
     return args.foundParticle;
 }
 
