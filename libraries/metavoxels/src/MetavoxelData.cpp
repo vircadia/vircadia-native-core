@@ -784,7 +784,7 @@ void ScriptedMetavoxelGuide::setURL(const ParameterizedURL& url) {
 
 bool MetavoxelVisitation::allInputNodesLeaves() const {
     foreach (MetavoxelNode* node, inputNodes) {
-        if (node != NULL && !node->isLeaf()) {
+        if (node && !node->isLeaf()) {
             return false;
         }
     }
@@ -792,7 +792,7 @@ bool MetavoxelVisitation::allInputNodesLeaves() const {
 }
 
 AttributeValue MetavoxelVisitation::getInheritedOutputValue(int index) const {
-    for (const MetavoxelVisitation* visitation = previous; visitation != NULL; visitation = visitation->previous) {
+    for (const MetavoxelVisitation* visitation = previous; visitation; visitation = visitation->previous) {
         MetavoxelNode* node = visitation->outputNodes.at(index);
         if (node) {
             return node->getAttributeValue(visitor.getOutputs().at(index));

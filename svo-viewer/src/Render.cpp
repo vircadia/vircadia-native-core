@@ -72,7 +72,7 @@ void SvoViewer::InitializePointRenderSystem()
 	PointRenderAssembleData args;
 	args.buffer = _pointVertices = new glm::vec3[_nodeCount];
 	args.colorBuffer = _pointColors = new unsigned char[_nodeCount*3];
-	assert(args.buffer != NULL);
+	assert(args.buffer);
 	args.count = 0;
     _systemTree.recurseTreeWithOperation(&PointRenderAssemblePerVoxel, &args);
 
@@ -297,7 +297,7 @@ void SvoViewer::InitializeVoxelRenderSystem()
 	VoxelRenderAssembleData args;
 	args.buffer = _readVerticesArray;
 	args.colorBuffer = _readColorsArray;
-	assert(args.buffer != NULL && args.colorBuffer != NULL);
+	assert(args.buffer && args.colorBuffer);
 	args.leafCount	= 0;
 	args.lastBufferSegmentStart = 0;
 	args.idxIds		= _vboIndicesIds;
@@ -622,12 +622,12 @@ void SvoViewer::InitializeVoxelOptRenderSystem()
 	for (int i = 0; i < NUMBER_OF_CHILDREN; i++)
 	{		
 		OctreeElement* childNode1stOrder = node0fromRoot->getChildAtIndex(i);
-		if (childNode1stOrder == NULL) continue;
+		if (!childNode1stOrder) continue;
 		// Grab 2nd order nodes for better separation. At some point, this would need to be done intelligently.
 		for (int j = 0; j < NUMBER_OF_CHILDREN; j++)
 		{			
 			OctreeElement* childNode2ndOrder = childNode1stOrder->getChildAtIndex(j);
-			if (childNode2ndOrder == NULL) continue;
+			if (!childNode2ndOrder) continue;
 
 			//int num2ndOrderChildren = childNode2ndOrder->getChildCount();
 			// Figure out how populated this child is.

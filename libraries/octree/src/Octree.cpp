@@ -41,7 +41,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
-    _stopImport(false) {
+    _stopImport(false),
+    _lock(QReadWriteLock::Recursive) {
     _rootNode = NULL;
     _isViewing = false;
 }
@@ -150,7 +151,7 @@ void Octree::recurseNodeWithOperationDistanceSorted(OctreeElement* node, Recurse
 OctreeElement* Octree::nodeForOctalCode(OctreeElement* ancestorNode,
                                        const unsigned char* needleCode, OctreeElement** parentOfFoundNode) const {
     // special case for NULL octcode
-    if (needleCode == NULL) {
+    if (!needleCode) {
         return _rootNode;
     }
 
@@ -499,7 +500,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
 void Octree::reaverageOctreeElements(OctreeElement* startNode) {
-    if (startNode == NULL) {
+    if (!startNode) {
         startNode = getRoot();
     }
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
@@ -551,7 +552,10 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
 
 
 OctreeElement* Octree::getOrCreateChildElementAt(float x, float y, float z, float s) {
-    return getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    lockForWrite();
+    OctreeElement* result = getRoot()->getOrCreateChildElementAt(x, y, z, s);
+    unlock();
+    return result;
 }
 
 

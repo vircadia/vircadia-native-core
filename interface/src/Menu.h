@@ -124,6 +124,7 @@ public slots:
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
+    void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
 
@@ -152,7 +153,8 @@ private:
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, 
+                                                int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString& actionName,
@@ -172,6 +174,7 @@ private:
 
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     QMenu* getMenu(const QString& menuName);
     
 

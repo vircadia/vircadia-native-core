@@ -135,10 +135,10 @@ void Avatar::simulate(float deltaTime) {
     
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
-    _skeletonModel.simulate(deltaTime, _shouldRenderBillboard);
-    glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
-        headPosition = _position;
+    glm::vec3 headPosition = _position;
+    if (!_shouldRenderBillboard) {
+        _skeletonModel.simulate(deltaTime);
+        _skeletonModel.getHeadPosition(headPosition);
     }
     Head* head = getHead();
     head->setPosition(headPosition);
