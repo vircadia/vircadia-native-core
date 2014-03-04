@@ -142,8 +142,15 @@ void Model::createCollisionShapes() {
         glm::vec3 position = _rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation;
 
         float radius = uniformScale * joint.boneRadius;
-        SphereShape* shape = new SphereShape(radius, position);
-        _shapes.push_back(shape);
+        if (joint.shapeType == Shape::CAPSULE_SHAPE) {
+            float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
+            CapsuleShape* shape = new CapsuleShape(radius, halfHeight);
+            shape->setPosition(position);
+            _shapes.push_back(shape);
+        } else {
+            SphereShape* shape = new SphereShape(radius, position);
+            _shapes.push_back(shape);
+        }
     }
 }
 
@@ -153,10 +160,14 @@ void Model::updateShapePositions() {
     if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
-            // shape positions are stored in world-frame
-            glm::vec3 meshCenter = _jointStates[i].combinedRotation * joint.shapePosition;
-            _shapes[i]->setPosition(_rotation * (extractTranslation(_jointStates[i].transform) + uniformScale * meshCenter) + _translation);
-            _shapes[i]->setRotation(_jointStates[i].combinedRotation);
+
+            // shape position and rotation are stored in world-frame
+            glm::vec3 localPosition = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
+            glm::vec3 worldPosition = _rotation * (extractTranslation(_jointStates[i].transform) + localPosition) + _translation;
+            _shapes[i]->setPosition(worldPosition);
+            glm::quat localRotation = _jointStates[i].combinedRotation * joint.shapeRotation;
+            glm::quat worldRotation = _rotation * localRotation;
+            _shapes[i]->setRotation(worldRotation);
         }
         _shapesAreDirty = false;
     }
@@ -743,24 +754,56 @@ void Model::renderCollisionProxies(float alpha) {
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     updateShapePositions();
     float uniformScale = extractUniformScale(_scale);
+    const int BALL_SUBDIVISIONS = 10;
     glm::quat inverseRotation = glm::inverse(_rotation);
     for (int i = 0; i < _shapes.size(); i++) {
         glPushMatrix();
 
         Shape* shape = _shapes[i];
         
-        // shapes are stored in world-frame, so we have to transform into local frame
-        glm::vec3 position = inverseRotation * (shape->getPosition() - _translation);
-        glTranslatef(position.x, position.y, position.z);
-        
-        const glm::quat& rotation = shape->getRotation();
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
-        
-        glColor4f(0.75f, 0.75f, 0.75f, alpha);
-        const int BALL_SUBDIVISIONS = 10;
-        glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        
+        if (shape->getType() == Shape::SPHERE_SHAPE) {
+            // shapes are stored in world-frame, so we have to transform into model frame
+            glm::vec3 position = inverseRotation * (shape->getPosition() - _translation);
+            glTranslatef(position.x, position.y, position.z);
+            const glm::quat& rotation = inverseRotation;
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+
+            // draw a grey sphere at shape position
+            glColor4f(0.75f, 0.75f, 0.75f, alpha);
+            glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+        } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
+            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
+
+            // translate to capsule center
+            glm::vec3 point = inverseRotation * (capsule->getPosition() - _translation);
+
+            // draw a blue sphere at the capsule endpoint
+            glm::vec3 endPoint;
+            capsule->getEndPoint(endPoint);
+            endPoint = inverseRotation * (endPoint - _translation);
+            glTranslatef(endPoint.x, endPoint.y, endPoint.z);
+            glColor4f(0.65f, 0.65f, 0.95f, alpha);
+            glutSolidSphere(0.95f * capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+
+            // draw a red sphere at the capsule startpoint
+            glm::vec3 startPoint;
+            capsule->getStartPoint(startPoint);
+            startPoint = inverseRotation * (startPoint - _translation);
+            glm::vec3 axis = endPoint - startPoint;
+            glTranslatef(-axis.x, -axis.y, -axis.z);
+            glColor4f(0.95f, 0.65f, 0.65f, alpha);
+            glutSolidSphere(0.95f * capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+            
+            // draw a green cylinder between the two points
+            glm::vec3 origin(0.f);
+            glColor4f(0.05f, 0.95f, 0.65f, alpha);
+            Avatar::renderJointConnectingCone(
+                origin,
+                axis,
+                1.05f * capsule->getRadius(),
+                1.05f * capsule->getRadius());
+        }
         glPopMatrix();
     }
     glPopMatrix();

@@ -26,10 +26,17 @@ extern const char* FACESHIFT_BLENDSHAPES[];
 
 class Extents {
 public:
-    //Extents() : minimum(FLT_MAX), maximum(-FLT_MAX) {}
+    /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
     void reset();
+
+    /// \param point new point to compare against existing limits
+    /// compare point to current limits and expand them if necessary to contain point
     void addPoint(const glm::vec3& point);
+
+    /// \param point
+    /// \return true if point is within current limits
     bool containsPoint(const glm::vec3& point) const;
+
     glm::vec3 minimum;
     glm::vec3 maximum;
 };
@@ -73,11 +80,9 @@ public:
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
-    // TODO: add some comments to these data members
-    // Trying to provide enough info so that the proper shape can be generated in Model
-    QString name;
-    glm::vec3 shapePosition;  // in joint frame (where boneEnd = origin)
-    glm::quat shapeRotation;
+    QString name;             // temp field for debugging
+    glm::vec3 shapePosition;  // in joint frame
+    glm::quat shapeRotation;  // in joint frame
     int shapeType;
 };
 

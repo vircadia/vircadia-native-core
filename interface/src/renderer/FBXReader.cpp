@@ -1620,18 +1620,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint
-    glm::vec3 yAxis(0.f, 1.f, 0.f);
+    glm::vec3 defaultCapsuleAxis(0.f, 1.f, 0.f);
     for (int i = 0; i < geometry.joints.size(); ++i) {
         FBXJoint& joint = geometry.joints[i];
         JointShapeInfo& jointShapeInfo = jointShapeInfos[i];
 
-        // we use a capsule if the joint ANY mesh vertices that successfully projected onto the bone
+        // we use a capsule if the joint ANY mesh vertices successfully projected onto the bone
         // AND its boneRadius is not too close to zero
         bool collideLikeCapsule = jointShapeInfo.numProjectedVertices > 0
                 && glm::length(jointShapeInfo.boneBegin) > EPSILON;
 
         if (collideLikeCapsule) {
-            joint.shapeRotation = rotationBetween(yAxis, jointShapeInfo.boneBegin);
+            joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
             //joint.shapePosition = glm::vec3(0.f);
             joint.shapeType = Shape::CAPSULE_SHAPE;
