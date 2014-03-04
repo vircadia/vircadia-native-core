@@ -28,6 +28,7 @@ public:
     Overlay();
     ~Overlay();
     void init(QGLWidget* parent);
+    virtual void update(float deltatime) {}
     virtual void render() = 0;
 
     // getters
