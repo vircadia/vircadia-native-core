@@ -267,7 +267,10 @@ void SvoViewer::InitializeVoxelOpt2RenderSystem()
 		delete [] _readVertexStructs;
 		//delete [] _readIndicesArray;
 		delete [] faceCenters;
-		for (int k = 0; k < NUM_CUBE_FACES; k++) if (_segmentIdxBuffers[i].idxBuff[k]) delete [] _segmentIdxBuffers[i].idxBuff[k];
+		
+        for (int k = 0; k < NUM_CUBE_FACES; k++) {
+            delete[] _segmentIdxBuffers[i].idxBuff[k];
+        }
 	}
 
 	_voxelOptRenderInitialized = true;
