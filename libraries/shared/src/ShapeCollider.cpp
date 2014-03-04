@@ -273,7 +273,6 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
         // capsules are approximiately parallel but might still collide
         glm::vec3 BA = centerB - centerA;
         float axialDistance = glm::dot(BA, axisB);
-        float maxAxialDistance = totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight();
         if (axialDistance > totalRadius + capsuleA->getHalfHeight() + capsuleB->getHalfHeight()) {
             return false;
         }
@@ -315,7 +314,7 @@ bool capsuleCapsule(const CapsuleShape* capsuleA, const CapsuleShape* capsuleB, 
             // Since there are only three comparisons to do we unroll the sort algorithm...
             // and use a fifth slot as temp during swap.
             if (points[4] > points[2]) {
-                points[5] = points[1];
+                points[4] = points[1];
                 points[1] = points[2];
                 points[2] = points[4];
             }
