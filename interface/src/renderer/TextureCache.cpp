@@ -273,27 +273,28 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data);
+    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply);
     
     virtual void run();
 
 private:
     
     QWeakPointer<Resource> _texture;
-    QByteArray _data;
+    QNetworkReply* _reply;
 };
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply) :
     _texture(texture),
-    _data(data) {
+    _reply(reply) {
 }
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
+        _reply->deleteLater();
         return;
     }
-    QImage image = QImage::fromData(_data);
+    QImage image = QImage::fromData(_reply->readAll());
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
@@ -320,11 +321,12 @@ void ImageReader::run() {
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
         Q_ARG(const glm::vec4&, accumulated / (imageArea * EIGHT_BIT_MAXIMUM)),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
+    _reply->deleteLater();
 }
 
 void NetworkTexture::downloadFinished(QNetworkReply* reply) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, reply->readAll()));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
 }
 
 void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor, bool translucent) {

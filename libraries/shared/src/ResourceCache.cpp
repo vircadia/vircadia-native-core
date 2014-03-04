@@ -161,7 +161,6 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
         return;
     }
     _reply->disconnect(this);
-    _reply->deleteLater();
     QNetworkReply* reply = _reply;
     _reply = NULL;
     ResourceCache::requestCompleted();
