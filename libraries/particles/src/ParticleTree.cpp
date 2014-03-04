@@ -459,6 +459,7 @@ bool ParticleTree::pruneOperation(OctreeElement* element, void* extraData) {
 }
 
 void ParticleTree::update() {
+    lockForWrite();
     _isDirty = true;
 
     ParticleTreeUpdateArgs args = { };
@@ -473,9 +474,7 @@ void ParticleTree::update() {
         AABox treeBounds = getRoot()->getAABox();
 
         if (!shouldDie && treeBounds.contains(args._movingParticles[i].getPosition())) {
-            lockForWrite();
             storeParticle(args._movingParticles[i]);
-            unlock();
         } else {
             uint32_t particleID = args._movingParticles[i].getID();
             quint64 deletedAt = usecTimestampNow();
@@ -486,7 +485,6 @@ void ParticleTree::update() {
     }
 
     // prune the tree...
-    lockForWrite();
     recurseTreeWithOperation(pruneOperation, NULL);
     unlock();
 }
