@@ -222,6 +222,7 @@ void ParticleCollisionSystem::updateCollisionWithAvatars(Particle* particle) {
                             // while ramping it up to 1 when attenuationFactor = 0
                             damping = DAMPING + (1.f - attenuationFactor) * (1.f - DAMPING);
                         }
+                        collision->_damping = damping;
                     }
                     // HACK END
     
