@@ -84,6 +84,7 @@ public:
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    float getAvatarLODDistanceMultiplier() const { return DEFAULT_OCTREE_SIZE_SCALE / _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
