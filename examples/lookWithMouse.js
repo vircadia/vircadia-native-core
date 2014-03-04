@@ -49,7 +49,7 @@ function mouseMoveEvent(event) {
     }
 }
 
-function update() {
+function update(deltaTime) {
     if (wantDebugging) {
         print("update()...");
     }
@@ -91,5 +91,5 @@ MyAvatar.bodyPitch = 0;
 MyAvatar.bodyRoll = 0;
 
 // would be nice to change to update
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);

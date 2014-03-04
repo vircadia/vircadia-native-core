@@ -47,7 +47,7 @@ var modelAParticleID = Particles.addParticle(modelPropertiesA);
 var modelBParticleID = Particles.addParticle(modelPropertiesB);
 var ballParticleID = Particles.addParticle(ballProperties);
 
-function endAfterAWhile() {
+function endAfterAWhile(deltaTime) {
     // stop it...
     if (count >= stopAfter) {
         print("calling Script.stop()");
@@ -60,5 +60,5 @@ function endAfterAWhile() {
 
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(endAfterAWhile);
+Script.update.connect(endAfterAWhile);
 

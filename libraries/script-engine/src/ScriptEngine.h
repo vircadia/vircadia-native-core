@@ -71,8 +71,7 @@ public slots:
     void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
     
 signals:
-    void willSendAudioDataCallback();
-    void willSendVisualDataCallback();
+    void update(float deltaTime);
     void scriptEnding();
     void finished(const QString& fileNameString);
     void cleanupMenuItem(const QString& menuItemString);

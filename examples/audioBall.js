@@ -18,7 +18,7 @@ var FACTOR = 0.75;
 var countParticles = 0;    // the first time around we want to create the particle and thereafter to modify it.
 var particleID;
 
-function updateParticle() {
+function updateParticle(deltaTime) {
     // the particle should be placed in front of the user's avatar
     var avatarFront = Quat.getFront(MyAvatar.orientation);
 
@@ -62,7 +62,7 @@ function updateParticle() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(updateParticle);
+Script.update.connect(updateParticle);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(function scriptEnding() {});

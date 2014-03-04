@@ -103,7 +103,7 @@ Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/me
 
 Agent.isAvatar = true;
 
-function updateBehavior() {
+function updateBehavior(deltaTime) {
   if (Math.random() < CHANCE_OF_SOUND) {
     playRandomSound(Avatar.position);
   }
@@ -142,7 +142,7 @@ function updateBehavior() {
     }
   }
 }
-Script.willSendVisualDataCallback.connect(updateBehavior);
+Script.update.connect(updateBehavior);
 
 function loadSounds() {
   sounds.push(new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/AB1.raw"));

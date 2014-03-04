@@ -207,7 +207,7 @@ function displayGameOver() {
     print("Game over...");
 }
 
-function update() {
+function update(deltaTime) {
     if (!gameOver) {
         //print("updating space invaders... iteration="+iteration);
         iteration++;
@@ -257,7 +257,7 @@ function update() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 function cleanupGame() {
     print("cleaning up game...");
