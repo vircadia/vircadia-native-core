@@ -23,6 +23,7 @@ public:
     };
 
     Shape() : _type(UNKNOWN_SHAPE), _boundingRadius(0.f), _position(0.f), _rotation() { }
+    virtual ~Shape() {}
 
     int getType() const { return _type; }
     float getBoundingRadius() const { return _boundingRadius; }
