@@ -23,7 +23,7 @@ public:
         jsonCallbackReceiver(NULL), jsonCallbackMethod(),
         errorCallbackReceiver(NULL), errorCallbackMethod() {};
     
-    bool isEmpty() const { return jsonCallbackReceiver == NULL && errorCallbackReceiver == NULL; }
+    bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
     
     QObject* jsonCallbackReceiver;
     QString jsonCallbackMethod;
@@ -53,6 +53,8 @@ public:
     
     QString getUsername() const { return _accountInfo.getUsername(); }
     
+    void destroy() { delete _networkAccessManager; }
+    
 public slots:
     void requestFinished();
     void requestError(QNetworkReply::NetworkError error);
@@ -76,7 +78,7 @@ private:
                                     const JSONCallbackParameters& callbackParams, const QByteArray& dataByteArray);
     
     QUrl _authURL;
-    QNetworkAccessManager _networkAccessManager;
+    QNetworkAccessManager* _networkAccessManager;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
     
     DataServerAccountInfo _accountInfo;

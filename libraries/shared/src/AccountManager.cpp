@@ -35,7 +35,7 @@ const QString ACCOUNTS_GROUP = "accounts";
 
 AccountManager::AccountManager() :
     _authURL(),
-    _networkAccessManager(),
+    _networkAccessManager(new QNetworkAccessManager(this)),
     _pendingCallbackMap(),
     _accountInfo()
 {
@@ -130,16 +130,16 @@ void AccountManager::invokedRequest(const QString& path, QNetworkAccessManager::
         
         switch (operation) {
             case QNetworkAccessManager::GetOperation:
-                networkReply = _networkAccessManager.get(authenticatedRequest);
+                networkReply = _networkAccessManager->get(authenticatedRequest);
                 break;
             case QNetworkAccessManager::PostOperation:
             case QNetworkAccessManager::PutOperation:
                 authenticatedRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                 
                 if (operation == QNetworkAccessManager::PostOperation) {
-                    networkReply = _networkAccessManager.post(authenticatedRequest, dataByteArray);
+                    networkReply = _networkAccessManager->post(authenticatedRequest, dataByteArray);
                 } else {
-                    networkReply = _networkAccessManager.put(authenticatedRequest, dataByteArray);
+                    networkReply = _networkAccessManager->put(authenticatedRequest, dataByteArray);
                 }
                 
                 break;
@@ -242,7 +242,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     
-    QNetworkReply* requestReply = _networkAccessManager.post(request, postData);
+    QNetworkReply* requestReply = _networkAccessManager->post(request, postData);
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestFinished);
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestError(QNetworkReply::NetworkError)));
 }

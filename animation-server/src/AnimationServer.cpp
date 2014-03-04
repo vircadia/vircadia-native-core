@@ -19,7 +19,6 @@
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <JurisdictionListener.h>
-#include <SceneUtils.h>
 #include <SharedUtil.h>
 #include <VoxelEditPacketSender.h>
 #include <VoxelTree.h>

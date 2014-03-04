@@ -36,7 +36,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine, bool delayLoad = false);
+    void simulate(float deltaTime, bool isMine, bool billboard = false);
     void render(float alpha);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
@@ -74,9 +74,9 @@ public:
     void tweakYaw(float yaw) { _tweakedYaw = yaw; }
     void tweakRoll(float roll) { _tweakedRoll = roll; }
 
-    float getTweakedPitch() const;
-    float getTweakedYaw() const;
-    float getTweakedRoll() const;
+    virtual float getTweakedPitch() const;
+    virtual float getTweakedYaw() const;
+    virtual float getTweakedRoll() const;
 
     void  applyCollision(CollisionInfo& collisionInfo);
     

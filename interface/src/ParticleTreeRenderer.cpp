@@ -33,10 +33,7 @@ void ParticleTreeRenderer::init() {
 void ParticleTreeRenderer::update() {
     if (_tree) {
         ParticleTree* tree = static_cast<ParticleTree*>(_tree);
-        if (tree->tryLockForWrite()) {
-            tree->update();
-            tree->unlock();
-        }
+        tree->update();
     }
 }
 

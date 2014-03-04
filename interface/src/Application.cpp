@@ -140,8 +140,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
-        _isHoverVoxel(false),
-        _isHighlightVoxel(false),
         _chatEntryOn(false),
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
         _enableProcessVoxelsThread(true),
@@ -364,6 +362,8 @@ Application::~Application() {
     _myAvatar = NULL;
     
     delete _glWidget;
+    
+    AccountManager::getInstance().destroy();
 }
 
 void Application::restoreSizeAndPosition() {
@@ -746,9 +746,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_S:
-                if (isShifted && !isMeta)  {
-                    _voxels.collectStatsForTreesAndVBOs();
-                } else if (isShifted && isMeta)  {
+                if (isShifted && isMeta)  {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (!isShifted && isMeta)  {
                     takeSnapshot();
@@ -1035,11 +1033,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 return;
             }
 
-            if (!_isHoverVoxel || _myAvatar->getLookAtTargetAvatar()) {
-                // disable for now
-                // _pieMenu.mousePressEvent(_mouseX, _mouseY);
-            }
-
         } else if (event->button() == Qt::RightButton) {
             // right click items here
         }
@@ -1159,7 +1152,7 @@ void Application::dropEvent(QDropEvent *event) {
     }
     
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
-    if (snapshotData != NULL) {
+    if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
             Menu::getInstance()->goToDomain(snapshotData->getDomain());
         }
@@ -1294,7 +1287,7 @@ void Application::removeVoxel(glm::vec3 position,
     _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
 
     // delete it locally to see the effect immediately (and in case no voxel server is present)
-    _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+    _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
 }
 
 
@@ -1316,8 +1309,7 @@ void Application::makeVoxel(glm::vec3 position,
     _voxelEditSender.sendVoxelEditMessage(message, voxel);
 
     // create the voxel locally so it appears immediately
-
-    _voxels.createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
+    _voxels.getTree()->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s,
                         voxel.red, voxel.green, voxel.blue,
                         isDestructive);
    }
@@ -1376,10 +1368,11 @@ void Application::exportVoxels(const VoxelDetail& sourceVoxel) {
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    
+    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
         VoxelTree exportTree;
-        _voxels.copySubTreeIntoNewTree(selectedNode, &exportTree, true);
+        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, &exportTree, true);
         exportTree.writeToSVOFile(fileName);
     }
 
@@ -1421,9 +1414,10 @@ void Application::copyVoxels(const VoxelDetail& sourceVoxel) {
     }
 
     // then copy onto it if there is something to copy
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (selectedNode) {
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
+        getVoxelTree()->copySubTreeIntoNewTree(selectedNode, _sharedVoxelSystem.getTree(), true);
+        _sharedVoxelSystem.forceRedrawEntireTree();
     }
 }
 
@@ -1445,7 +1439,7 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
 
 void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
     unsigned char* calculatedOctCode = NULL;
-    VoxelTreeElement* selectedNode = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    VoxelTreeElement* selectedNode = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a
@@ -1465,7 +1459,7 @@ void Application::pasteVoxels(const VoxelDetail& sourceVoxel) {
 }
 
 void Application::nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec) {
-    VoxelTreeElement* nodeToNudge = _voxels.getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
+    VoxelTreeElement* nodeToNudge = _voxels.getTree()->getVoxelAt(sourceVoxel.x, sourceVoxel.y, sourceVoxel.z, sourceVoxel.s);
     if (nodeToNudge) {
         _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
     }
@@ -1623,20 +1617,6 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     return false;
 }
 
-void Application::renderHighlightVoxel(VoxelDetail voxel) {
-    glDisable(GL_LIGHTING);
-    glPushMatrix();
-    glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    const float EDGE_EXPAND = 1.02f;
-    glColor3ub(voxel.red + 128, voxel.green + 128, voxel.blue + 128);
-    glTranslatef(voxel.x + voxel.s * 0.5f,
-                 voxel.y + voxel.s * 0.5f,
-                 voxel.z + voxel.s * 0.5f);
-    glLineWidth(2.0f);
-    glutWireCube(voxel.s * EDGE_EXPAND);
-    glPopMatrix();
-}
-
 void Application::updateMouseRay() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1707,9 +1687,6 @@ void Application::updateMyAvatarLookAtPosition() {
         if (_myAvatar->getLookAtTargetAvatar()) {
             distance = glm::distance(_mouseRayOrigin,
                 static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->calculateAverageEyePosition()); 
-            
-        } else if (_isHoverVoxel) {
-            distance = glm::distance(_mouseRayOrigin, getMouseVoxelWorldCoordinates(_hoverVoxel));
         }
         const float FIXED_MIN_EYE_DISTANCE = 0.3f;
         float minEyeDistance = FIXED_MIN_EYE_DISTANCE + (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON ? 0.0f :
@@ -1738,17 +1715,6 @@ void Application::updateMyAvatarLookAtPosition() {
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
-}
-
-void Application::updateHoverVoxels(float deltaTime, float& distance, BoxFace& face) {
-
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
-
-    if (!_mousePressed) {
-        PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
-        _isHoverVoxel = _voxels.findRayIntersection(_mouseRayOrigin, _mouseRayDirection, _hoverVoxel, distance, face);
-    }
 }
 
 void Application::updateHandAndTouch(float deltaTime) {
@@ -1899,11 +1865,6 @@ void Application::update(float deltaTime) {
     _myAvatar->updateLookAtTargetAvatar();
     updateMyAvatarLookAtPosition();
 
-    //  Find the voxel we are hovering over, and respond if clicked
-    float distance;
-    BoxFace face;
-
-    updateHoverVoxels(deltaTime, distance, face); // clicking on voxels and making sounds
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
     updateSixense(deltaTime); // Razer Hydra controllers
@@ -1988,7 +1949,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
 
             // get the server bounds for this server
@@ -2048,7 +2009,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
 
 
             // get the server bounds for this server
@@ -2410,11 +2371,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
-
-        //  Render the highlighted voxel
-        if (_isHighlightVoxel) {
-            renderHighlightVoxel(_highlightVoxel);
-        }
     }
 
     bool forceRenderMyHead = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
@@ -2476,7 +2432,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
-const float WHITE_TEXT[] = { 0.93, 0.93, 0.93 };
+const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 
 void Application::displayOverlay() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displayOverlay()");
@@ -2523,15 +2479,6 @@ void Application::displayOverlay() {
             displayStatsBackground(0x33333399, _glWidget->width() - 296, _glWidget->height() - 68, 296, 68);
             _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
         }
-    }
-
-    // testing rendering coverage map
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMapV2)) {
-        renderCoverageMapV2();
-    }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CoverageMap)) {
-        renderCoverageMap();
     }
 
     //  Show chat entry field
@@ -2975,115 +2922,6 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     return screenPoint;
 }
 
-// render the coverage map on screen
-void Application::renderCoverageMapV2() {
-    glDisable(GL_LIGHTING);
-    glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor3f(0,1,1);
-
-    renderCoverageMapsV2Recursively(&_voxels.myCoverageMapV2);
-
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
-void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
-    // render ourselves...
-    if (map->isCovered()) {
-        BoundingBox box = map->getBoundingBox();
-
-        glm::vec2 firstPoint = getScaledScreenPoint(box.getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-
-        for (int i = 1; i < box.getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(box.getVertex(i));
-
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
-        }
-
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    } else {
-        // iterate our children and call render on them.
-        for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
-            CoverageMapV2* childMap = map->getChild(i);
-            if (childMap) {
-                renderCoverageMapsV2Recursively(childMap);
-            }
-        }
-    }
-}
-
-// render the coverage map on screen
-void Application::renderCoverageMap() {
-
-    glDisable(GL_LIGHTING);
-    glLineWidth(2.0);
-    glBegin(GL_LINES);
-    glColor3f(0,0,1);
-
-    renderCoverageMapsRecursively(&_voxels.myCoverageMap);
-
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
-void Application::renderCoverageMapsRecursively(CoverageMap* map) {
-    for (int i = 0; i < map->getPolygonCount(); i++) {
-
-        OctreeProjectedPolygon* polygon = map->getPolygon(i);
-
-        if (polygon->getProjectionType()        == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) {
-            glColor3f(.5,0,0); // dark red
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT)) {
-            glColor3f(.5,.5,0); // dark yellow
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT)) {
-            glColor3f(.5,.5,.5); // gray
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_BOTTOM)) {
-            glColor3f(.5,0,.5); // dark magenta
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)) {
-            glColor3f(.75,0,0); // red
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)) {
-            glColor3f(1,0,1); // magenta
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_TOP)) {
-            glColor3f(0,0,1); // Blue
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT | PROJECTION_TOP)) {
-            glColor3f(0,1,0); // green
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR)) {
-            glColor3f(1,1,0); // yellow
-        } else if (polygon->getProjectionType() == (PROJECTION_FAR | PROJECTION_RIGHT | PROJECTION_BOTTOM)) {
-            glColor3f(0,.5,.5); // dark cyan
-        } else {
-            glColor3f(1,0,0);
-        }
-
-        glm::vec2 firstPoint = getScaledScreenPoint(polygon->getVertex(0));
-        glm::vec2 lastPoint(firstPoint);
-
-        for (int i = 1; i < polygon->getVertexCount(); i++) {
-            glm::vec2 thisPoint = getScaledScreenPoint(polygon->getVertex(i));
-
-            glVertex2f(lastPoint.x, lastPoint.y);
-            glVertex2f(thisPoint.x, thisPoint.y);
-            lastPoint = thisPoint;
-        }
-
-        glVertex2f(lastPoint.x, lastPoint.y);
-        glVertex2f(firstPoint.x, firstPoint.y);
-    }
-
-    // iterate our children and call render on them.
-    for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
-        CoverageMap* childMap = map->getChild(i);
-        if (childMap) {
-            renderCoverageMapsRecursively(childMap);
-        }
-    }
-}
-
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     bool eyeRelativeCamera = false;
     if (billboard) {
@@ -3333,7 +3171,7 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
         _voxelEditSender.sendVoxelEditMessage(PacketTypeVoxelErase, voxel);
 
         // delete it locally to see the effect immediately (and in case no voxel server is present)
-        _voxels.deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
+        _voxels.getTree()->deleteVoxelAt(voxel.x, voxel.y, voxel.z, voxel.s);
     }
 }
 

@@ -677,6 +677,10 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void MyAvatar::renderBody(bool forceRenderHead) {
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until both models are loaded
+    }
+    
     //  Render the body's voxels and head
     _skeletonModel.render(1.0f);
 
@@ -806,7 +810,7 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     float pelvisFloatingHeight = getPelvisFloatingHeight();
-    if (Application::getInstance()->getVoxels()->findCapsulePenetration(
+    if (Application::getInstance()->getVoxelTree()->findCapsulePenetration(
             _position - glm::vec3(0.0f, pelvisFloatingHeight - radius, 0.0f),
             _position + glm::vec3(0.0f, getSkeletonHeight() - pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;

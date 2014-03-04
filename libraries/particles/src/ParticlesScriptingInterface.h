@@ -30,12 +30,10 @@ public:
 private slots:
     /// inbound slots for external collision systems
     void forwardParticleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel) {
-        qDebug() << "forwardParticleCollisionWithVoxel()";
         emit particleCollisionWithVoxel(particleID, voxel);
     }
 
     void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB) {
-        qDebug() << "forwardParticleCollisionWithParticle()";
         emit particleCollisionWithParticle(idA, idB);
     }
     

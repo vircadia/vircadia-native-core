@@ -18,8 +18,6 @@
 
 #include "AudioInjector.h"
 
-int abstractAudioPointerMeta = qRegisterMetaType<AbstractAudioInterface*>("AbstractAudioInterface*");
-
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
     _options(injectorOptions)
@@ -53,7 +51,7 @@ void AudioInjector::injectAudio() {
         packetStream << QUuid::createUuid();
         
         // pack the flag for loopback
-        uchar loopbackFlag = (uchar) (_options.getLoopbackAudioInterface() == NULL);
+        uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());
         packetStream << loopbackFlag;
         
         // pack the position for injected audio

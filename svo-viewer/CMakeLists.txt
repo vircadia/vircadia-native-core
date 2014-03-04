@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 set(ROOT_DIR ..)
 set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
-set(TARGET_NAME SvoViewer)
+set(TARGET_NAME svo-viewer)
 project(${TARGET_NAME})
 
 # setup for find modules
@@ -42,9 +42,9 @@ endif (WIN32)
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
 
-# create the ${TARGET_NAME}Config.h file based on GL_HEADERS above
-configure_file(${TARGET_NAME}Config.h.in ${PROJECT_BINARY_DIR}/includes/${TARGET_NAME}Config.h)
-configure_file(${TARGET_NAME}Version.h.in ${PROJECT_BINARY_DIR}/includes/${TARGET_NAME}Version.h)
+# create the ${TARGET_NAME}-config.h file based on GL_HEADERS above
+configure_file(${TARGET_NAME}-config.h.in ${PROJECT_BINARY_DIR}/includes/${TARGET_NAME}-config.h)
+configure_file(${TARGET_NAME}-version.h.in ${PROJECT_BINARY_DIR}/includes/${TARGET_NAME}-version.h)
 
 # grab the implementation and header files from src dirs
 file(GLOB APPLICATION_SRCS src/*.c src/*.cpp src/*.h)
@@ -81,7 +81,7 @@ if (APPLE)
   # configure CMake to use a custom Info.plist
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
 
-  set(MACOSX_BUNDLE_BUNDLE_NAME SvoViewer)
+  set(MACOSX_BUNDLE_BUNDLE_NAME svo-viewer)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.${TARGET_NAME})
 
   # set how the icon shows up in the Info.plist file
