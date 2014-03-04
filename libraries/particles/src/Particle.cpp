@@ -385,7 +385,7 @@ Particle Particle::fromEditPacket(const unsigned char* data, int length, int& pr
 
     } else {
         // look up the existing particle
-        const Particle* existingParticle = tree->findParticleByID(editID);
+        const Particle* existingParticle = tree->findParticleByID(editID, true);
 
         // copy existing properties before over-writing with new properties
         if (existingParticle) {
