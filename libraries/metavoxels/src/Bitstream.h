@@ -458,6 +458,13 @@ public:
     bool operator==(const X& first, const X& second); \
     bool operator!=(const X& first, const X& second); \
     static const int* _TypePtr##X = &X::Type;
+#elif __GNUC__
+#define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
+    Bitstream& operator<<(Bitstream& out, const X& obj); \
+    Bitstream& operator>>(Bitstream& in, X& obj); \
+    bool operator==(const X& first, const X& second); \
+    bool operator!=(const X& first, const X& second); \
+    __attribute__((unused)) static const int* _TypePtr##X = &X::Type;
 #else
 #define STRINGIFY(x) #x
 #define DECLARE_STREAMABLE_METATYPE(X) Q_DECLARE_METATYPE(X) \
