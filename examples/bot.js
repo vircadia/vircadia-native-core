@@ -18,6 +18,10 @@ function getRandomInt (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function printVector(string, vector) {
+    print(string + " " + vector.x + ", " + vector.y + ", " + vector.z);
+}
+
 var CHANCE_OF_MOVING = 0.005; 
 var CHANCE_OF_SOUND = 0.005;
 var CHANCE_OF_HEAD_TURNING = 0.05;
@@ -31,6 +35,7 @@ var X_MIN = 0.0;
 var X_MAX = 5.0;
 var Z_MIN = 0.0;
 var Z_MAX = 5.0;
+var Y_PELVIS = 2.5;
 
 var MOVE_RANGE_SMALL = 0.5;
 var MOVE_RANGE_BIG = Math.max(X_MAX - X_MIN, Z_MAX - Z_MIN) / 2.0;
@@ -41,7 +46,7 @@ var TURN_RATE = 0.15;
 var PITCH_RATE = 0.20;
 var PITCH_RANGE = 30.0;
 
-var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: 0, z: getRandomFloat(Z_MIN, Z_MAX) };
+var firstPosition = { x: getRandomFloat(X_MIN, X_MAX), y: Y_PELVIS, z: getRandomFloat(Z_MIN, Z_MAX) };
 var targetPosition =  { x: 0, y: 0, z: 0 };
 var targetDirection = { x: 0, y: 0, z: 0, w: 0 };
 var currentDirection = { x: 0, y: 0, z: 0, w: 0 };
@@ -72,9 +77,6 @@ function playRandomSound(position) {
   }
 }
 
-// change the avatar's position to the random one
-Avatar.position = firstPosition;  
-
 // pick an integer between 1 and 20 for the face model for this bot
 botNumber = getRandomInt(1, 100);
 
@@ -102,6 +104,10 @@ Avatar.skeletonModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-publi
 Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/billboards/bot" + botNumber + ".png";
 
 Agent.isAvatar = true;
+
+// change the avatar's position to the random one
+Avatar.position = firstPosition;  
+printVector("New bot, position = ", Avatar.position);
 
 function updateBehavior() {
   if (Math.random() < CHANCE_OF_SOUND) {
@@ -132,6 +138,7 @@ function updateBehavior() {
     }
     targetPosition.x = clamp(targetPosition.x, X_MIN, X_MAX);
     targetPosition.z = clamp(targetPosition.z, Z_MIN, Z_MAX);
+    targetPosition.y = Y_PELVIS;
     
     isMoving = true;
   } else { 
