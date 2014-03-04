@@ -44,7 +44,7 @@ class VoxelSystem : public NodeData, public OctreeElementDeleteHook, public Octr
     friend class VoxelHideShowThread;
 
 public:
-    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM, VoxelTree* tree = NULL);
     ~VoxelSystem();
 
     void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
@@ -52,8 +52,8 @@ public:
 
     int parseData(const QByteArray& packet);
 
+    bool isInitialized() { return _initialized; }
     virtual void init();
-    void simulate(float deltaTime) { }
     void render();
 
     void changeTree(VoxelTree* newTree);

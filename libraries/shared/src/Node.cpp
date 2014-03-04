@@ -62,10 +62,7 @@ Node::Node(const QUuid& uuid, char type, const HifiSockAddr& publicSocket, const
 }
 
 Node::~Node() {
-    if (_linkedData) {
-        delete _linkedData;
-    }
-
+    delete _linkedData;
     delete _bytesReceivedMovingAverage;
 }
 
