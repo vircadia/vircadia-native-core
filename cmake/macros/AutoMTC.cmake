@@ -1,6 +1,6 @@
 macro(AUTO_MTC TARGET ROOT_DIR)
     if (NOT TARGET mtc)
-        add_subdirectory(${ROOT_DIR}/tools/mtc ${ROOT_DIR}/tools/mtc)
+        add_subdirectory("${ROOT_DIR}/tools/mtc" "${ROOT_DIR}/tools/mtc")
     endif (NOT TARGET mtc)
     
     set(AUTOMTC_SRC ${TARGET}_automtc.cpp)
