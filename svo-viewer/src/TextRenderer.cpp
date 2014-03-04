@@ -5,13 +5,14 @@
 //  Created by Andrzej Kapolka on 4/24/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include "svo-viewer-config.h"
+
 #include <QFont>
 #include <QPaintEngine>
 #include <QtDebug>
 #include <QString>
 #include <QStringList>
 
-#include "SvoViewerConfig.h"
 #include "TextRenderer.h"
 
 // the width/height of the cached glyph textures

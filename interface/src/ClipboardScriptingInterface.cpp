@@ -91,4 +91,3 @@ void ClipboardScriptingInterface::nudgeVoxel(float x, float y, float z, float s,
 
     Application::getInstance()->nudgeVoxelsByVector(sourceVoxel, nudgeVecInTreeSpace);
 }
-

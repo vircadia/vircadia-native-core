@@ -16,7 +16,6 @@
 
 #include <QtCore/QDebug>
 
-//#include "CoverageMap.h"
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 #include "ViewFrustum.h"

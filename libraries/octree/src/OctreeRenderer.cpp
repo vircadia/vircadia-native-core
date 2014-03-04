@@ -14,16 +14,32 @@
 #include <PerfStat.h>
 #include "OctreeRenderer.h"
 
-OctreeRenderer::OctreeRenderer() {
-    _tree = NULL;
-    _viewFrustum = NULL;
+OctreeRenderer::OctreeRenderer() :
+    _tree(NULL),
+    _managedTree(false),
+    _viewFrustum(NULL)
+{
 }
 
 void OctreeRenderer::init() {
-    _tree = createTree();
+    if (!_tree) {
+        _tree = createTree();
+        _managedTree = true;
+    }
 }
 
 OctreeRenderer::~OctreeRenderer() {
+    if (_tree && _managedTree) {
+        delete _tree;
+    }
+}
+
+void OctreeRenderer::setTree(Octree* newTree) { 
+    if (_tree && _managedTree) {
+        delete _tree;
+        _managedTree = false;
+    }
+    _tree = newTree; 
 }
 
 void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {

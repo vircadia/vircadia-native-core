@@ -70,6 +70,11 @@ public slots:
 
     /// returns a voxel space axis aligned vector for the face, useful in doing voxel math
     glm::vec3 getFaceVector(const QString& face);
+    
+    /// checks the local voxel tree for the smallest voxel enclosing the point
+    /// \param point the x,y,z coordinates of the point (in meter units)
+    /// \return VoxelDetail - if no voxel encloses the point then VoxelDetail items will be 0
+    VoxelDetail getVoxelEnclosingPoint(const glm::vec3& point);
 
 private:
     void queueVoxelAdd(PacketType addPacketType, VoxelDetail& addVoxelDetails);

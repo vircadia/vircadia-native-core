@@ -112,7 +112,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 float Avatar::getLODDistance() const {
-    return glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
+    return Menu::getInstance()->getAvatarLODDistanceMultiplier() *
+        glm::distance(Application::getInstance()->getCamera()->getPosition(), _position) / _scale;
 }
 
 void Avatar::simulate(float deltaTime) {
@@ -135,10 +136,10 @@ void Avatar::simulate(float deltaTime) {
     
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
-    _skeletonModel.simulate(deltaTime, _shouldRenderBillboard);
-    glm::vec3 headPosition;
-    if (!_skeletonModel.getHeadPosition(headPosition)) {
-        headPosition = _position;
+    glm::vec3 headPosition = _position;
+    if (!_shouldRenderBillboard) {
+        _skeletonModel.simulate(deltaTime);
+        _skeletonModel.getHeadPosition(headPosition);
     }
     Head* head = getHead();
     head->setPosition(headPosition);
@@ -305,7 +306,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody() {    
-    if (_shouldRenderBillboard) {
+    if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        // render the billboard until both models are loaded
         renderBillboard();
         return;
     }
@@ -564,13 +566,13 @@ bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float parti
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
     const QUrl DEFAULT_FACE_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_head.fst");
-    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL, DEFAULT_FACE_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile("resources/meshes/defaultAvatar_body.fst");
-    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, !isMyAvatar());
+    _skeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
 }
 
 void Avatar::setDisplayName(const QString& displayName) {

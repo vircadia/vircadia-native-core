@@ -1,4 +1,4 @@
-    //
+//
 //  main.cpp
 //  Voxel Edit
 //
@@ -8,7 +8,7 @@
 
 #include <VoxelTree.h>
 #include <SharedUtil.h>
-#include <SceneUtils.h>
+#include "SceneUtils.h"
 #include <JurisdictionMap.h>
 #include <QString>
 #include <QStringList>
@@ -163,9 +163,9 @@ bool copyAndFillOperation(OctreeElement* element, void* extraData) {
         float y = voxel->getCorner().y;
         float z = voxel->getCorner().z;
         float s = voxel->getScale();
-        unsigned char red = voxel->getTrueColor()[RED_INDEX];
-        unsigned char green = voxel->getTrueColor()[GREEN_INDEX];
-        unsigned char blue = voxel->getTrueColor()[BLUE_INDEX];
+        unsigned char red = voxel->getColor()[RED_INDEX];
+        unsigned char green = voxel->getColor()[GREEN_INDEX];
+        unsigned char blue = voxel->getColor()[BLUE_INDEX];
         bool destructive = true;
 
         args->destinationTree->createVoxel(x, y, z, s, red, green, blue, destructive);

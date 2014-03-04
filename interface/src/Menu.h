@@ -84,6 +84,7 @@ public:
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    float getAvatarLODDistanceMultiplier() const { return DEFAULT_OCTREE_SIZE_SCALE / _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
@@ -124,6 +125,7 @@ public slots:
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
+    void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
 
@@ -152,7 +154,8 @@ private:
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, 
+                                                int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString& actionName,
@@ -172,6 +175,7 @@ private:
 
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     QMenu* getMenu(const QString& menuName);
     
 
@@ -203,7 +207,6 @@ namespace MenuOption {
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
-    const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BuckyBalls = "Bucky Balls";
@@ -213,8 +216,6 @@ namespace MenuOption {
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CoverageMap = "Render Coverage Map";
-    const QString CoverageMapV2 = "Render Coverage Map V2";
     const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
@@ -231,13 +232,6 @@ namespace MenuOption {
     const QString HeadMouse = "Head Mouse";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString FaceshiftTCP = "Faceshift (TCP)";
-    const QString FalseColorByDistance = "FALSE Color By Distance";
-    const QString FalseColorBySource = "FALSE Color By Source";
-    const QString FalseColorEveryOtherVoxel = "FALSE Color Every Other Randomly";
-    const QString FalseColorOccluded = "FALSE Color Occluded Voxels";
-    const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
-    const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
-    const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
@@ -249,7 +243,6 @@ namespace MenuOption {
     const QString GoTo = "Go To...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
-    const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString LodTools = "LOD Tools";
@@ -274,7 +267,6 @@ namespace MenuOption {
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
-    const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
     const QString RenderHeadCollisionProxies = "Head Collision Proxies";
@@ -283,19 +275,15 @@ namespace MenuOption {
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
-    const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
-    const QString ShowTrueColors = "Show TRUE Colors";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
-    const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
     const QString Voxels = "Voxels";
-    const QString VoxelDrumming = "Voxel Drumming";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";

@@ -8,6 +8,8 @@
 #include <cmath>
 
 #include <QNetworkReply>
+#include <QRunnable>
+#include <QThreadPool>
 
 #include "Application.h"
 #include "GeometryCache.h"
@@ -307,6 +309,21 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     _fallback(fallback) {
 }
 
+bool NetworkGeometry::isLoadedWithTextures() const {
+    if (!isLoaded()) {
+        return false;
+    }
+    foreach (const NetworkMesh& mesh, _meshes) {
+        foreach (const NetworkMeshPart& part, mesh.parts) {
+            if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
+                    (part.normalTexture && !part.normalTexture->isLoaded())) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance, float& hysteresis, bool delayLoad) const {
     if (_lodParent.data() != this) {
         return _lodParent.data()->getLODOrFallback(distance, hysteresis, delayLoad);
@@ -428,17 +445,58 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
     }
 }
 
+/// Reads geometry in a worker thread.
+class GeometryReader : public QRunnable {
+public:
+
+    GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
+        QNetworkReply* reply, const QVariantHash& mapping);
+
+    virtual void run();
+
+private:
+     
+    QWeakPointer<Resource> _geometry;
+    QUrl _url;
+    QNetworkReply* _reply;
+    QVariantHash _mapping;
+};
+
+GeometryReader::GeometryReader(const QWeakPointer<Resource>& geometry, const QUrl& url,
+        QNetworkReply* reply, const QVariantHash& mapping) :
+    _geometry(geometry),
+    _url(url),
+    _reply(reply),
+    _mapping(mapping) {
+}
+
+void GeometryReader::run() {
+    QSharedPointer<Resource> geometry = _geometry.toStrongRef();
+    if (geometry.isNull()) {
+        _reply->deleteLater();
+        return;
+    }
+    try {
+        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
+            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
+        
+    } catch (const QString& error) {
+        qDebug() << "Error reading " << _url << ": " << error;
+        QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
+    }
+    _reply->deleteLater();
+}
+
 void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
-    QByteArray data = reply->readAll();
-    
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = readMapping(data);
+        _mapping = readMapping(reply->readAll());
+        reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
             qDebug() << "Mapping file " << url << " has no filename.";
-            _failedToLoad = true;
+            finishedLoading(false);
             
         } else {
             QString texdir = _mapping.value("texdir").toString();
@@ -452,6 +510,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
             for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
                 QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url.resolved(it.key()),
                     QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase));    
+                geometry->setSelf(geometry.staticCast<Resource>());
                 geometry->setLODParent(_lodParent);
                 _lods.insert(it.value().toFloat(), geometry);
             }     
@@ -466,14 +525,12 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         return;
     }
     
-    try {
-        _geometry = url.path().toLower().endsWith(".svo") ? readSVO(data) : readFBX(data, _mapping);
-        
-    } catch (const QString& error) {
-        qDebug() << "Error reading " << url << ": " << error;
-        _failedToLoad = true;
-        return;
-    }
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, url, reply, _mapping));
+}
+
+void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
+    _geometry = geometry;
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         NetworkMesh networkMesh = { QOpenGLBuffer(QOpenGLBuffer::IndexBuffer), QOpenGLBuffer(QOpenGLBuffer::VertexBuffer) };
@@ -567,6 +624,8 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         
         _meshes.append(networkMesh);
     }
+    
+    finishedLoading(true);
 }
 
 bool NetworkMeshPart::isTranslucent() const {

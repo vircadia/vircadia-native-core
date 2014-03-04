@@ -4,7 +4,7 @@
 //  Copyright (c) 2014 HighFidelity, Inc. All rights reserved.
 //
 
-#include "SvoViewerConfig.h"
+#include "svo-viewer-config.h"
 
 #include "svoviewer.h"
 #include <QtWidgets/QApplication>
