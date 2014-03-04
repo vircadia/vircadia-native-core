@@ -166,7 +166,7 @@ void SharedObjectEditor::updateType() {
         oldObject->disconnect(this);
     }
     const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
-    if (metaObject == NULL) {
+    if (!metaObject) {
         _object.reset();
         return;
     }

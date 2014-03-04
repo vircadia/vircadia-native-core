@@ -58,7 +58,7 @@ void Head::reset() {
 
 
 
-void Head::simulate(float deltaTime, bool isMine, bool delayLoad) {
+void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -75,7 +75,7 @@ void Head::simulate(float deltaTime, bool isMine, bool delayLoad) {
         }
     }
     
-    if (!_isFaceshiftConnected) {
+    if (!(_isFaceshiftConnected || billboard)) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -161,11 +161,10 @@ void Head::simulate(float deltaTime, bool isMine, bool delayLoad) {
     if (!isMine) {
         _faceModel.setLODDistance(static_cast<Avatar*>(_owningAvatar)->getLODDistance());
     }
-    _faceModel.simulate(deltaTime, delayLoad);
-    
-    // the blend face may have custom eye meshes
-    if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
-        _leftEyePosition = _rightEyePosition = getPosition();
+    _leftEyePosition = _rightEyePosition = getPosition();
+    if (!billboard) {
+        _faceModel.simulate(deltaTime);
+        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
     }
     _eyePosition = calculateAverageEyePosition();
 }

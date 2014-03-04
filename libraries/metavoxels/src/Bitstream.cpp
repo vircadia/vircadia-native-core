@@ -69,7 +69,7 @@ int Bitstream::registerMetaObject(const char* className, const QMetaObject* meta
     getMetaObjects().insert(className, metaObject);
     
     // register it as a subclass of itself and all of its superclasses
-    for (const QMetaObject* superClass = metaObject; superClass != NULL; superClass = superClass->superClass()) {
+    for (const QMetaObject* superClass = metaObject; superClass; superClass = superClass->superClass()) {
         getMetaObjectSubClasses().insert(superClass, metaObject);
     }
     return 0;

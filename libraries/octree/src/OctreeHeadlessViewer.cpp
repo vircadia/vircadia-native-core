@@ -75,7 +75,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
 
             // get the server bounds for this server
@@ -135,7 +135,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
     foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
         // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() != NULL && node->getType() == serverType) {
+        if (node->getActiveSocket() && node->getType() == serverType) {
 
 
             // get the server bounds for this server
