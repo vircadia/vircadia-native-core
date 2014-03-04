@@ -8,4 +8,4 @@ file(GLOB FACESHIFT_SRCS include/*.h src/*.cpp)
 
 include_directories(include)
 
-add_library(${TARGET_NAME} ${FACESHIFT_SRCS})
+add_library(${TARGET_NAME} "${FACESHIFT_SRCS}")
