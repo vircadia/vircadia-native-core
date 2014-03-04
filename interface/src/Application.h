@@ -284,6 +284,7 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
+    void updateLOD();
     void updateMouseRay();
     void updateFaceshift();
     void updateVisage();

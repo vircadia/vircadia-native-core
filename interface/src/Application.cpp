@@ -1617,6 +1617,13 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     return false;
 }
 
+void Application::updateLOD() {
+    // adjust it unless we were asked to disable this feature
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
+        Menu::getInstance()->autoAdjustLOD(_fps);
+    }
+}
+
 void Application::updateMouseRay() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1856,6 +1863,8 @@ void Application::updateCursor(float deltaTime) {
 void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
+
+    updateLOD();
 
     // check what's under the mouse and update the mouse voxel
     updateMouseRay();
@@ -2332,14 +2341,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
-
             _voxels.render();
-            
-            // double check that our LOD doesn't need to be auto-adjusted
-            // adjust it unless we were asked to disable this feature
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD)) {
-                Menu::getInstance()->autoAdjustLOD(_fps);
-            }
         }
 
         // also, metavoxels
