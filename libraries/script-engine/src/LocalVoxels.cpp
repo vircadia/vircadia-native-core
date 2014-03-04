@@ -54,7 +54,11 @@ void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
     }
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
-            _tree->createVoxel(x, y, z, scale, red, green, blue, false);
+            _tree->createVoxel(x / (float)TREE_SCALE,
+                               y / (float)TREE_SCALE,
+                               z / (float)TREE_SCALE,
+                               scale / (float)TREE_SCALE,
+                               red, green, blue, false);
             _tree->unlock();
         }
     }
@@ -68,7 +72,11 @@ void LocalVoxels::setVoxel(float x, float y, float z, float scale,
     }
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
-            _tree->createVoxel(x, y, z, scale, red, green, blue, true);
+            _tree->createVoxel(x / (float)TREE_SCALE,
+                               y / (float)TREE_SCALE,
+                               z / (float)TREE_SCALE,
+                               scale / (float)TREE_SCALE,
+                               red, green, blue, true);
             _tree->unlock();
         }
     }
@@ -81,7 +89,10 @@ void LocalVoxels::eraseVoxel(float x, float y, float z, float scale) {
     }
     if (_tree ) {
         if (_tree->tryLockForWrite()) {
-            _tree->deleteVoxelAt(x, y, z, scale);
+            _tree->deleteVoxelAt(x / (float)TREE_SCALE,
+                                 y / (float)TREE_SCALE,
+                                 z / (float)TREE_SCALE,
+                                 scale / (float)TREE_SCALE);
             _tree->unlock();
         }
     }
@@ -93,7 +104,10 @@ void LocalVoxels::copyTo(float x, float y, float z, float scale, const QString d
         return;
     }
     StrongVoxelTreePointer destinationTree = LocalVoxelsList::getInstance()->getTree(destination);
-    VoxelTreeElement* destinationNode = destinationTree->getVoxelAt(x, y, z, scale);
+    VoxelTreeElement* destinationNode = destinationTree->getVoxelAt(x / (float)TREE_SCALE,
+                                                                    y / (float)TREE_SCALE,
+                                                                    z / (float)TREE_SCALE,
+                                                                    scale / (float)TREE_SCALE);
     destinationTree->copyFromTreeIntoSubTree(_tree.data(), destinationNode);
 }
 
@@ -103,7 +117,10 @@ void LocalVoxels::pasteFrom(float x, float y, float z, float scale, const QStrin
         return;
     }
     StrongVoxelTreePointer sourceTree = LocalVoxelsList::getInstance()->getTree(source);
-    VoxelTreeElement* sourceNode = _tree->getVoxelAt(x, y, z, scale);
+    VoxelTreeElement* sourceNode = _tree->getVoxelAt(x / (float)TREE_SCALE,
+                                                     y / (float)TREE_SCALE,
+                                                     z / (float)TREE_SCALE,
+                                                     scale / (float)TREE_SCALE);
     _tree->copySubTreeIntoNewTree(sourceNode, sourceTree.data(), true);
 }
 

@@ -1,7 +1,18 @@
 
+var TREE_SCALE = 16384;
 var tree = LocalVoxels("tree");
-tree.setVoxel(0, 0, 0, 0.5, 255, 0, 0);
-tree.setVoxel(0.5, 0.5, 0.5, 0.5, 0, 255, 0);
+tree.setVoxel(0, 0, 0,
+              0.5 * TREE_SCALE,
+              255, 0, 0);
+tree.setVoxel(0.5 * TREE_SCALE,
+              0.5 * TREE_SCALE,
+              0.5 * TREE_SCALE,
+              0.5 * TREE_SCALE,
+              0, 255, 0);
+
+var copy = LocalVoxels("copy");
+tree.pasteFrom(0, 0, 0, TREE_SCALE, "copy");
+tree.pasteFrom(0, 0, 0, TREE_SCALE, "clipboard");
     
 var overlay1 = Overlays.addOverlay("localvoxels", {
                                    position: {x: 1, y: 1, z: 1},
@@ -21,7 +32,13 @@ var overlay3 = Overlays.addOverlay("localvoxels", {
 var overlay4 = Overlays.addOverlay("localvoxels", {
                                    position: {x: 1, y: 4, z: 1},
                                    size: 1,
-                                   name: "tree"
+                                   name: "copy"
+                                   });
+
+var clipboard = Overlays.addOverlay("localvoxels", {
+                                   position: {x: 1, y: 5, z: 1},
+                                   size: 1,
+                                   name: "clipboard"
                                    });
 
 
@@ -31,5 +48,6 @@ function scriptEnding() {
     Overlays.deleteOverlay(overlay2);
     Overlays.deleteOverlay(overlay3);
     Overlays.deleteOverlay(overlay4);
+    Overlays.deleteOverlay(clipboard);
 }
 Script.scriptEnding.connect(scriptEnding);
