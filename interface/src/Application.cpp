@@ -398,17 +398,17 @@ void Application::initializeGL() {
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
-    int argc = 0;
-    glutInit(&argc, 0);
-    #endif
-
-    #ifdef WIN32
     static bool isInitialized = false;
     if (isInitialized) {
         return;
     } else {
         isInitialized = true;
     }
+    int argc = 0;
+    glutInit(&argc, 0);
+    #endif
+
+    #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
       /* Problem: glewInit failed, something is seriously wrong. */
