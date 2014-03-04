@@ -30,7 +30,6 @@ void ShapeColliderTests::sphereMissesSphere() {
     float beta = 1.3f;
     glm::vec3 offsetDirection = glm::normalize(glm::vec3(1.f, 2.f, 3.f));
     float offsetDistance = alpha * radiusA + beta * radiusB;
-    float expectedPenetrationDistance = 0.f;
 
     SphereShape sphereA(radiusA, origin);
     SphereShape sphereB(radiusB, offsetDistance * offsetDirection);
@@ -225,7 +224,6 @@ void ShapeColliderTests::sphereTouchesCapsule() {
     float halfHeightB = 2.f;
     float alpha = 0.5f;
     float beta = 0.5f;
-    float axialOffset = 0.f;
     float radialOffset = alpha * radiusA + beta * radiusB;
     
     SphereShape sphereA(radiusA);
