@@ -41,7 +41,7 @@ if (WIN32)
     # which are not accessible on windows without glew or some other dynamic linking mechanism
     set(GLEW_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/glew)
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GLEW_ROOT_PATH})
-    include_directories(SYSTEM ${GLEW_ROOT_PATH}/include)
+    include_directories(SYSTEM ${GLEW_ROOT_PATH}/include ${GLUT_ROOT_PATH}/include)
 
     #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")

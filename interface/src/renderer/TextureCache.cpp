@@ -11,7 +11,8 @@
 #include <QGLWidget>
 #include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
-#include <QTimer>
+#include <QRunnable>
+#include <QThreadPool>
 
 #include <glm/gtc/random.hpp>
 
@@ -39,14 +40,14 @@ TextureCache::~TextureCache() {
     foreach (GLuint id, _fileTextureIDs) {
         glDeleteTextures(1, &id);
     }
-    if (_primaryFramebufferObject != NULL) {
+    if (_primaryFramebufferObject) {
         delete _primaryFramebufferObject;
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
-    if (_secondaryFramebufferObject != NULL) {
+    if (_secondaryFramebufferObject) {
         delete _secondaryFramebufferObject;
     }
-    if (_tertiaryFramebufferObject != NULL) {
+    if (_tertiaryFramebufferObject) {
         delete _tertiaryFramebufferObject;
     }
 }
@@ -124,25 +125,20 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
 }
 
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
-    QSharedPointer<NetworkTexture> texture;
-    if (dilatable) {
-        texture = _dilatableNetworkTextures.value(url);
-        if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, normalMap));
-            _dilatableNetworkTextures.insert(url, texture);
-        }
-    } else {
-        texture = _networkTextures.value(url);
-        if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url, normalMap));
-            _networkTextures.insert(url, texture);
-        }
+    if (!dilatable) {
+        return ResourceCache::getResource(url, QUrl(), false, &normalMap).staticCast<NetworkTexture>();
+    }
+    QSharedPointer<NetworkTexture> texture = _dilatableNetworkTextures.value(url);
+    if (texture.isNull()) {
+        texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+        texture->setSelf(texture);
+        _dilatableNetworkTextures.insert(url, texture);
     }
     return texture;
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
-    if (_primaryFramebufferObject == NULL) {
+    if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
         
         glGenTextures(1, &_primaryDepthTextureID);
@@ -168,21 +164,21 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
 }
 
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
-    if (_secondaryFramebufferObject == NULL) {
+    if (!_secondaryFramebufferObject) {
         _secondaryFramebufferObject = createFramebufferObject();
     }
     return _secondaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
-    if (_tertiaryFramebufferObject == NULL) {
+    if (!_tertiaryFramebufferObject) {
         _tertiaryFramebufferObject = createFramebufferObject();
     }
     return _tertiaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
-    if (_shadowFramebufferObject == NULL) {
+    if (!_shadowFramebufferObject) {
         const int SHADOW_MAP_SIZE = 2048;
         _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
             QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
@@ -216,21 +212,26 @@ GLuint TextureCache::getShadowDepthTextureID() {
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_primaryFramebufferObject != NULL && _primaryFramebufferObject->size() != size) {
+        if (_primaryFramebufferObject && _primaryFramebufferObject->size() != size) {
             delete _primaryFramebufferObject;
             _primaryFramebufferObject = NULL;
             glDeleteTextures(1, &_primaryDepthTextureID);
         }
-        if (_secondaryFramebufferObject != NULL && _secondaryFramebufferObject->size() != size) {
+        if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
             delete _secondaryFramebufferObject;
             _secondaryFramebufferObject = NULL;
         }
-        if (_tertiaryFramebufferObject != NULL && _tertiaryFramebufferObject->size() != size) {
+        if (_tertiaryFramebufferObject && _tertiaryFramebufferObject->size() != size) {
             delete _tertiaryFramebufferObject;
             _tertiaryFramebufferObject = NULL;
         }
     }
     return false;
+}
+
+QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+    return QSharedPointer<Resource>(new NetworkTexture(url, *(const bool*)extra));
 }
 
 QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
@@ -254,17 +255,14 @@ Texture::~Texture() {
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
-    _request(url),
-    _reply(NULL),
-    _attempts(0),
+    Resource(url),
     _averageColor(1.0f, 1.0f, 1.0f, 1.0f),
     _translucent(false) {
     
     if (!url.isValid()) {
+        _loaded = true;
         return;
     }
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    makeRequest();
     
     // default to white/blue
     glBindTexture(GL_TEXTURE_2D, getID());
@@ -272,34 +270,34 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) :
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-NetworkTexture::~NetworkTexture() {
-    if (_reply != NULL) {
-        delete _reply;
-    }
-}
+class ImageReader : public QRunnable {
+public:
 
-void NetworkTexture::imageLoaded(const QImage& image) {
-    // nothing by default
-}
-
-void NetworkTexture::makeRequest() {
-    _reply = Application::getInstance()->getNetworkAccessManager()->get(_request);
+    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply);
     
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    virtual void run();
+
+private:
+    
+    QWeakPointer<Resource> _texture;
+    QNetworkReply* _reply;
+};
+
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply) :
+    _texture(texture),
+    _reply(reply) {
 }
 
-void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal && !_reply->isFinished()) {
+void ImageReader::run() {
+    QSharedPointer<Resource> texture = _texture.toStrongRef();
+    if (texture.isNull()) {
+        _reply->deleteLater();
         return;
     }
-
-    QByteArray entirety = _reply->readAll();
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
-    QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
+    QImage image = QImage::fromData(_reply->readAll());
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
     
     // sum up the colors for the average and check for translucency
     glm::vec4 accumulated;
@@ -320,9 +318,22 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
         }
     }
     int imageArea = image.width() * image.height();
-    _averageColor = accumulated / (imageArea * EIGHT_BIT_MAXIMUM);
-    _translucent = (translucentPixels >= imageArea / 2);
+    QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
+        Q_ARG(const glm::vec4&, accumulated / (imageArea * EIGHT_BIT_MAXIMUM)),
+        Q_ARG(bool, translucentPixels >= imageArea / 2));
+    _reply->deleteLater();
+}
+
+void NetworkTexture::downloadFinished(QNetworkReply* reply) {
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
+}
+
+void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor, bool translucent) {
+    _averageColor = averageColor;
+    _translucent = translucent;
     
+    finishedLoading(true);
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
@@ -331,25 +342,12 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void NetworkTexture::handleReplyError() {
-    QDebug debug = qDebug() << _reply->errorString();
-    
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
-    // retry with increasing delays
-    const int MAX_ATTEMPTS = 8;
-    const int BASE_DELAY_MS = 1000;
-    if (++_attempts < MAX_ATTEMPTS) {
-        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
-        debug << " -- retrying...";
-        
-    }
+void NetworkTexture::imageLoaded(const QImage& image) {
+    // nothing by default
 }
 
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :
-    NetworkTexture(url, normalMap),
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
+    NetworkTexture(url, false),
     _innerRadius(0),
     _outerRadius(0)
 {

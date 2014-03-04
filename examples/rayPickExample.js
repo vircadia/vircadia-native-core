@@ -26,6 +26,12 @@ function mouseMoveEvent(event) {
         print("intersection distance=" + intersection.distance);
         print("intersection intersection.x/y/z=" + intersection.intersection.x + ", " 
                     + intersection.intersection.y + ", " + intersection.intersection.z);
+
+        // also test the getVoxelAt() api which should find and return same voxel
+
+        var voxelAt = Voxels.getVoxelAt(intersection.voxel.x, intersection.voxel.y, intersection.voxel.z, intersection.voxel.s);
+        print("voxelAt.x/y/z/s=" + voxelAt.x + ", " + voxelAt.y + ", " + voxelAt.z + ": " + voxelAt.s);
+        print("voxelAt.red/green/blue=" + voxelAt.red + ", " + voxelAt.green + ", " + voxelAt.blue);
     }
 }
 

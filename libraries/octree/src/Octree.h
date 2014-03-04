@@ -12,7 +12,6 @@
 #include <set>
 #include <SimpleMovingAverage.h>
 
-//#include "CoverageMap.h"
 class CoverageMap;
 class ReadBitstreamToTreeParams;
 class Octree;
@@ -208,10 +207,12 @@ public:
     OctreeElement* getOctreeElementAt(float x, float y, float z, float s) const;
     OctreeElement* getOrCreateChildElementAt(float x, float y, float z, float s);
 
-    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData = NULL);
+
+    void recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData = NULL);
 
     void recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
-                                                const glm::vec3& point, void* extraData=NULL);
+                                                const glm::vec3& point, void* extraData = NULL);
 
     int encodeTreeBitstream(OctreeElement* node, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
@@ -221,12 +222,15 @@ public:
     void setDirtyBit() { _isDirty = true; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             OctreeElement*& node, float& distance, BoxFace& face);
+                             OctreeElement*& node, float& distance, BoxFace& face, bool tryLock = true);
 
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                                void** penetratedObject = NULL);
+                                    void** penetratedObject = NULL, bool tryLock = true);
 
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
+                                    glm::vec3& penetration, bool tryLock = true);
+
+    OctreeElement* getElementEnclosingPoint(const glm::vec3& point, bool tryLock = true);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
     void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
@@ -234,16 +238,13 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, OctreeElement* node = NULL);
     bool readFromSVOFile(const char* filename);
-    // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const char *filename);
-    bool readFromSchematicFile(const char* filename);
 
     // Octree does not currently handle its own locking, caller must use these to lock/unlock
-    void lockForRead() { lock.lockForRead(); }
-    bool tryLockForRead() { return lock.tryLockForRead(); }
-    void lockForWrite() { lock.lockForWrite(); }
-    bool tryLockForWrite() { return lock.tryLockForWrite(); }
-    void unlock() { lock.unlock(); }
+    void lockForRead() { _lock.lockForRead(); }
+    bool tryLockForRead() { return _lock.tryLockForRead(); }
+    void lockForWrite() { _lock.lockForWrite(); }
+    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
+    void unlock() { _lock.unlock(); }
 
     unsigned long getOctreeElementsCount();
 
@@ -253,6 +254,11 @@ public:
     bool getShouldReaverage() const { return _shouldReaverage; }
 
     void recurseNodeWithOperation(OctreeElement* node, RecurseOctreeOperation operation,
+                void* extraData, int recursionCount = 0);
+
+	/// Traverse child nodes of node applying operation in post-fix order
+	///
+    void recurseNodeWithPostOperation(OctreeElement* node, RecurseOctreeOperation operation,
                 void* extraData, int recursionCount = 0);
 
     void recurseNodeWithOperationDistanceSorted(OctreeElement* node, RecurseOctreeOperation operation,
@@ -323,7 +329,7 @@ protected:
     /// flushes out any Octal Codes that had to be queued
     void emptyDeleteQueue();
 
-    QReadWriteLock lock;
+    QReadWriteLock _lock;
     
     /// This tree is receiving inbound viewer datagrams.
     bool _isViewing;

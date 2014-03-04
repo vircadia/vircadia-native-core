@@ -16,19 +16,16 @@
 
 #include "Application.h"
 #include "MetavoxelSystem.h"
+#include "renderer/Model.h"
+
+REGISTER_META_OBJECT(StaticModelRenderer)
 
 ProgramObject MetavoxelSystem::_program;
 int MetavoxelSystem::_pointScaleLocation;
 
 MetavoxelSystem::MetavoxelSystem() :
-    _pointVisitor(_points),
+    _simulateVisitor(_points),
     _buffer(QOpenGLBuffer::VertexBuffer) {
-}
-
-MetavoxelSystem::~MetavoxelSystem() {
-    for (QHash<QUuid, MetavoxelClient*>::const_iterator it = _clients.begin(); it != _clients.end(); it++) {
-        delete it.value();
-    }
 }
 
 void MetavoxelSystem::init() {
@@ -38,37 +35,40 @@ void MetavoxelSystem::init() {
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");
-        
-        // let the script cache know to use our common access manager
-        ScriptCache::getInstance()->setNetworkAccessManager(Application::getInstance()->getNetworkAccessManager());
     }
-    
-    NodeList* nodeList = NodeList::getInstance();
-    
-    connect(nodeList, SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList, SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    
     _buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     _buffer.create();
+    
+    connect(NodeList::getInstance(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(maybeAttachClient(const SharedNodePointer&)));
 }
 
 void MetavoxelSystem::applyEdit(const MetavoxelEditMessage& edit) {
-    foreach (MetavoxelClient* client, _clients) {
-        client->applyEdit(edit);
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                client->applyEdit(edit);
+            }
+        }
     }
-}
-
-void MetavoxelSystem::processData(const QByteArray& data, const HifiSockAddr& sender) {
-    QMetaObject::invokeMethod(this, "receivedData", Q_ARG(const QByteArray&, data), Q_ARG(const HifiSockAddr&, sender));
 }
 
 void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
     _points.clear();
-    foreach (MetavoxelClient* client, _clients) {
-        client->simulate(deltaTime, _pointVisitor);
+    _simulateVisitor.setDeltaTime(deltaTime);
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                client->simulate(deltaTime);
+                client->getData().guide(_simulateVisitor);
+            }
+        }
     }
-
+    
     _buffer.bind();
     int bytes = _points.size() * sizeof(Point);
     if (_buffer.size() < bytes) {
@@ -118,53 +118,39 @@ void MetavoxelSystem::render() {
     _buffer.release();
     
     _program.release();
+    
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
+            if (client) {
+                client->getData().guide(_renderVisitor);
+            }
+        }
+    }
 }
 
-void MetavoxelSystem::nodeAdded(SharedNodePointer node) {
+void MetavoxelSystem::maybeAttachClient(const SharedNodePointer& node) {
     if (node->getType() == NodeType::MetavoxelServer) {
-        QMetaObject::invokeMethod(this, "addClient", Q_ARG(const SharedNodePointer&, node));
+        QMutexLocker locker(&node->getMutex());
+        node->setLinkedData(new MetavoxelClient(NodeList::getInstance()->nodeWithUUID(node->getUUID())));
     }
 }
 
-void MetavoxelSystem::nodeKilled(SharedNodePointer node) {
-    if (node->getType() == NodeType::MetavoxelServer) {
-        QMetaObject::invokeMethod(this, "removeClient", Q_ARG(const QUuid&, node->getUUID()));
-    }
-}
-
-void MetavoxelSystem::addClient(const SharedNodePointer& node) {
-    MetavoxelClient* client = new MetavoxelClient(node);
-    _clients.insert(node->getUUID(), client);
-    _clientsBySessionID.insert(client->getSessionID(), client);
-}
-
-void MetavoxelSystem::removeClient(const QUuid& uuid) {
-    MetavoxelClient* client = _clients.take(uuid);
-    _clientsBySessionID.remove(client->getSessionID());
-    delete client;
-}
-
-void MetavoxelSystem::receivedData(const QByteArray& data, const SharedNodePointer& sendingNode) {
-    int headerPlusIDSize;
-    QUuid sessionID = readSessionID(data, sendingNode, headerPlusIDSize);
-    if (sessionID.isNull()) {
-        return;
-    }
-    MetavoxelClient* client = _clientsBySessionID.value(sessionID);
-    if (client) {
-        client->receivedData(data);
-    }
-}
-
-MetavoxelSystem::PointVisitor::PointVisitor(QVector<Point>& points) :
-    MetavoxelVisitor(QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute(),
-        QVector<AttributePointer>()),
+MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
+            AttributeRegistry::getInstance()->getNormalAttribute()),
     _points(points) {
 }
 
-bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
+void MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->simulate(_deltaTime);
+}
+
+bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
+    SpannerVisitor::visit(info);
+
     if (!info.isLeaf) {
         return true;
     }
@@ -179,16 +165,17 @@ bool MetavoxelSystem::PointVisitor::visit(MetavoxelInfo& info) {
     return false;
 }
 
-static QByteArray createDatagramHeader(const QUuid& sessionID) {
-    QByteArray header = byteArrayWithPopluatedHeader(PacketTypeMetavoxelData);
-    header += sessionID.toRfc4122();
-    return header;
+MetavoxelSystem::RenderVisitor::RenderVisitor() :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
+}
+
+void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->render(1.0f);
 }
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
     _node(node),
-    _sessionID(QUuid::createUuid()),
-    _sequencer(createDatagramHeader(_sessionID)) {
+    _sequencer(byteArrayWithPopulatedHeader(PacketTypeMetavoxelData)) {
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
@@ -214,22 +201,20 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     _sequencer.sendHighPriorityMessage(QVariant::fromValue(edit));
 }
 
-void MetavoxelClient::simulate(float deltaTime, MetavoxelVisitor& visitor) {
+void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
     ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
-    
-    _data.guide(visitor);
 }
 
-void MetavoxelClient::receivedData(const QByteArray& data) {
+int MetavoxelClient::parseData(const QByteArray& packet) {
     // process through sequencer
-    _sequencer.receivedDatagram(data);
+    QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
+    return packet.size();
 }
 
 void MetavoxelClient::sendData(const QByteArray& data) {
-    QMutexLocker locker(&_node->getMutex());
     NodeList::getInstance()->writeDatagram(data, _node);
 }
 
@@ -264,4 +249,48 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
             handleMessage(element, in);
         }
     }
+}
+
+StaticModelRenderer::StaticModelRenderer() :
+    _model(new Model(this)) {
+}
+
+void StaticModelRenderer::init(Spanner* spanner) {
+    _model->init();
+    
+    StaticModel* staticModel = static_cast<StaticModel*>(spanner);
+    applyTranslation(staticModel->getTranslation());
+    applyRotation(staticModel->getRotation());
+    applyScale(staticModel->getScale());
+    applyURL(staticModel->getURL());
+    
+    connect(spanner, SIGNAL(translationChanged(const glm::vec3&)), SLOT(applyTranslation(const glm::vec3&)));
+    connect(spanner, SIGNAL(rotationChanged(const glm::vec3&)), SLOT(applyRotation(const glm::vec3&)));
+    connect(spanner, SIGNAL(scaleChanged(float)), SLOT(applyScale(float)));
+    connect(spanner, SIGNAL(urlChanged(const QUrl&)), SLOT(applyURL(const QUrl&)));
+}
+
+void StaticModelRenderer::simulate(float deltaTime) {
+    _model->simulate(deltaTime);
+}
+
+void StaticModelRenderer::render(float alpha) {
+    _model->render(alpha);
+}
+
+void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
+    _model->setTranslation(translation);
+}
+
+void StaticModelRenderer::applyRotation(const glm::vec3& rotation) {
+    _model->setRotation(glm::quat(glm::radians(rotation)));
+}
+
+void StaticModelRenderer::applyScale(float scale) {
+    const float SCALE_MULTIPLIER = 0.0006f;
+    _model->setScale(glm::vec3(scale, scale, scale) * SCALE_MULTIPLIER);
+}
+
+void StaticModelRenderer::applyURL(const QUrl& url) {
+    _model->setURL(url);
 }

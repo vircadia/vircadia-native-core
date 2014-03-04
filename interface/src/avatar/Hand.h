@@ -20,7 +20,6 @@
 #include <AudioScriptingInterface.h>
 #include <HandData.h>
 
-#include "BuckyBalls.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "VoxelSystem.h"
@@ -52,7 +51,6 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool isMine);
-    void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
 
     // getters
     const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
@@ -70,7 +68,6 @@ private:
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;
-    glm::vec3      _ballColor;
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;
     
@@ -80,8 +77,6 @@ private:
     glm::vec3 _collisionCenter;
     float _collisionAge;
     float _collisionDuration;
-    
-    BuckyBalls _buckyBalls;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,

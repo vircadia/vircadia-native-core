@@ -9,6 +9,7 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
@@ -181,6 +182,8 @@ public:
     
     QVector<FBXAttachment> attachments;
 };
+
+Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads an FST mapping from the supplied data.
 QVariantHash readMapping(const QByteArray& data);

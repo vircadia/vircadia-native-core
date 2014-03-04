@@ -105,13 +105,13 @@ void GlowEffect::end() {
 }
 
 static void maybeBind(QOpenGLFramebufferObject* fbo) {
-    if (fbo != NULL) {
+    if (fbo) {
         fbo->bind();
     }
 }
 
 static void maybeRelease(QOpenGLFramebufferObject* fbo) {
-    if (fbo != NULL) {
+    if (fbo) {
         fbo->release();
     }
 }

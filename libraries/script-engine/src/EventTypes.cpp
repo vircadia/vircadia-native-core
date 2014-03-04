@@ -104,6 +104,16 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
         text = "HELP";
     } else if (key == Qt::Key_CapsLock) {
         text = "CAPS LOCK";
+    } else if (key >= Qt::Key_A && key <= Qt::Key_Z && (isMeta || isControl || isAlt))  {
+        // this little bit of hackery will fix the text character keys like a-z in cases of control/alt/meta where
+        // qt doesn't always give you the key characters and will sometimes give you crazy non-printable characters
+        const int lowerCaseAdjust = 0x20;
+        QString unicode;
+        if (isShifted) {
+            text = QString(QChar(key));
+        } else {
+            text = QString(QChar(key + lowerCaseAdjust));
+        }
     }
 }
 
@@ -114,6 +124,30 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
         && other.isMeta == isMeta
         && other.isAlt == isAlt
         && other.isKeypad == isKeypad; 
+}
+
+
+KeyEvent::operator QKeySequence() const { 
+    int resultCode = 0;
+    if (text.size() == 1 && text >= "a" && text <= "z") {
+        resultCode = text.toUpper().at(0).unicode();
+    } else {
+        resultCode = key;
+    }
+
+    if (isMeta) {
+        resultCode |= Qt::META;
+    }
+    if (isAlt) {
+        resultCode |= Qt::ALT;
+    }
+    if (isControl) {
+        resultCode |= Qt::CTRL;
+    }
+    if (isShifted) {
+        resultCode |= Qt::SHIFT;
+    }
+    return QKeySequence(resultCode);
 }
 
 QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event) {

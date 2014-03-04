@@ -28,11 +28,6 @@
 #include "FBXReader.h"
 #include "Util.h"
 
-std::ostream& operator<<(std::ostream& s, const glm::vec3& v) {
-    s << "<" << v.x << "," << v.y << "," << v.z << ">";
-    return s;
-}
-
 using namespace std;
 
 void Extents::reset() {
@@ -50,6 +45,8 @@ void Extents::addPoint(const glm::vec3& point) {
     minimum = glm::min(minimum, point);
     maximum = glm::max(maximum, point);
 }
+
+static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 
 template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
@@ -1291,7 +1288,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.shapePosition = glm::vec3(0.f);
         joint.shapeType = Shape::UNKNOWN_SHAPE;
         geometry.joints.append(joint);
-        geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);
+        geometry.jointIndices.insert(model.name, geometry.joints.size());
     }
     // for each joint we allocate a JointShapeInfo in which we'll store collision shape info
     QVector<JointShapeInfo> jointShapeInfos;

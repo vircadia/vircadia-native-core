@@ -19,7 +19,7 @@ class VoxelEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
     /// Send voxel edit message immediately
-    void sendVoxelEditMessage(PacketType type, VoxelDetail& detail);
+    void sendVoxelEditMessage(PacketType type, const VoxelDetail& detail);
 
     /// Queues a single voxel edit message. Will potentially send a pending multi-command packet. Determines which voxel-server
     /// node or nodes the packet should be sent to. Can be called even before voxel servers are known, in which case up to 

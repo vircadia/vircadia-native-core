@@ -104,36 +104,7 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
-//  Safe version of glm::mix; based on the code in Nick Bobick's article,
-//  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
-//  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
-glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
-    float cosa = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
-    float ox = q2.x, oy = q2.y, oz = q2.z, ow = q2.w, s0, s1;
 
-    // adjust signs if necessary
-    if (cosa < 0.0f) {
-        cosa = -cosa;
-        ox = -ox;
-        oy = -oy;
-        oz = -oz;
-        ow = -ow;
-    }
-
-    // calculate coefficients; if the angle is too close to zero, we must fall back
-    // to linear interpolation
-    if ((1.0f - cosa) > EPSILON) {
-        float angle = acosf(cosa), sina = sinf(angle);
-        s0 = sinf((1.0f - proportion) * angle) / sina;
-        s1 = sinf(proportion * angle) / sina;
-
-    } else {
-        s0 = 1.0f - proportion;
-        s1 = proportion;
-    }
-
-    return glm::normalize(glm::quat(s0 * q1.w + s1 * ow, s0 * q1.x + s1 * ox, s0 * q1.y + s1 * oy, s0 * q1.z + s1 * oz));
-}
 
 glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
@@ -255,29 +226,6 @@ void drawVector(glm::vec3 * vector) {
 
 }
 
-//  Render a 2D set of squares using perlin/fractal noise
-void noiseTest(int w, int h) {
-    const float CELLS = 500;
-    const float NOISE_SCALE = 10.0;
-    float xStep = (float) w / CELLS;
-    float yStep = (float) h / CELLS;
-    glBegin(GL_QUADS);
-    for (float x = 0; x < (float)w; x += xStep) {
-        for (float y = 0; y < (float)h; y += yStep) {
-            //  Generate a vector varying between 0-1 corresponding to the screen location
-            glm::vec2 position(NOISE_SCALE * x / (float) w, NOISE_SCALE * y / (float) h);
-            //  Set the cell color using the noise value at that location
-            float color = glm::perlin(position);
-            glColor4f(color, color, color, 1.0);
-            glVertex2f(x, y);
-            glVertex2f(x + xStep, y);
-            glVertex2f(x + xStep, y + yStep);
-            glVertex2f(x, y + yStep);
-        }
-    }
-    glEnd();
-}
-
 void renderWorldBox() {
     //  Show edge of world
     float red[] = {1, 0, 0};
@@ -366,23 +314,20 @@ float widthChar(float scale, int mono, char ch) {
     return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
 }
 
-void drawtext(int x, int y, float scale, float rotate, float thick, int mono,
-              char const* string, float r, float g, float b) {
+void drawText(int x, int y, float scale, float rotate, int mono,
+              char const* string, const float* color) {
     //
     //  Draws text on screen as stroked so it can be resized
     //
     glPushMatrix();
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-    glColor3f(r,g,b);
+    glColor3fv(color);
     glRotated(rotate,0,0,1);
-    // glLineWidth(thick);
     glScalef(scale / 0.10, scale / 0.10, 1.0);
-
     textRenderer(mono)->draw(0, 0, string);
-
     glPopMatrix();
-
 }
+
 
 void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
     //
@@ -418,97 +363,6 @@ void renderCollisionOverlay(int width, int height, float magnitude) {
         glEnd();
     }
 }
-
-void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
-    glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
-
-    glLineWidth(3.0);
-
-    const int HALF_GRID_DIMENSIONS = 4;
-    glBegin(GL_LINES);
-
-    glm::vec3 xColor(0.0, 0.6, 0.0);
-    glColor3fv(&xColor.x);
-
-    glVertex3f(origin.x + HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
-    glVertex3f(origin.x - HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
-
-    glm::vec3 zColor(0.0, 0.0, 0.6);
-    glColor3fv(&zColor.x);
-
-    glVertex3f(origin.x, 0, origin.z + HALF_GRID_DIMENSIONS * mouseVoxelS);
-    glVertex3f(origin.x, 0, origin.z - HALF_GRID_DIMENSIONS * mouseVoxelS);
-
-    glm::vec3 yColor(0.6, 0.0, 0.0);
-    glColor3fv(&yColor.x);
-
-    glVertex3f(origin.x, 0, origin.z);
-    glVertex3f(origin.x, origin.y, origin.z);
-    glEnd();
-}
-
-void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision) {
-    glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
-
-    glLineWidth(1.0);
-
-    const int GRID_DIMENSIONS = 4;
-    const int GRID_SCALER = voxelS / voxelPrecision;
-    const int GRID_SEGMENTS = GRID_DIMENSIONS * GRID_SCALER;
-    glBegin(GL_LINES);
-
-    for (int xz = - (GRID_SEGMENTS / 2); xz <= GRID_SEGMENTS / 2 + GRID_SCALER; xz++) {
-        glm::vec3 xColor(0.0, 0.6, 0.0);
-        glColor3fv(&xColor.x);
-
-        glVertex3f(origin.x + GRID_DIMENSIONS * voxelS, 0, origin.z + xz * voxelPrecision);
-        glVertex3f(origin.x - (GRID_DIMENSIONS - 1) * voxelS, 0, origin.z + xz * voxelPrecision);
-
-        glm::vec3 zColor(0.0, 0.0, 0.6);
-        glColor3fv(&zColor.x);
-
-        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z + GRID_DIMENSIONS * voxelS);
-        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
-    }
-    glEnd();
-
-    glColor3f(1.0f,1.0f,1.0f);
-
-    glBegin(GL_POLYGON);//begin drawing of square
-      glVertex3f(voxelX, 0.0f, voxelZ);//first vertex
-      glVertex3f(voxelX + voxelS, 0.0f, voxelZ);//second vertex
-      glVertex3f(voxelX + voxelS, 0.0f, voxelZ + voxelS);//third vertex
-      glVertex3f(voxelX, 0.0f, voxelZ + voxelS);//fourth vertex
-    glEnd();//end drawing of polygon
-}
-
-void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS) {
-    glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
-
-    glLineWidth(3.0);
-
-    glBegin(GL_LINES);
-
-    glm::vec3 guideColor(1.0, 1.0, 1.0);
-    glColor3fv(&guideColor.x);
-
-    glVertex3f(origin.x + voxelS, 0, origin.z);
-    glVertex3f(origin.x, 0, origin.z);
-
-    glVertex3f(origin.x, 0, origin.z);
-    glVertex3f(origin.x, 0, origin.z + voxelS);
-
-    glVertex3f(origin.x + voxelS, 0, origin.z);
-    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
-
-    glVertex3f(origin.x, 0, origin.z + voxelS);
-    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
-
-    glEnd();
-}
-
-
-
 
 void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
     glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
@@ -549,6 +403,78 @@ void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int
             position.y + perp1.y * s + perp2.y * c,
             position.z + perp1.z * s + perp2.z * c
         );
+    }
+    glEnd();
+}
+
+
+void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
+    glBegin(GL_POLYGON);
+    
+    // left side
+    glVertex2f(x, y + bevelDistance);
+    glVertex2f(x, y + height - bevelDistance);
+    
+    // top side
+    glVertex2f(x + bevelDistance,  y + height);
+    glVertex2f(x + width - bevelDistance, y + height);
+    
+    // right
+    glVertex2f(x + width, y + height - bevelDistance);
+    glVertex2f(x + width, y + bevelDistance);
+    
+    // bottom
+    glVertex2f(x + width - bevelDistance,  y);
+    glVertex2f(x +bevelDistance, y);
+
+    glEnd();
+}
+
+void renderRoundedCornersRect(int x, int y, int width, int height, int radius, int numPointsCorner) {
+#define MAX_POINTS_CORNER 50
+    // At least "2" is needed
+    if (numPointsCorner <= 1) {
+        return;
+    }
+    if (numPointsCorner > MAX_POINTS_CORNER) {
+        numPointsCorner = MAX_POINTS_CORNER;
+    }
+
+    // Precompute sin and cos for [0, pi/2) for the number of points (numPointCorner)
+    double radiusTimesSin[MAX_POINTS_CORNER];
+    double radiusTimesCos[MAX_POINTS_CORNER];
+    int i = 0;
+    for (int i = 0; i < numPointsCorner; i++) {
+        double t = i * PIf /  (2.0f * (numPointsCorner - 1)); 
+        radiusTimesSin[i] = radius * sin(t);
+        radiusTimesCos[i] = radius * cos(t);
+    }
+
+    glm::dvec2 cornerCenter;
+    glBegin(GL_POINTS);
+   
+    // Top left corner
+    cornerCenter = glm::vec2(x + radius, y + height - radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x - radiusTimesCos[i], cornerCenter.y + radiusTimesSin[i]); 
+    }
+
+    // Top rigth corner
+    cornerCenter = glm::vec2(x + width - radius, y + height - radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x + radiusTimesSin[i], cornerCenter.y + radiusTimesCos[i]); 
+    }
+
+    // Bottom right
+    cornerCenter = glm::vec2(x + width - radius, y + radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x + radiusTimesCos[i], cornerCenter.y - radiusTimesSin[i]); 
+    }
+
+    // Bottom left
+    cornerCenter = glm::vec2(x + radius, y + radius);
+    for (i = 0; i < numPointsCorner; i++) {
+        glVertex2d(cornerCenter.x - radiusTimesSin[i], cornerCenter.y - radiusTimesCos[i]); 
     }
     glEnd();
 }

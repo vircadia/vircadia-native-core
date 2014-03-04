@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QScopedPointer>
 #include <QtCore/QUuid>
 
 #include <AvatarData.h>
@@ -62,6 +63,8 @@ enum ScreenTintLayer {
 // Grayson as he's building a street around here for demo dinner 2
 const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
 
+class Texture;
+
 class Avatar : public AvatarData {
     Q_OBJECT
 
@@ -71,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render(bool forceRenderHead);
+    void render();
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -87,6 +90,9 @@ public:
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
+
+    /// Returns the distance to use as a LOD parameter.
+    float getLODDistance() const;
     
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
@@ -114,6 +120,7 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
+    virtual void setBillboard(const QByteArray& billboard);
 
     void setShowDisplayName(bool showDisplayName);
     
@@ -164,13 +171,16 @@ protected:
     float getPelvisFloatingHeight() const;
     float getPelvisToHeadLength() const;
 
+    void renderDisplayName();
+
 private:
 
     bool _initialized;
+    QScopedPointer<Texture> _billboardTexture;
+    bool _shouldRenderBillboard;
 
-    void renderBody(bool forceRenderHead);
-
-    void renderDisplayName();
+    void renderBody();
+    void renderBillboard();
 };
 
 #endif

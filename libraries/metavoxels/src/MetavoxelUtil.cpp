@@ -17,11 +17,9 @@
 #include <QMetaType>
 #include <QPushButton>
 #include <QScriptEngine>
+#include <QSettings>
 #include <QVBoxLayout>
 #include <QtDebug>
-
-#include <HifiSockAddr.h>
-#include <PacketHeaders.h>
 
 #include "MetavoxelUtil.h"
 #include "ScriptCache.h"
@@ -53,6 +51,7 @@ public:
 
 DoubleEditor::DoubleEditor(QWidget* parent) : QDoubleSpinBox(parent) {
     setMinimum(-FLT_MAX);
+    setMaximum(FLT_MAX);
 }
 
 DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
@@ -63,7 +62,7 @@ DelegatingItemEditorFactory::DelegatingItemEditorFactory() :
 
 QWidget* DelegatingItemEditorFactory::createEditor(int userType, QWidget* parent) const {
     QWidget* editor = QItemEditorFactory::createEditor(userType, parent);
-    return (editor == NULL) ? _parentFactory->createEditor(userType, parent) : editor;
+    return (!editor) ? _parentFactory->createEditor(userType, parent) : editor;
 }
 
 QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {
@@ -104,9 +103,21 @@ static QItemEditorCreatorBase* createDoubleEditorCreator() {
     return creator;
 }
 
+static QItemEditorCreatorBase* createQMetaObjectEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QMetaObjectEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<const QMetaObject*>(), creator);
+    return creator;
+} 
+
 static QItemEditorCreatorBase* createQColorEditorCreator() {
     QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QColorEditor>();
     getItemEditorFactory()->registerEditor(qMetaTypeId<QColor>(), creator);
+    return creator;
+}
+
+static QItemEditorCreatorBase* createQUrlEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<QUrlEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<QUrl>(), creator);
     return creator;
 }
 
@@ -123,23 +134,11 @@ static QItemEditorCreatorBase* createParameterizedURLEditorCreator() {
 }
 
 static QItemEditorCreatorBase* doubleEditorCreator = createDoubleEditorCreator();
+static QItemEditorCreatorBase* qMetaObjectEditorCreator = createQMetaObjectEditorCreator();
 static QItemEditorCreatorBase* qColorEditorCreator = createQColorEditorCreator();
+static QItemEditorCreatorBase* qUrlEditorCreator = createQUrlEditorCreator();
 static QItemEditorCreatorBase* vec3EditorCreator = createVec3EditorCreator();
 static QItemEditorCreatorBase* parameterizedURLEditorCreator = createParameterizedURLEditorCreator();
-
-QUuid readSessionID(const QByteArray& data, const SharedNodePointer& sendingNode, int& headerPlusIDSize) {
-    // get the header size
-    int headerSize = numBytesForPacketHeader(data);
-    
-    // read the session id
-    const int UUID_BYTES = 16;
-    headerPlusIDSize = headerSize + UUID_BYTES;
-    if (data.size() < headerPlusIDSize) {
-        qWarning() << "Metavoxel data too short [size=" << data.size() << ", sendingNode=" << sendingNode << "]\n";
-        return QUuid();
-    }
-    return QUuid::fromRfc4122(QByteArray::fromRawData(data.constData() + headerSize, UUID_BYTES));
-}
 
 QByteArray signal(const char* signature) {
     static QByteArray prototype = SIGNAL(dummyMethod());
@@ -147,10 +146,43 @@ QByteArray signal(const char* signature) {
     return signal.replace("dummyMethod()", signature);
 }
 
+Box::Box(const glm::vec3& minimum, const glm::vec3& maximum) :
+    minimum(minimum), maximum(maximum) {
+}
+
 bool Box::contains(const Box& other) const {
     return other.minimum.x >= minimum.x && other.maximum.x <= maximum.x &&
         other.minimum.y >= minimum.y && other.maximum.y <= maximum.y &&
         other.minimum.z >= minimum.z && other.maximum.z <= maximum.z;
+}
+
+bool Box::intersects(const Box& other) const {
+    return other.maximum.x >= minimum.x && other.minimum.x <= maximum.x &&
+        other.maximum.y >= minimum.y && other.minimum.y <= maximum.y &&
+        other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
+}
+
+QMetaObjectEditor::QMetaObjectEditor(QWidget* parent) : QWidget(parent) {
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setContentsMargins(QMargins());
+    layout->setAlignment(Qt::AlignTop);
+    setLayout(layout);
+    layout->addWidget(_box = new QComboBox());
+    connect(_box, SIGNAL(currentIndexChanged(int)), SLOT(updateMetaObject()));
+    
+    foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(&SharedObject::staticMetaObject)) {
+        _box->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+    }
+}
+
+void QMetaObjectEditor::setMetaObject(const QMetaObject* metaObject) {
+    _metaObject = metaObject;
+    _box->setCurrentIndex(_metaObject ? _box->findText(_metaObject->className()) : -1);
+}
+
+void QMetaObjectEditor::updateMetaObject() {
+    int index = _box->currentIndex();
+    emit metaObjectChanged(_metaObject = (index == -1) ? NULL : _box->itemData(index).value<const QMetaObject*>());
 }
 
 QColorEditor::QColorEditor(QWidget* parent) : QWidget(parent) {
@@ -174,6 +206,36 @@ void QColorEditor::selectColor() {
         setColor(color);
         emit colorChanged(color);
     }
+}
+
+QUrlEditor::QUrlEditor(QWidget* parent) :
+    QComboBox(parent) {
+    
+    setEditable(true);
+    setInsertPolicy(InsertAtTop);
+    
+    // populate initial URL list from settings
+    addItems(QSettings().value("editorURLs").toStringList());
+    
+    connect(this, SIGNAL(activated(const QString&)), SLOT(updateURL(const QString&)));
+    connect(model(), SIGNAL(rowsInserted(const QModelIndex&,int,int)), SLOT(updateSettings()));
+}
+
+void QUrlEditor::setURL(const QUrl& url) {
+    setCurrentText((_url = url).toString());
+}
+
+void QUrlEditor::updateURL(const QString& text) {
+    emit urlChanged(_url = text);
+}
+
+void QUrlEditor::updateSettings() {
+    QStringList urls;
+    const int MAX_STORED_URLS = 10;
+    for (int i = 0, size = qMin(MAX_STORED_URLS, count()); i < size; i++) {
+        urls.append(itemText(i));
+    }
+    QSettings().setValue("editorURLs", urls);
 }
 
 Vec3Editor::Vec3Editor(QWidget* parent) : QWidget(parent) {
@@ -200,7 +262,8 @@ void Vec3Editor::updateVector() {
 QDoubleSpinBox* Vec3Editor::createComponentBox() {
     QDoubleSpinBox* box = new QDoubleSpinBox();
     box->setMinimum(-FLT_MAX);
-    box->setMaximumWidth(100);
+    box->setMaximum(FLT_MAX);
+    box->setMinimumWidth(50);
     connect(box, SIGNAL(valueChanged(double)), SLOT(updateVector()));
     return box;
 }
@@ -252,8 +315,9 @@ ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
     lineContainer->setLayout(lineLayout);
     lineLayout->setContentsMargins(QMargins());
     
-    lineLayout->addWidget(_line = new QLineEdit(), 1);
-    connect(_line, SIGNAL(textChanged(const QString&)), SLOT(updateURL()));
+    lineLayout->addWidget(&_urlEditor, 1);
+    connect(&_urlEditor, SIGNAL(urlChanged(const QUrl&)), SLOT(updateURL()));
+    connect(&_urlEditor, SIGNAL(urlChanged(const QUrl&)), SLOT(updateParameters()));
     
     QPushButton* refresh = new QPushButton("...");
     connect(refresh, SIGNAL(clicked(bool)), SLOT(updateParameters()));
@@ -261,8 +325,7 @@ ParameterizedURLEditor::ParameterizedURLEditor(QWidget* parent) :
 }
 
 void ParameterizedURLEditor::setURL(const ParameterizedURL& url) {
-    _url = url;
-    _line->setText(url.getURL().toString());
+    _urlEditor.setURL((_url = url).getURL());
     updateParameters();
 }
 
@@ -279,7 +342,7 @@ void ParameterizedURLEditor::updateURL() {
                 widget->property("parameterName").toString()), widgetProperty.read(widget));
         }
     }
-    emit urlChanged(_url = ParameterizedURL(_line->text(), parameters));
+    emit urlChanged(_url = ParameterizedURL(_urlEditor.getURL(), parameters));
     if (_program) {
         _program->disconnect(this);
     }

@@ -20,7 +20,6 @@
 using namespace std;
 
 const float FINGERTIP_COLLISION_RADIUS = 0.01f;
-const float FINGERTIP_VOXEL_SIZE = 0.05f;
 const float PALM_COLLISION_RADIUS = 0.03f;
 
 
@@ -29,7 +28,6 @@ Hand::Hand(Avatar* owningAvatar) :
 
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _ballColor(0.0, 0.0, 0.4),
     _collisionCenter(0,0,0),
     _collisionAge(0),
     _collisionDuration(0)
@@ -37,13 +35,6 @@ Hand::Hand(Avatar* owningAvatar) :
 }
 
 void Hand::init() {
-    // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
-        _ballColor = glm::vec3(0.0, 0.4, 0.0);
-    }
-    else {
-        _ballColor = glm::vec3(0.0, 0.0, 0.4);
-    }
 }
 
 void Hand::reset() {
@@ -55,71 +46,12 @@ void Hand::simulate(float deltaTime, bool isMine) {
         _collisionAge += deltaTime;
     }
     
-    if (isMine) {
-        _buckyBalls.simulate(deltaTime);
-    }
-    
     calculateGeometry();
     
     if (isMine) {
         //  Iterate hand controllers, take actions as needed
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
-            if (palm.isActive()) {
-                FingerData& finger = palm.getFingers()[0];   //  Sixense has only one finger
-                glm::vec3 fingerTipPosition = finger.getTipPosition();
-                
-                _buckyBalls.grab(palm, fingerTipPosition, _owningAvatar->getOrientation(), deltaTime);
-                
-                if (palm.getControllerButtons() & BUTTON_1) {
-                    if (glm::length(fingerTipPosition - _lastFingerAddVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
-                        Application::getInstance()->makeVoxel(fingerTipPosition,
-                                                              FINGERTIP_VOXEL_SIZE,
-                                                              paintColor.red(),
-                                                              paintColor.green(),
-                                                              paintColor.blue(),
-                                                              true);
-                        _lastFingerAddVoxel = fingerTipPosition;
-                    }
-                } else if (palm.getControllerButtons() & BUTTON_2) {
-                    if (glm::length(fingerTipPosition - _lastFingerDeleteVoxel) > (FINGERTIP_VOXEL_SIZE / 2.f)) {
-                        Application::getInstance()->removeVoxel(fingerTipPosition, FINGERTIP_VOXEL_SIZE);
-                        _lastFingerDeleteVoxel = fingerTipPosition;
-                    }
-                }
-                
-                //  Voxel Drumming with fingertips if enabled
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDrumming)) {
-                    VoxelTreeElement* fingerNode = Application::getInstance()->getVoxels()->getVoxelEnclosing(
-                                                                                glm::vec3(fingerTipPosition / (float)TREE_SCALE));
-                    if (fingerNode) {
-                        if (!palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just started
-                            palm.setIsCollidingWithVoxel(true);
-                            handleVoxelCollision(&palm, fingerTipPosition, fingerNode, deltaTime);
-                            //  Set highlight voxel
-                            VoxelDetail voxel;
-                            glm::vec3 pos = fingerNode->getCorner();
-                            voxel.x = pos.x;
-                            voxel.y = pos.y;
-                            voxel.z = pos.z;
-                            voxel.s = fingerNode->getScale();
-                            voxel.red = fingerNode->getColor()[0];
-                            voxel.green = fingerNode->getColor()[1];
-                            voxel.blue = fingerNode->getColor()[2];
-                            Application::getInstance()->setHighlightVoxel(voxel);
-                            Application::getInstance()->setIsHighlightVoxel(true);
-                        }
-                    } else {
-                        if (palm.getIsCollidingWithVoxel()) {
-                            //  Collision has just ended
-                            palm.setIsCollidingWithVoxel(false);
-                            Application::getInstance()->setIsHighlightVoxel(false);
-                        }
-                    }
-                }
-            }
             palm.setLastControllerButtons(palm.getControllerButtons());
         }
     }
@@ -310,10 +242,6 @@ void Hand::render(bool isMine) {
     
     _renderAlpha = 1.0;
     
-    if (isMine) {
-        _buckyBalls.render();
-    }
-    
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
@@ -358,7 +286,6 @@ void Hand::renderLeapHands(bool isMine) {
 
     const float alpha = 1.0f;
     
-    //const glm::vec3 handColor = _ballColor;
     const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
     
     glEnable(GL_DEPTH_TEST);

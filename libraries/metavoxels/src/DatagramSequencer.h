@@ -70,7 +70,7 @@ public:
     
     /// Processes a datagram received from the other party, emitting readyToRead when the entire packet
     /// has been successfully assembled.
-    void receivedDatagram(const QByteArray& datagram);
+    Q_INVOKABLE void receivedDatagram(const QByteArray& datagram);
 
 signals:
     
@@ -94,6 +94,7 @@ signals:
 private slots:
 
     void sendClearSharedObjectMessage(int id);
+    void handleHighPriorityMessage(const QVariant& data);
     
 private:
     
@@ -132,8 +133,6 @@ private:
     /// Sends a packet to the other party, fragmenting it into multiple datagrams (and emitting
     /// readyToWrite) as necessary.
     void sendPacket(const QByteArray& packet, const QVector<ChannelSpan>& spans);
-    
-    void handleHighPriorityMessage(const QVariant& data);
     
     QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
@@ -184,6 +183,12 @@ public:
 
     /// Reads part of the data from the buffer.
     QByteArray readBytes(int offset, int length) const;
+
+    /// Reads part of the data from the buffer.
+    void readBytes(int offset, int length, char* data) const;
+
+    /// Writes to part of the data in the buffer.
+    void writeBytes(int offset, int length, const char* data);
 
     /// Writes part of the buffer to the supplied stream.
     void writeToStream(int offset, int length, QDataStream& out) const;
@@ -267,12 +272,22 @@ public:
 
     int getBytesAvailable() const;
 
+    /// Sets whether we expect to write/read framed messages.
+    void setMessagesEnabled(bool enabled) { _messagesEnabled = enabled; }
+    bool getMessagesEnabled() const { return _messagesEnabled; }
+
+    /// Sends a framed message on this channel.
     void sendMessage(const QVariant& message);
+
+signals:
+
+    void receivedMessage(const QVariant& message);
 
 private slots:
 
     void sendClearSharedObjectMessage(int id);
-
+    void handleMessage(const QVariant& message);
+    
 private:
     
     friend class DatagramSequencer;
@@ -297,6 +312,7 @@ private:
     int _offset;
     int _writePosition;
     SpanList _acknowledged;
+    bool _messagesEnabled;
 };
 
 #endif /* defined(__interface__DatagramSequencer__) */

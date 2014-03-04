@@ -21,9 +21,9 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _shapesAreDirty(true)
-{
+    _shapesAreDirty(true) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -49,6 +49,17 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
     program.release();
+}
+
+QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry) {
+    QVector<JointState> jointStates;
+    foreach (const FBXJoint& joint, geometry.joints) {
+        JointState state;
+        state.translation = joint.translation;
+        state.rotation = joint.rotation;
+        jointStates.append(state);
+    }
+    return jointStates;
 }
 
 void Model::init() {
@@ -94,38 +105,6 @@ void Model::reset() {
     }
 }
 
-void Model::createJointStates() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    foreach (const FBXJoint& joint, geometry.joints) {
-        JointState state;
-        state.translation = joint.translation;
-        state.rotation = joint.rotation;
-        _jointStates.append(state);
-    }
-    foreach (const FBXMesh& mesh, geometry.meshes) {
-        MeshState state;
-        state.clusterMatrices.resize(mesh.clusters.size());
-        if (mesh.springiness > 0.0f) {
-            state.worldSpaceVertices.resize(mesh.vertices.size());
-            state.vertexVelocities.resize(mesh.vertices.size());
-            state.worldSpaceNormals.resize(mesh.vertices.size());
-        }
-        _meshStates.append(state);    
-    }
-    foreach (const FBXAttachment& attachment, geometry.attachments) {
-        Model* model = new Model(this);
-        model->init();
-        model->setURL(attachment.url);
-        _attachments.append(model);
-    }
-    _resetStates = true;
-
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i);
-    }
-    createCollisionShapes();
-}
-
 void Model::clearShapes() {
     for (int i = 0; i < _shapes.size(); ++i) {
         delete _shapes[i];
@@ -134,6 +113,7 @@ void Model::clearShapes() {
 }
 
 void Model::createCollisionShapes() {
+    clearShapes();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     float uniformScale = extractUniformScale(_scale);
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -173,33 +153,43 @@ void Model::updateShapePositions() {
     }
 }
 
-void Model::simulate(float deltaTime) {
+void Model::simulate(float deltaTime, bool delayLoad) {
     // update our LOD
-    if (_geometry) {
-        QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(glm::distance(_translation,
-            Application::getInstance()->getCamera()->getPosition()), _lodHysteresis);
-        if (_geometry != geometry) {
-            deleteGeometry();
-            _dilatedTextures.clear();
-            _geometry = geometry;
-        }
-    }
+    QVector<JointState> newJointStates = updateGeometry(delayLoad);
     if (!isActive()) {
         return;
     }
     
     // set up world vertices on first simulate after load
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_jointStates.isEmpty()) {
-        createJointStates();
-    } else {
-        // update the world space transforms for all joints
-        for (int i = 0; i < _jointStates.size(); i++) {
-            updateJointState(i);
+        _jointStates = newJointStates.isEmpty() ? createJointStates(geometry) : newJointStates;
+        foreach (const FBXMesh& mesh, geometry.meshes) {
+            MeshState state;
+            state.clusterMatrices.resize(mesh.clusters.size());
+            if (mesh.springiness > 0.0f) {
+                state.worldSpaceVertices.resize(mesh.vertices.size());
+                state.vertexVelocities.resize(mesh.vertices.size());
+                state.worldSpaceNormals.resize(mesh.vertices.size());
+            }
+            _meshStates.append(state);    
         }
+        foreach (const FBXAttachment& attachment, geometry.attachments) {
+            Model* model = new Model(this);
+            model->init();
+            model->setURL(attachment.url);
+            _attachments.append(model);
+        }
+        _resetStates = true;
+        createCollisionShapes();
+    }
+    
+    // update the world space transforms for all joints
+    for (int i = 0; i < _jointStates.size(); i++) {
+        updateJointState(i);
     }
     
     // update the attachment transforms and simulate them
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _attachments.size(); i++) {
         const FBXAttachment& attachment = geometry.attachments.at(i);
         Model* model = _attachments.at(i);
@@ -338,7 +328,7 @@ bool Model::render(float alpha) {
     // render opaque meshes with alpha testing
     
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
+    glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
     renderMeshes(alpha, false);
     
@@ -471,20 +461,18 @@ float Model::getRightArmLength() const {
     return getLimbLength(getRightHandJointIndex());
 }
 
-void Model::setURL(const QUrl& url, const QUrl& fallback) {
+void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
     }
     _url = url;
 
-    // delete our local geometry and custom textures
-    deleteGeometry();
-    _dilatedTextures.clear();
-    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
-    
-    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback);
+    // if so instructed, keep the current geometry until the new one is loaded 
+    _nextBaseGeometry = _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
+        applyNextGeometry();
+    }
 }
 
 glm::vec4 Model::computeAverageColor() const {
@@ -783,26 +771,22 @@ void Model::renderCollisionProxies(float alpha) {
             capsule->getEndPoint(endPoint);
             endPoint = inverseRotation * (endPoint - _translation);
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);
-            glColor4f(0.65f, 0.65f, 0.95f, alpha);
-            glutSolidSphere(0.95f * capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+            glColor4f(0.6f, 0.6f, 0.8f, alpha);
+            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
 
-            // draw a red sphere at the capsule startpoint
+            // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
             startPoint = inverseRotation * (startPoint - _translation);
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
-            glColor4f(0.95f, 0.65f, 0.65f, alpha);
-            glutSolidSphere(0.95f * capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+            glColor4f(0.8f, 0.8f, 0.6f, alpha);
+            glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
             
             // draw a green cylinder between the two points
             glm::vec3 origin(0.f);
-            glColor4f(0.05f, 0.95f, 0.65f, alpha);
-            Avatar::renderJointConnectingCone(
-                origin,
-                axis,
-                1.05f * capsule->getRadius(),
-                1.05f * capsule->getRadius());
+            glColor4f(0.6f, 0.8f, 0.6f, alpha);
+            Avatar::renderJointConnectingCone( origin, axis, capsule->getRadius(), capsule->getRadius());
         }
         glPopMatrix();
     }
@@ -857,6 +841,61 @@ void Model::applyCollision(CollisionInfo& collision) {
     }
 }
 
+QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
+    QVector<JointState> newJointStates;
+    if (_nextGeometry) {
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+        if (!delayLoad) {
+            _nextGeometry->setLoadPriority(this, -_lodDistance);
+            _nextGeometry->ensureLoading();
+        }
+        if (_nextGeometry->isLoaded()) {
+            applyNextGeometry();
+            return newJointStates;
+        }
+    }
+    if (!_geometry) {
+        return newJointStates;
+    }
+    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+    if (_geometry != geometry) {
+        if (!_jointStates.isEmpty()) {
+            // copy the existing joint states
+            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
+            const FBXGeometry& newGeometry = geometry->getFBXGeometry();
+            newJointStates = createJointStates(newGeometry);
+            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
+                    it != oldGeometry.jointIndices.constEnd(); it++) {
+                int newIndex = newGeometry.jointIndices.value(it.key());
+                if (newIndex != 0) {
+                    newJointStates[newIndex - 1] = _jointStates.at(it.value() - 1);
+                }
+            }
+        }
+        deleteGeometry();
+        _dilatedTextures.clear();
+        _geometry = geometry;
+    }
+    if (!delayLoad) {
+        _geometry->setLoadPriority(this, -_lodDistance);
+        _geometry->ensureLoading();
+    }
+    return newJointStates;
+}
+
+void Model::applyNextGeometry() {
+    // delete our local geometry and custom textures
+    deleteGeometry();
+    _dilatedTextures.clear();
+    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
+    
+    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
+    _baseGeometry = _nextBaseGeometry;
+    _geometry = _nextGeometry;
+    _nextBaseGeometry.reset();
+    _nextGeometry.reset();
+}
+
 void Model::deleteGeometry() {
     foreach (Model* attachment, _attachments) {
         delete attachment;
@@ -869,6 +908,10 @@ void Model::deleteGeometry() {
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
+    
+    if (_geometry) {
+        _geometry->clearLoadPriority(this);
+    }
 }
 
 void Model::renderMeshes(float alpha, bool translucent) {
@@ -990,7 +1033,7 @@ void Model::renderMeshes(float alpha, bool translucent) {
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor3f(1.0f, 1.0f, 1.0f);
+            glColor4f(1.0f, 1.0f, 1.0f, alpha);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1014,18 +1057,18 @@ void Model::renderMeshes(float alpha, bool translucent) {
         
             Texture* diffuseMap = networkPart.diffuseTexture.data();
             if (mesh.isEye) {
-                if (diffuseMap != NULL) {
+                if (diffuseMap) {
                     diffuseMap = (_dilatedTextures[i][j] =
                         static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                 }
             }
-            glBindTexture(GL_TEXTURE_2D, diffuseMap == NULL ?
+            glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
                 Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
             
             if (!mesh.tangents.isEmpty()) {
                 glActiveTexture(GL_TEXTURE1);                
                 Texture* normalMap = networkPart.normalTexture.data();
-                glBindTexture(GL_TEXTURE_2D, normalMap == NULL ?
+                glBindTexture(GL_TEXTURE_2D, !normalMap ?
                     Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
                 glActiveTexture(GL_TEXTURE0);
             }

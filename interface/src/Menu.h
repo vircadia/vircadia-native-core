@@ -14,7 +14,9 @@
 #include <QKeySequence>
 #include <QPointer>
 
-#include <AbstractMenuInterface.h>
+#include <EventTypes.h>
+#include <MenuItemProperties.h>
+#include <OctreeConstants.h>
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -25,7 +27,7 @@ const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
 const float ADJUST_LOD_DOWN_BY = 0.9f;
 const float ADJUST_LOD_UP_BY = 1.1f;
 
-const float ADJUST_LOD_MIN_SIZE_SCALE = TREE_SCALE * 1.0f;
+const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.25f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
 enum FrustumDrawMode {
@@ -52,8 +54,9 @@ class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class VoxelStatsDialog;
+class MenuItemProperties;
 
-class Menu : public QMenuBar, public AbstractMenuInterface {
+class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
@@ -63,7 +66,6 @@ public:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-    bool isVoxelModeActionChecked();
 
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -76,32 +78,38 @@ public:
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
-
     void handleViewFrustumOffsetKeyModifier(int key);
 
     // User Tweakable LOD Items
     void autoAdjustLOD(float currentFPS);
     void setVoxelSizeScale(float sizeScale);
     float getVoxelSizeScale() const { return _voxelSizeScale; }
+    float getAvatarLODDistanceMultiplier() const { return DEFAULT_OCTREE_SIZE_SCALE / _voxelSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
     // User Tweakable PPS from Voxel Server
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
 
-    virtual QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
-    virtual QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString actionName,
+    QMenu* getActiveScriptsMenu() { return _activeScriptsMenu;}
+
+    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+                                           const QString& actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole);
-    virtual void removeAction(QMenu* menu, const QString& actionName);
+                                           QAction::MenuRole role = QAction::NoRole,
+                                           int menuItemLocation = UNSPECIFIED_POSITION);
+
+    void removeAction(QMenu* menu, const QString& actionName);
+
     bool goToDestination(QString destination);
     void goToOrientation(QString orientation);
     void goToDomain(const QString newDomain);
 
 public slots:
+
+    void loginForCurrentDomain();
     void bandwidthDetails();
     void voxelStatsDetails();
     void lodTools();
@@ -111,10 +119,18 @@ public slots:
     void exportSettings();
     void goTo();
     void pasteToVoxel();
+    
+    void toggleLoginMenuItem();
+
+    QMenu* addMenu(const QString& menuName);
+    void removeMenu(const QString& menuName);
+    void addSeparator(const QString& menuName, const QString& separatorName);
+    void removeSeparator(const QString& menuName, const QString& separatorName);
+    void addMenuItem(const MenuItemProperties& properties);
+    void removeMenuItem(const QString& menuName, const QString& menuitem);
 
 private slots:
     void aboutApp();
-    void login();
     void editPreferences();
     void goToDomainDialog();
     void goToLocation();
@@ -122,10 +138,7 @@ private slots:
     void voxelStatsDetailsClosed();
     void lodToolsClosed();
     void cycleFrustumRenderMode();
-    void updateVoxelModeActions();
-    void chooseVoxelPaintColor();
     void runTests();
-    void resetSwatchColors();
     void showMetavoxelEditor();
     void audioMuteToggled();
 
@@ -141,18 +154,30 @@ private:
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, 
+                                                int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                                    const QString actionName,
+                                                    const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
-                                                    const char* member = NULL);
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void updateFrustumRenderModeAction();
 
     void addAvatarCollisionSubMenu(QMenu* overMenu);
+
+    QAction* getActionFromName(const QString& menuName, QMenu* menu);
+    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
+    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+
+    QAction* getMenuAction(const QString& menuName);
+    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
+    QMenu* getMenu(const QString& menuName);
+    
 
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -161,7 +186,6 @@ private:
     float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
-    QActionGroup* _voxelModeActionsGroup;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
     VoxelStatsDialog* _voxelStatsDialog;
     LodToolsDialog* _lodToolsDialog;
@@ -173,6 +197,8 @@ private:
     QMenu* _activeScriptsMenu;
     QString replaceLastOccurrence(QChar search, QChar replace, QString string);
     quint64 _lastAdjust;
+    SimpleMovingAverage _fpsAverage;
+    QAction* _loginAction;
 };
 
 namespace MenuOption {
@@ -180,52 +206,32 @@ namespace MenuOption {
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString Atmosphere = "Atmosphere";
-    const QString AutoAdjustLOD = "Automatically Adjust LOD";
-    const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
+    const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BuckyBalls = "Bucky Balls";
     const QString ChatCircling = "Chat Circling";
     const QString Collisions = "Collisions";
     const QString CollideWithAvatars = "Collide With Avatars";
     const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CopyVoxels = "Copy";
-    const QString CoverageMap = "Render Coverage Map";
-    const QString CoverageMapV2 = "Render Coverage Map V2";
-    const QString CutVoxels = "Cut";
+    const QString CullSharedFaces = "Cull Shared Voxel Faces";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
-    const QString DeleteVoxels = "Delete";
-    const QString DestructiveAddVoxel = "Create Voxel is Destructive";
-    const QString DisableColorVoxels = "Disable Colored Voxels";
-    const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Display Hands";
     const QString DisplayHandTargets = "Display Hand Targets";
     const QString FilterSixense = "Smooth Sixense Movement";
-    const QString DontRenderVoxels = "Don't call _voxels.render()";
-    const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString EnableOcclusionCulling = "Enable Occlusion Culling";
-    const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString MuteAudio = "Mute Microphone";
-    const QString ExportVoxels = "Export Voxels";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString HandsCollideWithSelf = "Collide With Self";
     const QString FaceshiftTCP = "Faceshift (TCP)";
-    const QString FalseColorByDistance = "FALSE Color By Distance";
-    const QString FalseColorBySource = "FALSE Color By Source";
-    const QString FalseColorEveryOtherVoxel = "FALSE Color Every Other Randomly";
-    const QString FalseColorOccluded = "FALSE Color Occluded Voxels";
-    const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
-    const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
-    const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
@@ -235,23 +241,20 @@ namespace MenuOption {
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
     const QString GoTo = "Go To...";
-    const QString ImportVoxels = "Import Voxels";
-    const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
-    const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
+    const QString Logout = "Logout";
     const QString LookAtVectors = "Look-at Vectors";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
     const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
-    const QString NudgeVoxels = "Nudge";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
@@ -259,42 +262,29 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script...";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
-    const QString PasteVoxels = "Paste";
+    const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString PlaySlaps = "Play Slaps";
     const QString Preferences = "Preferences...";
-    const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderSkeletonCollisionProxies = "Skeleton Collision Proxies";
     const QString RenderHeadCollisionProxies = "Head Collision Proxies";
     const QString ResetAvatarSize = "Reset Avatar Size";
-    const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
     const QString SettingsImport = "Import Settings";
     const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
-    const QString ShowAllLocalVoxels = "Show All Local Voxels";
-    const QString ShowTrueColors = "Show TRUE Colors";
+    const QString ShowCulledSharedFaces = "Show Culled Shared Voxel Faces";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString TestPing = "Test Ping";
-    const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
-    const QString UseVoxelShader = "Use Voxel Shader";
-    const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";
-    const QString VoxelAddMode = "Add Voxel Mode";
-    const QString VoxelColorMode = "Color Voxel Mode";
-    const QString VoxelDeleteMode = "Delete Voxel Mode";
-    const QString VoxelDrumming = "Voxel Drumming";
-    const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
-    const QString VoxelPaintColor = "Voxel Paint Color";
-    const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
 }

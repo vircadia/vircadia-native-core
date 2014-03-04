@@ -69,7 +69,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(bool forceRenderMyHead, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors);
@@ -83,16 +83,16 @@ void AvatarManager::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
                 avatar->init();
             }
             if (avatar == static_cast<Avatar*>(_myAvatar.data())) {
-                avatar->render(forceRenderHead);
+                _myAvatar->render(forceRenderMyHead);
             } else {
-                avatar->render(true);
+                avatar->render();
             }
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
         renderAvatarFades();
     } else {
         // just render myAvatar
-        _myAvatar->render(forceRenderHead);
+        _myAvatar->render(forceRenderMyHead, true);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -121,7 +121,7 @@ void AvatarManager::renderAvatarFades() {
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        avatar->render(false);
+        avatar->render();
     }
 }
 
@@ -132,6 +132,9 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
             break;
         case PacketTypeAvatarIdentity:
             processAvatarIdentityPacket(datagram);
+            break;
+        case PacketTypeAvatarBillboard:
+            processAvatarBillboardPacket(datagram);
             break;
         case PacketTypeKillAvatar:
             processKillAvatar(datagram);
@@ -144,7 +147,7 @@ void AvatarManager::processAvatarMixerDatagram(const QByteArray& datagram, const
 void AvatarManager::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
     int bytesRead = numBytesForPacketHeader(datagram);
     
-    QByteArray dummyAvatarByteArray = byteArrayWithPopluatedHeader(PacketTypeAvatarData);
+    QByteArray dummyAvatarByteArray = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
     int numDummyHeaderBytes = dummyAvatarByteArray.size();
     int numDummyHeaderBytesWithoutUUID = numDummyHeaderBytes - NUM_BYTES_RFC4122_UUID;
     
@@ -208,6 +211,20 @@ void AvatarManager::processAvatarIdentityPacket(const QByteArray &packet) {
             if (avatar->getDisplayName() != displayName) {
                 avatar->setDisplayName(displayName);
             }
+        }
+    }
+}
+
+void AvatarManager::processAvatarBillboardPacket(const QByteArray& packet) {
+    int headerSize = numBytesForPacketHeader(packet);
+    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.constData() + headerSize, NUM_BYTES_RFC4122_UUID));
+    
+    AvatarSharedPointer matchingAvatar = _avatarHash.value(nodeUUID);
+    if (matchingAvatar) {
+        Avatar* avatar = static_cast<Avatar*>(matchingAvatar.data());
+        QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
+        if (avatar->getBillboard() != billboard) {
+            avatar->setBillboard(billboard);
         }
     }
 }

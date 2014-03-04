@@ -16,7 +16,9 @@
 #include "MetavoxelUtil.h"
 #include "SharedObject.h"
 
-SharedObject::SharedObject() : _referenceCount(0) {
+REGISTER_META_OBJECT(SharedObject)
+
+SharedObject::SharedObject() : _id(++_lastID), _referenceCount(0) {
 }
 
 void SharedObject::incrementReferenceCount() {
@@ -72,63 +74,17 @@ bool SharedObject::equals(const SharedObject* other) const {
     return true;
 }
 
-SharedObjectPointer::SharedObjectPointer(SharedObject* data) : _data(data) {
-    if (_data) {
-        _data->incrementReferenceCount();
+void SharedObject::dump(QDebug debug) const {
+    debug << this;
+    const QMetaObject* metaObject = this->metaObject();
+    for (int i = 0; i < metaObject->propertyCount(); i++) {
+        debug << metaObject->property(i).name() << metaObject->property(i).read(this);
     }
 }
 
-SharedObjectPointer::SharedObjectPointer(const SharedObjectPointer& other) : _data(other._data) {
-    if (_data) {
-        _data->incrementReferenceCount();
-    }
-}
+int SharedObject::_lastID = 0;
 
-SharedObjectPointer::~SharedObjectPointer() {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-}
-
-void SharedObjectPointer::detach() {
-    if (_data && _data->getReferenceCount() > 1) {
-        _data->decrementReferenceCount();
-        (_data = _data->clone())->incrementReferenceCount();
-    }
-}
-
-void SharedObjectPointer::reset() {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    _data = NULL;
-}
-
-SharedObjectPointer& SharedObjectPointer::operator=(SharedObject* data) {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    if ((_data = data)) {
-        _data->incrementReferenceCount();
-    }
-    return *this;
-}
-
-SharedObjectPointer& SharedObjectPointer::operator=(const SharedObjectPointer& other) {
-    if (_data) {
-        _data->decrementReferenceCount();
-    }
-    if ((_data = other._data)) {
-        _data->incrementReferenceCount();
-    }
-    return *this;
-}
-
-uint qHash(const SharedObjectPointer& pointer, uint seed) {
-    return qHash(pointer.data(), seed);
-}
-
-SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* parent) : QWidget(parent) {
+SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, bool nullable, QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setAlignment(Qt::AlignTop);
     setLayout(layout);
@@ -137,11 +93,17 @@ SharedObjectEditor::SharedObjectEditor(const QMetaObject* metaObject, QWidget* p
     layout->addLayout(form);
     
     form->addRow("Type:", _type = new QComboBox());
-    _type->addItem("(none)");
+    if (nullable) {
+        _type->addItem("(none)");
+    }
     foreach (const QMetaObject* metaObject, Bitstream::getMetaObjectSubClasses(metaObject)) {
-        _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+        // add add constructable subclasses
+        if (metaObject->constructorCount() > 0) {
+            _type->addItem(metaObject->className(), QVariant::fromValue(metaObject));
+        }
     }
     connect(_type, SIGNAL(currentIndexChanged(int)), SLOT(updateType()));
+    updateType();
 }
 
 void SharedObjectEditor::setObject(const SharedObjectPointer& object) {
@@ -155,6 +117,22 @@ void SharedObjectEditor::setObject(const SharedObjectPointer& object) {
         } else {
             _type->setCurrentIndex(index);
         }
+    }
+}
+
+void SharedObjectEditor::detachObject() {
+    SharedObject* oldObject = _object.data();
+    if (!_object.detach()) {
+        return;
+    }
+    oldObject->disconnect(this);
+    const QMetaObject* metaObject = _object->metaObject();
+    
+    QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+    for (int i = 0; i < form->rowCount(); i++) {
+        QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+        QMetaProperty property = metaObject->property(widget->property("propertyIndex").toInt());
+        connect(_object.data(), signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
     }
 }
 
@@ -178,19 +156,26 @@ void SharedObjectEditor::updateType() {
         }
         delete form;
     }
+    QObject* oldObject = static_cast<SharedObject*>(_object.data());
+    const QMetaObject* oldMetaObject = NULL;
+    if (oldObject) {
+        oldMetaObject = oldObject->metaObject();
+        oldObject->disconnect(this);
+    }
     const QMetaObject* metaObject = _type->itemData(_type->currentIndex()).value<const QMetaObject*>();
-    if (metaObject == NULL) {
+    if (!metaObject) {
         _object.reset();
         return;
     }
-    QObject* oldObject = static_cast<SharedObject*>(_object.data());
-    const QMetaObject* oldMetaObject = oldObject ? oldObject->metaObject() : NULL;
     QObject* newObject = metaObject->newInstance();
     
     QFormLayout* form = new QFormLayout();
     static_cast<QVBoxLayout*>(layout())->addLayout(form);
     for (int i = QObject::staticMetaObject.propertyCount(); i < metaObject->propertyCount(); i++) {
         QMetaProperty property = metaObject->property(i);
+        if (!property.isDesignable()) {
+            continue;
+        }
         if (oldMetaObject && i < oldMetaObject->propertyCount() &&
                 getOwningAncestor(metaObject, i) == getOwningAncestor(oldMetaObject, i)) {
             // copy the state of the shared ancestry
@@ -207,6 +192,10 @@ void SharedObjectEditor::updateType() {
             if (widgetProperty.hasNotifySignal()) {
                 connect(widget, signal(widgetProperty.notifySignal().methodSignature()), SLOT(propertyChanged()));
             }
+            if (property.hasNotifySignal()) {
+                widget->setProperty("notifySignalIndex", property.notifySignalIndex());
+                connect(newObject, signal(property.notifySignal().methodSignature()), SLOT(updateProperty()));
+            }
         }
     }
     _object = static_cast<SharedObject*>(newObject);
@@ -219,10 +208,23 @@ void SharedObjectEditor::propertyChanged() {
         if (widget != sender()) {
             continue;
         }
-        _object.detach();
+        detachObject();
         QObject* object = _object.data();
         QMetaProperty property = object->metaObject()->property(widget->property("propertyIndex").toInt());
         QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
         property.write(object, widget->property(valuePropertyName));
+    }
+}
+
+void SharedObjectEditor::updateProperty() {
+    QFormLayout* form = static_cast<QFormLayout*>(layout()->itemAt(1));
+    for (int i = 0; i < form->rowCount(); i++) {
+        QWidget* widget = form->itemAt(i, QFormLayout::FieldRole)->widget();
+        if (widget->property("notifySignalIndex").toInt() != senderSignalIndex()) {
+            continue;
+        }
+        QMetaProperty property = _object->metaObject()->property(widget->property("propertyIndex").toInt());
+        QByteArray valuePropertyName = QItemEditorFactory::defaultFactory()->valuePropertyName(property.userType());
+        widget->setProperty(valuePropertyName, property.read(_object.data()));
     }
 }

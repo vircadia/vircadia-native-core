@@ -72,6 +72,5 @@ void GenericThread::threadRoutine() {
     if (_isThreaded && _thread) {
         _thread->quit();
     }
-
     emit finished();
 }

@@ -123,6 +123,11 @@ void Camera::setModeShiftPeriod (float period) {
     const float MIN_PERIOD = 0.001f;
     const float MAX_PERIOD = 3.0f;
     _modeShiftPeriod = glm::clamp(period, MIN_PERIOD, MAX_PERIOD);
+    
+    // if a zero period was requested, we clearly want to snap immediately to the target
+    if (period == 0.0f) {
+        update(MAX_PERIOD);
+    }
 }
 
 void Camera::setMode(CameraMode m) { 

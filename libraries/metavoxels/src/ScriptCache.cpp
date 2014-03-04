@@ -11,8 +11,6 @@
 #include <QNetworkReply>
 #include <QScriptEngine>
 #include <QTextStream>
-#include <QTimer>
-#include <QtDebug>
 
 #include "AttributeRegistry.h"
 #include "ScriptCache.h"
@@ -23,7 +21,6 @@ ScriptCache* ScriptCache::getInstance() {
 }
 
 ScriptCache::ScriptCache() :
-    _networkAccessManager(NULL),
     _engine(NULL) {
     
     setEngine(new QScriptEngine(this));
@@ -41,15 +38,6 @@ void ScriptCache::setEngine(QScriptEngine* engine) {
     _generatorString = engine->toStringHandle("generator");
 }
 
-QSharedPointer<NetworkProgram> ScriptCache::getProgram(const QUrl& url) {
-    QSharedPointer<NetworkProgram> program = _networkPrograms.value(url);
-    if (program.isNull()) {
-        program = QSharedPointer<NetworkProgram>(new NetworkProgram(this, url));
-        _networkPrograms.insert(url, program);
-    }
-    return program;
-}
-
 QSharedPointer<NetworkValue> ScriptCache::getValue(const ParameterizedURL& url) {
     QSharedPointer<NetworkValue> value = _networkValues.value(url);
     if (value.isNull()) {
@@ -61,63 +49,21 @@ QSharedPointer<NetworkValue> ScriptCache::getValue(const ParameterizedURL& url) 
     return value;
 }
 
+QSharedPointer<Resource> ScriptCache::createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+    return QSharedPointer<Resource>(new NetworkProgram(this, url));
+}
+
 NetworkProgram::NetworkProgram(ScriptCache* cache, const QUrl& url) :
-    _cache(cache),
-    _request(url),
-    _reply(NULL),
-    _attempts(0) {
-    
-    if (!url.isValid()) {
-        return;
-    }
-    _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    makeRequest();
+    Resource(url),
+    _cache(cache) {
 }
 
-NetworkProgram::~NetworkProgram() {
-    if (_reply != NULL) {
-        delete _reply;
-    }
-}
-
-void NetworkProgram::makeRequest() {
-    QNetworkAccessManager* manager = _cache->getNetworkAccessManager();
-    if (manager == NULL) {
-        return;
-    }
-    _reply = manager->get(_request);
-    
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
-}
-
-void NetworkProgram::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal && !_reply->isFinished()) {
-        return;
-    }
-    _program = QScriptProgram(QTextStream(_reply).readAll(), _reply->url().toString());
-    
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
+void NetworkProgram::downloadFinished(QNetworkReply* reply) {
+    _program = QScriptProgram(QTextStream(reply).readAll(), reply->url().toString());
+    reply->deleteLater();
+    finishedLoading(true);
     emit loaded();
-}
-
-void NetworkProgram::handleReplyError() {
-    QDebug debug = qDebug() << _reply->errorString();
-    
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
-    
-    // retry with increasing delays
-    const int MAX_ATTEMPTS = 8;
-    const int BASE_DELAY_MS = 1000;
-    if (++_attempts < MAX_ATTEMPTS) {
-        QTimer::singleShot(BASE_DELAY_MS * (int)pow(2.0, _attempts), this, SLOT(makeRequest()));
-        debug << " -- retrying...";
-    }
 }
 
 NetworkValue::~NetworkValue() {

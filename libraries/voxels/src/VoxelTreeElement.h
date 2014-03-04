@@ -57,18 +57,19 @@ public:
 
     virtual bool isRendered() const { return isKnownBufferIndex(); }
 
-    bool isColored() const { return _trueColor[3] == 1; }
+    bool isColored() const { return _color[3] == 1; }
 
-    void setFalseColor(colorPart red, colorPart green, colorPart blue);
-    void setFalseColored(bool isFalseColored);
-    bool getFalseColored() { return _falseColored; }
     void setColor(const nodeColor& color);
-    const nodeColor& getTrueColor() const { return _trueColor; }
-    const nodeColor& getColor() const { return _currentColor; }
+    const nodeColor& getColor() const { return _color; }
 
     void setDensity(float density) { _density = density; }
     float getDensity() const { return _density; }
-    
+
+    void setInteriorOcclusions(unsigned char interiorExclusions);
+    void setExteriorOcclusions(unsigned char exteriorOcclusions);
+    unsigned char getExteriorOcclusions() const;
+    unsigned char getInteriorOcclusions() const;
+
     // type safe versions of OctreeElement methods
     VoxelTreeElement* getChildAtIndex(int childIndex) { return (VoxelTreeElement*)OctreeElement::getChildAtIndex(childIndex); }
     VoxelTreeElement* addChildAtIndex(int childIndex) { return (VoxelTreeElement*)OctreeElement::addChildAtIndex(childIndex); }
@@ -87,8 +88,34 @@ protected:
 
     float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
 
-    nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
-    nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
+    nodeColor _color; /// Client and server, true color of this voxel, 4 bytes
+
+private:
+    unsigned char _exteriorOcclusions;          ///< Exterior shared partition boundaries that are completely occupied
+    unsigned char _interiorOcclusions;          ///< Interior shared partition boundaries with siblings
 };
 
+inline void VoxelTreeElement::setExteriorOcclusions(unsigned char exteriorOcclusions) { 
+    if (_exteriorOcclusions != exteriorOcclusions) {
+        _exteriorOcclusions = exteriorOcclusions; 
+        setDirtyBit();
+    }
+}
+
+inline void VoxelTreeElement::setInteriorOcclusions(unsigned char interiorOcclusions) { 
+    if (_interiorOcclusions != interiorOcclusions) {
+        _interiorOcclusions = interiorOcclusions; 
+        setDirtyBit();
+    }
+}
+
+inline unsigned char VoxelTreeElement::getInteriorOcclusions() const { 
+    return _interiorOcclusions; 
+}
+
+inline unsigned char VoxelTreeElement::getExteriorOcclusions() const { 
+    return _exteriorOcclusions; 
+}
+
 #endif /* defined(__hifi__VoxelTreeElement__) */
+

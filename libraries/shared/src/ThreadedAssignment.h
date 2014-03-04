@@ -27,7 +27,7 @@ public slots:
 protected:
     bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
     
-    void commonInit(const char* targetName, NodeType_t nodeType);
+    void commonInit(const QString& targetName, NodeType_t nodeType);
     bool _isFinished;
 private slots:
     void checkInWithDomainServerOrExit();

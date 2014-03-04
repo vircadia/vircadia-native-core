@@ -12,7 +12,7 @@
 
 const char* NUM_FORKS_PARAMETER = "-n";
 
-const char ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME[] = "assignment-client-monitor";
+const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
 AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks) :
     QCoreApplication(argc, argv)

@@ -26,7 +26,17 @@ public:
 
     void setParticleTree(ParticleTree* particleTree) { _particleTree = particleTree; }
     ParticleTree* getParticleTree(ParticleTree*) { return _particleTree; }
+    
+private slots:
+    /// inbound slots for external collision systems
+    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel) {
+        emit particleCollisionWithVoxel(particleID, voxel);
+    }
 
+    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB) {
+        emit particleCollisionWithParticle(idA, idB);
+    }
+    
 public slots:
     /// adds a particle with the specific properties
     ParticleID addParticle(const ParticleProperties& properties);
@@ -54,15 +64,6 @@ public slots:
     /// this function will not find any particles in script engine contexts which don't have access to particles
     QVector<ParticleID> findParticles(const glm::vec3& center, float radius) const;
 
-    /// inbound slots for external collision systems
-    void forwardParticleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel) {
-        emit particleCollisionWithVoxel(particleID, voxel);
-    }
-
-    void forwardParticleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB) {
-        emit particleCollisionWithParticle(idA, idB);
-    }
-    
 signals:
     void particleCollisionWithVoxel(const ParticleID& particleID, const VoxelDetail& voxel);
     void particleCollisionWithParticle(const ParticleID& idA, const ParticleID& idB);
