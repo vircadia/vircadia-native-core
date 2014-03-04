@@ -190,17 +190,9 @@ include_directories(
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(
-  SYSTEM
-  "${FACESHIFT_INCLUDE_DIRS}"
-  "${GLM_INCLUDE_DIRS}"
-)
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
-target_link_libraries(
-  ${TARGET_NAME}
-  "${FACESHIFT_LIBRARIES}"
-  "${ZLIB_LIBRARIES}"
-)
+target_link_libraries(${TARGET_NAME} "${FACESHIFT_LIBRARIES}" "${ZLIB_LIBRARIES}")
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
