@@ -31,6 +31,15 @@ class NetworkValue;
 class Spanner;
 class SpannerRenderer;
 
+/// Determines whether to subdivide each node when traversing.
+class MetavoxelLOD {
+public:
+    glm::vec3 position;
+    float threshold;
+    
+    MetavoxelLOD(const glm::vec3& position = glm::vec3(), float threshold = 0.0f);
+};
+
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
 public:

@@ -22,6 +22,11 @@ REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(StaticModel)
 
+MetavoxelLOD::MetavoxelLOD(const glm::vec3& position, float threshold) :
+    position(position),
+    threshold(threshold) {
+}
+
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
 
