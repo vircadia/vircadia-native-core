@@ -141,12 +141,7 @@ void Overlays::deleteOverlay(unsigned int id) {
         return;
     }
     
-    if (overlayToDelete->deleteOnRenderThread()) {
-        _overlaysToDelete.push_back(overlayToDelete);
-    } else {
-        delete overlayToDelete;
-    }
-    
+    _overlaysToDelete.push_back(overlayToDelete);
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {

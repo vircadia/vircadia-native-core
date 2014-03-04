@@ -18,7 +18,6 @@
 
 Overlay::Overlay() :
     _parent(NULL),
-    _wantDeleteOnRenderThread(false),
     _alpha(DEFAULT_ALPHA),
     _color(DEFAULT_BACKGROUND_COLOR),
     _visible(true)

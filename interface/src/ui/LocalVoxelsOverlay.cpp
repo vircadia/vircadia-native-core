@@ -23,7 +23,6 @@ LocalVoxelsOverlay::LocalVoxelsOverlay() :
     Volume3DOverlay(),
     _voxelCount(0)
 {
-    _wantDeleteOnRenderThread = true;
 }
 
 LocalVoxelsOverlay::~LocalVoxelsOverlay() {

@@ -5,8 +5,6 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#include <LocalVoxelsList.h>
-
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
 
