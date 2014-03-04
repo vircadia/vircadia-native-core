@@ -387,11 +387,11 @@ glm::vec4 NetworkGeometry::computeAverageColor() const {
                 color *= networkPart.diffuseTexture->getAverageColor();
             }
             int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
-            totalColor += color * triangles;
+            totalColor += color * (float) triangles;
             totalTriangles += triangles;
         }
     }
-    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
+    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / (float) totalTriangles;
 }
 
 void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float priority) {
