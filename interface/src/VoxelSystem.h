@@ -53,8 +53,8 @@ public:
 
     int parseData(const QByteArray& packet);
 
+    bool isInitialized() { return _initialized; }
     virtual void init();
-    void simulate(float deltaTime) { }
     void render();
 
     void changeTree(VoxelTree* newTree);

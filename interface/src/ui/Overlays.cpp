@@ -13,17 +13,39 @@
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
 #include "ClipboardOverlay.h"
+#include "LocalVoxelsOverlay.h"
 
-unsigned int Overlays::_nextOverlayID = 1;
-
-Overlays::Overlays() {
+Overlays::Overlays() : _nextOverlayID(1) {
 }
 
 Overlays::~Overlays() {
+    QMap<unsigned int, Overlay*>::iterator it;
+    for (it = _overlays2D.begin(); it != _overlays2D.end(); ++it) {
+        delete _overlays2D.take(it.key());
+    }
+    for (it = _overlays3D.begin(); it != _overlays3D.end(); ++it) {
+        delete _overlays3D.take(it.key());
+    }
+    while (!_overlaysToDelete.isEmpty()) {
+        delete _overlaysToDelete.takeLast();
+    }
 }
 
 void Overlays::init(QGLWidget* parent) {
     _parent = parent;
+}
+
+void Overlays::update(float deltatime) {
+    foreach (Overlay* thisOverlay, _overlays2D) {
+        thisOverlay->update(deltatime);
+    }
+    foreach (Overlay* thisOverlay, _overlays3D) {
+        thisOverlay->update(deltatime);
+    }
+    while (!_overlaysToDelete.isEmpty()) {
+        delete _overlaysToDelete.takeLast();
+    }
+    
 }
 
 void Overlays::render2D() {
@@ -79,6 +101,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay->setProperties(properties);
         created = true;
         is3D = true;
+    } else if (type == "localvoxels") {
+        thisOverlay = new LocalVoxelsOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
     }
 
     if (created) {
@@ -111,11 +139,21 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 
 // TODO: make multi-threaded safe
 void Overlays::deleteOverlay(unsigned int id) {
+    Overlay* overlayToDelete;
     if (_overlays2D.contains(id)) {
-        _overlays2D.erase(_overlays2D.find(id));
+        overlayToDelete = _overlays2D.take(id);
     } else if (_overlays3D.contains(id)) {
-        _overlays3D.erase(_overlays3D.find(id));
+        overlayToDelete = _overlays3D.take(id);
+    } else {
+        return;
     }
+    
+    if (overlayToDelete->deleteOnRenderThread()) {
+        _overlaysToDelete.push_back(overlayToDelete);
+    } else {
+        delete overlayToDelete;
+    }
+    
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {

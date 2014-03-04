@@ -11,13 +11,19 @@
 #ifndef __hifi__LocalVoxelsOverlay__
 #define __hifi__LocalVoxelsOverlay__
 
-#include "Volume3DOverlay.h"
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
 
+#include <QGLWidget>
+#include <QScriptValue>
 #include <QMap>
 #include <QSharedPointer>
 #include <QWeakPointer>
 
-struct OverlayElement;
+#include <LocalVoxelsList.h>
+
+#include "Volume3DOverlay.h"
+
 typedef QSharedPointer<VoxelSystem> StrongVoxelSystemPointer;
 typedef QWeakPointer<VoxelSystem> WeakVoxelSystemPointer;
 
@@ -27,19 +33,18 @@ public:
     LocalVoxelsOverlay();
     ~LocalVoxelsOverlay();
     
+    virtual void update(float deltatime);
     virtual void render();
     
-    void addOverlay(QString overlayName, QString treeName);
-    void setPosition(QString overlayName, float x, float y, float z);
-    void setScale(QString overlayName, float scale);
-    void update(QString overlayName);
-    void display(QString overlayName, bool wantDisplay);
-    void removeOverlay(QString overlayName);
-    
+    virtual void setProperties(const QScriptValue& properties);
     
 private:
-    QMap<QString, OverlayElement> _overlayMap; // overlayName/overlayElement
-    QMap<QString, WeakVoxelSystemPointer> _voxelSystemMap; // treeName/voxelSystem
+    static QMap<QString, WeakVoxelSystemPointer> _voxelSystemMap; // treeName/voxelSystem
+    
+    QString _treeName;
+    StrongVoxelTreePointer _tree; // so that the tree doesn't get freed
+    int _voxelCount;
+    StrongVoxelSystemPointer _voxelSystem;
 };
 
 #endif /* defined(__hifi__LocalVoxelsOverlay__) */

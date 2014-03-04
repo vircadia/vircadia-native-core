@@ -1920,6 +1920,8 @@ void Application::update(float deltaTime) {
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
     
+    _overlays.update(deltaTime);
+    
     // let external parties know we're updating
     emit simulating(deltaTime);
 }

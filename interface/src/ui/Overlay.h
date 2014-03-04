@@ -28,9 +28,11 @@ public:
     Overlay();
     ~Overlay();
     void init(QGLWidget* parent);
+    virtual void update(float deltatime) {}
     virtual void render() = 0;
 
     // getters
+    bool deleteOnRenderThread() { return _wantDeleteOnRenderThread; }
     bool getVisible() const { return _visible; }
     const xColor& getColor() const { return _color; }
     float getAlpha() const { return _alpha; }
@@ -44,6 +46,8 @@ public:
 
 protected:
     QGLWidget* _parent;
+    bool _wantDeleteOnRenderThread;
+    
     float _alpha;
     xColor _color;
     bool _visible; // should the overlay be drawn at all
