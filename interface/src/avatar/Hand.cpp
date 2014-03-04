@@ -153,7 +153,6 @@ void Hand::collideAgainstOurself() {
         if (!palm.isActive()) {
             continue;
         }
-        const Model& skeletonModel = _owningAvatar->getSkeletonModel();
         // ignoring everything below the parent of the parent of the last free joint
         int skipIndex = skeletonModel.getParentJointIndex(skeletonModel.getParentJointIndex(
             skeletonModel.getLastFreeJointIndex((i == leftPalmIndex) ? skeletonModel.getLeftHandJointIndex() :
