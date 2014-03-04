@@ -403,6 +403,12 @@ void Application::initializeGL() {
     #endif
 
     #ifdef WIN32
+    static bool isInitialized = false;
+    if (isInitialized) {
+        return;
+    } else {
+        isInitialized = true;
+    }
     GLenum err = glewInit();
     if (GLEW_OK != err) {
       /* Problem: glewInit failed, something is seriously wrong. */
