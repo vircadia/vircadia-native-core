@@ -53,14 +53,11 @@ void LocalVoxels::setVoxelNonDestructive(float x, float y, float z, float scale,
         return;
     }
     if (_tree ) {
-        if (_tree->tryLockForWrite()) {
-            _tree->createVoxel(x / (float)TREE_SCALE,
-                               y / (float)TREE_SCALE,
-                               z / (float)TREE_SCALE,
-                               scale / (float)TREE_SCALE,
-                               red, green, blue, false);
-            _tree->unlock();
-        }
+        _tree->createVoxel(x / (float)TREE_SCALE,
+                           y / (float)TREE_SCALE,
+                           z / (float)TREE_SCALE,
+                           scale / (float)TREE_SCALE,
+                           red, green, blue, false);
     }
 }
 
@@ -71,14 +68,11 @@ void LocalVoxels::setVoxel(float x, float y, float z, float scale,
         return;
     }
     if (_tree ) {
-        if (_tree->tryLockForWrite()) {
-            _tree->createVoxel(x / (float)TREE_SCALE,
-                               y / (float)TREE_SCALE,
-                               z / (float)TREE_SCALE,
-                               scale / (float)TREE_SCALE,
-                               red, green, blue, true);
-            _tree->unlock();
-        }
+        _tree->createVoxel(x / (float)TREE_SCALE,
+                           y / (float)TREE_SCALE,
+                           z / (float)TREE_SCALE,
+                           scale / (float)TREE_SCALE,
+                           red, green, blue, true);
     }
 }
 
@@ -88,13 +82,10 @@ void LocalVoxels::eraseVoxel(float x, float y, float z, float scale) {
         return;
     }
     if (_tree ) {
-        if (_tree->tryLockForWrite()) {
-            _tree->deleteVoxelAt(x / (float)TREE_SCALE,
+        _tree->deleteVoxelAt(x / (float)TREE_SCALE,
                                  y / (float)TREE_SCALE,
                                  z / (float)TREE_SCALE,
                                  scale / (float)TREE_SCALE);
-            _tree->unlock();
-        }
     }
 }
 
@@ -127,21 +118,18 @@ void LocalVoxels::pasteFrom(float x, float y, float z, float scale, const QStrin
 RayToVoxelIntersectionResult LocalVoxels::findRayIntersection(const PickRay& ray) {
     RayToVoxelIntersectionResult result;
     if (_tree) {
-        if (_tree->tryLockForRead()) {
-            OctreeElement* element;
-            result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
-            if (result.intersects) {
-                VoxelTreeElement* voxel = (VoxelTreeElement*)element;
-                result.voxel.x = voxel->getCorner().x;
-                result.voxel.y = voxel->getCorner().y;
-                result.voxel.z = voxel->getCorner().z;
-                result.voxel.s = voxel->getScale();
-                result.voxel.red = voxel->getColor()[0];
-                result.voxel.green = voxel->getColor()[1];
-                result.voxel.blue = voxel->getColor()[2];
-                result.intersection = ray.origin + (ray.direction * result.distance);
-            }
-            _tree->unlock();
+        OctreeElement* element;
+        result.intersects = _tree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face);
+        if (result.intersects) {
+            VoxelTreeElement* voxel = (VoxelTreeElement*)element;
+            result.voxel.x = voxel->getCorner().x;
+            result.voxel.y = voxel->getCorner().y;
+            result.voxel.z = voxel->getCorner().z;
+            result.voxel.s = voxel->getScale();
+            result.voxel.red = voxel->getColor()[0];
+            result.voxel.green = voxel->getColor()[1];
+            result.voxel.blue = voxel->getColor()[2];
+            result.intersection = ray.origin + (ray.direction * result.distance);
         }
     }
     return result;

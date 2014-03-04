@@ -42,6 +42,7 @@ var clipboard = Overlays.addOverlay("localvoxels", {
                                    });
 
 
+
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
     Overlays.deleteOverlay(overlay1);
