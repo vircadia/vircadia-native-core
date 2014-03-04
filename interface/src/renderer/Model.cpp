@@ -21,9 +21,9 @@ using namespace std;
 
 Model::Model(QObject* parent) :
     QObject(parent),
+    _shapesAreDirty(true),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f),
-    _shapesAreDirty(true) {
+    _pupilDilation(0.0f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -741,7 +741,6 @@ void Model::renderCollisionProxies(float alpha) {
     glPushMatrix();
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     updateShapePositions();
-    float uniformScale = extractUniformScale(_scale);
     const int BALL_SUBDIVISIONS = 10;
     glm::quat inverseRotation = glm::inverse(_rotation);
     for (int i = 0; i < _shapes.size(); i++) {
@@ -762,9 +761,6 @@ void Model::renderCollisionProxies(float alpha) {
             glutSolidSphere(shape->getBoundingRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
         } else if (shape->getType() == Shape::CAPSULE_SHAPE) {
             CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-
-            // translate to capsule center
-            glm::vec3 point = inverseRotation * (capsule->getPosition() - _translation);
 
             // draw a blue sphere at the capsule endpoint
             glm::vec3 endPoint;
