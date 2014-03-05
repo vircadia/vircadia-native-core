@@ -1,9 +1,9 @@
 Dependencies
 ===
-* (cmake)[http://www.cmake.org/cmake/resources/software.html] ~> 2.8.11
-* (Qt)[http://qt-project.org/downloads] ~> 5.2.0
-* (zLib)[http://www.zlib.net/] ~> 1.2.8
-* (glm)[http://glm.g-truc.net/0.9.5/index.html] ~> 0.9.5.0
+* [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.11
+* [Qt](http://qt-project.org/downloads) ~> 5.2.0
+* [zLib](http://www.zlib.net/) ~> 1.2.8
+* [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
 
 CMake
 === 
