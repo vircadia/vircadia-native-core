@@ -418,16 +418,8 @@ bool Model::getRightHandRotation(glm::quat& rotation) const {
     return getJointRotation(getRightHandJointIndex(), rotation);
 }
 
-bool Model::setLeftHandPosition(const glm::vec3& position) {
-    return setJointPosition(getLeftHandJointIndex(), position);
-}
-
 bool Model::restoreLeftHandPosition(float percent) {
     return restoreJointPosition(getLeftHandJointIndex(), percent);
-}
-
-bool Model::setLeftHandRotation(const glm::quat& rotation) {
-    return setJointRotation(getLeftHandJointIndex(), rotation);
 }
 
 bool Model::getLeftShoulderPosition(glm::vec3& position) const {
@@ -438,16 +430,8 @@ float Model::getLeftArmLength() const {
     return getLimbLength(getLeftHandJointIndex());
 }
 
-bool Model::setRightHandPosition(const glm::vec3& position) {
-    return setJointPosition(getRightHandJointIndex(), position);
-}
-
 bool Model::restoreRightHandPosition(float percent) {
     return restoreJointPosition(getRightHandJointIndex(), percent);
-}
-
-bool Model::setRightHandRotation(const glm::quat& rotation) {
-    return setJointRotation(getRightHandJointIndex(), rotation);
 }
 
 bool Model::getRightShoulderPosition(glm::vec3& position) const {

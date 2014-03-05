@@ -125,18 +125,10 @@ public:
     /// \return true whether or not the rotation was found
     bool getRightHandRotation(glm::quat& rotation) const;
     
-    /// Sets the position of the left hand using inverse kinematics.
-    /// \return whether or not the left hand joint was found
-    bool setLeftHandPosition(const glm::vec3& position);
-    
     /// Restores some percentage of the default position of the left hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the left hand joint was found
     bool restoreLeftHandPosition(float percent = 1.0f);
-    
-    /// Sets the rotation of the left hand.
-    /// \return whether or not the left hand joint was found
-    bool setLeftHandRotation(const glm::quat& rotation);
     
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
@@ -145,18 +137,10 @@ public:
     /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
     
-    /// Sets the position of the right hand using inverse kinematics.
-    /// \return whether or not the right hand joint was found
-    bool setRightHandPosition(const glm::vec3& position);
-    
     /// Restores some percentage of the default position of the right hand.
     /// \param percent the percentage of the default position to restore
     /// \return whether or not the right hand joint was found
     bool restoreRightHandPosition(float percent = 1.0f);
-    
-    /// Sets the rotation of the right hand.
-    /// \return whether or not the right hand joint was found
-    bool setRightHandRotation(const glm::quat& rotation);
     
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
