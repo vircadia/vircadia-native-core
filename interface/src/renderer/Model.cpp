@@ -140,13 +140,11 @@ void Model::updateShapePositions() {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
-            // shape position and rotation are stored in world-frame
-            glm::vec3 localPosition = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
-            glm::vec3 worldPosition = _rotation * (extractTranslation(_jointStates[i].transform) + localPosition) + _translation;
+            // shape position and rotation need to be in world-frame
+            glm::vec3 jointToShapeOffset = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
+            glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
             _shapes[i]->setPosition(worldPosition);
-            glm::quat localRotation = _jointStates[i].combinedRotation * joint.shapeRotation;
-            glm::quat worldRotation = _rotation * localRotation;
-            _shapes[i]->setRotation(worldRotation);
+            _shapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
         }
         _shapesAreDirty = false;
     }
@@ -755,7 +753,6 @@ void Model::renderCollisionProxies(float alpha) {
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
     updateShapePositions();
     const int BALL_SUBDIVISIONS = 10;
-    glm::quat inverseRotation = glm::inverse(_rotation);
     for (int i = 0; i < _shapes.size(); i++) {
         glPushMatrix();
 
@@ -763,9 +760,9 @@ void Model::renderCollisionProxies(float alpha) {
         
         if (shape->getType() == Shape::SPHERE_SHAPE) {
             // shapes are stored in world-frame, so we have to transform into model frame
-            glm::vec3 position = inverseRotation * (shape->getPosition() - _translation);
+            glm::vec3 position = shape->getPosition() - _translation;
             glTranslatef(position.x, position.y, position.z);
-            const glm::quat& rotation = inverseRotation;
+            const glm::quat& rotation = shape->getRotation();
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
 
@@ -778,7 +775,7 @@ void Model::renderCollisionProxies(float alpha) {
             // draw a blue sphere at the capsule endpoint
             glm::vec3 endPoint;
             capsule->getEndPoint(endPoint);
-            endPoint = inverseRotation * (endPoint - _translation);
+            endPoint = endPoint - _translation;
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);
             glColor4f(0.6f, 0.6f, 0.8f, alpha);
             glutSolidSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
@@ -786,7 +783,7 @@ void Model::renderCollisionProxies(float alpha) {
             // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
             capsule->getStartPoint(startPoint);
-            startPoint = inverseRotation * (startPoint - _translation);
+            startPoint = startPoint - _translation;
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
             glColor4f(0.8f, 0.8f, 0.6f, alpha);
