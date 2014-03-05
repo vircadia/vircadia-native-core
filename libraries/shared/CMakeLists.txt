@@ -6,13 +6,10 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
-find_package(Qt5Network REQUIRED)
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Network Widgets)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
-
-qt5_use_modules(${TARGET_NAME} Network Widgets)
 
 # include GLM
 include(${MACRO_DIR}/IncludeGLM.cmake)
@@ -31,3 +28,5 @@ if (UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
     target_link_libraries(${TARGET_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif (UNIX AND NOT APPLE)
+
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets)
