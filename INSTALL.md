@@ -63,7 +63,7 @@ Windows
 ===
 Currently building on Windows has only been tested on Windows SDK 7.1 with Visual Studio C++ 2010 Express.
 
-Visual Studio C++ 2010 Express can be downloaded (here)[http://www.visualstudio.com/en-us/downloads#d-2010-express].
+Visual Studio C++ 2010 Express can be downloaded [here](http://www.visualstudio.com/en-us/downloads#d-2010-express).
 
 The following patches/service packs are also required:
 * [Windows SDK 7.1/.NET 4 Framework](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
