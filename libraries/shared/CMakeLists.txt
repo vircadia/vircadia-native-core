@@ -10,7 +10,7 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
-find_package(Qt5 COMPONENTS Network Widgets)
+find_package(Qt5 COMPONENTS Network Widgets Xml)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
@@ -18,7 +18,6 @@ setup_hifi_library(${TARGET_NAME})
 # include GLM
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
-
 
 set(EXTERNAL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external")
 
@@ -33,4 +32,4 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(${TARGET_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif (UNIX AND NOT APPLE)
 
-target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets)
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Xml "${QXMPP_LIBRARY}")

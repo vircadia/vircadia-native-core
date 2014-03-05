@@ -34,6 +34,12 @@ if (APPLE)
    endif (DARWIN_VERSION GREATER 12)
 endif (APPLE)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+
+find_package(qxmpp REQUIRED)
+add_definitions(-DQXMPP_STATIC)
+include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+
 # targets not supported on windows
 if (NOT WIN32)
   add_subdirectory(animation-server)

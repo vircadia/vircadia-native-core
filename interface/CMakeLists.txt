@@ -65,6 +65,10 @@ endforeach(EXTERNAL_SOURCE_SUBDIR)
 
 find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
+find_package(Qxmpp REQUIRED)
+add_definitions(-DQXMPP_STATIC)
+include_directories(SYSTEM ${QXMPP_INCLUDE_DIR})
+
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
