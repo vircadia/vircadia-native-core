@@ -99,6 +99,11 @@ public:
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
+    /// \param shapes list of shapes to collide against avatar
+    /// \param collisions list to store collision results
+    /// \return true if at least one shape collided with avatar
+    bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
+
     /// Checks for penetration between the described sphere and the avatar.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere

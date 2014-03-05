@@ -489,6 +489,16 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
+bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+    _skeletonModel.updateShapePositions();
+    bool collided = _skeletonModel.findCollisions(shapes, collisions);
+
+    Model& headModel = getHead()->getFaceModel();
+    headModel.updateShapePositions();
+    collided = headModel.findCollisions(shapes, collisions);
+    return collided;
+}
+
 bool Avatar::findParticleCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
     if (_collisionFlags & COLLISION_GROUP_PARTICLES) {
         return false;

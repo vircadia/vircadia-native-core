@@ -169,6 +169,11 @@ public:
     glm::vec4 computeAverageColor() const;
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
+    /// \param shapes list of pointers shapes to test against Model
+    /// \param collisions list to store collision results
+    /// \return true if at least one shape collided agains Model
+    bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
 
     bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius,
         CollisionList& collisions, int skipIndex = -1);

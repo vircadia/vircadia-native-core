@@ -135,12 +135,11 @@ void Model::createCollisionShapes() {
 }
 
 void Model::updateShapePositions() {
-    float uniformScale = extractUniformScale(_scale);
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
+        float uniformScale = extractUniformScale(_scale);
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
             const FBXJoint& joint = geometry.joints[i];
-
             // shape position and rotation are stored in world-frame
             glm::vec3 localPosition = uniformScale * (_jointStates[i].combinedRotation * joint.shapePosition);
             glm::vec3 worldPosition = _rotation * (extractTranslation(_jointStates[i].transform) + localPosition) + _translation;
@@ -506,6 +505,20 @@ bool Model::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
         return true;
     }
     return false;
+}
+
+bool Model::findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions) {
+    bool collided = false;
+    for (int i = 0; i < shapes.size(); ++i) {
+        const Shape* theirShape = shapes[i];
+        for (int j = 0; j < _shapes.size(); ++j) {
+            const Shape* ourShape = _shapes[j];
+            if (ShapeCollider::shapeShape(theirShape, ourShape, collisions)) {
+                collided = true;
+            }
+        }
+    }
+    return collided;
 }
 
 bool Model::findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius,
