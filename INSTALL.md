@@ -46,6 +46,9 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 #####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
+    brew install cmake qt5 glm zlib
+
+*High Fidelity has a [homebrew formula](https://raw.github.com/highfidelity/hifi/master/qt5.rb) for a patched version of Qt 5.2.0 stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 #####Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
 
