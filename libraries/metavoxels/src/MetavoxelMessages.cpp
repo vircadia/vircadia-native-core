@@ -6,7 +6,6 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
-#include "MetavoxelData.h"
 #include "MetavoxelMessages.h"
 
 void MetavoxelEditMessage::apply(MetavoxelData& data) const {
@@ -106,8 +105,7 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
 }
 
 void InsertSpannerEdit::apply(MetavoxelData& data) const {
-    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    data.insert(attribute, spanner->getBounds(), spanner->getGranularity(), this->spanner);
+    data.insert(attribute, spanner);
 }
 
 RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) :

@@ -49,6 +49,9 @@ void AttributeRegistry::configureScriptEngine(QScriptEngine* engine) {
 }
 
 AttributePointer AttributeRegistry::registerAttribute(AttributePointer attribute) {
+    if (!attribute) {
+        return attribute;
+    }
     AttributePointer& pointer = _attributes[attribute->getName()];
     if (!pointer) {
         pointer = attribute;
@@ -146,20 +149,20 @@ Attribute::Attribute(const QString& name) {
 Attribute::~Attribute() {
 }
 
-void Attribute::read(MetavoxelNode& root, Bitstream& in) {
-    root.read(this, in);
+void Attribute::read(MetavoxelData& data, MetavoxelStreamState& state) {
+    data.createRoot(state.attribute)->read(state);
 }
 
-void Attribute::write(const MetavoxelNode& root, Bitstream& out) {
-    root.write(this, out);
+void Attribute::write(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    root.write(state);
 }
 
-void Attribute::readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in) {
-    root.readDelta(this, reference, in);
+void Attribute::readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    data.createRoot(state.attribute)->readDelta(reference, state);
 }
 
-void Attribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out) {
-    root.writeDelta(this, reference, out);
+void Attribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    root.writeDelta(reference, state);
 }
 
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
@@ -277,18 +280,36 @@ SpannerSetAttribute::SpannerSetAttribute(const QString& name, const QMetaObject*
     SharedObjectSetAttribute(name, metaObject) {
 }
 
-void SpannerSetAttribute::read(MetavoxelNode& root, Bitstream& in) {
-    root.read(this, in);
+void SpannerSetAttribute::read(MetavoxelData& data, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.insert(state.attribute, object);
+    }
 }
 
-void SpannerSetAttribute::write(const MetavoxelNode& root, Bitstream& out) {
-    root.write(this, out);
+void SpannerSetAttribute::write(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpanners(state);
+    state.stream << SharedObjectPointer();
 }
 
-void SpannerSetAttribute::readDelta(MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& in) {
-    root.readDelta(this, reference, in);
+void SpannerSetAttribute::readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.toggle(state.attribute, object);
+    }
 }
 
-void SpannerSetAttribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, Bitstream& out) {
-    root.writeDelta(this, reference, out);
+void SpannerSetAttribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpannerDelta(reference, state);
+    state.stream << SharedObjectPointer();
 }

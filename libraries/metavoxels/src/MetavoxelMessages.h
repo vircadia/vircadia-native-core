@@ -9,10 +9,7 @@
 #ifndef __interface__MetavoxelMessages__
 #define __interface__MetavoxelMessages__
 
-#include "AttributeRegistry.h"
-#include "MetavoxelUtil.h"
-
-class MetavoxelData;
+#include "MetavoxelData.h"
 
 /// Requests to close the session.
 class CloseSessionMessage {
@@ -49,7 +46,7 @@ class ClientStateMessage {
     
 public:
     
-    STREAM glm::vec3 position;
+    STREAM MetavoxelLOD lod;
 };
 
 DECLARE_STREAMABLE_METATYPE(ClientStateMessage)

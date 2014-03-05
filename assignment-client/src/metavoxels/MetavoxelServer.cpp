@@ -111,13 +111,17 @@ int MetavoxelSession::parseData(const QByteArray& packet) {
 }
 
 void MetavoxelSession::sendDelta() {
+    // wait until we have a valid lod
+    if (!_lod.isValid()) {
+        return;
+    }
     Bitstream& out = _sequencer.startPacket();
     out << QVariant::fromValue(MetavoxelDeltaMessage());
-    _server->getData().writeDelta(_sendRecords.first().data, out);
+    _server->getData().writeDelta(_sendRecords.first().data, _sendRecords.first().lod, out, _lod);
     _sequencer.endPacket();
     
     // record the send
-    SendRecord record = { _sequencer.getOutgoingPacketNumber(), _server->getData() };
+    SendRecord record = { _sequencer.getOutgoingPacketNumber(), _server->getData(), _lod };
     _sendRecords.append(record);
 }
 
@@ -139,7 +143,7 @@ void MetavoxelSession::handleMessage(const QVariant& message) {
     int userType = message.userType();
     if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
-        _position = state.position;
+        _lod = state.lod;
     
     } else if (userType == MetavoxelEditMessage::Type) {
         _server->applyEdit(message.value<MetavoxelEditMessage>());

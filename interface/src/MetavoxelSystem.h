@@ -103,16 +103,25 @@ private slots:
 
     void readPacket(Bitstream& in);
     
+    void clearSendRecordsBefore(int index);
+    
     void clearReceiveRecordsBefore(int index);
     
 private:
     
     void handleMessage(const QVariant& message, Bitstream& in);
     
+    class SendRecord {
+    public:
+        int packetNumber;
+        MetavoxelLOD lod;
+    };
+    
     class ReceiveRecord {
     public:
         int packetNumber;
         MetavoxelData data;
+        MetavoxelLOD lod;
     };
     
     SharedNodePointer _node;
@@ -121,6 +130,7 @@ private:
     
     MetavoxelData _data;
     
+    QList<SendRecord> _sendRecords;
     QList<ReceiveRecord> _receiveRecords;
 };
 

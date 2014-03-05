@@ -182,11 +182,16 @@ MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
     
     connect(&_sequencer, SIGNAL(readyToWrite(const QByteArray&)), SLOT(sendData(const QByteArray&)));
     connect(&_sequencer, SIGNAL(readyToRead(Bitstream&)), SLOT(readPacket(Bitstream&)));
+    connect(&_sequencer, SIGNAL(sendAcknowledged(int)), SLOT(clearSendRecordsBefore(int)));
     connect(&_sequencer, SIGNAL(receiveAcknowledged(int)), SLOT(clearReceiveRecordsBefore(int)));
     
+    // insert the baseline send record
+    SendRecord sendRecord = { 0 };
+    _sendRecords.append(sendRecord);
+    
     // insert the baseline receive record
-    ReceiveRecord record = { 0, _data };
-    _receiveRecords.append(record);
+    ReceiveRecord receiveRecord = { 0, _data };
+    _receiveRecords.append(receiveRecord);
 }
 
 MetavoxelClient::~MetavoxelClient() {
@@ -206,9 +211,14 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
 
 void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
-    ClientStateMessage state = { Application::getInstance()->getCamera()->getPosition() };
+    const float FIXED_LOD_THRESHOLD = 0.0001f;
+    ClientStateMessage state = { MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD) };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
+    
+    // record the send
+    SendRecord record = { _sequencer.getOutgoingPacketNumber(), state.lod };
+    _sendRecords.append(record);
 }
 
 int MetavoxelClient::parseData(const QByteArray& packet) {
@@ -227,7 +237,7 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     handleMessage(message, in);
     
     // record the receipt
-    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data };
+    ReceiveRecord record = { _sequencer.getIncomingPacketNumber(), _data, _sendRecords.first().lod };
     _receiveRecords.append(record);
     
     // reapply local edits
@@ -238,6 +248,10 @@ void MetavoxelClient::readPacket(Bitstream& in) {
     }
 }
 
+void MetavoxelClient::clearSendRecordsBefore(int index) {
+    _sendRecords.erase(_sendRecords.begin(), _sendRecords.begin() + index + 1);
+}
+
 void MetavoxelClient::clearReceiveRecordsBefore(int index) {
     _receiveRecords.erase(_receiveRecords.begin(), _receiveRecords.begin() + index + 1);
 }
@@ -245,7 +259,7 @@ void MetavoxelClient::clearReceiveRecordsBefore(int index) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType();
     if (userType == MetavoxelDeltaMessage::Type) {
-        _data.readDelta(_receiveRecords.first().data, in);
+        _data.readDelta(_receiveRecords.first().data, _receiveRecords.first().lod, in, _sendRecords.first().lod);
         
     } else if (userType == QMetaType::QVariantList) {
         foreach (const QVariant& element, message.toList()) {

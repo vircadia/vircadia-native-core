@@ -33,12 +33,20 @@ class SpannerRenderer;
 
 /// Determines whether to subdivide each node when traversing.
 class MetavoxelLOD {
+    STREAMABLE
+    
 public:
-    glm::vec3 position;
-    float threshold;
+    STREAM glm::vec3 position;
+    STREAM float threshold;
     
     MetavoxelLOD(const glm::vec3& position = glm::vec3(), float threshold = 0.0f);
+    
+    bool isValid() const { return threshold > 0.0f; }
+    
+    bool shouldSubdivide(const glm::vec3& minimum, float size) const;
 };
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
 
 /// The base metavoxel representation shared between server and client.
 class MetavoxelData {
@@ -52,25 +60,35 @@ public:
 
     float getSize() const { return _size; }
 
+    glm::vec3 getMinimum() const { return glm::vec3(_size, _size, _size) * -0.5f; }
+
     Box getBounds() const;
 
     /// Applies the specified visitor to the contained voxels.
     void guide(MetavoxelVisitor& visitor);
    
+    void insert(const AttributePointer& attribute, const SharedObjectPointer& object);
     void insert(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
     
+    void remove(const AttributePointer& attribute, const SharedObjectPointer& object);
     void remove(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
+
+    void toggle(const AttributePointer& attribute, const SharedObjectPointer& object);
+    void toggle(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& object);
 
     void clear(const AttributePointer& attribute);
 
     /// Expands the tree, increasing its capacity in all dimensions.
     void expand();
 
-    void read(Bitstream& in);
-    void write(Bitstream& out) const;
+    void read(Bitstream& in, const MetavoxelLOD& lod = MetavoxelLOD());
+    void write(Bitstream& out, const MetavoxelLOD& lod = MetavoxelLOD()) const;
 
-    void readDelta(const MetavoxelData& reference, Bitstream& in);
-    void writeDelta(const MetavoxelData& reference, Bitstream& out) const;
+    void readDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD, Bitstream& in, const MetavoxelLOD& lod);
+    void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
+        Bitstream& out, const MetavoxelLOD& lod) const;
+
+    MetavoxelNode* createRoot(const AttributePointer& attribute);
 
 private:
 
@@ -81,6 +99,22 @@ private:
     
     float _size;
     QHash<AttributePointer, MetavoxelNode*> _roots;
+};
+
+/// Holds the state used in streaming metavoxel data.
+class MetavoxelStreamState {
+public:
+    glm::vec3 minimum;
+    float size;
+    const AttributePointer& attribute;
+    Bitstream& stream;
+    const MetavoxelLOD& lod;
+    const MetavoxelLOD& referenceLOD;
+    
+    bool shouldSubdivide() const { return lod.shouldSubdivide(minimum, size); }
+    bool shouldSubdivideReference() const { return referenceLOD.shouldSubdivide(minimum, size); }
+    
+    void setMinimum(const glm::vec3& lastMinimum, int index);
 };
 
 /// A single node within a metavoxel layer.
@@ -104,11 +138,14 @@ public:
 
     bool isLeaf() const;
 
-    void read(const AttributePointer& attribute, Bitstream& in);
-    void write(const AttributePointer& attribute, Bitstream& out) const;
+    void read(MetavoxelStreamState& state);
+    void write(MetavoxelStreamState& state) const;
 
-    void readDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& in);
-    void writeDelta(const AttributePointer& attribute, const MetavoxelNode& reference, Bitstream& out) const;
+    void readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state);
+    void writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
+
+    void writeSpanners(MetavoxelStreamState& state) const;
+    void writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
 
     /// Increments the node's reference count.
     void incrementReferenceCount() { _referenceCount++; }

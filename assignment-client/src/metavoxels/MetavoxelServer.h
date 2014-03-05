@@ -78,6 +78,7 @@ private:
     public:
         int packetNumber;
         MetavoxelData data;
+        MetavoxelLOD lod;
     };
     
     MetavoxelServer* _server;
@@ -86,7 +87,7 @@ private:
     
     SharedNodePointer _node;
     
-    glm::vec3 _position;
+    MetavoxelLOD _lod;
     
     QList<SendRecord> _sendRecords;
 };
