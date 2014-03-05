@@ -91,3 +91,18 @@ Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
     cmake .. -G "Visual Studio 10"
+
+External Libraries
+---
+We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
+
+* In particular you must make sure all required DLLs are loadable by making sure that the folders containing them are in your path. You can accomplish this in several different ways. 
+
+    One technique is described below:
+    * create a directory C:\Development\HiFi\windows-dlls
+    * add C:\Development\HiFi\windows-dlls to your path
+    * copy the following files into this directory: zlib1.dll, freeglut.dll, glew32.dll
+
+    Note: You will need to find the above DLLs from where you installed the associated dependency.
+    
+* You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
