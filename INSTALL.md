@@ -101,6 +101,12 @@ We don't currently have a Windows installer, so before running Interface, you wi
 
 * You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
 
+### glm
+
+CMake will need to know where glm headers are. You can do this by setting an ENV variable `GLM_ROOT_DIR` to the location of the folder that contains your glm dir, or by passing GLM_ROOT_DIR directly on the command line.
+
+    cmake .. -G "Visual Studio 10" -DGLM_ROOT_DIR=$YOUR_CONTAINING_FOLDER
+
 Building in Visual Studio
 ---
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
