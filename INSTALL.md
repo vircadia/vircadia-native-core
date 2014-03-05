@@ -41,7 +41,6 @@ UNIX
 
 In general, as long as external dependencies are placed in OS standard locations, CMake will successfully find them during its run. When possible, you may choose to install depencies from your package manager of choice, or from source. 
 
-
 OS X
 ---
 

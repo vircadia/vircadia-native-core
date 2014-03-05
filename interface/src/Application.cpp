@@ -110,9 +110,11 @@ const QString CUSTOM_URL_SCHEME = "hifi:";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
-        QString messageWithNewLine = message + "\n";
-        fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
-        Application::getInstance()->getLogger()->addMessage(messageWithNewLine.toLocal8Bit().constData());
+        QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
+        QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
+        
+        fprintf(stdout, "%s", qPrintable(formattedMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
     }
 }
 
@@ -3479,7 +3481,6 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
 }
 
 void Application::loadScript(const QString& fileNameString) {
-    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -3489,6 +3490,7 @@ void Application::loadScript(const QString& fileNameString) {
         return;
     }
     qDebug("Loading file %s...", fileName);
+    _activeScripts.append(fileNameString);
 
     // get file length....
     unsigned long fileLength = file.tellg();
