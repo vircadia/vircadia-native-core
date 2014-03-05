@@ -62,8 +62,9 @@ function checkController() {
 
                 // This is the script for the particles that this gun shoots.
                 var script = 
-                         " function collisionWithVoxel(voxel) { " +
+                         " function collisionWithVoxel(voxel, penetration) { " +
                          "   print('collisionWithVoxel(voxel)... '); " +
+                         "   Vec3.print('penetration=', penetration); " +
                          "   print('myID=' + Particle.getID() + '\\n'); " +
                          "   var voxelColor = { red: voxel.red, green: voxel.green, blue: voxel.blue };" +
                          "   var voxelAt = { x: voxel.x, y: voxel.y, z: voxel.z };" +

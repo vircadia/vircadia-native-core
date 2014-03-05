@@ -71,15 +71,18 @@ void ParticleCollisionSystem::checkParticle(Particle* particle) {
     updateCollisionWithAvatars(particle);
 }
 
-void ParticleCollisionSystem::emitGlobalParticleCollisionWithVoxel(Particle* particle, VoxelDetail* voxelDetails) {
+void ParticleCollisionSystem::emitGlobalParticleCollisionWithVoxel(Particle* particle, 
+                                            VoxelDetail* voxelDetails, const glm::vec3& penetration) {
     ParticleID particleID = particle->getParticleID();
-    emit particleCollisionWithVoxel(particleID, *voxelDetails);
+    emit particleCollisionWithVoxel(particleID, *voxelDetails, penetration);
 }
 
-void ParticleCollisionSystem::emitGlobalParticleCollisionWithParticle(Particle* particleA, Particle* particleB) {
+void ParticleCollisionSystem::emitGlobalParticleCollisionWithParticle(Particle* particleA, 
+                                            Particle* particleB, const glm::vec3& penetration) {
+                                            
     ParticleID idA = particleA->getParticleID();
     ParticleID idB = particleB->getParticleID();
-    emit particleCollisionWithParticle(idA, idB);
+    emit particleCollisionWithParticle(idA, idB, penetration);
 }
 
 void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
@@ -95,10 +98,10 @@ void ParticleCollisionSystem::updateCollisionWithVoxels(Particle* particle) {
     if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
 
         // let the particles run their collision scripts if they have them
-        particle->collisionWithVoxel(voxelDetails);
+        particle->collisionWithVoxel(voxelDetails, collisionInfo._penetration);
 
         // let the global script run their collision scripts for particles if they have them
-        emitGlobalParticleCollisionWithVoxel(particle, voxelDetails);
+        emitGlobalParticleCollisionWithVoxel(particle, voxelDetails, collisionInfo._penetration);
 
         updateCollisionSound(particle, collisionInfo._penetration, COLLISION_FREQUENCY);
         collisionInfo._penetration /= (float)(TREE_SCALE);
@@ -125,9 +128,9 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
         // we don't want to count this as a collision.
         glm::vec3 relativeVelocity = particleA->getVelocity() - particleB->getVelocity();
         if (glm::dot(relativeVelocity, penetration) > 0.0f) {
-            particleA->collisionWithParticle(particleB);
-            particleB->collisionWithParticle(particleA);
-            emitGlobalParticleCollisionWithParticle(particleA, particleB);
+            particleA->collisionWithParticle(particleB, penetration);
+            particleB->collisionWithParticle(particleA, penetration * -1.0f); // the penetration is reversed
+            emitGlobalParticleCollisionWithParticle(particleA, particleB, penetration);
 
             glm::vec3 axis = glm::normalize(penetration);
             glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;

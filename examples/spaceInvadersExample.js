@@ -392,8 +392,9 @@ function deleteIfInvader(possibleInvaderParticle) {
     }
 }
 
-function particleCollisionWithParticle(particleA, particleB) {
+function particleCollisionWithParticle(particleA, particleB, penetration) {
     print("particleCollisionWithParticle() a.id="+particleA.id + " b.id=" + particleB.id);
+    Vec3.print('particleCollisionWithParticle() penetration=', penetration);
     if (missileFired) {
         myMissile = Particles.identifyParticle(myMissile);
         if (myMissile.id == particleA.id) {
