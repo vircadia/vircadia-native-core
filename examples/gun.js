@@ -57,12 +57,12 @@ function shootBullet(position, velocity) {
           damping: 0 });
 
     // Play firing sounds 
-    audioOptions.position = position;
+    audioOptions.position = position;   
     Audio.playSound(fireSound, audioOptions);
 }
 
 function particleCollisionWithVoxel(particle, voxel) {
-    var HOLE_SIZE = 0.25;
+    var HOLE_SIZE = 0.125;
     var particleProperties = Particles.getParticleProperties(particle);
     var position = particleProperties.position; 
     Particles.deleteParticle(particle);
