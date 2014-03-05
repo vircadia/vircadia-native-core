@@ -3479,7 +3479,6 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
 }
 
 void Application::loadScript(const QString& fileNameString) {
-    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -3489,6 +3488,7 @@ void Application::loadScript(const QString& fileNameString) {
         return;
     }
     qDebug("Loading file %s...", fileName);
+    _activeScripts.append(fileNameString);
 
     // get file length....
     unsigned long fileLength = file.tellg();
