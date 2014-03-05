@@ -1,0 +1,94 @@
+Dependencies
+===
+* (cmake)[http://www.cmake.org/cmake/resources/software.html] ~> 2.8.11
+* (Qt)[http://qt-project.org/downloads] ~> 5.2.0
+* (zLib)[http://www.zlib.net/] ~> 1.2.8
+* (glm)[http://glm.g-truc.net/0.9.5/index.html] ~> 0.9.5.0
+
+CMake
+=== 
+Hifi uses CMake to generate build files and project files for your platform.
+
+Qt
+---
+In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your CMake installation.
+
+For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
+
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake/
+
+The path it needs to be set to will depend on where and how Qt5 was installed.
+
+Generating build files
+---
+Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
+
+    mkdir build
+    cd build
+    cmake ..
+
+Variables
+---
+Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.
+
+For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
+
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.2.0/clang_64/lib/cmake
+
+
+UNIX
+===
+
+In general, as long as external dependencies are placed in OS standard locations, CMake will successfully find them during its run. When possible, you may choose to install depencies from your package manager of choice, or from source. 
+
+
+OS X
+---
+
+### Package Managers
+
+(Homebrew)[http://brew.sh/] is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
+
+### Xcode
+
+If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
+
+    cmake .. -GXcode
+
+After running cmake, you will have the make files or Xcode project file necessary to build all of the components. Open the hifi.xcodeproj file, choose ALL_BUILD from the Product > Scheme menu (or target drop down), and click Run.
+
+If the build completes successfully, you will have built targets for all components located in the `build/${target_name}/Debug directories`.
+
+Windows
+===
+Currently building on Windows has only been tested on Windows SDK 7.1 with Visual Studio C++ 2010 Express.
+
+Visual Studio C++ 2010 Express can be downloaded (here)[http://www.visualstudio.com/en-us/downloads#d-2010-express].
+
+The following patches/service packs are also required:
+* [Windows SDK 7.1/.NET 4 Framework](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
+* [VS2010 SP1](http://www.microsoft.com/en-us/download/details.aspx?id=23691)
+* [VS2010 SP1 Compiler Update](http://www.microsoft.com/en-us/download/details.aspx?id=4422)
+
+Qt
+---
+You can use the online installer, or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
+* Download the online installer [here](http://qt-project.org/downloads)
+    * When it asks you to select components, ONLY select the following:
+        * Qt > Qt 5.2.0 > **msvc2010 32-bit OpenGL**
+
+* Download the offline installer [here](http://download.qt-project.org/official_releases/qt/5.2/5.2.0/qt-windows-opensource-5.2.0-msvc2010_opengl-x86-offline.exe)
+
+Once Qt is installed, you need to manually configure the following:
+* Make sure the Qt runtime DLLs are loadable (You could add the Qt\5.2.0\msvc2010_opengl\bin\ directory to your path.) - You must do this before you attempt to build because some tools for the build depend on Qt.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your Qt\5.2.0\msvc2010_opengl directory
+
+zLib
+---
+NOTE: zLib should configure itself correctly on install. However, sometimes zLib doesn't properly detect system components and fails to configure itself correctly. When it fails, it will not correctly set the #if HAVE_UNISTD_H at line 287 of zconf.h to #if 0... if it fails, you're build will have errors in the voxels target. You can correct this by setting the #if to 0 instead of 1, since Windows does not have unistd.h.
+
+Building in Visual Studio
+---
+Follow the same build steps from the CMake section, but pass a different generator to CMake.
+
+    cmake .. -G "Visual Studio 10"
