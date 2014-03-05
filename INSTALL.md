@@ -47,7 +47,7 @@ OS X
 
 ### Package Managers
 
-(Homebrew)[http://brew.sh/] is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
+[Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
 ### Xcode
 
