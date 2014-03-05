@@ -1,9 +1,9 @@
 MACRO(LINK_HIFI_LIBRARY LIBRARY TARGET ROOT_DIR)
     if (NOT TARGET ${LIBRARY})
-        add_subdirectory(${ROOT_DIR}/libraries/${LIBRARY} ${ROOT_DIR}/libraries/${LIBRARY})
+        add_subdirectory("${ROOT_DIR}/libraries/${LIBRARY}" "${ROOT_DIR}/libraries/${LIBRARY}")
     endif (NOT TARGET ${LIBRARY})
     
-    include_directories(${ROOT_DIR}/libraries/${LIBRARY}/src)
+    include_directories("${ROOT_DIR}/libraries/${LIBRARY}/src")
 
     add_dependencies(${TARGET} ${LIBRARY})
     target_link_libraries(${TARGET} ${LIBRARY})

@@ -41,15 +41,12 @@ TextureCache::~TextureCache() {
         glDeleteTextures(1, &id);
     }
     if (_primaryFramebufferObject) {
-        delete _primaryFramebufferObject;
         glDeleteTextures(1, &_primaryDepthTextureID);
     }
-    if (_secondaryFramebufferObject) {
-        delete _secondaryFramebufferObject;
-    }
-    if (_tertiaryFramebufferObject) {
-        delete _tertiaryFramebufferObject;
-    }
+    
+    delete _primaryFramebufferObject;
+    delete _secondaryFramebufferObject;
+    delete _tertiaryFramebufferObject;
 }
 
 GLuint TextureCache::getPermutationNormalTextureID() {
