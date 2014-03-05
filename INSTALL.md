@@ -9,8 +9,7 @@ CMake
 === 
 Hifi uses CMake to generate build files and project files for your platform.
 
-Qt
----
+####Qt
 In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your CMake installation.
 
 For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
@@ -19,16 +18,14 @@ For example, a Qt5 5.2.0 installation to /usr/local/qt5 would require that QT_CM
 
 The path it needs to be set to will depend on where and how Qt5 was installed.
 
-Generating build files
----
+####Generating build files
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
 
     mkdir build
     cd build
     cmake ..
 
-Variables
----
+####Variables
 Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
@@ -38,18 +35,18 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
 
 UNIX
 ===
-
 In general, as long as external dependencies are placed in OS standard locations, CMake will successfully find them during its run. When possible, you may choose to install depencies from your package manager of choice, or from source. 
 
-OS X
----
+####Linux
+Should you choose not to install Qt5 via a package manager that handles dependencies for you, you may be missing some Qt5 dependencies. On Ubuntu, for example, the following additional packages are required:
 
-### Package Managers
+    libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack-dev
 
+####OS X
+#####Package Managers
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all hifi dependencies very simple.
 
-### Xcode
-
+#####Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
 
     cmake .. -GXcode
@@ -69,8 +66,7 @@ The following patches/service packs are also required:
 * [VS2010 SP1](http://www.microsoft.com/en-us/download/details.aspx?id=23691)
 * [VS2010 SP1 Compiler Update](http://www.microsoft.com/en-us/download/details.aspx?id=4422)
 
-Qt
----
+####Qt
 You can use the online installer, or the offline installer. If you use the offline installer, be sure to select the "OpenGL" version.
 * Download the online installer [here](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
@@ -82,12 +78,10 @@ Once Qt is installed, you need to manually configure the following:
 * Make sure the Qt runtime DLLs are loadable (You could add the Qt\5.2.0\msvc2010_opengl\bin\ directory to your path.) - You must do this before you attempt to build because some tools for the build depend on Qt.
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your Qt\5.2.0\msvc2010_opengl directory
 
-zLib
----
+####zLib
 NOTE: zLib should configure itself correctly on install. However, sometimes zLib doesn't properly detect system components and fails to configure itself correctly. When it fails, it will not correctly set the #if HAVE_UNISTD_H at line 287 of zconf.h to #if 0... if it fails, you're build will have errors in the voxels target. You can correct this by setting the #if to 0 instead of 1, since Windows does not have unistd.h.
 
-External Libraries
----
+####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
 * In particular you must make sure all required DLLs are loadable. You can accomplish this in several different ways. 
@@ -101,25 +95,19 @@ We don't currently have a Windows installer, so before running Interface, you wi
 
 * You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
 
-### glm
+#### glm
+CMake will need to know where glm headers are. You can do this by setting the variable `GLM_ROOT_DIR` to the location of the folder that contains your glm dir, in your ENV or by passing GLM_ROOT_DIR directly on the command line to cmake.
 
-CMake will need to know where glm headers are. You can do this by setting an ENV variable `GLM_ROOT_DIR` to the location of the folder that contains your glm dir, or by passing GLM_ROOT_DIR directly on the command line.
-
-    cmake .. -G "Visual Studio 10" -DGLM_ROOT_DIR=$YOUR_CONTAINING_FOLDER
-
-Building in Visual Studio
----
+####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
 
     cmake .. -G "Visual Studio 10"
 
-Running Interface
----
+####Running Interface
 If you need to debug Interface, you can run interface from within Visual Studio (see the section below). You can also run Interface by launching it from command line or File Explorer from $YOUR_HIFI_PATH\build\interface\Debug\interface.exe
 
 
-Debugging Interface
----
+####Debugging Interface
 * In the Solution Explorer, right click interface and click Set as StartUp Project
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
