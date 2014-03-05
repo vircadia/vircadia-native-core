@@ -18,8 +18,6 @@ include(${MACRO_DIR}/SetupHifiProject.cmake)
 
 setup_hifi_project(${TARGET_NAME} TRUE)
 
-qt5_use_modules(${TARGET_NAME} Network)
-
 # remove and then copy the files for the webserver
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                    COMMAND "${CMAKE_COMMAND}" -E remove_directory
@@ -37,3 +35,5 @@ link_hifi_library(embedded-webserver ${TARGET_NAME} "${ROOT_DIR}")
 IF (WIN32)
   target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
+
+target_link_libraries(${TARGET_NAME} Qt5::Network)

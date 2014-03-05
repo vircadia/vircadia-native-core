@@ -75,15 +75,7 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Multimedia REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
-find_package(Qt5Svg REQUIRED)
-find_package(Qt5WebKit REQUIRED)
-find_package(Qt5WebKitWidgets REQUIRED)
-find_package(Qt5Xml REQUIRED)
+find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -180,8 +172,6 @@ if (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
     target_link_libraries(${TARGET_NAME} "${LIBOVR_LIBRARIES}")
 endif (LIBOVR_FOUND AND NOT DISABLE_LIBOVR)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
-
 # include headers for interface and InterfaceConfig.
 include_directories(
     "${PROJECT_SOURCE_DIR}/src"
@@ -200,6 +190,8 @@ target_link_libraries(
   ${TARGET_NAME}
   "${FACESHIFT_LIBRARIES}"
   "${ZLIB_LIBRARIES}"
+  Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
+  Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools
 )
 
 if (APPLE)

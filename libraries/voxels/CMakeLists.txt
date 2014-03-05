@@ -8,13 +8,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME voxels)
 
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Script REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Script)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
-
-qt5_use_modules(${TARGET_NAME} Widgets Script)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
@@ -26,4 +23,5 @@ link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 # link ZLIB
 find_package(ZLIB)
 include_directories("${ZLIB_INCLUDE_DIRS}")
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}")
+
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" Qt5::Widgets Qt5::Script)

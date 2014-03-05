@@ -13,8 +13,6 @@ find_package(Qt5Script REQUIRED)
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-qt5_use_modules(${TARGET_NAME} Script)
-
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} "${ROOT_DIR}")
 
@@ -24,3 +22,5 @@ link_hifi_library(shared ${TARGET_NAME} "${ROOT_DIR}")
 # link in the hifi voxels library
 link_hifi_library(octree ${TARGET_NAME} "${ROOT_DIR}")
 link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
+
+target_link_libraries(${TARGET_NAME} Qt5::Script)

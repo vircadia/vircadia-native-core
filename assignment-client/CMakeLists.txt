@@ -8,14 +8,10 @@ set(MACRO_DIR "${ROOT_DIR}/cmake/macros")
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
-find_package(Qt5Network REQUIRED)
-find_package(Qt5Script REQUIRED)
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Network Script Widgets)
 
 include("${MACRO_DIR}/SetupHifiProject.cmake")
 setup_hifi_project(${TARGET_NAME} TRUE)
-
-qt5_use_modules(${TARGET_NAME} Network Script Widgets)
 
 # include glm
 include("${MACRO_DIR}/IncludeGLM.cmake")
@@ -40,3 +36,5 @@ endif (UNIX)
 IF (WIN32)
 	target_link_libraries(${TARGET_NAME} Winmm Ws2_32)
 ENDIF(WIN32)
+
+target_link_libraries(${TARGET_NAME} Qt5::Network Qt5::Widgets Qt5::Script)
