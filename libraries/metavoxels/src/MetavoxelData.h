@@ -44,6 +44,9 @@ public:
     bool isValid() const { return threshold > 0.0f; }
     
     bool shouldSubdivide(const glm::vec3& minimum, float size) const;
+    
+    /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
+    bool becameSubdivided(const glm::vec3& minimum, float size, const MetavoxelLOD& reference) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
@@ -88,6 +91,7 @@ public:
     void writeDelta(const MetavoxelData& reference, const MetavoxelLOD& referenceLOD,
         Bitstream& out, const MetavoxelLOD& lod) const;
 
+    MetavoxelNode* getRoot(const AttributePointer& attribute) const { return _roots.value(attribute); }
     MetavoxelNode* createRoot(const AttributePointer& attribute);
 
 private:
@@ -113,6 +117,7 @@ public:
     
     bool shouldSubdivide() const { return lod.shouldSubdivide(minimum, size); }
     bool shouldSubdivideReference() const { return referenceLOD.shouldSubdivide(minimum, size); }
+    bool becameSubdivided() const { return lod.becameSubdivided(minimum, size, referenceLOD); }
     
     void setMinimum(const glm::vec3& lastMinimum, int index);
 };
@@ -144,8 +149,12 @@ public:
     void readDelta(const MetavoxelNode& reference, MetavoxelStreamState& state);
     void writeDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
 
+    void readSubdivision(MetavoxelStreamState& state);
+    void writeSubdivision(MetavoxelStreamState& state) const;
+
     void writeSpanners(MetavoxelStreamState& state) const;
     void writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
+    void writeSpannerSubdivision(MetavoxelStreamState& state) const;
 
     /// Increments the node's reference count.
     void incrementReferenceCount() { _referenceCount++; }

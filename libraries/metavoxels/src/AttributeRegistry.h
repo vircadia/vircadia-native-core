@@ -178,6 +178,9 @@ public:
     
     virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
     virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    
+    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 
     virtual bool equal(void* first, void* second) const = 0;
 
@@ -332,6 +335,9 @@ public:
     
     virtual void readDelta(MetavoxelData& data, const MetavoxelNode& reference, MetavoxelStreamState& state);
     virtual void writeDelta(const MetavoxelNode& root, const MetavoxelNode& reference, MetavoxelStreamState& state);
+    
+    virtual void readSubdivision(MetavoxelData& data, MetavoxelStreamState& state);
+    virtual void writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state);
 };
 
 #endif /* defined(__interface__AttributeRegistry__) */

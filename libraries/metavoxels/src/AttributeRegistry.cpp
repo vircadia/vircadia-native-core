@@ -165,6 +165,14 @@ void Attribute::writeDelta(const MetavoxelNode& root, const MetavoxelNode& refer
     root.writeDelta(reference, state);
 }
 
+void Attribute::readSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+    data.getRoot(state.attribute)->readSubdivision(state);
+}
+
+void Attribute::writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    root.writeSubdivision(state);
+}
+
 QRgbAttribute::QRgbAttribute(const QString& name, QRgb defaultValue) :
     InlineAttribute<QRgb>(name, defaultValue) {
 }
@@ -313,3 +321,21 @@ void SpannerSetAttribute::writeDelta(const MetavoxelNode& root, const MetavoxelN
     root.writeSpannerDelta(reference, state);
     state.stream << SharedObjectPointer();
 }
+
+void SpannerSetAttribute::readSubdivision(MetavoxelData& data, MetavoxelStreamState& state) {
+    forever {
+        SharedObjectPointer object;
+        state.stream >> object;
+        if (!object) {
+            break;
+        }
+        data.insert(state.attribute, object);
+    }
+}
+
+void SpannerSetAttribute::writeSubdivision(const MetavoxelNode& root, MetavoxelStreamState& state) {
+    Spanner::incrementVisit();
+    root.writeSpannerSubdivision(state);
+    state.stream << SharedObjectPointer();
+}
+
