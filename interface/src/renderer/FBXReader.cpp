@@ -1630,7 +1630,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (collideLikeCapsule) {
             joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            //joint.shapePosition = glm::vec3(0.f);
             joint.shapeType = Shape::CAPSULE_SHAPE;
         } else {
             // collide the joint like a sphere
