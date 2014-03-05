@@ -202,7 +202,7 @@ protected:
         glm::vec3 translation;  // translation relative to parent
         glm::quat rotation;     // rotation relative to parent
         glm::mat4 transform;    // rotation to world frame + translation in model frame
-        glm::quat combinedRotation; // rotation to model frame
+        glm::quat combinedRotation; // rotation from joint local to world frame
     };
     
     bool _shapesAreDirty;
