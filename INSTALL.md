@@ -86,23 +86,34 @@ zLib
 ---
 NOTE: zLib should configure itself correctly on install. However, sometimes zLib doesn't properly detect system components and fails to configure itself correctly. When it fails, it will not correctly set the #if HAVE_UNISTD_H at line 287 of zconf.h to #if 0... if it fails, you're build will have errors in the voxels target. You can correct this by setting the #if to 0 instead of 1, since Windows does not have unistd.h.
 
-Building in Visual Studio
----
-Follow the same build steps from the CMake section, but pass a different generator to CMake.
-
-    cmake .. -G "Visual Studio 10"
-
 External Libraries
 ---
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-* In particular you must make sure all required DLLs are loadable by making sure that the folders containing them are in your path. You can accomplish this in several different ways. 
+* In particular you must make sure all required DLLs are loadable. You can accomplish this in several different ways. 
 
     One technique is described below:
     * create a directory C:\Development\HiFi\windows-dlls
     * add C:\Development\HiFi\windows-dlls to your path
     * copy the following files into this directory: zlib1.dll, freeglut.dll, glew32.dll
 
-    Note: You will need to find the above DLLs from where you installed the associated dependency.
-    
+    Note: you will find freeglut.dll and glew32.dll in the C:\Development\HiFi\hifi\interface\external tree. You will need to find the zlib1.dll from where you installed zLib.
+
 * You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
+
+Building in Visual Studio
+---
+Follow the same build steps from the CMake section, but pass a different generator to CMake.
+
+    cmake .. -G "Visual Studio 10"
+
+Running Interface
+---
+If you need to debug Interface, you can run interface from within Visual Studio (see the section below). You can also run Interface by launching it from command line or File Explorer from $YOUR_HIFI_PATH\build\interface\Debug\interface.exe
+
+
+Debugging Interface
+---
+* In the Solution Explorer, right click interface and click Set as StartUp Project
+* Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
+* Now you can run and debug interface through Visual Studio
