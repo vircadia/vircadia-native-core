@@ -58,7 +58,7 @@ bool ParticleCollisionSystem::updateOperation(OctreeElement* element, void* extr
 
 void ParticleCollisionSystem::update() {
     // update all particles
-    if (_particles->tryLockForWrite()) {
+    if (_particles->tryLockForRead()) {
         _particles->recurseTreeWithOperation(updateOperation, this);
         _particles->unlock();
     }
@@ -117,7 +117,7 @@ void ParticleCollisionSystem::updateCollisionWithParticles(Particle* particleA) 
     const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     Particle* particleB;
-    if (_particles->findSpherePenetration(center, radius, penetration, (void**)&particleB)) {
+    if (_particles->findSpherePenetration(center, radius, penetration, (void**)&particleB, Octree::NoLock)) {
         // NOTE: 'penetration' is the depth that 'particleA' overlaps 'particleB'.
         // That is, it points from A into B.
 

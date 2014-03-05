@@ -61,6 +61,7 @@
 #include <ResourceCache.h>
 #include <UUID.h>
 #include <VoxelSceneStats.h>
+#include <LocalVoxelsList.h>
 
 #include "Application.h"
 #include "ClipboardScriptingInterface.h"
@@ -311,7 +312,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     checkVersion();
     
     _overlays.init(_glWidget); // do this before scripts load
-
+    
+    LocalVoxelsList::getInstance()->addPersistantTree(DOMAIN_TREE_NAME, _voxels.getTree());
+    LocalVoxelsList::getInstance()->addPersistantTree(CLIPBOARD_TREE_NAME, &_clipboard);
+    
     // do this as late as possible so that all required subsystems are inialized
     loadScripts();
 }
@@ -398,6 +402,12 @@ void Application::initializeGL() {
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
+    static bool isInitialized = false;
+    if (isInitialized) {
+        return;
+    } else {
+        isInitialized = true;
+    }
     int argc = 0;
     glutInit(&argc, 0);
     #endif
@@ -1424,6 +1434,7 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     args.newBaseOctCode = octalCodeDestination;
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
+    // Switch back to clipboard if it was an import
     if (_sharedVoxelSystem.getTree() != &_clipboard) {
         _sharedVoxelSystem.killLocalVoxels();
         _sharedVoxelSystem.changeTree(&_clipboard);
@@ -1884,6 +1895,8 @@ void Application::update(float deltaTime) {
 
     _particles.update(); // update the particles...
     _particleCollisionSystem.update(); // collide the particles...
+    
+    _overlays.update(deltaTime);
     
     // let external parties know we're updating
     emit simulating(deltaTime);
@@ -3466,7 +3479,6 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
 }
 
 void Application::loadScript(const QString& fileNameString) {
-    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -3476,6 +3488,7 @@ void Application::loadScript(const QString& fileNameString) {
         return;
     }
     qDebug("Loading file %s...", fileName);
+    _activeScripts.append(fileNameString);
 
     // get file length....
     unsigned long fileLength = file.tellg();
