@@ -28,7 +28,7 @@ var clapping = new Array();
 clapping[0] = false; 
 clapping[1] = false; 
 
-function maybePlaySound() {
+function maybePlaySound(deltaTime) {
 	//  Set the location and other info for the sound to play
 	var palm1Position = Controller.getSpatialControlPosition(0);
 	var palm2Position = Controller.getSpatialControlPosition(2);
@@ -62,4 +62,4 @@ function maybePlaySound() {
 }
 
 // Connect a call back that happens every frame
-Script.willSendVisualDataCallback.connect(maybePlaySound);
+Script.update.connect(maybePlaySound);

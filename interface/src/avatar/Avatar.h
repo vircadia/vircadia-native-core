@@ -74,7 +74,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void render();
+    void render(bool forShadowMap = false);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }

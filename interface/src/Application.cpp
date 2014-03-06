@@ -110,9 +110,11 @@ const QString CUSTOM_URL_SCHEME = "hifi:";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (message.size() > 0) {
-        QString messageWithNewLine = message + "\n";
-        fprintf(stdout, "%s", messageWithNewLine.toLocal8Bit().constData());
-        Application::getInstance()->getLogger()->addMessage(messageWithNewLine.toLocal8Bit().constData());
+        QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
+        QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
+        
+        fprintf(stdout, "%s", qPrintable(formattedMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
     }
 }
 
@@ -402,17 +404,17 @@ void Application::initializeGL() {
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
-    int argc = 0;
-    glutInit(&argc, 0);
-    #endif
-
-    #ifdef WIN32
     static bool isInitialized = false;
     if (isInitialized) {
         return;
     } else {
         isInitialized = true;
     }
+    int argc = 0;
+    glutInit(&argc, 0);
+    #endif
+
+    #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
       /* Problem: glewInit failed, something is seriously wrong. */
@@ -1560,14 +1562,14 @@ void Application::init() {
 
     // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
     connect(&_particleCollisionSystem, 
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)),
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
-            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)));
+            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)));
 
     connect(&_particleCollisionSystem, 
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
-            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
+            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
@@ -2381,8 +2383,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     }
 
-    bool forceRenderMyHead = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
-    _avatarManager.renderAvatars(forceRenderMyHead, selfAvatarOnly);
+    bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
+    _avatarManager.renderAvatars(mirrorMode, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3479,7 +3481,6 @@ void Application::cleanupScriptMenuItem(const QString& scriptMenuName) {
 }
 
 void Application::loadScript(const QString& fileNameString) {
-    _activeScripts.append(fileNameString);
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
 
@@ -3489,6 +3490,7 @@ void Application::loadScript(const QString& fileNameString) {
         return;
     }
     qDebug("Loading file %s...", fileName);
+    _activeScripts.append(fileNameString);
 
     // get file length....
     unsigned long fileLength = file.tellg();

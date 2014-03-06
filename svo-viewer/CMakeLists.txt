@@ -61,15 +61,7 @@ foreach(EXTERNAL_SOURCE_SUBDIR ${EXTERNAL_SOURCE_SUBDIRS})
   set(APPLICATION_SRCS ${APPLICATION_SRCS} "${SUBDIR_SRCS}")
 endforeach(EXTERNAL_SOURCE_SUBDIR)
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Multimedia REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
-find_package(Qt5Svg REQUIRED)
-find_package(Qt5WebKit REQUIRED)
-find_package(Qt5WebKitWidgets REQUIRED)
-find_package(Qt5Xml REQUIRED)
+find_package(Qt5 COMPONENTS Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -122,8 +114,6 @@ link_hifi_library(voxels ${TARGET_NAME} "${ROOT_DIR}")
 find_package(GLM REQUIRED)
 find_package(ZLIB)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Script Svg WebKit WebKitWidgets Xml UiTools)
-
 # include headers for interface
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
@@ -131,7 +121,9 @@ include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes"
 # use system flag so warnings are supressed
 include_directories(SYSTEM "${GLM_INCLUDE_DIRS}")
 
-target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}")
+target_link_libraries(${TARGET_NAME} "${ZLIB_LIBRARIES}" 
+  Qt5::Core Qt5::Gui Qt5::Multimedia Qt5::Network Qt5::OpenGL 
+  Qt5::Script Qt5::Svg Qt5::WebKit Qt5::WebKitWidgets Qt5::Xml Qt5::UiTools)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers

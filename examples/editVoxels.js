@@ -920,7 +920,7 @@ function keyPressEvent(event) {
                         red: colors[color].red,
                         green: colors[color].green,
                         blue: colors[color].blue };
-            Voxels.eraseVoxel(voxelDetails.x, voxelDetails.y, voxelDetails.z, voxelDetails.s);
+            Voxels.eraseVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s);
             Voxels.setVoxel(newVoxel.x, newVoxel.y, newVoxel.z, newVoxel.s, newVoxel.red, newVoxel.green, newVoxel.blue);
             setAudioPosition();
             playRandomAddSound(audioOptions);
@@ -1329,7 +1329,7 @@ function checkControllers() {
     }
 }
 
-function update() {
+function update(deltaTime) {
     var newWindowDimensions = Controller.getViewportDimensions();
     if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
         windowDimensions = newWindowDimensions;
@@ -1399,6 +1399,6 @@ function scriptEnding() {
 }
 Script.scriptEnding.connect(scriptEnding);
 
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 setupMenus();

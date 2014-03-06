@@ -201,7 +201,7 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render() {
+void Avatar::render(bool forShadowMap) {
     glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
     float lengthToTarget = glm::length(toTarget);
    
@@ -209,7 +209,7 @@ void Avatar::render() {
         // glow when moving in the distance
         
         const float GLOW_DISTANCE = 5.0f;
-        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE ? 1.0f : 0.0f);
+        Glower glower(_moving && lengthToTarget > GLOW_DISTANCE && !forShadowMap ? 1.0f : 0.0f);
 
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
@@ -233,7 +233,7 @@ void Avatar::render() {
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
         float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
         
-        if ((sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
+        if (!forShadowMap && (sphereRadius > MIN_SPHERE_SIZE) && (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
             glColor4f(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.f - angle / MAX_SPHERE_ANGLE);
             glPushMatrix();
             glTranslatef(_position.x, _position.y, _position.z);
@@ -243,7 +243,10 @@ void Avatar::render() {
         }
     }
     const float DISPLAYNAME_DISTANCE = 10.0f;
-    setShowDisplayName(lengthToTarget < DISPLAYNAME_DISTANCE);
+    setShowDisplayName(!forShadowMap && lengthToTarget < DISPLAYNAME_DISTANCE);
+    if (forShadowMap) {
+        return;
+    }
     renderDisplayName();
     
     if (!_chatMessage.empty()) {

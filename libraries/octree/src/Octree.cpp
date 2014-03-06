@@ -17,9 +17,7 @@
 
 #include <glm/gtc/noise.hpp>
 
-#include <QtCore/QDebug>
-#include <QImage>
-#include <QRgb>
+#include <QDebug>
 
 #include "CoverageMap.h"
 #include <GeometryUtil.h>
@@ -590,16 +588,26 @@ bool findRayIntersectionOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElement*& node, float& distance, BoxFace& face, bool tryLock) {
+                                    OctreeElement*& node, float& distance, BoxFace& face, Octree::lockType lockType) {
     RayArgs args = { origin / (float)(TREE_SCALE), direction, node, distance, face };
 
-    if (!tryLock) {
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
         lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
     }
-    if (tryLock && tryLockForRead()) {
-        recurseTreeWithOperation(findRayIntersectionOp, &args);
+
+    recurseTreeWithOperation(findRayIntersectionOp, &args);
+
+    if (gotLock) {
         unlock();
     }
+
     return args.found;
 }
 
@@ -635,7 +643,7 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
 }
 
 bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration,
-                    void** penetratedObject, bool tryLock) {
+                    void** penetratedObject, Octree::lockType lockType) {
 
     SphereArgs args = {
         center / (float)(TREE_SCALE),
@@ -644,17 +652,27 @@ bool Octree::findSpherePenetration(const glm::vec3& center, float radius, glm::v
         false,
         NULL };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
-    
-    if (!tryLock) {
+
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
         lockForRead();
-    }
-    if (tryLock && tryLockForRead()) {
-        recurseTreeWithOperation(findSpherePenetrationOp, &args);
-        if (penetratedObject) {
-            *penetratedObject = args.penetratedObject;
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
         }
+    }
+
+    recurseTreeWithOperation(findSpherePenetrationOp, &args);
+    if (penetratedObject) {
+        *penetratedObject = args.penetratedObject;
+    }
+
+    if (gotLock) {
         unlock();
     }
+    
     return args.found;
 }
 
@@ -689,7 +707,7 @@ bool findCapsulePenetrationOp(OctreeElement* node, void* extraData) {
 }
 
 bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, 
-                    glm::vec3& penetration, bool tryLock) {
+                    glm::vec3& penetration, Octree::lockType lockType) {
                     
     CapsuleArgs args = {
         start / (float)(TREE_SCALE),
@@ -699,11 +717,20 @@ bool Octree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end
         false };
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    if (!tryLock) {
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
         lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.found; // if we wanted to tryLock, and we couldn't then just bail...
+        }
     }
-    if (tryLock && tryLockForRead()) {
-        recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+
+    recurseTreeWithOperation(findCapsulePenetrationOp, &args);
+    
+    if (gotLock) {
         unlock();
     }
     return args.found;
@@ -732,18 +759,28 @@ bool getElementEnclosingOperation(OctreeElement* element, void* extraData) {
     return true; // keep looking
 }
 
-OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, bool tryLock) {
+OctreeElement* Octree::getElementEnclosingPoint(const glm::vec3& point, Octree::lockType lockType) {
     GetElementEnclosingArgs args;
     args.point = point;
     args.element = NULL;
     
-    if (!tryLock) {
+    bool gotLock = false;
+    if (lockType == Octree::Lock) {
         lockForRead();
+        gotLock = true;
+    } else if (lockType == Octree::TryLock) {
+        gotLock = tryLockForRead();
+        if (!gotLock) {
+            return args.element; // if we wanted to tryLock, and we couldn't then just bail...
+        }
     }
-    if (tryLock && tryLockForRead()) {
-        recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
+
+    recurseTreeWithOperation(getElementEnclosingOperation, (void*)&args);
+    
+    if (gotLock) {
         unlock();
     }
+
     return args.element;
 }
 
