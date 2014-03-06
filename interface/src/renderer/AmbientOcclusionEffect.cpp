@@ -17,7 +17,6 @@
 
 #include "AmbientOcclusionEffect.h"
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
