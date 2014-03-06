@@ -11,6 +11,7 @@
 
 #include <QHash>
 #include <QList>
+#include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QPointer>
@@ -20,6 +21,7 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QTimer;
 
 class Resource;
 
@@ -116,14 +118,18 @@ private slots:
     
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
+    void handleReplyTimeout();
 
 private:
     
     void makeRequest();
     
+    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
+    
     friend class ResourceCache;
     
     QNetworkReply* _reply;
+    QTimer* _replyTimer;
     int _attempts;
 };
 
