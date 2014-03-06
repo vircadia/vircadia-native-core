@@ -102,17 +102,6 @@ if (APPLE)
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/interface.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
-
-  # grab the directories in resources and put them in the right spot in Resources
-  file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
-  foreach(DIR ${RESOURCE_SUBDIRS})
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/resources/${DIR}")
-      FILE(GLOB DIR_CONTENTS "resources/${DIR}/*")
-      SET_SOURCE_FILES_PROPERTIES(${DIR_CONTENTS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${DIR}")
-
-      SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${DIR_CONTENTS}")
-    endif()
-  endforeach()
 endif (APPLE)
 
 # create the executable, make it a bundle on OS X
