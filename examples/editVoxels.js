@@ -26,6 +26,10 @@ var PIXELS_PER_EXTRUDE_VOXEL = 16;
 var WHEEL_PIXELS_PER_SCALE_CHANGE = 100;
 var MAX_VOXEL_SCALE = 1.0;
 var MIN_VOXEL_SCALE = 1.0 / Math.pow(2.0, 8.0);
+var WHITE_COLOR = { red: 255, green: 255, blue: 255 };
+
+var MAX_PASTE_VOXEL_SCALE = 256;
+var MIN_PASTE_VOXEL_SCALE = .256;
 
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 1.5;
@@ -199,6 +203,8 @@ var voxelToolAt = 0;
 var recolorToolAt = 1;
 var eyedropperToolAt = 2;
 
+var pasteModeColor = { red: 132,  green: 61,  blue: 255 };
+
 var voxelTool = Overlays.addOverlay("image", {
                     x: 0, y: 0, width: toolWidth, height: toolHeight,
                     subImage: { x: 0, y: toolHeight, width: toolWidth, height: toolHeight },
@@ -262,7 +268,7 @@ var thumb = Overlays.addOverlay("image", {
                     visible: false
                 });
 
-var pointerVoxelScale = 0; // this is the voxel scale used for click to add or delete
+var pointerVoxelScale = Math.floor(MAX_VOXEL_SCALE + MIN_VOXEL_SCALE) / 2; // this is the voxel scale used for click to add or delete
 var pointerVoxelScaleSet = false; // if voxel scale has not yet been set, we use the intersection size
 
 var pointerVoxelScaleSteps = 8; // the number of slider position steps
@@ -308,6 +314,23 @@ function setAudioPosition() {
     audioOptions.position = Vec3.sum(camera, forwardVector);
 }
 
+function getNewPasteVoxel(pickRay) {
+
+        var voxelSize = MIN_PASTE_VOXEL_SCALE + (MAX_PASTE_VOXEL_SCALE - MIN_PASTE_VOXEL_SCALE) * pointerVoxelScale - 1;    
+        var distance = 1 + 30 * voxelSize / MAX_PASTE_VOXEL_SCALE;
+        var origin = { x: pickRay.direction.x * NEW_VOXEL_DISTANCE_FROM_CAMERA + voxelSize, y: pickRay.direction.y, z: pickRay.direction.z };
+
+        origin.x += pickRay.origin.x;
+        origin.y += pickRay.origin.y;
+        origin.z += pickRay.origin.z;
+
+        origin.x -= voxelSize / 2;
+        origin.y -= voxelSize / 2;
+        origin.z -= voxelSize / 2;
+
+        return {origin: origin, voxelSize: voxelSize};
+}
+
 function getNewVoxelPosition() { 
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(MyAvatar.orientation);
@@ -337,6 +360,7 @@ var trackAsOrbitOrPan = false;
 var voxelToolSelected = true;
 var recolorToolSelected = false;
 var eyedropperToolSelected = false;
+var pasteMode = false;
 
 function playRandomAddSound(audioOptions) {
     if (Math.random() < 0.33) {
@@ -523,6 +547,38 @@ function showPreviewVoxel() {
 function showPreviewLines() {
 
     var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
+
+    if (pasteMode) { // free voxel pasting
+    
+        Overlays.editOverlay(voxelPreview, { visible: false });
+        Overlays.editOverlay(linePreviewLeft, { visible: false });
+
+        var pasteVoxel = getNewPasteVoxel(pickRay);
+
+        // X axis
+        Overlays.editOverlay(linePreviewBottom, { 
+            position: pasteVoxel.origin, 
+            end: {x: pasteVoxel.origin.x + pasteVoxel.voxelSize, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z }, 
+            visible: true 
+        });
+
+        // Y axis
+        Overlays.editOverlay(linePreviewRight, { 
+            position: pasteVoxel.origin, 
+            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y + pasteVoxel.voxelSize, z: pasteVoxel.origin.z }, 
+            visible: true 
+        });
+
+        // Z axis
+        Overlays.editOverlay(linePreviewTop, { 
+            position: pasteVoxel.origin, 
+            end: {x: pasteVoxel.origin.x, y: pasteVoxel.origin.y, z: pasteVoxel.origin.z - pasteVoxel.voxelSize }, 
+            visible: true 
+        });
+
+        return;
+    }
+
     var intersection = Voxels.findRayIntersection(pickRay);
     
     if (intersection.intersects) {
@@ -617,6 +673,8 @@ function trackKeyReleaseEvent(event) {
     if (editToolsOn) {
         if (event.text == "ESC") {
             pointerVoxelScaleSet = false;
+            pasteMode = false;
+            moveTools();
         }
         if (event.text == "-") {
             thumbX -= thumbDeltaPerStep;
@@ -821,6 +879,15 @@ function mousePressEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Voxels.findRayIntersection(pickRay);
     audioOptions.position = Vec3.sum(pickRay.origin, pickRay.direction);
+
+    if (pasteMode) {
+        var pasteVoxel = getNewPasteVoxel(pickRay);
+        Clipboard.pasteVoxel(pasteVoxel.origin.x, pasteVoxel.origin.y, pasteVoxel.origin.z, pasteVoxel.voxelSize);
+        pasteMode = false;
+        moveTools();
+        return;
+    }
+
     if (intersection.intersects) {
         // if the user hasn't updated the 
         if (!pointerVoxelScaleSet) {
@@ -974,21 +1041,28 @@ function cleanupMenus() {
 function menuItemEvent(menuItem) {
 
     // handle clipboard items
-    if (selectToolSelected) {
+    if (editToolsOn) {
+
         var pickRay = Camera.computePickRay(trackLastMouseX, trackLastMouseY);
         var intersection = Voxels.findRayIntersection(pickRay);
         selectedVoxel = calculateVoxelFromIntersection(intersection,"select");
         if (menuItem == "Copy") {
             print("copying...");
             Clipboard.copyVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            pasteMode = true;
+            moveTools();
         }
         if (menuItem == "Cut") {
             print("cutting...");
             Clipboard.cutVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            pasteMode = true;
+            moveTools();
         }
         if (menuItem == "Paste") {
             print("pasting...");
             Clipboard.pasteVoxel(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, selectedVoxel.s);
+            pasteMode = false;
+            moveTools();
         }
         if (menuItem == "Delete") {
             print("deleting...");
@@ -1002,6 +1076,8 @@ function menuItemEvent(menuItem) {
         if (menuItem == "Import Voxels") {
             print("import");
             Clipboard.importVoxels();
+            pasteMode = true;
+            moveTools();
         }
         if (menuItem == "Nudge") {
             print("nudge");
@@ -1156,19 +1232,23 @@ function moveTools() {
         recolorToolOffset = 1,
         eyedropperToolOffset = 1;
 
-    if (trackAsRecolor || recolorToolSelected) {
+    var voxelToolColor = WHITE_COLOR;
+
+    if (recolorToolSelected) {
         recolorToolOffset = 2;
-    } else if (trackAsEyedropper || eyedropperToolSelected) {
+    } else if (eyedropperToolSelected) {
         eyedropperToolOffset = 2;
-    } else if (trackAsOrbitOrPan) {
-        // nothing gets selected in this case...
     } else {
+        if (pasteMode) {
+            voxelToolColor = pasteModeColor;
+        }
         voxelToolOffset = 2;
     }
 
     Overlays.editOverlay(voxelTool, {
                     subImage: { x: 0, y: toolHeight * voxelToolOffset, width: toolWidth, height: toolHeight },
                     x: toolsX, y: toolsY + ((toolHeight + toolVerticalSpacing) * voxelToolAt), width: toolWidth, height: toolHeight,
+                    color: voxelToolColor,
                     visible: editToolsOn
                 });
 
