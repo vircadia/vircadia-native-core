@@ -14,14 +14,10 @@ Worklist.net.
 We're hiring! We're looking for skilled developers; 
 send your resume to hiring@highfidelity.io
 
-
-Building Interface & other High Fidelity Components
+Build Instructions 
 =========
 
-Interface is our Windows, OS X, and Linux build-able client for accessing our virtual 
-world. 
-
-All information required to build is found in the [install guide](INSTALL.md).
+All information required to build is found in the [build guide](BUILD.md).
 
 Running Interface
 ===
@@ -39,7 +35,7 @@ To move around in-world, use the arrow keys (and Shift + up/down to fly up or
 down) or W A S D, and E or C to fly up/down. All of the other possible options 
 and features are available via menus in the Interface application.
 
-Full virtual world stack
+Full stack
 ========
 
 The assignment-client and domain-server are architectural components that will allow 
@@ -50,7 +46,7 @@ local "domain".
 
 The domain-server gives a number different types of assignments to the assignment-client for different features: audio, avatars, voxels, particles, and meta-voxels.
 
-Follow the instructions in the [install guide](INSTALL.md) to build the various components.
+Follow the instructions in the [build guide](BUILD.md) to build the various components.
 
 From the domain-server build directory, launch a domain-server.
 
