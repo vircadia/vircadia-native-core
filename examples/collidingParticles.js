@@ -58,7 +58,7 @@ var color = {
   green: 255,
   blue: 0 };
 
-function draw() {
+function draw(deltaTime) {
     print("hello... draw()... currentIteration=" + currentIteration + "\n");
     
     // on the first iteration, setup a single particle that's slowly moving
@@ -150,5 +150,5 @@ function draw() {
 // register the call back so it fires before each data send
 print("here...\n");
 Particles.setPacketsPerSecond(40000);
-Script.willSendVisualDataCallback.connect(draw);
+Script.update.connect(draw);
 print("and here...\n");
