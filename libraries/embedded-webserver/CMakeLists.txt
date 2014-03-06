@@ -13,4 +13,4 @@ find_package(Qt5Network REQUIRED)
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
-qt5_use_modules(${TARGET_NAME} Network)
+target_link_libraries(${TARGET_NAME} Qt5::Network)
