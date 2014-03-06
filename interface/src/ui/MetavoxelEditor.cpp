@@ -100,6 +100,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new InsertSpannerTool(this));
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
+    addTool(new SetSpannerTool(this));
     
     updateAttributes();
     
@@ -529,15 +530,15 @@ void GlobalSetTool::apply() {
     Application::getInstance()->getMetavoxels()->applyEdit(message);
 }
 
-InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
-    MetavoxelTool(editor, "Insert Spanner") {
+PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText) :
+    MetavoxelTool(editor, name) {
     
-    QPushButton* button = new QPushButton("Insert");
+    QPushButton* button = new QPushButton(placeText);
     layout()->addWidget(button);
-    connect(button, SIGNAL(clicked()), SLOT(insert()));
+    connect(button, SIGNAL(clicked()), SLOT(place()));
 }
 
-void InsertSpannerTool::simulate(float deltaTime) {
+void PlaceSpannerTool::simulate(float deltaTime) {
     if (Application::getInstance()->isMouseHidden()) {
         return;
     }
@@ -558,7 +559,7 @@ void InsertSpannerTool::simulate(float deltaTime) {
     spanner->getRenderer()->simulate(deltaTime);
 }
 
-void InsertSpannerTool::render() {
+void PlaceSpannerTool::render() {
     if (Application::getInstance()->isMouseHidden()) {
         return;
     }
@@ -567,26 +568,34 @@ void InsertSpannerTool::render() {
     spanner->getRenderer()->render(SPANNER_ALPHA);
 }
 
-bool InsertSpannerTool::appliesTo(const AttributePointer& attribute) const {
+bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute->inherits("SpannerSetAttribute");
 }
 
-bool InsertSpannerTool::eventFilter(QObject* watched, QEvent* event) {
+bool PlaceSpannerTool::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::MouseButtonPress) {
-        insert();
+        place();
         return true;
     }
     return false;
 }
 
-void InsertSpannerTool::insert() {
+void PlaceSpannerTool::place() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
     if (!attribute) {
         return;
     }
     SharedObjectPointer spanner = _editor->getValue().value<SharedObjectPointer>();
-    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, spanner)) };
+    MetavoxelEditMessage message = { createEdit(attribute, spanner) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
+    PlaceSpannerTool(editor, "Insert Spanner", "Insert") {
+}
+
+QVariant InsertSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    return QVariant::fromValue(InsertSpannerEdit(attribute, spanner));
 }
 
 RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
@@ -624,4 +633,17 @@ void ClearSpannersTool::clear() {
     }
     MetavoxelEditMessage message = { QVariant::fromValue(ClearSpannersEdit(attribute)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
+}
+
+SetSpannerTool::SetSpannerTool(MetavoxelEditor* editor) :
+    PlaceSpannerTool(editor, "Set Spanner", "Set") {
+}
+
+bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute == AttributeRegistry::getInstance()->getSpannersAttribute();
+}
+
+QVariant SetSpannerTool::createEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    static_cast<Spanner*>(spanner.data())->setGranularity(_editor->getGridSpacing());
+    return QVariant::fromValue(SetSpannerEdit(spanner));
 }

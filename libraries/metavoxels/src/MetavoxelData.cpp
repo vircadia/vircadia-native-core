@@ -493,6 +493,7 @@ void MetavoxelNode::read(MetavoxelStreamState& state) {
             _children[i] = new MetavoxelNode(state.attribute);
             _children[i]->read(nextState);
         }
+        mergeChildren(state.attribute);
     }
 }
 
@@ -549,7 +550,8 @@ void MetavoxelNode::readDelta(const MetavoxelNode& reference, MetavoxelStreamSta
                     }
                 }
             }
-        }  
+        }
+        mergeChildren(state.attribute);
     }
 }
 
@@ -1085,6 +1087,15 @@ void Spanner::setBounds(const Box& bounds) {
     emit boundsChanged(_bounds = bounds);
 }
 
+const QVector<AttributePointer>& Spanner::getAttributes() const {
+    static QVector<AttributePointer> emptyVector;
+    return emptyVector;
+}
+
+bool Spanner::getAttributeValues(MetavoxelInfo& info) const {
+    return false;
+}
+
 bool Spanner::testAndSetVisited() {
     if (_lastVisit == _visit) {
         return false;
@@ -1164,6 +1175,43 @@ void Sphere::setColor(const QColor& color) {
     }
 }
 
+const QVector<AttributePointer>& Sphere::getAttributes() const {
+    static QVector<AttributePointer> attributes = QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getColorAttribute() << AttributeRegistry::getInstance()->getNormalAttribute();
+    return attributes;
+}
+
+bool Sphere::getAttributeValues(MetavoxelInfo& info) const {
+    // bounds check
+    Box bounds = info.getBounds();
+    if (!getBounds().intersects(bounds)) {
+        return false;
+    }
+    // count the points inside the sphere
+    int pointsWithin = 0;
+    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
+        if (glm::distance(bounds.getVertex(i), getTranslation()) <= getScale()) {
+            pointsWithin++;
+        }
+    }
+    if (pointsWithin == Box::VERTEX_COUNT) {
+        // entirely contained
+        info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(_color.rgba()));
+        getNormal(info);
+        return false;
+    }
+    if (info.size <= getGranularity()) {
+        // best guess
+        if (pointsWithin > 0) {
+            info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(qRgba(
+                _color.red(), _color.green(), _color.blue(), _color.alpha() * pointsWithin / Box::VERTEX_COUNT)));
+            getNormal(info);
+        }
+        return false;
+    }
+    return true;
+}
+
 QByteArray Sphere::getRendererClassName() const {
     return "SphereRenderer";
 }
@@ -1171,6 +1219,24 @@ QByteArray Sphere::getRendererClassName() const {
 void Sphere::updateBounds() {
     glm::vec3 extent(getScale(), getScale(), getScale());
     setBounds(Box(getTranslation() - extent, getTranslation() + extent));
+}
+
+void Sphere::getNormal(MetavoxelInfo& info) const {
+    glm::vec3 normal = info.getCenter() - getTranslation();
+    float length = glm::length(normal);
+    QRgb color;
+    if (length > EPSILON) {
+        const float NORMAL_SCALE = 127.0f;
+        float scale = NORMAL_SCALE / length;
+        const int BYTE_MASK = 0xFF;
+        color = qRgb((int)(normal.x * scale) & BYTE_MASK, (int)(normal.y * scale) & BYTE_MASK,
+            (int)(normal.z * scale) & BYTE_MASK);
+        
+    } else {
+        const QRgb DEFAULT_NORMAL = 0x007F00;
+        color = DEFAULT_NORMAL;
+    }
+    info.outputValues[1] = AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
 }
 
 StaticModel::StaticModel() {

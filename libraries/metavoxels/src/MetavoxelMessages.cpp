@@ -123,3 +123,40 @@ ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :
 void ClearSpannersEdit::apply(MetavoxelData& data) const {
     data.clear(attribute);
 }
+
+class SetSpannerEditVisitor : public MetavoxelVisitor {
+public:
+    
+    SetSpannerEditVisitor(Spanner* spanner);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Spanner* _spanner;
+};
+
+SetSpannerEditVisitor::SetSpannerEditVisitor(Spanner* spanner) :
+    MetavoxelVisitor(QVector<AttributePointer>(), spanner->getAttributes()),
+    _spanner(spanner) {
+}
+
+int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
+    return _spanner->getAttributeValues(info) ? DEFAULT_ORDER : STOP_RECURSION;
+}
+
+SetSpannerEdit::SetSpannerEdit(const SharedObjectPointer& spanner) :
+    spanner(spanner) {
+}
+
+void SetSpannerEdit::apply(MetavoxelData& data) const {
+    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
+    
+    // expand to fit the entire spanner
+    while (!data.getBounds().contains(spanner->getBounds())) {
+        data.expand();
+    }
+    
+    SetSpannerEditVisitor visitor(spanner);
+    data.guide(visitor);
+}

@@ -188,6 +188,7 @@ public:
     bool isLeaf;
     
     Box getBounds() const { return Box(minimum, minimum + glm::vec3(size, size, size)); }
+    glm::vec3 getCenter() const { return minimum + glm::vec3(size, size, size) * 0.5f; }
 };
 
 /// Interface for visitors to metavoxels.
@@ -374,6 +375,13 @@ public:
     void setGranularity(float granularity) { _granularity = granularity; }
     float getGranularity() const { return _granularity; }
     
+    /// Returns a reference to the list of attributes associated with this spanner.
+    virtual const QVector<AttributePointer>& getAttributes() const;
+    
+    /// Sets the attribute values associated with this spanner in the supplied info.
+    /// \return true to recurse, false to stop
+    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
     bool testAndSetVisited();
@@ -459,6 +467,9 @@ public:
     void setColor(const QColor& color);
     const QColor& getColor() const { return _color; }
 
+    virtual const QVector<AttributePointer>& getAttributes() const;
+    virtual bool getAttributeValues(MetavoxelInfo& info) const;
+    
 signals:
 
     void colorChanged(const QColor& color);
@@ -472,6 +483,8 @@ private slots:
     void updateBounds();
     
 private:
+    
+    void getNormal(MetavoxelInfo& info) const;
     
     QColor _color;
 };

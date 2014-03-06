@@ -162,6 +162,17 @@ bool Box::intersects(const Box& other) const {
         other.maximum.z >= minimum.z && other.minimum.z <= maximum.z;
 }
 
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int Z_MAXIMUM_FLAG = 4;
+
+glm::vec3 Box::getVertex(int index) const {
+    return glm::vec3(
+        (index & X_MAXIMUM_FLAG) ? maximum.x : minimum.x,
+        (index & Y_MAXIMUM_FLAG) ? maximum.y : minimum.y,
+        (index & Z_MAXIMUM_FLAG) ? maximum.z : minimum.z); 
+}
+
 Box operator*(const glm::mat4& matrix, const Box& box) {
     // start with the constant component
     Box newBox(glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]), glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]));

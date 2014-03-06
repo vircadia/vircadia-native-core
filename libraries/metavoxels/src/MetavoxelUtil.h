@@ -34,6 +34,8 @@ class Box {
 
 public:
     
+    static const int VERTEX_COUNT = 8;
+    
     STREAM glm::vec3 minimum;
     STREAM glm::vec3 maximum;
     
@@ -44,6 +46,10 @@ public:
     bool intersects(const Box& other) const;
     
     float getLongestSide() const { return qMax(qMax(maximum.x - minimum.x, maximum.y - minimum.y), maximum.z - minimum.z); }
+    
+    glm::vec3 getVertex(int index) const;
+    
+    glm::vec3 getCenter() const { return (minimum + maximum) * 0.5f; }
 };
 
 DECLARE_STREAMABLE_METATYPE(Box)
