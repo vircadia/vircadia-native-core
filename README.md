@@ -11,6 +11,9 @@ Worklist.net.
 We're hiring! We're looking for skilled developers; 
 send your resume to hiring@highfidelity.io
 
+##### Chat with us
+Come chat with us in [our Gitter](http://gitter.im/highfidelity) if you have any questions or just want to say hi!
+
 Build Instructions 
 =========
 All information required to build is found in the [build guide](BUILD.md).
