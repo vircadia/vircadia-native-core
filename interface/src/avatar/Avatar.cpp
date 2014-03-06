@@ -409,10 +409,10 @@ void Avatar::renderDisplayName() {
     glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     GLdouble result0[3], result1[3];
 
-    glm::dvec3 upVector(modelViewMatrix[1]);
-    
+    // The up vector must be relative to the rotation current rotation matrix:
+    // we set the identity
     glm::dvec3 testPoint0 = glm::dvec3(textPosition);
-    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + upVector;
+    glm::dvec3 testPoint1 = glm::dvec3(textPosition) + glm::dvec3(IDENTITY_UP);
     
     bool success;
     success = gluProject(testPoint0.x, testPoint0.y, testPoint0.z,
