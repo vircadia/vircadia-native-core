@@ -61,13 +61,14 @@ void MetavoxelSystem::simulate(float deltaTime) {
     // simulate the clients
     _points.clear();
     _simulateVisitor.setDeltaTime(deltaTime);
+    _simulateVisitor.setOrder(-Application::getInstance()->getViewFrustum()->getDirection());
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
                 client->simulate(deltaTime);
-                client->getData().guide(_simulateVisitor);
+                client->guide(_simulateVisitor);
             }
         }
     }
@@ -109,7 +110,7 @@ void MetavoxelSystem::render() {
     glEnableClientState(GL_NORMAL_ARRAY);
 
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-    
+
     glDrawArrays(GL_POINTS, 0, _points.size());
     
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
@@ -127,7 +128,7 @@ void MetavoxelSystem::render() {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
-                client->getData().guide(_renderVisitor);
+                client->guide(_renderVisitor);
             }
         }
     }
@@ -147,15 +148,16 @@ MetavoxelSystem::SimulateVisitor::SimulateVisitor(QVector<Point>& points) :
     _points(points) {
 }
 
-void MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::SimulateVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->simulate(_deltaTime);
+    return true;
 }
 
-bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
+int MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
     SpannerVisitor::visit(info);
 
     if (!info.isLeaf) {
-        return true;
+        return _order;
     }
     QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
     QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
@@ -165,15 +167,16 @@ bool MetavoxelSystem::SimulateVisitor::visit(MetavoxelInfo& info) {
             { qRed(color), qGreen(color), qBlue(color), alpha }, { qRed(normal), qGreen(normal), qBlue(normal) } };
         _points.append(point);
     }
-    return false;
+    return STOP_RECURSION;
 }
 
 MetavoxelSystem::RenderVisitor::RenderVisitor() :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()) {
 }
 
-void MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
+bool MetavoxelSystem::RenderVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->render(1.0f);
+    return true;
 }
 
 MetavoxelClient::MetavoxelClient(const SharedNodePointer& node) :
@@ -201,6 +204,16 @@ MetavoxelClient::~MetavoxelClient() {
     _sequencer.endPacket();
 }
 
+static MetavoxelLOD getLOD() {
+    const float FIXED_LOD_THRESHOLD = 0.01f;
+    return MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD);
+}
+
+void MetavoxelClient::guide(MetavoxelVisitor& visitor) {
+    visitor.setLOD(getLOD());
+    _data.guide(visitor);
+}
+
 void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
     // apply immediately to local tree
     edit.apply(_data);
@@ -211,8 +224,8 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit) {
 
 void MetavoxelClient::simulate(float deltaTime) {
     Bitstream& out = _sequencer.startPacket();
-    const float FIXED_LOD_THRESHOLD = 0.0001f;
-    ClientStateMessage state = { MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), FIXED_LOD_THRESHOLD) };
+    
+    ClientStateMessage state = { getLOD() };
     out << QVariant::fromValue(state);
     _sequencer.endPacket();
     

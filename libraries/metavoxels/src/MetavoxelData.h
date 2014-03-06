@@ -194,8 +194,24 @@ public:
 class MetavoxelVisitor {
 public:
     
+    /// Encodes a visitation order sequence for the children of a metavoxel.
+    static int encodeOrder(int first, int second, int third, int fourth, int fifth, int sixth, int seventh, int eighth);
+    
+    /// Encodes a visitation order sequence that visits each child as sorted along the specified direction.
+    static int encodeOrder(const glm::vec3& direction);
+    
+    /// The default visitation order.
+    static const int DEFAULT_ORDER;
+    
+    /// A special "order" that instructs the guide to stop recursion.
+    static const int STOP_RECURSION;
+    
+    /// A special "order" that short-circuits the tour.
+    static const int SHORT_CIRCUIT;
+    
     MetavoxelVisitor(const QVector<AttributePointer>& inputs,
-        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
     virtual ~MetavoxelVisitor();
     
     /// Returns a reference to the list of input attributes desired.
@@ -204,18 +220,24 @@ public:
     /// Returns a reference to the list of output attributes provided.
     const QVector<AttributePointer>& getOutputs() const { return _outputs; }
     
+    /// Returns a reference to the level of detail that will determine subdivision levels.
+    const MetavoxelLOD& getLOD() const { return _lod; }
+    
+    void setLOD(const MetavoxelLOD& lod) { _lod = lod; }
+    
     /// Prepares for a new tour of the metavoxel data.
     virtual void prepare();
     
     /// Visits a metavoxel.
     /// \param info the metavoxel data
-    /// \return if true, continue descending; if false, stop
-    virtual bool visit(MetavoxelInfo& info) = 0;
+    /// \return the encoded order in which to traverse the children, zero to stop recursion, or -1 to short-circuit the tour
+    virtual int visit(MetavoxelInfo& info) = 0;
 
 protected:
 
     QVector<AttributePointer> _inputs;
     QVector<AttributePointer> _outputs;
+    MetavoxelLOD _lod;
 };
 
 typedef QSharedPointer<MetavoxelVisitor> MetavoxelVisitorPointer;
@@ -226,13 +248,15 @@ public:
     
     SpannerVisitor(const QVector<AttributePointer>& spannerInputs,
         const QVector<AttributePointer>& inputs = QVector<AttributePointer>(),
-        const QVector<AttributePointer>& outputs = QVector<AttributePointer>());
+        const QVector<AttributePointer>& outputs = QVector<AttributePointer>(),
+        const MetavoxelLOD& lod = MetavoxelLOD());
     
     /// Visits a spanner.
-    virtual void visit(Spanner* spanner) = 0;
+    /// \return true to continue, false to short-circuit the tour
+    virtual bool visit(Spanner* spanner) = 0;
     
     virtual void prepare();
-    virtual bool visit(MetavoxelInfo& info);
+    virtual int visit(MetavoxelInfo& info);
 
 protected:
     
@@ -246,7 +270,8 @@ class MetavoxelGuide : public SharedObject {
 public:
     
     /// Guides the specified visitor to the contained voxels.
-    virtual void guide(MetavoxelVisitation& visitation) = 0;
+    /// \return true to keep going, false to short circuit the tour
+    virtual bool guide(MetavoxelVisitation& visitation) = 0;
 };
 
 /// Guides visitors through the explicit content of the system.
@@ -257,7 +282,7 @@ public:
     
     Q_INVOKABLE DefaultMetavoxelGuide();
     
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
 };
 
 /// A temporary test guide that just makes the existing voxels throb with delight.
@@ -269,7 +294,7 @@ public:
     
     Q_INVOKABLE ThrobbingMetavoxelGuide();
     
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
     
 private:
     
@@ -285,7 +310,7 @@ public:
 
     Q_INVOKABLE ScriptedMetavoxelGuide();
 
-    virtual void guide(MetavoxelVisitation& visitation);
+    virtual bool guide(MetavoxelVisitation& visitation);
 
 public slots:
 

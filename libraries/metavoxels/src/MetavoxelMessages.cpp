@@ -24,7 +24,7 @@ public:
     
     BoxSetEditVisitor(const BoxSetEdit& edit);
     
-    virtual bool visit(MetavoxelInfo& info);
+    virtual int visit(MetavoxelInfo& info);
 
 private:
     
@@ -36,26 +36,26 @@ BoxSetEditVisitor::BoxSetEditVisitor(const BoxSetEdit& edit) :
     _edit(edit) {
 }
 
-bool BoxSetEditVisitor::visit(MetavoxelInfo& info) {
+int BoxSetEditVisitor::visit(MetavoxelInfo& info) {
     // find the intersection between volume and voxel
     glm::vec3 minimum = glm::max(info.minimum, _edit.region.minimum);
     glm::vec3 maximum = glm::min(info.minimum + glm::vec3(info.size, info.size, info.size), _edit.region.maximum);
     glm::vec3 size = maximum - minimum;
     if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f) {
-        return false; // disjoint
+        return STOP_RECURSION; // disjoint
     }
     float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
     if (volume >= 1.0f) {
         info.outputValues[0] = _edit.value;
-        return false; // entirely contained
+        return STOP_RECURSION; // entirely contained
     }
     if (info.size <= _edit.granularity) {
         if (volume >= 0.5f) {
             info.outputValues[0] = _edit.value;
         }
-        return false; // reached granularity limit; take best guess
+        return STOP_RECURSION; // reached granularity limit; take best guess
     }
-    return true; // subdivide
+    return DEFAULT_ORDER; // subdivide
 }
 
 void BoxSetEdit::apply(MetavoxelData& data) const {
@@ -77,7 +77,7 @@ public:
     
     GlobalSetEditVisitor(const GlobalSetEdit& edit);
     
-    virtual bool visit(MetavoxelInfo& info);
+    virtual int visit(MetavoxelInfo& info);
 
 private:
     
@@ -89,9 +89,9 @@ GlobalSetEditVisitor::GlobalSetEditVisitor(const GlobalSetEdit& edit) :
     _edit(edit) {
 }
 
-bool GlobalSetEditVisitor::visit(MetavoxelInfo& info) {
+int GlobalSetEditVisitor::visit(MetavoxelInfo& info) {
     info.outputValues[0] = _edit.value;
-    return false; // entirely contained
+    return STOP_RECURSION; // entirely contained
 }
 
 void GlobalSetEdit::apply(MetavoxelData& data) const {

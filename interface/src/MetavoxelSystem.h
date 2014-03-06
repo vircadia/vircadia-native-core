@@ -57,18 +57,20 @@ private:
     public:
         SimulateVisitor(QVector<Point>& points);
         void setDeltaTime(float deltaTime) { _deltaTime = deltaTime; }
-        virtual void visit(Spanner* spanner);
-        virtual bool visit(MetavoxelInfo& info);
+        void setOrder(const glm::vec3& direction) { _order = encodeOrder(direction); }
+        virtual bool visit(Spanner* spanner);
+        virtual int visit(MetavoxelInfo& info);
     
     private:
         QVector<Point>& _points;
         float _deltaTime;
+        int _order;
     };
     
     class RenderVisitor : public SpannerVisitor {
     public:
         RenderVisitor();
-        virtual void visit(Spanner* spanner);
+        virtual bool visit(Spanner* spanner);
     };
     
     static ProgramObject _program;
@@ -89,7 +91,7 @@ public:
     MetavoxelClient(const SharedNodePointer& node);
     virtual ~MetavoxelClient();
 
-    MetavoxelData& getData() { return _data; }
+    void guide(MetavoxelVisitor& visitor);
 
     void applyEdit(const MetavoxelEditMessage& edit);
 
