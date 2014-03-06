@@ -168,6 +168,9 @@ public:
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
     void addToPosition(const glm::vec3& delta);
+
+    void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
+    void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.f); }
     
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
     const glm::vec3 getTipPosition() const { return _owningHandData->leapPositionToWorldPosition(_tipPosition); }
@@ -217,6 +220,7 @@ private:
     
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
+    glm::vec3 _totalPenetration;    // accumulator for per-frame penetrations
     int _controllerButtons;
     int _lastControllerButtons;
     float _trigger;
