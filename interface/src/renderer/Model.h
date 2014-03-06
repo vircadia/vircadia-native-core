@@ -259,6 +259,7 @@ private:
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
+    float _nextLODHysteresis;
     
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;
