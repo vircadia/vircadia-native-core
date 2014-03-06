@@ -172,6 +172,8 @@ public:
     /// Use the collision to affect the model
     void applyCollision(CollisionInfo& collision);
 
+    float getBoundingRadius() const { return _boundingRadius; }
+
 protected:
 
     QSharedPointer<NetworkGeometry> _geometry;
@@ -228,7 +230,7 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-    
+
     void applyRotationDelta(int jointIndex, const glm::quat& delta, bool constrain = true);
     
 private:
@@ -257,6 +259,8 @@ private:
     QVector<glm::vec3> _blendedNormals;
     
     QVector<Model*> _attachments;
+
+    float _boundingRadius;
     
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;

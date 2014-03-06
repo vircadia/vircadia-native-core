@@ -7,6 +7,7 @@
 //
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include <GeometryUtil.h>
 
@@ -23,7 +24,8 @@ Model::Model(QObject* parent) :
     QObject(parent),
     _shapesAreDirty(true),
     _lodDistance(0.0f),
-    _pupilDilation(0.0f) {
+    _pupilDilation(0.0f),
+    _boundingRadius(0.f) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -136,6 +138,7 @@ void Model::createCollisionShapes() {
 
 void Model::updateShapePositions() {
     if (_shapesAreDirty && _shapes.size() == _jointStates.size()) {
+        _boundingRadius = 0.f;
         float uniformScale = extractUniformScale(_scale);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         for (int i = 0; i < _jointStates.size(); i++) {
@@ -145,7 +148,12 @@ void Model::updateShapePositions() {
             glm::vec3 worldPosition = extractTranslation(_jointStates[i].transform) + jointToShapeOffset + _translation;
             _shapes[i]->setPosition(worldPosition);
             _shapes[i]->setRotation(_jointStates[i].combinedRotation * joint.shapeRotation);
+            float distance2 = glm::distance2(worldPosition, _translation);
+            if (distance2 > _boundingRadius) {
+                _boundingRadius = distance2;
+            }
         }
+        _boundingRadius = sqrtf(_boundingRadius);
         _shapesAreDirty = false;
     }
 }
