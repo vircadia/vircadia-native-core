@@ -21,7 +21,7 @@ Building Interface & other High Fidelity Components
 Interface is our Windows, OS X, and Linux build-able client for accessing our virtual 
 world. 
 
-All information required to build is found in [INSTALL](INSTALL.md).
+All information required to build is found in the [install guide](INSTALL.md).
 
 Running Interface
 ===
