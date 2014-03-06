@@ -1008,10 +1008,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     _mouseX = event->x();
     _mouseY = event->y();
-        
-    if (activeWindow() == _window) {
-        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
-    }
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -1064,8 +1060,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 checkStatsClick();
             }            
-
-            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -1570,10 +1564,6 @@ void Application::init() {
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
-
-    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
-                  _glWidget->width(),
-                  _glWidget->height());
 
     _audio.init(_glWidget);
 
@@ -2506,10 +2496,6 @@ void Application::displayOverlay() {
             Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth))
                 ? 80 : 20;
         drawText(_glWidget->width() - 100, _glWidget->height() - timerBottom, 0.30f, 1.0f, 0, frameTimer, WHITE_TEXT);
-    }
-
-    if (_pieMenu.isDisplayed()) {
-        _pieMenu.render();
     }
 
     _overlays.render2D();
