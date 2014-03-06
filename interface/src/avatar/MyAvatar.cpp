@@ -923,10 +923,13 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
 
     // HACK: body-body collision uses two coaxial capsules with axes parallel to y-axis
     // TODO: make the collision work without assuming avatar orientation
-    Extents myStaticExtents = _skeletonModel.getStaticExtents();
-    glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
-    float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
-    float myCapsuleHeight = staticScale.y;
+
+    // TODO: these local variables are not used in the live code, only in the
+    // commented-outTODO code below.
+    //Extents myStaticExtents = _skeletonModel.getStaticExtents();
+    //glm::vec3 staticScale = myStaticExtents.maximum - myStaticExtents.minimum;
+    //float myCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
+    //float myCapsuleHeight = staticScale.y;
 
     CollisionInfo collisionInfo;
     foreach (const AvatarSharedPointer& avatarPointer, avatars) {
