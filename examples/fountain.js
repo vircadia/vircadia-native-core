@@ -41,7 +41,7 @@ var position = { x: 5.0, y: 0.6, z: 5.0 };
 Voxels.setVoxel(position.x, 0, position.z, 0.5, 0, 0, 255);
 	
 var totalParticles = 0;
-function makeFountain() {
+function makeFountain(deltaTime) {
 	if (Math.random() < 0.10) {
 	    //print("Made particle!\n");
         var properties = {
@@ -64,4 +64,4 @@ function makeFountain() {
     }
 }
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(makeFountain);
+Script.update.connect(makeFountain);

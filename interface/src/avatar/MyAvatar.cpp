@@ -452,24 +452,24 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
+void MyAvatar::render(bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        renderBody(forShadowMapOrMirror);
+    }
     // render body
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
+        _skeletonModel.renderCollisionProxies(0.8f);
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionProxies)) {
-        _skeletonModel.renderCollisionProxies(1.f);
+        getHead()->getFaceModel().renderCollisionProxies(0.8f);
     }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forceRenderHead);
-    }
-    setShowDisplayName(!avatarOnly);
-    if (avatarOnly) {
+    setShowDisplayName(!forShadowMapOrMirror);
+    if (forShadowMapOrMirror) {
         return;
     }
     renderDisplayName();
@@ -941,6 +941,11 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
         }
         float theirBoundingRadius = avatar->getBoundingRadius();
         if (distance < myBoundingRadius + theirBoundingRadius) {
+            _skeletonModel.updateShapePositions();
+            Model& headModel = getHead()->getFaceModel();
+            headModel.updateShapePositions();
+
+            /* TODO: Andrew to fix Avatar-Avatar body collisions
             Extents theirStaticExtents = _skeletonModel.getStaticExtents();
             glm::vec3 staticScale = theirStaticExtents.maximum - theirStaticExtents.minimum;
             float theirCapsuleRadius = 0.25f * (staticScale.x + staticScale.z);
@@ -952,6 +957,7 @@ void MyAvatar::updateCollisionWithAvatars(float deltaTime) {
                 // move the avatar out by half the penetration
                 setPosition(_position - 0.5f * penetration);
             }
+            */
 
             // collide our hands against them
             getHand()->collideAgainstAvatar(avatar, true);

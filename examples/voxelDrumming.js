@@ -70,14 +70,13 @@ function clamp(valueToClamp, minValue, maxValue) {
     return Math.max(minValue, Math.min(maxValue, valueToClamp));
 }
 
-function produceCollisionSound(palm, voxelDetail) {
+function produceCollisionSound(deltaTime, palm, voxelDetail) {
     //  Collision between finger and a voxel plays sound
 
     var palmVelocity = Controller.getSpatialControlVelocity(palm * 2);
     var speed = Vec3.length(palmVelocity);
     var fingerTipPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
 
-    var deltaTime = 1/60; //close enough
     var LOWEST_FREQUENCY = 100.0;
     var HERTZ_PER_RGB = 3.0;
     var DECAY_PER_SAMPLE = 0.0005;
@@ -97,9 +96,7 @@ function produceCollisionSound(palm, voxelDetail) {
     Audio.startDrumSound(volume, frequency, DURATION_MAX, DECAY_PER_SAMPLE, audioOptions);
 }
 
-function update() {
-    var deltaTime = 1/60; //close enough
-
+function update(deltaTime) {
     //  Voxel Drumming with fingertips if enabled
     if (Menu.isOptionChecked("Voxel Drumming")) {
 
@@ -111,7 +108,7 @@ function update() {
                 if (!isColliding[palm]) {
                     //  Collision has just started
                     isColliding[palm] = true;
-                    produceCollisionSound(palm, voxel);
+                    produceCollisionSound(deltaTime, palm, voxel);
             
                     //  Set highlight voxel
                     Overlays.editOverlay(highlightVoxel, 
@@ -156,7 +153,7 @@ function update() {
         } // palm loop
     } // menu item check
 }
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 function scriptEnding() {
     Overlays.deleteOverlay(highlightVoxel);

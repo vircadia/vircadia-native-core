@@ -295,8 +295,8 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
 
     void update(const quint64& now);
-    void collisionWithParticle(Particle* other);
-    void collisionWithVoxel(VoxelDetail* voxel);
+    void collisionWithParticle(Particle* other, const glm::vec3& penetration);
+    void collisionWithVoxel(VoxelDetail* voxel, const glm::vec3& penetration);
 
     void debugDump() const;
 
@@ -371,8 +371,10 @@ public:
     //~ParticleScriptObject() { qDebug() << "~ParticleScriptObject() this=" << this; }
 
     void emitUpdate() { emit update(); }
-    void emitCollisionWithParticle(QObject* other) { emit collisionWithParticle(other); }
-    void emitCollisionWithVoxel(const VoxelDetail& voxel) { emit collisionWithVoxel(voxel); }
+    void emitCollisionWithParticle(QObject* other, const glm::vec3& penetration) 
+                { emit collisionWithParticle(other, penetration); }
+    void emitCollisionWithVoxel(const VoxelDetail& voxel, const glm::vec3& penetration) 
+                { emit collisionWithVoxel(voxel, penetration); }
 
 public slots:
     unsigned int getID() const { return _particle->getID(); }
@@ -417,8 +419,8 @@ public slots:
 
 signals:
     void update();
-    void collisionWithVoxel(const VoxelDetail& voxel);
-    void collisionWithParticle(QObject* other);
+    void collisionWithVoxel(const VoxelDetail& voxel, const glm::vec3& penetration);
+    void collisionWithParticle(QObject* other, const glm::vec3& penetration);
 
 private:
     Particle* _particle;

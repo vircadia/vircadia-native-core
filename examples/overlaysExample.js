@@ -186,7 +186,7 @@ var toolAVisible = false;
 var count = 0;
 
 // Our update() function is called at approximately 60fps, and we will use it to animate our various overlays
-function update() {
+function update(deltaTime) {
     count++;
     
     // every second or so, toggle the visibility our our blinking tool
@@ -226,7 +226,7 @@ function update() {
     // update our 3D line to go from origin to our avatar's position
     Overlays.editOverlay(line3d, { end: MyAvatar.position } );
 }
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 
 // The slider is handled in the mouse event callbacks.

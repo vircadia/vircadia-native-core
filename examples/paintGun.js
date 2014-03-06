@@ -13,7 +13,7 @@ for (t = 0; t < numberOfTriggers; t++) {
     triggerPulled[t] = false;
 }
 
-function checkController() {
+function checkController(deltaTime) {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
@@ -62,8 +62,9 @@ function checkController() {
 
                 // This is the script for the particles that this gun shoots.
                 var script = 
-                         " function collisionWithVoxel(voxel) { " +
+                         " function collisionWithVoxel(voxel, penetration) { " +
                          "   print('collisionWithVoxel(voxel)... '); " +
+                         "   Vec3.print('penetration=', penetration); " +
                          "   print('myID=' + Particle.getID() + '\\n'); " +
                          "   var voxelColor = { red: voxel.red, green: voxel.green, blue: voxel.blue };" +
                          "   var voxelAt = { x: voxel.x, y: voxel.y, z: voxel.z };" +
@@ -93,4 +94,4 @@ function checkController() {
 
  
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(checkController);
+Script.update.connect(checkController);

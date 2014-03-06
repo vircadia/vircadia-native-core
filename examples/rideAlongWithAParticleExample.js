@@ -22,7 +22,7 @@ var particleA = Particles.addParticle(
                         lifetime: (lengthOfRide * 60) + 1
                     });
 
-function rideWithParticle() {
+function rideWithParticle(deltaTime) {
 
     if (iteration <= lengthOfRide) {
 
@@ -46,5 +46,5 @@ function rideWithParticle() {
 
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(rideWithParticle);
+Script.update.connect(rideWithParticle);
 
