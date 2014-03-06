@@ -36,11 +36,8 @@ public:
     
 public slots:
     void run();
-    
     void readPendingDatagrams();
-signals:
-    void willSendAudioDataCallback();
-    void willSendVisualDataCallback();
+
 private:
     ScriptEngine _scriptEngine;
     VoxelEditPacketSender _voxelEditSender;

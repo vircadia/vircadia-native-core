@@ -29,7 +29,6 @@ var grabbingWithLeftHand = false;
 var wasGrabbingWithLeftHand = false;
 var EPSILON = 0.000001;
 var velocity = { x: 0, y: 0, z: 0};
-var deltaTime = 1/60; // approximately our FPS - maybe better to be elapsed time since last call
 var THRUST_MAG_UP = 800.0;
 var THRUST_MAG_DOWN = 300.0;
 var THRUST_MAG_FWD = 500.0;
@@ -77,7 +76,7 @@ function getAndResetGrabRotation() {
 }
 
 // handles all the grab related behavior: position (crawl), velocity (flick), and rotate (twist)
-function handleGrabBehavior() {
+function handleGrabBehavior(deltaTime) {
     // check for and handle grab behaviors
     grabbingWithRightHand = Controller.isButtonPressed(RIGHT_BUTTON_4);
     grabbingWithLeftHand = Controller.isButtonPressed(LEFT_BUTTON_4);
@@ -156,7 +155,7 @@ function handleGrabBehavior() {
 }
 
 // Main update function that handles flying and grabbing behaviort
-function flyWithHydra() {
+function flyWithHydra(deltaTime) {
     var thrustJoystickPosition = Controller.getJoystickPosition(THRUST_CONTROLLER);
     
     if (thrustJoystickPosition.x != 0 || thrustJoystickPosition.y != 0) {
@@ -193,10 +192,10 @@ function flyWithHydra() {
         var newPitch = MyAvatar.headPitch + (viewJoystickPosition.y * JOYSTICK_PITCH_MAG * deltaTime);
         MyAvatar.headPitch = newPitch;
     }
-    handleGrabBehavior();
+    handleGrabBehavior(deltaTime);
 }
     
-Script.willSendVisualDataCallback.connect(flyWithHydra);
+Script.update.connect(flyWithHydra);
 Controller.captureJoystick(THRUST_CONTROLLER);
 Controller.captureJoystick(VIEW_CONTROLLER);
 

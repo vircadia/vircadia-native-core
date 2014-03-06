@@ -122,7 +122,7 @@ var velocity;
 var hueAngle = 0;
 var smoothedOffset;
 
-function step() {
+function step(deltaTime) {
     if (stateHistory.length === 0) {
         // start at a random position within the bounds, with a random velocity
         position = randomVector(BOUNDS_MIN, BOUNDS_MAX);
@@ -170,4 +170,4 @@ function step() {
     hueAngle = (hueAngle + 1) % MAX_HUE_ANGLE;
 }
 
-Script.willSendVisualDataCallback.connect(step);
+Script.update.connect(step);

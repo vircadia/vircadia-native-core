@@ -220,6 +220,8 @@ void ScriptEngine::run() {
     int thisFrame = 0;
     
     NodeList* nodeList = NodeList::getInstance();
+    
+    qint64 lastUpdate = usecTimestampNow();
 
     while (!_isFinished) {
         int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
@@ -264,7 +266,10 @@ void ScriptEngine::run() {
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
         }
 
-        emit willSendVisualDataCallback();
+        qint64 now = usecTimestampNow();
+        float deltaTime = (float)(now - lastUpdate)/(float)USECS_PER_SECOND;
+        emit update(deltaTime);
+        lastUpdate = now;
 
         if (_engine.hasUncaughtException()) {
             int line = _engine.uncaughtExceptionLineNumber();
