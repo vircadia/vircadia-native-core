@@ -1,6 +1,3 @@
-What is Hifi?
-=========
-
 High Fidelity (hifi) is an early-stage technology
 lab experimenting with Virtual Worlds and VR. 
 
@@ -16,12 +13,10 @@ send your resume to hiring@highfidelity.io
 
 Build Instructions 
 =========
-
 All information required to build is found in the [build guide](BUILD.md).
 
 Running Interface
 ===
-
 When you launch interface, you will automatically connect to our default domain: "root.highfidelity.io".
 
 I'm in-world, what can I do?
@@ -37,7 +32,6 @@ and features are available via menus in the Interface application.
 
 Full stack
 ========
-
 The assignment-client and domain-server are architectural components that will allow 
 you to run the full stack of the virtual world.
 
