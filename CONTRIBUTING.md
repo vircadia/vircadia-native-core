@@ -32,6 +32,8 @@ Contributing
   ```
   git push origin master
   ```
+8. Submit a pull request
+  *You can follow [GitHub's guide](https://help.github.com/articles/creating-a-pull-request) to find out how to create a pull request.*
   
 Reporting Bugs
 ===
