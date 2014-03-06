@@ -82,11 +82,13 @@ file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+# use the Qt Resource System to bundle in our resources
+qt5_add_resources(QRC_RESOURCE_FILE resources/interface.qrc)
+
 # add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
+set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QRC_RESOURCE_FILE}")
 
 if (APPLE)
-
   # configure CMake to use a custom Info.plist
   SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
 
