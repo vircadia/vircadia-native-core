@@ -10,8 +10,9 @@
 #include <QTextBlock>
 #include <QtGui>
 
+#include <SharedUtil.h>
+
 #include "Application.h"
-#include "SharedUtil.h"
 #include "ui/LogDialog.h"
 
 const int TOP_BAR_HEIGHT = 46;
