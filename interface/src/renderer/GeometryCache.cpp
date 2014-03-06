@@ -343,7 +343,14 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
         // if we previously selected a different distance, make sure we've moved far enough to justify switching
         const float HYSTERESIS_PROPORTION = 0.1f;
         if (glm::abs(distance - qMax(hysteresis, lodDistance)) / fabsf(hysteresis - lodDistance) < HYSTERESIS_PROPORTION) {
-            return getLODOrFallback(hysteresis, hysteresis);
+            lod = _lodParent;
+            lodDistance = 0.0f;
+            it = _lods.upperBound(hysteresis);
+            if (it != _lods.constBegin()) {
+                it = it - 1;
+                lod = it.value();
+                lodDistance = it.key();
+            }
         }
     }
     if (lod->isLoaded()) {

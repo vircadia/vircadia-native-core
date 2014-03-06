@@ -416,6 +416,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
 
     // if so instructed, keep the current geometry until the new one is loaded 
     _nextBaseGeometry = _nextGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url, fallback, delayLoad);
+    _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
         applyNextGeometry();
     }
@@ -784,7 +785,7 @@ void Model::applyCollision(CollisionInfo& collision) {
 QVector<Model::JointState> Model::updateGeometry(bool delayLoad) {
     QVector<JointState> newJointStates;
     if (_nextGeometry) {
-        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _lodHysteresis, delayLoad);
+        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis, delayLoad);
         if (!delayLoad) {
             _nextGeometry->setLoadPriority(this, -_lodDistance);
             _nextGeometry->ensureLoading();
@@ -827,7 +828,7 @@ void Model::applyNextGeometry() {
     // delete our local geometry and custom textures
     deleteGeometry();
     _dilatedTextures.clear();
-    _lodHysteresis = NetworkGeometry::NO_HYSTERESIS;
+    _lodHysteresis = _nextLODHysteresis;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
     _baseGeometry = _nextBaseGeometry;
