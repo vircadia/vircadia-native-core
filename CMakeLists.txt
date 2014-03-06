@@ -3,13 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 project(hifi)
 
 IF (WIN32)
-    include_directories(SYSTEM "externals/winsdk")
     add_definitions( -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS )
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
 ENDIF(WIN32)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH} )
-
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 # set our Base SDK to 10.8
 set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk)

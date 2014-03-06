@@ -138,11 +138,11 @@ glm::quat MetavoxelEditor::getGridRotation() const {
             return glm::quat();
             
         case GRID_PLANE_XZ:
-            return glm::angleAxis(-90.0f, 1.0f, 0.0f, 0.0f);
+            return glm::angleAxis(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
             
         case GRID_PLANE_YZ:
         default:
-            return glm::angleAxis(90.0f, 0.0f, 1.0f, 0.0f);
+            return glm::angleAxis(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
 

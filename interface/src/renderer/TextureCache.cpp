@@ -14,6 +14,7 @@
 #include <QRunnable>
 #include <QThreadPool>
 
+#include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include "Application.h"
@@ -316,7 +317,7 @@ void ImageReader::run() {
     }
     int imageArea = image.width() * image.height();
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(const glm::vec4&, accumulated / (imageArea * EIGHT_BIT_MAXIMUM)),
+        Q_ARG(const glm::vec4&, accumulated / (float) (imageArea * EIGHT_BIT_MAXIMUM)),
         Q_ARG(bool, translucentPixels >= imageArea / 2));
     _reply->deleteLater();
 }
@@ -381,7 +382,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             QPainter painter;
             painter.begin(&dilatedImage);
             QPainterPath path;
-            qreal radius = glm::mix(_innerRadius, _outerRadius, dilation);
+            qreal radius = glm::mix((float) _innerRadius, (float) _outerRadius, dilation);
             path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
             painter.fillPath(path, Qt::black);
             painter.end();

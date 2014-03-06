@@ -15,6 +15,7 @@
 #include <cmath>
 #include <math.h>
 
+#include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -2189,7 +2190,7 @@ void Application::updateShadowMap() {
     maxima.z += _viewFrustum.getFarClip() * 0.5f;
 
     // save the combined matrix for rendering
-    _shadowMatrix = glm::transpose(glm::translate(0.5f, 0.5f, 0.5f) * glm::scale(0.5f, 0.5f, 0.5f) *
+    _shadowMatrix = glm::transpose(glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
         glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) *
         glm::mat4_cast(rotation) * glm::translate(translation));
 
