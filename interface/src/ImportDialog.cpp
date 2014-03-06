@@ -5,7 +5,6 @@
 //  Created by Clement Brisset on 8/12/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-#include "ImportDialog.h"
 
 #include <QStandardPaths>
 #include <QGridLayout>
@@ -13,6 +12,9 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+
+#include "Application.h"
+#include "ImportDialog.h"
 
 const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import Voxels");
@@ -52,7 +54,7 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
             break;
     }
 
-    return QIcon(":/icons/" + typeString + ".svg");
+    return QIcon(Application::resourcesPath() + "icons/" + typeString + ".svg");
 }
 
 QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
@@ -60,21 +62,21 @@ QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
 
     if (info.isDir()) {
         if (info.absoluteFilePath() == QDir::homePath()) {
-            return QIcon(":/icons/home.svg");
+            return QIcon(Application::resourcesPath() + "icons/home.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)) {
-            return QIcon(":/icons/desktop.svg");
+            return QIcon(Application::resourcesPath() + "icons/desktop.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)) {
-            return QIcon(":/icons/documents.svg");
+            return QIcon(Application::resourcesPath() + "icons/documents.svg");
         }
-        return QIcon(":/icons/folder.svg");
+        return QIcon(Application::resourcesPath() + "icons/folder.svg");
     }
 
-    QFileInfo iconFile(":/icons/" + iconsMap[ext]);
+    QFileInfo iconFile(Application::resourcesPath() + "icons/" + iconsMap[ext]);
     if (iconFile.exists() && iconFile.isFile()) {
         return QIcon(iconFile.filePath());
     }
 
-    return QIcon(":/icons/file.svg");
+    return QIcon(Application::resourcesPath() + "icons/file.svg");
 }
 
 QString HiFiIconProvider::type(const QFileInfo &info) const {
@@ -242,15 +244,16 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("treeView");
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
-    QFile styleSheet(":/styles/import_dialog.qss");
+    QFile styleSheet(Application::resourcesPath() + "styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
+        QDir::setCurrent(Application::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 
 }
 
 void ImportDialog::setImportTypes() {
-    QFile config(":/config/config.json");
+    QFile config(Application::resourcesPath() + "config/config.json");
     config.open(QFile::ReadOnly | QFile::Text);
     QJsonDocument document = QJsonDocument::fromJson(config.readAll());
     if (!document.isNull() && !document.isEmpty()) {

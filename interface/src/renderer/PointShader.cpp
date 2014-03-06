@@ -29,7 +29,7 @@ PointShader::~PointShader() {
 
 ProgramObject* PointShader::createPointShaderProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/" + name + ".vert" );
+    program->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/" + name + ".vert" );
     program->link();
     return program;
 }

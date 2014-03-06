@@ -15,7 +15,6 @@
 #include <cmath>
 #include <math.h>
 
-
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -118,6 +117,15 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+QString& Application::resourcesPath() {
+#ifdef Q_OS_MAC
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#else
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+    return staticResourcePath;
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -154,7 +162,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _logger(new FileLogger(this))
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(":/info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
     
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -172,7 +180,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     _applicationStartupTime = startup_time;
     
-    QFontDatabase::addApplicationFont(":/styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -1566,7 +1574,7 @@ void Application::init() {
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
 
-    _pieMenu.init(":/images/hifi-interface-tools-v2-pie.svg",
+    _pieMenu.init(Application::resourcesPath() + "images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
                   _glWidget->height());
 
@@ -3648,7 +3656,7 @@ void Application::skipVersion(QString latestVersion) {
 
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo(":/sounds/snap.wav");
+    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

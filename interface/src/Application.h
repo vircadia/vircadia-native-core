@@ -108,6 +108,7 @@ class Application : public QApplication {
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
+    static QString& resourcesPath();
 
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();

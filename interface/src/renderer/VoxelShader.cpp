@@ -29,8 +29,8 @@ VoxelShader::~VoxelShader() {
 
 ProgramObject* VoxelShader::createGeometryShaderProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/passthrough.vert" );
-    program->addShaderFromSourceFile(QGLShader::Geometry, ":/shaders/" + name + ".geom" );
+    program->addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/passthrough.vert" );
+    program->addShaderFromSourceFile(QGLShader::Geometry, Application::resourcesPath() + "shaders/" + name + ".geom" );
     program->setGeometryInputType(GL_POINTS);
     program->setGeometryOutputType(GL_TRIANGLE_STRIP);
     const int VERTICES_PER_FACE = 4;

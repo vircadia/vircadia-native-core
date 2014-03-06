@@ -57,7 +57,7 @@ void OculusManager::connect() {
         _hmdDevice->GetDeviceInfo(&info);
         _stereoConfig.SetHMDInfo(info);
         
-        _program.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/oculus.frag");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/oculus.frag");
         _program.link();
         
         _textureLocation = _program.uniformLocation("texture");

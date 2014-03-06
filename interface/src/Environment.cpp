@@ -13,6 +13,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "renderer/ProgramObject.h"
@@ -173,7 +174,7 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QByteArray(":/shaders/SkyFrom") + from;
+    QByteArray prefix = QString(Application::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
     program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
     program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();

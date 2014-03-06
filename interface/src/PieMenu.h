@@ -22,7 +22,7 @@ class PieMenu {
 public:
     PieMenu();
 
-    void init(const char* fileName, int screenWidth, int screenHeight);
+    void init(const QString& fileName, int screenWidth, int screenHeight);
     void addAction(QAction* action);
     void render();
     void resize(int screenWidth, int screenHeight);

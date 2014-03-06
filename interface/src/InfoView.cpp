@@ -22,7 +22,7 @@ InfoView::InfoView(bool forced) :
 {
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
         
-    QString absPath = QFileInfo(":/html/interface-welcome-allsvg.html").absoluteFilePath();
+    QString absPath = QFileInfo(Application::resourcesPath() + "html/interface-welcome-allsvg.html").absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
     
     load(url);

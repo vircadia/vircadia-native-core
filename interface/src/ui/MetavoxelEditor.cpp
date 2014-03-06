@@ -114,7 +114,7 @@ MetavoxelEditor::MetavoxelEditor() :
         return;
     }
         
-    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/grid.frag");
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/grid.frag");
     _gridProgram.link();
 }
 

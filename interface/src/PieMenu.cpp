@@ -23,9 +23,9 @@ PieMenu::PieMenu() :
     _isDisplayed(false) {
 }
 
-void PieMenu::init(const char *fileName, int screenWidth, int screenHeight) {
+void PieMenu::init(const QString& fileName, int screenWidth, int screenHeight) {
     // Load SVG
-    QSvgRenderer renderer((QString) QString(fileName));
+    QSvgRenderer renderer(fileName);
 
     // Prepare a QImage with desired characteritisc
     QImage image(2 * _radiusExtern, 2 * _radiusExtern, QImage::Format_ARGB32);

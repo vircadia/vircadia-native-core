@@ -10,6 +10,7 @@
 #include <QTextBlock>
 #include <QtGui>
 
+#include "Application.h"
 #include "SharedUtil.h"
 #include "ui/LogDialog.h"
 
@@ -36,8 +37,9 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
-    QFile styleSheet(":/styles/log_dialog.qss");
+    QFile styleSheet(Application::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
+        QDir::setCurrent(Application::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 
