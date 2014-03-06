@@ -2383,8 +2383,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     }
 
-    bool forceRenderMyHead = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
-    _avatarManager.renderAvatars(forceRenderMyHead, selfAvatarOnly);
+    bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
+    _avatarManager.renderAvatars(mirrorMode, selfAvatarOnly);
 
     if (!selfAvatarOnly) {
         //  Render the world box

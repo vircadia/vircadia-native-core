@@ -452,7 +452,7 @@ void MyAvatar::renderDebugBodyPoints() {
 
 
 }
-void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
+void MyAvatar::render(bool forShadowMapOrMirror) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
@@ -466,10 +466,10 @@ void MyAvatar::render(bool forceRenderHead, bool avatarOnly) {
         _skeletonModel.renderCollisionProxies(1.f);
     }
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        renderBody(forceRenderHead);
+        renderBody(forShadowMapOrMirror);
     }
-    setShowDisplayName(!avatarOnly);
-    if (avatarOnly) {
+    setShowDisplayName(!forShadowMapOrMirror);
+    if (forShadowMapOrMirror) {
         return;
     }
     renderDisplayName();
