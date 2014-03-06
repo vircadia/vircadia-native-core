@@ -74,7 +74,7 @@ function particleCollisionWithVoxel(particle, voxel, penetration) {
     Audio.playSound(impactSound, audioOptions); 
 }
 
-function update() {
+function update(deltaTime) {
 
     //  Check for mouseLook movement, update rotation 
        // rotate body yaw for yaw received from mouse
@@ -179,7 +179,7 @@ function scriptEnding() {
 
 Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);
 Script.scriptEnding.connect(scriptEnding);
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);

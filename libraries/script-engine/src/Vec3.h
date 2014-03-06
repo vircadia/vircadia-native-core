@@ -14,14 +14,16 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <QtCore/QObject>
+
+#include <QObject>
+#include <QString>
 
 /// Scriptable interface a Vec3ernion helper class object. Used exclusively in the JavaScript API
 class Vec3 : public QObject {
     Q_OBJECT
 
 public slots:
-    glm::vec3 multiply(const glm::vec3& v1, const glm::vec3& v2);
+    glm::vec3 cross(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 multiply(const glm::vec3& v1, float f);
     glm::vec3 multiplyQbyV(const glm::quat& q, const glm::vec3& v);
     glm::vec3 sum(const glm::vec3& v1, const glm::vec3& v2);

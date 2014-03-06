@@ -1329,7 +1329,7 @@ function checkControllers() {
     }
 }
 
-function update() {
+function update(deltaTime) {
     var newWindowDimensions = Controller.getViewportDimensions();
     if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
         windowDimensions = newWindowDimensions;
@@ -1399,6 +1399,6 @@ function scriptEnding() {
 }
 Script.scriptEnding.connect(scriptEnding);
 
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 
 setupMenus();

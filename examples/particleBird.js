@@ -99,7 +99,7 @@ var properties = {
 var range = 1.0;   //  Distance around avatar where I can move 
 //  Create the actual bird 
 var particleID = Particles.addParticle(properties);
-function moveBird() {
+function moveBird(deltaTime) {
 
     // check to see if we've been running long enough that our bird is dead
     var nowTimeInSeconds = new Date().getTime() / 1000;
@@ -194,4 +194,4 @@ function moveBird() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(moveBird);
+Script.update.connect(moveBird);

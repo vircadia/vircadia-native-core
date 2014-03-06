@@ -114,7 +114,7 @@ function sendNextCells() {
 
 var sentFirstBoard = false;
 
-function step() {
+function step(deltaTime) {
   if (sentFirstBoard) {
     // we've already sent the first full board, perform a step in time
     updateCells();
@@ -127,6 +127,6 @@ function step() {
 }
 
 print("here");
-Script.willSendVisualDataCallback.connect(step);
+Script.update.connect(step);
 Voxels.setPacketsPerSecond(200);
 print("now here");
