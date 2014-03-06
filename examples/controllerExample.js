@@ -16,7 +16,7 @@ for (t = 0; t < numberOfTriggers; t++) {
     triggerPulled[t] = false;
 }
 
-function checkController() {
+function checkController(deltaTime) {
     var numberOfTriggers = Controller.getNumberOfTriggers();
     var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
     var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
@@ -48,7 +48,7 @@ function checkController() {
 }
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(checkController);
+Script.update.connect(checkController);
 
 function printKeyEvent(eventName, event) {
     print(eventName);

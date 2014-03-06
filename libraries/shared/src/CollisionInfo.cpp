@@ -8,6 +8,7 @@
 
 #include "CollisionInfo.h"
 
+
 CollisionList::CollisionList(int maxSize) :
     _maxSize(maxSize),
     _size(0) {
@@ -16,11 +17,15 @@ CollisionList::CollisionList(int maxSize) :
 
 CollisionInfo* CollisionList::getNewCollision() {
     // return pointer to existing CollisionInfo, or NULL of list is full
-    return (_size < _maxSize) ? &(_collisions[++_size]) : NULL;
+    return (_size < _maxSize) ? &(_collisions[_size++]) : NULL;
 }
 
 CollisionInfo* CollisionList::getCollision(int index) {
     return (index > -1 && index < _size) ? &(_collisions[index]) : NULL;
+}
+
+CollisionInfo* CollisionList::getLastCollision() {
+    return (_size > 0) ? &(_collisions[_size - 1]) : NULL;
 }
 
 void CollisionList::clear() {
