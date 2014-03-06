@@ -9,13 +9,14 @@
 #ifndef __interface__Environment__
 #define __interface__Environment__
 
+#include "InterfaceConfig.h"
+
 #include <QHash>
 #include <QMutex>
 
 #include <HifiSockAddr.h>
 
 #include "EnvironmentData.h"
-#include "InterfaceConfig.h"
 
 class Camera;
 class ProgramObject;

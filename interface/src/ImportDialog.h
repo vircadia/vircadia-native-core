@@ -9,6 +9,8 @@
 #ifndef __hifi__ImportDialog__
 #define __hifi__ImportDialog__
 
+#include "InterfaceConfig.h"
+
 #include <QFileDialog>
 #include <QPushButton>
 #include <QProgressBar>
