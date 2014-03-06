@@ -489,13 +489,19 @@ bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penet
     //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
 }
 
-bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+void Avatar::updateShapePositions() {
     _skeletonModel.updateShapePositions();
-    bool collided = _skeletonModel.findCollisions(shapes, collisions);
-
     Model& headModel = getHead()->getFaceModel();
     headModel.updateShapePositions();
-    collided = headModel.findCollisions(shapes, collisions);
+}
+
+bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
+    // TODO: Andrew to fix: also collide against _skeleton
+    //bool collided = _skeletonModel.findCollisions(shapes, collisions);
+
+    Model& headModel = getHead()->getFaceModel();
+    //collided = headModel.findCollisions(shapes, collisions) || collided;
+    bool collided = headModel.findCollisions(shapes, collisions);
     return collided;
 }
 
@@ -710,15 +716,14 @@ bool Avatar::collisionWouldMoveAvatar(CollisionInfo& collision) const {
     return false;
 }
 
-void Avatar::applyCollision(CollisionInfo& collision) {
-    if (!collision._data || collision._type != MODEL_COLLISION) {
-        return;
-    }
-    // TODO: make skeleton also respond to collisions
-    Model* model = static_cast<Model*>(collision._data);
-    if (model == &(getHead()->getFaceModel())) {
-        getHead()->applyCollision(collision);
-    }
+void Avatar::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
+    // ATM we only support collision with head
+    getHead()->applyCollision(contactPoint, penetration);
+}
+
+float Avatar::getBoundingRadius() const {
+    // TODO: also use head model when computing the avatar's bounding radius
+    return _skeletonModel.getBoundingRadius();
 }
 
 float Avatar::getPelvisFloatingHeight() const {

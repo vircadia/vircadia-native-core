@@ -78,7 +78,8 @@ public:
     virtual float getTweakedYaw() const;
     virtual float getTweakedRoll() const;
 
-    void  applyCollision(CollisionInfo& collisionInfo);
+    // move the head to avoid given collision info
+    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
     
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too

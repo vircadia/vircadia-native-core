@@ -23,12 +23,13 @@ public:
     SkeletonModel(Avatar* owningAvatar);
     
     void simulate(float deltaTime, bool delayLoad = false);
+    void syncToPalms();
     bool render(float alpha);
 
     /// \param jointIndex index of hand joint
     /// \param shapes[out] list in which is stored pointers to hand shapes
     void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
-    
+
 protected:
     
     void applyHandPosition(int jointIndex, const glm::vec3& position);
@@ -45,7 +46,7 @@ private:
     
     /// Using the current position and rotation of the identified (hand) joint, computes a
     /// reasonable stretched configuration for the connected arm.
-    void stretchArm(int jointIndex, const glm::vec3& position);
+    void stretchArm(int jointIndex, PalmData& palm);
     
     Avatar* _owningAvatar;
 };

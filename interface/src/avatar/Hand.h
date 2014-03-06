@@ -79,10 +79,6 @@ private:
     float _collisionAge;
     float _collisionDuration;
     
-    // private methods
-    void setLeapHands(const std::vector<glm::vec3>& handPositions,
-                      const std::vector<glm::vec3>& handNormals);
-
     void renderLeapHands(bool isMine);
     void renderLeapFingerTrails();
     

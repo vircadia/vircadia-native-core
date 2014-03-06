@@ -213,32 +213,25 @@ float Head::getTweakedRoll() const {
     return glm::clamp(_roll + _tweakedRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
 }
 
-void Head::applyCollision(CollisionInfo& collision) {
-    // HACK: the collision proxies for the FaceModel are bad.  As a temporary workaround
-    // we collide against a hard coded collision proxy.
-    // TODO: get a better collision proxy here.
-    const float HEAD_RADIUS = 0.15f;
-    const glm::vec3 HEAD_CENTER = _position;
-
-    // collide the contactPoint against the collision proxy to obtain a new penetration
-    // NOTE: that penetration is in opposite direction (points the way out for the point, not the sphere)
-    glm::vec3 penetration;
-    if (findPointSpherePenetration(collision._contactPoint, HEAD_CENTER, HEAD_RADIUS, penetration)) {
-        // compute lean angles
-        Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-        glm::quat bodyRotation = owningAvatar->getOrientation();
-        glm::vec3 neckPosition;
-        if (owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
-            glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
-            glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
+void Head::applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {
+    // compute lean angles
+    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
+    glm::quat bodyRotation = owningAvatar->getOrientation();
+    glm::vec3 neckPosition;
+    if (owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
+        glm::vec3 yAxis = bodyRotation * glm::vec3(0.f, 1.f, 0.f);
+        glm::vec3 leverArm = _position - neckPosition;
+        if (glm::dot(leverArm, yAxis) > 0.f) {
             float neckLength = glm::length(_position - neckPosition);
             if (neckLength > 0.f) {
-                float forward = glm::dot(collision._penetration, zAxis) / neckLength;
-                float sideways = - glm::dot(collision._penetration, xAxis) / neckLength;
+                glm::vec3 xAxis = bodyRotation * glm::vec3(1.f, 0.f, 0.f);
+                glm::vec3 zAxis = bodyRotation * glm::vec3(0.f, 0.f, 1.f);
+                float forward = glm::dot(penetration, zAxis) / neckLength;
+                float sideways = - glm::dot(penetration, xAxis) / neckLength;
                 addLean(sideways, forward);
             }
         }
-    } 
+    }
 }
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
