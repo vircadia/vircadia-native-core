@@ -30,7 +30,6 @@
 #include <OctreeQuery.h>
 
 #include "Audio.h"
-
 #include "BandwidthMeter.h"
 #include "BuckyBalls.h"
 #include "Camera.h"
