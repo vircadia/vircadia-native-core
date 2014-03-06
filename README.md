@@ -33,7 +33,7 @@ To move around in-world, use the arrow keys (and Shift + up/down to fly up or
 down) or W A S D, and E or C to fly up/down. All of the other possible options 
 and features are available via menus in the Interface application.
 
-Full stack
+Running a full stack
 ========
 The assignment-client and domain-server are architectural components that will allow 
 you to run the full stack of the virtual world.
