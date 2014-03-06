@@ -89,7 +89,7 @@ public:
     friend class AvatarData;
 protected:
     AvatarData* _owningAvatarData;
-    std::vector<PalmData>  _palms;
+    std::vector<PalmData> _palms;
     
     glm::quat getBaseOrientation() const;
     glm::vec3 getBasePosition() const;

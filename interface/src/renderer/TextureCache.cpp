@@ -113,7 +113,8 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
         glBindTexture(GL_TEXTURE_2D, id);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
             GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
         
         _fileTextureIDs.insert(filename, id);
@@ -335,7 +336,8 @@ void NetworkTexture::setImage(const QImage& image, const glm::vec4& averageColor
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
         GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -388,7 +390,8 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
             glBindTexture(GL_TEXTURE_2D, texture->getID());
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
                 GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         

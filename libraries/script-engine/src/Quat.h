@@ -13,7 +13,9 @@
 #define __hifi__Quat__
 
 #include <glm/gtc/quaternion.hpp>
-#include <QtCore/QObject>
+
+#include <QObject>
+#include <QString>
 
 /// Scriptable interface a Quaternion helper class object. Used exclusively in the JavaScript API
 class Quat : public QObject {
@@ -30,6 +32,7 @@ public slots:
     glm::vec3 safeEulerAngles(const glm::quat& orientation);
     glm::quat angleAxis(float angle, const glm::vec3& v);
     glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
+    void print(const QString& lable, const glm::quat& q);
 };
 
 #endif /* defined(__hifi__Quat__) */

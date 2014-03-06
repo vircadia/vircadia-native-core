@@ -24,6 +24,10 @@ public:
     
     void simulate(float deltaTime, bool delayLoad = false);
     bool render(float alpha);
+
+    /// \param jointIndex index of hand joint
+    /// \param shapes[out] list in which is stored pointers to hand shapes
+    void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
     
 protected:
     

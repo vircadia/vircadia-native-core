@@ -5,7 +5,7 @@
 //  First, load the clap sound from a URL 
 var clap = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");	
 
-function maybePlaySound() {
+function maybePlaySound(deltaTime) {
 	if (Math.random() < 0.01) {
 		//  Set the location and other info for the sound to play
 		var options = new AudioInjectionOptions(); 
@@ -17,4 +17,4 @@ function maybePlaySound() {
 }
 
 // Connect a call back that happens every frame
-Script.willSendVisualDataCallback.connect(maybePlaySound);
+Script.update.connect(maybePlaySound);

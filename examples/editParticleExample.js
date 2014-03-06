@@ -42,7 +42,7 @@ var positionDelta = { x: 0.05, y: 0, z: 0 };
 
 var particleID = Particles.addParticle(originalProperties);
 
-function moveParticle() {
+function moveParticle(deltaTime) {
     if (count >= moveUntil) {
 
         // delete it...
@@ -85,5 +85,5 @@ function moveParticle() {
 
 
 // register the call back so it fires before each data send
-Script.willSendVisualDataCallback.connect(moveParticle);
+Script.update.connect(moveParticle);
 

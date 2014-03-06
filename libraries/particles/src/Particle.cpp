@@ -884,25 +884,25 @@ void Particle::executeUpdateScripts() {
     }
 }
 
-void Particle::collisionWithParticle(Particle* other) {
+void Particle::collisionWithParticle(Particle* other, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
         ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
         ParticleScriptObject otherParticleScriptable(other);
-        particleScriptable.emitCollisionWithParticle(&otherParticleScriptable);
+        particleScriptable.emitCollisionWithParticle(&otherParticleScriptable, penetration);
         endParticleScriptContext(engine, particleScriptable);
     }
 }
 
-void Particle::collisionWithVoxel(VoxelDetail* voxelDetails) {
+void Particle::collisionWithVoxel(VoxelDetail* voxelDetails, const glm::vec3& penetration) {
     // Only run this particle script if there's a script attached directly to the particle.
     if (!_script.isEmpty()) {
         ScriptEngine engine(_script);
         ParticleScriptObject particleScriptable(this);
         startParticleScriptContext(engine, particleScriptable);
-        particleScriptable.emitCollisionWithVoxel(*voxelDetails);
+        particleScriptable.emitCollisionWithVoxel(*voxelDetails, penetration);
         endParticleScriptContext(engine, particleScriptable);
     }
 }

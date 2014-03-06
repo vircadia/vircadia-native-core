@@ -61,7 +61,8 @@ function shootBullet(position, velocity) {
     Audio.playSound(fireSound, audioOptions);
 }
 
-function particleCollisionWithVoxel(particle, voxel) {
+function particleCollisionWithVoxel(particle, voxel, penetration) {
+    Vec3.print('particleCollisionWithVoxel() ... penetration=', penetration);
     var HOLE_SIZE = 0.125;
     var particleProperties = Particles.getParticleProperties(particle);
     var position = particleProperties.position; 
@@ -73,7 +74,7 @@ function particleCollisionWithVoxel(particle, voxel) {
     Audio.playSound(impactSound, audioOptions); 
 }
 
-function update() {
+function update(deltaTime) {
 
     //  Check for mouseLook movement, update rotation 
        // rotate body yaw for yaw received from mouse
@@ -178,7 +179,7 @@ function scriptEnding() {
 
 Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);
 Script.scriptEnding.connect(scriptEnding);
-Script.willSendVisualDataCallback.connect(update);
+Script.update.connect(update);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
