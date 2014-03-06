@@ -32,7 +32,6 @@ DerivedData
 interface/external/oculus/*
 !interface/external/oculus/readme.txt
 
-
 # Ignore Sixense
 interface/external/Sixense/*
 !interface/external/Sixense/readme.txt
