@@ -43,7 +43,6 @@
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
 #include "ParticleTreeRenderer.h"
-#include "PieMenu.h"
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
@@ -452,8 +451,6 @@ private:
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
-
-    PieMenu _pieMenu;
 
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
