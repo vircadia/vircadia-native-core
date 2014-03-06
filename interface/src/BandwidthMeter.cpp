@@ -131,7 +131,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Determine total
     float totalIn = 0.0f, totalOut = 0.0f;
-    for (int i = 0; i < N_CHANNELS; ++i) {
+    for (size_t i = 0; i < N_CHANNELS; ++i) {
 
         totalIn += inputStream(ChannelIndex(i)).getValue();
         totalOut += outputStream(ChannelIndex(i)).getValue();
@@ -207,7 +207,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Render bars
     int xIn = 0, xOut = 0;
-    for (int i = 0; i < N_CHANNELS; ++i) {
+    for (size_t i = 0; i < N_CHANNELS; ++i) {
 
         ChannelIndex chIdx = ChannelIndex(i);
         int wIn = int(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
@@ -242,7 +242,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // After rendering, indicate that no data has been sent/received since the last feed.
     // This way, the meters fall when not continuously fed.
-    for (int i = 0; i < N_CHANNELS; ++i) {
+    for (size_t i = 0; i < N_CHANNELS; ++i) {
         inputStream(ChannelIndex(i)).updateValue(0);
         outputStream(ChannelIndex(i)).updateValue(0);
     }

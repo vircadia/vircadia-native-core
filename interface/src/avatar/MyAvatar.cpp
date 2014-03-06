@@ -103,9 +103,8 @@ void MyAvatar::update(float deltaTime) {
     // Update head mouse from faceshift if active
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (faceshift->isActive()) {
-        glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
-
         // TODO? resurrect headMouse stuff?
+        //glm::vec3 headVelocity = faceshift->getHeadAngularVelocity();
         //// sets how quickly head angular rotation moves the head mouse
         //const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
         //const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
