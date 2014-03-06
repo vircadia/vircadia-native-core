@@ -10,6 +10,7 @@
 #define __hifi__CollisionInfo__
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <QVector>
 
@@ -79,6 +80,12 @@ public:
     /// \return pointer to collision by index.  NULL if index out of bounds.
     CollisionInfo* getCollision(int index);
 
+    /// \return pointer to last collision on the list.  NULL if list is empty
+    CollisionInfo* getLastCollision();
+
+    /// \return true if list is full
+    bool isFull() const { return _size == _maxSize; }
+
     /// \return number of valid collisions
     int size() const { return _size; }
 
@@ -86,8 +93,8 @@ public:
     void clear();
 
 private:
-    int _maxSize;
-    int _size;
+    int _maxSize;   // the container cannot get larger than this
+    int _size;      // the current number of valid collisions in the list
     QVector<CollisionInfo> _collisions;
 };
 
