@@ -2170,7 +2170,7 @@ void Application::updateShadowMap() {
         rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) };
     glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-    for (int i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
+    for (size_t i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
         minima = glm::min(minima, points[i]);
         maxima = glm::max(maxima, points[i]);
     }
