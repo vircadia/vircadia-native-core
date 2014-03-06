@@ -316,19 +316,18 @@ function setAudioPosition() {
 
 function getNewPasteVoxel(pickRay) {
 
-        var voxelSize = MIN_PASTE_VOXEL_SCALE + (MAX_PASTE_VOXEL_SCALE - MIN_PASTE_VOXEL_SCALE) * pointerVoxelScale - 1;    
-        var distance = 1 + 30 * voxelSize / MAX_PASTE_VOXEL_SCALE;
-        var origin = { x: pickRay.direction.x * NEW_VOXEL_DISTANCE_FROM_CAMERA + voxelSize, y: pickRay.direction.y, z: pickRay.direction.z };
+    var voxelSize = MIN_PASTE_VOXEL_SCALE + (MAX_PASTE_VOXEL_SCALE - MIN_PASTE_VOXEL_SCALE) * pointerVoxelScale - 1;
+    var origin = { x: pickRay.direction.x, y: pickRay.direction.y, z: pickRay.direction.z };
 
-        origin.x += pickRay.origin.x;
-        origin.y += pickRay.origin.y;
-        origin.z += pickRay.origin.z;
+    origin.x += pickRay.origin.x;
+    origin.y += pickRay.origin.y;
+    origin.z += pickRay.origin.z;
+    
+    origin.x -= voxelSize / 2;
+    origin.y -= voxelSize / 2;
+    origin.z += voxelSize / 2;
 
-        origin.x -= voxelSize / 2;
-        origin.y -= voxelSize / 2;
-        origin.z -= voxelSize / 2;
-
-        return {origin: origin, voxelSize: voxelSize};
+    return {origin: origin, voxelSize: voxelSize};
 }
 
 function getNewVoxelPosition() { 
