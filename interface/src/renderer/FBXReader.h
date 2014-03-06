@@ -25,6 +25,23 @@ typedef QList<FBXNode> FBXNodeList;
 /// The names of the blendshapes expected by Faceshift, terminated with an empty string.
 extern const char* FACESHIFT_BLENDSHAPES[];
 
+class Extents {
+public:
+    /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
+    void reset();
+
+    /// \param point new point to compare against existing limits
+    /// compare point to current limits and expand them if necessary to contain point
+    void addPoint(const glm::vec3& point);
+
+    /// \param point
+    /// \return true if point is within current limits
+    bool containsPoint(const glm::vec3& point) const;
+
+    glm::vec3 minimum;
+    glm::vec3 maximum;
+};
+
 /// A node within an FBX document.
 class FBXNode {
 public:
@@ -64,7 +81,12 @@ public:
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
+    QString name;             // temp field for debugging
+    glm::vec3 shapePosition;  // in joint frame
+    glm::quat shapeRotation;  // in joint frame
+    int shapeType;
 };
+
 
 /// A single binding to a joint in an FBX document.
 class FBXCluster {
@@ -123,13 +145,6 @@ public:
     glm::vec3 translation;
     glm::quat rotation;
     glm::vec3 scale;
-};
-
-class Extents {
-public:
-    
-    glm::vec3 minimum;
-    glm::vec3 maximum;
 };
 
 /// A set of meshes extracted from an FBX document.

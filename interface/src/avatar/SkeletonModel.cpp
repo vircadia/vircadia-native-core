@@ -73,6 +73,17 @@ bool SkeletonModel::render(float alpha) {
     return true;
 }
 
+void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
+    if (jointIndex == -1) {
+        return;
+    }
+    if (jointIndex == getLeftHandJointIndex()
+        || jointIndex == getRightHandJointIndex()) {
+        // TODO: also add fingers and other hand-parts
+        shapes.push_back(_shapes[jointIndex]);
+    }
+}
+
 class IndexValue {
 public:
     int index;

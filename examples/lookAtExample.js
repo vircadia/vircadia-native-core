@@ -45,13 +45,13 @@ function releaseMovementKeys() {
 }
 
 var cameraPosition = Camera.getPosition();
-function moveCamera() {
+function moveCamera(update) {
     if (lookingAtSomething) {
         Camera.setPosition(cameraPosition);
     }
 }
 
-Script.willSendVisualDataCallback.connect(moveCamera);
+Script.update.connect(moveCamera);
 
 
 function mousePressEvent(event) {
