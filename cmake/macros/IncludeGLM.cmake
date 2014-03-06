@@ -1,5 +1,4 @@
 MACRO(INCLUDE_GLM TARGET ROOT_DIR)
-	set(GLM_ROOT_DIR "${ROOT_DIR}/externals")
 	find_package(GLM REQUIRED)
 	include_directories("${GLM_INCLUDE_DIRS}")
 IF(APPLE OR UNIX)

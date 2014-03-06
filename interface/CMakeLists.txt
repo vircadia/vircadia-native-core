@@ -180,11 +180,7 @@ include_directories(
 
 # include external library headers
 # use system flag so warnings are supressed
-include_directories(
-  SYSTEM
-  "${FACESHIFT_INCLUDE_DIRS}"
-  "${GLM_INCLUDE_DIRS}"
-)
+include_directories(SYSTEM "${FACESHIFT_INCLUDE_DIRS}")
 
 target_link_libraries(
   ${TARGET_NAME}
