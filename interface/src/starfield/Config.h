@@ -49,10 +49,6 @@ namespace starfield {
     using glm::vec4;
     using glm::dot;
     using glm::normalize;
-    using glm::X;
-    using glm::Y;
-    using glm::Z;
-    using glm::W;
     using glm::mat4;
     using glm::row;
 
