@@ -176,7 +176,7 @@ OctalCodeComparison compareOctalCodes(const unsigned char* codeA, const unsigned
     OctalCodeComparison result = LESS_THAN; // assume it's shallower
     
     size_t numberOfBytes = std::min(bytesRequiredForCodeLength(*codeA), bytesRequiredForCodeLength(*codeB));
-    size_t compare = memcmp(codeA, codeB, numberOfBytes);
+    int compare = memcmp(codeA, codeB, numberOfBytes);
 
     if (compare < 0) {
         result = LESS_THAN;
