@@ -6,18 +6,21 @@ Contributing
 ===
 1. Fork the repository to your own GitHub account.
 2. Clone your fork of the repository locally
+
   ```
   git clone git://github.com/USERNAME/hifi.git
   ```
 3. Create a new branch
+  
   ```
-  git checkout -b new_branch_name
-  ```    
+  git checkout -b new_branch_name 
+  ```
 4. Code
   * Follow the [coding standard](https://github.com/highfidelity/hifi/wiki/Coding-Standard)
 5. Commit
   * Use [well formed commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 6. Update your branch
+  
   ```
   git remote add upstream https://github.com/highfidelity/hifi
   git pull upstream master
@@ -25,10 +28,11 @@ Contributing
   
   Resolve any conflicts that arise with this step.
 7. Push to your fork
+  
   ```
   git push origin master
   ```
-
+  
 Reporting Bugs
 ===
 1. Always update to the latest code on master, it is possible the bug has already been fixed!
