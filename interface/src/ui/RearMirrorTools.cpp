@@ -23,12 +23,11 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* se
     _windowed(false),
     _fullScreen(false)
 {
-    _zoomLevel = HEAD,
-    switchToResourcesParentIfRequired();
-    _closeTextureId = _parent->bindTexture(QImage("./resources/images/close.png"));
-    _resetTextureId = _parent->bindTexture(QImage("./resources/images/reset.png"));
-    _zoomHeadTextureId = _parent->bindTexture(QImage("./resources/images/head.png"));
-    _zoomBodyTextureId = _parent->bindTexture(QImage("./resources/images/body.png"));
+    _zoomLevel = HEAD;
+    _closeTextureId = _parent->bindTexture(QImage(":/images/close.png"));
+    _resetTextureId = _parent->bindTexture(QImage(":/images/reset.png"));
+    _zoomHeadTextureId = _parent->bindTexture(QImage(":/images/head.png"));
+    _zoomBodyTextureId = _parent->bindTexture(QImage(":/images/body.png"));
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);

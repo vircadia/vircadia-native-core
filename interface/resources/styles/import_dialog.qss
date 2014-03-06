@@ -63,17 +63,17 @@ QPushButton#cancelButton {
 }
 
 #backButton {
-    background-image: url(resources/icons/backButton.svg);
+    background-image: url(qrc://icons/backButton.svg);
     border-radius: 0px;
 }
 
 #forwardButton {
-    background-image: url(resources/icons/forwardButton.svg);
+	background-image: url(qrc://icons/forwardButton.svg);
     border-radius: 0px;
 }
 
 #toParentButton {
-    background-image: url(resources/icons/toParentButton.svg);
+	background-image: url(qrc://icons/toParentButton.svg);
     border-radius: 0px;
 }
 

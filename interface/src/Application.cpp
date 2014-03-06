@@ -153,10 +153,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _logger(new FileLogger(this))
 {
-    switchToResourcesParentIfRequired();
-    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(":/info/ApplicationInfo.ini", QSettings::IniFormat);
     
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -174,7 +172,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     _applicationStartupTime = startup_time;
     
-    QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(":/styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -283,9 +281,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
-
-    QFontDatabase fontDatabase; 
-    fontDatabase.addApplicationFont("resources/styles/Inconsolata.otf");
 
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
@@ -1571,7 +1566,7 @@ void Application::init() {
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
 
-    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
+    _pieMenu.init(":/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
                   _glWidget->height());
 
@@ -3652,9 +3647,8 @@ void Application::skipVersion(QString latestVersion) {
 }
 
 void Application::takeSnapshot() {
-    switchToResourcesParentIfRequired();
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo("resources/sounds/snap.wav");
+    QFileInfo inf = QFileInfo(":/sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

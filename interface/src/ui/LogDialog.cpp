@@ -36,8 +36,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
-    switchToResourcesParentIfRequired();
-    QFile styleSheet("resources/styles/log_dialog.qss");
+    QFile styleSheet(":/styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
         setStyleSheet(styleSheet.readAll());
     }

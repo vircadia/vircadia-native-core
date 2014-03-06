@@ -64,17 +64,16 @@ QVector<Model::JointState> Model::createJointStates(const FBXGeometry& geometry)
 
 void Model::init() {
     if (!_program.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/model.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/model.frag");
         _program.link();
         
         _program.bind();
         _program.setUniformValue("texture", 0);
         _program.release();
         
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model_normal_map.vert");
-        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/model_normal_map.vert");
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/model_normal_map.frag");
         _normalMapProgram.link();
         
         _normalMapProgram.bind();
@@ -83,14 +82,14 @@ void Model::init() {
         _normalMapTangentLocation = _normalMapProgram.attributeLocation("tangent");
         _normalMapProgram.release();
         
-        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/skin_model.vert");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/model.frag");
         _skinProgram.link();
         
         initSkinProgram(_skinProgram, _skinLocations);
         
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model_normal_map.vert");
-        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, ":/shaders/skin_model_normal_map.vert");
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/model_normal_map.frag");
         _skinNormalMapProgram.link();
         
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);

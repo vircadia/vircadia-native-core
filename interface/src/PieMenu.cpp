@@ -25,7 +25,6 @@ PieMenu::PieMenu() :
 
 void PieMenu::init(const char *fileName, int screenWidth, int screenHeight) {
     // Load SVG
-    switchToResourcesParentIfRequired();
     QSvgRenderer renderer((QString) QString(fileName));
 
     // Prepare a QImage with desired characteritisc

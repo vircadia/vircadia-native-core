@@ -27,8 +27,6 @@ const int SECOND_INDEX_LETTER = 1;
 
 QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
 
-    switchToResourcesParentIfRequired();
-
     // types
     // Computer, Desktop, Trashcan, Network, Drive, Folder, File
     QString typeString;
@@ -54,30 +52,29 @@ QIcon HiFiIconProvider::icon(QFileIconProvider::IconType type) const {
             break;
     }
 
-    return QIcon("resources/icons/" + typeString + ".svg");
+    return QIcon(":/icons/" + typeString + ".svg");
 }
 
 QIcon HiFiIconProvider::icon(const QFileInfo &info) const {
-    switchToResourcesParentIfRequired();
     const QString ext = info.suffix().toLower();
 
     if (info.isDir()) {
         if (info.absoluteFilePath() == QDir::homePath()) {
-            return QIcon("resources/icons/home.svg");
+            return QIcon(":/icons/home.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)) {
-            return QIcon("resources/icons/desktop.svg");
+            return QIcon(":/icons/desktop.svg");
         } else if (info.absoluteFilePath() == QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)) {
-            return QIcon("resources/icons/documents.svg");
+            return QIcon(":/icons/documents.svg");
         }
-        return QIcon("resources/icons/folder.svg");
+        return QIcon(":/icons/folder.svg");
     }
 
-    QFileInfo iconFile("resources/icons/" + iconsMap[ext]);
+    QFileInfo iconFile(":/icons/" + iconsMap[ext]);
     if (iconFile.exists() && iconFile.isFile()) {
         return QIcon(iconFile.filePath());
     }
 
-    return QIcon("resources/icons/file.svg");
+    return QIcon(":/icons/file.svg");
 }
 
 QString HiFiIconProvider::type(const QFileInfo &info) const {
@@ -245,8 +242,7 @@ void ImportDialog::setLayout() {
     widget = findChild<QWidget*>("treeView");
     widget->setAttribute(Qt::WA_MacShowFocusRect, false);
     
-    switchToResourcesParentIfRequired();
-    QFile styleSheet("resources/styles/import_dialog.qss");
+    QFile styleSheet(":/styles/import_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
         setStyleSheet(styleSheet.readAll());
     }
@@ -254,9 +250,7 @@ void ImportDialog::setLayout() {
 }
 
 void ImportDialog::setImportTypes() {
-
-    switchToResourcesParentIfRequired();
-    QFile config("resources/config/config.json");
+    QFile config(":/config/config.json");
     config.open(QFile::ReadOnly | QFile::Text);
     QJsonDocument document = QJsonDocument::fromJson(config.readAll());
     if (!document.isNull() && !document.isEmpty()) {

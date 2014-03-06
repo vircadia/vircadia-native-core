@@ -106,7 +106,6 @@ GLuint TextureCache::getBlueTextureID() {
 GLuint TextureCache::getFileTextureID(const QString& filename) {
     GLuint id = _fileTextureIDs.value(filename);
     if (id == 0) {
-        switchToResourcesParentIfRequired();
         QImage image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
     
         glGenTextures(1, &id);

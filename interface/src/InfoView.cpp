@@ -18,12 +18,11 @@
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
 
 InfoView::InfoView(bool forced) :
-    _forced(forced) {
-    
+    _forced(forced)
+{
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
         
-    switchToResourcesParentIfRequired();
-    QString absPath = QFileInfo("resources/html/interface-welcome-allsvg.html").absoluteFilePath();
+    QString absPath = QFileInfo(":/html/interface-welcome-allsvg.html").absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
     
     load(url);

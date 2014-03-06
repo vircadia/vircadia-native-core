@@ -15,10 +15,8 @@
     <file>icons/voxel.svg</file>
     <file>images/body.png</file>
     <file>images/close.png</file>
-    <file>images/close.svg</file>
     <file>images/head.png</file>
     <file>images/hifi-interface-tools-v2-pie.svg</file>
-    <file>images/hifi-interface-tools.svg</file>
     <file>images/mic.svg</file>
     <file>images/mute.svg</file>
     <file>images/reset.png</file>
@@ -57,7 +55,6 @@
     <file>shaders/SkyFromSpace.vert</file>
     <file>shaders/vertical_blur_add.frag</file>
     <file>shaders/vertical_blur.frag</file>
-    <file>shaders/voxels.geom</file>
     <file>sounds/snap.wav</file>
     <file>styles/checked.svg</file>
     <file>styles/import_dialog.qss</file>

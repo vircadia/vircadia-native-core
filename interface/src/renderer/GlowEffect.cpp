@@ -42,7 +42,7 @@ QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
 
 static ProgramObject* createProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/" + name + ".frag");
+    program->addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/" + name + ".frag");
     program->link();
     
     program->bind();
@@ -57,8 +57,6 @@ void GlowEffect::init() {
         qDebug("[ERROR] GlowEffeect is already initialized.");
         return;
     }
-
-    switchToResourcesParentIfRequired();
     
     _addProgram = createProgram("glow_add");
     _horizontalBlurProgram = createProgram("horizontal_blur");

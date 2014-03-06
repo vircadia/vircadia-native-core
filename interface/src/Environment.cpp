@@ -44,7 +44,6 @@ void Environment::init() {
         return;
     }
 
-    switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
@@ -174,7 +173,7 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
 
 ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QByteArray("resources/shaders/SkyFrom") + from;
+    QByteArray prefix = QByteArray(":/shaders/SkyFrom") + from;
     program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
     program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
     program->link();

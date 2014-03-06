@@ -113,8 +113,8 @@ MetavoxelEditor::MetavoxelEditor() :
     if (_gridProgram.isLinked()) {
         return;
     }
-    switchToResourcesParentIfRequired();
-    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/grid.frag");
+        
+    _gridProgram.addShaderFromSourceFile(QGLShader::Fragment, ":/shaders/grid.frag");
     _gridProgram.link();
 }
 
