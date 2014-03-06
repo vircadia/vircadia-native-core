@@ -130,6 +130,8 @@ private:
     
     QNetworkReply* _reply;
     QTimer* _replyTimer;
+    qint64 _bytesReceived;
+    qint64 _bytesTotal;
     int _attempts;
 };
 

@@ -159,6 +159,8 @@ const int REPLY_TIMEOUT_MS = 5000;
 
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (!_reply->isFinished()) {
+        _bytesReceived = bytesReceived;
+        _bytesTotal = bytesTotal;
         _replyTimer->start(REPLY_TIMEOUT_MS);
         return;
     }
@@ -178,7 +180,8 @@ void Resource::handleReplyError() {
 }
 
 void Resource::handleReplyTimeout() {
-    handleReplyError(QNetworkReply::TimeoutError, qDebug() << "Timed out loading" << _reply->url());
+    handleReplyError(QNetworkReply::TimeoutError, qDebug() << "Timed out loading" << _reply->url() <<
+        "received" << _bytesReceived << "total" << _bytesTotal);
 }
 
 void Resource::makeRequest() {
@@ -191,6 +194,7 @@ void Resource::makeRequest() {
     connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
     _replyTimer->setSingleShot(true);
     _replyTimer->start(REPLY_TIMEOUT_MS);
+    _bytesReceived = _bytesTotal = 0;
 }
 
 void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
