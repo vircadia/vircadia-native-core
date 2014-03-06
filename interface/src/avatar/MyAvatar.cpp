@@ -1182,7 +1182,7 @@ void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
         glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
                                                                     orientationItems[1].toFloat(),
                                                                     orientationItems[2].toFloat())))
-            * glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+            * glm::angleAxis(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         setOrientation(newOrientation);
         
         // move the user a couple units away
