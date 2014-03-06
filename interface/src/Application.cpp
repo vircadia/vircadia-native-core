@@ -1562,14 +1562,14 @@ void Application::init() {
 
     // connect the _particleCollisionSystem to our script engine's ParticleScriptingInterface
     connect(&_particleCollisionSystem, 
-            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)),
+            SIGNAL(particleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
-            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&)));
+            SLOT(forwardParticleCollisionWithVoxel(const ParticleID&, const VoxelDetail&, const glm::vec3&)));
 
     connect(&_particleCollisionSystem, 
-            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&)),
+            SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
-            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&)));
+            SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),

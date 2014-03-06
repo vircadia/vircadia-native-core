@@ -61,7 +61,8 @@ function shootBullet(position, velocity) {
     Audio.playSound(fireSound, audioOptions);
 }
 
-function particleCollisionWithVoxel(particle, voxel) {
+function particleCollisionWithVoxel(particle, voxel, penetration) {
+    Vec3.print('particleCollisionWithVoxel() ... penetration=', penetration);
     var HOLE_SIZE = 0.125;
     var particleProperties = Particles.getParticleProperties(particle);
     var position = particleProperties.position; 
