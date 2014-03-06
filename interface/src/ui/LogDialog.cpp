@@ -10,6 +10,7 @@
 #include <QTextBlock>
 #include <QtGui>
 
+#include "InterfaceConfig.h"
 #include "Application.h"
 #include "SharedUtil.h"
 #include "ui/LogDialog.h"

@@ -13,6 +13,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include "InterfaceConfig.h"
 #include "Application.h"
 #include "ImportDialog.h"
 
