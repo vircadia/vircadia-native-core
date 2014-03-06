@@ -13,7 +13,6 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
-#include "InterfaceConfig.h"
 #include "Application.h"
 #include "Camera.h"
 #include "Environment.h"

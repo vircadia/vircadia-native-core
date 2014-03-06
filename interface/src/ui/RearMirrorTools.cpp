@@ -9,8 +9,6 @@
 
 #include <SharedUtil.h>
 
-#include "InterfaceConfig.h"
-
 #include "Application.h"
 #include "RearMirrorTools.h"
 #include "Util.h"
