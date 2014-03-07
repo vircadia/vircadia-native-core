@@ -30,8 +30,7 @@ MetavoxelSystem::MetavoxelSystem() :
 
 void MetavoxelSystem::init() {
     if (!_program.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/metavoxel_point.vert");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
         _program.link();
        
         _pointScaleLocation = _program.uniformLocation("pointScale");

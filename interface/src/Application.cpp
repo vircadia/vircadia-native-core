@@ -118,6 +118,15 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+QString& Application::resourcesPath() {
+#ifdef Q_OS_MAC
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#else
+    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+    return staticResourcePath;
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -153,10 +162,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _resetRecentMaxPacketsSoon(true),
         _logger(new FileLogger(this))
 {
-    switchToResourcesParentIfRequired();
-    
     // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo("resources/info/ApplicationInfo.ini", QSettings::IniFormat);
+    QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
     
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
@@ -174,7 +181,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     _applicationStartupTime = startup_time;
     
-    QFontDatabase::addApplicationFont("resources/styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(Application::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
@@ -283,9 +290,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setCentralWidget(_glWidget);
 
     restoreSizeAndPosition();
-
-    QFontDatabase fontDatabase; 
-    fontDatabase.addApplicationFont("resources/styles/Inconsolata.otf");
 
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
@@ -1564,7 +1568,7 @@ void Application::init() {
             SIGNAL(particleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)),
             ScriptEngine::getParticlesScriptingInterface(), 
             SLOT(forwardParticleCollisionWithParticle(const ParticleID&, const ParticleID&, const glm::vec3&)));
-
+    
     _audio.init(_glWidget);
 
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
@@ -3638,9 +3642,8 @@ void Application::skipVersion(QString latestVersion) {
 }
 
 void Application::takeSnapshot() {
-    switchToResourcesParentIfRequired();
     QMediaPlayer* player = new QMediaPlayer();
-    QFileInfo inf = QFileInfo("resources/sounds/snap.wav");
+    QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 

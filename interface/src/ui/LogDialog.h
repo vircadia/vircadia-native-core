@@ -9,6 +9,8 @@
 #ifndef __interface__LogDialog__
 #define __interface__LogDialog__
 
+#include "InterfaceConfig.h"
+
 #include <QDialog>
 #include <QMutex>
 #include <QPlainTextEdit>
