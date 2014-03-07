@@ -12,32 +12,32 @@
 
 if (WIN32)
     find_path( GLUT_INCLUDE_DIR GL/glut.h
-        ${GLUT_ROOT_DIR}/include
-        $ENV{GLUT_ROOT_DIR}/include
-        $ENV{HIFI_LIB_DIR}/freeglut
-        ${OPENGL_INCLUDE_DIR}
+        "${GLUT_ROOT_DIR}/include"
+        "$ENV{GLUT_ROOT_DIR}/include"
+        "$ENV{HIFI_LIB_DIR}/freeglut/include"
+        "${OPENGL_INCLUDE_DIR}"
         DOC "The directory where GL/glut.h resides")
     if(ARCH STREQUAL "x86")
       find_library( GLUT_glut_LIBRARY
         NAMES freeglut
         PATHS
-        ${GLUT_ROOT_DIR}/lib
-        $ENV{GLUT_ROOT_DIR}/lib
-        $ENV{HIFI_LIB_DIR}/freeglut/lib
+        "${GLUT_ROOT_DIR}/lib"
+        "$ENV{GLUT_ROOT_DIR}/lib"
+        "$ENV{HIFI_LIB_DIR}/freeglut/lib"
         DOC "The GLUT library")
     else()
       find_library( GLUT_glut_LIBRARY
         NAMES freeglut
         PATHS
-        ${GLUT_ROOT_DIR}/lib/x64
-        $ENV{GLUT_ROOT_DIR}/lib/x64
-        $ENV{HIFI_LIB_DIR}/freeglut/lib/x64
+        "${GLUT_ROOT_DIR}/lib/x64"
+        "$ENV{GLUT_ROOT_DIR}/lib/x64"
+        "$ENV{HIFI_LIB_DIR}/freeglut/lib/x64"
         DOC "The GLUT library")
     endif()
 else ()
     find_path( GLUT_INCLUDE_DIR GL/glut.h
-        ${GLUT_LOCATION}/include
-        $ENV{GLUT_LOCATION}/include
+        "${GLUT_LOCATION}/include"
+        "$ENV{GLUT_LOCATION}/include"
         /usr/include
         /usr/include/GL
         /usr/local/include
@@ -49,24 +49,24 @@ else ()
         /opt/graphics/OpenGL/contrib/libglut
     )
     find_library( GLUT_glut_LIBRARY glut
-        ${GLUT_LOCATION}/lib
-        $ENV{GLUT_LOCATION}/lib
+        "${GLUT_LOCATION}/lib"
+        "$ENV{GLUT_LOCATION}/lib"
         /usr/lib
         /usr/local/lib
         /usr/openwin/lib
         /usr/X11R6/lib
     )
     find_library( GLUT_Xi_LIBRARY Xi
-        ${GLUT_LOCATION}/lib
-        $ENV{GLUT_LOCATION}/lib
+        "${GLUT_LOCATION}/lib"
+        "$ENV{GLUT_LOCATION}/lib"
         /usr/lib
         /usr/local/lib
         /usr/openwin/lib
         /usr/X11R6/lib
     )
     find_library( GLUT_Xmu_LIBRARY Xmu
-        ${GLUT_LOCATION}/lib
-        $ENV{GLUT_LOCATION}/lib
+        "${GLUT_LOCATION}/lib"
+        "$ENV{GLUT_LOCATION}/lib"
         /usr/lib
         /usr/local/lib
         /usr/openwin/lib
