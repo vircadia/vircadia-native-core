@@ -98,9 +98,9 @@ CMake will need to know where the headers and libraries for required external de
 
 You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
 
-The recommended route is to place all of the dependencies in one place and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure
+The recommended route is to place all of the dependencies in one place and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure:
 
-    root_dir
+    root_lib_dir
         -> glm
             -> glm
                 -> glm.hpp
@@ -111,7 +111,7 @@ The recommended route is to place all of the dependencies in one place and set o
             -> include
             -> lib
 
-For all three external libraries you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide.
+For all three external libraries you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide. The `root_lib_dir` in the above example can be wherever you choose on your system - as long as the environment variable HIFI_LIB_DIR is set to it.
 
 *NOTE: Be careful with glm. What other libraries would normally call 'include', a folder containing the headers, glm uses 'glm'. You will have a glm folder nested inside the top-level glm folder.*
 
