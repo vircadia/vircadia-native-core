@@ -81,6 +81,16 @@ public:
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
     
+    /// Returns the number of joint states in the model.
+    int getJointStateCount() const { return _jointStates.size(); }
+    
+    /// Fetches the joint state at the specified index.
+    /// \return whether or not the joint state is "valid" (that is, non-default)
+    bool getJointState(int index, glm::quat& rotation) const;
+    
+    /// Sets the joint state at the specified index.
+    void setJointState(int index, bool valid, const glm::quat& rotation = glm::quat());
+    
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
     

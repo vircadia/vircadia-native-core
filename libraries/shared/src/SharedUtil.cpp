@@ -198,21 +198,6 @@ bool isInEnvironment(const char* environment) {
     }
 }
 
-void switchToResourcesParentIfRequired() {
-#ifdef __APPLE__
-    CFBundleRef mainBundle = CFBundleGetMainBundle();
-    CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    char path[PATH_MAX];
-    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX)) {
-        // error!
-    }
-    CFRelease(resourcesURL);
-
-    chdir(path);
-    chdir("..");
-#endif
-}
-
 void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes) {
     // seed the the random number generator
     srand(time(NULL));

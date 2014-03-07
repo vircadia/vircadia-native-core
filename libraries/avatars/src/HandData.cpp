@@ -179,7 +179,7 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
     unsigned int numPalms = *sourceBuffer++;
     
     for (unsigned int handIndex = 0; handIndex < numPalms; ++handIndex) {
-        if (handIndex >= getNumPalms())
+        if (handIndex >= (unsigned int)getNumPalms())
             addNewPalm();
         PalmData& palm = getPalms()[handIndex];
         
@@ -197,7 +197,7 @@ int HandData::decodeRemoteData(const QByteArray& dataByteArray) {
         palm.setSixenseID(handIndex);
         
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
-            if (fingerIndex < palm.getNumFingers()) {
+            if (fingerIndex < (unsigned int)palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
                 
                 glm::vec3 tipPosition;

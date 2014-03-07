@@ -20,7 +20,7 @@ const int GREEN_INDEX = 1;
 const int BLUE_INDEX  = 2;
 
 void printOctalCode(const unsigned char* octalCode);
-int bytesRequiredForCodeLength(unsigned char threeBitCodes);
+size_t bytesRequiredForCodeLength(unsigned char threeBitCodes);
 int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode);
 unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber);
 

@@ -122,6 +122,10 @@ public:
 
     virtual bool isMyAvatar() { return false; }
     
+    virtual glm::quat getJointRotation(int index) const;
+    virtual int getJointIndex(const QString& name) const;
+    virtual QStringList getJointNames() const;
+    
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setDisplayName(const QString& displayName);
