@@ -4,14 +4,14 @@
 # GLUT_FOUND
 # GLUT_INCLUDE_DIR
 # GLUT_LIBRARIES
-# GLUT_WIN_DLL - Optionally defined for Win32
+# GLUT_DLL_PATH - Optionally defined for Win32
 #
 #  Created on 2/6/2014 by Stephen Birarda
 # 
 # Adapted from FindGLUT.cmake available in tlorach's OpenGLText Repository
 # https://raw.github.com/tlorach/OpenGLText/master/cmake/FindGLUT.cmake
 
-if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES AND (NOT WIN32 OR GLUT_WIN_DLL))
+if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES AND (NOT WIN32 OR GLUT_DLL_PATH))
   set(GLUT_FOUND TRUE)
 else ()
   if (WIN32)
@@ -23,7 +23,7 @@ else ()
     endif()
     
     find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
-    find_library(GLUT_WIN_DLL freeglut.dll PATH_SUFFIXES bin/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
+    find_library(GLUT_DLL_PATH freeglut.dll PATH_SUFFIXES bin/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path(GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"
@@ -73,7 +73,7 @@ else ()
   include(FindPackageHandleStandardArgs)
   
   if (WIN32)
-    find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES GLUT_WIN_DLL)
+    find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES GLUT_DLL_PATH)
   else ()
     find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
   endif()

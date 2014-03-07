@@ -235,7 +235,7 @@ else (APPLE)
       # have CMake copy the dlls for GLUT and GLEW as a post build step
       add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${GLUT_WIN_DLL}
+        ${GLUT_DLL_PATH}/freeglut.dll
         $<TARGET_FILE_DIR:${TARGET_NAME}>
       )
   endif()
