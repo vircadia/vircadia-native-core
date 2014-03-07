@@ -5,6 +5,12 @@ Dependencies
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
 
+#####Linux & Windows only
+* [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
+
+#####Windows only
+* [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
+
 CMake
 === 
 Hifi uses CMake to generate build files and project files for your platform.
@@ -87,19 +93,11 @@ NOTE: zLib should configure itself correctly on install. However, sometimes zLib
 ####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-* In particular you must make sure all required DLLs are loadable. You can accomplish this in several different ways. 
+CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW. These are the associated variables you will want to set:
 
-    One technique is described below:
-    * create a directory C:\Development\HiFi\windows-dlls
-    * add C:\Development\HiFi\windows-dlls to your path
-    * copy the following files into this directory: zlib1.dll, freeglut.dll, glew32.dll
+`GLM_ROOT_DIR, GLUT_ROOT_DIR, GLEW_ROOT_DIR`
 
-    Note: you will find freeglut.dll and glew32.dll in the C:\Development\HiFi\hifi\interface\external tree. You will need to find the zlib1.dll from where you installed zLib.
-
-* You also need to make the interface\resources directory available to interface.exe. To do that, copy the contents of C:\Development\HiFi\hifi\interface\resources to C:\Development\HiFi\build\interface\Debug\resources or if you're building a Release build to C:\Development\HiFi\build\interface\Release\resources
-
-#### glm
-CMake will need to know where glm headers are. You can do this by setting the variable `GLM_ROOT_DIR` to the location of the folder that contains your glm dir, in your ENV or by passing GLM_ROOT_DIR directly on the command line to cmake.
+They can be set in your ENV or by passing them to the cmake command on the command line. (There is an example of this in the CMake section earlier in this guide.)
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
