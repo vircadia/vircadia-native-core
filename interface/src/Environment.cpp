@@ -5,7 +5,7 @@
 //  Created by Andrzej Kapolka on 5/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include "Environment.h"
+#include "InterfaceConfig.h"
 
 #include <QByteArray>
 #include <QMutexLocker>
@@ -19,6 +19,8 @@
 #include "Camera.h"
 #include "renderer/ProgramObject.h"
 #include "world.h"
+
+#include "Environment.h"
 
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {

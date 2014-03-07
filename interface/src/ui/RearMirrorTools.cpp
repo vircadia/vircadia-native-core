@@ -5,7 +5,7 @@
 //  Created by stojce on 23.10.2013.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include "RearMirrorTools.h"
+#include "InterfaceConfig.h"
 
 #include <QMouseEvent>
 
@@ -13,6 +13,8 @@
 
 #include "Application.h"
 #include "Util.h"
+
+#include "RearMirrorTools.h"
 
 const char SETTINGS_GROUP_NAME[] = "Rear View Tools";
 const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";

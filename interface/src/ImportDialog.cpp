@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "ImportDialog.h"
+#include "InterfaceConfig.h"
 
 #include <QStandardPaths>
 #include <QGridLayout>
@@ -16,6 +16,8 @@
 #include <QJsonObject>
 
 #include "Application.h"
+
+#include "ImportDialog.h"
 
 const QString WINDOW_NAME = QObject::tr("Import Voxels");
 const QString IMPORT_BUTTON_NAME = QObject::tr("Import Voxels");

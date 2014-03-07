@@ -9,8 +9,6 @@
 #ifndef __interface__Environment__
 #define __interface__Environment__
 
-#include "InterfaceConfig.h"
-
 #include <QHash>
 #include <QMutex>
 
