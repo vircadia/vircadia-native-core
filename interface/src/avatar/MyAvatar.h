@@ -81,6 +81,8 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
+    virtual void setJointData(int index, const glm::quat& rotation);
+    virtual void clearJointData(int index);
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 public slots:

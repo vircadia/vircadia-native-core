@@ -28,21 +28,17 @@ DerivedData
 
 *.hmap
 
-#Ignore Leap, but not the stubs
-interface/external/Leap/docs/
-interface/external/Leap/include/
-interface/external/Leap/lib/
-interface/external/Leap/samples/
-interface/external/Leap/util/
+# ignore oculus
+interface/external/oculus/*
+!interface/external/oculus/readme.txt
 
 # Ignore Sixense
-interface/external/Sixense/include/
-interface/external/Sixense/lib/
+interface/external/Sixense/*
+!interface/external/Sixense/readme.txt
 
 # Ignore Visage
-interface/external/visage/dependencies/
-interface/external/visage/include/
-interface/external/visage/lib/
+interface/external/visage/*
+!interface/external/visage/readme.txt
 interface/resources/visage/
 
 # Ignore interfaceCache for Linux users
