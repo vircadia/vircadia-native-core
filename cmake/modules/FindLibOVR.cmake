@@ -21,14 +21,7 @@ else (LIBOVR_LIBRARIES AND LIBOVR_INCLUDE_DIRS)
   find_path(LIBOVR_INCLUDE_DIRS OVR.h PATH_SUFFIXES Include HINTS ${LIBOVR_SEARCH_DIRS})
   
   if (APPLE)
-    
-    if (${CMAKE_BUILD_TYPE})
-      set(LIBOVR_LIBRARY_TYPE ${CMAKE_BUILD_TYPE})
-    else()
-      set(LIBOVR_LIBRARY_TYPE "Debug")
-    endif()
-    
-    find_library(LIBOVR_LIBRARIES "Lib/MacOS/${LIBOVR_LIBRARY_TYPE}/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
+    find_library(LIBOVR_LIBRARIES "Lib/MacOS/Release/libovr.a" HINTS ${LIBOVR_SEARCH_DIRS})
   elseif (UNIX)
     find_library(UDEV_LIBRARY libudev.a /usr/lib/x86_64-linux-gnu/)
     find_library(XINERAMA_LIBRARY libXinerama.a /usr/lib/x86_64-linux-gnu/)
