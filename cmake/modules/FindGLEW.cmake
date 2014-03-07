@@ -13,7 +13,7 @@
 # Adapted from FindGLEW.cmake available in the nvidia-texture-tools repository
 # (https://code.google.com/p/nvidia-texture-tools/source/browse/trunk/cmake/FindGLEW.cmake?r=96)
 
-if (GLEW_INCLUDE_DIRS AND GLEW_LIBRARY)
+if (GLEW_INCLUDE_DIRS AND GLEW_LIBRARY AND (NOT WIN32 OR GLEW_WIN_DLL))
   set(GLEW_FOUND TRUE)
 else ()
   if (WIN32)
@@ -32,7 +32,12 @@ else ()
   endif ()
 
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARY)
+  
+  if (WIN32)
+    find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARY GLEW_WIN_DLL)
+  else ()
+    find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARY)
+  endif()
   
   if (GLEW_FOUND)
     if (NOT GLEW_FIND_QUIETLY)

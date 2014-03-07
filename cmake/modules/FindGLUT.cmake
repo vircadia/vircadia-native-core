@@ -11,7 +11,7 @@
 # Adapted from FindGLUT.cmake available in tlorach's OpenGLText Repository
 # https://raw.github.com/tlorach/OpenGLText/master/cmake/FindGLUT.cmake
 
-if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES)
+if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES AND (NOT WIN32 OR GLUT_WIN_DLL))
   set(GLUT_FOUND TRUE)
 else ()
   if (WIN32)
@@ -71,7 +71,12 @@ else ()
   endif ()
 
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
+  
+  if (WIN32)
+    find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES GLUT_WIN_DLL)
+  else ()
+    find_package_handle_standard_args(GLUT DEFAULT_MSG GLUT_INCLUDE_DIR GLUT_LIBRARIES)
+  endif()
   
   if (GLUT_FOUND)
     if (NOT GLUT_FIND_QUIETLY)
