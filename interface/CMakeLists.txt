@@ -93,17 +93,6 @@ if (APPLE)
   endforeach()
 
   SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/interface.icns")
-elseif()
-  # remove and then copy the resources files beside the executable
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-  )
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${PROJECT_SOURCE_DIR}/resources"
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-  )
 endif()
 
 # create the executable, make it a bundle on OS X
@@ -212,21 +201,45 @@ if (APPLE)
         RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
     )
 else (APPLE)
-    find_package(OpenGL REQUIRED)
-    find_package(GLUT REQUIRED)
+  # remove and then copy the resources files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+  )
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${PROJECT_SOURCE_DIR}/resources"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+  )
     
-    include_directories(SYSTEM "${GLUT_INCLUDE_DIR}")
-    
-    if (${OPENGL_INCLUDE_DIR})
-      include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
-    endif ()
-    
-    target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
-    
-    # link target to external libraries
-    if (WIN32)
-        find_package(GLEW REQUIRED)
-        include_directories(${GLEW_INCLUDE_DIRS})
-        target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
-    endif()
+  find_package(OpenGL REQUIRED)
+  find_package(GLUT REQUIRED)
+  
+  include_directories(SYSTEM "${GLUT_INCLUDE_DIR}")
+  
+  if (${OPENGL_INCLUDE_DIR})
+    include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
+  endif ()
+  
+  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
+  
+  # link target to external libraries
+  if (WIN32)
+      find_package(GLEW REQUIRED)
+      include_directories(${GLEW_INCLUDE_DIRS})
+      target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
+      
+      # have CMake copy the dlls for GLUT and GLEW as a post build step
+      add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${GLUT_WIN_DLL}
+        $<TARGET_FILE_DIR:${TARGET_NAME}>
+      )
+      
+      add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${GLEW_WIN_DLL}
+        $<TARGET_FILE_DIR:${TARGET_NAME}>
+      )
+  endif()
 endif (APPLE)

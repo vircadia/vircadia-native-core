@@ -4,6 +4,7 @@
 # GLUT_FOUND
 # GLUT_INCLUDE_DIR
 # GLUT_LIBRARIES
+# GLUT_WIN_DLL - Optionally defined for Win32
 #
 #  Created on 2/6/2014 by Stephen Birarda
 # 
@@ -18,12 +19,11 @@ else ()
     find_path(GLUT_INCLUDE_DIR GL/glut.h PATH_SUFFIXES include HINTS ${WIN_GLUT_SEARCH_DIRS})
     
     if (CMAKE_CL_64)
-      set(WIN_ARCH_DIR "lib/x64")
-    else()
-      set(WIN_ARCH_DIR "lib")
+      set(WIN_ARCH_DIR "x64")
     endif()
     
-    find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES ${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
+    find_library(GLUT_glut_LIBRARY freeglut PATH_SUFFIXES lib/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
+    find_library(GLUT_WIN_DLL freeglut PATH_SUFFIXES bin/${WIN_ARCH_DIR} HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path(GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"

@@ -5,6 +5,7 @@
 # GLEW_FOUND
 # GLEW_INCLUDE_DIRS
 # GLEW_LIBRARY
+# GLEW_WIN_DLL
 # 
 
 #  Created on 2/6/2014 by Stephen Birarda
@@ -27,6 +28,7 @@ else ()
     endif()
 	
   	find_library(GLEW_LIBRARY glew32 PATH_SUFFIXES "lib/Release/${WIN_ARCH_DIR}" HINTS ${WIN_GLEW_SEARCH_DIRS})
+    find_library(GLEW_WIN_DLL glew32 PATH_SUFFIXES "bin/Release/${WIN_ARCH_DIR}" HINTS ${WIN_GLEW_SEARCH_DIRS})
   endif ()
 
   include(FindPackageHandleStandardArgs)
