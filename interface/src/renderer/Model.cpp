@@ -373,6 +373,24 @@ Extents Model::getStaticExtents() const {
     return scaledExtents;
 }
 
+bool Model::getJointState(int index, glm::quat& rotation) const {
+    if (index >= _jointStates.size()) {
+        return false;
+    }
+    rotation = _jointStates.at(index).rotation;
+    const glm::quat& defaultRotation = _geometry->getFBXGeometry().joints.at(index).rotation;
+    return glm::abs(rotation.x - defaultRotation.x) >= EPSILON ||
+        glm::abs(rotation.y - defaultRotation.y) >= EPSILON ||
+        glm::abs(rotation.z - defaultRotation.z) >= EPSILON ||
+        glm::abs(rotation.w - defaultRotation.w) >= EPSILON;
+}
+
+void Model::setJointState(int index, bool valid, const glm::quat& rotation) {
+    if (index < _jointStates.size()) {
+        _jointStates[index].rotation = valid ? rotation : _geometry->getFBXGeometry().joints.at(index).rotation;
+    }
+}
+
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }

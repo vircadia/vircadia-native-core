@@ -136,6 +136,12 @@ void Avatar::simulate(float deltaTime) {
     
     getHand()->simulate(deltaTime, false);
     _skeletonModel.setLODDistance(getLODDistance());
+    
+    // copy joint data to skeleton
+    for (int i = 0; i < _jointData.size(); i++) {
+        const JointData& data = _jointData.at(i);
+        _skeletonModel.setJointState(i, data.valid, data.rotation);
+    }
     glm::vec3 headPosition = _position;
     if (!_shouldRenderBillboard) {
         _skeletonModel.simulate(deltaTime);

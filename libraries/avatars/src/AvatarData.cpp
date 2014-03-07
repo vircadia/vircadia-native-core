@@ -156,10 +156,32 @@ QByteArray AvatarData::toByteArray() {
     
     // pupil dilation
     destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
-    
+
+    // joint data
+    *destinationBuffer++ = _jointData.size();
+    unsigned char validity = 0;
+    int validityBit = 0;
+    foreach (const JointData& data, _jointData) {
+        if (data.valid) {
+            validity |= (1 << validityBit);
+        }
+        if (++validityBit == BITS_IN_BYTE) {
+            *destinationBuffer++ = validity;
+            validityBit = validity = 0;
+        }
+    }
+    if (validityBit != 0) {
+        *destinationBuffer++ = validity;
+    }
+    foreach (const JointData& data, _jointData) {
+        if (data.valid) {
+            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+        }
+    }
+        
     // hand data
     destinationBuffer += HandData::encodeData(_handData, destinationBuffer);
-
+    
     return avatarDataByteArray.left(destinationBuffer - startPosition);
 }
 
@@ -263,6 +285,25 @@ int AvatarData::parseData(const QByteArray& packet) {
     
     // pupil dilation
     sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
+    
+    // joint data
+    int jointCount = *sourceBuffer++;
+    _jointData.resize(jointCount);
+    unsigned char validity;
+    int validityBit = 0;
+    for (int i = 0; i < jointCount; i++) {
+        if (validityBit == 0) {
+            validity = *sourceBuffer++;
+        }   
+        _jointData[i].valid = validity & (1 << validityBit);
+        validityBit = (validityBit + 1) % BITS_IN_BYTE; 
+    }
+    for (int i = 0; i < jointCount; i++) {
+        JointData& data = _jointData[i];
+        if (data.valid) {
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
+        }
+    }
     
     // hand data
     if (sourceBuffer - startPosition < packet.size()) {

@@ -33,6 +33,7 @@ typedef unsigned long long quint64;
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
+#include <QtCore/QVector>
 #include <QtCore/QVariantMap>
 #include <QRect>
 
@@ -69,6 +70,8 @@ enum KeyState {
 const glm::vec3 vec3Zero(0.0f);
 
 class QNetworkAccessManager;
+
+class JointData;
 
 class AvatarData : public NodeData {
     Q_OBJECT
@@ -136,6 +139,9 @@ public:
     //  Hand State
     void setHandState(char s) { _handState = s; }
     char getHandState() const { return _handState; }
+
+    const QVector<JointData>& getJointData() const { return _jointData; }
+    void setJointData(const QVector<JointData>& jointData) { _jointData = jointData; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -205,6 +211,8 @@ protected:
     //  Hand state (are we grabbing something or not)
     char _handState;
 
+    QVector<JointData> _jointData; ///< the state of the skeleton joints
+
     // key state
     KeyState _keyState;
 
@@ -233,6 +241,12 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+};
+
+class JointData {
+public:
+    bool valid;
+    glm::quat rotation;
 };
 
 #endif /* defined(__hifi__AvatarData__) */

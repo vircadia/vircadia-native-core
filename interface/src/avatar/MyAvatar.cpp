@@ -307,6 +307,13 @@ void MyAvatar::simulate(float deltaTime) {
 
     _skeletonModel.simulate(deltaTime);
 
+    // copy out the skeleton joints from the model
+    _jointData.resize(_skeletonModel.getJointStateCount());
+    for (int i = 0; i < _jointData.size(); i++) {
+        JointData& data = _jointData[i];
+        data.valid = _skeletonModel.getJointState(i, data.rotation);
+    }
+
     Head* head = getHead();
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
