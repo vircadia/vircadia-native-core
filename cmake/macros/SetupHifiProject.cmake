@@ -7,10 +7,10 @@ macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
   file(GLOB SRC_SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
   
   foreach(DIR ${SRC_SUBDIRS})
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/${DIR}")
+    if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/${DIR}")
       file(GLOB DIR_CONTENTS "src/${DIR}/*")
       set(TARGET_SRCS ${TARGET_SRCS} "${DIR_CONTENTS}")
-    endif()
+    endif ()
   endforeach()
   
   # add the executable, include additional optional sources
