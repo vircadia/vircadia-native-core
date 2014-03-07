@@ -7,7 +7,7 @@ NOTE: Without doing step 2, you will crash at program start time.
 1. Copy the Sixense sdk folders (lib, include) into the interface/external/Sixense folder. This readme.txt should be there as well.
     
    You may optionally choose to copy the SDK folders to a location outside the repository (so you can re-use with different checkouts and different projects).
-   If so our CMake find module expects you to set and ENV variable HIFI_LIB_DIR to a directory containing a subfolder 'sixense' that contains the folders mentioned above.
+   If so our CMake find module expects you to set the ENV variable 'HIFI_LIB_DIR' to a directory containing a subfolder 'sixense' that contains the folders mentioned above.
 
 2. IMPORTANT: Copy the file interface/external/Sixense/lib/osx_x64/release_dll/libsixense_x64.dylib to /usr/lib
 
