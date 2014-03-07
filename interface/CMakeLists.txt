@@ -28,17 +28,6 @@ elseif (WIN32)
     add_definitions( -D_USE_MATH_DEFINES ) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions( -DWINDOWS_LEAN_AND_MEAN ) # needed to make sure windows doesn't go to crazy with its defines
 
-    # windows build needs an external glut, we're using freeglut
-    set(GLUT_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/freeglut")
-    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${GLUT_ROOT_PATH}")
-
-    # windows build needs glew (opengl extention wrangler) this will handle providing access to OpenGL methods after 1.1
-    # which are not accessible on windows without glew or some other dynamic linking mechanism
-    set(GLEW_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/external/glew")
-    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${GLEW_ROOT_PATH}")
-    include_directories(SYSTEM "${GLEW_ROOT_PATH}/include" "${GLUT_ROOT_PATH}/include")
-
-    #set(GL_HEADERS "#define GLEW_STATIC\n#define FREEGLUT_STATIC\n#define FREEGLUT_LIB_PRAGMAS 0\n#include <GL/glew.h>\n#include <GL/wglew.h>\n#include <GL/freeglut_std.h>\n#include <GL/freeglut_ext.h>")
     set(GL_HEADERS "#define GLEW_STATIC\n#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
 endif ()
 
@@ -227,12 +216,12 @@ else (APPLE)
     find_package(GLUT REQUIRED)
     
     include_directories("${GLUT_INCLUDE_DIR}" "${OPENGL_INCLUDE_DIR}")
-    target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
+    target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}" "${GLUT_LIBRARIES}")
     
     # link target to external libraries
     if (WIN32)
         find_package(GLEW REQUIRED)
         include_directories(${GLEW_INCLUDE_DIRS})
-        target_link_libraries(${TARGET_NAME} "${GLUT_LIBRARY}" "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
+        target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARY}" wsock32.lib opengl32.lib)
     endif()
 endif (APPLE)
