@@ -5,11 +5,12 @@ Dependencies
 * [zLib](http://www.zlib.net/) ~> 1.2.8
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.0
 
-#####Linux & Windows only
+#####Linux only
 * [freeglut](http://freeglut.sourceforge.net/) ~> 2.8.0
 
 #####Windows only
 * [GLEW](http://glew.sourceforge.net/) ~> 1.10.0
+* [freeglut MSVC](http://www.transmissionzero.co.uk/software/freeglut-devel/) ~> 2.8.1
 
 CMake
 === 
@@ -93,11 +94,34 @@ NOTE: zLib should configure itself correctly on install. However, sometimes zLib
 ####External Libraries
 We don't currently have a Windows installer, so before running Interface, you will need to ensure that all required resources are loadable. 
 
-CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW. These are the associated variables you will want to set:
+CMake will need to know where the headers and libraries for required external dependencies are. If you installed ZLIB using the installer, the FindZLIB cmake module will be able to find it. This isn't the case for glm, freeglut, and GLEW. '
+
+You have the choice of setting a variable specific to each library, or having a folder using a defined structure that contains all of the libs.
+
+The recommended route is to place all of the dependencies in one place and set one ENV variable - HIFI_LIB_DIR. That ENV variable should point to a directory with the following structure
+
+    root_dir
+        -> glm
+            -> glm
+                -> glm.hpp
+        -> glew
+            -> include
+            -> lib
+        -> freeglut
+            -> include
+            -> lib
+
+For all three external libraries you should be able to simply copy the extracted folder that you get from the download links provided at the top of the guide.
+
+*NOTE: Be careful with glm. What other libraries would normally call 'include', a folder containing the headers, glm uses 'glm'. You will have a glm folder nested inside the top-level glm folder.*
+
+Should you want to define a location for each library, these are the associated variables you will want to set:
 
 `GLM_ROOT_DIR, GLUT_ROOT_DIR, GLEW_ROOT_DIR`
 
 They can be set in your ENV or by passing them to the cmake command on the command line. (There is an example of this in the CMake section earlier in this guide.)
+
+Each of those designates the root directory that contains the sub-folders for each library. For example, if the GLEW_ROOT_DIR is `C:\libs\glew`, then we would expect to find an `include` folder and a `lib` folder inside `C:\libs\glew`. 
 
 ####Building in Visual Studio
 Follow the same build steps from the CMake section, but pass a different generator to CMake.
