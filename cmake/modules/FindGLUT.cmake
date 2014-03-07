@@ -14,29 +14,16 @@ if (GLUT_INCLUDE_DIR AND GLUT_LIBRARIES)
   set(GLUT_FOUND TRUE)
 elseif()
   if (WIN32)
-      find_path( GLUT_INCLUDE_DIR GL/glut.h
-          "${GLUT_ROOT_DIR}/include"
-          "$ENV{GLUT_ROOT_DIR}/include"
-          "$ENV{HIFI_LIB_DIR}/freeglut/include"
-          "${OPENGL_INCLUDE_DIR}"
-          DOC "The directory where GL/glut.h resides")
-      if(ARCH STREQUAL "x86")
-        find_library( GLUT_glut_LIBRARY
-          NAMES freeglut
-          PATHS
-          "${GLUT_ROOT_DIR}/lib"
-          "$ENV{GLUT_ROOT_DIR}/lib"
-          "$ENV{HIFI_LIB_DIR}/freeglut/lib"
-          DOC "The GLUT library")
-      else()
-        find_library( GLUT_glut_LIBRARY
-          NAMES freeglut
-          PATHS
-          "${GLUT_ROOT_DIR}/lib/x64"
-          "$ENV{GLUT_ROOT_DIR}/lib/x64"
-          "$ENV{HIFI_LIB_DIR}/freeglut/lib/x64"
-          DOC "The GLUT library")
-      endif()
+    set(WIN_GLUT_SEARCH_DIRS "${GLUT_ROOT_DIR}" "$ENV{GLUT_ROOT_DIR}" "$ENV{HIFI_LIB_DIR}/freeglut/" "${OPENGL_INCLUDE_DIR}")
+    find_path(GLUT_INCLUDE_DIR include/GL/glut.h HINTS ${WIN_GLUT_SEARCH_DIRS})
+    
+    if (CMAKE_CL_64)
+      set(WIN_ARCH_DIR "lib/x64")
+    else()
+      set(WIN_ARCH_DIR "lib")
+    endif()
+    
+    find_library(GLUT_glut_LIBRARY NAMES "${WIN_ARCH_DIR}/freeglut" HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
       find_path( GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"
