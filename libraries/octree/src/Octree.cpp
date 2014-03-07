@@ -222,10 +222,8 @@ int Octree::readNodeData(OctreeElement* destinationNode, const unsigned char* no
             }
 
             OctreeElement* childNodeAt = destinationNode->getChildAtIndex(i);
-            bool nodeWasDirty = false;
             bool nodeIsDirty = false;
             if (childNodeAt) {
-                nodeWasDirty = childNodeAt->isDirty();
                 bytesRead += childNodeAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
                 childNodeAt->setSourceUUID(args.sourceUUID);
 
