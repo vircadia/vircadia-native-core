@@ -25,7 +25,7 @@ elseif()
     
     find_library(GLUT_glut_LIBRARY "${WIN_ARCH_DIR}/freeglut.lib" HINTS ${WIN_GLUT_SEARCH_DIRS})
   else ()
-      find_path( GLUT_INCLUDE_DIR GL/glut.h
+      find_path(GLUT_INCLUDE_DIR GL/glut.h
           "${GLUT_LOCATION}/include"
           "$ENV{GLUT_LOCATION}/include"
           /usr/include
@@ -67,15 +67,7 @@ elseif()
   if(GLUT_INCLUDE_DIR AND GLUT_glut_LIBRARY)
     # Is -lXi and -lXmu required on all platforms that have it?
     # If not, we need some way to figure out what platform we are on.
-    set(GLUT_LIBRARIES
-      ${GLUT_glut_LIBRARY}
-      ${GLUT_Xmu_LIBRARY}
-      ${GLUT_Xi_LIBRARY}
-    )
-    set(GLUT_FOUND TRUE)
-
-    set(GLUT_LIBRARY ${GLUT_LIBRARIES})
-    set(GLUT_INCLUDE_PATH ${GLUT_INCLUDE_DIR})
+    set(GLUT_LIBRARIES ${GLUT_glut_LIBRARY} ${GLUT_Xmu_LIBRARY} ${GLUT_Xi_LIBRARY})
   endif ()
 
   include(FindPackageHandleStandardArgs)
@@ -84,7 +76,7 @@ elseif()
   
   if (GLUT_FOUND)
     if (NOT GLUT_FIND_QUIETLY)
-      message(STATUS "Found GLUT: ${GLUT_LIBRARY}")
+      message(STATUS "Found GLUT: ${GLUT_LIBRARIES}")
     endif ()
   else ()
     if (GLUT_FIND_REQUIRED)
